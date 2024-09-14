@@ -1,0 +1,41 @@
+# Temporary OS files
+.DS_Store
+thumbs.db
+desktop.ini
+
+.vs/
+.vscode/
+.cmake/
+
+# CMake build files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# VSCode CMake extension
+compile_commands.json
+
+# CMake Windows build files
+*.sln
+*.vcxproj*
+*.lib
+*.dll
+*.exe
+*.ilk
+*.pdb
+Debug/
+MinSizeRel/
+Release/
+RelWithDebInfo/
+
+# CMake Xcode build files
+/build/
+CMakeScripts/
+*.xcodeproj
+
+# CMake Makefile build files
+Makefile
+*.a
+*.dylib
+*.so
+WoW/Wow

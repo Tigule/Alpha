@@ -1,0 +1,17 @@
+---
+BasedOnStyle: Chromium
+ColumnLimit: 150
+IndentWidth: 2
+Language: Cpp
+AlignAfterOpenBracket: BlockIndent
+AlignArrayOfStructures: Right
+AlignConsecutiveMacros: true
+AlignConsecutiveDeclarations: true
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: None
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: MultiLine
+NamespaceIndentation: All
+PointerAlignment: Right

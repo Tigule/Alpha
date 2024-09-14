@@ -1,0 +1,120 @@
+name: Build Projects
+
+on:
+  push:
+    paths:
+      - '.github/workflows/build.yml'
+      - '**.c'
+      - '**.cpp'
+      - '**.h'
+      - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+
+  workflow_dispatch:
+
+jobs:
+  windows-vc6:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - uses: suisei-cn/actions-download-file@v1
+        name: Download Visual C++ 6.0
+        with:
+          url: "https://tigule.org/files/ci/VC6.zip"
+
+      - name: Extract Visual C++ 6.0
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: VC6.zip
+          extract_dir: VC6
+
+      - name: Replace VCVARS32 absolute paths
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: 'VC6/VC98/Bin/VCVARS32.BAT'
+          search-text: 'set VSCommonDir=C:\PROGRA~2\Microsoft Visual Studio 6.0\Common'
+          replacement-text: 'set VSCommonDir=${{ github.workspace }}\VC6\Common'
+
+      - name: Replace VCVARS32 absolute paths
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: 'VC6/VC98/Bin/VCVARS32.BAT'
+          search-text: 'set MSDevDir=C:\PROGRA~2\Microsoft Visual Studio 6.0\Common\msdev98'
+          replacement-text: 'set MSDevDir=${{ github.workspace }}\VC6\Common\MSDev98'
+
+      - name: Replace VCVARS32 absolute paths
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: 'VC6/VC98/Bin/VCVARS32.BAT'
+          search-text: 'set MSVCDir=C:\PROGRA~2\Microsoft Visual Studio 6.0\VC98'
+          replacement-text: 'set MSVCDir=${{ github.workspace }}\VC6\VC98'
+
+      - name: Build solution
+        shell: cmd
+        run: |
+          call "VC6\VC98\Bin\VCVARS32.BAT"
+          cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" .
+          nmake
+
+      - name: Upload executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-legacy
+          path: |
+            WoW/UpdateClient.exe
+            WoW/Wow.exe
+            WoW/WowError.exe
+            WoW/WowUpdateHelper.exe
+
+  windows-vs2022:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build solution
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 17 2022" -A Win32 .
+          msbuild BuildWoW.sln /p:Configuration=Release /p:Platform=Win32
+
+      - name: Upload executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-latest
+          path: |
+            WoW/Release/UpdateClient.exe
+            WoW/Release/Wow.exe
+            WoW/Release/WowError.exe
+            WoW/Release/WowHook.dll
+            WoW/Release/WowUpdateHelper.exe
+
+  mac-and-ubuntu:
+    name: ${{matrix.os}}
+    runs-on: ${{matrix.os}}
+
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build solution
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=Release .
+          make
+
+      - name: Upload executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.os}}
+          path: |
+            WoW/Wow

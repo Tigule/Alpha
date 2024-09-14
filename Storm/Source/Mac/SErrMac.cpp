@@ -1,0 +1,34 @@
+// SErrSetLogCallback
+// SErrGetLogLastPath
+// SErrPrepareAppFatal
+// SErrDisplayAppFatal
+// SErrSetLastError
+// SErrDisplayError
+// SErrDisplayErrorFmt
+// SErrGetErrorStr
+// SErrGetLastError
+// SErrIsDisplayingError
+// SErrCatchUnhandledExceptions
+// SErrReportResourceLeak
+// SErrReportNamedResourceLeak
+// SErrSetLogTitleString
+// SErrSetAppCommand
+// SErrInitialize
+// SErrDestroy
+// SErrRegisterHandler
+// SErrMacSetAssertOptions
+// SErrMacGetAssertOptions
+
+// Windows only:
+// SErrCheckDebugSymbolLibrary
+// SErrRegisterMessageSource
+// SErrSupressErrors
+// SErrUnregisterHandler
+// SErrRegisterThread
+// SErrUnregisterThread
+// SErrLogRegisteredThreads
+// SErrLogThreads
+// SErrStartWatchdog
+// SErrResumeWatchdog
+// SErrStopWatchdog
+// SErrPingWatchdog
