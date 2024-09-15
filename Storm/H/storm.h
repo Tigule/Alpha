@@ -154,7 +154,7 @@ typedef struct _SMEMHEAPDETAILS2 {
 
 extern "C" LPVOID APIENTRY SMemAlloc(DWORD bytes, LPCSTR filename = NULL, int linenumber = 0, DWORD flags = 0);
 extern "C" BOOL APIENTRY   SMemDestroy();
-// extern "C" void APIENTRY SMemDumpState(void *outputproc, HOUTPUTCONTEXT outputcontext);
+extern "C" void APIENTRY   SMemDumpState(void *outputproc, HOUTPUTCONTEXT outputcontext);
 extern "C" BOOL APIENTRY   SMemDumpStateEx(...);
 BOOL APIENTRY              SMemMarkAllHeapsEx(...);
 extern "C" BOOL APIENTRY   SMemFindNextBlock(HSHEAP heap, LPVOID prevblock, LPVOID *nextblock, LPSMEMBLOCKDETAILS details);
@@ -178,23 +178,23 @@ extern "C" LPVOID APIENTRY SMemReAlloc(LPVOID ptr, DWORD bytes, LPCSTR filename,
 extern "C" void APIENTRY   SMemSetDebugFlags(DWORD flags, DWORD changeMask);
 extern "C" void APIENTRY   SMemTrace(LPCSTR format);
 
-inline void __cdecl operator delete(void *ptr) {
+inline void operator delete(void *ptr) {
   if (ptr) {
     SMemFree(ptr, __FILE__, __LINE__, 0);
   }
 }
 
-inline void *__cdecl operator new(size_t bytes) {
+inline void *operator new(size_t bytes) {
   return SMemAlloc(bytes, __FILE__, __LINE__, 0);
 }
 
-inline void __cdecl operator delete[](void *ptr) {
+inline void operator delete[](void *ptr) {
   if (ptr) {
     SMemFree(ptr, __FILE__, __LINE__, 0);
   }
 }
 
-inline void *__cdecl operator new[](size_t bytes) {
+inline void *operator new[](size_t bytes) {
   return SMemAlloc(bytes, __FILE__, __LINE__, 0);
 }
 
