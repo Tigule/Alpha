@@ -174,29 +174,34 @@ extern "C" LPVOID APIENTRY SMemHeapReAlloc(HSHEAP handle, DWORD flags, LPVOID pt
 extern "C" DWORD APIENTRY  SMemHeapSize(HSHEAP handle, DWORD flags, LPDWORD ptr);
 extern "C" void APIENTRY   SMemInitialize();
 extern "C" BOOL APIENTRY   SMemIsValidPointer(LPDWORD address, DWORD size, BOOL forWriting);
-extern "C" LPVOID APIENTRY SMemReAlloc(LPVOID ptr, DWORD bytes, LPCSTR filename, int linenumber, DWORD flags);
+extern "C" LPVOID APIENTRY SMemReAlloc(LPVOID ptr, DWORD bytes, LPCSTR filename = NULL, int linenumber = 0, DWORD flags = 0);
 extern "C" void APIENTRY   SMemSetDebugFlags(DWORD flags, DWORD changeMask);
 extern "C" void APIENTRY   SMemTrace(LPCSTR format);
 
-inline void operator delete(void *ptr) {
+// todo: figure out how to overload these in modern compilers
+#if 0
+// these were all inline __cdecl originally
+
+void operator delete(void *ptr) {
   if (ptr) {
     SMemFree(ptr, __FILE__, __LINE__, 0);
   }
 }
 
-inline void *operator new(size_t bytes) {
+void *operator new(size_t bytes) {
   return SMemAlloc(bytes, __FILE__, __LINE__, 0);
 }
 
-inline void operator delete[](void *ptr) {
+void operator delete[](void *ptr) {
   if (ptr) {
     SMemFree(ptr, __FILE__, __LINE__, 0);
   }
 }
 
-inline void *operator new[](size_t bytes) {
+void *operator new[](size_t bytes) {
   return SMemAlloc(bytes, __FILE__, __LINE__, 0);
 }
+#endif
 
 #define ALLOC(bytes)     SMemAlloc(bytes, __FILE__, __LINE__, 0)
 #define ALLOCZERO(bytes) SMemAlloc(bytes, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY)
