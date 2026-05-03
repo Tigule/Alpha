@@ -5,14 +5,12 @@ This project has 3 goals: to **understand and document**, **recompile**, and **p
 The significance of this build is because it includes pdb/map files for its Windows executables **and it's the earliest patch we have currently**.
 </div>
 
-To accomplish these goals we're rewriting every function in the original `WoWClient.exe`, and loading these replacements at runtime using Detours. With this approach the game client will stay playable while we work towards complete coverage.
-
 Cross-platform support is a secondary goal after producing a functional Windows client. We can source functions from **0.5.5 (build 3494)** (OS X) and **0.7.0 (build 3694)** (Linux). The result would be an approximation of a cross-platform 0.5.3 client however we can't confirm what's authentic for the time.
 
 When this project is complete we should have ~400k lines of code and 22k+ functions in this repo. These figures are based on information from the original client.
 
 > [!IMPORTANT]
-> I can't provide a link to the original install disc, try checking Google/archive.org for `"World of Warcraft Alpha 0.5.3 3368"`
+> I won't provide a link to the original install disc - try checking Google/archive.org for `"World of Warcraft Alpha 0.5.3 3368"`
 
 ## Contribution Guide
 
@@ -47,7 +45,7 @@ Inside the Build folder there are several scripts:
 - `xcode-setup.sh`: Have CMake produce an Xcode project targeting native macOS.
 - `native-setup.sh`: Have CMake produce Makefiles targeting your default toolchain.
 - `mingw-setup.sh`: Have CMake produce Makefiles targeting MinGW.
-- `vc6-wine-setup.bat`: Have CMake produce NMake makefiles for Visual C++ 6.0. Intended to run using `wine <bat file>`. Visual C++ 6.0 must be installed to your `drive_c` folder as `C:\VS6`. **There is some extra delay when setting up/building in wine.**
+- `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take several minutes the first time.**
 
 ### Linux
 
@@ -57,7 +55,7 @@ Inside the Build folder there are several scripts:
 Inside the Build folder there are a few scripts:
 - `native-setup.sh`: Have CMake produce Makefiles targeting your default toolchain.
 - `mingw-setup.sh`: Have CMake produce Makefiles targeting MinGW.
-- `vc6-wine-setup.bat`: Have CMake produce NMake makefiles for Visual C++ 6.0. Intended to run using `wine <bat file>`. Visual C++ 6.0 must be installed to your `drive_c` folder as `C:\VS6`. **There is some extra delay when setting up/building in wine.**
+- `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take several minutes the first time.**
 
 ## Running
 
@@ -66,6 +64,8 @@ You can copy everything in your game client folder to `WoW/Client/` to keep trac
 The original game client was meant to use a launcher so you have to pass `-uptodate` if you launch it directly, and be sure to create a file in the same folder called `wow.ses` containing your username/password on separate lines.
 
 ### Hook
+
+To accomplish these goals we're rewriting every function in the original `WoWClient.exe`, and loading these replacements at runtime using Detours. With this approach the game client will stay playable while we work towards complete coverage.
 
 The hook can run in two ways, either by proxying fmod.dll calls so it gets loaded on startup *or* through injection (use whatever injector you want). The first method is more reliable and recommended.
 
@@ -76,7 +76,7 @@ To set up the dll proxy
 
 ### Standalone
 
-This will be in an incomplete state until the hook covers a majority of critical functions.
+This will be in an incomplete state until the project covers a majority of critical functions.
 
 1. Set your working directory to the `WoW/Client/` folder.
 2. Run the `Wow` project.
