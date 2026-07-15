@@ -28,11 +28,12 @@ Firstly, you'll need to install CMake no matter what OS you're on: [cmake.org](h
 ### Windows
 
 > [!TIP]
-> This has been tested with [Visual Studio 2022](https://visualstudio.microsoft.com/vs/).  
+> This has been tested with [Visual Studio 2026](https://visualstudio.microsoft.com/vs/).  
 
 Older Visual Studio versions are untested and depending how far back you go, may have incompatibilities with newer CMake. The codebase should work anyways. Good luck if you go that route!
 
 Inside the Build folder there are a couple scripts:
+- `vs2026-setup.bat`: Have CMake produce a Visual Studio 2026 solution.
 - `vs2022-setup.bat`: Have CMake produce a Visual Studio 2022 solution.
 - `vc6-setup.bat`: Have CMake produce NMake makefiles for Visual C++ 6.0. Visual C++ 6.0 must be installed to `C:\Program Files (x86)\Microsoft Visual Studio 6.0\`
 
@@ -61,7 +62,11 @@ Inside the Build folder there are a few scripts:
 
 You can copy everything in your game client folder to `WoW/Client/` to keep track of things easily. The instructions here are written with this as an example path.
 
-The original game client was meant to use a launcher so you have to pass `-uptodate` if you launch it directly, and be sure to create a file in the same folder called `wow.ses` containing your username/password on separate lines.
+The original game client was meant to use a launcher so you have to pass `-uptodate` when you run it directly.  
+Be sure to create a file in the same folder called `wow.ses` containing your username/password on separate lines.
+
+> [!TIP]
+> macOS users may have more success using Parallels rather than Wine.
 
 ### Standalone
 
