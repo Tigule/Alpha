@@ -9,6 +9,7 @@ on:
       - '**.h'
       - 'CMakeLists.txt'
       - '**/CMakeLists.txt'
+      - 'tools/**'
 
   workflow_dispatch:
 
@@ -20,10 +21,10 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v7
 
-      - uses: suisei-cn/actions-download-file@v1
-        name: Download Visual C++ 6.0
-        with:
-          url: "https://tigule.org/files/ci/VC6.zip"
+      - name: Download Visual C++ 6.0
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/VC6.zip" -OutFile "VC6.zip"
 
       - name: Extract Visual C++ 6.0
         uses: ihiroky/extract-action@v1
@@ -56,7 +57,8 @@ jobs:
         shell: cmd
         run: |
           call "VC6\VC98\Bin\VCVARS32.BAT"
-          cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" .
+          cd Build
+          cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" ..
           nmake
 
       - name: Upload executables
@@ -64,7 +66,26 @@ jobs:
         with:
           name: windows-legacy
           path: |
-            WoW/UpdateClient.exe
-            WoW/Wow.exe
-            WoW/WowError.exe
-            WoW/WowUpdateHelper.exe
+            Build/WoW/UpdateClient.exe
+            Build/WoW/Wow.exe
+            Build/WoW/WowError.exe
+            Build/WoW/WowUpdateHelper.exe
+
+      - name: Download validation references
+        shell: pwsh
+        run: |
+          $base = "https://tigule.org/archive/wow/3368-0.5.3/Win32"
+          New-Item -ItemType Directory -Force -Path "WoW/Client/MapFiles" | Out-Null
+          Invoke-WebRequest "$base/WoWClient.exe" -OutFile "WoW/Client/WoWClient.exe"
+          Invoke-WebRequest "$base/Wowae.pdb" -OutFile "WoW/Client/Wowae.pdb"
+          Invoke-WebRequest "$base/MapFiles/Wowae.map" -OutFile "WoW/Client/MapFiles/Wowae.map"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Run validation
+        shell: pwsh
+        run: |
+          python Build/validate.py
