@@ -33,3 +33,7 @@ target_include_directories(FreeType
     PUBLIC
     include
 )
+
+if(MSVC)
+    target_compile_options(FreeType PRIVATE /Gr)
+endif()

@@ -75,3 +75,7 @@ target_include_directories(Storm
 )
 
 target_link_libraries(Storm Zlib)
+
+if(MSVC)
+    target_compile_options(Storm PRIVATE /Gr)
+endif()

@@ -10,3 +10,9 @@ add_library(Zlib STATIC
     trees.c
     zutil.c
 )
+
+target_compile_definitions(Zlib PRIVATE Z_PREFIX)
+
+if(MSVC)
+    target_compile_options(Zlib PRIVATE /Gr)
+endif()

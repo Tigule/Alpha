@@ -28,3 +28,7 @@ target_include_directories(lua
     PUBLIC
     include
 )
+
+if(MSVC)
+    target_compile_options(lua PRIVATE /Gr)
+endif()

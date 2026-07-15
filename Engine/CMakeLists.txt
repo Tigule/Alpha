@@ -205,3 +205,7 @@ target_include_directories(Engine
 )
 
 target_link_libraries(Engine Storm Expat FreeType lua)
+
+if(MSVC)
+    target_compile_options(Engine PRIVATE /Gr)
+endif()

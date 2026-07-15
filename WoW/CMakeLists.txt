@@ -331,6 +331,14 @@ elseif(UNIX)
     )
 endif()
 
+if(MSVC)
+    foreach(target WowShared Wow UpdateClient WowError WowUpdateHelper)
+        if(TARGET ${target})
+            target_compile_options(${target} PRIVATE /Gr)
+        endif()
+    endforeach()
+endif()
+
 target_link_libraries(Wow WowShared)
 
 # --------------------------------

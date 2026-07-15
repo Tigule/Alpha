@@ -150,8 +150,13 @@
 
 
   /* compare two kerning pairs */
-  static
-  int  compare_kern_pairs( const void*  a,
+#if defined(_MSC_VER)
+//tigule-todo: come back here eventually
+  static int __cdecl
+#else
+  static int
+#endif
+  compare_kern_pairs( const void*  a,
                            const void*  b )
   {
     CID_Kern_Pair*  pair1 = (CID_Kern_Pair*)a;
