@@ -47,6 +47,7 @@ Inside the Build folder there are several scripts:
 - `native-setup.sh`: Have CMake produce Makefiles targeting your default toolchain.
 - `mingw-setup.sh`: Have CMake produce Makefiles targeting MinGW.
 - `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take several minutes the first time.**
+- `wine-crossover.sh`: Calls wine.sh using CrossOver's wine prefix.
 
 ### Linux
 

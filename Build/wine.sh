@@ -5,7 +5,21 @@ VC6_URL="https://tigule.org/files/ci/VC6.zip"
 CMAKE_URL="https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.msi"
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-WINEPREFIX=${WINEPREFIX:-"$HOME/.wine"}
+CROSSOVER_BOTTLE=${CROSSOVER_BOTTLE:-}
+if [ -z "${CROSSOVER_ROOT:-}" ]; then
+    if [ -d "$HOME/Applications/CrossOver.app" ]; then
+        CROSSOVER_ROOT="$HOME/Applications/CrossOver.app/Contents/SharedSupport/CrossOver"
+    else
+        CROSSOVER_ROOT="/Applications/CrossOver.app/Contents/SharedSupport/CrossOver"
+    fi
+fi
+if [ -n "$CROSSOVER_BOTTLE" ]; then
+    WINEPREFIX=${WINEPREFIX:-"$HOME/Library/Application Support/CrossOver/Bottles/$CROSSOVER_BOTTLE"}
+    WINE="$CROSSOVER_ROOT/bin/wine"
+else
+    WINEPREFIX=${WINEPREFIX:-"$HOME/.wine"}
+    WINE=wine
+fi
 DRIVE_C="$WINEPREFIX/drive_c"
 CACHE_DIR=${XDG_CACHE_HOME:-"$HOME/.cache"}
 CACHE_DIR="$CACHE_DIR/tigule-alpha-wine"
@@ -34,6 +48,8 @@ Commands:
 
 Environment:
   WINEPREFIX  Wine prefix to use (default: $HOME/.wine)
+  CROSSOVER_BOTTLE  Use CrossOver's named bottle instead of Wine
+  CROSSOVER_ROOT  CrossOver installation root
   WOW_EXE  Wow.exe path (default: <repo>/Build/WoW/Wow.exe)
 EOF
 }
@@ -43,8 +59,16 @@ require_command() {
 }
 
 require_wine_prefix() {
-    require_command wine
+    [ -x "$WINE" ] || die "Wine runner was not found: $WINE"
     [ -d "$DRIVE_C" ] || die "Wine prefix is not initialized: $DRIVE_C"
+}
+
+run_wine() {
+    if [ -n "$CROSSOVER_BOTTLE" ]; then
+        "$WINE" --bottle "$CROSSOVER_BOTTLE" "$@"
+    else
+        "$WINE" "$@"
+    fi
 }
 
 download() {
@@ -98,9 +122,8 @@ install_cmake() {
     fi
 
     download "$CMAKE_URL" "$cmake_msi"
-    require_command winepath
-
-    WINEDEBUG=-all wine msiexec /i "$(winepath -w "$cmake_msi")" /qn /norestart
+    cmake_msi_win=$(run_wine winepath.exe -w "$cmake_msi")
+    WINEDEBUG=-all run_wine msiexec /i "$cmake_msi_win" /qn /norestart
 
     [ -f "$CMAKE_EXE_UNIX" ] || die "CMake installer completed, but $CMAKE_EXE_UNIX was not found"
 }
@@ -113,7 +136,6 @@ install() {
 
 require_toolchain() {
     require_wine_prefix
-    require_command winepath
     [ -f "$VCVARS_BAT" ] || die "VC6 is not installed. Run: $(basename "$0") install"
     [ -f "$CMAKE_EXE_UNIX" ] || die "CMake is not installed in Wine. Run: $(basename "$0") install"
 }
@@ -124,8 +146,8 @@ run_vc6_cmd() {
     tmp_bat=$(mktemp "${TMPDIR:-/tmp}/tigule-alpha-wine.XXXXXX.bat")
     trap 'rm -f "$tmp_bat"' EXIT HUP INT TERM
 
-    build_dir_win=$(winepath -w "$SCRIPT_DIR")
-    tmp_bat_win=$(winepath -w "$tmp_bat")
+    build_dir_win=$(run_wine winepath.exe -w "$SCRIPT_DIR")
+    tmp_bat_win=$(run_wine winepath.exe -w "$tmp_bat")
 
     {
         printf '@echo off\r\n'
@@ -138,7 +160,7 @@ run_vc6_cmd() {
     } > "$tmp_bat"
 
     status=0
-    WINEDEBUG=-all wine cmd /c "$tmp_bat_win" || status=$?
+    WINEDEBUG=-all run_wine cmd /c "$tmp_bat_win" || status=$?
     rm -f "$tmp_bat"
     trap - EXIT HUP INT TERM
     return "$status"
@@ -160,7 +182,7 @@ run() {
     client_exe=$client_dir/$(basename "$WOW_EXE")
 
     cd "$client_dir"
-    WINEDEBUG=-all wine "$client_exe" "$@"
+    WINEDEBUG=-all run_wine "$client_exe" "$@"
 }
 
 case "${1:-}" in
