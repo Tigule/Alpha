@@ -18,17 +18,3 @@
 // SErrRegisterHandler
 // SErrMacSetAssertOptions
 // SErrMacGetAssertOptions
-
-// Windows only:
-// SErrCheckDebugSymbolLibrary
-// SErrRegisterMessageSource
-// SErrSupressErrors
-// SErrUnregisterHandler
-// SErrRegisterThread
-// SErrUnregisterThread
-// SErrLogRegisteredThreads
-// SErrLogThreads
-// SErrStartWatchdog
-// SErrResumeWatchdog
-// SErrStopWatchdog
-// SErrPingWatchdog

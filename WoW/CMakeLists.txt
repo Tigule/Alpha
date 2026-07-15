@@ -357,35 +357,4 @@ if(WIN32)
     )
 
     target_link_libraries(WowUpdateHelper Storm)
-
-    # --------------------------------
-
-    if(WOWHOOK)
-        add_subdirectory(Source/WowHook/Detours)
-
-        add_library(WowHook SHARED
-            Source/WowHook/WowHookDll.cpp
-        )
-
-        if(MSVC)
-            target_link_options(WowHook PRIVATE 
-                /DEF:${CMAKE_CURRENT_SOURCE_DIR}/Source/WowHook/fmod.def
-            )
-        elseif(MINGW)
-            target_sources(WowHook PRIVATE
-                ${CMAKE_CURRENT_SOURCE_DIR}/Source/WowHook/fmod.def
-            )
-        endif()
-
-        target_link_libraries(WowHook WowShared Detours)
-
-        # append detours to libraries we want to take over
-        target_link_libraries(Storm Detours)
-        target_link_libraries(Engine Detours)
-        target_link_libraries(WowShared Detours)
-
-        target_sources(WowShared PRIVATE
-            Source/WowHook/WowHook.cpp
-        )
-    endif()
 endif()

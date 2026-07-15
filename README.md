@@ -63,17 +63,6 @@ You can copy everything in your game client folder to `WoW/Client/` to keep trac
 
 The original game client was meant to use a launcher so you have to pass `-uptodate` if you launch it directly, and be sure to create a file in the same folder called `wow.ses` containing your username/password on separate lines.
 
-### Hook
-
-To accomplish these goals we're rewriting every function in the original `WoWClient.exe`, and loading these replacements at runtime using Detours. With this approach the game client will stay playable while we work towards complete coverage.
-
-The hook can run in two ways, either by proxying fmod.dll calls so it gets loaded on startup *or* through injection (use whatever injector you want). The first method is more reliable and recommended.
-
-To set up the dll proxy
-1. Rename the original `WoW/Client/fmod.dll` to `WoW/Client/fmod2.dll`
-2. Copy `WoW/WowHook.dll` to `WoW/Client/fmod.dll`
-3. Start `WoW/Client/WoWClient.exe -uptodate`
-
 ### Standalone
 
 This will be in an incomplete state until the project covers a majority of critical functions.

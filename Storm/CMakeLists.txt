@@ -40,12 +40,6 @@ if(WIN32)
         Source/SRtl.cpp
         Source/Storm.cpp
     )
-
-    if(WOWHOOK)
-        target_sources(Storm PRIVATE
-            Source/StormHook.cpp
-        )
-    endif()
 elseif(APPLE)
     target_sources(Storm PRIVATE
         Source/SMemMalloc.cpp

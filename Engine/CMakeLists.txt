@@ -197,12 +197,6 @@ if (WIN32)
         Source/Os/W32/Errors.cpp
         Source/Os/W32/Time.cpp
     )
-
-    if(WOWHOOK)
-        target_sources(Engine PRIVATE
-            Source/Base/EngineHook.cpp
-        )
-    endif()
 endif()
 
 target_include_directories(Engine

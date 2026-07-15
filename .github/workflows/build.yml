@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - uses: suisei-cn/actions-download-file@v1
         name: Download Visual C++ 6.0
@@ -74,7 +74,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1
@@ -92,7 +92,6 @@ jobs:
             WoW/Release/UpdateClient.exe
             WoW/Release/Wow.exe
             WoW/Release/WowError.exe
-            WoW/Release/WowHook.dll
             WoW/Release/WowUpdateHelper.exe
 
   mac-and-ubuntu:
@@ -106,7 +105,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build solution
         run: |
