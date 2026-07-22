@@ -1,0 +1,302 @@
+#include "GameUI.h"
+
+#include "DB/DBClient/DBCacheInstances.h"
+#include "DB/DBClient/DBClient.h"
+#include "DB/WowLocale.h"
+#include "Object/ItemStats.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "UIUtil/Cursor.h"
+
+#include <FrameScript/FrameScript.h>
+
+#include <lauxlib.h>
+#include <lua.h>
+#include <storm.h>
+#include <string.h>
+
+void __fastcall CursorModelSetSequence(CURSORANIMATIONS sequence);
+
+static const float MAX_SHOP_DISTANCE = 5.5555553f;
+static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
+
+struct VendorItem {
+  unsigned int m_muid;
+  unsigned int m_itemType;
+  unsigned int m_itemDisplayID;
+  int          m_quantity;
+  int          m_price;
+  int          m_durability;
+  int          m_stackCount;
+};
+
+class CGMerchantInfo {
+ public:
+  static void __fastcall             EnterWorld();
+  static void __fastcall             LeaveWorld();
+  static void __fastcall             SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count);
+  static unsigned __int64 __fastcall GetMerchant();
+  static void __fastcall             CloseMerchant();
+  static void __fastcall             UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity);
+  static int __fastcall              GetNumItems() {
+    return m_itemCount;
+  }
+  static VendorItem *__fastcall GetItem(int index) {
+    return index >= 0 && index < m_itemCount ? &m_items[index] : 0;
+  }
+  static const ItemStats *__fastcall GetItemStats(unsigned int itemID);
+  static void __fastcall             DecrementCallbackCount();
+
+ protected:
+  static unsigned __int64 m_merchant;
+  static VendorItem       m_items[128];
+  static int              m_itemCount;
+  static unsigned int     m_callbackCount;
+};
+
+unsigned __int64 CGMerchantInfo::m_merchant;
+VendorItem       CGMerchantInfo::m_items[128];
+int              CGMerchantInfo::m_itemCount;
+unsigned int     CGMerchantInfo::m_callbackCount;
+
+void __fastcall CGMerchantInfo::EnterWorld() {
+  memset(m_items, 0, sizeof(m_items));
+  m_merchant = 0;
+  m_itemCount = 0;
+}
+
+void __fastcall CGMerchantInfo::LeaveWorld() {
+  CloseMerchant();
+}
+
+unsigned __int64 __fastcall CGMerchantInfo::GetMerchant() {
+  return m_merchant;
+}
+
+void __fastcall MerchantItemStatsCallback(int, const unsigned __int64 &, void *, bool) {
+  CGMerchantInfo::DecrementCallbackCount();
+}
+
+void __fastcall CGMerchantInfo::SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count) {
+  if (m_itemCount) {
+    for (int index = 0; index < 128; ++index) {
+      if (m_items[index].m_itemType) {
+        g_itemDBCache.CancelCallback(m_items[index].m_itemType, MerchantItemStatsCallback, 0);
+      }
+    }
+  }
+
+  CGGameUI::SetInteractTarget(merchantGUID, MAX_SHOP_DISTANCE_SQUARED);
+  m_merchant = merchantGUID;
+  memset(m_items, 0, sizeof(m_items));
+  memcpy(m_items, items, sizeof(VendorItem) * count);
+  m_itemCount = count;
+  m_callbackCount = 0;
+  FrameScript_SignalEvent(293);
+}
+
+void __fastcall CGMerchantInfo::CloseMerchant() {
+  if (m_merchant) {
+    FrameScript_SignalEvent(295);
+    CGGameUI::ClearInteractTarget(m_merchant);
+    m_merchant = 0;
+    m_itemCount = 0;
+    if (CGGameUI::GetCursorVirtualItem()) {
+      CGGameUI::ClearCursor(1);
+    }
+  }
+}
+
+void __fastcall CGMerchantInfo::UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity) {
+  if (vendor == m_merchant) {
+    int index = 0;
+    while (m_items[index].m_muid != muid) {
+      if (++index >= 128) {
+        FrameScript_SignalEvent(294);
+        return;
+      }
+    }
+
+    m_items[index].m_quantity = newQuantity;
+    FrameScript_SignalEvent(294);
+  }
+}
+
+void __fastcall CGMerchantInfo::DecrementCallbackCount() {
+  if (m_callbackCount) {
+    --m_callbackCount;
+  }
+
+  if (!m_callbackCount) {
+    FrameScript_SignalEvent(294);
+  }
+}
+
+const ItemStats *__fastcall CGMerchantInfo::GetItemStats(unsigned int itemID) {
+  if (!itemID) {
+    return 0;
+  }
+  unsigned __int64   merchant = m_merchant;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, merchant, MerchantItemStatsCallback, 0);
+  if (!stats) {
+    ++m_callbackCount;
+  }
+  return stats;
+}
+
+static int __fastcall Script_CloseMerchant(lua_State *__formal) {
+  CGMerchantInfo::CloseMerchant();
+  return 0;
+}
+
+static int __fastcall Script_GetMerchantNumItems(lua_State *L) {
+  lua_pushnumber(L, static_cast<double>(CGMerchantInfo::GetNumItems()));
+  return 1;
+}
+
+static int __fastcall Script_GetMerchantItemInfo(lua_State *L) {
+  if (!lua_isnumber(L, 1)) {
+    return luaL_error(L, "Usage: GetMerchantItemInfo(index)");
+  }
+  VendorItem *item = CGMerchantInfo::GetItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  if (!item || !CGMerchantInfo::GetMerchant() || !item->m_itemType) {
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnumber(L, 0.0);
+    lua_pushnumber(L, 1.0);
+    lua_pushnumber(L, 0.0);
+    lua_pushnumber(L, 1.0);
+    return 6;
+  }
+
+  const ItemStats *stats = CGMerchantInfo::GetItemStats(item->m_itemType);
+  stats ? lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]) : lua_pushnil(L);
+  const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+  const char *separator = path && *path ? "\\" : "";
+  char        buffer[260];
+  SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
+  SStrCopy(buffer + strlen(buffer), CGItem_C::GetInventoryArt(item->m_itemDisplayID), sizeof(buffer) - strlen(buffer));
+  lua_pushstring(L, buffer);
+  lua_pushnumber(L, static_cast<double>(item->m_price));
+  lua_pushnumber(L, static_cast<double>(item->m_stackCount));
+  lua_pushnumber(L, static_cast<double>(item->m_quantity));
+
+  CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  GAME_ERROR_TYPE reason = GAME_ERROR_NONE;
+  if (player && stats && !player->CanUseItem(stats, reason)) {
+    lua_pushnil(L);
+  } else {
+    lua_pushnumber(L, 1.0);
+  }
+  return 6;
+}
+
+static int __fastcall Script_GetMerchantItemLink(lua_State *L) {
+  if (!lua_isnumber(L, 1)) {
+    return luaL_error(L, "Usage: GetMerchantItemLink(index)");
+  }
+  VendorItem *item = CGMerchantInfo::GetItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  if (!item || !CGMerchantInfo::GetMerchant() || !item->m_itemType) {
+    return 0;
+  }
+  const ItemStats *stats = CGMerchantInfo::GetItemStats(item->m_itemType);
+  if (!stats) {
+    return 0;
+  }
+  char link[1024];
+  SStrPrintf(link, sizeof(link), "|Hitem:%d|h[%s]|h", item->m_itemType, stats->m_displayName[CURRENT_LANGUAGE]);
+  lua_pushstring(L, link);
+  return 1;
+}
+
+static int __fastcall Script_GetMerchantItemMaxStack(lua_State *L) {
+  if (!lua_isnumber(L, 1)) {
+    return luaL_error(L, "Usage: GetMerchantItemMaxStack(index)");
+  }
+  VendorItem      *item = CGMerchantInfo::GetItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const ItemStats *stats = item && CGMerchantInfo::GetMerchant() && item->m_stackCount <= 1 ? CGMerchantInfo::GetItemStats(item->m_itemType) : 0;
+  lua_pushnumber(L, stats ? static_cast<double>(stats->m_stackable) : 1.0);
+  return 1;
+}
+
+static int __fastcall Script_PickupMerchantItem(lua_State *L) {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
+    return 0;
+  }
+  unsigned __int64 cursorItem = CGGameUI::GetCursorItem();
+  if (cursorItem) {
+    player->SellItem(CGMerchantInfo::GetMerchant(), cursorItem, 0);
+    CGGameUI::ClearCursor(0);
+    return 0;
+  }
+  if (!lua_isnumber(L, 1)) {
+    CGGameUI::ClearCursor(1);
+    return 0;
+  }
+  int         index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  VendorItem *item = CGMerchantInfo::GetItem(index);
+  if (!item || !item->m_muid) {
+    CGGameUI::ClearCursor(1);
+    return 0;
+  }
+  if (CGGameUI::GetCursorVirtualItem() == item->m_itemType) {
+    CGGameUI::ClearCursor(1);
+  } else {
+    CGGameUI::SetCursorVirtualItem(item->m_itemType, item->m_itemDisplayID, index, UICURSOR_MERCHANT);
+  }
+  return 0;
+}
+
+static int __fastcall Script_BuyMerchantItem(lua_State *L) {
+  if (!lua_isnumber(L, 1)) {
+    return luaL_error(L, "Usage: BuyMerchantItem(index)");
+  }
+  CGGameUI::ClearCursor(1);
+  int          index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  unsigned int quantity = lua_isnumber(L, 2) ? static_cast<unsigned int>(lua_tonumber(L, 2)) : 1;
+  if (!quantity) {
+    quantity = 1;
+  }
+  VendorItem *item = CGMerchantInfo::GetItem(index);
+  if (item && item->m_muid) {
+    CGPlayer_C::XBuyItem(CGMerchantInfo::GetMerchant(), item->m_muid, quantity, 1);
+  }
+  return 0;
+}
+
+static int __fastcall Script_ShowMerchantSellCursor(lua_State *L) {
+  if (!lua_isnumber(L, 1)) {
+    return luaL_error(L, "Usage: ShowMerchantSellCursor(index)");
+  }
+  VendorItem *item = CGMerchantInfo::GetItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  if (item && item->m_itemType) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    CursorModelSetSequence(player && player->GetUnitData()->coinage >= static_cast<unsigned int>(item->m_price) ? BUY_CURSOR : BUY_ERROR_CURSOR);
+  }
+  return 0;
+}
+
+static FrameScript_Method s_ScriptFunctions[8] = {
+    {          "CloseMerchant",           Script_CloseMerchant},
+    {    "GetMerchantNumItems",     Script_GetMerchantNumItems},
+    {    "GetMerchantItemInfo",     Script_GetMerchantItemInfo},
+    {    "GetMerchantItemLink",     Script_GetMerchantItemLink},
+    {"GetMerchantItemMaxStack", Script_GetMerchantItemMaxStack},
+    {     "PickupMerchantItem",      Script_PickupMerchantItem},
+    {        "BuyMerchantItem",         Script_BuyMerchantItem},
+    { "ShowMerchantSellCursor",  Script_ShowMerchantSellCursor}
+};
+
+void __fastcall MerchantRegisterScriptFunctions() {
+  for (unsigned int i = 0; i < 8; ++i) {
+    FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
+  }
+}
+
+void __fastcall MerchantUnregisterScriptFunctions() {
+  for (unsigned int i = 0; i < 8; ++i) {
+    FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
+  }
+}

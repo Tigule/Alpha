@@ -1,0 +1,151 @@
+#include "Object.h"
+
+#include "Base/CDataStore.h"
+
+#include <windows.h>
+
+#include <float.h>
+#include <math.h>
+
+inline CDataStore &operator<<(CDataStore &packet, float value) {
+  return packet.Put(value);
+}
+
+inline CDataStore &operator<<(CDataStore &packet, unsigned int value) {
+  return packet.Put(value);
+}
+
+inline CDataStore &operator<<(CDataStore &packet, unsigned long value) {
+  return packet.Put(value);
+}
+
+inline CDataStore &operator<<(CDataStore &packet, unsigned __int64 value) {
+  return packet.Put(value);
+}
+
+namespace NTempest {
+
+  CDataStore &__fastcall operator<<(CDataStore &s_, const C3Vector &d_) {
+    s_ << d_.x;
+    s_ << d_.y;
+    s_ << d_.z;
+    return s_;
+  }
+
+}  // namespace NTempest
+
+void __fastcall CClientMoveUpdate::Skip(CDataStore *packet) {
+  void *unused;
+  packet->GetDataInSitu(unused, 44);
+  unsigned int flags = 0;
+  packet->Get(flags);
+  packet->GetDataInSitu(unused, 20);
+  if (flags & 0x04000000) {
+    flags = 0;
+    packet->Get(flags);
+    unsigned int bytes = 0;
+    if (flags & 0x00010000) {
+      bytes = 12;
+    }
+    if (flags & 0x00020000) {
+      bytes += 8;
+    }
+    if (flags & 0x00040000) {
+      bytes += 4;
+    }
+    packet->GetDataInSitu(unused, bytes + 8);
+    unsigned int pointCount = 0;
+    packet->Get(pointCount);
+    packet->GetDataInSitu(unused, 12 * pointCount);
+  }
+}
+
+CDataStore &__fastcall operator<<(CDataStore &packet, const CClientMoveUpdate &update) {
+  packet << update.status.transport << update.status.transRelPosition.x << update.status.transRelPosition.y << update.status.transRelPosition.z
+         << update.status.transRelFacing;
+  packet << update.status.worldPosition;
+  packet << update.status.worldFacing << update.status.pitch << update.status.moveFlags << update.timeFallen << update.walkSpeed << update.runSpeed
+         << update.swimSpeed << update.turnRate;
+
+  if (update.status.moveFlags & 0x04000000) {
+    packet << update.spline.flags;
+    if (update.spline.flags & 0x00010000) {
+      packet << update.spline.face.spot.x << update.spline.face.spot.y << update.spline.face.spot.z;
+    }
+    if (update.spline.flags & 0x00020000) {
+      packet << update.spline.face.guid;
+    }
+    if (update.spline.flags & 0x00040000) {
+      packet << update.spline.face.facing;
+    }
+    packet << static_cast<unsigned long>(GetTickCount() - update.spline.start) << update.spline.time;
+    unsigned int pointCount = update.spline.spline.NumPoints();
+    packet << pointCount;
+    for (unsigned int i = 0; i < pointCount; ++i) {
+      const NTempest::C3Vector &point = update.spline.spline.Point(i);
+      packet << point.x << point.y << point.z;
+    }
+  }
+
+  return packet;
+}
+
+CDataStore &__fastcall operator>>(CDataStore &packet, CClientMoveUpdate &update) {
+  packet.Get(update.status.transport);
+  packet.Get(update.status.transRelPosition.x);
+  packet.Get(update.status.transRelPosition.y);
+  packet.Get(update.status.transRelPosition.z);
+  packet.Get(update.status.transRelFacing);
+  packet.Get(update.status.worldPosition.x);
+  packet.Get(update.status.worldPosition.y);
+  packet.Get(update.status.worldPosition.z);
+  packet.Get(update.status.worldFacing);
+  packet.Get(update.status.pitch);
+  packet.Get(update.status.moveFlags);
+  packet.Get(update.timeFallen);
+  packet.Get(update.walkSpeed);
+  packet.Get(update.runSpeed);
+  packet.Get(update.swimSpeed);
+  packet.Get(update.turnRate);
+
+  if (update.status.moveFlags & 0x04000000) {
+    packet.Get(update.spline.flags);
+    if (update.spline.flags & 0x00010000) {
+      packet.Get(update.spline.face.spot.x);
+      packet.Get(update.spline.face.spot.y);
+      packet.Get(update.spline.face.spot.z);
+    }
+    if (update.spline.flags & 0x00020000) {
+      packet.Get(update.spline.face.guid);
+    }
+    if (update.spline.flags & 0x00040000) {
+      packet.Get(update.spline.face.facing);
+    }
+    unsigned long elapsed;
+    packet.Get(elapsed);
+    update.spline.start = GetTickCount() - elapsed;
+    packet.Get(update.spline.time);
+    unsigned int pointCount = 0;
+    packet.Get(pointCount);
+    if (pointCount) {
+      void *points;
+      packet.GetDataInSitu(points, 12 * pointCount);
+      update.spline.spline.SetPoints(static_cast<const NTempest::C3Vector *>(points), pointCount);
+    }
+  }
+
+  return packet;
+}
+
+float __fastcall CalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination) {
+  NTempest::C3Vector diff = destination - position;
+
+  if (fabs(diff.x) >= 2.3841858e-7f) {
+    if (fabs(diff.y) >= 2.3841858e-7f) {
+      return static_cast<float>(atan2(diff.y, diff.x));
+    }
+    return destination.x >= position.x ? 0.0f : 3.1415927f;
+  }
+
+  return diff.y >= 0.0f ? 1.5707964f : 4.7123890f;
+}

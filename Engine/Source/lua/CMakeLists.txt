@@ -7,6 +7,7 @@ add_library(lua STATIC
     src/lapi.c
     src/lcode.c
     src/ldebug.c
+    src/ldump.c
     src/ldo.c
     src/lfunc.c
     src/lgc.c
@@ -24,11 +25,13 @@ add_library(lua STATIC
     src/lzio.c
 )
 
+if(MSVC_VERSION EQUAL 1200)
+    target_compile_options(lua PRIVATE /Gr /Ob2 /Oy)
+
+    set_source_files_properties(src/ldump.c PROPERTIES COMPILE_FLAGS "/G6 /Ob1")
+endif()
+
 target_include_directories(lua
     PUBLIC
     include
 )
-
-if(MSVC)
-    target_compile_options(lua PRIVATE /Gr)
-endif()

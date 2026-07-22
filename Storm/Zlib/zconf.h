@@ -196,6 +196,15 @@
 #  endif
 #endif
 
+#if defined(_MSC_VER) && _MSC_VER == 1200
+#  ifndef ZEXPORT
+#    define ZEXPORT __fastcall
+#  endif
+#  ifndef ZEXPORTVA
+#    define ZEXPORTVA __cdecl
+#  endif
+#endif
+
 #ifndef ZEXPORT
 #  define ZEXPORT
 #endif

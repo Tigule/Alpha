@@ -15,3 +15,4 @@ BraceWrapping:
   AfterControlStatement: MultiLine
 NamespaceIndentation: All
 PointerAlignment: Right
+SortIncludes: Never

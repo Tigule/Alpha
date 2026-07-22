@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shutil
 import struct
@@ -20,12 +21,14 @@ class Symbol:
     length: int | None = None
     source_length: int | None = None
     data: bytes | None = None
+    ignored_offsets: frozenset[int] = frozenset()
 
 
 MAP_PUBLIC = re.compile(
     r"^\s*(?P<seg>[0-9A-Fa-f]{4}):(?P<off>[0-9A-Fa-f]{8})\s+"
     r"(?P<name>\S+)\s+(?P<addr>[0-9A-Fa-f]{8})\s+"
-    r"(?P<flags>f(?:\s+i)?)\s+(?P<obj>\S+\.obj)\s*$"
+    r"(?P<flags>f(?:\s+i)?)\s+(?P<obj>\S+\.obj)\s*$",
+    re.I,
 )
 MAP_BASE = re.compile(r"Preferred load address is\s+([0-9A-Fa-f]+)", re.I)
 OBJ_SYMBOL = re.compile(
@@ -61,6 +64,123 @@ def object_name(name: str) -> str:
         if name.endswith(suffix):
             return name[:-len(suffix)] + ".obj"
     return name
+
+
+def _coff_name(raw: bytes, strings: bytes) -> str:
+    if raw[:4] == b"\0\0\0\0":
+        offset = struct.unpack_from("<I", raw, 4)[0]
+        return strings[offset:].split(b"\0", 1)[0].decode("latin1", "replace")
+    return raw.split(b"\0", 1)[0].decode("latin1", "replace")
+
+
+def _source_file_string(data: bytes) -> bool:
+    value = data.split(b"\0", 1)[0]
+    return (
+        4 <= len(value) <= 1024
+        and (b"/" in value or b"\\" in value)
+        and re.search(rb"\.(?:c|cc|cpp|cxx|h|hh|hpp|inl|ipp)$", value, re.I)
+        is not None
+    )
+
+
+def _line_offsets(data: bytes, section_start: int, section_size: int,
+                  file_offset: int) -> set[int]:
+    """Find the adjacent VC6 __LINE__ immediate around a __FILE__ operand."""
+    # ponytail: cover VC6's adjacent-argument form; add an instruction decoder
+    # if validation ever needs to support a compiler that reorders these args.
+    result = set()
+    for offset, opcode_offset, width in (
+        (file_offset - 5, file_offset - 6, 4),
+        (file_offset + 5, file_offset + 4, 4),
+        (file_offset - 2, file_offset - 3, 1),
+        (file_offset + 5, file_offset + 4, 1),
+    ):
+        if opcode_offset < 0 or offset < 0 or offset + width > section_size:
+            continue
+        opcode = data[section_start + opcode_offset]
+        if width == 4 and opcode not in (0x68, *range(0xB8, 0xC0)):
+            continue
+        if width == 1 and opcode != 0x6A:
+            continue
+        value = int.from_bytes(data[section_start + offset:section_start + offset + width], "little")
+        if 0 < value <= 0xFFFF:
+            result.update(range(offset, offset + width))
+    return result
+
+
+def _coff_source_location_masks(path: Path) -> dict[int, set[int]]:
+    """Return .text offsets occupied by relocatable __FILE__/__LINE__ values."""
+    try:
+        data = path.read_bytes()
+        if len(data) < 20:
+            return {}
+        machine, section_count, _, symbol_offset, symbol_count, optional_size, _ = \
+            struct.unpack_from("<HHIIIHH", data)
+        if machine != 0x14C or not symbol_offset:
+            return {}
+
+        sections = []
+        for index in range(section_count):
+            header = 20 + optional_size + index * 40
+            if header + 40 > len(data):
+                return {}
+            name = data[header:header + 8].split(b"\0", 1)[0].decode("latin1")
+            _, _, size, raw_start, reloc_start, _, reloc_count, _, _ = \
+                struct.unpack_from("<IIIIIIHHI", data, header + 8)
+            sections.append((name, size, raw_start, reloc_start, reloc_count))
+
+        string_start = symbol_offset + symbol_count * 18
+        if string_start + 4 > len(data):
+            return {}
+        string_size = struct.unpack_from("<I", data, string_start)[0]
+        strings = data[string_start:string_start + string_size]
+        symbols = {}
+        index = 0
+        while index < symbol_count:
+            symbol_start = symbol_offset + index * 18
+            if symbol_start + 18 > len(data):
+                return {}
+            name = _coff_name(data[symbol_start:symbol_start + 8], strings)
+            value, section, symbol_type, storage_class, aux_count = \
+                struct.unpack_from("<IhHBB", data, symbol_start + 8)
+            symbols[index] = (name, value, section, symbol_type, storage_class)
+            index += 1 + aux_count
+
+        file_strings = set()
+        for _, value, section, _, _ in symbols.values():
+            if not 1 <= section <= section_count:
+                continue
+            section_name, size, raw_start, _, _ = sections[section - 1]
+            if not section_name.startswith((".data", ".rdata")):
+                continue
+            if value >= size or raw_start + value >= len(data):
+                continue
+            if _source_file_string(data[raw_start + value:raw_start + size]):
+                file_strings.add((section, value))
+
+        result = {}
+        for section_number, (section_name, size, raw_start, reloc_start, reloc_count) in \
+                enumerate(sections, 1):
+            if not section_name.startswith(".text"):
+                continue
+            offsets = set()
+            for index in range(reloc_count):
+                relocation = reloc_start + index * 10
+                if relocation + 10 > len(data):
+                    return {}
+                offset, symbol_index, _ = struct.unpack_from("<IIH", data, relocation)
+                target = symbols.get(symbol_index)
+                if not target or (target[2], target[1]) not in file_strings:
+                    continue
+                if offset + 4 > size:
+                    continue
+                offsets.update(range(offset, offset + 4))
+                offsets.update(_line_offsets(data, raw_start, size, offset))
+            if offsets:
+                result[section_number] = offsets
+        return result
+    except (OSError, IndexError, struct.error, UnicodeDecodeError):
+        return {}
 
 
 def _pages(size: int, page_size: int) -> int:
@@ -234,6 +354,18 @@ def section_vma(path: Path, section: str, objdump: str) -> int:
     raise RuntimeError(f"section {section} was not found in {path}")
 
 
+def _bytes_match(actual: bytes | None, expected: bytes,
+                 ignored_offsets: frozenset[int]) -> bool:
+    return (
+        actual is not None
+        and len(actual) == len(expected)
+        and all(
+            offset in ignored_offsets or actual_byte == expected_byte
+            for offset, (actual_byte, expected_byte) in enumerate(zip(actual, expected))
+        )
+    )
+
+
 def local_symbols(path: Path, objdump: str) -> list[Symbol]:
     output = run(objdump, "-t", str(path))
     section_output = run(objdump, "-h", str(path))
@@ -247,6 +379,7 @@ def local_symbols(path: Path, objdump: str) -> list[Symbol]:
             if name == ".text" or name.startswith(".text$"):
                 text_sections.append((index + 1, size))
     found = []
+    location_masks = _coff_source_location_masks(path)
     for line in output.splitlines():
         match = re.search(
             r"\(sec\s+(-?\d+)\).*?\(ty\s+20\).*?\(scl\s+[23]\).*?"
@@ -281,6 +414,13 @@ def local_symbols(path: Path, objdump: str) -> list[Symbol]:
         text = section_data[item.section]
         if item.length and item.address + item.length <= len(text):
             item.data = text[item.address:item.address + item.length]
+        section_number = int(item.section.rsplit("@", 1)[1])
+        item.ignored_offsets = frozenset(
+            offset - item.address
+            for offset in location_masks.get(section_number, ())
+            if item.length is not None
+            and item.address <= offset < item.address + item.length
+        )
     return found
 
 
@@ -344,13 +484,17 @@ def main() -> int:
             continue
         if actual.source_length is not None and actual.source_length != expected.source_length:
             counts[4] += 1
-            mismatches.append(("Source-Length Mismatch", expected, actual))
+            mismatches.append(("Source-Length", expected, actual))
         elif actual.length != expected.length:
             counts[3] += 1
-            mismatches.append(("Byte-Length Mismatch", expected, actual))
-        elif actual.data != reference_data[expected.address - text_vma:expected.address - text_vma + expected.length]:
+            mismatches.append(("Byte-Length", expected, actual))
+        elif not _bytes_match(
+            actual.data,
+            reference_data[expected.address - text_vma:expected.address - text_vma + expected.length],
+            actual.ignored_offsets,
+        ):
             counts[2] += 1
-            mismatches.append(("Byte-Output Mismatch", expected, actual))
+            mismatches.append(("Byte-Output", expected, actual))
         else:
             counts[1] += 1
     counts[6] = len(set(local) - reference_keys)
@@ -404,4 +548,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except BrokenPipeError:
+        sys.stdout = open(os.devnull, "w")

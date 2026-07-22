@@ -477,6 +477,7 @@ static void mark (lua_State *L) {
 
 
 void luaC_collectgarbage (lua_State *L) {
+  if (!L->allowgc) return;
   mark(L);
   luaC_sweep(L, 0);
   checkSizes(L);

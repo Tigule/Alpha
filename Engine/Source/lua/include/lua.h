@@ -92,7 +92,11 @@ typedef LUA_NUMBER lua_Number;
 
 /* mark for all API functions */
 #ifndef LUA_API
+#ifdef __cplusplus
+#define LUA_API		extern "C"
+#else
 #define LUA_API		extern
+#endif
 #endif
 
 
@@ -203,6 +207,8 @@ LUA_API int  lua_resume (lua_State *L, int narg);
 /*
 ** garbage-collection functions
 */
+LUA_API void  lua_enablegc (lua_State *L);
+LUA_API void  lua_disablegc (lua_State *L);
 LUA_API int   lua_getgcthreshold (lua_State *L);
 LUA_API int   lua_getgccount (lua_State *L);
 LUA_API void  lua_setgcthreshold (lua_State *L, int newthreshold);

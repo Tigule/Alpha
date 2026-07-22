@@ -1,0 +1,278 @@
+#include "Scrn.h"
+
+#include <Base/Handle.h>
+#include <Base/InstanceId.h>
+#include <Event/EvtApi.h>
+#include <Gx/Gx.h>
+#include <Images/tga.h>
+#include <Os/OsTime.h>
+#include <Os/W32/OsFile.h>
+#include <Tempest/c44matrix.h>
+#include <Tempest/c3vector.h>
+#include <Tempest/cimvector.h>
+
+#include <new>
+const float PI = 3.14159265358979323846f;
+const float TWO_PI = PI + PI;
+const float OO_TWO_PI = 1.0f / TWO_PI;
+
+class CILayer : public CHandleObject {
+public:
+  CILayer() {
+  }
+
+  virtual ~CILayer() {
+  }
+
+  RECTF rect;
+  RECTF visible;
+  float zorder;
+  unsigned int flags;
+  void *param;
+  void (__fastcall *paintfunc)(void *, const RECTF *, const RECTF *, float);
+  TSLink<CILayer> zorderlink;
+};
+
+typedef char CILayerSizeCheck[sizeof(CILayer) == 0x40 ? 1 : -1];
+
+void __fastcall GxuXformCreateOrtho(float minX,
+                                    float maxX,
+                                    float minY,
+                                    float maxY,
+                                    float minZ,
+                                    float maxZ,
+                                    NTempest::C44Matrix &dst);
+static const RECTF defaultrect = {0.0f, 0.0f, 1.0f, 1.0f};
+static float s_elapsedSec;
+static void (__fastcall *s_captureScreen)(int);
+static int s_ScrnDisable;
+static TSExplicitList<CILayer, 56> s_zorderlist;
+
+static int __fastcall CaptureScreen() {
+  char path[0x104];
+  char timestamp[0x104];
+  CTgaFile tga;
+  unsigned int w;
+  unsigned int h;
+  const NTempest::CImVector *pixels;
+
+  GxDevReadScreenShot(w, h, pixels);
+
+  if (pixels) {
+    OsCreateDirectory("Screenshots", 0);
+    OsGetTimeStamp(timestamp, sizeof(timestamp));
+    SStrPrintf(path,
+               sizeof(path),
+               "%s\\WoWScrnShot_%s.tga",
+               "Screenshots",
+               timestamp);
+    tga.SetImage(pixels, w, h, 0x20, 8, 1, 0);
+    tga.Write(path);
+    tga.Close();
+  }
+
+  return pixels != 0;
+}
+
+static int __fastcall OnIdle(const EVENT_DATA_IDLE *data, void *__formal) {
+  s_elapsedSec += data->elapsedSec;
+  return 1;
+}
+
+static int __fastcall OnPaint(const void *, void *) {
+  CILayer *layer;
+  CILayer *nextLayer;
+  HSRGN rgn;
+  RECTF baseRect;
+  float minX;
+  float maxX;
+  float minY;
+  float maxY;
+  float minZ;
+  float maxZ;
+
+  if (s_ScrnDisable || !GxCapsIsWindowVisible()) {
+    return 1;
+  }
+
+  SRgnCreate(&rgn, 0);
+  baseRect.left = 0.0f;
+  baseRect.bottom = 0.0f;
+  baseRect.right = 1.0f;
+  baseRect.top = 1.0f;
+  SRgnCombineRectf(rgn, &baseRect, 0, 2);
+
+  layer = s_zorderlist.m_terminator.m_prevlink->m_prevlink->m_next;
+  if (reinterpret_cast<long>(layer) <= 0) {
+    layer = 0;
+  }
+
+  while (layer) {
+    CILayer *previousLayer;
+
+    SRgnGetBoundingRectf(rgn, &layer->visible);
+    layer->visible.left = layer->rect.left < layer->visible.left
+                            ? layer->visible.left
+                            : layer->rect.left;
+    layer->visible.bottom = layer->rect.bottom < layer->visible.bottom
+                              ? layer->visible.bottom
+                              : layer->rect.bottom;
+    layer->visible.right = layer->rect.right > layer->visible.right
+                             ? layer->visible.right
+                             : layer->rect.right;
+    layer->visible.top = layer->rect.top > layer->visible.top
+                           ? layer->visible.top
+                           : layer->rect.top;
+
+    if (!(layer->flags & 1)) {
+      SRgnCombineRectf(rgn, &layer->rect, 0, 4);
+    }
+
+    previousLayer =
+        layer->zorderlink.m_prevlink->m_prevlink->m_next;
+    layer = reinterpret_cast<long>(previousLayer) > 0
+              ? previousLayer
+              : 0;
+  }
+
+  SRgnDelete(rgn);
+  GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
+
+  layer = s_zorderlist.Head();
+  while (layer) {
+    nextLayer = s_zorderlist.Next(layer);
+
+    if (!(layer->visible.right <= layer->visible.left) &&
+        !(layer->visible.top <= layer->visible.bottom)) {
+      if (layer->flags & 4) {
+        GxXformSetViewport(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
+      } else {
+        GxXformSetViewport(layer->visible.left,
+                          layer->visible.right,
+                          layer->visible.bottom,
+                          layer->visible.top,
+                          0.0f,
+                          1.0f);
+      }
+
+      if (layer->flags & 2) {
+        NTempest::C44Matrix identity;
+        NTempest::C44Matrix orthoProj;
+
+        GxuXformCreateOrtho(layer->visible.left,
+                            layer->visible.right,
+                            layer->visible.bottom,
+                            layer->visible.top,
+                            0.0f,
+                            500.0f,
+                            orthoProj);
+        GxXformSetView(identity);
+        GxXformSetProjection(orthoProj);
+      }
+
+      layer->paintfunc(layer->param,
+                       &layer->rect,
+                       &layer->visible,
+                       s_elapsedSec);
+    }
+
+    layer = nextLayer;
+  }
+
+  GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+
+  if (s_captureScreen) {
+    void (__fastcall *callback)(int) = s_captureScreen;
+
+    GxDevTakeScreenShot();
+    GxScenePresent(3);
+    callback(CaptureScreen());
+    GxDevClearScreenShot();
+    s_captureScreen = 0;
+  } else {
+    GxScenePresent(3);
+  }
+
+  s_elapsedSec = 0.0f;
+  return 1;
+}
+
+void __fastcall ILayerDestroy() {
+  EventUnregister(EVENT_ID_IDLE, (EVENTHANDLER)OnIdle);
+  EventUnregister(EVENT_ID_PAINT, OnPaint);
+}
+
+void __fastcall ILayerInitialize() {
+  EventRegister(EVENT_ID_IDLE, (EVENTHANDLER)OnIdle);
+  EventRegister(EVENT_ID_PAINT, OnPaint);
+}
+
+void __fastcall ILayerPaint() {
+  OnPaint(0, 0);
+}
+
+void __fastcall ScrnLayerCreate(
+    const RECTF *rect,
+    float zorder,
+    unsigned long flags,
+    void *param,
+    void (__fastcall *paintfunc)(void *, const RECTF *, const RECTF *, float),
+    HLAYER__ **layer) {
+  CILayer *newLayer;
+  CILayer *existingLayer;
+  void *memory;
+
+  if (!rect) {
+    rect = &defaultrect;
+  }
+
+  memory = SMemAlloc(sizeof(CILayer), "HLAYER", -2, 0);
+  newLayer = memory ? new (memory) CILayer : 0;
+  newLayer->rect = *rect;
+  newLayer->zorder = zorder;
+  newLayer->flags = flags;
+  newLayer->param = param;
+  newLayer->paintfunc = paintfunc;
+
+  existingLayer =
+      s_zorderlist.m_terminator.m_prevlink->m_prevlink->m_next;
+  if (reinterpret_cast<long>(existingLayer) <= 0) {
+    existingLayer = 0;
+  }
+
+  while (existingLayer && existingLayer->zorder > zorder) {
+    CILayer *previousLayer =
+        existingLayer->zorderlink.m_prevlink->m_prevlink->m_next;
+    existingLayer = reinterpret_cast<long>(previousLayer) > 0
+                      ? previousLayer
+                      : 0;
+  }
+
+  s_zorderlist.LinkNode(newLayer, LIST_LINK_AFTER, existingLayer);
+  *layer = reinterpret_cast<HLAYER__ *>(
+      HandleCreate(newLayer, "HLAYER"));
+}
+
+void __fastcall ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect) {
+  reinterpret_cast<CILayer *>(layer)->rect = *rect;
+}
+
+unsigned int __fastcall ScrnLayerGetFlags(HLAYER__ *layer) {
+  return reinterpret_cast<CILayer *>(layer)->flags;
+}
+
+void __fastcall ScrnLayerSetFlags(HLAYER__ *layer, unsigned int flags) {
+  reinterpret_cast<CILayer *>(layer)->flags = flags;
+}
+
+void __fastcall ScrnLayerDisable(int disable) {
+  s_ScrnDisable = disable;
+}
+
+int __fastcall ScrnLayerIsDisabled() {
+  return s_ScrnDisable;
+}
+
+void __fastcall ScrnScreenshot(void (__fastcall *callback)(int)) {
+  s_captureScreen = callback;
+}

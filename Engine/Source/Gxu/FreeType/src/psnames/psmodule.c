@@ -139,14 +139,12 @@
 
 
   /* qsort callback to sort the unicode map */
-#if defined(_MSC_VER)
-//tigule-todo: come back here eventually
-#define FT_QSORT_CALLBACK __cdecl
-#else
-#define FT_QSORT_CALLBACK
+  FT_CALLBACK_DEF
+  int
+#ifdef _MSC_VER
+  __cdecl
 #endif
-  static int FT_QSORT_CALLBACK
-  compare_uni_maps( const void*  a,
+       compare_uni_maps( const void*  a,
                          const void*  b )
   {
     PS_UniMap*  map1 = (PS_UniMap*)a;
@@ -155,7 +153,6 @@
 
     return ( map1->unicode - map2->unicode );
   }
-#undef FT_QSORT_CALLBACK
 
 
   /* Builds a table that maps Unicode values to glyph indices */

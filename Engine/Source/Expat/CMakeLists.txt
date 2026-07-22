@@ -4,10 +4,6 @@ add_library(Expat STATIC
     lib/xmltok.c
 )
 
-if(MSVC)
-    target_compile_options(Expat PRIVATE /Gd)
-endif()
-
 target_include_directories(Expat
     PRIVATE
     .
@@ -16,4 +12,4 @@ target_include_directories(Expat
     lib
 )
 
-add_compile_definitions(_STATIC)
+target_compile_definitions(Expat PUBLIC _STATIC)

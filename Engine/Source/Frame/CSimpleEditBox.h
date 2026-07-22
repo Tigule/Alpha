@@ -1,0 +1,169 @@
+#ifndef ENGINE_SOURCE_FRAME_CSIMPLEEDITBOX_H
+#define ENGINE_SOURCE_FRAME_CSIMPLEEDITBOX_H
+
+#include "Frame/CSimpleFrame.h"
+#include "Frame/CSimpleRender.h"
+#include "Tempest/crect.h"
+
+#include <stpl.h>
+
+class CObserver;
+class CSimpleMessageFrame;
+
+class CSimpleEditBox : public CSimpleFrame {
+ public:
+  CSimpleEditBox(CSimpleFrame *parent);
+  virtual ~CSimpleEditBox();
+
+  static void __fastcall RegisterScriptMethods();
+  static void __fastcall UnregisterScriptMethods();
+  static void __fastcall SetKeyboardFocus(CSimpleEditBox *focus);
+  static void __fastcall ClearKeyboardFocus(CSimpleEditBox *focus);
+
+  virtual void LoadXML(const XMLNode *node, CStatus *status);
+  virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
+  virtual void OnLayerShow();
+  virtual void OnLayerHide();
+  virtual void OnLayerUpdate(float elapsedSec);
+  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
+  virtual int  OnLayerChar(CCharEvent &evt);
+  virtual int  OnLayerKeyDown(CKeyEvent &evt);
+  virtual int  OnLayerMouseDown(CMouseEvent &evt);
+
+  void        SetMultiLine(int enabled);
+  void        SetAutoFocus(int enabled);
+  void        SetEditTextInsets(float right, float left, float top, float bottom);
+  void        SetText(const char *text);
+  const char *GetText() {
+    return m_text;
+  }
+  void Insert(const char *utf8string, int isIME);
+  void Insert(unsigned int utf16);
+  void SetHistoryLines(int numLines);
+  void AddHistoryLine(const char *line);
+
+  void SetTextColor(const NTempest::CImVector &color) {
+    m_string->SetVertexColor(color);
+  }
+
+  void SetCursorColor(const NTempest::CImVector &color) {
+    m_cursor->SetTexture(color);
+  }
+
+  void SetOnEnterPressedScript(const char *source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnEnterPressed", GetName());
+    SetEventScript(m_onEnterPressed, source, description);
+  }
+
+  void SetOnEscapePressedScript(const char *source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnEscapePressed", GetName());
+    SetEventScript(m_onEscapePressed, source, description);
+  }
+
+  void SetOnSpacePressedScript(const char *source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnSpacePressed", GetName());
+    SetEventScript(m_onSpacePressed, source, description);
+  }
+
+  void SetOnTabPressedScript(const char *source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnTabPressed", GetName());
+    SetEventScript(m_onTabPressed, source, description);
+  }
+
+  void SetOnTextChangedScript(const char *source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnTextChanged", GetName());
+    SetEventScript(m_onTextChanged, source, description);
+  }
+
+  void SetOnTextSetScript(const char *source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnTextSet", GetName());
+    SetEventScript(m_onTextSet, source, description);
+  }
+
+ protected:
+  virtual int LookupScriptMethod(lua_State *L, const char *name);
+
+  void UpdateSizes(const NTempest::CRect &rect);
+  void UpdateTextInfo();
+  void UpdateVisibleCursor();
+  int  GetNumToLen(int offset, int amount, bool checkHyperLink);
+  int  GetLenToNum(int offset, int amount);
+  int  NextCharOffset(int offset);
+  int  PrevCharOffset(int offset);
+  void GrowText(int size);
+  void Delete(int amount);
+  void DeleteSubstring(int left, int right);
+  void DeleteHighlight();
+
+  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
+  static CSimpleEditBox                                      *s_currentFocus;
+
+  enum {
+    DIRTY_NONE = 0,
+    DIRTY_TEXT = 1,
+    DIRTY_HIGHLIGHT = 2,
+    DIRTY_CURSOR = 4
+  };
+
+  enum {
+    EVENT_ENTER = 0,
+    EVENT_ESCAPE = 1,
+    EVENT_SPACE = 2,
+    EVENT_TAB = 3,
+    EVENT_CHANGED = 4,
+    EVENT_SET = 5,
+    NUM_EDITBOX_ACTIONS = 6
+  };
+
+  unsigned int                  m_dirtyFlags;
+  CSimpleFontString            *m_string;
+  char                         *m_text;
+  unsigned int                 *m_textInfo;
+  char                         *m_textHidden;
+  int                           m_textLength;
+  int                           m_textLengthMax;
+  int                           m_textLettersMax;
+  int                           m_textSize;
+  int                           m_visiblePos;
+  int                           m_visibleLen;
+  CSimpleTexture               *m_highlight[3];
+  int                           m_highlightLeft;
+  int                           m_highlightRight;
+  int                           m_highlightDrag;
+  CSimpleTexture               *m_cursor;
+  int                           m_cursorPos;
+  float                         m_cursorBlinkSpeed;
+  float                         m_blinkElapsedTime;
+  int                           m_password;
+  int                           m_multiline;
+  TSGrowableArray<unsigned int> m_visibleLines;
+  int                           m_autoFocus;
+  int                           m_numHistory;
+  int                           m_curHistory;
+  TSFixedArray<char *>          m_history;
+  struct {
+    unsigned int id;
+    CObserver   *obj;
+  } m_actions[NUM_EDITBOX_ACTIONS];
+  int                  m_imeInputMode;
+  CSimpleTexture      *m_clauseHighlight;
+  int                  m_clauseLeft;
+  int                  m_clauseRight;
+  CSimpleMessageFrame *m_candidatesFrame;
+  CSimpleTexture      *m_candidatesHighlight;
+  NTempest::CRect      m_editTextInset;
+  int                  m_onEnterPressed;
+  int                  m_onEscapePressed;
+  int                  m_onSpacePressed;
+  int                  m_onTabPressed;
+  int                  m_onTextChanged;
+  int                  m_onTextSet;
+};
+
+#endif

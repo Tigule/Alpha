@@ -3,7 +3,6 @@ set -eu
 
 VC6_URL="https://tigule.org/files/ci/VC6.zip"
 CMAKE_URL="https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.msi"
-
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 CROSSOVER_BOTTLE=${CROSSOVER_BOTTLE:-}
 if [ -z "${CROSSOVER_ROOT:-}" ]; then
@@ -29,6 +28,12 @@ VCVARS_BAT="$VC6_DIR/VC98/Bin/VCVARS32.BAT"
 CMAKE_EXE='C:\Program Files\CMake\bin\cmake.exe'
 CMAKE_EXE_UNIX="$DRIVE_C/Program Files/CMake/bin/cmake.exe"
 WOW_EXE=${WOW_EXE:-"$SCRIPT_DIR/WoW/Wow.exe"}
+WOW_CLIENT_DIR="$SCRIPT_DIR/../WoW/Client"
+WOW_CLIENT_EXE="$WOW_CLIENT_DIR/TiguleClient.exe"
+WOW_REF_EXE="$WOW_CLIENT_DIR/WoWClient.exe"
+if [ "$(uname -s)" = Darwin ]; then
+    WOW_REF_EXE="$WOW_CLIENT_DIR/WoWMacClient.exe"
+fi
 
 die() {
     printf '%s\n' "error: $*" >&2
@@ -43,7 +48,8 @@ Commands:
   install  Download and install VC6 and CMake into the Wine prefix
   setup    Configure this checkout with VC6 NMake makefiles
   build    Build the configured tree with nmake
-  run      Start Wow.exe through Wine
+  run      Copy Wow.exe into WoW/Client and start TiguleClient.exe
+  run-ref  Start the original reference client (WoWMacClient.exe on macOS)
   all      Run install, setup, then build
 
 Environment:
@@ -178,11 +184,18 @@ run() {
     require_wine_prefix
     [ -f "$WOW_EXE" ] || die "Wow.exe was not found: $WOW_EXE"
 
-    client_dir=$(CDPATH= cd -- "$(dirname -- "$WOW_EXE")" && pwd)
-    client_exe=$client_dir/$(basename "$WOW_EXE")
+    mkdir -p "$WOW_CLIENT_DIR"
+    cp "$WOW_EXE" "$WOW_CLIENT_EXE"
+    cd "$WOW_CLIENT_DIR"
+    WINEDEBUG=-all run_wine "$WOW_CLIENT_EXE" -uptodate -windowed "$@"
+}
 
-    cd "$client_dir"
-    WINEDEBUG=-all run_wine "$client_exe" "$@"
+run_ref() {
+    require_wine_prefix
+    [ -f "$WOW_REF_EXE" ] || die "Reference client was not found: $WOW_REF_EXE"
+
+    cd "$WOW_CLIENT_DIR"
+    WINEDEBUG=-all run_wine "$WOW_REF_EXE" -uptodate -windowed "$@"
 }
 
 case "${1:-}" in
@@ -198,6 +211,10 @@ case "${1:-}" in
     run)
         shift
         run "$@"
+        ;;
+    run-ref)
+        shift
+        run_ref "$@"
         ;;
     all)
         install

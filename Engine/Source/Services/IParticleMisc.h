@@ -1,0 +1,108 @@
+#pragma once
+
+#include <stpl.h>
+
+class CParticleEmitter;
+class CParticleEmitter2;
+class CPlaneParticleEmitter;
+class CSphereParticleEmitter;
+class CSplineParticleEmitter;
+class CRibbonEmitter;
+class CWorld;
+
+namespace NTempest {
+  class C3Segment;
+}
+
+typedef int(__fastcall *PARTICLEPROJECTCALLBACK)(const NTempest::C3Segment &segment, float &distance);
+
+class CParticleStack {
+ public:
+  void Push(unsigned int u) {
+    ASSERT(m_stackPointer < m_stack.Count());
+    m_stack[m_stackPointer++] = u;
+  }
+
+  unsigned int Pop() {
+    ASSERT(m_stackPointer != 0);
+    return m_stack[--m_stackPointer];
+  }
+
+  void Remove(unsigned int index) {
+    m_stack[index] = m_stack[m_stackPointer - 1];
+    Pop();
+  }
+
+  TSGrowableArray<unsigned int> m_stack;
+  unsigned int                  m_stackPointer;
+};
+
+class ParticleSystemManager {
+ public:
+  ~ParticleSystemManager();
+
+  static void __fastcall                   Destroy();
+  static void __fastcall                   SetScaler(float scaler);
+  static float __fastcall                  GetScaler();
+  static ParticleSystemManager *__fastcall GetInstance();
+
+  CPlaneParticleEmitter  *CreateQuadEmitter();
+  CSphereParticleEmitter *CreateSphereEmitter();
+  CSplineParticleEmitter *CreateSplineEmitter();
+  CParticleEmitter2      *DuplicateEmitter(const CParticleEmitter2 *emitter, int deep);
+  void                    UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  void                    DeleteEmitter2(CParticleEmitter2 *emitter);
+  void                    RenderEmitters();
+
+  static void __fastcall SetProjectCallback(PARTICLEPROJECTCALLBACK callback, float distance) {
+    sm_projectCallback = callback;
+    sm_projectDistance = distance;
+  }
+
+  static PARTICLEPROJECTCALLBACK __fastcall GetProjectCallback() {
+    return sm_projectCallback;
+  }
+
+  static float __fastcall GetProjectDistance() {
+    return sm_projectDistance;
+  }
+
+  void Flush();
+
+ private:
+  friend class CWorld;
+
+  static void __fastcall RenderParticleEmitter2(void *param1, int param2);
+
+  static ParticleSystemManager *manager;
+  static float                  scaler;
+  static float                  sm_projectDistance;
+  static int(__fastcall *sm_projectCallback)(const NTempest::C3Segment &segment, float &distance);
+
+  TSGrowableArray<CParticleEmitter *>  modelEmitters;
+  TSGrowableArray<CParticleEmitter2 *> emitter2s;
+  TSGrowableArray<CParticleEmitter *>  deletedModelEmitters;
+  TSGrowableArray<CParticleEmitter2 *> deletedEmitter2s;
+};
+
+class RibbonManager {
+ public:
+  ~RibbonManager();
+
+  static void __fastcall           Destroy();
+  static RibbonManager *__fastcall GetInstance();
+  CRibbonEmitter                  *CreateEmitter();
+  CRibbonEmitter                  *DuplicateEmitter(const CRibbonEmitter *emitter);
+  void                             UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  void                             DeleteEmitter(CRibbonEmitter *emitter);
+  void                             Flush();
+  void                             RenderEmitters();
+
+ private:
+  static void __fastcall RenderEmitter(void *param1, int param2);
+
+  static RibbonManager *manager;
+
+  TSGrowableArray<CRibbonEmitter *> emitters;
+  TSGrowableArray<CRibbonEmitter *> deletedEmitters;
+};

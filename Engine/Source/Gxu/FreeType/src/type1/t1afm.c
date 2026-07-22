@@ -149,13 +149,12 @@
 
 
   /* compare two kerning pairs */
-#if defined(_MSC_VER)
-//tigule-todo: come back here eventually
-  static int __cdecl
-#else
   FT_CALLBACK_DEF
+  int
+#ifdef _MSC_VER
+  __cdecl
 #endif
-  compare_kern_pairs( const void*  a,
+       compare_kern_pairs( const void*  a,
                            const void*  b )
   {
     T1_Kern_Pair*  pair1 = (T1_Kern_Pair*)a;

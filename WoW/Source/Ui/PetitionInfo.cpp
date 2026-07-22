@@ -1,0 +1,255 @@
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+
+#include <Base/CDataStore.h>
+#include <Console/ConsoleClient.h>
+#include <FrameScript/FrameScript.h>
+#include <Net/NetClient/NetClient.h>
+#include <lauxlib.h>
+#include <lua.h>
+#include <stpl.h>
+
+struct PetitionSignerInfo {
+  unsigned __int64 signer;
+  int              choice;
+  const char      *name;
+};
+
+class CGPetitionInfo {
+ public:
+  static void __fastcall             EnterWorld();
+  static void __fastcall             LeaveWorld();
+  static void __fastcall             SetPetition(unsigned __int64 petition, int petitionID);
+  static void __fastcall             SetSignatures(unsigned char count, unsigned __int64 *signers, int *choices);
+  static void __fastcall             DecrementPendingName();
+  static void __fastcall             SetPetitionStats(int id);
+  static unsigned __int64 __fastcall GetPetition() {
+    return m_petitionGUID;
+  }
+  static unsigned int __fastcall GetNumSignatures() {
+    return m_numSignatures;
+  }
+  static PetitionSignerInfo *__fastcall GetSignature(unsigned int index) {
+    return index < m_numSignatures ? &m_signatures[index] : 0;
+  }
+  static const CGPetition *__fastcall GetPetitionStats() {
+    return m_petition;
+  }
+
+ protected:
+  static void __fastcall ClearSignatures();
+
+  static unsigned __int64                    m_petitionGUID;
+  static int                                 m_petitionID;
+  static TSGrowableArray<PetitionSignerInfo> m_signatures;
+  static unsigned int                        m_numSignatures;
+  static unsigned int                        m_pendingNames;
+  static const CGPetition                   *m_petition;
+};
+
+unsigned __int64                    CGPetitionInfo::m_petitionGUID;
+int                                 CGPetitionInfo::m_petitionID;
+TSGrowableArray<PetitionSignerInfo> CGPetitionInfo::m_signatures;
+unsigned int                        CGPetitionInfo::m_numSignatures;
+unsigned int                        CGPetitionInfo::m_pendingNames;
+const CGPetition                   *CGPetitionInfo::m_petition;
+
+unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
+
+void __fastcall CGPetitionInfo::EnterWorld() {
+  m_petitionGUID = 0;
+  m_petitionID = 0;
+  m_numSignatures = 0;
+  m_pendingNames = 0;
+  m_petition = 0;
+  m_signatures.SetCount(10);
+}
+
+void __fastcall CGPetitionInfo::LeaveWorld() {
+  m_signatures.Clear();
+}
+
+static void __fastcall SignatureNameQueryCallback(int, const unsigned __int64 &, void *, bool) {
+  CGPetitionInfo::DecrementPendingName();
+}
+
+static void __fastcall PetitionQueryCallback(int id, const unsigned __int64 &, void *, bool granted) {
+  if (granted) {
+    CGPetitionInfo::SetPetitionStats(id);
+  }
+}
+
+void __fastcall CGPetitionInfo::ClearSignatures() {
+  if (m_pendingNames) {
+    for (unsigned int i = 0; i < m_numSignatures; ++i) {
+      g_nameDBCache.CancelCallback(m_signatures[i].signer, SignatureNameQueryCallback, 0);
+    }
+  }
+  m_numSignatures = 0;
+  m_pendingNames = 0;
+}
+
+void __fastcall CGPetitionInfo::SetPetition(unsigned __int64 petition, int petitionID) {
+  if (m_petitionGUID) {
+    ClearSignatures();
+    FrameScript_SignalEvent(374);
+  }
+  m_petitionGUID = petition;
+  m_petitionID = petitionID;
+  if (petition) {
+    m_petition = g_petitionCache.GetRecord(petitionID, petition, PetitionQueryCallback, 0);
+  } else {
+    m_petition = 0;
+  }
+}
+
+void __fastcall CGPetitionInfo::SetSignatures(unsigned char count, unsigned __int64 *signers, int *choices) {
+  ClearSignatures();
+  m_signatures.SetCount(count);
+  m_numSignatures = count;
+  for (unsigned int i = 0; i < count; ++i) {
+    m_signatures[i].signer = signers[i];
+    m_signatures[i].choice = choices[i];
+    if (!g_nameDBCache.GetRecord(signers[i], signers[i], SignatureNameQueryCallback, 0)) {
+      ++m_pendingNames;
+    }
+  }
+  if (!m_pendingNames && m_petition) {
+    FrameScript_SignalEvent(373);
+    ConsoleWrite("Petition shown", DEFAULT_COLOR);
+  }
+}
+
+void __fastcall CGPetitionInfo::DecrementPendingName() {
+  if (m_pendingNames && !--m_pendingNames && m_petition) {
+    FrameScript_SignalEvent(373);
+    ConsoleWrite("Petition shown", DEFAULT_COLOR);
+  }
+}
+
+void __fastcall CGPetitionInfo::SetPetitionStats(int id) {
+  const unsigned __int64 noGuid = 0;
+  m_petition = g_petitionCache.GetRecord(id, noGuid, 0, 0);
+  if (m_petition && !m_pendingNames) {
+    FrameScript_SignalEvent(373);
+    ConsoleWrite("Petition shown", DEFAULT_COLOR);
+  }
+}
+
+static int __fastcall Script_ClosePetition(lua_State *__formal) {
+  CGPetitionInfo::SetPetition(0, 0);
+  return 0;
+}
+
+static int __fastcall Script_GetPetitionInfo(lua_State *L) {
+  const CGPetition *petition = CGPetitionInfo::GetPetitionStats();
+  if (petition) {
+    lua_pushstring(L, petition->m_flags & 1 ? "charter" : "petition");
+    lua_pushstring(L, petition->m_title);
+    lua_pushstring(L, petition->m_bodyText);
+    lua_pushnumber(L, static_cast<double>(petition->m_maxSignatures));
+    const NameCache *name = g_nameDBCache.GetRecord(petition->m_petitioner, petition->m_petitioner, 0, 0);
+    lua_pushstring(L, name ? name->m_name : 0);
+    petition->m_petitioner == ClntObjMgrGetActivePlayer() ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  } else {
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnumber(L, 0.0);
+    lua_pushnil(L);
+    lua_pushnil(L);
+  }
+  return 6;
+}
+
+static int __fastcall Script_GetNumPetitionNames(lua_State *L) {
+  lua_pushnumber(L, static_cast<double>(CGPetitionInfo::GetNumSignatures()));
+  return 1;
+}
+
+static int __fastcall Script_GetPetitionNameInfo(lua_State *L) {
+  if (!lua_isnumber(L, 1)) {
+    return luaL_error(L, "Usage: GetPetitionNameInfo(index)");
+  }
+  PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const NameCache    *name = signer ? g_nameDBCache.GetRecord(signer->signer, signer->signer, 0, 0) : 0;
+  lua_pushstring(L, name ? name->m_name : 0);
+  return 1;
+}
+
+static int __fastcall Script_CanSignPetition(lua_State *L) {
+  const CGPetition *petition = CGPetitionInfo::GetPetitionStats();
+  int               canSign = petition != 0;
+  CGPlayer_C       *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (petition && (petition->m_flags & 1) &&
+      ((!player || *reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(player->GetStorage()) + 580)) ||
+       CGPetitionInfo::GetNumSignatures() >= static_cast<unsigned int>(petition->m_maxSignatures)))
+  {
+    canSign = 0;
+  }
+  if (petition && petition->m_petitioner == ClntObjMgrGetActivePlayer()) {
+    canSign = 0;
+  }
+  for (unsigned int i = 0; canSign && i < CGPetitionInfo::GetNumSignatures(); ++i) {
+    if (CGPetitionInfo::GetSignature(i)->signer == ClntObjMgrGetActivePlayer()) {
+      canSign = 0;
+    }
+  }
+  canSign ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  return 1;
+}
+
+static int __fastcall Script_SignPetition(lua_State *L) {
+  unsigned char choice = 1;
+  if (lua_isnumber(L, 1)) {
+    choice = static_cast<unsigned char>(lua_tonumber(L, 1));
+  }
+  unsigned __int64 petition = CGPetitionInfo::GetPetition();
+  if (petition) {
+    CDataStore msg;
+    msg.Put(static_cast<unsigned int>(CMSG_PETITION_SIGN));
+    msg.Put(petition);
+    msg.Put(choice);
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  }
+  return 0;
+}
+
+static int __fastcall Script_OfferPetition(lua_State *__formal) {
+  unsigned __int64 petition = CGPetitionInfo::GetPetition();
+  unsigned __int64 target = Script_GetGUIDFromName("target");
+  if (petition && target) {
+    CDataStore msg;
+    msg.Put(static_cast<unsigned int>(CMSG_OFFER_PETITION));
+    msg.Put(petition);
+    msg.Put(target);
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  }
+  return 0;
+}
+
+static FrameScript_Method s_ScriptFunctions[7] = {
+    {      "ClosePetition",       Script_ClosePetition},
+    {    "GetPetitionInfo",     Script_GetPetitionInfo},
+    {"GetNumPetitionNames", Script_GetNumPetitionNames},
+    {"GetPetitionNameInfo", Script_GetPetitionNameInfo},
+    {    "CanSignPetition",     Script_CanSignPetition},
+    {       "SignPetition",        Script_SignPetition},
+    {      "OfferPetition",       Script_OfferPetition}
+};
+
+void __fastcall PetitionInfoRegisterScriptFunctions() {
+  for (unsigned int i = 0; i < 7; ++i) {
+    FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
+  }
+}
+
+void __fastcall PetitionInfoUnregisterScriptFunctions() {
+  for (unsigned int i = 0; i < 7; ++i) {
+    FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
+  }
+}

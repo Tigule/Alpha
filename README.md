@@ -5,9 +5,10 @@ This project has 3 goals: to **understand and document**, **recompile**, and **p
 The significance of this build is because it includes pdb/map files for its Windows executables **and it's the earliest patch we have currently**.
 </div>
 
-Cross-platform support is a secondary goal after producing a functional Windows client. We can source functions from **0.5.5 (build 3494)** (OS X) and **0.7.0 (build 3694)** (Linux). The result would be an approximation of a cross-platform 0.5.3 client however we can't confirm what's authentic for the time.
+> [!WARNING]
+> **UNDERGOING HEAVY RECONSTRUCTION RIGHT NOW. CHECK BACK LATER**
 
-When this project is complete we should have ~400k lines of code and 22k+ functions in this repo. These figures are based on information from the original client.
+Cross-platform support is a secondary goal after producing a functional Windows client. We can source functions from **0.5.5 (build 3494)** (OS X) and **0.7.0 (build 3694)** (Linux). The result would be an approximation of a cross-platform 0.5.3 client however we can't confirm what's authentic for the time.
 
 > [!IMPORTANT]
 > I won't provide a link to the original install disc - try checking Google/archive.org for `"World of Warcraft Alpha 0.5.3 3368"`

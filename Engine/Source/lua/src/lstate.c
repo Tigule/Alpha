@@ -137,6 +137,7 @@ static void preinit_state (lua_State *L) {
   L->nCcalls = 0;
   L->base_ci = L->ci = NULL;
   L->errfunc = 0;
+  L->allowgc = 1;
   setnilvalue(gt(L));
 }
 

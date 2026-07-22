@@ -31,8 +31,6 @@ if(WIN32)
         Source/SErr.cpp
         Source/SEvt.cpp
         Source/SFile.cpp
-        Source/SInterlocked.cpp
-        Source/SLock.cpp
         Source/SLog.cpp
         Source/SMem.cpp
         Source/SMsg.cpp
@@ -40,30 +38,34 @@ if(WIN32)
         Source/SRtl.cpp
         Source/Storm.cpp
     )
-elseif(APPLE)
-    target_sources(Storm PRIVATE
-        Source/SMemMalloc.cpp
-        Source/Linux/SCmd.cpp
-        Source/Linux/SFile.cpp
-        Source/Linux/SInterlocked.cpp
-        Source/Linux/SLock.cpp
-        Source/Linux/SLog.cpp
-        Source/Linux/SThread.cpp
-        Source/Mac/SErrMac.cpp
-        Source/Mac/SRegMac.cpp
-    )
-elseif(UNIX)
-    target_sources(Storm PRIVATE
-        Source/SMemMalloc.cpp
-        Source/Linux/SCmd.cpp
-        Source/Linux/SErr.cpp
-        Source/Linux/SFile.cpp
-        Source/Linux/SInterlocked.cpp
-        Source/Linux/SLock.cpp
-        Source/Linux/SLog.cpp
-        Source/Linux/SReg.cpp
-        Source/Linux/SThread.cpp
-    )
+
+endif()
+
+if(MSVC_VERSION EQUAL 1200)
+    target_compile_options(Storm PRIVATE /GX- /Ob1 /Oy-)
+
+    set_property(SOURCE
+        Source/SBig.cpp
+        APPEND_STRING PROPERTY COMPILE_FLAGS " /GX /Ob0")
+
+    set_property(SOURCE
+        Source/SCmd.cpp
+        Source/SComp.cpp
+        Source/SErr.cpp
+        Source/SEvt.cpp
+        Source/SFile.cpp
+        Source/SFile2.cpp
+        Source/SMsg.cpp
+        Source/SRgn.cpp
+        Source/SZip.cpp
+        Source/W32/SDir.cpp
+        Source/W32/SLock.cpp
+        Source/W32/SThread.cpp
+        APPEND_STRING PROPERTY COMPILE_FLAGS " /Ob0")
+
+    set_property(SOURCE
+        Source/SZip.cpp
+        APPEND_STRING PROPERTY COMPILE_FLAGS " /Zp1")
 endif()
 
 target_include_directories(Storm
@@ -75,7 +77,3 @@ target_include_directories(Storm
 )
 
 target_link_libraries(Storm Zlib)
-
-if(MSVC)
-    target_compile_options(Storm PRIVATE /Gr)
-endif()

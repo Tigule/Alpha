@@ -763,6 +763,14 @@ LUA_API int lua_dump (lua_State *L, lua_Chunkwriter writer, void *data) {
 #define GCscale(x)		(cast(int, GCscalel(x)))
 #define GCunscale(x)		(cast(lu_mem, x)<<10)
 
+LUA_API void lua_enablegc (lua_State *L) {
+  L->allowgc = 1;
+}
+
+LUA_API void lua_disablegc (lua_State *L) {
+  L->allowgc = 0;
+}
+
 LUA_API int lua_getgcthreshold (lua_State *L) {
   int threshold;
   lua_lock(L);

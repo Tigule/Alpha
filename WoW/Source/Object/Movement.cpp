@@ -1,0 +1,1533 @@
+#include "MovementData.h"
+
+#include <storm.h>
+
+#include "Tempest/c34matrix.h"
+#include "Tempest/cmath.h"
+#include "ObjectAlloc/ObjectAllocTemplate.h"
+
+#include <stdarg.h>
+#include <stdio.h>
+#include <float.h>
+#include <math.h>
+
+void __fastcall WVLog(unsigned int logMask, unsigned int priority, const char *fmt, char *arglist);
+void __fastcall OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime);
+void __fastcall OnCollideFalling(unsigned __int64 unit, unsigned long eventTime);
+
+static unsigned int s_localMoveHeap = static_cast<unsigned int>(-1);
+
+CMovementData::CMovementData(const NTempest::C3Vector &position, float facing, const unsigned __int64 &guid)
+    : m_position(position),
+      m_facing(facing),
+      m_pitch(0.0f),
+      m_groundNormal(0.0f, 0.0f, 1.0f),
+      m_guid(guid),
+      m_transportGUID(0),
+      m_moveFlags(0x08000000),
+      m_anchorPosition(position),
+      m_anchorFacing(facing),
+      m_anchorPitch(0.0f),
+      m_moveStartTime(0),
+      m_direction(0.0f),
+      m_direction2d(0.0f),
+      m_cosAnchorPitch(1.0f),
+      m_sinAnchorPitch(0.0f),
+      m_reDirection(0.0f),
+      m_lastReDirectionSent(0.0f),
+      m_fallStartTime(0),
+      m_fallStartElevation(0.0f),
+      m_currentSpeed(0.0f),
+      m_walkSpeed(0.0f),
+      m_runSpeed(0.0f),
+      m_swimSpeed(0.0f),
+      m_turnRate(0.0f),
+      m_collisionBoxHalfDepth(0.33333334f),
+      m_collisionBoxHeight(2.0277777f),
+      m_stepUpHeight(1.0f),
+      m_jumpVelocity(0.0f),
+      m_spline(0),
+      m_waterSurfaceElev(0.0f) {
+  CalcDirection();
+}
+
+CMovementData::~CMovementData() {
+  RemoveSpline();
+}
+
+CMovement::CMovement(const NTempest::C3Vector &position, float facing, const unsigned __int64 &guid) : CMovementData(position, facing, guid) {
+}
+
+void __fastcall MovementInitialize(const char *logFileName, bool needLocalHeap) {
+  CMovementGlobals *globals = NEW(CMovementGlobals);
+  MovementSetGlobals(globals);
+  FATALASSERT(globals);
+
+  SStrCopy(globals->logFileName, logFileName, sizeof(globals->logFileName));
+  globals->m_localMover = 0;
+
+  if (needLocalHeap && s_localMoveHeap == static_cast<unsigned int>(-1)) {
+    s_localMoveHeap = ObjectAllocAddHeap(sizeof(CPlayerMoveEvent), 1024, "CPlayerMoveEvent");
+  }
+
+  globals->m_lastUpdateTime = GetTickCount();
+}
+
+int CMovement::IsLocalPlayer() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  return globals && globals->m_localMover == this;
+}
+
+int __fastcall CMovement::MoversOnList() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  return globals && globals->numMovers > 0;
+}
+
+int __fastcall MovementIdleMoveUnits(const void *packetData, void *param) {
+  MovementLockMoversList(1);
+
+  unsigned long     timeNow = GetTickCount();
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  unsigned long     lastUpdate = globals->m_lastUpdateTime;
+  int               timeDiff = static_cast<int>(timeNow - lastUpdate);
+
+  MovementMoveTransports(timeNow, static_cast<float>(timeDiff) * 0.001f);
+
+  if (globals->m_localMover || CMovement::MoversOnList()) {
+    FATALASSERT(timeDiff >= 0);
+
+    while (timeDiff > 0) {
+      lastUpdate = globals->m_lastUpdateTime;
+
+      if (timeDiff <= 1000) {
+        globals->m_lastUpdateTime = timeNow;
+        timeDiff = 0;
+        CMovement::MoveUnits(timeNow, lastUpdate);
+      } else {
+        globals->m_lastUpdateTime = lastUpdate + 1000;
+        timeDiff -= 1000;
+      }
+
+      if (globals->m_localMover) {
+        globals->m_localMover->MoveLocalPlayer(globals->m_lastUpdateTime, lastUpdate);
+      }
+    }
+  } else {
+    globals->m_lastUpdateTime = timeNow;
+  }
+
+  MovementUnlockMoversList(1);
+  return 1;
+}
+
+void CMovement::MoveUnit(unsigned long timeNow, unsigned long lastUpdate, void *obj) {
+  m_moveFlags &= ~0x00800000;
+
+  if (static_cast<int>(timeNow - m_moveStartTime) < 0) {
+    timeNow = m_moveStartTime;
+  }
+
+  if (m_moveFlags & 0x40FF) {
+    ApplyMovement(lastUpdate + 1, FallTime(), timeNow - m_moveStartTime, timeNow - lastUpdate);
+    m_moveFlags |= 0x00800000;
+    OnMoveUpdate(m_guid, timeNow);
+
+    if (m_moveFlags & 0x40FF) {
+      if (_isnan(m_position.x) || _isnan(m_position.y) || _isnan(m_position.z)) {
+        MovementFixOutOfBoundsUnit(m_guid);
+      } else {
+        MovementUpdateProxMap(obj);
+      }
+    }
+  }
+}
+
+void __fastcall CMovement::MoveUnits(unsigned long timeNow, unsigned long lastUpdate) {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  if (!globals) {
+    return;
+  }
+
+  MovementLockMoversList(1);
+
+  CMovementData *baseMover = globals->movers.Head();
+  while (baseMover) {
+    CMovementData *baseMoverNext = globals->movers.RawNext(baseMover);
+    CMovement     *mover = static_cast<CMovement *>(baseMover);
+    FATALASSERT(mover != globals->m_localMover);
+
+    void *obj = MovementTryLock(mover->m_guid);
+    if (obj) {
+      mover->MoveUnit(timeNow, lastUpdate, obj);
+
+      if (!(mover->m_moveFlags & 0x40FF)) {
+        globals->movers.UnlinkNode(mover);
+        --globals->numMovers;
+      }
+
+      MovementUnlock(obj);
+    }
+
+    baseMover = baseMoverNext;
+  }
+
+  MovementUnlockMoversList(1);
+}
+
+unsigned int CMovement::FallTime() const {
+  if (m_moveFlags & 0x4000) {
+    CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+    return globals->m_lastUpdateTime - m_fallStartTime;
+  }
+
+  return 0;
+}
+
+int CMovement::UpdatePlayerMovement(unsigned long timeNow) {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+
+  while (CPlayerMoveEvent *event = globals->m_localMoveQueue.m_events.Head()) {
+    if (static_cast<int>(timeNow - event->timeStamp) < 0) {
+      break;
+    }
+
+    globals->m_localMoveQueue.m_events.UnlinkNode(event);
+
+    switch (event->eventType) {
+      case PMOVE_MOVE_START_FWD:
+        StartMove(event->timeStamp, 1);
+        break;
+      case PMOVE_MOVE_START_BWD:
+        StartMove(event->timeStamp, 0);
+        break;
+      case PMOVE_MOVE_STOP:
+        StopMove(event->timeStamp);
+        break;
+      case PMOVE_STRAFE_START_LFT:
+        StartStrafe(event->timeStamp, 1);
+        break;
+      case PMOVE_STRAFE_START_RGT:
+        StartStrafe(event->timeStamp, 0);
+        break;
+      case PMOVE_STRAFE_STOP:
+        StopStrafe(event->timeStamp);
+        break;
+      case PMOVE_FALL:
+        StartFalling(event->timeStamp);
+        break;
+      case PMOVE_JUMP:
+        Jump(event->timeStamp);
+        break;
+      case PMOVE_TURN_START_LFT:
+        StartTurn(event->timeStamp, 1);
+        break;
+      case PMOVE_TURN_START_RGT:
+        StartTurn(event->timeStamp, 0);
+        break;
+      case PMOVE_TURN_STOP:
+        StopTurn(event->timeStamp);
+        break;
+      case PMOVE_PITCH_START_UP:
+        StartPitch(event->timeStamp, 1);
+        break;
+      case PMOVE_PITCH_START_DOWN:
+        StartPitch(event->timeStamp, 0);
+        break;
+      case PMOVE_PITCH_STOP:
+        StopPitch(event->timeStamp);
+        break;
+      case PMOVE_SET_RUN_MODE:
+        SetRunMode(event->timeStamp, 1);
+        break;
+      case PMOVE_SET_WALK_MODE:
+        SetRunMode(event->timeStamp, 0);
+        break;
+      case PMOVE_SET_FACING:
+        SetFacing(event->timeStamp, event->facing);
+        break;
+      case PMOVE_SET_PITCH:
+        SetPitch(event->timeStamp, event->facing);
+        break;
+      case PMOVE_MOVE_START_SWIM:
+        StartSwim(event->timeStamp);
+        break;
+      case PMOVE_MOVE_STOP_SWIM:
+        StopSwim(event->timeStamp);
+        break;
+      default:
+        FATALASSERT(0);
+        break;
+    }
+
+    ObjectFree(event->memHandle);
+  }
+
+  return !globals->m_localMoveQueue.m_events.IsEmpty() || (m_moveFlags & 0x40FF) != 0;
+}
+
+void CMovement::MoveLocalPlayer(unsigned long timeNow, unsigned long lastUpdate) {
+  unsigned int elapsedMS = timeNow - lastUpdate;
+  unsigned int timeUsed = 0;
+
+  m_moveFlags &= ~0x00800000;
+
+  while (timeUsed < elapsedMS) {
+    unsigned long     updateTime = lastUpdate + timeUsed;
+    CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+    CPlayerMoveEvent *event = globals->m_localMoveQueue.m_events.Head();
+    unsigned int      timeToUse = elapsedMS - timeUsed;
+
+    if (event) {
+      unsigned int untilEvent = event->timeStamp - updateTime;
+      if (untilEvent < timeToUse) {
+        timeToUse = untilEvent;
+      }
+    }
+
+    if ((m_moveFlags & 0x40FF) && timeToUse) {
+      unsigned int timeFallen = m_moveFlags & 0x4000 ? updateTime - m_fallStartTime : 0;
+      ApplyMovement(updateTime + 1, timeFallen, updateTime + timeToUse - m_moveStartTime, timeToUse);
+      m_moveFlags |= 0x00800000;
+    }
+
+    if (!UpdatePlayerMovement(updateTime + 1)) {
+      globals->m_localMover = 0;
+      break;
+    }
+
+    timeUsed += timeToUse;
+  }
+
+  OnMoveUpdate(m_guid, timeNow);
+}
+
+void CMovement::UpdateAnchors(unsigned long eventTime) {
+  m_anchorPosition = m_position;
+  m_anchorFacing = m_facing;
+  m_anchorPitch = m_pitch;
+  m_moveStartTime = eventTime;
+  m_moveFlags |= 0x200;
+  CalcDirection();
+}
+
+void CMovement::UpdateCurrentSpeed() {
+  if (!(m_moveFlags & 0xF)) {
+    m_currentSpeed = 0.0f;
+  } else {
+    m_currentSpeed = m_moveFlags & 0x02000000 ? m_swimSpeed : m_runSpeed;
+    if ((m_moveFlags & 0x2000010E) && m_currentSpeed >= m_walkSpeed) {
+      m_currentSpeed = m_walkSpeed;
+    }
+  }
+
+  m_moveFlags &= ~0x28000000;
+}
+
+float CMovement::GetCurrentSpeed() {
+  if (m_moveFlags & 0x08000000) {
+    UpdateCurrentSpeed();
+  }
+  return m_currentSpeed;
+}
+
+void CMovement::Halt(unsigned long eventTime) {
+  if (m_moveFlags & 0x4000) {
+    if (!(m_moveFlags & 0x10000)) {
+      if (m_moveFlags & 1) {
+        m_moveFlags |= 0x00080000;
+      }
+      if (m_moveFlags & 2) {
+        m_moveFlags |= 0x00100000;
+      }
+    }
+    if (!(m_moveFlags & 0x20000)) {
+      if (m_moveFlags & 4) {
+        m_moveFlags |= 0x00200000;
+      }
+      if (m_moveFlags & 8) {
+        m_moveFlags |= 0x00400000;
+      }
+    }
+    m_moveFlags = (m_moveFlags & 0xF7FCEFF0) | 0x08000000;
+    UpdateAnchors(eventTime);
+  } else {
+    m_moveFlags |= 0x10000000;
+  }
+}
+
+int CMovement::StartMove(unsigned long eventTime, int forward) {
+  m_moveFlags &= 0xFFE6FFFF;
+  if ((m_moveFlags & 0x4000) && (m_moveFlags & 0xF)) {
+    m_moveFlags |= forward ? 0x00080000 : 0x00100000;
+    return 0;
+  }
+
+  if (m_moveFlags & 0x4000) {
+    m_moveFlags |= 0x20000000;
+  }
+  UpdateAnchors(eventTime);
+  m_moveFlags = (m_moveFlags & ~3U) | (forward ? 1U : 2U);
+  m_moveFlags |= 0x08000000;
+  return 1;
+}
+
+int CMovement::StartStrafe(unsigned long eventTime, int left) {
+  m_moveFlags &= 0xFF9DFFFF;
+  if ((m_moveFlags & 0x4000) && (m_moveFlags & 0xF)) {
+    m_moveFlags |= left ? 0x00200000 : 0x00400000;
+    return 0;
+  }
+
+  if (m_moveFlags & 0x4000) {
+    m_moveFlags |= 0x20000000;
+  }
+  UpdateAnchors(eventTime);
+  m_moveFlags = (m_moveFlags & ~0xCU) | (left ? 4U : 8U);
+  m_moveFlags |= 0x08000000;
+  return 1;
+}
+
+int CMovement::StopMove(unsigned long eventTime) {
+  if (!(m_moveFlags & 3)) {
+    if (m_moveFlags & 0x00180000) {
+      m_moveFlags &= 0xFFE7FFFF;
+      return 1;
+    }
+    return 0;
+  }
+
+  if (m_moveFlags & 0x4000) {
+    m_moveFlags = (m_moveFlags & 0xFFE6FFFF) | 0x00010000;
+    return 0;
+  }
+
+  m_moveFlags = (m_moveFlags & 0xF7FEEFFC) | 0x08000000;
+  UpdateAnchors(eventTime);
+  return 1;
+}
+
+void CMovement::ForceStopMove(unsigned long eventTime) {
+  m_moveFlags = (m_moveFlags & 0xF7FEEFFC) | 0x08000000;
+  UpdateAnchors(eventTime);
+}
+
+int CMovement::StopStrafe(unsigned long eventTime) {
+  if (!(m_moveFlags & 0xC)) {
+    if (m_moveFlags & 0x00620000) {
+      m_moveFlags &= 0xFF9FFFFF;
+      return 1;
+    }
+    return 0;
+  }
+
+  if (m_moveFlags & 0x4000) {
+    m_moveFlags = (m_moveFlags & 0xFF9DFFFF) | 0x00020000;
+    return 0;
+  }
+
+  m_moveFlags = (m_moveFlags & 0xF7FDEFF3) | 0x08000000;
+  UpdateAnchors(eventTime);
+  return 1;
+}
+
+int CMovement::Jump(unsigned long eventTime) {
+  if ((m_moveFlags & 0x4000) || (m_moveFlags & 0x02000000)) {
+    return 0;
+  }
+
+  UpdateAnchors(eventTime);
+  m_jumpVelocity -= 7.9555473f;
+  m_fallStartElevation = m_position.z;
+  m_fallStartTime = eventTime;
+  m_moveFlags = (m_moveFlags & ~0x1000U) | 0x4000;
+  return 1;
+}
+
+void CMovement::StartTurn(unsigned long eventTime, int left) {
+  UpdateAnchors(eventTime);
+  m_moveFlags = (m_moveFlags & ~0x30U) | (left ? 0x10U : 0x20U);
+}
+
+void CMovement::StopTurn(unsigned long eventTime) {
+  if (m_moveFlags & 0x30) {
+    UpdateAnchors(eventTime);
+    m_moveFlags &= ~0x30U;
+  }
+}
+
+void CMovement::StartPitch(unsigned long eventTime, int up) {
+  if (m_moveFlags & 0x02000000) {
+    UpdateAnchors(eventTime);
+    m_moveFlags = (m_moveFlags & ~0xC0U) | (up ? 0x40U : 0x80U);
+  }
+}
+
+void CMovement::StopPitch(unsigned long eventTime) {
+  if ((m_moveFlags & 0x020000C0) == 0x020000C0 || ((m_moveFlags & 0x02000000) && (m_moveFlags & 0xC0))) {
+    UpdateAnchors(eventTime);
+    m_moveFlags &= ~0xC0U;
+  }
+}
+
+void CMovement::SetRunMode(unsigned long eventTime, int run) {
+  UpdateAnchors(eventTime);
+  if (run) {
+    m_moveFlags &= ~0x100U;
+  } else {
+    m_moveFlags |= 0x100;
+  }
+  m_moveFlags |= 0x08000000;
+}
+
+void CMovement::SetFacing(unsigned long eventTime, float facing) {
+  if (NTempest::CMath::fabs_(facing - m_facing) >= 0.00000095367432f) {
+    m_facing = facing;
+    if (!(m_moveFlags & 0x4000)) {
+      UpdateAnchors(eventTime);
+    }
+  }
+  m_moveFlags &= ~0x30U;
+}
+
+void CMovement::SetPitch(unsigned long eventTime, float pitch) {
+  if ((m_moveFlags & 0x02000000) && NTempest::CMath::fabs_(pitch - m_pitch) >= 0.00000095367432f) {
+    m_pitch = pitch;
+    UpdateAnchors(eventTime);
+  }
+  m_moveFlags &= ~0xC0U;
+}
+
+void CMovement::StartSwim(unsigned long eventTime) {
+  UpdateAnchors(eventTime);
+  m_moveFlags |= 0x0A000000;
+}
+
+void CMovement::StopSwim(unsigned long eventTime) {
+  UpdateAnchors(eventTime);
+  m_moveFlags = (m_moveFlags & 0xF5FFFF3F) | 0x08000000;
+  m_anchorPitch = 0.0f;
+  m_pitch = 0.0f;
+}
+
+void CMovement::GetMovingDirection(NTempest::C3Vector *direction) {
+  *direction = m_moveFlags & 2 ? m_direction * -1.0f : m_direction;
+}
+
+void CMovement::GetStrafingDirection(NTempest::C3Vector *direction) {
+  direction->x = m_direction.y;
+  direction->y = m_direction.x;
+  direction->z = 0.0f;
+  if (m_moveFlags & 4) {
+    direction->x = -direction->x;
+  } else {
+    direction->y = -direction->y;
+  }
+}
+
+void CMovement::GetDiagonalDirection(NTempest::C3Vector *direction) {
+  NTempest::C3Vector moveDir;
+  GetMovingDirection(&moveDir);
+  GetStrafingDirection(direction);
+  direction->x = (direction->x + moveDir.x) * 0.70710677f;
+  direction->y = (direction->y + moveDir.y) * 0.70710677f;
+  direction->z += moveDir.z;
+}
+
+void CMovement::GetMovingDirection2d(NTempest::C2Vector *direction) {
+  if (m_moveFlags & 2) {
+    direction->x = -m_direction2d.x;
+    direction->y = -m_direction2d.y;
+  } else {
+    *direction = m_direction2d;
+  }
+}
+
+void CMovement::GetStrafingDirection2d(NTempest::C2Vector *direction) {
+  direction->x = m_direction2d.y;
+  direction->y = m_direction2d.x;
+  if (m_moveFlags & 4) {
+    direction->x = -direction->x;
+  } else {
+    direction->y = -direction->y;
+  }
+}
+
+void CMovement::GetDiagonalDirection2d(NTempest::C2Vector *direction) {
+  NTempest::C2Vector moveDir;
+  GetMovingDirection2d(&moveDir);
+  GetStrafingDirection2d(direction);
+  direction->x = (direction->x + moveDir.x) * 0.70710677f;
+  direction->y = (direction->y + moveDir.y) * 0.70710677f;
+}
+
+void CMovement::PlotLinearPosition(NTempest::C3Vector &direction, float secsElapsed, NTempest::C3Vector *totalMove) {
+  *totalMove = direction * (GetCurrentSpeed() * secsElapsed);
+}
+
+void CMovement::PlotHorzCircularPosition(NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
+  float currentSpeed = GetCurrentSpeed();
+  float turnRate = GetCurrentTurnRate();
+  float turnRadius = currentSpeed / turnRate;
+  float turnAngle = turnRate * secsElapsed;
+  float turnX = NTempest::CMath::sin_(turnAngle) * turnRadius;
+  float turnY = turnRadius - NTempest::CMath::cos_(turnAngle) * turnRadius;
+
+  totalMove->x = (turnX * direction2d.x - turnY * direction2d.y) * m_cosAnchorPitch;
+  totalMove->y = (turnY * direction2d.x + turnX * direction2d.y) * m_cosAnchorPitch;
+  totalMove->z = currentSpeed * m_sinAnchorPitch * secsElapsed;
+}
+
+void CMovement::PlotVertCircularPosition(NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
+  float currentSpeed = GetCurrentSpeed();
+  float pitchRate = GetCurrentPitchRate();
+  float pitchRadius = currentSpeed / pitchRate;
+  float pitchAngle = pitchRate * secsElapsed;
+  float overflowTime = 0.0f;
+
+  if (m_anchorPitch + pitchAngle > 1.5707964f) {
+    overflowTime = (m_anchorPitch + pitchAngle - 1.5707964f) / pitchRate;
+    pitchAngle = 1.5707964f - m_anchorPitch;
+  } else if (m_anchorPitch + pitchAngle < -1.5707964f) {
+    overflowTime = (m_anchorPitch + pitchAngle + 1.5707964f) / pitchRate;
+    pitchAngle = -1.5707964f - m_anchorPitch;
+  }
+
+  float horizontal = NTempest::CMath::sin_(pitchAngle) * pitchRadius;
+  float vertical = pitchRadius - NTempest::CMath::cos_(pitchAngle) * pitchRadius;
+  float projected = horizontal * m_cosAnchorPitch - vertical * m_sinAnchorPitch;
+  totalMove->x = projected * direction2d.x;
+  totalMove->y = projected * direction2d.y;
+  totalMove->z = vertical * m_cosAnchorPitch + horizontal * m_sinAnchorPitch;
+  if (NTempest::CMath::fabs_(overflowTime) >= 0.00000095367432f) {
+    float overflow = overflowTime * currentSpeed;
+    totalMove->z += overflowTime > 0.0f ? overflow : -overflow;
+  }
+}
+
+void CMovement::PlotSpiralPosition(NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
+  float currentSpeed = GetCurrentSpeed();
+  float turnRate = GetCurrentTurnRate();
+  float pitchRate = GetCurrentPitchRate();
+  float turnRadius = currentSpeed / turnRate;
+  float pitchRadius = currentSpeed / pitchRate;
+  float pitchChange = pitchRate * secsElapsed;
+  float overflowTime = 0.0f;
+
+  if (m_anchorPitch + pitchChange > 1.5707964f) {
+    overflowTime = (m_anchorPitch + pitchChange - 1.5707964f) / pitchRate;
+    pitchChange = 1.5707964f - m_anchorPitch;
+  } else if (m_anchorPitch + pitchChange < -1.5707964f) {
+    overflowTime = (m_anchorPitch + pitchChange + 1.5707964f) / pitchRate;
+    pitchChange = -1.5707964f - m_anchorPitch;
+  }
+
+  float remainingTurn = (secsElapsed - overflowTime) * turnRate;
+  float horizontal = (NTempest::CMath::sin_(pitchChange) * pitchRadius + NTempest::CMath::sin_(remainingTurn) * turnRadius) * 0.5f;
+  float turnOffset = NTempest::CMath::cos_(remainingTurn) * turnRadius - turnRadius;
+  float pitchOffset = pitchRadius - NTempest::CMath::cos_(pitchChange) * pitchRadius;
+  float baseX = horizontal * direction2d.x - turnOffset * direction2d.y;
+  float baseY = turnOffset * direction2d.x + horizontal * direction2d.y;
+
+  totalMove->x = baseX * m_cosAnchorPitch - pitchOffset * m_sinAnchorPitch;
+  totalMove->y = baseY;
+  totalMove->z = pitchOffset * m_cosAnchorPitch + baseX * m_sinAnchorPitch;
+  if (NTempest::CMath::fabs_(overflowTime) >= 0.00000095367432f) {
+    float overflow = overflowTime * currentSpeed;
+    totalMove->z += overflowTime > 0.0f ? overflow : -overflow;
+  }
+}
+
+void CMovement::PlotUnitRotation(float elapsedSec) {
+  m_facing = static_cast<float>(fmod(GetCurrentTurnRate() * elapsedSec + m_anchorFacing, 6.2831855));
+  if (m_facing < 0.0f) {
+    m_facing += 6.2831855f;
+  }
+}
+
+void CMovement::PlotUnitPitch(float elapsedSec) {
+  m_pitch = GetCurrentPitchRate() * elapsedSec + m_anchorPitch;
+  if (m_pitch < -1.5707964f) {
+    m_pitch = -1.5707964f;
+  } else if (m_pitch > 1.5707964f) {
+    m_pitch = 1.5707964f;
+  }
+}
+
+int CMovement::PlotUnitMovement(unsigned int moveTime, NTempest::C3Vector *move) {
+  FATALASSERT(move);
+  if (!moveTime) {
+    return 0;
+  }
+
+  float        secsElapsed = static_cast<float>(moveTime) * 0.001f;
+  unsigned int actionFlags = 0;
+  if (m_moveFlags & 0x30) {
+    PlotUnitRotation(secsElapsed);
+    if (!(m_moveFlags & 0x4000)) {
+      actionFlags |= 2;
+    }
+  }
+  if (m_moveFlags & 0xC0) {
+    PlotUnitPitch(secsElapsed);
+    actionFlags |= 8;
+  }
+  if (m_moveFlags & 3) {
+    actionFlags |= 1;
+  }
+  if (m_moveFlags & 0xC) {
+    actionFlags |= 4;
+  }
+
+  NTempest::C3Vector direction;
+  NTempest::C2Vector direction2d;
+  switch (actionFlags) {
+    case 1:
+      GetMovingDirection(&direction);
+      PlotLinearPosition(direction, secsElapsed, move);
+      return 1;
+    case 3:
+      GetMovingDirection2d(&direction2d);
+      PlotHorzCircularPosition(direction2d, secsElapsed, move);
+      return 1;
+    case 4:
+    case 12:
+      GetStrafingDirection(&direction);
+      PlotLinearPosition(direction, secsElapsed, move);
+      return 1;
+    case 5:
+      GetDiagonalDirection(&direction);
+      PlotLinearPosition(direction, secsElapsed, move);
+      return 1;
+    case 6:
+    case 14:
+      GetStrafingDirection2d(&direction2d);
+      PlotHorzCircularPosition(direction2d, secsElapsed, move);
+      return 1;
+    case 7:
+      GetDiagonalDirection2d(&direction2d);
+      PlotHorzCircularPosition(direction2d, secsElapsed, move);
+      return 1;
+    case 9:
+      GetMovingDirection2d(&direction2d);
+      PlotVertCircularPosition(direction2d, secsElapsed, move);
+      return 1;
+    case 11:
+      GetMovingDirection2d(&direction2d);
+      PlotSpiralPosition(direction2d, secsElapsed, move);
+      return 1;
+    case 13:
+      GetDiagonalDirection2d(&direction2d);
+      PlotVertCircularPosition(direction2d, secsElapsed, move);
+      return 1;
+    case 15:
+      GetDiagonalDirection2d(&direction2d);
+      PlotSpiralPosition(direction2d, secsElapsed, move);
+      return 1;
+    default:
+      return 1;
+  }
+}
+
+int CMovement::PlotUnitSplineMovement(unsigned long eventTime, NTempest::C3Vector *move) {
+  FATALASSERT(move);
+  FATALASSERT(m_moveFlags & 0x04000000);
+  if (!(m_moveFlags & 3)) {
+    return 0;
+  }
+
+  unsigned long timeUsed = eventTime - m_spline->start;
+  float         time;
+  if (!m_spline->time) {
+    time = 1.0f;
+  } else if (static_cast<int>(timeUsed) < 0) {
+    time = 0.0f;
+  } else if (timeUsed < m_spline->time) {
+    time = static_cast<float>(timeUsed) / m_spline->time;
+  } else {
+    time = 1.0f;
+    m_spline->flags |= 1;
+  }
+
+  NTempest::C3Vector position;
+  m_spline->spline.Pos(time, position, NTempest::C3Spline::EVAL_ARCLENGTH);
+  *move = position - m_anchorPosition;
+
+  NTempest::C3Vector velocity;
+  m_spline->spline.Vel(time, velocity, NTempest::C3Spline::EVAL_ARCLENGTH);
+  m_facing = static_cast<float>(atan2(velocity.y, velocity.x));
+  if (m_facing < 0.0f) {
+    m_facing += 6.2831855f;
+  }
+  return 1;
+}
+
+int CMovement::CheckInvalidPositionOrMove(NTempest::C3Vector &move, unsigned int moveTime) {
+  if (_isnan(m_position.x) || _isnan(m_position.y) || m_position.x - 2.0f < -17066.666f || m_position.x + 2.0f > 17066.666f ||
+      m_position.y - 2.0f < -17066.666f || m_position.y + 2.0f > 17066.666f)
+  {
+    MovementFixOutOfBoundsUnit(m_guid);
+    return 0;
+  }
+
+  NTempest::C3Vector moveVector(
+      m_anchorPosition.x + move.x - m_position.x, m_anchorPosition.y + move.y - m_position.y, m_anchorPosition.z + move.z - m_position.z
+  );
+  float distanceSq = moveVector.x * moveVector.x + moveVector.y * moveVector.y;
+  if (m_moveFlags & 0x02000000) {
+    distanceSq += moveVector.z * moveVector.z;
+  }
+
+  if (moveTime) {
+    float seconds = static_cast<float>(moveTime) * 0.001f;
+    if (distanceSq / (seconds * seconds) <= 3600.0f) {
+      return 1;
+    }
+  } else if (distanceSq < 0.00000095367432f) {
+    return 1;
+  }
+
+  MovementFixOutOfBoundsUnit(m_guid);
+  return 0;
+}
+
+void CMovement::ApplyAdjustedMove(unsigned long timeStemp, NTempest::C3Vector &moveWanted, int wasAdjusted, unsigned int oldMoveFlags) {
+  if (wasAdjusted || (m_moveFlags & 0x1000)) {
+    if (!m_spline || (m_spline->flags & 4) || (oldMoveFlags & 0x1000)) {
+      UpdateAnchors(timeStemp);
+      return;
+    }
+
+    m_spline->flags |= 2;
+    m_reDirection = moveWanted;
+    float length = m_reDirection.Mag();
+    if (NTempest::CMath::fabs_(length) >= 0.00000023841858f) {
+      m_reDirection.x /= length;
+      m_reDirection.y /= length;
+      m_reDirection.z /= length;
+    }
+    UpdateAnchors(timeStemp);
+  } else if (m_spline && !(m_spline->flags & 4)) {
+    m_spline->flags &= ~2U;
+  }
+}
+
+void CMovement::SimpleRequestMove(unsigned int fallTime, NTempest::C3Vector &moveVector) {
+  m_position = m_anchorPosition + moveVector;
+  if (m_jumpVelocity != 0.0f) {
+    float distJumped = static_cast<float>(fallTime) * 0.001f * m_jumpVelocity * -0.5f;
+    if (distJumped > 1.0f) {
+      distJumped = 1.0f;
+      m_jumpVelocity = 0.0f;
+    }
+    m_position.z = m_fallStartElevation + distJumped;
+  }
+}
+
+void CMovement::SaveMoveState(CMoveState *state) {
+  state->position = m_position;
+  state->facing = m_facing;
+  state->pitch = m_pitch;
+  state->moveFlags = m_moveFlags;
+  state->anchorPosition = m_anchorPosition;
+  state->anchorFacing = m_anchorFacing;
+  state->anchorPitch = m_anchorPitch;
+  state->moveStartTime = m_moveStartTime;
+  state->direction = m_direction;
+  state->direction2d = m_direction2d;
+  state->cosAnchorPitch = m_cosAnchorPitch;
+  state->sinAnchorPitch = m_sinAnchorPitch;
+  state->reDirection = m_reDirection;
+  state->fallStartTime = m_fallStartTime;
+  state->fallStartElevation = m_fallStartElevation;
+  state->jumpVelocity = m_jumpVelocity;
+}
+
+void CMovement::RestoreMoveState(CMoveState &state) {
+  m_position = state.position;
+  m_facing = state.facing;
+  m_pitch = state.pitch;
+  m_moveFlags = state.moveFlags | 0x08000000;
+  m_anchorPosition = state.anchorPosition;
+  m_anchorFacing = state.anchorFacing;
+  m_anchorPitch = state.anchorPitch;
+  m_moveStartTime = state.moveStartTime;
+  m_direction = state.direction;
+  m_direction2d = state.direction2d;
+  m_cosAnchorPitch = state.cosAnchorPitch;
+  m_sinAnchorPitch = state.sinAnchorPitch;
+  m_reDirection = state.reDirection;
+  m_fallStartTime = state.fallStartTime;
+  m_fallStartElevation = state.fallStartElevation;
+  m_jumpVelocity = state.jumpVelocity;
+}
+
+int CMovement::GetMoveEventMsgId(unsigned int oldMoveFlags, int wasJumping) {
+  unsigned int changed = oldMoveFlags ^ m_moveFlags;
+  if (changed & 3) {
+    if (m_moveFlags & 1) {
+      return 181;
+    }
+    return m_moveFlags & 2 ? 182 : 183;
+  }
+  if (changed & 0xC) {
+    if (m_moveFlags & 4) {
+      return 184;
+    }
+    return m_moveFlags & 8 ? 185 : 186;
+  }
+  if (m_jumpVelocity == 0.0f || wasJumping) {
+    if (changed & 0x02000000) {
+      return m_moveFlags & 0x02000000 ? 203 : 204;
+    }
+    return 183;
+  }
+  return 187;
+}
+
+void CMovement::ApplyMovement(unsigned long eventTime, unsigned int fallTime, unsigned int moveTime, unsigned int elapsed) {
+  NTempest::C3Vector moveVector(0.0f);
+  if (!m_spline || (m_spline->flags & 6)) {
+    PlotUnitMovement(moveTime, &moveVector);
+  } else {
+    PlotUnitSplineMovement(eventTime + elapsed, &moveVector);
+  }
+
+  if (!(m_moveFlags & 0x400F) || !CheckInvalidPositionOrMove(moveVector, moveTime)) {
+    return;
+  }
+
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  FATALASSERT(globals);
+  unsigned int oldMoveFlags = m_moveFlags;
+  int          wasJumping = m_jumpVelocity != 0.0f;
+  int          moveAdjusted = 0;
+
+  if (globals->ignoreObstacles) {
+    m_position = m_anchorPosition + moveVector;
+  } else if ((oldMoveFlags & 0x800) || (m_spline && !(m_spline->flags & 4) && (m_spline->flags & 0x200))) {
+    SimpleRequestMove(fallTime + elapsed, moveVector);
+  } else if (oldMoveFlags & 0x400F) {
+    NTempest::C3Vector moveWanted = m_anchorPosition + moveVector - m_position;
+    if (!(oldMoveFlags & 0x02000000)) {
+      moveWanted.z = 0.0f;
+    }
+    moveAdjusted = CollideRequestMove(eventTime, elapsed, moveWanted);
+    ApplyAdjustedMove(eventTime + elapsed, moveVector, moveAdjusted, oldMoveFlags);
+  }
+
+  CallMoveEventHandlers(eventTime, moveAdjusted, oldMoveFlags, wasJumping);
+  if (m_spline && !(m_spline->flags & 4) && (m_spline->flags & 0x200)) {
+    UpdateAnchors(eventTime + elapsed);
+  }
+  if (m_position.z < -333.33334f) {
+    MovementFixOutOfBoundsUnit(m_guid);
+  }
+}
+
+void CMovement::AddPlayerMoveEvent(unsigned long eventTime, int eventType, float facing) {
+  FATALASSERT(static_cast<unsigned int>(eventType) < NUM_PMOVE_EVTS);
+  RemoveSpline();
+  FATALASSERT(s_localMoveHeap != static_cast<unsigned int>(-1));
+
+  unsigned int memHandle;
+  FATALASSERT(ObjectAlloc(s_localMoveHeap, &memHandle));
+  CPlayerMoveEvent *event = new (ObjectPtr(memHandle)) CPlayerMoveEvent;
+  FATALASSERT(event);
+
+  event->timeStamp = eventTime;
+  event->eventType = static_cast<PLAYER_MOVE_EVT>(eventType);
+  event->memHandle = memHandle;
+  event->facing = facing;
+
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CPlayerMoveEvent *existing = globals->m_localMoveQueue.m_events.Head();
+  while (existing && static_cast<int>(eventTime - existing->timeStamp) >= 0) {
+    existing = existing->Next();
+  }
+
+  globals->m_localMoveQueue.m_events.LinkNode(event, existing ? LIST_LINK_BEFORE : LIST_TAIL, existing);
+  globals->m_localMover = this;
+}
+
+void CMovement::OnMoveStartLocal(unsigned long eventTime, int forward) {
+  AddPlayerMoveEvent(eventTime, forward ? PMOVE_MOVE_START_FWD : PMOVE_MOVE_START_BWD, 0.0f);
+}
+
+void CMovement::OnMoveStopLocal(unsigned long eventTime) {
+  AddPlayerMoveEvent(eventTime, PMOVE_MOVE_STOP, 0.0f);
+}
+
+void CMovement::OnStrafeStartLocal(unsigned long eventTime, int left) {
+  AddPlayerMoveEvent(eventTime, left ? PMOVE_STRAFE_START_LFT : PMOVE_STRAFE_START_RGT, 0.0f);
+}
+
+void CMovement::OnStrafeStopLocal(unsigned long eventTime) {
+  AddPlayerMoveEvent(eventTime, PMOVE_STRAFE_STOP, 0.0f);
+}
+
+void CMovement::OnJumpLocal(unsigned long eventTime) {
+  AddPlayerMoveEvent(eventTime, PMOVE_JUMP, 0.0f);
+}
+
+void CMovement::OnFallLocal(unsigned long eventTime) {
+  AddPlayerMoveEvent(eventTime, PMOVE_FALL, 0.0f);
+}
+
+void CMovement::OnTurnStartLocal(unsigned long eventTime, int left) {
+  AddPlayerMoveEvent(eventTime, left ? PMOVE_TURN_START_LFT : PMOVE_TURN_START_RGT, 0.0f);
+}
+
+void CMovement::OnTurnStopLocal(unsigned long eventTime) {
+  AddPlayerMoveEvent(eventTime, PMOVE_TURN_STOP, 0.0f);
+}
+
+void CMovement::OnPitchStartLocal(unsigned long eventTime, int up) {
+  AddPlayerMoveEvent(eventTime, up ? PMOVE_PITCH_START_UP : PMOVE_PITCH_START_DOWN, 0.0f);
+}
+
+void CMovement::OnPitchStopLocal(unsigned long eventTime) {
+  AddPlayerMoveEvent(eventTime, PMOVE_PITCH_STOP, 0.0f);
+}
+
+void CMovement::OnSetRunModeLocal(unsigned long eventTime, int run) {
+  AddPlayerMoveEvent(eventTime, run ? PMOVE_SET_RUN_MODE : PMOVE_SET_WALK_MODE, 0.0f);
+}
+
+void CMovement::OnSetFacingLocal(unsigned long eventTime, float facing) {
+  if (m_transportGUID) {
+    facing -= MovementGetTransportFacing(m_transportGUID);
+    if (facing >= 6.2831855f) {
+      facing -= 6.2831855f;
+    } else if (facing < 0.0f) {
+      facing += 6.2831855f;
+    }
+  }
+
+  AddPlayerMoveEvent(eventTime, PMOVE_SET_FACING, facing);
+}
+
+void CMovement::OnSetPitchLocal(unsigned long eventTime, float pitch) {
+  AddPlayerMoveEvent(eventTime, PMOVE_SET_PITCH, pitch);
+}
+
+void CMovement::OnSwimStartLocal(unsigned long eventTime) {
+  AddPlayerMoveEvent(eventTime, PMOVE_MOVE_START_SWIM, 0.0f);
+}
+
+void CMovement::OnSwimStopLocal(unsigned long eventTime) {
+  AddPlayerMoveEvent(eventTime, PMOVE_MOVE_STOP_SWIM, 0.0f);
+}
+
+void CMovement::StartSwimLocal(unsigned long eventTime) {
+  StartSwim(eventTime);
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  FATALASSERT(globals);
+  globals->m_localMover = this;
+}
+
+void CMovement::StopSwimLocal(unsigned long eventTime) {
+  StopSwim(eventTime);
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  FATALASSERT(globals);
+  globals->m_localMover = this;
+}
+
+void __fastcall MovementDestroy() {
+  CMovement::StopAllLogging();
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  globals->m_localMoveQueue.m_events.UnlinkAll();
+  DEL(globals);
+  MovementSetGlobals(0);
+}
+
+void __fastcall DisconnectLocalMover(CMovement *mover) {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  if (globals && mover == globals->m_localMover) {
+    globals->m_localMover = 0;
+    globals->m_localMoveQueue.m_events.UnlinkAll();
+  }
+}
+
+NTempest::C3Vector CMovementData::GetPosition(const NTempest::C3Vector &position) const {
+  if (!m_transportGUID) {
+    return position;
+  }
+
+  NTempest::C34Matrix transportMtx;
+  MovementGetTransportMtx(m_transportGUID, &transportMtx);
+  return position * transportMtx;
+}
+
+float CMovementData::GetFacing(float facing) const {
+  if (!m_transportGUID) {
+    return facing;
+  }
+
+  facing += MovementGetTransportFacing(m_transportGUID);
+  if (facing > 6.2831855f) {
+    facing -= 6.2831855f;
+  } else if (facing < 0.0f) {
+    facing += 6.2831855f;
+  }
+
+  return facing;
+}
+
+int CMovementData::ForceSetTransport(unsigned __int64 guid) {
+  if (guid == m_transportGUID || (guid && !MovementGameObjIsTransport(guid))) {
+    return 0;
+  }
+
+  NTempest::C34Matrix transportMtx;
+  float               transportFacing;
+  if (guid) {
+    MovementGetTransportMtx(guid, &transportMtx);
+    transportFacing = MovementGetTransportFacing(guid);
+    transportMtx = transportMtx.AffineInverse();
+    m_position = m_position * transportMtx;
+    m_anchorPosition = m_anchorPosition * transportMtx;
+    m_facing -= transportFacing;
+    m_anchorFacing -= transportFacing;
+    m_fallStartElevation = (NTempest::C3Vector(m_position.x, m_position.y, m_fallStartElevation) * transportMtx).z;
+    MovementAddToTransport(this, guid);
+  } else {
+    MovementGetTransportMtx(m_transportGUID, &transportMtx);
+    transportFacing = MovementGetTransportFacing(m_transportGUID);
+    m_position = m_position * transportMtx;
+    m_anchorPosition = m_anchorPosition * transportMtx;
+    m_facing += transportFacing;
+    m_anchorFacing += transportFacing;
+    m_fallStartElevation = (NTempest::C3Vector(m_position.x, m_position.y, m_fallStartElevation) * transportMtx).z;
+    transportLink.Unlink();
+  }
+
+  while (m_facing < 0.0f) {
+    m_facing += 6.2831855f;
+  }
+  while (m_facing > 6.2831855f) {
+    m_facing -= 6.2831855f;
+  }
+  while (m_anchorFacing < 0.0f) {
+    m_anchorFacing += 6.2831855f;
+  }
+  while (m_anchorFacing > 6.2831855f) {
+    m_anchorFacing -= 6.2831855f;
+  }
+  m_transportGUID = guid;
+  return 1;
+}
+
+int CMovementData::SetTransport(unsigned __int64 guid) {
+  if (!guid && m_transportGUID && MovementGameObjIsTransport(m_transportGUID)) {
+    return 0;
+  }
+  return ForceSetTransport(guid);
+}
+
+void CMovement::GetMoveStatus(CMovementStatus *status) const {
+  status->transport = m_transportGUID;
+  status->moveFlags = m_moveFlags & 0xFAFF0BFF;
+  status->transRelPosition = m_position;
+  status->transRelFacing = m_facing;
+  status->worldPosition = GetPosition(m_position);
+  status->worldFacing = GetFacing(m_facing);
+  status->pitch = m_pitch;
+
+  if (m_spline && !(m_spline->flags & 0x4)) {
+    status->moveFlags |= 0x04000000;
+  }
+}
+
+void CMovement::UpdateTransportStatus(const CMovementStatus &update) {
+  if (m_transportGUID == update.transport) {
+    return;
+  }
+
+  NTempest::C34Matrix transportMtx;
+
+  if (m_transportGUID) {
+    transportLink.Unlink();
+    MovementGetTransportMtx(m_transportGUID, &transportMtx);
+    MovementFixUpMoveHistory(m_guid, transportMtx.AffineInverse());
+    m_transportGUID = 0;
+  }
+
+  if (update.transport && MovementGameObjIsTransport(update.transport)) {
+    MovementAddToTransport(this, update.transport);
+    MovementGetTransportMtx(update.transport, &transportMtx);
+    MovementFixUpMoveHistory(m_guid, transportMtx);
+
+    m_position = update.transRelPosition;
+    m_anchorPosition = update.transRelPosition;
+    m_facing = update.transRelFacing;
+    m_anchorFacing = update.transRelFacing;
+    m_transportGUID = update.transport;
+  }
+}
+
+void CMovement::UpdateStatusInternal(unsigned long eventTime, const CMovementStatus &update) {
+  FallLogWrite(
+      "0x%016I64X: time (0x%08X) updating from (%g,%g,%g) to "
+      "(%g,%g,%g)\n",
+      m_guid, eventTime, m_position.x, m_position.y, m_position.z, update.transRelPosition.x, update.transRelPosition.y, update.transRelPosition.z
+  );
+
+  m_moveFlags = (m_moveFlags & 0x0500E400) | (update.moveFlags & 0xFAFF0BFF) | 0x08000000;
+  m_position = update.worldPosition;
+  m_anchorPosition = update.worldPosition;
+  m_facing = update.worldFacing;
+  m_anchorFacing = update.worldFacing;
+  m_pitch = update.pitch;
+  m_anchorPitch = update.pitch;
+  CalcDirection();
+
+  if (m_moveFlags & 0xFF) {
+    FATALASSERT(m_moveFlags & 0x200);
+    CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+    m_moveStartTime = globals->m_lastUpdateTime;
+    FallLogWrite("0x%016I64X: setting move start time (0x%08X)\n", m_guid, m_moveStartTime);
+  }
+
+  MovementNotifyZoneMgr(m_guid);
+}
+
+void CMovement::UpdateStatusLocal(unsigned long eventTime, const CMovementStatus &update) {
+  UpdateStatusInternal(eventTime, update);
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  globals->m_localMover = m_moveFlags & 0x40FF ? this : 0;
+}
+
+float CMovement::GetCurrentTurnRate() const {
+  float rate;
+
+  if (m_moveFlags & 0x10) {
+    rate = m_turnRate;
+  } else if (m_moveFlags & 0x20) {
+    rate = -m_turnRate;
+  } else {
+    rate = 0.0f;
+  }
+
+  if (m_moveFlags & 0x400F) {
+    rate *= 0.75f;
+  }
+
+  return rate;
+}
+
+float CMovement::GetCurrentPitchRate() const {
+  float rate;
+
+  if (m_moveFlags & 0x40) {
+    rate = m_turnRate;
+  } else if (m_moveFlags & 0x80) {
+    rate = -m_turnRate;
+  } else {
+    rate = 0.0f;
+  }
+
+  if (m_moveFlags & 0x400F) {
+    rate *= 0.75f;
+  }
+
+  return rate;
+}
+
+void CMovement::SetIdleUpdates() {
+  if (m_moveFlags & 0x40FF) {
+    AddToMoversList();
+  } else {
+    RemoveFromMoversList();
+  }
+}
+
+void CMovement::SetServerInitData(float const runSpeed, float const walkSpeed, float const swimSpeed, float const turnRate) {
+  FATALASSERT(NTempest::CMath::fnotequal_(runSpeed, 0));
+  FATALASSERT(NTempest::CMath::fnotequal_(walkSpeed, 0));
+  FATALASSERT(NTempest::CMath::fnotequal_(swimSpeed, 0));
+  FATALASSERT(NTempest::CMath::fnotequal_(turnRate, 0));
+
+  m_runSpeed = runSpeed;
+  m_walkSpeed = walkSpeed;
+  m_swimSpeed = swimSpeed;
+  m_turnRate = turnRate;
+}
+
+void CMovementData::CalcDirection() {
+  float cosFacing;
+  float sinFacing;
+  NTempest::CMath::sincos_(m_anchorFacing, sinFacing, cosFacing);
+
+  m_direction2d.x = cosFacing;
+  m_direction2d.y = sinFacing;
+
+  if (NTempest::CMath::fequal4_(m_anchorPitch, 0)) {
+    m_direction = NTempest::C3Vector(cosFacing, sinFacing, 0.0f);
+    m_sinAnchorPitch = 0.0f;
+    m_cosAnchorPitch = 1.0f;
+  } else {
+    m_sinAnchorPitch = NTempest::CMath::sin_(m_anchorPitch);
+    m_cosAnchorPitch = NTempest::CMath::cos_(m_anchorPitch);
+    m_direction.x = m_cosAnchorPitch * cosFacing;
+    m_direction.y = m_cosAnchorPitch * sinFacing;
+    m_direction.z = m_sinAnchorPitch;
+  }
+}
+
+void CMovementData::RemoveSpline() {
+  m_moveFlags &= ~0x04000000u;
+  if (m_spline) {
+    delete m_spline;
+    m_spline = 0;
+  }
+  RemoveFromMoversList();
+}
+
+void CMovement::AddSpline() {
+  m_moveFlags |= 0x04000000;
+  if (!m_spline) {
+    m_spline = NEW(CMoveSpline);
+  }
+  DisconnectLocalMover(this);
+}
+
+void CMovement::SetUpdateInfo(unsigned long eventTime, CClientMoveUpdate &init, int localPlayer) {
+  FATALASSERT(NTempest::CMath::fnotequal_(init.runSpeed, 0));
+  FATALASSERT(NTempest::CMath::fnotequal_(init.walkSpeed, 0));
+  FATALASSERT(NTempest::CMath::fnotequal_(init.swimSpeed, 0));
+  FATALASSERT(NTempest::CMath::fnotequal_(init.turnRate, 0));
+
+  m_walkSpeed = init.walkSpeed;
+  m_runSpeed = init.runSpeed;
+  m_swimSpeed = init.swimSpeed;
+  m_turnRate = init.turnRate;
+
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  m_moveStartTime = globals->m_lastUpdateTime;
+  FallLogWrite("0x%016I64X: setting move start time (0x%08X)\n", m_guid, m_moveStartTime);
+  m_fallStartTime = globals->m_lastUpdateTime - init.timeFallen;
+
+  if (init.status.moveFlags & 0x04000000) {
+    AddSpline();
+    *m_spline = init.spline;
+  } else {
+    RemoveSpline();
+  }
+
+  m_moveFlags |= globals->ignoreObstacles ? 0x08000000 : 0x08004000;
+  if (localPlayer) {
+    UpdateStatusLocal(globals->m_lastUpdateTime, init.status);
+  } else {
+    UpdateStatusInternal(globals->m_lastUpdateTime, init.status);
+  }
+
+  m_moveFlags |= 0x200;
+  m_fallStartElevation = CalcFallStartElevation(init.timeFallen);
+  if (m_moveFlags & 0x8000) {
+    OnCollideFalling(m_guid, globals->m_lastUpdateTime);
+  }
+
+  LogWrite(
+      "0x%016I64X: ___INIT EVENT: time(0x%X) timeFallen(%u) "
+      "pos(%g,%g,%g)\n",
+      m_guid, globals->m_lastUpdateTime, init.timeFallen, init.status.worldPosition.x, init.status.worldPosition.y, init.status.worldPosition.z
+  );
+}
+
+void __fastcall CMovement::StartFallLogging() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  ASSERT(globals);
+
+  char fileName[260];
+  char exten[5];
+  SStrCopy(fileName, globals->logFileName, sizeof(fileName));
+
+  char *dot = SStrChrR(fileName, '.');
+  if (dot) {
+    SStrCopy(exten, dot, sizeof(exten));
+    *dot = 0;
+  }
+
+  SStrPack(fileName, "__fall", sizeof(fileName));
+  SStrPack(fileName, exten, sizeof(fileName));
+
+  if (!globals->fallingLog) {
+    globals->fallingLog = fopen(fileName, "wt");
+  }
+}
+
+int __fastcall CMovement::ToggleFallLogging() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  if (!globals) {
+    return 0;
+  }
+
+  if (globals->fallingLog) {
+    StopFallLogging();
+  } else {
+    StartFallLogging();
+  }
+
+  return IsFallLoggingOn();
+}
+
+int __fastcall CMovement::IsFallLoggingOn() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  return globals && globals->fallingLog;
+}
+
+void __cdecl CMovement::FallLogWrite(const char *format, ...) {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  if (globals && globals->fallingLog) {
+    va_list arglist;
+    va_start(arglist, format);
+    WVLog(0x400, 0x1E, format, arglist);
+    vfprintf(globals->fallingLog, format, arglist);
+    fflush(globals->fallingLog);
+    va_end(arglist);
+  }
+}
+
+void __fastcall CMovement::StopFallLogging() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  if (globals && globals->fallingLog) {
+    fclose(globals->fallingLog);
+    globals->fallingLog = 0;
+  }
+}
+
+void __fastcall CMovement::StartLogging() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  ASSERT(globals);
+
+  if (!globals->movementLog) {
+    globals->movementLog = fopen(globals->logFileName, "wt");
+  }
+}
+
+int __fastcall CMovement::ToggleLogging() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  ASSERT(globals);
+
+  if (globals->movementLog) {
+    StopLogging();
+  } else {
+    StartLogging();
+  }
+
+  return IsLoggingOn();
+}
+
+int __fastcall CMovement::IsLoggingOn() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  ASSERT(globals);
+  return globals->movementLog != 0;
+}
+
+void __cdecl CMovement::LogWrite(const char *format, ...) {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  if (globals && globals->movementLog) {
+    va_list arglist;
+    va_start(arglist, format);
+    WVLog(0x400, 0xA, format, arglist);
+    vfprintf(globals->movementLog, format, arglist);
+    fflush(globals->movementLog);
+    va_end(arglist);
+  }
+}
+
+void __fastcall CMovement::StopAllLogging() {
+  StopLogging();
+  StopFallLogging();
+}
+
+void __fastcall CMovement::StopLogging() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  if (globals && globals->movementLog) {
+    fclose(globals->movementLog);
+    globals->movementLog = 0;
+  }
+}
+
+int CMovement::OnRunSpeedChange(unsigned long eventTime, float speed) {
+  FATALASSERT(NTempest::CMath::fnotequal_(speed, 0.0f));
+  if (NTempest::CMath::fequal_(m_runSpeed, speed)) {
+    return 0;
+  }
+  LogWrite(
+      "0x%016I64X: Changing run speed from (%g) to (%g) (0x%X)\n", m_guid, static_cast<double>(m_runSpeed), static_cast<double>(speed),
+      m_moveStartTime
+  );
+  m_runSpeed = speed;
+  m_moveFlags |= 0x08000000;
+  UpdateAnchors(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime);
+  return 1;
+}
+
+int CMovement::OnWalkSpeedChange(unsigned long eventTime, float speed) {
+  FATALASSERT(NTempest::CMath::fnotequal_(speed, 0.0f));
+  if (NTempest::CMath::fequal_(m_walkSpeed, speed)) {
+    return 0;
+  }
+  LogWrite(
+      "0x%016I64X: Changing walk speed from (%g) to (%g) (0x%X)\n", m_guid, static_cast<double>(m_walkSpeed), static_cast<double>(speed),
+      m_moveStartTime
+  );
+  m_walkSpeed = speed;
+  m_moveFlags |= 0x08000000;
+  UpdateAnchors(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime);
+  return 1;
+}
+
+int CMovement::OnSwimSpeedChange(unsigned long eventTime, float speed) {
+  FATALASSERT(NTempest::CMath::fnotequal_(speed, 0.0f));
+  if (NTempest::CMath::fequal_(m_swimSpeed, speed)) {
+    return 0;
+  }
+  LogWrite(
+      "0x%016I64X: Changing swim speed from (%g) to (%g) (0x%X)\n", m_guid, static_cast<double>(m_swimSpeed), static_cast<double>(speed),
+      m_moveStartTime
+  );
+  m_swimSpeed = speed;
+  m_moveFlags |= 0x08000000;
+  UpdateAnchors(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime);
+  return 1;
+}
+
+int CMovement::OnTurnRateChange(unsigned long eventTime, float rate) {
+  FATALASSERT(NTempest::CMath::fnotequal_(rate, 0.0f));
+  if (NTempest::CMath::fequal_(m_turnRate, rate)) {
+    return 0;
+  }
+  LogWrite(
+      "0x%016I64X: Changing turn rate from (%g) to (%g) (0x%X)\n", m_guid, static_cast<double>(m_turnRate), static_cast<double>(rate), m_moveStartTime
+  );
+  m_turnRate = rate;
+  UpdateAnchors(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime);
+  return 1;
+}
+
+void CMovement::AddToMoversList() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  if (globals) {
+    FATALASSERT(globals->m_localMover != this);
+    MovementLockMoversList(1);
+    if (!moveLink.IsLinked()) {
+      globals->movers.LinkNode(this, LIST_HEAD, 0);
+      ++globals->numMovers;
+    }
+    MovementUnlockMoversList(1);
+  }
+}
+
+void CMovementData::RemoveFromMoversList() {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  if (globals) {
+    MovementLockMoversList(1);
+    if (moveLink.IsLinked()) {
+      globals->movers.UnlinkNode(this);
+      --globals->numMovers;
+    }
+    MovementUnlockMoversList(1);
+  }
+}

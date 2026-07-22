@@ -1,0 +1,53 @@
+#ifndef WOW_SOURCE_GAME_GAMETIME_H
+#define WOW_SOURCE_GAME_GAMETIME_H
+
+#include <stpl.h>
+
+#include "Base/Handle.h"
+#include "WowTime.h"
+
+struct GAMETIMECBSTRUCT : public TSLinkedNode<GAMETIMECBSTRUCT>, public CHandleObject {
+  void *userData;
+  void(__stdcall *callback)(const WowTime &, void *);
+};
+
+struct TIMESTAMPSTRUCT : public TSHashObject<TIMESTAMPSTRUCT, HASHKEY_NONE> {
+  TSList<GAMETIMECBSTRUCT, TSGetLink<GAMETIMECBSTRUCT> > callbackList;
+};
+
+class CGameTime : public WowTime {
+ public:
+  CGameTime();
+
+  void  Destroy();
+  void  SetTimeDateBias(int timeBias, int dateBias, bool update);
+  void  GameTimeSetTime(const WowTime &time);
+  void  GameTimeUpdate(float elapsedSeconds);
+  void  GameTimeSync(const WowTime &time, bool reset);
+  float GameTimeSetMinutesPerSecond(float minutesPerSecond);
+  float GameTimeGetDayProgression();
+
+  unsigned long m_lastTick;
+
+ private:
+  void TickMinute();
+  void PerformCallbacks(int minutes);
+
+  int                                        m_timeBias;
+  int                                        m_dateBias;
+  unsigned int                               m_gameMinutesElapsed;
+  float                                      m_gameMinutesPerRealSecond;
+  float                                      m_gameMinutesThisTick;
+  unsigned int                               m_timeDifferential;
+  unsigned int                               m_lastTickMinute;
+  float                                      m_dayProgression;
+  TSHashTable<TIMESTAMPSTRUCT, HASHKEY_NONE> m_callbackLists;
+};
+
+extern CGameTime g_clientGameTime;
+
+int __fastcall  ClientGameTimeTickHandler(const void *data, void *__formal);
+void __fastcall ClientInitializeGameTime();
+void __fastcall ClientDestroyGameTime();
+
+#endif

@@ -1,0 +1,123 @@
+#ifndef ENGINE_SOURCE_EVENT_CMOUSEEVENT_H
+#define ENGINE_SOURCE_EVENT_CMOUSEEVENT_H
+
+#include "Base/RefCount.h"
+#include "Event/EvtApi.h"
+
+class CEvent : public TRefCnt {
+ public:
+  CEvent(unsigned int id = static_cast<unsigned int>(-1), void *param = 0) : m_id(id), m_param(param) {
+  }
+
+  virtual ~CEvent() {
+  }
+
+  unsigned int Id() const {
+    return m_id;
+  }
+
+  void SetId(unsigned int id) {
+    m_id = id;
+  }
+
+  void *GetParam() const {
+    return m_param;
+  }
+
+  void SetParam(void *param) {
+    m_param = param;
+  }
+
+ private:
+  unsigned int m_id;
+  void        *m_param;
+};
+
+class CCharEvent : public CEvent, public EVENT_DATA_CHAR {
+ public:
+  CCharEvent() {
+  }
+
+  CCharEvent(const EVENT_DATA_CHAR &data) {
+    static_cast<EVENT_DATA_CHAR &>(*this) = data;
+  }
+
+  CCharEvent &operator=(const EVENT_DATA_CHAR &data) {
+    static_cast<EVENT_DATA_CHAR &>(*this) = data;
+    return *this;
+  }
+
+  virtual ~CCharEvent() {
+  }
+};
+
+class CImeEvent : public CEvent, public EVENT_DATA_IME {
+ public:
+  CImeEvent() {
+  }
+
+  CImeEvent(const EVENT_DATA_IME &data) {
+    static_cast<EVENT_DATA_IME &>(*this) = data;
+  }
+
+  CImeEvent &operator=(const EVENT_DATA_IME &data) {
+    static_cast<EVENT_DATA_IME &>(*this) = data;
+    return *this;
+  }
+
+  virtual ~CImeEvent() {
+  }
+};
+
+class CKeyEvent : public CEvent, public EVENT_DATA_KEY {
+ public:
+  CKeyEvent() {
+  }
+
+  CKeyEvent(const EVENT_DATA_KEY &data) {
+    static_cast<EVENT_DATA_KEY &>(*this) = data;
+  }
+
+  CKeyEvent &operator=(const EVENT_DATA_KEY &data) {
+    static_cast<EVENT_DATA_KEY &>(*this) = data;
+    return *this;
+  }
+
+  virtual ~CKeyEvent() {
+  }
+};
+
+class CMouseEvent : public CEvent, public EVENT_DATA_MOUSE {
+ public:
+  CMouseEvent() {
+  }
+
+  CMouseEvent(const EVENT_DATA_MOUSE &data) {
+    *this = data;
+  }
+
+  CMouseEvent &operator=(const EVENT_DATA_MOUSE &rhs);
+
+  virtual ~CMouseEvent() {
+  }
+};
+
+class CSizeEvent : public CEvent, public EVENT_DATA_SIZE {
+ public:
+  CSizeEvent() {
+  }
+
+  CSizeEvent(const EVENT_DATA_SIZE &data) {
+    static_cast<EVENT_DATA_SIZE &>(*this) = data;
+  }
+
+  CSizeEvent &operator=(const EVENT_DATA_SIZE &data) {
+    static_cast<EVENT_DATA_SIZE &>(*this) = data;
+    return *this;
+  }
+
+  virtual ~CSizeEvent() {
+  }
+};
+
+#endif

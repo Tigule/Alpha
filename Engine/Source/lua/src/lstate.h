@@ -152,6 +152,8 @@ struct lua_State {
   GCObject *gclist;
   struct lua_longjmp *errorJmp;  /* current error recover point */
   ptrdiff_t errfunc;  /* current error handling function (stack index) */
+  /* Target offset 0x60; the optimized PDB omits the original field name. */
+  int allowgc;
 };
 
 

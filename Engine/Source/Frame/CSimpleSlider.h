@@ -1,0 +1,73 @@
+#ifndef ENGINE_SOURCE_FRAME_CSIMPLESLIDER_H
+#define ENGINE_SOURCE_FRAME_CSIMPLESLIDER_H
+
+#include "Frame/CSimpleFrame.h"
+
+class CSimpleTexture;
+
+enum SLIDER_ORIENTATION {
+  SLIDER_HORIZONTAL = 0,
+  SLIDER_VERTICAL = 1
+};
+
+class CSimpleSlider : public CSimpleFrame {
+ public:
+  CSimpleSlider(CSimpleFrame *parent);
+  virtual ~CSimpleSlider();
+
+  void SetThumbTexture(CSimpleTexture *texture, int layer);
+  void SetOrientation(SLIDER_ORIENTATION orientation);
+  void SetMinMaxValues(float min, float max);
+  void SetValue(float value);
+  void SetValueStep(float step);
+
+  float GetMinValue() const {
+    return m_baseValue;
+  }
+
+  float GetMaxValue() const {
+    return m_baseValue + m_range;
+  }
+
+  float GetValue() const {
+    return m_value;
+  }
+
+  float GetValueStep() const {
+    return m_valueStep;
+  }
+
+  SLIDER_ORIENTATION GetOrientation() const {
+    return m_orientation;
+  }
+
+  int IsHorizontal() const {
+    return m_orientation == SLIDER_HORIZONTAL;
+  }
+
+  int IsVertical() const {
+    return m_orientation == SLIDER_VERTICAL;
+  }
+
+  static void __fastcall RegisterScriptMethods();
+  static void __fastcall UnregisterScriptMethods();
+
+ protected:
+  virtual int LookupScriptMethod(lua_State *L, const char *name);
+
+  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
+
+  int                m_changed : 1;
+  int                m_rangeSet : 1;
+  int                m_valueSet : 1;
+  int                m_buttonDown : 1;
+  float              m_baseValue;
+  float              m_range;
+  float              m_value;
+  float              m_valueStep;
+  CSimpleTexture    *m_thumbTexture;
+  SLIDER_ORIENTATION m_orientation;
+  int                m_onValueChanged;
+};
+
+#endif
