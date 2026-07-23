@@ -120,7 +120,6 @@ CGxBuf *CGxDeviceOpenGl::BufCreate(
   buf->m_writeFreq = GxBWF_Dynamic;
   buf->m_numVertices = numVertices;
   buf->m_numIndices = numIndices;
-  m_bufList.LinkNode(buf, LIST_TAIL, 0);
   return buf;
 }
 
@@ -170,7 +169,7 @@ void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
   cmd.index.op = GxBufOp_Nop;
 
   if (glNVVertexArrayRange) {
-    DsSet(Ds_NVVAR, m_lockedArrays != 0, 0);
+    DsSet(Ds_NVVAR, m_nvvarMem != 0, 0);
   }
 
   if (buf->m_vertexStatus != CGxBuf::S_VALID) {
@@ -251,7 +250,6 @@ void CGxDeviceOpenGl::BufUnlock() {
 
 void CGxDeviceOpenGl::BufDestroy(CGxBuf *&b) {
   CGxDevice::BufDestroy(b);
-  m_bufList.UnlinkNode(b);
   CGxBufOgl *buf = static_cast<CGxBufOgl *>(b);
   DEL(buf);
   b = 0;

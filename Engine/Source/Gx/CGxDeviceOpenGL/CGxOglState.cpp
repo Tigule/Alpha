@@ -10,7 +10,7 @@
 static const float oo255 = 1.0f / 255.0f;
 
 static unsigned int s_glSrcBlend[8] = {GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_SRC_ALPHA, GL_DST_COLOR, GL_DST_COLOR, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA};
-static unsigned int s_glDstBlend[8] = {GL_ZERO, GL_SRC_COLOR, GL_ONE, GL_ZERO, GL_SRC_COLOR, GL_ONE, GL_ONE, GL_ONE};
+static unsigned int s_glDstBlend[8] = {GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO, GL_SRC_COLOR, GL_ONE, GL_ONE};
 static int          s_texEnv[5] = {GL_REPLACE, GL_MODULATE, GL_DECAL, GL_ADD, -1};
 static unsigned int s_fogStyle[3] = {GL_LINEAR, GL_EXP, GL_EXP2};
 static unsigned int s_cmpFunc[3] = {GL_LEQUAL, GL_EQUAL, GL_GEQUAL};
@@ -303,28 +303,31 @@ void CGxDeviceOpenGl::IStateSyncLights() {
     CGxLight &hw = m_hwState.m_lights[which];
     updateNeeded = m_hwState.m_lightsDirty[which];
     unsigned int light = GL_LIGHT0 + which;
+    memset(&glTmp, 0, sizeof(glTmp));
 
     if (m_worldViewChange ||
         ((app.m_isOmni != hw.m_isOmni || app.m_dir.x != hw.m_dir.x || app.m_dir.y != hw.m_dir.y || app.m_dir.z != hw.m_dir.z) && updateNeeded))
     {
       if (!haveSetView) {
-        IXformSetModelView(m_xforms[GxXform_World].Get());
+        IXformSetModelView(m_xforms[GxXform_View].Get());
         haveSetView = 1;
       }
 
-      if (app.m_isOmni) {
-        glTmp.x = app.m_dir.x;
-        glTmp.y = app.m_dir.y;
-        glTmp.z = app.m_dir.z;
-        glTmp.w = 1.0f;
-      } else {
-        glTmp.x = -app.m_dir.x;
-        glTmp.y = -app.m_dir.y;
-        glTmp.z = -app.m_dir.z;
-        glTmp.w = 0.0f;
-        reinterpret_cast<NTempest::C3Vector *>(&glTmp)->Normalize();
+      if (app.m_enabled) {
+        if (app.m_isOmni) {
+          glTmp.x = app.m_dir.x;
+          glTmp.y = app.m_dir.y;
+          glTmp.z = app.m_dir.z;
+          glTmp.w = 1.0f;
+        } else {
+          glTmp.x = -app.m_dir.x;
+          glTmp.y = -app.m_dir.y;
+          glTmp.z = -app.m_dir.z;
+          glTmp.w = 0.0f;
+          reinterpret_cast<NTempest::C3Vector *>(&glTmp)->Normalize();
+        }
+        glLightfv(light, GL_POSITION, &glTmp.x);
       }
-      glLightfv(light, GL_POSITION, &glTmp.x);
     }
 
     if (!updateNeeded) {
@@ -365,7 +368,7 @@ void CGxDeviceOpenGl::IStateSyncLights() {
     if (app.m_linearAttenuation != hw.m_linearAttenuation) {
       glLightf(light, GL_LINEAR_ATTENUATION, app.m_linearAttenuation);
     }
-    if (app.m_quadraticAttenuation != hw.m_quadraticAttenuation) {
+    if (app.m_constantAttenuation != hw.m_quadraticAttenuation) {
       glLightf(light, GL_QUADRATIC_ATTENUATION, app.m_quadraticAttenuation);
     }
 
@@ -435,7 +438,7 @@ void CGxDeviceOpenGl::IStateSyncTexTransform(unsigned int tmu) {
 
 void CGxDeviceOpenGl::IStateSetContextDefaults() {
   NTempest::C44Matrix mwv;
-  NTempest::C4Vector  opaqueBlack;
+  NTempest::C4Vector  opaqueBlack(0.0f);
   float               rPlane[4] = {0.0f, 0.0f, 1.0f, 0.0f};
   float               qPlane[4] = {0.0f, 0.0f, 0.0f, 1.0f};
   unsigned int        maxTex;
@@ -456,10 +459,10 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, &opaqueBlack.x);
   glLightModeli(0x81F8, 0x81FA);
   glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, 1);
-  IXformSetModelView(m_xforms[GxXform_World].Get());
+  IXformSetModelView(m_xforms[GxXform_View].Get());
 
   for (unsigned int which = 0; which < 8; ++which) {
-    const CGxLight &light = m_appState.m_lights[which];
+    const CGxLight &light = m_hwState.m_lights[which];
     unsigned int    glLight = GL_LIGHT0 + which;
     glTmp = NTempest::C4Vector(0.0f);
     glLightfv(glLight, GL_SPECULAR, &opaqueBlack.x);
@@ -491,8 +494,8 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
     glTmp.w = light.m_dirColor.a * light.m_dirIntensity * oo255;
     glLightfv(glLight, GL_DIFFUSE, &glTmp.x);
     m_hwState.m_lightsDirty[which] = 1;
-    glLightf(glLight, GL_LINEAR_ATTENUATION, m_appState.m_lightLinearFalloff);
-    glLightf(glLight, GL_QUADRATIC_ATTENUATION, m_appState.m_lightQuadraticFalloff);
+    glLightf(glLight, GL_LINEAR_ATTENUATION, m_hwState.m_lightLinearFalloff);
+    glLightf(glLight, GL_QUADRATIC_ATTENUATION, m_hwState.m_lightQuadraticFalloff);
   }
 
   mwv = m_xforms[GxXform_World].Get() * m_xforms[GxXform_View].Get();
@@ -583,7 +586,8 @@ void CGxDeviceOpenGl::ISetTexGen(unsigned int tmu, EGxTexGen texGen) {
   }
 
   if (texGen == GxTexGen_World) {
-    NTempest::C44Matrix texMat = m_xforms[GxXform_View].Get();
+    NTempest::C44Matrix &texMat = m_texGen[tmu].Top();
+    IXformGLModelView(m_xforms[GxXform_View].Get(), texMat);
     float               b0 = texMat.b0;
     float               c0 = texMat.c0;
     float               c1 = texMat.c1;
@@ -596,7 +600,6 @@ void CGxDeviceOpenGl::ISetTexGen(unsigned int tmu, EGxTexGen texGen) {
     texMat.d0 = -texMat.d0;
     texMat.d1 = -texMat.d1;
     texMat.d2 = -texMat.d2;
-    m_texGen[tmu].Top() = texMat;
   } else {
     m_texGen[tmu].Identity();
   }
@@ -694,21 +697,21 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
       glFogfv(GL_FOG_COLOR, color4f);
       break;
     case GxRs_Lighting:
-      if ((m_hwState.m_masterEnables & (1U << GxMasterEnable_Lighting)) && intVal) {
+      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_Lighting)) && intVal) {
         glEnable(GL_LIGHTING);
       } else {
         glDisable(GL_LIGHTING);
       }
       break;
     case GxRs_Fog:
-      if ((m_hwState.m_masterEnables & (1U << GxMasterEnable_Fog)) && intVal) {
+      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_Fog)) && intVal) {
         glEnable(GL_FOG);
       } else {
         glDisable(GL_FOG);
       }
       break;
     case GxRs_DepthTest:
-      if ((m_hwState.m_masterEnables & (1U << GxMasterEnable_DepthTest)) && intVal) {
+      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_DepthTest)) && intVal) {
         glEnable(GL_DEPTH_TEST);
       } else {
         glDisable(GL_DEPTH_TEST);
@@ -718,10 +721,10 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
       glDepthFunc(s_cmpFunc[intVal]);
       break;
     case GxRs_DepthWrite:
-      DsSet(Ds_DepthMask, (m_hwState.m_masterEnables & (1U << GxMasterEnable_DepthWrite)) ? intVal : 0, 0);
+      DsSet(Ds_DepthMask, (m_appState.m_masterEnables & (1U << GxMasterEnable_DepthWrite)) ? intVal : 0, 0);
       break;
     case GxRs_Culling:
-      if ((m_hwState.m_masterEnables & (1U << GxMasterEnable_Culling)) && intVal) {
+      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_Culling)) && intVal) {
         glEnable(GL_CULL_FACE);
       } else {
         glDisable(GL_CULL_FACE);

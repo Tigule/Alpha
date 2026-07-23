@@ -26,8 +26,8 @@ CGxDeviceOpenGl::CGxDeviceOpenGl()
       m_primIndexCount(0),
       m_primIndices(0),
       m_worldViewChange(0) {
-  m_context = 0;
-  m_caps.m_texOpMod2X = 1;
+  m_api = GxApi_OpenGl;
+  m_caps.m_colorFormat = GxCF_rgba;
 
   for (unsigned int freq = 0; freq < GxBufWriteFreqs_Last; ++freq) {
     m_vertexBuffer[freq] = 0;

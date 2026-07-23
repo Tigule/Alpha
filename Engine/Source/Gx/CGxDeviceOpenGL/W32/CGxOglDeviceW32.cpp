@@ -365,12 +365,12 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, uns
   CGxTex *oldTex = static_cast<CGxTex *>(target.m_apiSpecific);
   if (oldTex) {
     BindTexture(oldTex, static_cast<unsigned int>(-1));
-    if (oldTex->m_needsUpdate) {
+    if (oldTex->m_needsCreation) {
       glCopyTexImage2D(GL_TEXTURE_2D, 0, s_convertTexFmt[oldTex->m_format], 0, 0, oldTex->m_width, oldTex->m_height, 0);
     } else {
       glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, oldTex->m_width, oldTex->m_height);
     }
-    oldTex->m_needsUpdate = 0;
+    oldTex->m_needsCreation = 0;
     target.m_apiSpecific = 0;
   }
 
