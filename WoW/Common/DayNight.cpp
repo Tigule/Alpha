@@ -622,7 +622,7 @@ void DNClouds::BumpMap() {
   NTempest::C2Vector   texPt(0.0f);
 
   if (s_dnInfo.dayProgression < 0.22916667f - BUMPFADETIME || s_dnInfo.dayProgression > 0.89583331f + BUMPFADETIME) {
-    sunLightPos = s_planets[2].m_pos - s_dnInfo.cameraPos;
+    sunLightPos = s_planets[1].m_pos - s_dnInfo.cameraPos;
   } else {
     sunLightPos = s_planets[0].m_pos - s_dnInfo.cameraPos;
   }
@@ -842,6 +842,8 @@ void DNClouds::SetLOD(unsigned long newlod, unsigned long newUpdateSize) {
 DNClouds::DNClouds() {
   ValueTableInit();
   m_texid = 0;
+  m_fogInfo.color = 0;
+  m_waitTime = 0.0f;
   m_nOctaves = 4;
 }
 
@@ -1372,10 +1374,10 @@ void __fastcall DayNightRenderGlares() {
 }
 
 void __fastcall DayNightRenderSky() {
-  if (s_initialized) {
+  if (s_dnInfo.showSky) {
     if (CWorld::SceneCamLiquidStatus() == 15) {
       GxSceneSetClearColor(NTempest::CImVector(0xFF000000));
-      if (!GxMasterEnable(GxMasterEnable_ClearOnPresent)) {
+      if (!GxMasterEnable(GxMasterEnable_PolygonFill)) {
         GxSceneClear(3);
       }
 

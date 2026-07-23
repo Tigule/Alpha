@@ -405,12 +405,12 @@ int CMovement::IsJumpingUp(unsigned long eventTime) {
 }
 
 int CMovement::FallFromTransport() {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
-  if (!globals || globals->m_localMover != this) {
+  if (!transportLink.m_next) {
     return 0;
   }
   FATALASSERT(m_transportGUID);
-  return ForceSetTransport(0);
+  MovementGetTransportVector(m_transportGUID);
+  return SetTransport(0) != 0;
 }
 
 void CMovement::StartFalling(unsigned long eventTime) {
@@ -1155,11 +1155,6 @@ void CMovement::GetMoveFacets(float distance, unsigned int timeToFall, NTempest:
     MovementGetTransportMtx(m_transportGUID, &transportToWorld);
     worldToTransport = transportToWorld.AffineInverse();
     position *= transportToWorld;
-
-    transportToWorld.d0 = 0.0f;
-    transportToWorld.d1 = 0.0f;
-    transportToWorld.d2 = 0.0f;
-    moveVector *= transportToWorld;
   }
 
   NTempest::C3Vector boxBottom(position.x - m_collisionBoxHalfDepth, position.y - m_collisionBoxHalfDepth, position.z);
@@ -1183,7 +1178,13 @@ void CMovement::GetMoveFacets(float distance, unsigned int timeToFall, NTempest:
       facet.vertices[0] *= worldToTransport;
       facet.vertices[1] *= worldToTransport;
       facet.vertices[2] *= worldToTransport;
-      facet.plane.Set(facet.vertices[0], facet.vertices[1], facet.vertices[2]);
+      NTempest::C3Vector normal(
+          worldToTransport.a0 * facet.plane.n.x + worldToTransport.b0 * facet.plane.n.y + worldToTransport.c0 * facet.plane.n.z,
+          worldToTransport.a1 * facet.plane.n.x + worldToTransport.b1 * facet.plane.n.y + worldToTransport.c1 * facet.plane.n.z,
+          worldToTransport.a2 * facet.plane.n.x + worldToTransport.b2 * facet.plane.n.y + worldToTransport.c2 * facet.plane.n.z
+      );
+      facet.plane.n = normal;
+      facet.plane.d = -NTempest::C3Vector::Dot(normal, facet.vertices[0]);
     }
   }
 }
@@ -1584,7 +1585,7 @@ int CMovement::IsTooLow(
     if (timeToFall < 0) {
       LogWrite("0x%016I64X: timeToFall(%d) less than zero\n", m_guid, timeToFall);
     }
-    minElevation = CalcFallStartElevation(timeToFall);
+    minElevation = position.z - RelDistanceFallen(timeToFall);
     LogWrite(
         "0x%016I64X: Checking if face is below: FPOC(%g), minElevation(%g), unit(%g)\n", m_guid, surface->firstPtOfContact.z, minElevation, position.z
     );
@@ -1677,7 +1678,7 @@ void CMovement::ClipFacetsWithOneAnother(NTempest::C4Plane &startPlane, TSGrowab
         continue;
       }
       if (firstElev > -0.0013888889f && surfPlane->DistSigned(projected) > -0.0013888889f) {
-        if (nextSurface.farDist - 0.0013888889f < surface.farDist) {
+        if (surface.farDist - 0.0013888889f < nextSurface.farDist) {
           continue;
         }
         SplitFacetWithFacet(&surface, &nextSurface, &newSurface1);
@@ -2117,6 +2118,10 @@ unsigned int CMovement::TraceSurface(
   surfacePool.SetCount(0);
   EnqueueFacets(slopeTestPlane, *reinterpret_cast<NTempest::C2Vector *>(&m_position), unitMove, s_facetData.facets, &surfacePool);
 
+  NTempest::C3Vector r(unitMove.x, unitMove.y, 0.0f);
+  startPlane.Set(r, m_position);
+  ClipFacetsWithOneAnother(startPlane, &surfacePool);
+
   fullMoveVector = m_position;
   fullMoveVector.x += moveVector.x;
   fullMoveVector.y += moveVector.y;
@@ -2124,9 +2129,7 @@ unsigned int CMovement::TraceSurface(
   above.z += m_collisionBoxHeight;
   CalcFallSurfaceProjection(m_position, eventTime, timeToMove, fullMoveVector, distance, slopeTestPlane.n, &currentPlatform);
   normal = -currentPlatform.n;
-  startPlane.Set(normal, above);
-  currentCeiling = startPlane;
-  ClipFacetsWithOneAnother(startPlane, &surfacePool);
+  currentCeiling.Set(normal, above);
 
   numSurfaces = surfacePool.Count();
   surfaceId = 0;
@@ -2183,8 +2186,8 @@ unsigned int CMovement::TraceSurface(
       LogWrite("0x%016I64X: Completing move on facet, attempting to move (%g,%g,%g)\n", m_guid, fullMoveVector.x, fullMoveVector.y, fullMoveVector.z);
     }
 
-    int wasRedirected = m_moveFlags & 0x1000;
     distMoved = AttemptMove(currEventTime, fullMoveVector, segmentDist, unitMove, unitMoveWanted, s_facetData.facets[surface->facetId].plane);
+    int wasRedirected = m_moveFlags & 0x1000;
     distanceMoved += distMoved;
     absDistMoved += NTempest::CMath::fabs_(distMoved);
     distance -= NTempest::CMath::fabs_(segmentDist);

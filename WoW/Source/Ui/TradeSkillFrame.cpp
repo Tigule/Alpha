@@ -357,7 +357,7 @@ void __fastcall CGTradeSkillInfo::RefreshList(int resetFilters) {
     int numAvailable = -1;
     for (j = 0; j < 8 && numAvailable; ++j) {
       if (spell->m_reagent[j] && spell->m_reagentCount[j]) {
-        int count = reinterpret_cast<CGBag_C *>(reinterpret_cast<unsigned char *>(player) + 6200)->GetItemTypeCount(spell->m_reagent[j], 0) /
+        int count = player->GetBag()->GetItemTypeCount(spell->m_reagent[j], 0) /
                     spell->m_reagentCount[j];
         if (numAvailable == -1 || numAvailable >= count) {
           numAvailable = count;

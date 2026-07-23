@@ -13,6 +13,7 @@
 #include <Services/SysMessage.h>
 #include <Services/Texture.h>
 #include <Object/ItemStats.h>
+#include <Os/OsTime.h>
 #include <stpl.h>
 
 bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
@@ -242,13 +243,13 @@ void CGItem_C::UpdateExpirationTime(int timeLeft) {
   if (timeLeft <= 0) {
     m_expirationTime = 0;
   } else {
-    m_expirationTime = GetTickCount() + 1000 * timeLeft;
+    m_expirationTime = OsGetAsyncTimeMs() + 1000 * timeLeft;
   }
 }
 
 int CGItem_C::GetExpirationTimeLeft() {
   if (m_expirationTime) {
-    unsigned long now = GetTickCount();
+    unsigned long now = OsGetAsyncTimeMs();
     if (static_cast<long>(now - m_expirationTime) < 0) {
       return m_expirationTime - now;
     }
@@ -261,7 +262,7 @@ void CGItem_C::UpdateEnchantmentTime(int slot, int timeLeft) {
   if (timeLeft <= 0) {
     m_enchantmentExpiration[slot] = 0;
   } else {
-    m_enchantmentExpiration[slot] = GetTickCount() + 1000 * timeLeft;
+    m_enchantmentExpiration[slot] = OsGetAsyncTimeMs() + 1000 * timeLeft;
   }
 }
 

@@ -14,6 +14,7 @@
 #include <Base/Status.h>
 #include <Gx/CGxDevice.h>
 #include <Gx/Gx.h>
+#include <Os/OsTime.h>
 #include <Services/Texture.h>
 #include <Tempest/crandom.h>
 
@@ -310,7 +311,7 @@ SPLATDATA *CHUNKDATA::Add(CWTriData::Batch &batch, NTempest::CAaBox &box, NTempe
   if (!splat) {
     return 0;
   }
-  splat->startTime = (m_flags & 1) ? -1 : GetTickCount();
+  splat->startTime = (m_flags & 1) ? -1 : OsGetAsyncTimeMs();
   splat->position = (box.b + box.t) * 0.5f;
   splat->chunk = this;
 
@@ -459,7 +460,7 @@ void UnitFootprintNewBloodSplat(UnitBloodRec *rec, unsigned int unitSize, NTempe
   NTempest::C2Vector  size(s_splatSizes[unitSize].x * sizeVariance, s_splatSizes[unitSize].y * sizeVariance);
   unsigned int        texture = NTempest::CRandom::uint32_(s_rndSeed) % 5;
   TIMEDTEXTURE       &list = s_bloodSplatTextureTable[texture][rec->m_ID];
-  NTempest::C44Matrix basis = MakeBasis(size, GetTickCount() & 1, facing);
+  NTempest::C44Matrix basis = MakeBasis(size, OsGetAsyncTimeMs() & 1, facing);
   NTempest::CAaBox    box = MakeCAaBox(size, position);
   list.Add(position, box, basis);
 }
@@ -497,7 +498,7 @@ void __fastcall UnitFootprintRenderSplats(NTempest::C3Vector &cameraPos) {
   if (!s_renderSplatsCVar || !s_renderSplatsCVar->GetInt()) {
     return;
   }
-  s_currentTime = GetTickCount();
+  s_currentTime = OsGetAsyncTimeMs();
   s_currentCamera = cameraPos;
   s_currentWorld = NTempest::C44Matrix();
   s_currentWorld.Translate(-cameraPos);

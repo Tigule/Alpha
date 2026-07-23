@@ -283,9 +283,7 @@ static int __fastcall MovementFallLoggingHandler(void *param, NETMESSAGE msgId, 
     unsigned __int64 guid = ClntObjMgrGetActivePlayer();
     CGObject_C      *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
     if (object) {
-      void             **vtable = *reinterpret_cast<void ***>(object);
-      GETLOCALTARGETPROC getLocalTarget = reinterpret_cast<GETLOCALTARGETPROC>(vtable[41]);
-      unsigned __int64   target = getLocalTarget(reinterpret_cast<CGPlayer_C *>(object));
+      unsigned __int64 target = reinterpret_cast<CGPlayer_C *>(object)->CGPlayer_C::GetLocalTarget();
       CMovement::FallLogWrite("Local target guid (0x%016I64X)\n", target);
     }
   } else {
@@ -1245,6 +1243,7 @@ void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError) {
   CGGameObject_C::Shutdown();
   CGObject_C::Shutdown();
   MovementDestroy();
+  EventUnregisterEx(EVENT_ID_IDLE, MovementIdleMoveUnits, 0, 0xFFFFFFFF);
 
   ClntObjMgrDestroy();
   CGUnit_C::PostShutdown();
@@ -1325,8 +1324,6 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
   CGPlayer_C        *player;
   CGObject_C        *object;
   unsigned __int64   guid;
-  void             **vtable;
-  GETLOCALTARGETPROC getLocalTarget;
 
   SStrPrintf(log, size, "WoWBuild: %d\r\n", 3368);
 
@@ -1343,9 +1340,7 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
   LogZoneInfo(player, log, size);
   LogObjectInfo("Local Player", reinterpret_cast<CGObject_C *>(player), log, size);
 
-  vtable = *reinterpret_cast<void ***>(player);
-  getLocalTarget = reinterpret_cast<GETLOCALTARGETPROC>(vtable[41]);
-  object = ClntObjMgrObjectPtr(getLocalTarget(player), __FILE__, __LINE__);
+  object = ClntObjMgrObjectPtr(player->CGPlayer_C::GetLocalTarget(), __FILE__, __LINE__);
   if (object) {
     LogObjectInfo("Local Target", object, log, size);
   }

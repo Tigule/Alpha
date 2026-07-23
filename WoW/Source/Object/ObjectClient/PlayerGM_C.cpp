@@ -8,6 +8,7 @@
 #include "WowServices/WDataStore.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
+#include <Os/OsTime.h>
 #include <storm.h>
 
 static unsigned __int64 s_ghostTarget;
@@ -158,10 +159,10 @@ void __fastcall CGPlayer_C::GMIdle() {
   CGUnit_C          *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_realActivePlayer, __FILE__, __LINE__));
   NTempest::C3Vector position = target->GetPosition();
   float              facing = target->GetFacing();
-  player->OnTeleportLocalNoUpdate(GetTickCount(), position, facing);
+  player->OnTeleportLocalNoUpdate(OsGetAsyncTimeMs(), position, facing);
 
-  if (GetTickCount() - s_lastGhostUpdate > 500) {
+  if (OsGetAsyncTimeMs() - s_lastGhostUpdate > 500) {
     player->SendMovementUpdate(MSG_MOVE_HEARTBEAT);
-    s_lastGhostUpdate = GetTickCount();
+    s_lastGhostUpdate = OsGetAsyncTimeMs();
   }
 }

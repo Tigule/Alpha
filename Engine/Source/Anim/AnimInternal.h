@@ -29,14 +29,28 @@ struct CAnimLightObj;
 struct CAnimMaterialLayer;
 struct CAnimRibbonObj;
 struct CAnimData;
+struct CAnimGeoset;
+struct AnimInfo;
 struct InterpInfo;
 class C3Color;
 template <class T, class U>
 class CKeyFrameTrack;
 namespace NTempest {
+  class CImVector;
   class C4Quaternion;
   class C4QuaternionCompressed;
 }  // namespace NTempest
+
+static void SetGeosetColor(
+    const InterpInfo &animInfo,
+    CAnimGeoset *currgeoset,
+    CAnimGeosetObjStatus *geoStatus,
+    NTempest::CImVector *currentColor
+);
+static void SetGeosetAlpha(
+    const InterpInfo &animInfo, CAnimGeoset *currgeoset, CAnimGeosetObjStatus *geoStatus, CGeosetColor *color
+);
+static void AnimateAllMaterialLayers(AnimInfo *animInfo, unsigned int *tex);
 
 #ifndef MDL_TRACK_TYPE_DEFINED
 #define MDL_TRACK_TYPE_DEFINED
@@ -181,6 +195,12 @@ struct CSeqOrdering {
 };
 
 class CKeyFrameTrackBase {
+  friend void SetGeosetColor(
+      const InterpInfo &, CAnimGeoset *, CAnimGeosetObjStatus *, NTempest::CImVector *
+  );
+  friend void SetGeosetAlpha(const InterpInfo &, CAnimGeoset *, CAnimGeosetObjStatus *, CGeosetColor *);
+  friend void AnimateAllMaterialLayers(AnimInfo *, unsigned int *);
+
  public:
   CKeyFrameTrackBase() : m_keyFrames(0), m_numKeyFrames(0), m_indices(), m_globalSeqId(static_cast<unsigned int>(-1)) {
   }
@@ -253,6 +273,12 @@ class CKeyFrameTrackBase {
 
 template <class T, class U>
 class CKeyFrameTrack : public CKeyFrameTrackBase {
+  friend void SetGeosetColor(
+      const InterpInfo &, CAnimGeoset *, CAnimGeosetObjStatus *, NTempest::CImVector *
+  );
+  friend void SetGeosetAlpha(const InterpInfo &, CAnimGeoset *, CAnimGeosetObjStatus *, CGeosetColor *);
+  friend void AnimateAllMaterialLayers(AnimInfo *, unsigned int *);
+
  public:
   CKeyFrameTrack() : m_trackType(TRACK_LINEAR) {
   }
@@ -313,6 +339,11 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
     const CLinearKeyFrame<NTempest::C4QuaternionCompressed> &nextkey,
     float                                                    ratio,
     NTempest::C4Quaternion                                  *transform
+);
+
+template <>
+void CKeyFrameTrack<C3Color, C3Color>::Interpolate(
+    const CKeyTrackStatus &keyStat, unsigned int seqTime, C3Color *transform
 );
 
 struct CAnimTransform {

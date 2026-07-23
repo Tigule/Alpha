@@ -440,11 +440,7 @@ int __fastcall PlayerAttackBreakHandler(const void *data, unsigned __int64 guid,
     FATALASSERT(playerPtr->GetGUID() == ClntObjMgrGetActivePlayer());
 
     if (!playerPtr->OnAttackBreakHandler()) {
-      typedef void (CGPlayer_C::*StopAttackFn)();
-      StopAttackFn stopAttack;
-      void       **vtable = *reinterpret_cast<void ***>(playerPtr);
-      memcpy(&stopAttack, &vtable[0xB4 / 4], sizeof(stopAttack));
-      (playerPtr->*stopAttack)();
+      playerPtr->CGUnit_C::StopAttack();
       return 1;
     }
 
@@ -1160,14 +1156,14 @@ int __fastcall OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eve
         return 1;
       }
 
-      for (int offset = 0; offset < 0x180; offset += 0x18) {
-        int *questLog = reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(const_cast<CGUnitData *>(player->GetUnitData())) + 0x55C + offset);
-        if (*questLog > 0) {
+      for (int index = 0; index < 16; ++index) {
+        const CQuestLogData *questLog = player->GetQuestLogData(index);
+        if (questLog->m_questID > 0) {
           int *item = static_cast<int *>(ALLOC(2 * sizeof(int)));
           item[0] = itemID;
           item[1] = numKilled;
           QuestCache *itemQuest = const_cast<QuestCache *>(
-              g_questDBCache.GetRecord(*questLog, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestLootQuestQueryCallback), item)
+              g_questDBCache.GetRecord(questLog->m_questID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestLootQuestQueryCallback), item)
           );
           if (itemQuest) {
             delete item;
@@ -1424,7 +1420,7 @@ int __fastcall OnPlayEmote(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   msg->Get(guid);
 
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  if (unit && reinterpret_cast<const unsigned char *>(unit->GetUnitData())[664] != 3) {
+  if (unit && unit->GetUnitData()->standState != 3) {
     unit->PlayEmoteAnimation(emoteID, 0);
   }
 
@@ -2561,11 +2557,7 @@ static int __fastcall OnUpdateInventoryComponent(unsigned __int64 guid, unsigned
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     unsigned int     slot = offset >> 3;
-    unsigned __int64 currGuid = 0;
-    unsigned int    *slotCount = *reinterpret_cast<unsigned int **>(reinterpret_cast<unsigned char *>(player) + 0x1838);
-    if (slot < *slotCount) {
-      currGuid = (*reinterpret_cast<unsigned __int64 **>(reinterpret_cast<unsigned char *>(player) + 0x183C))[slot];
-    }
+    unsigned __int64 currGuid = player->GetBag()->GetItem(slot);
     if (*static_cast<const unsigned __int64 *>(prevValue) != currGuid) {
       CGGameUI::UnlockItem(currGuid);
     }
@@ -2631,9 +2623,7 @@ static int __fastcall PetChangeHandler(unsigned __int64 unit, unsigned int, unsi
   FATALASSERT(unit == ClntObjMgrGetActivePlayer());
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (player) {
-    unsigned char   *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(player) + 0x9E0);
-    unsigned __int64 pet = *reinterpret_cast<unsigned __int64 *>(playerData + 560);
-    CGPetInfo::SetPet(pet, 0);
+    CGPetInfo::SetPet(player->GetFarsightFocus(), 0);
   }
   return 1;
 }
@@ -2648,11 +2638,10 @@ static int __fastcall SkillRankChangeHandler(unsigned __int64 player, unsigned i
   FATALASSERT(skillOffset < 64);
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(player, __FILE__, __LINE__));
   if (playerPtr) {
-    unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(playerPtr) + 0x9E0);
     unsigned short oldRank = *static_cast<const unsigned short *>(oldValue);
-    unsigned short newRank = *reinterpret_cast<unsigned short *>(playerData + offset);
+    unsigned short newRank = playerPtr->GetMirrorSkillRank(skillOffset);
     if (newRank != oldRank) {
-      ConsolePrintf("Skill %d increased from %d to %d", *reinterpret_cast<unsigned short *>(playerData + 600 + 12 * skillOffset), oldRank, newRank);
+      ConsolePrintf("Skill %d increased from %d to %d", playerPtr->GetMirrorSkillID(skillOffset), oldRank, newRank);
       CGChat::UpdateLanguages();
     }
   }
@@ -2693,10 +2682,10 @@ CGPlayer_C::CGPlayer_C(unsigned long *storage, unsigned long eventTime, CClientO
       m_inventory(GetGUID(), reinterpret_cast<unsigned int *>(storage + 328), reinterpret_cast<unsigned __int64 *>(storage + 184), 1),
       m_lastKillerGUID(0),
       m_pendingItemStats(0) {
-  memset(reinterpret_cast<unsigned char *>(this) + 0x1828, 0, 0x10);
-  memset(reinterpret_cast<unsigned char *>(this) + 0x1850, 0, 0xC);
+  memset(&m_lootingUnit, 0, sizeof(m_lootingUnit) + sizeof(m_lootingUnitSent));
+  memset(&m_lastKillerGUID, 0, sizeof(m_lastKillerGUID) + sizeof(m_pendingItemStats));
 
-  FATALASSERT(*reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(m_unit) + 580));
+  FATALASSERT(m_unit->displayID);
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
 
@@ -2705,8 +2694,8 @@ CGPlayer_C::CGPlayer_C(unsigned long *storage, unsigned long eventTime, CClientO
   ModelSetEventCallback(charModel, AnimEventCallback, this, 0);
   HandleClose(charModel);
 
-  memset(reinterpret_cast<unsigned char *>(this) + 0xA7C, 0, 0xCF0);
-  memset(reinterpret_cast<unsigned char *>(this) + 0x176C, 0, 0xB8);
+  memset(m_components, 0, sizeof(m_components));
+  memset(m_texComponentInfo, 0, sizeof(m_texComponentInfo));
 }
 
 static int __fastcall SetLocalPlayerInGame(const void *eventData, void *param) {
@@ -2769,6 +2758,48 @@ void CGPlayer_C::UnsetPlayerMirrorHandlers() {
 static int __fastcall SummonChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   CGCharacterInfo::UpdateAllSkillLines();
   return 1;
+}
+
+int CGPlayer_C::ShouldRender(unsigned long worldStatus) {
+  if (s_renderPlayer || GetGUID() != ClntObjMgrGetActivePlayer()) {
+    return CGUnit_C::ShouldRender(worldStatus);
+  }
+
+  NTempest::C3Vector groundNormal(0.0f, 0.0f, 1.0f);
+  ModelProcessEvents(GetObjectModel(), GetPosition(), GetFacing(), groundNormal, 1.0f);
+  UpdatePlayerNameWorldText();
+  ObjectSetNotRendering();
+  return 0;
+}
+
+int CGPlayer_C::ShouldRenderUnitName(unsigned int mode) const {
+  if ((m_unit->flags & 0x18000) && CGGameUI::GetLockedTarget() != GetGUID()) {
+    return 0;
+  }
+  if (GetGUID() == ClntObjMgrGetActivePlayer() && !s_namePlateRenderOwn->GetInt()) {
+    return 0;
+  }
+  switch (mode) {
+    case 1:
+      return CGGameUI::GetLockedTarget() == GetGUID();
+    case 2:
+      return (GetType() & TYPE_PLAYER) || CGGameUI::GetLockedTarget() == GetGUID();
+    case 3:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+void CGPlayer_C::CommitTexture(int force) {
+  char    errorString[512];
+  CStatus status;
+  TexComponentCommitSections(&status, m_texComponent, force);
+  if (!status.IsEmpty()) {
+    status.GetErrorStr(errorString, sizeof(errorString), STATUS_INFO);
+    NTempest::C3Vector pos = GetPosition();
+    FATALERROR(("playerguid:  0x%I64X(%s) (%g,%g,%g): %s", GetGUID(), GetUnitName(), pos.x, pos.y, pos.z, errorString));
+  }
 }
 
 void CGPlayer_C::SetActiveMirrorHandlers() {
@@ -2835,7 +2866,7 @@ void CGPlayer_C::PostInit(const CClientObjCreate &init) {
   int              linkPoint;
 
   CGUnit_C::PostInit(init);
-  reinterpret_cast<float *>(this)[471] = GetMountScale();
+  m_fadingMountScale = GetMountScale();
   GetUnitName();
   SetPlayerMirrorHandlers();
 
@@ -2856,7 +2887,7 @@ void CGPlayer_C::PostInit(const CClientObjCreate &init) {
     sheathe = 0;
     linkPoint = -1;
     if ((1 << slot) & 0x18000) {
-      sheathe = reinterpret_cast<unsigned char *>(m_unit)[667] == 1;
+      sheathe = m_unit->weaponMode == 1;
       linkPoint = SheatheTypeToSheathePoint(itemptr->GetSheatheType(), slot);
     }
 
@@ -2866,8 +2897,7 @@ void CGPlayer_C::PostInit(const CClientObjCreate &init) {
       AttachObjComponent(item, slot, 0, sheathe, linkPoint);
       AddComponent(itemptr->GetDisplayID(), itemptr->GetInventoryType(), slot, 0);
       CharCustomizationAddItemGeosets(
-          reinterpret_cast<HCHARGEOSET *>(this)[476], g_itemDisplayInfoDB.GetRecord(itemptr->GetDisplayID()), itemptr->GetInventoryType(),
-          reinterpret_cast<HTEXCOMPONENT *>(this)[477], m_unit->race, 1
+          m_geosetHandle, g_itemDisplayInfoDB.GetRecord(itemptr->GetDisplayID()), itemptr->GetInventoryType(), m_texComponent, m_unit->race, 1
       );
     }
   }
@@ -2879,13 +2909,13 @@ void CGPlayer_C::PostInit(const CClientObjCreate &init) {
   item = m_inventory.GetItem(17);
   if (item) {
     AttachObjComponent(item, 17, 0, 0, -1);
-    SetSheatheReason(SHEATHEREASON_5, reinterpret_cast<unsigned char *>(m_unit)[667] == 2, 1);
+    SetSheatheReason(SHEATHEREASON_5, m_unit->weaponMode == 2, 1);
   }
 
-  CharCustomizationCommitItemGeosets(reinterpret_cast<HCHARGEOSET *>(this)[476], 1);
+  CharCustomizationCommitItemGeosets(m_geosetHandle, 1);
   OnGuildChanged();
-  if (reinterpret_cast<HCHARGEOSET *>(this)[476]) {
-    CharCustomizationCommitGeosets(reinterpret_cast<HCHARGEOSET *>(this)[476]);
+  if (m_geosetHandle) {
+    CharCustomizationCommitGeosets(m_geosetHandle);
     Animate();
   }
 
@@ -2967,17 +2997,15 @@ const char *CGPlayer_C::GetModelFileName() const {
 }
 
 void CGPlayer_C::InitPreferredGeosets() {
-  unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(this) + 0x9E0);
-  unsigned int  *preferredGeosets = reinterpret_cast<unsigned int *>(this) + 478;
-  memset(preferredGeosets, 0, 15 * sizeof(*preferredGeosets));
-  preferredGeosets[CGS_HAIR] = CharCustomizationGetHairGeoset(m_unit->race, m_unit->sex, playerData[590]);
+  memset(m_preferredGeosets, 0, sizeof(m_preferredGeosets));
+  m_preferredGeosets[CGS_HAIR] = CharCustomizationGetHairGeoset(m_unit->race, m_unit->sex, GetHairStyle());
 
   BEARDSTYLEDATA beardStyleData = {1, 1, 1};
-  preferredGeosets[CGS_EARS] = 2;
-  if (CharCustomizationGetBeardStyle(m_unit->race, m_unit->sex, playerData[1369], &beardStyleData)) {
-    preferredGeosets[CGS_FACIAL_BEARD] = beardStyleData.beardGeoset;
-    preferredGeosets[CGS_FACIAL_SIDEBURN] = beardStyleData.sideBurnGeoset;
-    preferredGeosets[CGS_FACIAL_MOUSTACHE] = beardStyleData.moustacheGeoset;
+  m_preferredGeosets[CGS_EARS] = 2;
+  if (CharCustomizationGetBeardStyle(m_unit->race, m_unit->sex, GetFacialHair(), &beardStyleData)) {
+    m_preferredGeosets[CGS_FACIAL_BEARD] = beardStyleData.beardGeoset;
+    m_preferredGeosets[CGS_FACIAL_SIDEBURN] = beardStyleData.sideBurnGeoset;
+    m_preferredGeosets[CGS_FACIAL_MOUSTACHE] = beardStyleData.moustacheGeoset;
   }
 }
 
@@ -2991,36 +3019,33 @@ void CGPlayer_C::InitComponents() {
   HMODEL        charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
 
-  unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(this) + 0x9E0);
-  HTEXTURE       skinTexture = CharCustomizationSetSkin(charModel, m_unit->race, m_unit->sex, playerData[588], 0);
+  HTEXTURE skinTexture = CharCustomizationSetSkin(charModel, m_unit->race, m_unit->sex, GetSkin(), 0);
   if (!skinTexture) {
     FATALERROR(
-        ("Error, skinID %d on character %s (race/sex is %d/%d) cannot be loaded, is it a missing file?", playerData[588], GetUnitName(), m_unit->race,
+        ("Error, skinID %d on character %s (race/sex is %d/%d) cannot be loaded, is it a missing file?", GetSkin(), GetUnitName(), m_unit->race,
          m_unit->sex)
     );
   }
 
-  HTEXCOMPONENT &texComponent = reinterpret_cast<HTEXCOMPONENT *>(this)[477];
-  texComponent = TexComponentCreate(skinTexture, m_unit->race, m_unit->sex, playerData[588], 0, 0);
-  FATALASSERT(texComponent);
+  m_texComponent = TexComponentCreate(skinTexture, m_unit->race, m_unit->sex, GetSkin(), 0, 0);
+  FATALASSERT(m_texComponent);
   HandleClose(skinTexture);
 
-  CharCustomizationSetFaceTexture(charModel, texComponent, m_unit->race, m_unit->sex, playerData[589], playerData[588], 0);
-  CharCustomizationSetHairTexture(charModel, texComponent, m_unit->race, m_unit->sex, playerData[590], playerData[591]);
-  CharCustomizationSetFacialTexture(charModel, texComponent, m_unit->race, m_unit->sex, playerData[1369], playerData[591]);
+  CharCustomizationSetFaceTexture(charModel, m_texComponent, m_unit->race, m_unit->sex, GetFace(), GetSkin(), 0);
+  CharCustomizationSetHairTexture(charModel, m_texComponent, m_unit->race, m_unit->sex, GetHairStyle(), GetHairColorID());
+  CharCustomizationSetFacialTexture(charModel, m_texComponent, m_unit->race, m_unit->sex, GetFacialHair(), GetHairColorID());
 
   BEARDSTYLEDATA facialData = {1, 1, 1};
-  int            hasFacialData = CharCustomizationGetBeardStyle(m_unit->race, m_unit->sex, playerData[1369], &facialData);
+  int            hasFacialData = CharCustomizationGetBeardStyle(m_unit->race, m_unit->sex, GetFacialHair(), &facialData);
 
-  HCHARGEOSET &geosetHandle = reinterpret_cast<HCHARGEOSET *>(this)[476];
-  geosetHandle = CharCustomizationCreateGeosetHandle(charModel);
-  FATALASSERT(geosetHandle);
+  m_geosetHandle = CharCustomizationCreateGeosetHandle(charModel);
+  FATALASSERT(m_geosetHandle);
   InitPreferredGeosets();
   CharCustomizationInitBaseCharacter(
-      geosetHandle, hasFacialData ? facialData.beardGeoset : 1, hasFacialData ? facialData.sideBurnGeoset : 1,
+      m_geosetHandle, hasFacialData ? facialData.beardGeoset : 1, hasFacialData ? facialData.sideBurnGeoset : 1,
       hasFacialData ? facialData.moustacheGeoset : 1, 2
   );
-  CharCustomizationResetHairGeoset(geosetHandle, m_unit->race, m_unit->sex, playerData[590]);
+  CharCustomizationResetHairGeoset(m_geosetHandle, m_unit->race, m_unit->sex, GetHairStyle());
   HandleClose(charModel);
 
   unsigned long elapsed = OsGetAsyncTimeMs() - time1;
@@ -3033,12 +3058,11 @@ void CGPlayer_C::AddComponent(int displayID, unsigned int inventoryType, int slo
   FATALASSERT(inventoryType < 27);
 
   if ((1 << slot) & 0x403F8) {
-    unsigned int *self = reinterpret_cast<unsigned int *>(this);
-    self[1499 + 2 * slot] = displayID;
-    self[1500 + 2 * slot] = inventoryType;
+    m_texComponentInfo[slot].m_displayID = displayID;
+    m_texComponentInfo[slot].m_inventoryType = inventoryType;
   }
 
-  HTEXCOMPONENT             texComponent = reinterpret_cast<HTEXCOMPONENT *>(this)[477];
+  HTEXCOMPONENT             texComponent = m_texComponent;
   const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
   if (texComponent) {
     if ((1 << slot) & 0x403F8) {
@@ -3058,22 +3082,22 @@ void CGPlayer_C::AddComponent(int displayID, unsigned int inventoryType, int slo
         OnGuildChanged();
       }
       CharCustomizationAddItemGeosets(
-          reinterpret_cast<HCHARGEOSET *>(this)[476], displayInfo, inventoryType, texComponent, m_unit->race, commit == 0
+          m_geosetHandle, displayInfo, inventoryType, texComponent, m_unit->race, commit == 0
       );
     }
   }
 
   if (commit) {
-    CharCustomizationCommitItemGeosets(reinterpret_cast<HCHARGEOSET *>(this)[476], 0, reinterpret_cast<HMODEL *>(this)[616]);
+    CharCustomizationCommitItemGeosets(m_geosetHandle, 0, m_paperDollModel);
     Animate();
   }
 
   if (!slot) {
     HeadGeosetHideCharGeosets(
-        reinterpret_cast<HCHARGEOSET *>(this)[476], displayInfo, m_unit->race, reinterpret_cast<unsigned int *>(this) + 478, 15
+        m_geosetHandle, displayInfo, m_unit->race, m_preferredGeosets, 15
     );
   }
-  reinterpret_cast<unsigned int *>(this)[313] &= ~0x100u;
+  CGUnit_C::m_flags &= ~0x100u;
 }
 
 void CGPlayer_C::TalkToTrainer(const unsigned __int64 &trainerUnit) {
@@ -3164,7 +3188,7 @@ void CGPlayer_C::SaveTabard(int eStyle, int eColor, int bStyle, int bColor, int 
 }
 
 bool CGPlayer_C::OnGuildChanged() {
-  PlayerNameTriggerNameRegenerate(*reinterpret_cast<HPLAYERNAME__ **>(reinterpret_cast<unsigned char *>(this) + 0x690));
+  PlayerNameTriggerNameRegenerate(m_unitNameHandle);
   FrameScript_SignalEvent(359);
 
   HTEXCOMPONENT component = GetTexComponent();
@@ -4044,6 +4068,7 @@ void __fastcall PlayerClientInitialize() {
   s_attackBreakTimer = 0;
   s_combatModeTimer = 0;
   s_enableDeathHoldLog = 1;
+  s_renderPlayer = 1;
   g_combatModeMaxDistance =
       CVar::Register("CombatModeMaxDistance", "Specifies the range outside of which combat mode is impossible", 0, "30.0f", 0, 3, false, 0);
   s_namePlateRenderOwn = CVar::Register("UnitNameRenderOwn", "Toggles rendering of local player's nameplate", 0, "0", 0, 1, false, 0);
@@ -4208,7 +4233,7 @@ void __fastcall PlayerClientShutdown() {
 
 int __fastcall Player_C_AppFocusMovementHandler(int focus) {
   if (!focus) {
-    unsigned long    eventTime = GetTickCount();
+    unsigned long    eventTime = OsGetAsyncTimeMs();
     unsigned __int64 guid = ClntObjMgrGetActivePlayer();
     CGPlayer_C      *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
     if (player) {
@@ -4319,13 +4344,11 @@ unsigned int CGPlayer_C::CanTrack(CGUnit_C *unit) {
     return 0;
   }
 
-  const unsigned int *playerData = *reinterpret_cast<const unsigned int *const *>(reinterpret_cast<const unsigned char *>(this) + 2528);
-  return (playerData[441] & (1 << (creatureType - 1))) != 0;
+  return (GetCreatureTracking() & (1 << (creatureType - 1))) != 0;
 }
 
 unsigned int CGPlayer_C::CanTrack(CGGameObject_C *object) {
-  const unsigned int *playerData = *reinterpret_cast<const unsigned int *const *>(reinterpret_cast<const unsigned char *>(this) + 2528);
-  unsigned int        trackMask = playerData[442];
+  unsigned int trackMask = GetResourceTracking();
   LockRec            *lock = object->GetLockRec();
   if (!lock) {
     return 0;
@@ -4418,11 +4441,9 @@ void CGPlayer_C::AddKnownSpell(int spellID, int slot, int learned, int addToBook
     const SkillLineRec        *skillLine = ability ? g_skillLineDB.GetRecord(ability->m_skillLine) : 0;
     if (skillLine) {
       HASHKEY_NONE                               hashKey;
-      TSHashTable<TRADESKILLLINE, HASHKEY_NONE> *tradeSkillLines =
-          reinterpret_cast<TSHashTable<TRADESKILLLINE, HASHKEY_NONE> *>(reinterpret_cast<unsigned char *>(this) + 0x9F0);
-      TRADESKILLLINE *tradeSkillLine = tradeSkillLines->Ptr(skillLine->m_ID, hashKey);
+      TRADESKILLLINE *tradeSkillLine = m_tradeSkillLines.Ptr(skillLine->m_ID, hashKey);
       if (!tradeSkillLine) {
-        tradeSkillLine = tradeSkillLines->New(skillLine->m_ID, hashKey, 0, 0);
+        tradeSkillLine = m_tradeSkillLines.New(skillLine->m_ID, hashKey, 0, 0);
       }
       *tradeSkillLine->spells.New() = spellID;
     }
@@ -4433,21 +4454,20 @@ void CGPlayer_C::AddKnownSpell(int spellID, int slot, int learned, int addToBook
   SPELL_CAST_UI_TYPE craftType = static_cast<SPELL_CAST_UI_TYPE>(spell->m_castUI);
   if (craftType > SPELL_CAST_UI_NONE) {
     FATALASSERT(craftType < NUM_SPELL_CAST_UI_TYPES);
-    TSGrowableArray<int> *craftSpells = reinterpret_cast<TSGrowableArray<int> *>(reinterpret_cast<unsigned char *>(this) + 0xA1C);
     unsigned int          index;
-    for (index = 0; index < craftSpells[craftType].Count(); ++index) {
-      if (craftSpells[craftType][index] == spellID) {
+    for (index = 0; index < m_craftSpells[craftType].Count(); ++index) {
+      if (m_craftSpells[craftType][index] == spellID) {
         break;
       }
     }
-    if (index == craftSpells[craftType].Count()) {
-      *craftSpells[craftType].New() = spellID;
+    if (index == m_craftSpells[craftType].Count()) {
+      *m_craftSpells[craftType].New() = spellID;
     }
     CGCraftInfo::RefreshList();
   } else if (spell->m_effect[0] == 47) {
     craftType = static_cast<SPELL_CAST_UI_TYPE>(spell->m_effectMiscValue[0]);
     FATALASSERT(craftType < NUM_SPELL_CAST_UI_TYPES);
-    reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(this) + 0xA6C)[craftType] = spellID;
+    m_craftActivators[craftType] = spellID;
   }
 }
 
@@ -4463,17 +4483,16 @@ void CGPlayer_C::DelKnownSpell(int spellID) {
   if (spell && spell->m_castUI > SPELL_CAST_UI_NONE) {
     SPELL_CAST_UI_TYPE craftType = static_cast<SPELL_CAST_UI_TYPE>(spell->m_castUI);
     FATALASSERT(craftType < NUM_SPELL_CAST_UI_TYPES);
-    TSGrowableArray<int> *craftSpells = reinterpret_cast<TSGrowableArray<int> *>(reinterpret_cast<unsigned char *>(this) + 0xA1C);
-    unsigned int          count = craftSpells[craftType].Count();
+    unsigned int count = m_craftSpells[craftType].Count();
     for (unsigned int index = 0; index < count; ++index) {
       if (found) {
-        craftSpells[craftType][index - 1] = craftSpells[craftType][index];
-      } else if (craftSpells[craftType][index] == spellID) {
+        m_craftSpells[craftType][index - 1] = m_craftSpells[craftType][index];
+      } else if (m_craftSpells[craftType][index] == spellID) {
         found = 1;
       }
     }
     if (found) {
-      craftSpells[craftType].SetCount(count - 1);
+      m_craftSpells[craftType].SetCount(count - 1);
       CGCraftInfo::RefreshList();
     }
   }
@@ -4496,9 +4515,7 @@ ITEMEXPIRATION *__fastcall CGPlayer_C::GetPendingItemExpirationNode(const unsign
 
 TSGrowableArray<int> *CGPlayer_C::GetTradeSkills(int skillLine) {
   HASHKEY_NONE                               hashKey;
-  TSHashTable<TRADESKILLLINE, HASHKEY_NONE> *tradeSkillLines =
-      reinterpret_cast<TSHashTable<TRADESKILLLINE, HASHKEY_NONE> *>(reinterpret_cast<unsigned char *>(this) + 0x9F0);
-  TRADESKILLLINE *line = tradeSkillLines->Ptr(skillLine, hashKey);
+  TRADESKILLLINE *line = m_tradeSkillLines.Ptr(skillLine, hashKey);
   return line ? &line->spells : 0;
 }
 
@@ -4506,14 +4523,13 @@ TSGrowableArray<int> *CGPlayer_C::GetCraftSkills(SPELL_CAST_UI_TYPE type) {
   if (type <= SPELL_CAST_UI_NONE || type >= NUM_SPELL_CAST_UI_TYPES) {
     return 0;
   }
-  return reinterpret_cast<TSGrowableArray<int> *>(reinterpret_cast<unsigned char *>(this) + 0xA1C) + type;
+  return &m_craftSpells[type];
 }
 
 int CGPlayer_C::GetSkillIndex(int skillID) {
-  unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(this) + 0x9E0);
   unsigned int   index;
   for (index = 0; index < 64; ++index) {
-    if (*reinterpret_cast<unsigned short *>(playerData + 600 + 12 * index) == skillID) {
+    if (GetMirrorSkillID(index) == skillID) {
       break;
     }
   }
@@ -4525,8 +4541,7 @@ int CGPlayer_C::GetSkillRank(int skillID) {
   if (index < 0) {
     return 0;
   }
-  unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(this) + 0x9E0);
-  int rank = *reinterpret_cast<unsigned short *>(playerData + 602 + 12 * index) + *reinterpret_cast<short *>(playerData + 606 + 12 * index);
+  int rank = GetMirrorSkillRank(index) + GetMirrorSkillModifier(index);
   return rank < 0 ? 0 : rank;
 }
 
@@ -4746,7 +4761,7 @@ void __fastcall CGPlayer_C::UpdateBindStatusAll() {
 
 void CGPlayer_C::TrySheathingWeapon() {
   if (!(m_flags & 0x400)) {
-    unsigned char playerAnimState = reinterpret_cast<unsigned char *>(m_unit)[667];
+    unsigned char playerAnimState = m_unit->weaponMode;
     if (playerAnimState != 1 || (m_lastWeaponModeSent != -1 && m_lastWeaponModeSent != 1)) {
       SheatheWeapon(1);
     }
@@ -4754,27 +4769,24 @@ void CGPlayer_C::TrySheathingWeapon() {
 }
 
 void CGPlayer_C::ToggleSheathe(unsigned int ignoreAnim) {
-  unsigned char *unitData = reinterpret_cast<unsigned char *>(m_unit);
-  unsigned char *self = reinterpret_cast<unsigned char *>(this);
-  if (*reinterpret_cast<int *>(unitData + 0x40) <= 0 || *reinterpret_cast<unsigned int *>(self + 0x6E8) == 46 ||
-      *reinterpret_cast<int *>(self + 0x698))
+  if (m_unit->health <= 0 || m_currentTorsoAnimState == 46 || m_castingSpell)
   {
     return;
   }
 
   if (ignoreAnim || !SheatheAnimPlaying()) {
-    unsigned char weaponMode = unitData[0x29B];
+    unsigned char weaponMode = m_unit->weaponMode;
     if (weaponMode == WEAPONMODE_MELEE || weaponMode == WEAPONMODE_RANGED) {
       SetWeaponMode(WEAPONMODE_SHEATHED);
     } else {
       SetWeaponMode(WEAPONMODE_MELEE);
-      if (*reinterpret_cast<unsigned int *>(self + 0x9E8) & 0x400) {
+      if (m_flags & 0x400) {
         SetCombatMode(0);
       }
     }
 
     static const unsigned char s_standStateStartsSheathe[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    if (s_standStateStartsSheathe[unitData[0x298]]) {
+    if (s_standStateStartsSheathe[m_unit->standState]) {
       MaybeStartSheatheAnim();
     }
   }
@@ -4979,11 +4991,7 @@ void CGPlayer_C::ReadItem(unsigned __int64 containerGUID, unsigned char slot) {
   }
 
   for (unsigned int packSlot = 19; packSlot < 23; ++packSlot) {
-    unsigned __int64 item = 0;
-    unsigned int    *slotCount = *reinterpret_cast<unsigned int **>(reinterpret_cast<unsigned char *>(this) + 0x1838);
-    if (packSlot < *slotCount) {
-      item = (*reinterpret_cast<unsigned __int64 **>(reinterpret_cast<unsigned char *>(this) + 0x183C))[packSlot];
-    }
+    unsigned __int64 item = m_inventory.GetItem(packSlot);
     if (item == containerGUID) {
       (this->*readPackItem)(packSlot, slot);
       return;
@@ -5007,8 +5015,7 @@ int CGPlayer_C::CanLoot(CGUnit_C *unitPtr) {
 unsigned int CGPlayer_C::GetPlayerAnimState() {
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
     if (!(m_flags & 0x200) && (m_lootingUnit || m_lootingUnitSent) &&
-        GetAnimPriority(*reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(this) + 0x6E0)) <= GetAnimPriority(44) &&
-        GetAnimPriority(*reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(this) + 0x6E8)) <= GetAnimPriority(44))
+        GetAnimPriority(m_currentBaseAnimState) <= GetAnimPriority(44) && GetAnimPriority(m_currentTorsoAnimState) <= GetAnimPriority(44))
     {
       unsigned __int64 lootTarget = m_lootingUnit ? m_lootingUnit : m_lootingUnitSent;
       CGObject_C      *object = ClntObjMgrObjectPtr(lootTarget, __FILE__, __LINE__);
@@ -5016,7 +5023,7 @@ unsigned int CGPlayer_C::GetPlayerAnimState() {
         return 44;
       }
     }
-  } else if (!(m_flags & 0x200) && (GetUnitData()->flags & 0x400) && !*(reinterpret_cast<unsigned char *>(this) + 0x80)) {
+  } else if (!(m_flags & 0x200) && (GetUnitData()->flags & 0x400) && !(m_movement.m_moveFlags & 0xFF)) {
     return 44;
   }
 
@@ -5174,24 +5181,18 @@ int CGPlayer_C::GetLanguageSkill(unsigned int language, unsigned int &skill) {
     return 0;
   }
 
-  unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(this) + 0x9E0);
-  unsigned int   index;
-  for (index = 0; index < 64; ++index) {
-    if (*reinterpret_cast<unsigned short *>(playerData + 600 + 12 * index) == ability->m_skillLine) {
-      break;
-    }
-  }
-  if (index == 64 || !g_skillLineDB.GetRecord(ability->m_skillLine)) {
+  int index = GetSkillIndex(ability->m_skillLine);
+  if (index < 0 || !g_skillLineDB.GetRecord(ability->m_skillLine)) {
     return 0;
   }
 
-  skill = *reinterpret_cast<unsigned short *>(playerData + 602 + 12 * index) + *reinterpret_cast<short *>(playerData + 606 + 12 * index);
+  skill = GetMirrorSkillRank(index) + GetMirrorSkillModifier(index);
   return 1;
 }
 
 int __fastcall Player_C_TogglePlayerRender() {
-    // TODO: implement
-    return 0;
+  s_renderPlayer = !s_renderPlayer;
+  return s_renderPlayer;
 }
 
 int __fastcall Player_C_SetPlayerRender(int enable) {
@@ -5209,26 +5210,19 @@ void CGPlayer_C::SetCombatMode(int state) {
     return;
   }
 
-  unsigned char *self = reinterpret_cast<unsigned char *>(this);
-  unsigned char *unitData = reinterpret_cast<unsigned char *>(m_unit);
-  if (state && (*reinterpret_cast<unsigned int *>(unitData + 0xC0) & 0x20000)) {
+  if (state && (m_unit->flags & 0x20000)) {
     return;
   }
 
-  unsigned int &flags = *reinterpret_cast<unsigned int *>(self + 0x9E8);
-  unsigned int  oldState = flags & 0x400;
+  unsigned int oldState = m_flags & 0x400;
   if (state) {
-    flags |= 0x400;
+    m_flags |= 0x400;
     ResetCombatModeTimer(oldState == 0);
   } else {
-    flags &= 0xFFFFFB3F;
+    m_flags &= 0xFFFFFB3F;
     KillCombatModeTimer();
-    if (*reinterpret_cast<unsigned __int64 *>(self + 0x4C0) || *reinterpret_cast<unsigned int *>(self + 0x4C8)) {
-      typedef void (CGPlayer_C::*UpdateCombatAnimationFn)();
-      void                  **vtable = *reinterpret_cast<void ***>(this);
-      UpdateCombatAnimationFn updateCombatAnimation;
-      memcpy(&updateCombatAnimation, &vtable[0xB4 / 4], sizeof(updateCombatAnimation));
-      (this->*updateCombatAnimation)();
+    if (m_combat.IsAttacking() || m_combat.AttackBeenSent()) {
+      CGUnit_C::StopAttack();
     }
     Spell_C_CancelCombatSpell();
   }
@@ -5237,9 +5231,8 @@ void CGPlayer_C::SetCombatMode(int state) {
     return;
   }
 
-  int castingSpell = *reinterpret_cast<int *>(self + 0x698);
-  if (state && castingSpell) {
-    const SpellRec *spell = g_spellDB.GetRecord(castingSpell);
+  if (state && m_castingSpell) {
+    const SpellRec *spell = g_spellDB.GetRecord(m_castingSpell);
     FATALASSERT(spell);
     if (spell->m_attributes & 2) {
       Spell_C_CancelSpell(1, 1, SPELL_FAILED_ERROR);
@@ -5254,45 +5247,33 @@ void CGPlayer_C::SetCombatMode(int state) {
   if (state) {
     SndInterfacePlayVocalUISound(static_cast<VOCALUISOUNDS>(5));
   } else {
-    int health = *reinterpret_cast<int *>(unitData + 0x40);
-    int maxHealth = *reinterpret_cast<int *>(unitData + 0x54);
-    if (static_cast<double>(health) / maxHealth < 0.5) {
+    if (static_cast<double>(m_unit->health) / m_unit->maxHealth < 0.5) {
       SndInterfacePlayVocalUISound(static_cast<VOCALUISOUNDS>(10));
     }
-    if (!unitData[0x73]) {
-      int power = *reinterpret_cast<int *>(unitData + 0x44);
-      int maxPower = *reinterpret_cast<int *>(unitData + 0x58);
-      if (static_cast<double>(power) / maxPower < 0.5) {
+    if (!m_unit->displayPower) {
+      if (static_cast<double>(m_unit->power[0]) / m_unit->maxPower[0] < 0.5) {
         SndInterfacePlayVocalUISound(static_cast<VOCALUISOUNDS>(11));
       }
     }
   }
 
-  int lastWeaponMode = *reinterpret_cast<int *>(self + 0x9EC);
-  int hasLastWeaponMode = lastWeaponMode != -1 && lastWeaponMode != WEAPONMODE_SHEATHED;
-  if (state && (unitData[0x29B] == WEAPONMODE_RANGED || unitData[0x29B] == WEAPONMODE_MELEE || hasLastWeaponMode)) {
+  int hasLastWeaponMode = m_lastWeaponModeSent != -1 && m_lastWeaponModeSent != WEAPONMODE_SHEATHED;
+  if (state && (m_unit->weaponMode == WEAPONMODE_RANGED || m_unit->weaponMode == WEAPONMODE_MELEE || hasLastWeaponMode)) {
     ToggleSheathe(1);
   }
 
-  void **vtable = *reinterpret_cast<void ***>(this);
-  typedef void (CGPlayer_C::*UpdateBaseAnimationFn)(unsigned int);
-  UpdateBaseAnimationFn updateBaseAnimation;
-  memcpy(&updateBaseAnimation, &vtable[0x110 / 4], sizeof(updateBaseAnimation));
-  if (!castingSpell) {
-    (this->*updateBaseAnimation)(0);
+  if (!m_castingSpell) {
+    CGUnit_C::UpdateBaseAnimation(0);
   }
 
-  if (*reinterpret_cast<unsigned int *>(self + 0x960)) {
+  if (m_rangedStandTimer) {
     DetermineReadySequence(1);
-    (this->*updateBaseAnimation)(0);
+    CGUnit_C::UpdateBaseAnimation(0);
     ClearRangedStandTimer();
   }
 
-  if (state && unitData[0x298]) {
-    typedef void (CGPlayer_C::*ChangeStandStateFn)(unsigned int);
-    ChangeStandStateFn changeStandState;
-    memcpy(&changeStandState, &vtable[0x160 / 4], sizeof(changeStandState));
-    (this->*changeStandState)(0);
+  if (state && m_unit->standState) {
+    CGPlayer_C::ChangeStandState(0);
   }
 }
 
@@ -5344,8 +5325,7 @@ void CGPlayer_C::ResetCombatModeTimer(int newCombat) {
 }
 
 unsigned int CGPlayer_C::GetCombatModeTimerInterval() {
-  unsigned int flags = *reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(this) + 0x9E8);
-  FATALASSERT(flags & 0x400);
+  FATALASSERT(m_flags & 0x400);
   return 500;
 }
 
@@ -5421,13 +5401,13 @@ void CGPlayer_C::HandleActivateTaxiReply(unsigned int code) {
 
 unsigned __int64 CGPlayer_C::GetLocalTarget() const {
   const unsigned __int64 &lockedTarget = CGGameUI::GetLockedTarget();
-  const unsigned __int64  combatTarget = *reinterpret_cast<const unsigned __int64 *>(reinterpret_cast<const unsigned char *>(this) + 0x4C0);
+  const unsigned __int64 combatTarget = m_combat.IsAttacking();
 
   if (lockedTarget && lockedTarget == combatTarget) {
     return lockedTarget;
   }
 
-  return *reinterpret_cast<const unsigned __int64 *>(reinterpret_cast<const unsigned char *>(this) + 0x6D8);
+  return m_targetUnit;
 }
 
 int CGPlayer_C::DeathBindDistanceCompare(NTempest::C3Vector &bindStonePosition) {
@@ -5452,13 +5432,9 @@ NTempest::C3Vector &__fastcall CGPlayer_C::GetBindPoint() {
 
 void CGPlayer_C::OnSpellFailed(const SpellRec *spellRec, unsigned int reason) {
   ClearTrackingTarget(0);
-  if (spellRec && (spellRec->m_ID != reinterpret_cast<const unsigned int *>(this)[422] || reason != 59) && (spellRec->m_attributes & 2)) {
+  if (spellRec && (spellRec->m_ID != static_cast<unsigned int>(m_castingSpell) || reason != 59) && (spellRec->m_attributes & 2)) {
     DetermineReadySequence(0);
-    typedef void (CGPlayer_C::*SetBaseAnimStateProc)(unsigned int);
-    SetBaseAnimStateProc setBaseAnimState;
-    void               **vtable = *reinterpret_cast<void ***>(this);
-    memcpy(&setBaseAnimState, &vtable[0x110 / sizeof(void *)], sizeof(setBaseAnimState));
-    (this->*setBaseAnimState)(0);
+    CGUnit_C::UpdateBaseAnimation(0);
   }
 }
 
@@ -5515,19 +5491,17 @@ void CGPlayer_C::UseSoulstone() const {
 }
 
 void CGPlayer_C::SaveDeathMessage(unsigned __int64 guid) {
-  *reinterpret_cast<unsigned __int64 *>(reinterpret_cast<unsigned char *>(this) + 0x1850) = guid;
+  m_lastKillerGUID = guid;
   CheckKillerFeedback();
 }
 
 void CGPlayer_C::CheckKillerFeedback() {
-  unsigned char    *self = reinterpret_cast<unsigned char *>(this);
-  unsigned __int64 &lastKillerGUID = *reinterpret_cast<unsigned __int64 *>(self + 0x1850);
-  if (!GetUnitData()->health && !*reinterpret_cast<unsigned int *>(self + 0x700) && lastKillerGUID) {
-    CGUnit_C *killer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(lastKillerGUID, __FILE__, __LINE__));
+  if (!GetUnitData()->health && !m_deathHolds && m_lastKillerGUID) {
+    CGUnit_C *killer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_lastKillerGUID, __FILE__, __LINE__));
     if (killer) {
       CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(115), killer->GetUnitName());
     }
-    lastKillerGUID = 0;
+    m_lastKillerGUID = 0;
   }
 }
 
@@ -5649,10 +5623,7 @@ int CGPlayer_C::ReportBagItemSubtypeMismatch(unsigned int bagSlot) const {
     return 0;
   }
 
-  const unsigned char *self = reinterpret_cast<const unsigned char *>(this);
-  unsigned int        *count = *reinterpret_cast<unsigned int *const *>(self + 0x1838);
-  unsigned __int64    *items = *reinterpret_cast<unsigned __int64 *const *>(self + 0x183C);
-  unsigned __int64     itemGUID = slot < *count ? items[slot] : 0;
+  unsigned __int64 itemGUID = m_inventory.GetItem(slot);
   CGItem_C            *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
   if (!item || item->GetClassID() != 11) {
     return 0;
@@ -5747,7 +5718,7 @@ bool __fastcall CGPlayer_C::IsGiftWrapping() {
 }
 
 void CGPlayer_C::SheatheWeapon(unsigned int sheathe) {
-  reinterpret_cast<unsigned char *>(m_unit)[667] = static_cast<unsigned char>(sheathe);
+  m_unit->weaponMode = static_cast<unsigned char>(sheathe);
   m_lastWeaponModeSent = static_cast<int>(sheathe);
 }
 
@@ -5761,7 +5732,7 @@ void CGPlayer_C::ToggleFarSight() {
   unsigned __int64 focusGUID = GetFarSightFocusGUID();
   CGObject_C      *focus = ClntObjMgrObjectPtr(focusGUID, __FILE__, __LINE__);
 
-  if (!focus || *reinterpret_cast<unsigned __int64 *>(reinterpret_cast<unsigned char *>(CGWorldFrame::GetActiveCamera()) + 128) == focus->GetGUID()) {
+  if (!focus || CGWorldFrame::GetActiveCamera()->GetTarget() == focus->GetGUID()) {
     m_flags &= ~0x800;
     CGGameUI::ResetCamera();
     CGUnit_C::SetActiveMover(GetGUID());
@@ -5774,7 +5745,7 @@ void CGPlayer_C::ToggleFarSight() {
     CGUnit_C         *unit = static_cast<CGUnit_C *>(focus);
     const CGUnitData *unitData = unit->GetUnitData();
     unsigned __int64  controller = unitData->charmedBy ? unitData->charmedBy : unitData->createdBy;
-    if ((reinterpret_cast<const unsigned char *>(unitData)[195] & 1) && controller == GetGUID()) {
+    if ((unitData->flags & 0x01000000) && controller == GetGUID()) {
       mover = focus->GetGUID();
     }
   }
@@ -5804,7 +5775,7 @@ CGUnit_C *CGPlayer_C::GetPossessedUnit() {
   CGUnit_C         *unit = static_cast<CGUnit_C *>(focus);
   const CGUnitData *unitData = unit->GetUnitData();
   unsigned __int64  controller = unitData->charmedBy ? unitData->charmedBy : unitData->createdBy;
-  if (!(reinterpret_cast<const unsigned char *>(unitData)[195] & 1) || controller != GetGUID()) {
+  if (!(unitData->flags & 0x01000000) || controller != GetGUID()) {
     return 0;
   }
   return unit;

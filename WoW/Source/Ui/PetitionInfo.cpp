@@ -184,7 +184,7 @@ static int __fastcall Script_CanSignPetition(lua_State *L) {
   int               canSign = petition != 0;
   CGPlayer_C       *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (petition && (petition->m_flags & 1) &&
-      ((!player || *reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(player->GetStorage()) + 580)) ||
+      ((!player || player->GetBag()->GetItem(0)) ||
        CGPetitionInfo::GetNumSignatures() >= static_cast<unsigned int>(petition->m_maxSignatures)))
   {
     canSign = 0;

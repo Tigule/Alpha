@@ -4,7 +4,9 @@
 #include "Object/ObjectClient/Unit_C.h"
 
 #include "Tempest/c34matrix.h"
+#include "UIUtil/Camera.h"
 #include "Ui/GameUI.h"
+#include "Ui/WorldFrame.h"
 
 static TSExplicitList<CGGameObject_C, 52> s_transports;
 
@@ -64,7 +66,9 @@ void __fastcall MovementFixUpMoveHistory(unsigned __int64 mover, const NTempest:
 }
 
 void __fastcall MovementUpdateCameraYaw(unsigned __int64 transportGUID) {
-    // TODO: implement
+  CGCamera *camera = CGWorldFrame::GetActiveCamera();
+  FATALASSERT(camera);
+  camera->MakeRelativeTo(transportGUID);
 }
 
 void __fastcall MovementSetGlobals(void *ptr) {
@@ -73,6 +77,12 @@ void __fastcall MovementSetGlobals(void *ptr) {
 
 void *__fastcall MovementGetGlobals() {
   return ClntObjMgrGetMovementGlobals();
+}
+
+NTempest::C3Vector __fastcall MovementGetTransportVector(unsigned __int64 transportGUID) {
+  CGObject_C *transport = ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__);
+  FATALASSERT(transport);
+  return transport->GetPosition();
 }
 
 void __fastcall MovementClearClobals() {
@@ -103,6 +113,7 @@ float __fastcall MovementGetTransportFacing(unsigned __int64 transportGUID) {
   return transport->GetFacing();
 }
 int __fastcall MovementInsideTransport(unsigned __int64 transportGUID, const NTempest::C3Vector& position) {
-    // TODO: implement
-    return 0;
+  CGGameObject_C *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
+  FATALASSERT(transport);
+  return transport->IsPointInside(position);
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Tempest/cmath.h"
+
 namespace NTempest {
 
   class C2Vector {
@@ -11,6 +13,21 @@ namespace NTempest {
     }
 
     ~C2Vector() {
+    }
+
+    float SquaredMag() const {
+      return x * x + y * y;
+    }
+
+    float Mag() const {
+      return CMath::sqrt_(SquaredMag());
+    }
+
+    void Normalize() {
+      float ooMag = 1.0f / Mag();
+
+      x *= ooMag;
+      y *= ooMag;
     }
 
     float x;

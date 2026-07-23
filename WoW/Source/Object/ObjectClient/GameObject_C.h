@@ -84,6 +84,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   virtual const char        *GetModelFileName() const;
 
   int           IsTransport() const;
+  int           IsPointInside(const NTempest::C3Vector &point) const;
   int           GetPageTextLanguage() const;
   int           GetPageTextMaterial() const;
   int           GetType();

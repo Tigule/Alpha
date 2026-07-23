@@ -1,6 +1,7 @@
 #include "SoundInterface.h"
 
 #include "SoundInterface/ISoundInterface.h"
+#include <Os/OsTime.h>
 
 #include <windows.h>
 
@@ -30,7 +31,7 @@ void __fastcall SndInterfaceRegisterNewZoneIntro(int soundID, int priority) {
     if (!s_sound || !s_sound->IsPlaying() || priority > s_priority) {
       Sound::KillSound(s_sound);
 
-      int currentTime = GetTickCount();
+      int currentTime = OsGetAsyncTimeMs();
       if (s_lastPlayTime == -1 || s_lastPlayTime + 3600000 <= currentTime) {
         SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
         if (definition) {
@@ -39,7 +40,7 @@ void __fastcall SndInterfaceRegisterNewZoneIntro(int soundID, int priority) {
             s_sound = Sound::Play2D(static_cast<SOUNDCATEGORIES>(6), filename, 1, true);
             if (s_sound) {
               s_priority = priority;
-              s_lastPlayTime = GetTickCount();
+              s_lastPlayTime = OsGetAsyncTimeMs();
               definition->SetFrequencyAndVolume(s_sound, 1.0f, false);
               if (!s_sound->SetPaused(false)) {
                 Sound::KillSound(s_sound);

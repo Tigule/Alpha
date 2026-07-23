@@ -55,6 +55,7 @@ class CGItem {
 
 class CGItem_C : public CGObject_C, public CGItem {
   friend class CGItemText;
+  friend class CGPlayer_C;
   friend void SendCast(SpellCast *cast);
 
  public:
@@ -80,6 +81,15 @@ class CGItem_C : public CGObject_C, public CGItem {
   ItemStats                    *GetStats();
   int                           GetStackCount() const {
     return m_item->m_stackCount;
+  }
+  unsigned __int64 GetOwner() {
+    return m_item->m_owner;
+  }
+  unsigned __int64 GetContainedIn() {
+    return m_item->m_containedIn;
+  }
+  unsigned char IsTranslated() {
+    return (m_item->m_dynamicFlags & 2) != 0;
   }
   unsigned int IsUnlocked() const {
     return (m_item->m_dynamicFlags & 1) == 0;

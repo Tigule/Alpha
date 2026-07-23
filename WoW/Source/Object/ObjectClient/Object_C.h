@@ -95,8 +95,10 @@ class CGObject_C : public CGObject {
   void                ReportMissingAttachment(unsigned int objectID, const char *modelName) const;
   void                ReportNoAnimation(const char *modelName);
 
- private:
+ protected:
   void        UpdateObjectHeight(HMODEL__ *model);
+
+ private:
   virtual int GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
 
  public:
@@ -138,6 +140,7 @@ class CGObject_C : public CGObject {
 
  protected:
   virtual int ShouldFadeIn() const;
+  void        ObjectSetNotRendering();
 
  public:
   virtual const char *GetObjectName() const;
@@ -152,7 +155,11 @@ class CGObject_C : public CGObject {
 
  private:
   float        m_renderScale;
+
+ protected:
   HMODEL__    *m_model;
+
+ private:
   unsigned int m_highlightTypes;
   float        m_objectHeight;
 

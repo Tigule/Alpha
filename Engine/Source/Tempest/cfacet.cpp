@@ -14,7 +14,7 @@ namespace NTempest {
     plane.d = -C3Vector::Dot(plane.n, vertices[0]);
   }
 
-  void CFacet::Set(C3Vector &a, C3Vector &b, C3Vector &c) {
+  void CFacet::Set(const C3Vector &a, const C3Vector &b, const C3Vector &c) {
     vertices[0] = a;
     vertices[1] = b;
     vertices[2] = c;

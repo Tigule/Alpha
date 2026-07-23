@@ -26,7 +26,8 @@ template <class T>
 class TSStackArray;
 
 enum UNITEFFECTSPECIALS {
-  UNITEFFECTSPECIAL_NONE = 0
+  SPECIALEFFECT_LOOTART = 0,
+  SPECIALEFFECT_LEVELUP = 1
 };
 
 enum WORLDTEXTMISSTYPE {
@@ -418,7 +419,9 @@ class CGUnit_C : public CGObject_C {
   static void __fastcall         RemoveAllNamePlates();
 
   virtual const char        *GetObjectName() const;
+  unsigned __int64           GetUnitBeingLooted() const;
   const char                *GetUnitName() const;
+  void                       UpdatePlayerNameWorldText();
   void                       AddUnitNamePlate(CGWorldFrame *worldFrame);
   void                       InsertSortedNamePlate(struct NAMEPLATEDESC *desc);
   void                       RemoveUnitNamePlate();
@@ -429,14 +432,17 @@ class CGUnit_C : public CGObject_C {
   float                      GetDisplayFacing() const;
   float                      GetSmoothFacing() const;
   float                      GetRawSmoothFacing() const {
-    return reinterpret_cast<const float *>(this)[429];
+    return m_smoothFacing;
   }
   void                       UpdateSmoothFacing();
   void                       SetSmoothFacing(float facing);
+  bool                       IsTurningState() const;
   virtual NTempest::C3Vector GetGroundNormal() const;
+  virtual void               GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
   virtual float              GetRenderFacing() const;
   virtual void               UpdateRenderFacing();
   virtual void               PostAnimate(CGWorldFrame *worldFrame);
+  virtual int                ShouldRender(unsigned long worldStatus);
   virtual HMODEL             GetCharacterModel(int *mountedPtr) const;
   virtual const char        *GetModelFileName() const;
   void                       RequestTalkEmote(TALKANIMATION talkAnim);
@@ -448,6 +454,12 @@ class CGUnit_C : public CGObject_C {
 
   HMODEL DuplicateCharacterModel(unsigned int flags);
 
+ protected:
+  void GetSwimMatrix(NTempest::C34Matrix *worldMatrix) const;
+  void UpdateDisplayFacing();
+  int  ShouldShuffle() const;
+
+ public:
   friend void __fastcall SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit);
   friend void __fastcall CreatureQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
   friend int __fastcall  UnitModeUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param);
@@ -473,6 +485,7 @@ class CGUnit_C : public CGObject_C {
   void               OnPitchStopLocal(unsigned long eventTime);
   void               OnSetRunModeLocal(unsigned long eventTime, int run);
   void               OnSetFacingLocal(unsigned long eventTime, float facing);
+  void               OnSetRawFacingLocal(unsigned long eventTime, float facing);
   void               OnSetPitchLocal(unsigned long eventTime, float pitch);
   void               OnAllSpeedChangeLocal(unsigned long eventTime, float speed);
   void               OnTurnRateChangeLocal(unsigned long eventTime, float rate);
@@ -488,6 +501,9 @@ class CGUnit_C : public CGObject_C {
   void               StopSpellFizzleTimer(int spellID, unsigned char status);
   void               EndSpellEffects(unsigned char status);
   int                SetCastingSpell(int spellID, unsigned int force, unsigned int precastAnimSuccessful);
+  int                GetCastingSpell() {
+    return m_castingSpell;
+  }
   void               HandlePrecastStart(unsigned int precast);
   void               HandlePrecastStop(int spellID, unsigned int force);
   void               SetSheatheReason(SHEATHEREASONS reason, unsigned int on, unsigned int suppressSound);
@@ -564,6 +580,9 @@ class CGUnit_C : public CGObject_C {
   int                JumpTakeOffFinishedHandler();
   int                JumpLandFinishedHandler();
   void               LootAnimEndHandler();
+  void               OnPickNextStandHandler();
+  void               OnDeath();
+  void               RestoreUnit();
   void               SitSleepAnimEndHandler();
   void               RangedPrecastEndHandler();
   bool               SetSpellPreCastingAnimation(ANIMENUMERATION anim);
@@ -600,6 +619,7 @@ class CGUnit_C : public CGObject_C {
   unsigned int  GetDisplayRace() const;
   unsigned int  GetDisplaySex() const;
   HTEXCOMPONENT GetTexComponent() const;
+  void          CommitTexture(int force);
   virtual int   UpdateTexComponentLoadStatus();
   int           IsModelComponentable() const;
   const char   *GetDisplayTextureName() const;
@@ -629,6 +649,7 @@ class CGUnit_C : public CGObject_C {
   void             OnCombatModeTimer();
   void             AttackUnit(CGUnit_C *newVictim);
   void             OnAttackSwing(unsigned __int64 victimGUID, unsigned int clientTimeStamp);
+  void             StopAttack();
   void             OnAttackStart(unsigned __int64 victim);
   void             OnAttackStop(unsigned __int64 previousTarget, int nowDead);
   virtual void     OnGetAttacked(unsigned __int64) {
@@ -637,11 +658,11 @@ class CGUnit_C : public CGObject_C {
   virtual void OnBadAttackTarget(unsigned __int64 victim);
   virtual void OnBadAttackPosition(unsigned __int64 victimGUID, float range);
   virtual void OnNotStanding(unsigned __int64 victim);
-  void         SetDebugHitRolls(ATTACKROUNDINFO &info);
+  void         SetDebugHitRolls(const ATTACKROUNDINFO &info);
   void         OnAttackerStateChange(ATTACKROUNDINFO &roundInfo);
   void         HandleMirrorTimerDamage(MIRRORTIMERDAMAGE &log);
   int          SetAttackerAnimation(ATTACKROUNDINFO *roundInfo, int processNow);
-  int          QueueAnim(ANIMQUEUETYPE type, ATTACKROUNDINFO *roundInfo);
+  int          QueueAnim(ANIMQUEUETYPE type, const ATTACKROUNDINFO *roundInfo);
   virtual void UnitHit(VICTIMSTATES state, unsigned __int64 attacker);
   void         InitializeResEffectModel();
   void         ClearResEffectModel();
@@ -658,11 +679,35 @@ class CGUnit_C : public CGObject_C {
   void         SetHandsState(HMODEL model);
   void         SetFingersSeq(HMODEL charModel, unsigned int sequence, unsigned int startFinger, unsigned int lastFinger);
   void         ResetFingersSeq(HMODEL charModel, unsigned int startFinger, unsigned int lastFinger);
-  void         SetHandState(HMODEL model, VirtualItemInfo *item, unsigned int startFinger, unsigned int lastFinger);
+  void         SetHandState(HMODEL model, const VirtualItemInfo *item, unsigned int startFinger, unsigned int lastFinger);
   void         HandleSheatheAnimEvent(bool clearSheatheAnim, bool suppressSound);
   void         SheatheAnimEndHandler();
   bool         SetSheathingSequence();
   virtual void UpdateBaseAnimation(unsigned int flags);
+  void         SetBaseAnimState(unsigned int newState);
+  void         SetEmoteState(unsigned int emoteID);
+  void         SetTorsoAnimState(unsigned int newState);
+  int          GetSpellCastingTime(int spellID) const;
+  unsigned int DetermineWoundSequence() const;
+  const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
+  int          GetVirtualItemDisplayID(unsigned int slot) const;
+  int          ShouldRenderUnitName(unsigned int mode) const;
+  void         CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
+  void         ReinitializeUnitArtwork();
+  void         PostReinitializeArtwork();
+  void         SetLastWeaponModeSent(int mode);
+  void         UnitInitializeModel(HMODEL model);
+  void         UnitUninitializeModel(HMODEL model);
+  void         ShutdownWorldName();
+  void         MarkFootstepAnimations(HMODEL model);
+  void         UpdateUnitAlpha();
+  void         RefreshAttachmentInfo(HMODEL model);
+  void         KillCreatureLoopSound();
+  void         InitializeLoopSound();
+  void         InstallSeqEndHandler(HMODEL model, unsigned int animID);
+  void         ClearAnimCallbackData();
+  void         CheckPendingSpellAnimHits();
+  void         SpellAnimHit(int spellID);
   void         UpdateMountAnimation(unsigned int newState, unsigned int flags);
   void         UpdateMovementAnimSpeed(int forMount, int currentState);
   virtual void UpdateBaseAnimation(unsigned int newState, unsigned int flags);
@@ -671,13 +716,13 @@ class CGUnit_C : public CGObject_C {
   void         SetLocalTarget(unsigned __int64 target);
   bool         BaseAnimLocksHead() const;
   unsigned int GetCurrentBaseAnimState() {
-    return reinterpret_cast<unsigned int *>(this)[440];
+    return m_currentBaseAnimState;
   }
   unsigned int GetCurrentTorsoAnimState() {
-    return reinterpret_cast<unsigned int *>(this)[442];
+    return m_currentTorsoAnimState;
   }
   unsigned int GetCurrentBaseAnim() {
-    return reinterpret_cast<unsigned int *>(this)[441];
+    return m_currentBaseAnim;
   }
   int          IsInStandSitTransition();
   int          IsInSitSleepPosition();
@@ -787,6 +832,12 @@ class CGUnit_C : public CGObject_C {
   void             OnDynamicFlagsChanged(unsigned int oldValue);
   void             OnChannelSpellChanged(unsigned int oldSpell);
   void             ClearSavedChannelSpellTargets();
+  int              GetSavedChannelSpellID() const {
+    return m_savedChannelSpellID;
+  }
+  const TSGrowableArray<unsigned __int64> &GetSavedChannelSpellTargets() const {
+    return m_savedChannelSpellTargets;
+  }
   int              SetEmoteAnimation(unsigned int emoteID, int flags);
   void             DDDELLOG(unsigned __int64 guid, const char *string, const char *file, unsigned int line);
   void             DDADDLOG(unsigned __int64 guid, const char *string, const char *file, unsigned int line);
@@ -949,6 +1000,8 @@ class CGUnit_C : public CGObject_C {
   float          DetermineWalkRunTimeScale(int currentState);
   ANIMQUEUENODE *GetNewAnimNode(int leaveUnlinked);
   void           RecycleAnimNode(ANIMQUEUENODE *node);
+  void           PurgeAnimNodes(bool doNotProcess);
+  void           ProcessDiscardedAnim(ANIMQUEUENODE *node, bool doNotProcess);
   unsigned int   ChooseAnimation(unsigned int state) const;
   unsigned int   DetermineAttackerSequence(COMBATHAND hand) const;
   unsigned int   DetermineParrySequence() const;

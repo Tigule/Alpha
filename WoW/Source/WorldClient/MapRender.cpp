@@ -290,7 +290,7 @@ void DNPlanet::Render() {
 void DNClouds::Render() {
   NTempest::CImVector white(0xFFFFFFFF);
 
-  if (!m_nIndices) {
+  if (!m_nLayers) {
     return;
   }
 
@@ -300,7 +300,7 @@ void DNClouds::Render() {
   GxRsSet(GxRs_FogDensity, 0.0f);
   GxRsSet(GxRs_FogColor, m_fogInfo.color);
   GxVertexShaderSelect(GxVS_PassThru);
-  GxRsSet(GxRs_Blend, GxBlend_Opaque);
+  GxRsSet(GxRs_Blend, GxBlend_Alpha);
   GxRsSet(GxRs_Lighting, 0);
   GxRsSet(GxRs_DepthWrite, 0);
   GxRsSet(GxRs_DepthTest, 0);
@@ -326,11 +326,11 @@ void DNSky::Render() {
   GxXformSetViewport(vp[0], vp[1], vp[2], vp[3], 1.0f, 1.0f);
 
   worldScale = NTempest::C44Matrix();
-  worldScale.Scale(DayNightGetInfo()->farClip * 0.5f);
+  worldScale.Scale(CWorld::farClip * 0.5f);
   GxXformPush(GxXform_World, worldScale);
 
   GxXformView(saveViewMat);
-  zv = NTempest::C3Vector(saveViewMat.c0, saveViewMat.c1, saveViewMat.c2);
+  zv = NTempest::C3Vector(1.0f, 0.0f, saveViewMat.c2);
   zv.Normalize();
   NTempest::C3Vector eye(0.0f, 0.0f, 0.0f);
   NTempest::C3Vector up(0.0f, 0.0f, 1.0f);

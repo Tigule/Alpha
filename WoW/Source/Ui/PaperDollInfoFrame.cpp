@@ -91,9 +91,7 @@ void __fastcall CGCharacterInfo::RemoveMirrorHandlers(unsigned __int64 player) {
 void __fastcall CGCharacterInfo::UpdateItem(unsigned __int64 item) {
   CGItem_C *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item, __FILE__, __LINE__));
   if (itemPtr) {
-    const CGItemData *data =
-        reinterpret_cast<const CGItemData *>(reinterpret_cast<const unsigned char *>(itemPtr->GetStorage()) + CGUnit_C::OffsetOf(ID_ITEM));
-    if (data->m_owner == ClntObjMgrGetActivePlayer()) {
+    if (itemPtr->GetOwner() == ClntObjMgrGetActivePlayer()) {
       FrameScript_SignalEvent(181, "%s", "player");
     }
   }
@@ -204,17 +202,16 @@ void __fastcall CGCharacterInfo::OrderSkillLines() {
   if (!playerPtr) {
     return;
   }
-  unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(playerPtr) + 0x9E0);
   unsigned int   i;
   unsigned int   numClassSkills = 0;
   for (i = 0; i < 69; ++i) {
     m_skillInfoList[i].isProf = 0;
     m_skillInfoList[i].skillID = 0;
     if (i < 64) {
-      unsigned int skillID = *reinterpret_cast<unsigned short *>(playerData + 600 + 12 * i);
+      unsigned int skillID = playerPtr->GetMirrorSkillID(i);
       if (skillID) {
         SkillLineRec *rec = g_skillLineDB.GetRecord(skillID);
-        if (rec && *reinterpret_cast<unsigned short *>(playerData + 604 + 12 * i) && rec->m_categoryID < 4) {
+        if (rec && playerPtr->GetMirrorSkillMaxRank(i) && rec->m_categoryID < 4) {
           if (!rec->m_skillType) {
             ++numClassSkills;
           }

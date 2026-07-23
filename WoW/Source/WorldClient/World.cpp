@@ -12,6 +12,7 @@
 #include <Console/ConsoleClient.h>
 #include <Console/ConsoleVar.h>
 #include <Gx/Gx.h>
+#include <Gxu/IGxuLight.h>
 #include <Model/IModel.h>
 #include <Os/OsTime.h>
 #include <Services/IParticleMisc.h>
@@ -240,7 +241,7 @@ void __fastcall CWorld::UpdateDayNight(int forceFull, NTempest::C3Vector *positi
   DNInfo *dnInfo = DayNightGetInfo();
   if (forceFull) {
     if (position) {
-      dnInfo->playerPos = *position;
+      dnInfo->cameraPos = *position;
     }
     DayNightForceFullUpdate();
   } else {
@@ -279,6 +280,20 @@ void __fastcall CWorld::RenderAlpha() {
   ActivityBegin(ACTIVITY_WORLD);
   CWorldScene::RenderAlpha();
   ActivityEnd(ACTIVITY_WORLD);
+}
+
+void __fastcall
+CWorld::SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
+  if (parm) {
+    CMapBaseObj *baseObj = static_cast<CMapBaseObj *>(parm);
+    if (baseObj->camDist < farFog) {
+      CMap::oldSelectLightParm = baseObj;
+      baseObj->SelectLights();
+    }
+  } else {
+    CMap::oldSelectLightParm = 0;
+    CMap::GxuLightSelect(worldPos, cameraWorldPos, maxLightsToUse);
+  }
 }
 
 unsigned int __fastcall CWorld::QueryAreaId(float x, float y) {

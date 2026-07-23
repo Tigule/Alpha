@@ -29,9 +29,8 @@ void __fastcall CGReputationInfo::EnterWorld() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   FATALASSERT(player);
 
-  const unsigned char *playerData = reinterpret_cast<const unsigned char *>(player->GetStorage());
-  unsigned int         raceID = playerData[112];
-  unsigned int         classID = playerData[113];
+  unsigned int raceID = player->GetUnitData()->race;
+  unsigned int classID = player->GetUnitData()->classId;
   memset(m_factionBase, 0, sizeof(m_factionBase));
   memset(m_factionMap, 0, sizeof(m_factionMap));
 

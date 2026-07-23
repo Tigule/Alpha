@@ -12,6 +12,7 @@ struct HCAMERA__;
 struct HMODEL__;
 class CGObject_C;
 class CGInputControl;
+class CGUnit_C;
 
 enum CGCameraMotion {
   CAMERA_MOVE_IN = 0,
@@ -41,6 +42,10 @@ class CGCamera : public CSimpleCamera {
   CGCamera();
   ~CGCamera();
 
+  void MakeRelativeTo(unsigned __int64 guid);
+  const unsigned __int64 &GetTarget() const {
+    return m_target;
+  }
   void SetTarget(CGObject_C *target);
   void SetupWorldProjection(const NTempest::CRect &projectionRect);
   void AddShake(int shake, const NTempest::C3Vector &position);
@@ -67,6 +72,7 @@ class CGCamera : public CSimpleCamera {
  private:
   friend class CGWorldFrame;
   friend class CGInputControl;
+  friend class CGUnit_C;
 
   int                   FinishLoadingModel();
   int                   FinishLoadingTarget(CGObject_C *target);
@@ -74,6 +80,8 @@ class CGCamera : public CSimpleCamera {
   NTempest::C33Matrix   ParentToWorld();
   static int __fastcall CCommand_CameraClip(const char *command, const char *arguments);
   void                  SetTargetFadeValue(unsigned char value);
+  void                  SetModeNormal();
+  void                  SetModeFreeLook();
   static int __fastcall UpdateCallback(const void *__formal, void *param);
   void                  CalcThirdPerson(CGObject_C *target, unsigned long timestamp);
   void                  CalcFirstPerson(CGObject_C *target, unsigned long timestamp);

@@ -83,6 +83,11 @@ float CGGameObject_C::GetFacing() const {
   return m_baseObj->GetFacing();
 }
 
+int CGGameObject_C::IsPointInside(const NTempest::C3Vector &point) const {
+  FATALASSERT(m_baseObj);
+  return m_baseObj->IsPointInside(const_cast<NTempest::C3Vector &>(point));
+}
+
 void CGGameObject_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
   m_gameObj = reinterpret_cast<CGGameObjectData *>(storage + 6);

@@ -67,7 +67,15 @@ class CGWorldFrame : public CSimpleFrame {
 
   virtual ~CGWorldFrame();
   virtual void OnLayerUpdate(float elapsedSec);
+  virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnFrameRender(CRenderBatch *batch, unsigned int layer);
+  virtual void OnLayerCursorExit();
+  virtual int  OnLayerKeyDown(CKeyEvent &evt);
+  virtual int  OnLayerKeyUp(CKeyEvent &evt);
+  virtual int  OnLayerMouseDown(CMouseEvent &evt);
+  virtual int  OnLayerMouseUp(CMouseEvent &evt);
+  virtual int  OnLayerMouseWheel(CMouseEvent &evt);
+  virtual int  OnLayerMouseMoveRelative(CMouseEvent &evt);
 
   static CSimpleFrame *__fastcall Create(CSimpleFrame *parent) {
     return NEW(CGWorldFrame)(parent);
@@ -101,6 +109,11 @@ class CGWorldFrame : public CSimpleFrame {
   void                        SetSpriteClickButtons(unsigned int buttons);
   void                        SetTerrainClickButtons(unsigned int buttons);
   int                         PerformDefaultAction(MOUSEBUTTON button, unsigned int timestamp);
+  unsigned __int64            GetObjectUnderMouse();
+  int                         TogglePlayerRender();
+  int                         SetPlayerRender(int state);
+  void                        OnMouseModeNormal();
+  void                        OnMouseModeRelative();
   static CGCamera *__fastcall GetActiveCamera();
   static void __fastcall      GetCameraPosition(NTempest::C3Vector *position);
   static void __fastcall      GetCameraFacing(NTempest::C3Vector *position);
@@ -109,6 +122,7 @@ class CGWorldFrame : public CSimpleFrame {
 
  protected:
   unsigned __int64 FindClosestModel(NTempest::C3Vector &a, NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist);
+  float            GetSkyProgress();
 
  private:
   CGWorldFrame(CSimpleFrame *parent);

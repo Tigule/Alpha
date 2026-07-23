@@ -1,4 +1,4 @@
-#include "Anim/AnimInternal.h"
+#include "Anim/Transform.h"
 
 struct CameraInfo;
 
@@ -60,13 +60,15 @@ void CKeyFrameTrack<T, U>::Interpolate(const CKeyTrackStatus &keyStat, unsigned 
     } else if (m_trackType == TRACK_HERMITE) {
       float ratio2 = ratio * ratio;
       float ratio3 = ratio2 * ratio;
-      result[i] = (2.0f * ratio3 - 3.0f * ratio2 + 1.0f) * curr[i] + (ratio3 - 2.0f * ratio2 + ratio) * outTan[i] +
+      result[i] = (2.0f * ratio3 - 3.0f * ratio2 + 1.0f) * curr[i] +
+                  (ratio3 - 2.0f * ratio2 + ratio) * outTan[i] +
                   (-2.0f * ratio3 + 3.0f * ratio2) * next[i] * nextSign + (ratio3 - ratio2) * inTan[i];
     } else {
       float oneMinusRatio = 1.0f - ratio;
       float ratio2 = ratio * ratio;
       float ratio3 = ratio2 * ratio;
-      result[i] = oneMinusRatio * oneMinusRatio * oneMinusRatio * curr[i] + 3.0f * oneMinusRatio * oneMinusRatio * ratio * outTan[i] +
+      result[i] = oneMinusRatio * oneMinusRatio * oneMinusRatio * curr[i] +
+                  3.0f * oneMinusRatio * oneMinusRatio * ratio * outTan[i] +
                   3.0f * oneMinusRatio * ratio2 * inTan[i] + ratio3 * next[i] * nextSign;
     }
   }
@@ -229,7 +231,8 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
   float            ratio = timePerKey ? static_cast<float>(keyStat.timepastkey) / static_cast<float>(timePerKey) : 0.0f;
 
   if (m_trackType == TRACK_DONT_INTERP) {
-    const CLinearKeyFrame<NTempest::C4QuaternionCompressed> *key = reinterpret_cast<const CLinearKeyFrame<NTempest::C4QuaternionCompressed> *>(curr);
+    const CLinearKeyFrame<NTempest::C4QuaternionCompressed> *key =
+        reinterpret_cast<const CLinearKeyFrame<NTempest::C4QuaternionCompressed> *>(curr);
     *transform = key->transform;
   } else if (m_trackType == TRACK_LINEAR) {
     InterpolateLinear(
@@ -246,6 +249,61 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
         *reinterpret_cast<const CSplineKeyFrame<NTempest::C4QuaternionCompressed> *>(curr),
         *reinterpret_cast<const CSplineKeyFrame<NTempest::C4QuaternionCompressed> *>(next), ratio, transform
     );
+  }
+}
+
+template <>
+void CKeyFrameTrack<C3Color, C3Color>::Interpolate(
+    const CKeyTrackStatus &keyStat, unsigned int seqTime, C3Color *transform
+) {
+  const CKeyFrame *currKey = GetKeyFrame(keyStat.currKey);
+  const CKeyFrame *nextKey = GetKeyFrame(keyStat.nextKey);
+  unsigned int     timePerKey = TimeDiff(*currKey, *nextKey, seqTime);
+  float            ratio = timePerKey ? static_cast<float>(keyStat.timepastkey) / static_cast<float>(timePerKey) : 0.0f;
+  const unsigned int valueOffset = sizeof(int);
+  C3Color             currValue =
+      *reinterpret_cast<const C3Color *>(reinterpret_cast<const unsigned char *>(currKey) + valueOffset);
+  C3Color nextValue =
+      *reinterpret_cast<const C3Color *>(reinterpret_cast<const unsigned char *>(nextKey) + valueOffset);
+  const float *curr = reinterpret_cast<const float *>(&currValue);
+  const float *next = reinterpret_cast<const float *>(&nextValue);
+  float       *result = reinterpret_cast<float *>(transform);
+
+  if (m_trackType == TRACK_DONT_INTERP) {
+    *transform = currValue;
+    return;
+  }
+
+  C3Color inTanValue;
+  C3Color outTanValue;
+  if (m_trackType != TRACK_LINEAR) {
+    inTanValue = *reinterpret_cast<const C3Color *>(
+        reinterpret_cast<const unsigned char *>(nextKey) + valueOffset + sizeof(C3Color)
+    );
+    outTanValue = *reinterpret_cast<const C3Color *>(
+        reinterpret_cast<const unsigned char *>(currKey) + valueOffset + sizeof(C3Color) * 2
+    );
+  }
+  const float *inTan = reinterpret_cast<const float *>(&inTanValue);
+  const float *outTan = reinterpret_cast<const float *>(&outTanValue);
+
+  for (unsigned int i = 0; i < sizeof(C3Color) / sizeof(float); ++i) {
+    if (m_trackType == TRACK_LINEAR) {
+      result[i] = curr[i] + (next[i] - curr[i]) * ratio;
+    } else if (m_trackType == TRACK_HERMITE) {
+      float ratio2 = ratio * ratio;
+      float ratio3 = ratio2 * ratio;
+      result[i] = (2.0f * ratio3 - 3.0f * ratio2 + 1.0f) * curr[i] +
+                  (ratio3 - 2.0f * ratio2 + ratio) * outTan[i] +
+                  (-2.0f * ratio3 + 3.0f * ratio2) * next[i] + (ratio3 - ratio2) * inTan[i];
+    } else {
+      float oneMinusRatio = 1.0f - ratio;
+      float ratio2 = ratio * ratio;
+      float ratio3 = ratio2 * ratio;
+      result[i] = oneMinusRatio * oneMinusRatio * oneMinusRatio * curr[i] +
+                  3.0f * oneMinusRatio * oneMinusRatio * ratio * outTan[i] +
+                  3.0f * oneMinusRatio * ratio2 * inTan[i] + ratio3 * next[i];
+    }
   }
 }
 
@@ -606,15 +664,89 @@ static void AnimateAllCameras(CameraInfo* animInfo) {
 }
 
 static void AnimateAllTextureMaps(AnimInfo* animInfo) {
-    // TODO: implement
+  ASSERT(animInfo);
+  ASSERT(animInfo->unique);
+  ASSERT(animInfo->shared);
+
+  for (unsigned int i = 0; i < animInfo->shared->tex.Count(); ++i) {
+    ASSERT(i < animInfo->data.numTexBones);
+    CAnimTransform      &tex = animInfo->shared->tex[i];
+    CAnimObjStatus      &status = animInfo->unique->textureStatus[i];
+    NTempest::C34Matrix &matrix = animInfo->data.textureMtx[i];
+    AnimateTextureMap(*animInfo, &tex, &status, &matrix);
+  }
 }
 
 static void AnimateAllGeosets(AnimInfo* animInfo) {
-    // TODO: implement
+  ASSERT(animInfo);
+  ASSERT(animInfo->unique);
+  ASSERT(animInfo->shared);
+
+  for (unsigned int i = 0; i < animInfo->shared->geo.Count(); ++i) {
+    CAnimGeoset          &geo = animInfo->shared->geo[i];
+    CAnimGeosetObjStatus &status = animInfo->unique->geosetStatus[i];
+    CGeosetColor         &color = animInfo->data.geosetColor[geo.sgGeosetId];
+    unsigned int          wasVisible = status.base.flags & 1;
+    CalcGeosetColor(*animInfo, &geo, &status, &color);
+    if (wasVisible != (status.base.flags & 1)) {
+      animInfo->unique->flags &= ~2u;
+    }
+  }
 }
 
 static void AnimateAllMaterialLayers(AnimInfo* animInfo, unsigned int* tex) {
-    // TODO: implement
+  ASSERT(animInfo);
+  ASSERT(animInfo->unique);
+  ASSERT(animInfo->shared);
+
+  tex += animInfo->shared->layers.Count();
+  for (unsigned int i = 0; i < animInfo->shared->layers.Count(); ++i) {
+    --tex;
+    CAnimMaterialLayer &layer = animInfo->shared->layers[i];
+    CAnimLayerStatus   &status = animInfo->unique->layerStatus[i];
+    if (layer.visibility.TotalKeys()) {
+      float        alpha = 0.0f;
+      unsigned int keys = layer.visibility.SetAnimTime(status.base, &status.visibility, *animInfo);
+      int          updateAlpha = 1;
+      if (keys > 1) {
+        const CAnimSequence &sequence = animInfo->shared->seq[status.base.currSeq];
+        layer.visibility.Interpolate(status.visibility, sequence.time.h - sequence.time.l, &alpha);
+      } else {
+        if (status.base.flags & 0x10) {
+          if (keys) {
+            alpha = reinterpret_cast<const CLinearKeyFrame<float> *>(
+                        layer.visibility.GetKeyFrame(status.visibility.currKey)
+            )->transform;
+          } else {
+            alpha = 1.0f;
+          }
+        } else {
+          updateAlpha = 0;
+        }
+      }
+      if (updateAlpha) {
+        animInfo->data.layerAlpha[layer.layerId] =
+            NTempest::CMath::ftol_0_256_(min(max(alpha, 0.0f), 1.0f) * 255.0f);
+      }
+    }
+
+    *tex = static_cast<unsigned int>(-1);
+    if (layer.flip.TotalKeys()) {
+      unsigned int keys = layer.flip.SetAnimTime(status.base, &status.flipIndex, *animInfo);
+      if (keys > 1) {
+        const CAnimSequence &sequence = animInfo->shared->seq[status.base.currSeq];
+        layer.flip.Interpolate(status.flipIndex, sequence.time.h - sequence.time.l, tex);
+      } else if (status.base.flags & 0x10) {
+        if (keys) {
+          *tex = reinterpret_cast<const CLinearKeyFrame<unsigned int> *>(
+                     layer.flip.GetKeyFrame(status.flipIndex.currKey)
+          )->transform;
+        } else {
+          *tex = 0;
+        }
+      }
+    }
+  }
 }
 
 static void ISetEventSequenceUnchanged(CAnim* container) {
@@ -696,52 +828,19 @@ void __fastcall IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnima
   AnimInfo animInfo(unique, shared, *data.positions, data);
   animInfo.cameraWorldPos = *data.cameraWorldPos;
   animInfo.cameraVector = *data.cameraVector;
+  if (NTempest::CMath::fabs_(animInfo.cameraVector.SquaredMag()) >= 0.00000023841858f) {
+    animInfo.cameraVector.Normalize();
+  }
   GetWorldTransform(&animInfo);
+
+  AnimateAllTextureMaps(&animInfo);
+  AnimateAllGeosets(&animInfo);
+  AnimateAllMaterialLayers(&animInfo, data.layerTextureIds);
 
   NTempest::C3Vector origin(0.0f);
   unsigned int       i;
   for (i = 0; i < shared->headarray.Count(); ++i) {
     PrepareObjectHierarchyViews(animInfo, shared->headarray[i], origin);
-  }
-
-  for (i = 0; i < shared->tex.Count(); ++i) {
-    CAnimTransform      &tex = shared->tex[i];
-    CAnimObjStatus      &status = unique->textureStatus[i];
-    NTempest::C34Matrix &matrix = data.textureMtx[i];
-    AnimateTextureMap(animInfo, &tex, &status, &matrix);
-  }
-
-  for (i = 0; i < shared->geo.Count(); ++i) {
-    CAnimGeoset          &geo = shared->geo[i];
-    CAnimGeosetObjStatus &status = unique->geosetStatus[i];
-    CGeosetColor         &color = data.geosetColor[geo.sgGeosetId];
-    float                 alpha = AnimFloat(geo.visibility, status.base, status.visibility, animInfo, 1.0f);
-    color.animatedAlpha = alpha;
-    color.animatedColor.a = NTempest::CMath::ftol_0_256_(min(max(alpha * color.proceduralAlpha, 0.0f), 1.0f) * 255.0f);
-    if (geo.color.m_numKeyFrames) {
-      C3Color c = AnimColor(geo.color, status.base, status.color, animInfo);
-      color.animatedColor.r = NTempest::CMath::ftol_0_256_(min(max(c.r, 0.0f), 1.0f) * 255.0f);
-      color.animatedColor.g = NTempest::CMath::ftol_0_256_(min(max(c.g, 0.0f), 1.0f) * 255.0f);
-      color.animatedColor.b = NTempest::CMath::ftol_0_256_(min(max(c.b, 0.0f), 1.0f) * 255.0f);
-    }
-    if (color.animatedColor.a)
-      status.base.flags |= 1;
-    else
-      status.base.flags &= ~1;
-  }
-
-  for (i = 0; i < shared->layers.Count(); ++i) {
-    CAnimMaterialLayer &layer = shared->layers[i];
-    CAnimLayerStatus   &status = unique->layerStatus[i];
-    float               alpha = AnimFloat(layer.visibility, status.base, status.visibility, animInfo, 1.0f);
-    data.layerAlpha[layer.layerId] = NTempest::CMath::ftol_0_256_(min(max(alpha, 0.0f), 1.0f) * 255.0f);
-    data.layerTextureIds[layer.layerId] = static_cast<unsigned int>(-1);
-    if (layer.flip.TotalKeys()) {
-      unsigned int count = layer.flip.SetAnimTime(status.base, &status.flipIndex, animInfo);
-      if (count) {
-        data.layerTextureIds[layer.layerId] = *AnimKeyValue(layer.flip, status.flipIndex.currKey);
-      }
-    }
   }
 
   if (unique->flags & 3) {
@@ -783,6 +882,8 @@ void __fastcall AnimAnimateModel(HANIM anim, const CAnimationData &data) {
 
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
+  ASSERT(data.boneMtx || !data.numBones);
+  ASSERT(data.textureMtx || !data.numTexBones);
 
   IAnimAnimateModel(unique, shared, data);
 }

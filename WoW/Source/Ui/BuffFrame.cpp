@@ -1,4 +1,5 @@
 #include <storm.h>
+#include <Os/OsTime.h>
 
 #include "Object/ObjectClient/Unit_C.h"
 #include "Object/ObjectClient/Player_C.h"
@@ -98,8 +99,8 @@ void __fastcall CGBuffBar::UpdateBuffs() {
     return;
   }
 
-  const unsigned long *storage = player->GetStorage();
-  unsigned int         desc = 0;
+  const CGUnitData *unitData = player->GetUnitData();
+  unsigned int      desc = 0;
   while (desc < 56 && m_buffs[desc].m_auraSpell > 0) {
     int       spellID = m_buffs[desc].m_auraSpell;
     SpellRec *spell = g_spellDB.GetRecord(spellID);
@@ -110,8 +111,8 @@ void __fastcall CGBuffBar::UpdateBuffs() {
 
     int aura;
     for (aura = 0; aura < 56; ++aura) {
-      unsigned int flags = (reinterpret_cast<const unsigned char *>(storage)[424 + aura / 2] >> (4 * (aura % 2))) & 0xF;
-      if (static_cast<int>(storage[50 + aura]) == spellID && (flags & 0xE)) {
+      unsigned int flags = (unitData->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
+      if (unitData->auras[aura] == spellID && (flags & 0xE)) {
         m_buffs[desc].SetAuraIndex(aura, player);
         ++desc;
         break;
@@ -124,8 +125,8 @@ void __fastcall CGBuffBar::UpdateBuffs() {
   }
 
   for (int aura = 0; aura < 56; ++aura) {
-    int          spellID = storage[50 + aura];
-    unsigned int flags = (reinterpret_cast<const unsigned char *>(storage)[424 + aura / 2] >> (4 * (aura % 2))) & 0xF;
+    int          spellID = unitData->auras[aura];
+    unsigned int flags = (unitData->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
     SpellRec    *spell = g_spellDB.GetRecord(spellID);
     if (spellID <= 0 || !(flags & 0xE) || (spell && (spell->m_attributes < 0 || (spell->m_attributesEx & 0x10000000)))) {
       continue;
@@ -144,7 +145,7 @@ void __fastcall CGBuffBar::UpdateBuffs() {
 
 void __fastcall CGBuffBar::UpdateDuration(unsigned char slot, unsigned int duration) {
   if (slot < 56) {
-    m_durations[slot] = duration + GetTickCount();
+    m_durations[slot] = duration + OsGetAsyncTimeMs();
   }
 }
 
@@ -181,7 +182,7 @@ unsigned int __fastcall CGBuffBar::GetBuffTimeLeftByIndex(int buffIndex) {
   if (buffIndex < 0 || buffIndex >= 56 || !m_durations[buffIndex]) {
     return 0;
   }
-  unsigned int now = GetTickCount();
+  unsigned int now = OsGetAsyncTimeMs();
   return m_durations[buffIndex] > now ? m_durations[buffIndex] - now : 0;
 }
 
@@ -195,9 +196,9 @@ void CGBuffDesc::SetAuraIndex(int index, CGPlayer_C *player) {
     return;
   }
 
-  const unsigned long *storage = player->GetStorage();
-  m_auraSpell = storage[50 + index];
-  m_auraFlags = (reinterpret_cast<const unsigned char *>(storage)[424 + index / 2] >> (4 * (index % 2))) & 0xF;
+  const CGUnitData *unitData = player->GetUnitData();
+  m_auraSpell = unitData->auras[index];
+  m_auraFlags = (unitData->auraFlags[index / 2] >> (4 * (index % 2))) & 0xF;
   SpellRec *spell = g_spellDB.GetRecord(m_auraSpell);
   if (spell) {
     SpellDurationRec *duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);

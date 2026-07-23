@@ -96,6 +96,13 @@ static TSExplicitList<CAsyncObject, 32> s_asyncLoadList;
 
 unsigned int              CMapChunk::cornerVertexIndex[4] = {0, 8, 136, 144};
 unsigned int              CMapChunk::farCornerIndex;
+
+static int iIndiciesP[4][2] = {
+    {17,  0},
+    { 0,  1},
+    {18, 17},
+    { 1, 18}
+};
 unsigned int              CMapChunk::syncLoadBuffer[15000];
 NTempest::C2Vector        CMapChunk::texCoordList[145];
 NTempest::C2Vector        CMapChunk::texCoordList2[145];
@@ -543,7 +550,9 @@ void CMapChunk::SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, unsigned int *&shad
   FATALASSERT(iffChunk->token == 'MCNK');
   mChunk = reinterpret_cast<SMChunk *>(iffChunk + 1);
 
-  iffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(mChunk) + 0x484);
+  float    *mHeights = reinterpret_cast<float *>(mChunk + 1);
+  SMNormal *mNormals = reinterpret_cast<SMNormal *>(mHeights + 145);
+  iffChunk = reinterpret_cast<SIffChunk *>(mNormals + 1);
   FATALASSERT(iffChunk->token == 'MCLY');
   mLayer = reinterpret_cast<SMLayer *>(iffChunk + 1);
 
@@ -560,8 +569,8 @@ void CMapChunk::Create(unsigned int *data) {
   SIffChunk *iffChunk = reinterpret_cast<SIffChunk *>(data);
   FATALASSERT(iffChunk->token == 'MCNK');
   SMChunk  *mChunk = reinterpret_cast<SMChunk *>(iffChunk + 1);
-  float    *mHeights = reinterpret_cast<float *>(reinterpret_cast<unsigned char *>(mChunk) + 0x80);
-  SMNormal *mNormals = reinterpret_cast<SMNormal *>(reinterpret_cast<unsigned char *>(mChunk) + 0x2C4);
+  float    *mHeights = reinterpret_cast<float *>(mChunk + 1);
+  SMNormal *mNormals = reinterpret_cast<SMNormal *>(mHeights + 145);
 
   iffChunk = reinterpret_cast<SIffChunk *>(mNormals + 1);
   FATALASSERT(iffChunk->token == 'MCLY');
@@ -835,16 +844,15 @@ void CMapChunk::CreateNormals(int *normals) {
 }
 
 void CMapChunk::CreateFacePlanes() {
-  static const unsigned int first[4] = {0, 1, 17, 18};
-  static const unsigned int second[4] = {17, 0, 18, 1};
-  NTempest::C3Vector       *v = vertexList;
-  NTempest::C4Plane        *p = planeList;
+  NTempest::C3Vector *v = vertexList;
+  NTempest::C4Plane  *p = planeList;
 
   for (int y = 0; y < 8; ++y) {
     for (int x = 0; x < 8; ++x) {
       NTempest::C3Vector *center = v + 9;
       for (unsigned int face = 0; face < 4; ++face) {
-        NTempest::C3Vector normal = NTempest::C3Vector::Cross(v[first[face]] - *center, v[second[face]] - *center);
+        NTempest::C3Vector normal =
+            NTempest::C3Vector::Cross(v[iIndiciesP[face][1]] - *center, v[iIndiciesP[face][0]] - *center);
         normal.Normalize();
         p->Set(normal, *center);
         ++p;

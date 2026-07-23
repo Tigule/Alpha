@@ -187,10 +187,8 @@ void __fastcall CGContainerInfo::OpenContainer(unsigned __int64 container) {
 void __fastcall CGContainerInfo::UpdateItem(unsigned __int64 item) {
   CGItem_C *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item, __FILE__, __LINE__));
   if (itemPtr) {
-    const CGItemData *data =
-        reinterpret_cast<const CGItemData *>(reinterpret_cast<const unsigned char *>(itemPtr->GetStorage()) + CGUnit_C::OffsetOf(ID_ITEM));
-    if (data->m_owner == ClntObjMgrGetActivePlayer()) {
-      UpdateContents(data->m_containedIn);
+    if (itemPtr->GetOwner() == ClntObjMgrGetActivePlayer()) {
+      UpdateContents(itemPtr->GetContainedIn());
     }
   }
 }

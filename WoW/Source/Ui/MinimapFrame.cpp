@@ -1,4 +1,5 @@
 #include "MinimapFrame.h"
+#include <Os/OsTime.h>
 
 #include "Base/CDataStore.h"
 #include "DayNight.h"
@@ -853,8 +854,8 @@ void CGMinimapFrame::Render() {
     }
   }
 
-  if (updateNeeded || !m_lastBlipUpdate || GetTickCount() - m_lastBlipUpdate >= 1000) {
-    m_lastBlipUpdate = GetTickCount();
+  if (updateNeeded || !m_lastBlipUpdate || OsGetAsyncTimeMs() - m_lastBlipUpdate >= 1000) {
+    m_lastBlipUpdate = OsGetAsyncTimeMs();
     if (!m_lastBlipUpdate) {
       m_lastBlipUpdate = 1;
     }

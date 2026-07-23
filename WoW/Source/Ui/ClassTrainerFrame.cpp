@@ -438,10 +438,9 @@ void __fastcall CGClassTrainer::RefreshList() {
         int min;
         int max;
         Spell_C_GetMinMaxPoints(srec, j, &min, &max, player->GetUnitData()->level, 0);
-        unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(player) + 2528);
         for (unsigned int skill = 0; skill < 64; ++skill) {
-          unsigned short *entry = reinterpret_cast<unsigned short *>(playerData + 600 + skill * 12);
-          if (entry[0] == srec->m_effectMiscValue[j] && entry[4] >= min) {
+          if (player->GetMirrorSkillID(skill) == srec->m_effectMiscValue[j] &&
+              player->GetMirrorSkillStep(skill) >= min) {
             info->usable = 2;
             break;
           }
@@ -475,17 +474,15 @@ void __fastcall CGClassTrainer::RefreshList() {
     }
 
     if (info->reqSkillLine) {
-      unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(player) + 2528);
       int            maxRank = 0;
       for (j = 0; j < 64; ++j) {
-        unsigned short *entry = reinterpret_cast<unsigned short *>(playerData + 600 + j * 12);
-        if (entry[0] != info->reqSkillLine) {
+        if (player->GetMirrorSkillID(j) != info->reqSkillLine) {
           continue;
         }
-        if (entry[1] < info->reqSkillRank) {
+        if (player->GetMirrorSkillRank(j) < info->reqSkillRank) {
           info->usable = 1;
         }
-        maxRank = entry[2];
+        maxRank = player->GetMirrorSkillMaxRank(j);
         break;
       }
 

@@ -20,45 +20,28 @@ This isn't a reimplementation project taking advantage of modern standards. We'r
 1. C/C++ standards must be restricted to the features available in Visual C++ 6.0 (1998)
 2. Use [Windows datatypes](https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types). All platforms used the same datatypes at the time.
 
-All of the original source file paths have been created as empty files ahead of time, and registered in CMake. Use them as you write functions. You should not need to add any new .cpp files, but feel free to create headers.
+All of the original source file paths have been pre-created. You should not need to add any new .cpp files.
 
 ## Building
 
 Firstly, you'll need to install CMake no matter what OS you're on: [cmake.org](https://cmake.org/download/)
 
+For building you need a VC6 compiler and a DirectX SDK (up to August 2007).
+
+Once this reaches parity we will support other build targets and platform targets.
+
 ### Windows
 
-> [!TIP]
-> This has been tested with [Visual Studio 2026](https://visualstudio.microsoft.com/vs/).  
-
-Older Visual Studio versions are untested and depending how far back you go, may have incompatibilities with newer CMake. The codebase should work anyways. Good luck if you go that route!
-
-Inside the Build folder there are a couple scripts:
-- `vs2026-setup.bat`: Have CMake produce a Visual Studio 2026 solution.
-- `vs2022-setup.bat`: Have CMake produce a Visual Studio 2022 solution.
-- `vc6-setup.bat`: Have CMake produce NMake makefiles for Visual C++ 6.0. Visual C++ 6.0 must be installed to `C:\Program Files (x86)\Microsoft Visual Studio 6.0\`
+- `vc6-setup.bat`: Produce NMake makefiles for Visual C++ 6.0. Visual C++ 6.0 must be installed to `C:\Program Files (x86)\Microsoft Visual Studio 6.0\`
 
 ### macOS
 
-> [!TIP]
-> This has been tested with [Xcode](https://developer.apple.com/xcode/) and [Visual Studio Code](https://developer.apple.com/xcode/).
-
-Inside the Build folder there are several scripts:
-- `xcode-setup.sh`: Have CMake produce an Xcode project targeting native macOS.
-- `native-setup.sh`: Have CMake produce Makefiles targeting your default toolchain.
-- `mingw-setup.sh`: Have CMake produce Makefiles targeting MinGW.
-- `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take several minutes the first time.**
+- `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take up to 15 minutes the first time.**
 - `wine-crossover.sh`: Calls wine.sh using CrossOver's wine prefix.
 
 ### Linux
 
-> [!TIP]
-> This has been tested with [Visual Studio Code](https://developer.apple.com/xcode/).
-
-Inside the Build folder there are a few scripts:
-- `native-setup.sh`: Have CMake produce Makefiles targeting your default toolchain.
-- `mingw-setup.sh`: Have CMake produce Makefiles targeting MinGW.
-- `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take several minutes the first time.**
+- `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take up to 15 minutes the first time.**
 
 ## Running
 
@@ -67,15 +50,7 @@ You can copy everything in your game client folder to `WoW/Client/` to keep trac
 The original game client was meant to use a launcher so you have to pass `-uptodate` when you run it directly.  
 Be sure to create a file in the same folder called `wow.ses` containing your username/password on separate lines.
 
-> [!TIP]
-> macOS users may have more success using Parallels rather than Wine.
-
-### Standalone
-
-This will be in an incomplete state until the project covers a majority of critical functions.
-
-1. Set your working directory to the `WoW/Client/` folder.
-2. Run the `Wow` project.
+[You need a server to connect to, of course.](https://github.com/The-Alpha-Project/alpha-core)
 
 ## Notes
 

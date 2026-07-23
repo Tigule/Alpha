@@ -90,8 +90,7 @@ void __fastcall CGItemText::SetItem(const unsigned __int64 &item, int callback) 
   CGGameUI::SetInteractTarget(item, MAX_SHOP_DISTANCE_SQUARED);
   FrameScript_SignalEvent(273);
 
-  if (!(object->GetType() & TYPE_ITEM) ||
-      (*reinterpret_cast<unsigned char *>(reinterpret_cast<char *>(static_cast<CGItem_C *>(object)->m_item) + 54) & 2))
+  if (!(object->GetType() & TYPE_ITEM) || static_cast<CGItem_C *>(object)->IsTranslated())
   {
     DisplayText(item, 1);
     return;
@@ -126,7 +125,7 @@ void __fastcall CGItemText::DisplayText(const unsigned __int64 &item, int useSki
   unsigned int language = 0;
   if (object->GetType() & TYPE_ITEM) {
     CGItem_C *itemObject = static_cast<CGItem_C *>(object);
-    if (*reinterpret_cast<unsigned char *>(reinterpret_cast<char *>(itemObject->m_item) + 54) & 2) {
+    if (itemObject->IsTranslated()) {
       SStrCopy(m_text, text->m_text, sizeof(m_text));
       FrameScript_SignalEvent(275);
       return;

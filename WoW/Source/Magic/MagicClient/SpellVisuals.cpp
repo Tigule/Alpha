@@ -16,6 +16,7 @@
 #include "Services/Lightning.h"
 #include "Services/SysMessage.h"
 #include "Services/Texture.h"
+#include <Os/OsTime.h>
 #include "Gx/Gx.h"
 #include "Model/IModel.h"
 #include "SoundInterface/SoundInterface.h"
@@ -785,7 +786,7 @@ void __fastcall SpellVisualsProc_Eclipse(CGUnit_C *caster, SpellVisualKitRec *ki
   }
   s_eclipseObject.color = NTempest::CImVector(static_cast<unsigned long>(kitRec->m_characterParam[0]) | 0xFF000000ul);
   unsigned int fadeDuration = static_cast<unsigned int>(duration * kitRec->m_characterParam[1]);
-  s_eclipseObject.startTime = GetTickCount();
+  s_eclipseObject.startTime = OsGetAsyncTimeMs();
   s_eclipseObject.fadeInTime = s_eclipseObject.startTime + fadeDuration;
   s_eclipseObject.fadeOutTime = s_eclipseObject.startTime + duration;
   s_eclipseObject.endTime = s_eclipseObject.startTime + duration + 100;
@@ -810,7 +811,7 @@ static void __fastcall CreateLightningObj(
   }
 
   CStatus      status;
-  unsigned int currentTime = GetTickCount();
+  unsigned int currentTime = OsGetAsyncTimeMs();
   unsigned int boltCount = NTempest::CMath::ftol_0_256_(kitRec->m_characterParam[1]);
   if (!boltCount) {
     return;
@@ -909,7 +910,7 @@ unsigned int __fastcall SpellGetRangedPrecastHoldAnim(unsigned int loadAnim) {
 }
 
 void SpellVisualsTick(float elapsed) {
-  unsigned long currentTime = GetTickCount();
+  unsigned long currentTime = OsGetAsyncTimeMs();
 
   LightningObject *lightning = s_lightning.Head();
   while (lightning) {
@@ -952,14 +953,13 @@ void __fastcall SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempe
 
 void __fastcall SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects) {
   if (unitPtr) {
-    TSGrowableArray<unsigned __int64> &targets =
-        *reinterpret_cast<TSGrowableArray<unsigned __int64> *>(reinterpret_cast<unsigned char *>(unitPtr) + 2492);
+    const TSGrowableArray<unsigned __int64> &targets = unitPtr->GetSavedChannelSpellTargets();
     CreateLightningObj(unitPtr, targets.Ptr(), targets.Count(), spellID, kitRec, objects, numObjects);
   }
 }
 
 void __fastcall SpellVisualClearLightning(LightningObject *lightning) {
-  lightning->deathTime = GetTickCount();
+  lightning->deathTime = OsGetAsyncTimeMs();
   lightning->forever = 0;
   lightning->DelRef();
 }

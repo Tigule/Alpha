@@ -32,6 +32,7 @@ struct CinematicData {
 
 enum GAME_ERROR_TYPE {
   GAME_ERROR_NONE = 0,
+  GERR_PLAYER_DIED_S = 68,
   GERR_NUM_TYPES = 297
 };
 
@@ -58,6 +59,7 @@ class CGGameUI {
   static void __fastcall             ShutdownGame();
   static void __fastcall             UpdateActivePlayer();
   static void __fastcall             UnitNameUpdate(const unsigned __int64 &guid);
+  static void __fastcall             UnitPortraitUpdate(const unsigned __int64 &guid);
   static void __fastcall             Target(const unsigned __int64 &target, int usingNearest);
   static unsigned __int64 __fastcall ClosestObjectMatch(const char *match, OBJECT_TYPE type);
   static void __fastcall             TargetNearestEnemy(int reverse);
@@ -72,6 +74,8 @@ class CGGameUI {
   static void __fastcall             ResetCamera();
   static void __fastcall             SysMsgDisplay(const char *msg, SYSMSG_TYPE severity);
   static int __fastcall              FilterMouseDown(const CMouseEvent &evt);
+  static int __fastcall              HandleMouseDown(const CMouseEvent &evt);
+  static int __fastcall              HandleMouseUp(const CMouseEvent &evt);
   static int __fastcall              HandleDisplaySizeChanged(const CSizeEvent &evt);
   static void __fastcall             ScaleUI(float scale, int force);
   static void __fastcall             EnterWorld();
@@ -93,6 +97,7 @@ class CGGameUI {
   static unsigned int __fastcall GetCursorVirtualItem(UICURSORTYPE type);
   static void __fastcall         GetCursorVirtualItem(unsigned int &cursorItem, unsigned int &slot);
   static void __fastcall         UnlockItem(unsigned __int64 itemGUID);
+  static void __fastcall         UnlockAllItems();
   static void __fastcall         LockItem(unsigned __int64 itemGUID);
   static void __fastcall         CloseLoot(unsigned int send, unsigned int moving);
   static void __fastcall         NewZoneFeedback(int areaID, const char *zoneString, const char *subZoneString);
@@ -102,6 +107,7 @@ class CGGameUI {
   static void __fastcall         StartCinematic(int cinematicID);
   static int __fastcall          StopCinematic(void *__formal);
   static void __fastcall         HideCursor();
+  static void __fastcall         ShowCursor();
   static void __fastcall         ShowHealingFeedback(const unsigned __int64 &guid, int amount);
   static void __fastcall         ShowCombatFeedback(const unsigned __int64 &guid, int amount, int damageClass, unsigned int flags);
   static void __fastcall         OnItemPush(unsigned __int64 player, int slot, int itemID, int pushed, int display);

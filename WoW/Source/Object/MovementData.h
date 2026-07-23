@@ -131,6 +131,8 @@ class CMovementData {
 
   friend void __fastcall OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime);
   friend class CGUnit_C;
+  friend class CGPlayer_C;
+  friend class CGInputControl;
 
   TSLink<CMovementData> moveLink;
   TSLink<CMovementData> transportLink;
@@ -138,6 +140,7 @@ class CMovementData {
  protected:
   void CalcDirection();
   void RemoveSpline();
+  int  IsLocalPlayer();
 
   NTempest::C3Vector      m_position;
   float                   m_facing;
@@ -203,9 +206,9 @@ class CMovement : public CMovementData {
  public:
   CMovement(const NTempest::C3Vector &position, float facing, const unsigned __int64 &guid);
   void SetUpdateInfo(unsigned long eventTime, CClientMoveUpdate &init, int localPlayer);
-  int  IsLocalPlayer();
   void GetMoveStatus(CMovementStatus *status) const;
   void UpdateTransportStatus(const CMovementStatus &update);
+  void UpdateStatus(unsigned long eventTime, const CMovementStatus &update);
   void UpdateStatusLocal(unsigned long eventTime, const CMovementStatus &update);
 
   float GetCurrentTurnRate() const;
@@ -242,6 +245,7 @@ class CMovement : public CMovementData {
   void                   OnPitchStopLocal(unsigned long eventTime);
   void                   OnSetRunModeLocal(unsigned long eventTime, int run);
   void                   OnSetFacingLocal(unsigned long eventTime, float facing);
+  void                   OnSetRawFacingLocal(unsigned long eventTime, float facing);
   void                   OnSetPitchLocal(unsigned long eventTime, float pitch);
   void                   OnSwimStartLocal(unsigned long eventTime);
   void                   OnSwimStopLocal(unsigned long eventTime);
@@ -435,9 +439,12 @@ void __fastcall  MovementMoveTransports(unsigned long eventTime, float elapsed);
 
 void __fastcall  DisconnectLocalMover(CMovement *mover);
 void __fastcall  MovementGetTransportMtx(unsigned __int64 transportGUID, NTempest::C34Matrix *transportMtx);
+NTempest::C3Vector __fastcall MovementGetTransportVector(unsigned __int64 transportGUID);
 float __fastcall MovementGetTransportFacing(unsigned __int64 transportGUID);
+int __fastcall MovementInsideTransport(unsigned __int64 transportGUID, const NTempest::C3Vector &position);
 void __fastcall  MovementAddToTransport(CMovementData *mover, unsigned __int64 transportGUID);
 void __fastcall  MovementFixUpMoveHistory(unsigned __int64 mover, const NTempest::C34Matrix &fixup);
+void __fastcall  MovementUpdateCameraYaw(unsigned __int64 transportGUID);
 int __fastcall   MovementGameObjIsTransport(unsigned __int64 transportGUID);
 void __fastcall  MovementNotifyZoneMgr(unsigned __int64 guid);
 void __fastcall  MovementFixOutOfBoundsUnit(unsigned __int64 guid);

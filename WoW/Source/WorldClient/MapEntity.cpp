@@ -348,7 +348,7 @@ void __fastcall CMap::UpdateEntity(CMapEntity *entity) {
     }
   }
 
-  GxRsGet(GxRs_SceneAmbient, entity->ambientTarget);
+  entity->ambientTarget = CMap::sunLight->gxLight.m_ambColor;
   if ((entity->flags & CMapBaseObj::Flag_InteriorLit) || !QueryShadow(entity->pos)) {
     entity->dirLightScaleTarget = 1.0f;
   } else {

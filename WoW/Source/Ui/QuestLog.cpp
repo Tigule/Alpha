@@ -232,10 +232,9 @@ void __fastcall CGQuestLog::Update(int resetFilters) {
   m_numSortTypes = 0;
   m_expiredQuests = 0;
   m_collapseFilter = -1;
-  unsigned char *playerData = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(player) + 0x9E0);
   for (i = 0; i < 16; ++i) {
-    int *entry = reinterpret_cast<int *>(playerData + 1372 + 24 * i);
-    int  questID = entry[0];
+    const CQuestLogData *entry = player->GetQuestLogData(i);
+    int                  questID = entry->m_questID;
     if (questID > 0) {
       const unsigned __int64 noGuid = 0;
       const QuestCache      *quest = g_questDBCache.GetRecord(questID, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCounterCallback), 0);
@@ -245,7 +244,8 @@ void __fastcall CGQuestLog::Update(int resetFilters) {
       }
       m_quests[m_numQuests].questID = questID;
       m_quests[m_numQuests].logIndex = i;
-      if (entry[4] && entry[3] >= 0 && m_serverTimeOffset + entry[4] - OsGetTime() - 1 < 0) {
+      if (entry->m_questFailureTime && static_cast<int>(entry->m_questFlags) >= 0 &&
+          m_serverTimeOffset + entry->m_questFailureTime - OsGetTime() - 1 < 0) {
         m_expiredQuests |= 1 << i;
       }
       ++m_numQuests;
@@ -601,7 +601,6 @@ static int __fastcall Script_GetQuestLogLeaderBoard(lua_State *L) {
   const unsigned __int64 noGuid = 0;
   const QuestCache      *quest = g_questDBCache.GetRecord(questID, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestSelectQueryCallback), 0);
   CGPlayer_C            *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned char         *playerData = player ? *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(player) + 0x9E0) : 0;
   int                    found = 0;
   int                    index;
   for (index = 0; quest && index < 4; ++index) {
@@ -613,7 +612,24 @@ static int __fastcall Script_GetQuestLogLeaderBoard(lua_State *L) {
     }
     char buf[256];
     char temp[256];
-    int  current = playerData && logEntry >= 0 ? reinterpret_cast<int *>(playerData + 1372 + 24 * logEntry)[index + 1] : 0;
+    int current = 0;
+    if (player && logEntry >= 0) {
+      const CQuestLogData *logData = player->GetQuestLogData(logEntry);
+      switch (index) {
+        case 0:
+          current = logData->m_questGiverID;
+          break;
+        case 1:
+          current = logData->m_questRewarderID;
+          break;
+        case 2:
+          current = static_cast<int>(logData->m_questFlags);
+          break;
+        case 3:
+          current = logData->m_questFailureTime;
+          break;
+      }
+    }
     if (quest->m_itemToGet[index]) {
       const ItemStats_C *stats =
           g_itemDBCache.GetRecord(quest->m_itemToGet[index], noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(ItemQueryCallback), 0);
@@ -652,10 +668,9 @@ static int __fastcall Script_GetQuestLogTimeLeft(lua_State *L) {
   int         entry = CGQuestLog::GetSelectedLogEntry();
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player && entry >= 0) {
-    unsigned char *data = *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(player) + 0x9E0);
-    int           *logData = reinterpret_cast<int *>(data + 1372 + 24 * entry);
-    if (logData[4]) {
-      timeLeft = CGQuestLog::GetServerTimeOffset() + logData[4] - OsGetTime() - 1;
+    const CQuestLogData *logData = player->GetQuestLogData(entry);
+    if (logData->m_questFailureTime) {
+      timeLeft = CGQuestLog::GetServerTimeOffset() + logData->m_questFailureTime - OsGetTime() - 1;
       if (timeLeft < 0) {
         timeLeft = 0;
       }
@@ -743,14 +758,13 @@ static int __fastcall Script_GetQuestTimers(lua_State *L) {
   unsigned int   count = 0;
   unsigned int   numEntries = CGQuestLog::GetNumEntries();
   CGPlayer_C    *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned char *data = player ? *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(player) + 0x9E0) : 0;
   unsigned int   index;
-  for (index = 0; data && index < numEntries; ++index) {
+  for (index = 0; player && index < numEntries; ++index) {
     int offset = CGQuestLog::GetQuestLogEntry(index);
     if (offset >= 0) {
-      int *logData = reinterpret_cast<int *>(data + 1372 + 24 * offset);
-      if (logData[4]) {
-        int timeLeft = CGQuestLog::GetServerTimeOffset() + logData[4] - OsGetTime() - 1;
+      const CQuestLogData *logData = player->GetQuestLogData(offset);
+      if (logData->m_questFailureTime) {
+        int timeLeft = CGQuestLog::GetServerTimeOffset() + logData->m_questFailureTime - OsGetTime() - 1;
         lua_pushnumber(L, static_cast<double>(timeLeft > 0 ? timeLeft : 0));
         ++count;
       }
@@ -767,11 +781,10 @@ static int __fastcall Script_GetQuestIndexForTimer(lua_State *L) {
   int            count = 0;
   unsigned int   numEntries = CGQuestLog::GetNumEntries();
   CGPlayer_C    *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned char *data = player ? *reinterpret_cast<unsigned char **>(reinterpret_cast<unsigned char *>(player) + 0x9E0) : 0;
   unsigned int   index;
-  for (index = 0; data && index < numEntries; ++index) {
+  for (index = 0; player && index < numEntries; ++index) {
     int offset = CGQuestLog::GetQuestLogEntry(index);
-    if (offset >= 0 && reinterpret_cast<int *>(data + 1372 + 24 * offset)[4] && ++count == wanted) {
+    if (offset >= 0 && player->GetQuestLogData(offset)->m_questFailureTime && ++count == wanted) {
       lua_pushnumber(L, static_cast<double>(index + 1));
       return 1;
     }

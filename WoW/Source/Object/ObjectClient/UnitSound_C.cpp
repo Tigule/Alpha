@@ -7,9 +7,12 @@
 #include "DB/DBClient/AutoCode/ItemSubClassRec.h"
 #include "DB/DBClient/AutoCode/SoundEntriesRec.h"
 #include "DB/DBClient/AutoCode/TerrainTypeRec.h"
+#include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
 #include "WorldClient/World.h"
+
+#include <Os/OsTime.h>
 
 struct DEATTHUDSOUNDINFO {
   unsigned int soundID;
@@ -23,7 +26,7 @@ static unsigned int s_unitSoundChances[16] = {70, 100, 60, 100, 100, 100, 40, 10
 static unsigned int s_unitSoundTimers[16];
 static int          soundDataOffsets[16] = {4, 8, 12, 16, 24, 28, 32, 0, 36, 40, 44, 52, 20, 48, 100, 104};
 
-static int __fastcall GetSoundID(CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
+int __fastcall GetSoundID(CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
   FATALASSERT(soundData);
   FATALASSERT(static_cast<unsigned int>(soundType) < 16);
   int offset = soundDataOffsets[soundType];
@@ -73,9 +76,9 @@ void __fastcall UnitSoundInitialize() {
     // TODO: implement
 }
 
-static int __fastcall CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
+int __fastcall CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
   FATALASSERT(static_cast<unsigned int>(soundType) < 16);
-  unsigned long currentTime = GetTickCount();
+  unsigned long currentTime = OsGetAsyncTimeMs();
   int           canPlay = static_cast<long>(currentTime - s_unitSoundTimers[soundType]) > 0;
   s_unitSoundTimers[soundType] = currentTime + s_unitSoundTimeouts[soundType];
   return canPlay;
@@ -181,7 +184,7 @@ void CGUnit_C::PlayDeathThud() const {
   }
 
   unsigned int size = GetUnitSize();
-  int          terrainType = *reinterpret_cast<const int *>(reinterpret_cast<const unsigned char *>(this) + 0x4F0);
+  int          terrainType = m_terrain;
   if (size >= 5 || terrainType < 0 || terrainType >= static_cast<int>(s_deathThudSounds[size].Count())) {
     return;
   }
@@ -231,19 +234,17 @@ void CGUnit_C::PlaySpellLoopedSound(int soundID) {
     return;
   }
 
-  Sound *&sound = *reinterpret_cast<Sound **>(reinterpret_cast<unsigned char *>(this) + 0x72C);
-  sound = SndInterfaceCreateSound(soundRec->m_ID, 0.2f, -1, true);
-  if (sound) {
-    SndInterfaceAssociateSoundWithObject(sound, this);
+  m_spellLoopedSound = SndInterfaceCreateSound(soundRec->m_ID, 0.2f, -1, true);
+  if (m_spellLoopedSound) {
+    SndInterfaceAssociateSoundWithObject(m_spellLoopedSound, this);
   }
 }
 
 void CGUnit_C::KillSpellLoopedSound() {
-  Sound *&sound = *reinterpret_cast<Sound **>(reinterpret_cast<unsigned char *>(this) + 0x72C);
-  if (sound) {
-    SndInterfaceAssociateSoundWithObject(sound, 0);
-    sound->Stop(1.5f);
-    sound = 0;
+  if (m_spellLoopedSound) {
+    SndInterfaceAssociateSoundWithObject(m_spellLoopedSound, 0);
+    m_spellLoopedSound->Stop(1.5f);
+    m_spellLoopedSound = 0;
   }
 }
 
@@ -262,20 +263,23 @@ int CGUnit_C::PlayNPCSound(NPCSOUNDS sound, unsigned int index) {
 
 bool CGUnit_C::GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type) {
   unsigned int slot = !mainHand;
-  void       **vtable = *reinterpret_cast<void ***>(this);
-
-  typedef int (CGUnit_C::*GetVirtualItemDisplayFn)(unsigned int);
-  GetVirtualItemDisplayFn getVirtualItemDisplay;
-  memcpy(&getVirtualItemDisplay, &vtable[300 / 4], sizeof(getVirtualItemDisplay));
-  if (!(this->*getVirtualItemDisplay)(slot)) {
+  int          itemDisplay;
+  if (GetType() & TYPE_PLAYER) {
+    itemDisplay = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItemDisplayID(slot);
+  } else {
+    itemDisplay = CGUnit_C::GetVirtualItemDisplayID(slot);
+  }
+  if (!itemDisplay) {
     type = WEAPONSWING_LIGHT;
     return true;
   }
 
-  typedef VirtualItemInfo *(CGUnit_C::*GetVirtualItemFn)(unsigned int, unsigned int);
-  GetVirtualItemFn getVirtualItem;
-  memcpy(&getVirtualItem, &vtable[296 / 4], sizeof(getVirtualItem));
-  VirtualItemInfo *item = (this->*getVirtualItem)(slot, 0);
+  const VirtualItemInfo *item;
+  if (GetType() & TYPE_PLAYER) {
+    item = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(slot, 0);
+  } else {
+    item = CGUnit_C::GetVirtualItem(slot, 0);
+  }
   if (!item || item->m_classID != 2) {
     return false;
   }

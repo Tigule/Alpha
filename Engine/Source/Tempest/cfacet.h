@@ -10,12 +10,12 @@ namespace NTempest {
       Set(a);
     }
 
-    CFacet(C3Vector &a, C3Vector &b, C3Vector &c) {
+    CFacet(const C3Vector &a, const C3Vector &b, const C3Vector &c) {
       Set(a, b, c);
     }
 
     void Set(float a);
-    void Set(C3Vector &a, C3Vector &b, C3Vector &c);
+    void Set(const C3Vector &a, const C3Vector &b, const C3Vector &c);
 
     C4Plane  plane;
     C3Vector vertices[3];

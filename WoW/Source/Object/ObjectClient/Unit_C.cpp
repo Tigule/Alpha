@@ -7,6 +7,7 @@
 #include <Services/Texture.h>
 #include <Os/W32/OsSound.h>
 #include <Os/W32/Debugging.h>
+#include <Os/OsTime.h>
 #include <Base/CDataStore.h>
 #include <FrameScript/FrameScript.h>
 #include <Gx/Gx.h>
@@ -33,6 +34,7 @@
 #include "DB/DBClient/AutoCode/ItemSubClassRec.h"
 #include "DB/DBClient/AutoCode/MapRec.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"
+#include "DB/DBClient/AutoCode/SpellCastTimesRec.h"
 #include "DB/DBClient/AutoCode/SpellVisualRec.h"
 #include "DB/DBClient/AutoCode/SpellVisualKitRec.h"
 #include "DB/DBClient/AutoCode/SpellVisualEffectNameRec.h"
@@ -76,20 +78,25 @@ enum REPLACEABLE_MATERIAL_IDS {
   NUM_REPLACEABLE_MATERIAL_IDS = 15
 };
 
+enum SPELL_FAILED_REASON {
+  SPELL_FAILED_TARGETS_DEAD = 63
+};
+
 struct LightningObject;
 void __fastcall UnitEffectsInitialize();
 void __fastcall UnitEffectsShutdown();
+void __fastcall UnitEffectClear(CGObject_C *object);
 void __fastcall SpellVisualClearLightning(LightningObject *lightning);
 void __fastcall SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects);
 void __fastcall UpdatePortraitTexture(const unsigned __int64 &guid);
+bool __fastcall Spell_C_IsModal();
+const unsigned __int64 &__fastcall Spell_C_GetCurrentTarget();
+void __fastcall Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
+void __fastcall UnitCombatLogUnitDead(unsigned __int64 unit);
 void            UnitFootprintNewBloodSplat(UnitBloodRec *rec, unsigned int unitSize, NTempest::C3Vector &position);
 
 int __fastcall OnPickNextStandHandler(void *param, CGUnit_C *ptr) {
-  typedef void (CGUnit_C::*HandlerProc)();
-  HandlerProc handler;
-  void      **vtable = *reinterpret_cast<void ***>(ptr);
-  memcpy(&handler, &vtable[0x13C / sizeof(void *)], sizeof(handler));
-  (ptr->*handler)();
+  ptr->CGUnit_C::OnPickNextStandHandler();
   return 1;
 }
 
@@ -107,6 +114,7 @@ CGUnit_C::~CGUnit_C() {
     m_interactIconModel = 0;
   }
   ClearWeaponTrailHandles();
+  ClearAnimCallbackData();
 }
 
 int __fastcall DeathAnimEndHandler(void *param, CGUnit_C *ptr) {
@@ -160,6 +168,8 @@ static INTERACTICONTYPEINFO s_interactIconModelInfo[5] = {
     INTERACTICONTYPEINFO(SLOOKUP_QUESTGIVERINDICATORMODELFUTURE), INTERACTICONTYPEINFO(SLOOKUP_TAXINODEINDICATORMODEL),
     INTERACTICONTYPEINFO(SLOOKUP_BINDERINDICATORMODEL)
 };
+
+static const char *s_interactIconAnimNames[2] = {"stand", "StandHigh"};
 
 static INTERACTICONTYPE s_questIconInfo[5] = {
     INTERACTICON_NONE, INTERACTICON_NONE, INTERACTICON_FUTURE, INTERACTICON_COMPLETION, INTERACTICON_NORMAL
@@ -244,6 +254,14 @@ int __fastcall   WeaponTrailCreate(HMODEL model);
 void __fastcall  WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, unsigned int duration);
 int __fastcall   Spell_C_GetCastTime(int id, int isPet);
 int __fastcall   UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber);
+void __fastcall  UnitEffectOneShot(
+    UNITEFFECTSPECIALS effectNumber,
+    unsigned __int64   target,
+    const NTempest::C3Vector *attachPos,
+    float              facing,
+    float              scale,
+    bool               forceEffectOnMount
+);
 void __fastcall  UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added, int auraSlot);
 int __fastcall   GetObjComponentInfo(
     int     race,
@@ -342,17 +360,19 @@ static const ForcedAnimationInfo s_forcedAnimations[8] = {
 
 static const unsigned int                               s_standStateAnimState[9] = {3, 51, 3, 54, 56, 57, 58, 1, 60};
 static TInstanceAllocator<ACTIVEAURAINFO>               s_auraInfoFreeList(100);
+static TInstanceAllocator<ANIMENDDATA>                  s_animEndDataPool(1024);
+static TSGrowableArray<unsigned int>                    g_unitSeqEndList;
 static TSList<AuraDecayNode, TSGetLink<AuraDecayNode> > s_activeAuraDecays;
 static TInstanceAllocator<AuraDecayNode>                s_auraDecayFreeList(100);
 static TInstanceAllocator<SPELLEFFECTDESC>              s_spellEffectFreeList(100);
 static TInstanceAllocator<ANIMQUEUENODE>                s_animQueueFreeList(100);
 
 int __fastcall LootAnimEndHandler(void *param, CGUnit_C *ptr) {
-  typedef void (CGUnit_C::*HandlerProc)();
-  HandlerProc handler;
-  void      **vtable = *reinterpret_cast<void ***>(ptr);
-  memcpy(&handler, &vtable[0x108 / sizeof(void *)], sizeof(handler));
-  (ptr->*handler)();
+  if (ptr->GetType() & TYPE_PLAYER) {
+    static_cast<CGPlayer_C *>(ptr)->CGPlayer_C::LootAnimEndHandler();
+  } else {
+    ptr->CGUnit_C::LootAnimEndHandler();
+  }
   return 1;
 }
 
@@ -425,10 +445,10 @@ void __fastcall SpellProcChainHandler(
     const SpellVisualKitRec *rec,
     SPELLEFFECTDESC         *newDesc,
     unsigned int             spellID,
-    float
+  float
 ) {
   if (action == SPELLPROCADD) {
-    int savedChannelSpellID = *reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(unit) + 2488);
+    int savedChannelSpellID = unit->GetSavedChannelSpellID();
     if (static_cast<int>(spellID) == savedChannelSpellID) {
       newDesc->lightningObjs[0] = 0;
       newDesc->lightningObjs[1] = 0;
@@ -455,7 +475,7 @@ void __fastcall SpellProcColorHandler(
 ) {
   if (action == SPELLPROCADD) {
     newDesc->color.Set(static_cast<unsigned int>(rec->m_characterParam[0]) | 0xFF000000);
-    unsigned int now = GetTickCount();
+    unsigned int now = OsGetAsyncTimeMs();
     newDesc->curTime = now;
     newDesc->startTime = now;
     newDesc->fadeInTime = now;
@@ -546,7 +566,7 @@ void __fastcall SpellProcScaleHandler(
     float elapsed
 ) {
   if (action == SPELLPROCADD) {
-    unsigned int now = GetTickCount();
+    unsigned int now = OsGetAsyncTimeMs();
     newDesc->curTime = now;
     newDesc->startTime = now;
     newDesc->fadeInTime = now + 200;
@@ -558,13 +578,13 @@ void __fastcall SpellProcScaleHandler(
     newDesc->fadeOutTime = newDesc->curTime;
     newDesc->endTime = newDesc->curTime + 400;
   } else if (action == SPELLPROCREFRESH) {
-    *reinterpret_cast<float *>(reinterpret_cast<unsigned char *>(unit) + 12) = GetDesiredRenderScale(list);
+    unit->SetRenderScale(GetDesiredRenderScale(list));
   } else if (action == SPELLPROCUPDATE) {
     float oldScale = list.Head() ? GetDesiredRenderScale(list) : 1.0f;
     PurgeExpiredNodes(list, elapsed);
     float newScale = list.Head() ? GetDesiredRenderScale(list) : 1.0f;
     if (newScale != oldScale) {
-      *reinterpret_cast<float *>(reinterpret_cast<unsigned char *>(unit) + 12) = newScale;
+      unit->SetRenderScale(newScale);
     }
   }
 }
@@ -603,7 +623,7 @@ void __fastcall SpellProcEclipseHandler(
 ) {
   if (action == SPELLPROCADD) {
     newDesc->color.Set(static_cast<unsigned int>(rec->m_characterParam[0]) | 0xFF000000);
-    newDesc->startTime = GetTickCount();
+    newDesc->startTime = OsGetAsyncTimeMs();
     int castTime = Spell_C_GetCastTime(spellID, 0);
     newDesc->endTime = newDesc->startTime + castTime;
     newDesc->fadeInTime = newDesc->startTime + static_cast<unsigned int>(castTime * rec->m_characterParam[1]);
@@ -803,7 +823,22 @@ int __fastcall AttackAnimEndHandler(void *param, CGUnit_C *ptr);
 int __fastcall DodgeAnimEndHandler(void *param, CGUnit_C *ptr);
 
 static void ClearQuestIconHandles(int reinitialize) {
-    // TODO: implement
+  for (unsigned int i = 0; i < 5; ++i) {
+    if (s_interactIconModelInfo[i].model) {
+      HandleClose(s_interactIconModelInfo[i].model);
+    }
+
+    if (reinitialize) {
+      const char *modelName = ClientDBStringLookup(s_interactIconModelInfo[i].string);
+      FATALASSERT(modelName && *modelName);
+
+      CModelCreate createData = {0x200A, s_interactIconAnimNames, 2, 0, 0, 0, 0};
+      s_interactIconModelInfo[i].model = ModelCreate(modelName, &createData, 0);
+      FATALASSERT(s_interactIconModelInfo[i].model);
+    } else {
+      s_interactIconModelInfo[i].model = 0;
+    }
+  }
 }
 
 void __fastcall InitTalkEmotes() {
@@ -880,21 +915,30 @@ static int __fastcall RangedStandTimerHandler(const void *__formal, void *userDa
 }
 
 void CGUnit_C::RemoveBloodPool() {
-  reinterpret_cast<unsigned int *>(this)[313] &= ~0x10000u;
+  m_flags &= ~0x10000u;
 }
 
 void CGUnit_C::AddBloodPool() {
   if (m_bloodRec) {
-    reinterpret_cast<unsigned int *>(this)[313] |= 0x10000u;
+    m_flags |= 0x10000u;
   }
 }
 
-static void AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
+static void __fastcall AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
     // TODO: implement
 }
 
-static void MountedAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
+static void __fastcall MountedAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
     // TODO: implement
+}
+
+static int __fastcall GenericAnimEndHandler(void *param) {
+  ANIMENDDATA *data = static_cast<ANIMENDDATA *>(param);
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(data->guid, __FILE__, __LINE__));
+  if (unit) {
+    unit->GenericAnimEndHandler(data->anim, data);
+  }
+  return 1;
 }
 
 int __fastcall UnitFlagUpdateHandler(unsigned __int64 unit, unsigned int, unsigned int, const void *oldValue, void *) {
@@ -940,34 +984,33 @@ int __fastcall UnitHealthUpdateHandler(unsigned __int64 unit, unsigned int offse
   }
   unitPtr->UpdateDisplayHealth();
 
-  void **vtable = *reinterpret_cast<void ***>(unitPtr);
-  typedef void (CGUnit_C::*UnitStateFn)();
   if (unitData->health <= 0 && oldHealth > 0) {
     if (unit == ClntObjMgrGetActivePlayer()) {
-      CGInputControl::GetActive()->UpdatePlayer(GetTickCount());
+      CGInputControl::GetActive()->UpdatePlayer(OsGetAsyncTimeMs());
     }
 
-    UnitStateFn onDeath;
-    memcpy(&onDeath, &vtable[0xC0 / 4], sizeof(onDeath));
-    (unitPtr->*onDeath)();
+    if (unitPtr->GetType() & TYPE_PLAYER) {
+      static_cast<CGPlayer_C *>(unitPtr)->CGPlayer_C::OnDeath();
+    } else {
+      unitPtr->CGUnit_C::OnDeath();
+    }
 
-    const unsigned int *self = reinterpret_cast<const unsigned int *>(unitPtr);
-    if (!self[448]) {
+    if (!unitPtr->m_deathHolds) {
       CGGameUI::ClearTarget(unit, 1);
-      if (!(self[314] & 0x2000)) {
-        UnitStateFn onDeathAnimate;
-        memcpy(&onDeathAnimate, &vtable[0xC4 / 4], sizeof(onDeathAnimate));
-        (unitPtr->*onDeathAnimate)();
+      if (!(unitPtr->m_animFlags & 0x2000)) {
+        if (unitPtr->GetType() & TYPE_PLAYER) {
+          static_cast<CGPlayer_C *>(unitPtr)->CGPlayer_C::OnDeathAnimate();
+        } else {
+          unitPtr->CGUnit_C::OnDeathAnimate();
+        }
       }
     }
   } else if (unitData->health > 0 && oldHealth <= 0) {
     if (unit == ClntObjMgrGetActivePlayer()) {
-      CGInputControl::GetActive()->UpdatePlayer(GetTickCount());
+      CGInputControl::GetActive()->UpdatePlayer(OsGetAsyncTimeMs());
     }
-    reinterpret_cast<unsigned int *>(unitPtr)[313] &= ~1u;
-    UnitStateFn restoreUnit;
-    memcpy(&restoreUnit, &vtable[0x10C / 4], sizeof(restoreUnit));
-    (unitPtr->*restoreUnit)();
+    unitPtr->m_flags &= ~1u;
+    unitPtr->CGUnit_C::RestoreUnit();
   }
   return 1;
 }
@@ -1526,7 +1569,7 @@ void CGUnit_C::InitializeExtendedDisplay() {
   unsigned int   sex = GetDisplaySex();
   const char    *displayTextureName = GetDisplayTextureName();
   HTEXTURE       skinTexture;
-  HTEXCOMPONENT &texComponent = *reinterpret_cast<HTEXCOMPONENT *>(reinterpret_cast<unsigned int *>(this) + 477);
+  HTEXCOMPONENT &texComponent = m_texComponent;
 
   if (*displayTextureName) {
     char preBakeName[256];
@@ -1557,7 +1600,7 @@ void CGUnit_C::InitializeExtendedDisplay() {
   BEARDSTYLEDATA beardStyleData = {1, 1, 1};
   int            hasFacialInfo = CharCustomizationGetBeardStyle(race, sex, FacialHairID(), &beardStyleData);
 
-  HCHARGEOSET &geosetHandle = *reinterpret_cast<HCHARGEOSET *>(reinterpret_cast<unsigned int *>(this) + 476);
+  HCHARGEOSET &geosetHandle = m_geosetHandle;
   if (geosetHandle) {
     HandleClose(geosetHandle);
   }
@@ -1655,18 +1698,16 @@ void __fastcall CGUnit_C::InitializeTextureVariations(
 }
 
 int CGUnit_C::IsWalking() const {
-  const float *self = reinterpret_cast<const float *>(this);
-  return self[55] + self[55] >= const_cast<CMovement &>(m_movement).GetCurrentSpeed();
+  return m_movement.m_walkSpeed + m_movement.m_walkSpeed >= const_cast<CMovement &>(m_movement).GetCurrentSpeed();
 }
 
 unsigned int CGUnit_C::GetAnimationState() {
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if (m_unit->health <= 0 && ((self[314] & 0x2000) || !(reinterpret_cast<const unsigned char *>(this)[1252] & 4))) {
-    typedef void (CGUnit_C::*SetTorsoAnimStateProc)(unsigned int);
-    SetTorsoAnimStateProc setTorsoAnimState;
-    void                **vtable = *reinterpret_cast<void ***>(this);
-    memcpy(&setTorsoAnimState, &vtable[0x118 / sizeof(void *)], sizeof(setTorsoAnimState));
-    (this->*setTorsoAnimState)(0);
+  if (m_unit->health <= 0 && ((m_animFlags & 0x2000) || !(m_flags & 4))) {
+    if (GetType() & TYPE_PLAYER) {
+      static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetTorsoAnimState(0);
+    } else {
+      CGUnit_C::SetTorsoAnimState(0);
+    }
     return 1;
   }
 
@@ -1677,11 +1718,11 @@ unsigned int CGUnit_C::GetAnimationState() {
     }
   }
 
-  unsigned int moveFlags = self[32];
+  unsigned int moveFlags = m_movement.m_moveFlags;
   if (moveFlags & 0x8000) {
     return 43;
   }
-  if (reinterpret_cast<float *>(this)[62] != 0.0f) {
+  if (m_movement.m_jumpVelocity != 0.0f) {
     return 41;
   }
   if (moveFlags & 0x2000000) {
@@ -1712,23 +1753,23 @@ unsigned int CGUnit_C::GetAnimationState() {
     return 6 - (IsWalking() != 0);
   }
 
-  if (GetGUID() == ClntObjMgrGetActivePlayer() && (self[634] & 0x400) && !m_unit->standState) {
+  if (GetGUID() == ClntObjMgrGetActivePlayer() && (static_cast<CGPlayer_C *>(this)->m_flags & 0x400) && !m_unit->standState) {
     return 31;
   }
-  if (!(m_unit->flags & 0x20000) && reinterpret_cast<CCombat *>(reinterpret_cast<unsigned char *>(this) + 0x4C0)->IsAttacking()) {
+  if (!(m_unit->flags & 0x20000) && m_combat.IsAttacking()) {
     return 31;
   }
-  if (self[308]) {
+  if (m_currentDamageInfo) {
     return 31;
   }
-  if (m_unit->weaponMode == WEAPONMODE_RANGED && self[600]) {
+  if (m_unit->weaponMode == WEAPONMODE_RANGED && m_rangedStandTimer) {
     return 31;
   }
   return s_standStateAnimState[m_unit->standState];
 }
 
 void CGUnit_C::GenericAnimEndHandler(ANIMENUMERATION animID, void *param) {
-  if (reinterpret_cast<const unsigned int *>(this)[442] == 46 && GetCurrentTorsoAnim() == animID) {
+  if (m_currentTorsoAnimState == 46 && GetCurrentTorsoAnim() == animID) {
     ClearTorsoAnimation(0x40);
   } else if (g_seqInformation[animID].handler) {
     g_seqInformation[animID].handler(param, this);
@@ -1755,11 +1796,11 @@ int CGUnit_C::PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget
     CheckPendingMissileRelease(0);
     CheckPendingVictimFeedback();
     if (GetCurrentTorsoAnimState() == 46) {
-      typedef void (CGUnit_C::*ClearEmoteStateProc)(unsigned int);
-      ClearEmoteStateProc clearEmoteState;
-      void              **vtable = *reinterpret_cast<void ***>(this);
-      memcpy(&clearEmoteState, &vtable[0x164 / sizeof(void *)], sizeof(clearEmoteState));
-      (this->*clearEmoteState)(0);
+      if (m_obj->m_type & TYPE_PLAYER) {
+        static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetEmoteState(0);
+      } else {
+        CGUnit_C::SetEmoteState(0);
+      }
     }
 
     switch (GetCurrentTorsoAnimState()) {
@@ -1792,11 +1833,12 @@ int CGUnit_C::PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget
       unsigned int fallTime = m_movement.FallTime();
       ModelForceSequenceTime(charModel, newAnim, fallTime, 0);
       if (fallTime < 300) {
-        typedef void (CGUnit_C::*PlayUnitSoundProc)(UNITSOUNDTYPE, int) const;
-        PlayUnitSoundProc playUnitSound;
-        void            **vtable = *reinterpret_cast<void ***>(this);
-        memcpy(&playUnitSound, &vtable[0xF4 / sizeof(void *)], sizeof(playUnitSound));
-        (this->*playUnitSound)(static_cast<UNITSOUNDTYPE>(14), 1);
+        UNITSOUNDTYPE soundType = static_cast<UNITSOUNDTYPE>(14);
+        if (GetType() & TYPE_PLAYER) {
+          static_cast<const CGPlayer_C *>(this)->CGPlayer_C::PlayUnitSound(soundType, 1);
+        } else {
+          CGUnit_C::PlayUnitSound(soundType, 1);
+        }
       }
     }
   } else {
@@ -1824,7 +1866,7 @@ int CGUnit_C::PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget
 }
 
 void CGUnit_C::SetStrafeRotation() {
-  unsigned int       moveFlags = reinterpret_cast<unsigned int *>(this)[32];
+  unsigned int       moveFlags = m_movement.m_moveFlags;
   NTempest::C3Vector waistTurn;
   NTempest::C3Vector spineTurn;
 
@@ -1841,7 +1883,7 @@ void CGUnit_C::SetStrafeRotation() {
     spineTurn.y = -spineTurn.y;
   }
 
-  HMODEL model = reinterpret_cast<HMODEL *>(this)[4];
+  HMODEL model = m_model;
   if (TorsoAnimOverridesBase()) {
     ModelRemoveObjectFaceDir(model, 5);
   } else {
@@ -1856,7 +1898,7 @@ void CGUnit_C::ApplyStrafeRotation(unsigned int newState) {
   if (newState >= 8 && newState <= 17) {
     SetStrafeRotation();
   } else if (GetCurrentBaseAnimState() >= 8 && GetCurrentBaseAnimState() <= 17) {
-    HMODEL model = reinterpret_cast<HMODEL *>(this)[4];
+    HMODEL model = m_model;
     ModelRemoveObjectFaceDir(model, 5);
     ModelRemoveObjectFaceDir(model, 4);
     ModelRemoveObjectFaceDir(model, 6);
@@ -1864,26 +1906,23 @@ void CGUnit_C::ApplyStrafeRotation(unsigned int newState) {
 }
 
 bool CGUnit_C::BaseAnimLocksHead() const {
-  const unsigned int *self = reinterpret_cast<const unsigned int *>(this);
-  if (s_animInfo[self[440]].flags & 1) {
+  if (s_animInfo[m_currentBaseAnimState].flags & 1) {
     return true;
   }
-  return (g_seqInformation[self[441]].flags & 2) != 0;
+  return (g_seqInformation[m_currentBaseAnim].flags & 2) != 0;
 }
 
 bool CGUnit_C::TorsoAnimOverridesBase() const {
-  const unsigned int *self = reinterpret_cast<const unsigned int *>(this);
-  return (s_animInfo[self[442]].flags & 0x8000) || (g_seqInformation[GetCurrentTorsoAnim()].flags & 8);
+  return (s_animInfo[m_currentTorsoAnimState].flags & 0x8000) || (g_seqInformation[GetCurrentTorsoAnim()].flags & 8);
 }
 
 void CGUnit_C::UpdateMountAnimation(unsigned int newState, unsigned int flags) {
   FATALASSERT(newState < 64);
 
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if ((m_flags & 0x10) && (self[444] != newState || (flags & 0x100))) {
-    self[444] = newState;
+  if ((m_flags & 0x10) && (m_currentMountAnimState != newState || (flags & 0x100))) {
+    m_currentMountAnimState = newState;
     unsigned int newAnim = ChooseAnimation(newState);
-    HMODEL       model = reinterpret_cast<HMODEL *>(this)[4];
+    HMODEL       model = m_model;
     ObjectModelSetSequence(model, newAnim, GetObjAnimFlags(2), 0);
     UpdateMovementAnimSpeed(1, newState);
 
@@ -1902,19 +1941,18 @@ int CGUnit_C::SetTorsoSequence(float timeScale, int flags) {
 
   HMODEL theModel = GetCharacterModel(0);
   FATALASSERT(theModel);
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if (IsPreemptableWoundAnimState(self[442])) {
-    self[445] = GetTickCount();
+  if (IsPreemptableWoundAnimState(m_currentTorsoAnimState)) {
+    m_currentWoundStartTime = OsGetAsyncTimeMs();
     unsigned int anim = GetCurrentTorsoAnim();
-    if (!ModelGetSequenceDuration(theModel, anim, &self[446])) {
+    if (!ModelGetSequenceDuration(theModel, anim, &m_currentWoundAnimDuration)) {
       goto sequence_failed;
     }
-    FATALASSERT(self[446]);
+    FATALASSERT(m_currentWoundAnimDuration);
   }
 
-  if (!(s_animInfo[self[440]].flags & 4) || TorsoAnimOverridesBase()) {
+  if (!(s_animInfo[m_currentBaseAnimState].flags & 4) || TorsoAnimOverridesBase()) {
     if (TorsoAnimOverridesBase()) {
-      ModelRemoveObjectFaceDir(reinterpret_cast<HMODEL *>(this)[4], 5);
+      ModelRemoveObjectFaceDir(m_model, 5);
     }
     if (ObjectModelSetSequence(theModel, GetCurrentTorsoAnim(), GetObjAnimFlags(flags | 2), 0)) {
       ModelSetTimeScale(theModel, timeScale, 0);
@@ -1929,11 +1967,11 @@ int CGUnit_C::SetTorsoSequence(float timeScale, int flags) {
 
 sequence_failed:
   HandleClose(theModel);
-  typedef void (CGUnit_C::*SetTorsoAnimStateProc)(unsigned int);
-  SetTorsoAnimStateProc setTorsoAnimState;
-  void                **vtable = *reinterpret_cast<void ***>(this);
-  memcpy(&setTorsoAnimState, &vtable[0x118 / sizeof(void *)], sizeof(setTorsoAnimState));
-  (this->*setTorsoAnimState)(0);
+  if (GetType() & TYPE_PLAYER) {
+    static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetTorsoAnimState(0);
+  } else {
+    CGUnit_C::SetTorsoAnimState(0);
+  }
   return 0;
 }
 
@@ -1944,10 +1982,9 @@ float CGUnit_C::GetAnimTimeScale(unsigned int sequence, unsigned int duration, u
   float        timeScale = 1.0f;
   unsigned int seqInfoDuration;
   if (ModelGetSequenceDuration(theModel, sequence, &seqInfoDuration)) {
-    unsigned int *self = reinterpret_cast<unsigned int *>(this);
-    self[311] = seqInfoDuration;
-    self[312] = GetTickCount();
-    self[310] = duration + self[312];
+    m_animBaseDuration = seqInfoDuration;
+    m_animStartTime = OsGetAsyncTimeMsPrecise();
+    m_animEndTime = duration + m_animStartTime;
     if (seqInfoDuration && duration && seqInfoDuration != duration && !(flags & 0x20) && (!(flags & 0x10) || seqInfoDuration > duration)) {
       timeScale = static_cast<float>(seqInfoDuration) / static_cast<float>(duration);
     }
@@ -1976,34 +2013,33 @@ void CGUnit_C::ProcessAnimEndCallbacks() {
 int CGUnit_C::SetTorsoAnimation(unsigned int state, unsigned long duration, unsigned int flags) {
   FATALASSERT(state < 64);
 
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  void        **vtable = *reinterpret_cast<void ***>(this);
-  typedef int (CGUnit_C::*GetStandStateAnimProc)(HMODEL);
-  typedef void (CGUnit_C::*SetAnimStateProc)(unsigned int);
-  GetStandStateAnimProc getStandStateAnim;
-  SetAnimStateProc      setTorsoAnimState;
-  SetAnimStateProc      setBaseAnimState;
-  memcpy(&getStandStateAnim, &vtable[0x184 / sizeof(void *)], sizeof(getStandStateAnim));
-  memcpy(&setTorsoAnimState, &vtable[0x118 / sizeof(void *)], sizeof(setTorsoAnimState));
-  memcpy(&setBaseAnimState, &vtable[0x110 / sizeof(void *)], sizeof(setBaseAnimState));
-
   if (!state) {
-    if (!self[442]) {
+    if (!m_currentTorsoAnimState) {
       return 1;
     }
 
-    HMODEL tempCharModel = reinterpret_cast<HMODEL>(self[422]);
-    if (!tempCharModel || (this->*getStandStateAnim)(tempCharModel) <= 0) {
-      CheckLevelUpAnimFlag(self[442], 0);
+    int castingTime = 0;
+    if (m_castingSpell) {
+      if (GetType() & TYPE_PLAYER) {
+        castingTime = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetSpellCastingTime(m_castingSpell);
+      } else {
+        castingTime = CGUnit_C::GetSpellCastingTime(m_castingSpell);
+      }
+    }
+    if (!m_castingSpell || castingTime <= 0) {
+      CheckLevelUpAnimFlag(m_currentTorsoAnimState, 0);
       SetTorsoAnim(GetStandStateAnim(0));
-      (this->*setTorsoAnimState)(0);
-      self[310] = 0;
-      (this->*setBaseAnimState)(0);
-      SetTorsoAnim(ChooseAnimation(self[440]));
+      if (GetType() & TYPE_PLAYER) {
+        static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetTorsoAnimState(0);
+      } else {
+        CGUnit_C::SetTorsoAnimState(0);
+      }
+      m_animEndTime = 0;
+      CGUnit_C::UpdateBaseAnimation(0);
+      SetTorsoAnim(ChooseAnimation(m_currentBaseAnimState));
 
       if (GetCurrentTorsoAnim() == ANIM_STEALTHSTAND ||
-          (!GetCurrentTorsoAnim() &&
-           (reinterpret_cast<CCombatClient *>(reinterpret_cast<unsigned char *>(this) + 0x4C0)->IsAttacking() || !m_unit->health)))
+          (!GetCurrentTorsoAnim() && (m_combat.IsAttacking() || !m_unit->health)))
       {
         flags |= 1;
       }
@@ -2014,17 +2050,19 @@ int CGUnit_C::SetTorsoAnimation(unsigned int state, unsigned long duration, unsi
     state = 37;
   }
 
-  CheckLevelUpAnimFlag(self[442], state);
-  if (g_seqInformation[self[441]].flags & 4) {
+  CheckLevelUpAnimFlag(m_currentTorsoAnimState, state);
+  if (g_seqInformation[m_currentBaseAnim].flags & 4) {
     return 0;
   }
-  if (self[442] == state && !(s_animInfo[state].flags & 0x20)) {
+  if (m_currentTorsoAnimState == state && !(s_animInfo[state].flags & 0x20)) {
     return 0;
   }
-  if (!(s_animInfo[self[440]].flags & 0x80) && (s_animInfo[self[440]].flags & 8) && !(flags & 0x40)) {
+  if (!(s_animInfo[m_currentBaseAnimState].flags & 0x80) && (s_animInfo[m_currentBaseAnimState].flags & 8) && !(flags & 0x40)) {
     return 0;
   }
-  if (self[442] && s_animInfo[self[442]].basePriority > s_animInfo[state].basePriority + s_animInfo[state].priorityOffset && !(flags & 0x40)) {
+  if (m_currentTorsoAnimState &&
+      s_animInfo[m_currentTorsoAnimState].basePriority > s_animInfo[state].basePriority + s_animInfo[state].priorityOffset &&
+      !(flags & 0x40)) {
     return 0;
   }
 
@@ -2036,27 +2074,28 @@ int CGUnit_C::SetTorsoAnimation(unsigned int state, unsigned long duration, unsi
     SetRangedWeaponPullAnim(0);
   }
   SetTorsoAnim(anim);
-  (this->*setTorsoAnimState)(state);
+  if (GetType() & TYPE_PLAYER) {
+    static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetTorsoAnimState(state);
+  } else {
+    CGUnit_C::SetTorsoAnimState(state);
+  }
   return SetTorsoSequence(GetAnimTimeScale(GetCurrentTorsoAnim(), duration, flags), flags);
 }
 
 int CGUnit_C::ClearTorsoAnimation(unsigned int flags) {
   int           anim;
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
 
   if (IsSpellAuraAnimActive(anim)) {
-    self[391] = anim;
+    m_spellCastingAnim = static_cast<ANIMENUMERATION>(anim);
     SetTorsoAnimation(63, 0, flags);
   } else if (IsSpellChannelAnimActive(anim)) {
-    self[391] = anim;
+    m_spellCastingAnim = static_cast<ANIMENUMERATION>(anim);
     SetTorsoAnimation(62, 0, flags);
   } else if (m_unit->channelSpell) {
     PlayEmoteAnimation(m_unit->channelSpell, flags);
   } else {
-    if (self[293] && self[442] == 46) {
-      unsigned int  index = self[293] - 1;
-      unsigned int *emote = reinterpret_cast<unsigned int *>(self[294] + 8 * index);
-      *emote += GetTickCount();
+    if (m_emoteQueue.Count() && m_currentTorsoAnimState == 46) {
+      m_emoteQueue[m_emoteQueue.Count() - 1].delay += OsGetAsyncTimeMs();
     }
     SetTorsoAnimation(0, 0, flags);
   }
@@ -2073,10 +2112,9 @@ void CGUnit_C::SheatheAnimEndHandler() {
   ModelMatchSequence(theModel, 2, 4, 6);
   HandleClose(theModel);
 
-  int *handAnim = reinterpret_cast<int *>(this) + 618;
-  handAnim[0] = -1;
-  handAnim[1] = -1;
-  if (!(reinterpret_cast<const unsigned char *>(this)[1258] & 1)) {
+  m_handAnim[0] = static_cast<ANIMENUMERATION>(-1);
+  m_handAnim[1] = static_cast<ANIMENUMERATION>(-1);
+  if (!(m_animFlags & 0x10000)) {
     UpdateSheatheRangedReasons(1);
   }
 }
@@ -2147,13 +2185,9 @@ void CGUnit_C::UnsetAuraMirrorHandlers() {
 void CGUnit_C::LookAtTarget() {
   unsigned __int64 targetGUID;
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
-    typedef unsigned __int64 (CGUnit_C::*GetLookAtTargetProc)() const;
-    GetLookAtTargetProc getLookAtTarget;
-    void              **vtable = *reinterpret_cast<void ***>(this);
-    memcpy(&getLookAtTarget, &vtable[0xA4 / sizeof(void *)], sizeof(getLookAtTarget));
-    targetGUID = (this->*getLookAtTarget)();
+    targetGUID = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetLocalTarget();
   } else {
-    targetGUID = *reinterpret_cast<const unsigned __int64 *>(reinterpret_cast<const unsigned char *>(m_unit) + 40);
+    targetGUID = m_unit->target;
   }
 
   if (!targetGUID || BaseAnimLocksHead()) {
@@ -2194,7 +2228,534 @@ int __fastcall OnAuraDecayFinished(void *param) {
 }
 
 void CGUnit_C::UpdateBaseAnimation(unsigned int flags) {
-  UpdateBaseAnimation(m_currentBaseAnimState, flags);
+  if (m_unit->flags & 0x2000) {
+    CGUnit_C::UpdateBaseAnimation(48, flags);
+  }
+  CGUnit_C::UpdateBaseAnimation(GetAnimationState(), flags);
+}
+
+void CGUnit_C::SetBaseAnimState(unsigned int newState) {
+  FATALASSERT(newState < 64);
+  m_currentBaseAnimState = newState;
+}
+
+void CGUnit_C::SetEmoteState(unsigned int emoteID) {
+}
+
+void CGPlayer_C::SetBaseAnimState(unsigned int newState) {
+  unsigned int oldState = m_currentBaseAnimState;
+  CGUnit_C::SetBaseAnimState(newState);
+
+  if (GetGUID() == ClntObjMgrGetActivePlayer() && oldState != newState &&
+      IsSitStandSleepTransition(oldState) != IsSitStandSleepTransition(newState))
+  {
+    CGInputControl::GetActive()->UpdatePlayer(OsGetAsyncTimeMs());
+  }
+}
+
+void CGPlayer_C::SetEmoteState(unsigned int emoteID) {
+  CDataStore msg;
+  msg.Put(static_cast<int>(CMSG_EMOTE));
+  msg.Put(static_cast<int>(emoteID));
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
+
+void CGUnit_C::OnPickNextStandHandler() {
+  if (m_animFlags & 1) {
+    m_animFlags &= ~1U;
+  }
+  ForceUpdateBaseAnimation();
+}
+
+void CGUnit_C::LootAnimEndHandler() {
+  if (!(m_unit->flags & 0x400)) {
+    CGUnit_C::UpdateBaseAnimation(0);
+  }
+}
+
+void CGUnit_C::OnDeath() {
+  m_lastDeathTime = OsGetAsyncTimeMs();
+  m_combat.m_victim = 0;
+  m_combat.m_attackSent = 0;
+  m_combat.m_stopSent = 0;
+  if (m_castingSpell) {
+    StopSpellFizzleTimer(m_castingSpell, 2);
+  }
+  if (Spell_C_IsModal() && Spell_C_GetCurrentTarget() == GetGUID()) {
+    Spell_C_CancelSpell(1, 1, SPELL_FAILED_TARGETS_DEAD);
+  }
+  ClearTrackingTarget(0);
+  UnitCombatLogUnitDead(GetGUID());
+}
+
+void CGPlayer_C::OnDeath() {
+  CGUnit_C::OnDeath();
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    const unsigned __int64 noTarget = 0;
+    CGGameUI::Target(noTarget, 0);
+    CGGameUI::ClearInteractTarget(noTarget);
+    CGGameUI::CloseLoot(0, 1);
+    CGPlayer_C::UpdateQuestStatusAll();
+    if (m_unit->flags & 0x100000) {
+      HandleRepopRequest();
+    }
+  } else if (CGGameUI::IsPartyMember(GetGUID())) {
+    CGGameUI::DisplayError(GERR_PLAYER_DIED_S, GetUnitName());
+  }
+}
+
+void CGPlayer_C::OnDeathAnimate() {
+  CGUnit_C::OnDeathAnimate();
+  CheckKillerFeedback();
+  if (GetGUID() == ClntObjMgrGetActivePlayer() && !(m_movement.m_moveFlags & 0x4000)) {
+    CGGameUI::UpdateActivePlayer();
+  }
+}
+
+void CGUnit_C::RestoreUnit() {
+  m_animFlags &= ~0x2000U;
+  FATALASSERT(m_unit->health > 0);
+  m_deathHolds = 0;
+  PurgeAnimNodes(0);
+  ClearResEffectModel();
+  CGUnit_C::UpdateBaseAnimation(0);
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CGGameUI::UnlockAllItems();
+    FrameScript_SignalEvent(0xFF);
+  }
+}
+
+void CGUnit_C::SetTorsoAnimState(unsigned int newState) {
+  FATALASSERT(newState < 64);
+  if ((m_flags & 0x400) && newState != 37) {
+    ShowHandArrow(0);
+    m_flags &= ~0x400U;
+  }
+  if (m_currentTorsoAnimState != newState) {
+    ClearMeleeDeathHold();
+    if ((s_animInfo[newState].flags ^ s_animInfo[m_currentTorsoAnimState].flags) & 0x80) {
+      ApplyStrafeRotation(m_currentBaseAnimState);
+    }
+    if (m_currentTorsoAnimState == 38) {
+      CheckPendingSpellAnimHits();
+      m_deferredPrecastAnim = static_cast<ANIMENUMERATION>(-1);
+      SetSheatheReason(SHEATHEREASON_PRECAST, 0, 0);
+    } else if (m_currentTorsoAnimState == 46) {
+      SetSheatheReason(SHEATHEREASON_7, 0, 1);
+    }
+  }
+  if (newState == 38) {
+    m_lastSpellCastAnimTime = OsGetAsyncTimeMs();
+  }
+  m_currentTorsoAnimState = newState;
+}
+
+void CGPlayer_C::SetTorsoAnimState(unsigned int newState) {
+  unsigned int oldState = m_currentTorsoAnimState;
+  CGUnit_C::SetTorsoAnimState(newState);
+  if (oldState != newState &&
+      (m_handAnim[0] != static_cast<ANIMENUMERATION>(-1) || m_handAnim[1] != static_cast<ANIMENUMERATION>(-1))) {
+    HandleSheatheAnimEvent(1, 1);
+  }
+}
+
+int CGUnit_C::GetSpellCastingTime(int spellID) const {
+  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  if (!spell) {
+    return 0;
+  }
+  SpellCastTimesRec *castTime = g_spellCastTimesDB.GetRecord(spell->m_castingTimeIndex);
+  if (!castTime) {
+    return 0;
+  }
+  int result = castTime->m_base + castTime->m_perLevel * (const_cast<CGUnit_C *>(this)->GetSpellRank(spellID) / 5);
+  if (result < castTime->m_minimum) {
+    result = castTime->m_minimum;
+  }
+  if (result > 0 && m_unit->modCastingSpeed) {
+    result += result * m_unit->modCastingSpeed / 100;
+  }
+  if (spell->m_attributes & 2) {
+    result = 0x7FFFFFFF;
+  }
+  return result > 0 ? result : 0;
+}
+
+int CGPlayer_C::GetSpellCastingTime(int spellID) const {
+  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  if (!spell) {
+    return 0;
+  }
+  SpellCastTimesRec *castTime = g_spellCastTimesDB.GetRecord(spell->m_castingTimeIndex);
+  if (!castTime) {
+    return 0;
+  }
+  int result = castTime->m_base + castTime->m_perLevel * (const_cast<CGPlayer_C *>(this)->GetSpellRank(spellID) / 5);
+  if (result < castTime->m_minimum) {
+    result = castTime->m_minimum;
+  }
+  if (result > 0 && m_unit->modCastingSpeed) {
+    result += result * m_unit->modCastingSpeed / 100;
+  }
+  if (spell->m_attributes & 2) {
+    CGItem_C *rangedItem = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(17), __FILE__, __LINE__));
+    if (rangedItem) {
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(rangedItem->GetEntryID(), GetGUID(), 0, 0);
+      if (stats) {
+        result += stats->m_delay;
+      }
+    }
+  }
+  return result > 0 ? result : 0;
+}
+
+unsigned int CGUnit_C::DetermineWoundSequence() const {
+  return 9;
+}
+
+unsigned int CGPlayer_C::DetermineWoundSequence() const {
+  HMODEL charModel = GetCharacterModel(0);
+  FATALASSERT(charModel);
+  if (!(m_unit->flags & 0x20000) &&
+      const_cast<CCombatClient &>(m_combat).IsAttacking() &&
+      ModelHasSequenceId(charModel, 9)) {
+    HandleClose(charModel);
+    return 9;
+  }
+  if (ModelHasSequenceId(charModel, 8)) {
+    HandleClose(charModel);
+    return 8;
+  }
+  FATALASSERT(m_readySequence != static_cast<unsigned int>(-1));
+  unsigned int result = m_readySequence;
+  HandleClose(charModel);
+  return result;
+}
+
+int CGUnit_C::GetVirtualItemDisplayID(unsigned int slot) const {
+  return m_unit->virtualItemDisplay[slot];
+}
+
+const VirtualItemInfo *CGUnit_C::GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const {
+  FATALASSERT(!(GetType() & TYPE_PLAYER));
+  if (!CGUnit_C::GetVirtualItemDisplayID(slot)) {
+    return 0;
+  }
+  const VirtualItemInfo *item = &m_unit->virtualItemInfo[slot];
+  if (!ignoreDisarmFlag && (m_unit->flags & 0x200000) && item->m_classID == 2 && !slot) {
+    return 0;
+  }
+  return item;
+}
+
+int CGPlayer_C::GetVirtualItemDisplayID(unsigned int slot) const {
+  if (slot >= 3) {
+    return 0;
+  }
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(15 + slot), __FILE__, __LINE__));
+  if (!item || (!slot && item->m_itemInfo.m_classID == 2 && (m_unit->flags & 0x200000))) {
+    return 0;
+  }
+  return item->GetDisplayID();
+}
+
+const VirtualItemInfo *CGPlayer_C::GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const {
+  if (slot >= 3) {
+    return 0;
+  }
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(15 + slot), __FILE__, __LINE__));
+  if (!item || (!slot && item->m_itemInfo.m_classID == 2 && !ignoreDisarmFlag && (m_unit->flags & 0x200000))) {
+    return 0;
+  }
+  return &item->m_itemInfo;
+}
+
+int CGUnit_C::ShouldRenderUnitName(unsigned int mode) const {
+  if ((m_unit->flags & 0x18000) && CGGameUI::GetLockedTarget() != GetGUID()) {
+    return 0;
+  }
+  switch (mode) {
+    case 1:
+    case 2:
+      return CGGameUI::GetLockedTarget() == GetGUID();
+    case 3:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+void CGUnit_C::SetLastWeaponModeSent(int mode) {
+}
+
+void CGPlayer_C::SetLastWeaponModeSent(int mode) {
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    m_lastWeaponModeSent = mode;
+  }
+}
+
+void CGUnit_C::InstallSeqEndHandler(HMODEL model, unsigned int animID) {
+  if (animID >= 135) {
+    return;
+  }
+  if (!m_callbackList[animID]) {
+    m_callbackList[animID] = static_cast<ANIMENDDATA *>(s_animEndDataPool.GetData(0, __FILE__, __LINE__));
+    m_callbackList[animID]->guid = GetGUID();
+    m_callbackList[animID]->anim = static_cast<ANIMENUMERATION>(animID);
+  } else {
+    FATALASSERT(m_callbackList[animID]->guid == GetGUID());
+    FATALASSERT(m_callbackList[animID]->anim == static_cast<ANIMENUMERATION>(animID));
+  }
+  ModelSetSeqFinishedHandler(model, animID, ::GenericAnimEndHandler, m_callbackList[animID]);
+}
+
+void CGUnit_C::ClearAnimCallbackData() {
+  for (unsigned int animID = 0; animID < NUM_OBJECTANIMATIONS; ++animID) {
+    if (m_callbackList[animID]) {
+      s_animEndDataPool.PutData(m_callbackList[animID], 0, 0);
+      m_callbackList[animID] = 0;
+    }
+  }
+}
+
+void CGUnit_C::UnitInitializeModel(HMODEL model) {
+  FATALASSERT(model);
+  ModelSetEventCallback(model, AnimEventCallback, this, 0);
+  for (unsigned int index = 0; index < g_unitSeqEndList.Count(); ++index) {
+    InstallSeqEndHandler(model, g_unitSeqEndList[index]);
+  }
+}
+
+void CGUnit_C::UnitUninitializeModel(HMODEL model) {
+  if (!model) {
+    return;
+  }
+  ModelSetEventCallback(model, 0, 0, 0);
+  for (unsigned int index = 0; index < g_unitSeqEndList.Count(); ++index) {
+    ModelSetSeqFinishedHandler(model, g_unitSeqEndList[index], 0, 0);
+  }
+}
+
+void CGUnit_C::ShutdownWorldName() {
+  if (m_unitNameHandle) {
+    HandleClose(reinterpret_cast<HOBJECT>(m_unitNameHandle));
+  }
+  m_unitNameHandle = 0;
+}
+
+void CGUnit_C::MarkFootstepAnimations(HMODEL model) {
+  ModelMarkFootstepSequence(model, 4);
+  ModelMarkFootstepSequence(model, 5);
+  ModelMarkFootstepSequence(model, 92);
+  ModelMarkFootstepSequence(model, 93);
+}
+
+void CGUnit_C::UpdateUnitAlpha() {
+  unsigned char alpha = m_displayInfo ? static_cast<unsigned char>(m_displayInfo->m_creatureModelAlpha) : 255;
+  if (m_unit->flags & 0x18000) {
+    alpha /= 3;
+  }
+  DoFade(alpha, 1000);
+}
+
+void CGUnit_C::RefreshAttachmentInfo(HMODEL model) {
+  bool sheathe = m_unit->weaponMode == WEAPONMODE_MELEE;
+  for (unsigned int slot = 0; slot < 5; ++slot) {
+    if (m_attachments[slot]) {
+      ApplyAttachmentInfo(model, sheathe, slot, true);
+    }
+  }
+}
+
+void CGUnit_C::KillCreatureLoopSound() {
+  if (m_creatureLoopSound) {
+    SndInterfaceAssociateSoundWithObject(m_creatureLoopSound, 0);
+    m_creatureLoopSound->Stop(1.5f);
+    m_creatureLoopSound = 0;
+  }
+}
+
+void CGUnit_C::InitializeLoopSound() {
+  KillCreatureLoopSound();
+  if (m_soundData && m_soundData->m_loopSoundID) {
+    m_creatureLoopSound = SndInterfaceCreateSound(m_soundData->m_loopSoundID, 0.2f, -1, true);
+    if (m_creatureLoopSound) {
+      SndInterfaceAssociateSoundWithObject(m_creatureLoopSound, this);
+    }
+  }
+}
+
+void CGUnit_C::CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel) {
+  if (SheatheAnimPlaying() && !(m_animFlags & 0x10000)) {
+    HandleSheatheAnimEvent(1, 1);
+  }
+  CheckPendingVictimFeedback();
+  CheckPendingMissileRelease(0);
+  UnitEffectClear(this);
+  if (m_texComponent) {
+    HandleClose(m_texComponent);
+    m_texComponent = 0;
+  }
+  if (m_geosetHandle) {
+    HandleClose(m_geosetHandle);
+    m_geosetHandle = 0;
+  }
+
+  bool mountShowing = (m_flags & 0x10) != 0;
+  HMODEL model = mountShowing ? GetCharacterModel(0) : m_model;
+  if (!model) {
+    return;
+  }
+  ModelSetEventCallback(model, 0, 0, 0);
+  UnitUninitializeModel(model);
+  ShutdownWorldName();
+  if (!mountShowing) {
+    RemoveWorldObject();
+  }
+  if (GetType() & TYPE_PLAYER) {
+    static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetTorsoAnimState(0);
+    static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetBaseAnimState(3);
+  } else {
+    CGUnit_C::SetTorsoAnimState(0);
+    CGUnit_C::SetBaseAnimState(3);
+  }
+  if (mountShowing) {
+    if (m_model) {
+      ModelClearLink(m_model, 0);
+    }
+  } else {
+    SetObjectModel(0);
+  }
+  HandleClose(model);
+  KillCreatureLoopSound();
+}
+
+void CGPlayer_C::CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel) {
+  CGUnit_C::CleanupUnitArtwork(playerModelChanged, wasPlayerModel);
+}
+
+void CGUnit_C::ReinitializeUnitArtwork() {
+  FATALASSERT(m_displayInfo);
+  FATALASSERT(m_modelData);
+  FATALASSERT(m_soundData);
+  FATALASSERT(m_bloodRec);
+
+  bool mountShowing = (m_flags & 0x10) != 0;
+  if (mountShowing) {
+    FATALASSERT(m_worldObject);
+  } else {
+    if (m_model) {
+      HandleClose(m_model);
+    }
+    SetObjectModel(0);
+  }
+
+  char modelFileName[260] = "";
+  if (!InitModelFileName(modelFileName, sizeof(modelFileName))) {
+    return;
+  }
+
+  HMODEL model = ObjectModelCreate(modelFileName, static_cast<OBJECT_TYPE>(GetType()), 0x100800);
+  MarkFootstepAnimations(model);
+  UpdateObjectHeight(model);
+  UnitInitializeModel(model);
+  if (mountShowing) {
+    FATALASSERT(ModelHasLinkPoint(m_model, 0));
+    ModelAddLink(m_model, 0, model, 1.0f);
+  } else {
+    SetObjectModel(model);
+  }
+
+  InitializeTextureVariations(m_displayInfo, model, m_modelData);
+  SetupFootprints();
+  CGUnit_C::UpdateBaseAnimation(0x100);
+  UpdateUnitAlpha();
+
+  HMODEL characterModel = GetCharacterModel(0);
+  FATALASSERT(characterModel);
+  for (unsigned int index = 0; index < 12; ++index) {
+    AuraVisual &visual = m_auraVisual[index];
+    if (visual.HasArt() && !visual.IsWorldModel()) {
+      HMODEL auraModel = visual.GetModel();
+      if (auraModel) {
+        GEOCOMPONENTLINKS linkPoint = UnitEffectGetLinkPointFromAttachment(static_cast<UNITEFFECTATTACHPPOINT>(index));
+        if (!ModelAddLink(characterModel, linkPoint, auraModel, 1.0f)) {
+          visual.Clear();
+        }
+      }
+    }
+  }
+  if (ModelIsLoaded(characterModel, 1)) {
+    m_flags &= ~0x40U;
+    RefreshAttachmentInfo(characterModel);
+  } else {
+    m_flags |= 0x40U;
+  }
+  HandleClose(characterModel);
+  InitializeLoopSound();
+}
+
+void CGUnit_C::PostReinitializeArtwork() {
+  CGGameUI::UnitPortraitUpdate(GetGUID());
+}
+
+void CGPlayer_C::ReinitializeUnitArtwork() {
+  CGUnit_C::ReinitializeUnitArtwork();
+  FATALASSERT(!m_texComponent);
+  FATALASSERT(!m_geosetHandle);
+  for (unsigned int attachment = 0; attachment < 36; ++attachment) {
+    for (unsigned int component = 0; component < 23; ++component) {
+      HMODEL model = m_components[component][attachment];
+      if (!model) {
+        continue;
+      }
+      if (attachment == 5 || attachment == 6 || attachment == 11) {
+        AddAttachment(m_model, attachment, model, 1.0f);
+      } else {
+        ModelAddLink(m_model, attachment, model, 1.0f);
+      }
+    }
+  }
+  if (m_unit->weaponMode == WEAPONMODE_MELEE) {
+    for (unsigned int hand = 0; hand < 2; ++hand) {
+      if (ClntObjMgrObjectPtr(m_inventory.GetItem(s_hands[hand]), __FILE__, __LINE__)) {
+        SheatheObjComponent(s_hands[hand], 1);
+      }
+    }
+  }
+  InitComponents();
+  if (m_geosetHandle) {
+    CharCustomizationCommitItemGeosets(m_geosetHandle, 0, m_paperDollModel);
+    Animate();
+  }
+}
+
+void CGPlayer_C::PostReinitializeArtwork() {
+  CGUnit_C::PostReinitializeArtwork();
+  if (!m_texComponent) {
+    return;
+  }
+  for (unsigned int slot = 0; slot < 23; ++slot) {
+    if (m_texComponentInfo[slot].m_displayID && m_texComponentInfo[slot].m_inventoryType) {
+      AddComponent(
+          m_texComponentInfo[slot].m_displayID,
+          m_texComponentInfo[slot].m_inventoryType,
+          slot,
+          0
+      );
+    }
+  }
+  CGItem_C *head = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(0), __FILE__, __LINE__));
+  if (head) {
+    HeadGeosetHideCharGeosets(
+        m_geosetHandle,
+        g_itemDisplayInfoDB.GetRecord(head->GetDisplayID()),
+        m_unit->race,
+        m_preferredGeosets,
+        15
+    );
+  }
 }
 
 void CGUnit_C::FinishAuraDecays() {
@@ -2209,7 +2770,7 @@ void CGUnit_C::FinishAuraDecays() {
 }
 
 unsigned int CGUnit_C::IsSpellAuraAnimActive(int &anim) {
-  int slot = reinterpret_cast<const int *>(this)[393];
+  int slot = m_animatingAura;
   if (slot == -1) {
     return 0;
   }
@@ -2231,13 +2792,12 @@ void CGUnit_C::UpdateBaseAnimation(unsigned int newState, unsigned int flags) {
     return;
   }
 
-  typedef void (CGUnit_C::*SetBaseAnimStateProc)(unsigned int);
-  SetBaseAnimStateProc setBaseAnimState;
-  void               **vtable = *reinterpret_cast<void ***>(this);
-  memcpy(&setBaseAnimState, &vtable[0x11C / sizeof(void *)], sizeof(setBaseAnimState));
-
   if (TorsoAnimOverridesBase() && !(s_animInfo[newState].flags & 8)) {
-    (this->*setBaseAnimState)(newState);
+    if (m_obj->m_type & TYPE_PLAYER) {
+      static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetBaseAnimState(newState);
+    } else {
+      CGUnit_C::SetBaseAnimState(newState);
+    }
     return;
   }
 
@@ -2246,8 +2806,7 @@ void CGUnit_C::UpdateBaseAnimation(unsigned int newState, unsigned int flags) {
     return;
   }
 
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if (!m_unit->emoteState && !self[448] && newState != 1) {
+  if (!m_unit->health && !m_deathHolds && newState != 1) {
     return;
   }
 
@@ -2267,7 +2826,11 @@ void CGUnit_C::UpdateBaseAnimation(unsigned int newState, unsigned int flags) {
   bool checkImpacts;
   if (PlayBaseAnimation(newState, newAnim, forceNoFidget, checkImpacts)) {
     SetBaseAnim(newAnim);
-    (this->*setBaseAnimState)(newState);
+    if (m_obj->m_type & TYPE_PLAYER) {
+      static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetBaseAnimState(newState);
+    } else {
+      CGUnit_C::SetBaseAnimState(newState);
+    }
     LookAtTarget();
     if (checkImpacts) {
       CheckPendingImpactKit();
@@ -2275,7 +2838,7 @@ void CGUnit_C::UpdateBaseAnimation(unsigned int newState, unsigned int flags) {
 
     unsigned int currentFlags = s_animInfo[GetCurrentBaseAnimState()].flags;
     if ((flags & 0x80) || (force && (currentFlags & 0x400)) || (currentFlags & 0x40) || ((currentFlags & 0x800) && !(m_animFlags & 4))) {
-      ModelForceSequenceTime(reinterpret_cast<HMODEL *>(this)[4], newAnim, 0x7FFFFFFF, 0);
+      ModelForceSequenceTime(m_model, newAnim, 0x7FFFFFFF, 0);
     }
   }
 }
@@ -2341,10 +2904,9 @@ void CGUnit_C::RefreshAuraVisuals() {
 #undef CHECK_HIGHEST_AURA
   }
 
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if ((self[442] == 38 || self[442] == 63) && (!highestSpellWithAnim || static_cast<int>(self[393]) != highestPriorityAura->slot)) {
-    self[393] = -1;
-    if (self[442] == 63) {
+  if ((m_currentTorsoAnimState == 38 || m_currentTorsoAnimState == 63) && (!highestSpellWithAnim || static_cast<int>(m_animatingAura) != highestPriorityAura->slot)) {
+    m_animatingAura = -1;
+    if (m_currentTorsoAnimState == 63) {
       ClearTorsoAnimation(0);
     }
   }
@@ -2370,8 +2932,8 @@ void CGUnit_C::RefreshAuraVisuals() {
 #undef ATTACH_HIGHEST_AURA
 
   if (highestSpellWithAnim) {
-    self[391] = highestSpellWithAnim->stateKitRec->m_anim;
-    self[393] = highestSpellWithAnim->slot;
+    m_spellCastingAnim = static_cast<ANIMENUMERATION>(highestSpellWithAnim->stateKitRec->m_anim);
+    m_animatingAura = highestSpellWithAnim->slot;
     if (!SetTorsoAnimation(63, 0, 0)) {
       SetTorsoAnimation(0, 0, 0);
     }
@@ -2381,7 +2943,7 @@ void CGUnit_C::RefreshAuraVisuals() {
 void CGUnit_C::AddPendingShapeshiftEffect(int oldSpell) {
   SpellRec *spell = g_spellDB.GetRecord(oldSpell);
   if (spell && IsShapeshiftSpell(spell)) {
-    *reinterpret_cast<SpellRec **>(reinterpret_cast<unsigned char *>(this) + 0x9D4) = spell;
+    m_shapeShiftPoof = spell;
   }
 }
 
@@ -2478,7 +3040,7 @@ void CGUnit_C::RemoveAuraEffect(unsigned int slot, int previousSpell) {
 
 void CGUnit_C::AddAuraEffect(unsigned int slot, unsigned int startNow) {
   FATALASSERT(slot < sizeof(m_unit->auras) / sizeof(m_unit->auras[0]));
-  FATALASSERT(reinterpret_cast<unsigned int *>(this)[4]);
+  FATALASSERT(m_model);
 
   if (FindActiveAuraInfo(slot)) {
     return;
@@ -2542,15 +3104,14 @@ void CGUnit_C::AddAuraEffect(unsigned int slot, unsigned int startNow) {
   AddKitAuras(stateRec, spellRec);
   AddSpellProcAuraEffect(slot, stateRec);
 
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  bool          higherPriority = self[393] == -1;
+  bool          higherPriority = m_animatingAura == -1;
   if (!higherPriority) {
-    SpellRec *current = g_spellDB.GetRecord(m_unit->auras[self[393]]);
+    SpellRec *current = g_spellDB.GetRecord(m_unit->auras[m_animatingAura]);
     higherPriority = !current || spellRec->m_spellPriority > current->m_spellPriority;
   }
-  if ((self[393] == -1 || higherPriority) && stateRec->m_anim > 0) {
-    self[391] = stateRec->m_anim;
-    self[393] = slot;
+  if ((m_animatingAura == -1 || higherPriority) && stateRec->m_anim > 0) {
+    m_spellCastingAnim = static_cast<ANIMENUMERATION>(stateRec->m_anim);
+    m_animatingAura = slot;
     SetTorsoAnimation(63, 0, 0);
   }
 }
@@ -2642,7 +3203,7 @@ void CGUnit_C::OnAuraChanged(unsigned int slot, int previousValue) {
 }
 
 void CGUnit_C::OnFlagChanged(unsigned int oldFlags) {
-  unsigned long currentTime = GetTickCount();
+  unsigned long currentTime = OsGetAsyncTimeMs();
   unsigned int  newFlags = m_unit->flags;
   unsigned int  xorBits = oldFlags ^ newFlags;
 
@@ -2771,8 +3332,7 @@ const char *CGUnit_C::GetObjectName() const {
 }
 
 int CGUnit_C::CanBeLooted(unsigned long currentTime) const {
-  const unsigned int *self = reinterpret_cast<const unsigned int *>(this);
-  return m_unit->health <= 0 && (self[314] & 0x2000) && static_cast<int>(currentTime - self[435]) >= 0 && (m_unit->dynamicFlags & 1);
+  return m_unit->health <= 0 && (m_animFlags & 0x2000) && static_cast<int>(currentTime - m_deathTime) >= 0 && (m_unit->dynamicFlags & 1);
 }
 
 void CGUnit_C::OnDynamicFlagsChanged(unsigned int oldValue) {
@@ -2789,9 +3349,8 @@ void CGUnit_C::OnDynamicFlagsChanged(unsigned int oldValue) {
     return;
   }
 
-  const unsigned char *self = reinterpret_cast<const unsigned char *>(this);
   for (unsigned int attach = 0; attach < NUM_UNITEFFECT_ATTACHPOINTS; ++attach) {
-    const unsigned int attachedEffect = *reinterpret_cast<const unsigned int *>(self + 0x390 + 16 * attach);
+    const unsigned int attachedEffect = m_auraVisual[attach].GetEffect();
     if (attachedEffect == effect) {
       RemoveAuraVisual(static_cast<UNITEFFECTATTACHPPOINT>(attach));
     }
@@ -2814,14 +3373,14 @@ static int __fastcall MoveHeartBeatHandler(const void *packetData, void *param) 
 }
 
 HTEXCOMPONENT CGUnit_C::GetTexComponent() const {
-  return reinterpret_cast<HTEXCOMPONENT const *>(this)[477];
+  return m_texComponent;
 }
 
 void __fastcall CGUnit_C::SetActiveMover(const unsigned __int64 &guid) {
   if (m_activeMover) {
     CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_activeMover, __FILE__, __LINE__));
     if (mover) {
-      CGInputControl::GetActive()->UpdatePlayer(GetTickCount());
+      CGInputControl::GetActive()->UpdatePlayer(OsGetAsyncTimeMs());
     }
   }
   m_activeMover = guid;
@@ -2863,13 +3422,122 @@ float CGUnit_C::GetDisplayFacing() const {
 }
 
 float CGUnit_C::GetSmoothFacing() const {
-  return m_movement.GetFacing(reinterpret_cast<const float *>(this)[429]);
+  return m_movement.GetFacing(m_smoothFacing);
+}
+
+bool CGUnit_C::IsTurningState() const {
+  unsigned int state = (m_unit->flags & 0x2000) ? m_currentMountAnimState : m_currentBaseAnimState;
+  return state == 18 || state == 19;
+}
+
+int CGUnit_C::ShouldShuffle() const {
+  unsigned __int64 unitBeingLooted = 0;
+  if (GetType() & TYPE_PLAYER) {
+    unitBeingLooted = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetUnitBeingLooted();
+  }
+
+  return !(m_movement.m_moveFlags & 0x02000000) &&
+         ((m_unit->flags & 0x20000) || !const_cast<CCombatClient &>(m_combat).IsAttacking()) &&
+         !unitBeingLooted && !m_unit->standState && !(s_animInfo[m_currentTorsoAnimState].flags & 8);
+}
+
+void CGUnit_C::UpdateDisplayFacing() {
+  HMODEL model = GetObjectModel();
+
+  if (m_currentBaseAnimState >= 8 && m_currentBaseAnimState <= 17) {
+    m_displayFacing = m_smoothFacing;
+    return;
+  }
+
+  float angleDelta = m_smoothFacing - m_displayFacing;
+  if ((m_movement.m_moveFlags & 0x400F) || fabs(angleDelta) < 0.00000023841858f) {
+    ModelRemoveObjectFaceDir(model, 4);
+    ModelRemoveObjectFaceDir(model, 6);
+    if (IsTurningState()) {
+      CGUnit_C::UpdateBaseAnimation(0);
+    }
+    m_displayFacing = m_smoothFacing;
+    return;
+  }
+
+  if (angleDelta > 3.1415927f) {
+    angleDelta -= 6.2831855f;
+  } else if (angleDelta < -3.1415927f) {
+    angleDelta += 6.2831855f;
+  }
+
+  float absHeadAngle = fabs(angleDelta);
+  float absAngleToRetract = 0.0f;
+  float absAngleConsumed = 0.0f;
+
+  if (!(m_animFlags & 8)) {
+    int elapsed = OsGetAsyncTimeMs() - m_movement.m_moveStartTime;
+    if (elapsed < 0) {
+      elapsed = 0;
+    }
+    absAngleToRetract = static_cast<float>(elapsed) * 0.001f * m_movement.m_turnRate * 2.0f;
+    if (absAngleToRetract > absHeadAngle) {
+      absAngleToRetract = absHeadAngle;
+    }
+  }
+
+  float absAngleLeft = absHeadAngle - absAngleToRetract;
+  if (fabs(absAngleLeft) < 0.00000023841858f) {
+    ModelRemoveObjectFaceDir(model, 4);
+    ModelRemoveObjectFaceDir(model, 6);
+  } else {
+    float maxHeadAngle = 0.69813168f;
+    float torsoTurnRate = 0.25f;
+    if (GetTrackingTarget()) {
+      torsoTurnRate = 1.0f;
+      maxHeadAngle = 0.0f;
+    }
+
+    absAngleLeft -= absAngleToRetract;
+    absHeadAngle = torsoTurnRate * absAngleLeft;
+    if (absHeadAngle > 0.69813168f) {
+      absHeadAngle = 0.69813168f;
+    }
+
+    float signedAngle = angleDelta < 0.0f ? -absHeadAngle : absHeadAngle;
+    NTempest::C3Vector torsoTurn(cos(signedAngle), sin(signedAngle), 0.0f);
+    if (ModelApplyObjectFaceDir(model, 4, torsoTurn)) {
+      absAngleConsumed = absHeadAngle;
+    }
+
+    absHeadAngle = absAngleLeft - absAngleConsumed;
+    if (absHeadAngle > maxHeadAngle) {
+      absHeadAngle = maxHeadAngle;
+    }
+
+    signedAngle = angleDelta < 0.0f ? -absHeadAngle : absHeadAngle;
+    NTempest::C3Vector headTurn(cos(signedAngle), sin(signedAngle), 0.0f);
+    if (ModelApplyObjectFaceDir(model, 6, headTurn)) {
+      absAngleConsumed += absHeadAngle;
+    }
+    absAngleLeft -= absAngleConsumed;
+  }
+
+  if (ShouldShuffle()) {
+    if (((m_animFlags & 0x10) && absAngleLeft > 0.00000023841858f) ||
+        (!(m_animFlags & 0x18) && fabs(absAngleToRetract) >= 0.00000023841858f))
+    {
+      if (angleDelta >= 0.0f && m_currentBaseAnimState != 18) {
+        CGUnit_C::UpdateBaseAnimation(18, 0);
+      } else if (angleDelta < 0.0f && m_currentBaseAnimState != 19) {
+        CGUnit_C::UpdateBaseAnimation(19, 0);
+      }
+    } else if (IsTurningState()) {
+      CGUnit_C::UpdateBaseAnimation(0);
+    }
+  }
+
+  float signedConsumed = angleDelta < 0.0f ? -absAngleConsumed : absAngleConsumed;
+  m_displayFacing = m_smoothFacing - signedConsumed;
 }
 
 void CGUnit_C::UpdateSmoothFacing() {
-  float         facing = m_movement.m_facing;
-  float        *selfFloat = reinterpret_cast<float *>(this);
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
+  float facing = m_movement.m_facing;
 
   CGObject_C *activeMover = ClntObjMgrObjectPtr(m_activeMover, __FILE__, __LINE__);
   if (this == activeMover) {
@@ -2877,33 +3545,31 @@ void CGUnit_C::UpdateSmoothFacing() {
     if ((unitFlags & 0x1000000) ||
         ((m_obj->m_type & TYPE_PLAYER) && !m_unit->charmedBy && ((unitFlags & 2) || !(unitFlags & 0xC00004)) && !(unitFlags & 1)))
     {
-      selfFloat[429] = facing;
+      m_smoothFacing = facing;
       CGInputControl *input = CGInputControl::GetActive();
       if ((m_movement.m_moveFlags & 0x30) || input->CameraCanTurnPlayer()) {
-        self[314] |= 8;
+        m_animFlags |= 8;
       } else {
-        self[314] &= ~8u;
+        m_animFlags &= ~8u;
       }
       if ((m_movement.m_moveFlags & 0x30) || input->IsMouseDragMoving()) {
-        self[314] |= 0x10;
+        m_animFlags |= 0x10;
       } else {
-        self[314] &= ~0x10u;
+        m_animFlags &= ~0x10u;
       }
       return;
     }
   }
 
-  if (!(m_movement.m_moveFlags & 0xF) && !m_unit->shapeshiftForm && !m_unit->channelSpell) {
-    if (self[313] & 1) {
-      facing = selfFloat[434];
+  if (!(m_movement.m_moveFlags & 0xF) && !m_unit->standState && !m_unit->emoteState) {
+    if (m_flags & 1) {
+      facing = m_forcedDisplayFacing;
     } else if (!((m_unit->flags & 8) && (m_obj->m_type & TYPE_PLAYER))) {
       unsigned __int64 target = 0;
       if ((m_unit->flags & 0x20000) || !m_combat.IsAttacking()) {
-        void **vtable = *reinterpret_cast<void ***>(this);
-        typedef unsigned __int64 (CGUnit_C::*GetFacingTargetFn)();
-        GetFacingTargetFn getFacingTarget;
-        memcpy(&getFacingTarget, &vtable[176 / 4], sizeof(getFacingTarget));
-        target = (this->*getFacingTarget)();
+        if (GetType() & TYPE_PLAYER) {
+          target = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetUnitBeingLooted();
+        }
         if (!target && GetGUID() == CGGameUI::GetInteractTarget()) {
           target = ClntObjMgrGetActivePlayer();
         }
@@ -2919,10 +3585,10 @@ void CGUnit_C::UpdateSmoothFacing() {
     }
   }
 
-  float deltaFacing = facing - selfFloat[429];
+  float deltaFacing = facing - m_smoothFacing;
   if (fabs(deltaFacing) <= 0.01f) {
-    selfFloat[429] = facing;
-    memset(selfFloat + 430, 0, 4 * sizeof(float));
+    m_smoothFacing = facing;
+    m_savedFacingDeltas[0] = 0.0f;
     return;
   }
 
@@ -2932,7 +3598,7 @@ void CGUnit_C::UpdateSmoothFacing() {
     deltaFacing += 6.2831855f;
   }
 
-  float *savedFacingDeltas = selfFloat + 430;
+  float *savedFacingDeltas = m_savedFacingDeltas;
   if ((deltaFacing < 0.0f && savedFacingDeltas[0] > 0.0f) || (deltaFacing > 0.0f && savedFacingDeltas[0] < 0.0f)) {
     savedFacingDeltas[0] = 0.0f;
   }
@@ -2955,21 +3621,20 @@ void CGUnit_C::UpdateSmoothFacing() {
     }
   }
 
-  selfFloat[429] += deltaFacing * 0.5f;
-  if (selfFloat[429] >= 6.2831855f) {
-    selfFloat[429] -= 6.2831855f;
-  } else if (selfFloat[429] < 0.0f) {
-    selfFloat[429] += 6.2831855f;
+  m_smoothFacing += deltaFacing * 0.5f;
+  if (m_smoothFacing >= 6.2831855f) {
+    m_smoothFacing -= 6.2831855f;
+  } else if (m_smoothFacing < 0.0f) {
+    m_smoothFacing += 6.2831855f;
   }
 }
 
 void CGUnit_C::SetSmoothFacing(float facing) {
-  float *self = reinterpret_cast<float *>(this);
-  self[429] = facing;
-  while (self[429] >= 6.2831855f) {
-    self[429] -= 6.2831855f;
+  m_smoothFacing = facing;
+  while (m_smoothFacing >= 6.2831855f) {
+    m_smoothFacing -= 6.2831855f;
   }
-  memset(self + 430, 0, 4 * sizeof(float));
+  memset(m_savedFacingDeltas, 0, sizeof(m_savedFacingDeltas));
 }
 
 static void __fastcall UpdateLocalPlayerFallState(int falling) {
@@ -3060,6 +3725,14 @@ static unsigned char ShowBreathCallback(CVar* h, const char* oldValue, const cha
 
 void __fastcall CGUnit_C::Initialize() {
   UnitEffectsInitialize();
+  ClearQuestIconHandles(1);
+  InitTalkEmotes();
+  g_unitSeqEndList.SetCount(0);
+  for (unsigned int animID = 0; animID < NUM_OBJECTANIMATIONS; ++animID) {
+    if (g_seqInformation[animID].flags & 1) {
+      *g_unitSeqEndList.New() = animID;
+    }
+  }
 }
 
 void __fastcall CGUnit_C::PostShutdown() {
@@ -3115,12 +3788,11 @@ int CGUnit_C::IsUnderWater() const {
     NTempest::C3Vector position = GetPosition();
     depth = surface - position.z;
   }
-  return depth > reinterpret_cast<const float *>(this)[60] * 0.5f;
+  return depth > m_movement.m_collisionBoxHeight * 0.5f;
 }
 
 unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
   FATALASSERT(state != 0);
-  const unsigned int *self = reinterpret_cast<const unsigned int *>(this);
 
   switch (state) {
     case 1:
@@ -3165,11 +3837,10 @@ unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
     case 26:
       return 7;
     case 27: {
-      typedef unsigned int (CGUnit_C::*GetStandSequenceProc)() const;
-      GetStandSequenceProc getStandSequence;
-      void               **vtable = *reinterpret_cast<void ***>(const_cast<CGUnit_C *>(this));
-      memcpy(&getStandSequence, &vtable[0x120 / sizeof(void *)], sizeof(getStandSequence));
-      return (this->*getStandSequence)();
+      if (GetType() & TYPE_PLAYER) {
+        return static_cast<const CGPlayer_C *>(this)->CGPlayer_C::DetermineWoundSequence();
+      }
+      return CGUnit_C::DetermineWoundSequence();
     }
     case 28:
       return 10;
@@ -3181,15 +3852,11 @@ unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
     case 31: {
       FATALASSERT(m_readySequence != 0xFFFFFFFF);
       unsigned int sequence = m_readySequence;
-      if (ModelHasSequenceId(reinterpret_cast<HMODEL *>(const_cast<CGUnit_C *>(this))[4], sequence)) {
+      if (ModelHasSequenceId(GetObjectModel(), sequence)) {
         return sequence;
       }
 
-      typedef const char *(CGUnit_C::*GetObjectTypeNameProc)() const;
-      GetObjectTypeNameProc getObjectTypeName;
-      void                **vtable = *reinterpret_cast<void ***>(const_cast<CGUnit_C *>(this));
-      memcpy(&getObjectTypeName, &vtable[0x28 / sizeof(void *)], sizeof(getObjectTypeName));
-      ReportMissingAnimation(sequence, (this->*getObjectTypeName)());
+      ReportMissingAnimation(sequence, GetModelFileName());
       return GetStandStateAnim(0);
     }
     case 33:
@@ -3200,11 +3867,11 @@ unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
     case 36:
       return 30;
     case 37:
-      return self[390];
+      return m_spellPrecastingAnim;
     case 38:
     case 62:
     case 63:
-      return self[391];
+      return m_spellCastingAnim;
     case 40:
       return 24;
     case 41:
@@ -3217,9 +3884,9 @@ unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
     case 45:
       return 50;
     case 46:
-      return GetEmoteAnimation(self[394]);
+      return GetEmoteAnimation(m_emoteID);
     case 47:
-      return self[277];
+      return m_pendingImpactAnim;
     case 48:
       return 91;
     case 49:
@@ -3254,7 +3921,7 @@ unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
 }
 
 void CGUnit_C::OnBadAttackFacing(unsigned __int64 victimGUID) {
-  reinterpret_cast<unsigned int *>(this)[388] |= 2;
+  m_hitInformation.attackFlags |= 2;
 }
 
 int __fastcall GetForcedAnimIndex(const char *token) {
@@ -3301,14 +3968,14 @@ void CGUnit_C::SetForcedAnimation(const char *string) {
     return;
   }
 
-  HMODEL model = reinterpret_cast<HMODEL *>(this)[4];
+  HMODEL model = m_model;
   FATALASSERT(model);
   ANIMENUMERATION anim = s_forcedAnimations[animIndex].anim;
   if (!ModelGetNumSequenceFidgets(model, anim)) {
     return;
   }
 
-  unsigned int &flags = reinterpret_cast<unsigned int *>(this)[314];
+  unsigned int &flags = m_animFlags;
   flags |= 1;
   if (s_forcedAnimations[animIndex].flag) {
     flags |= 2;
@@ -3333,7 +4000,7 @@ void CGUnit_C::SetForcedAnimation(const char *string) {
 }
 
 void CGUnit_C::ResetForcedAnimation() {
-  reinterpret_cast<unsigned int *>(this)[314] &= ~3u;
+  m_animFlags &= ~3u;
   UpdateBaseAnimation(GetAnimationState(), 0x100);
 }
 
@@ -3359,17 +4026,17 @@ void __fastcall ClearSpecialEffects(HMODEL model) {
 }
 
 void CGUnit_C::StopSpellFizzleTimer(int spellID, unsigned char status) {
-  int castingSpell = *reinterpret_cast<const int *>(reinterpret_cast<const unsigned char *>(this) + 0x698);
+  int castingSpell = m_castingSpell;
   if (castingSpell && castingSpell == spellID) {
-    unsigned int timer = *reinterpret_cast<const unsigned int *>(reinterpret_cast<const unsigned char *>(this) + 0x6FC);
+    unsigned int timer = m_spellFizzleTimer;
     ClientKillTimer(timer, SpellFizzleTimer, "SpellFizzleTimer");
     EndSpellEffects(status);
   }
 }
 
 void CGUnit_C::EndSpellEffects(unsigned char status) {
-  int castingSpell = *reinterpret_cast<const int *>(reinterpret_cast<const unsigned char *>(this) + 0x698);
-  *reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(this) + 0x6FC) = 0;
+  int castingSpell = m_castingSpell;
+  m_spellFizzleTimer = 0;
 
   if (castingSpell) {
     UnitEffectClearSpellPrecast(this, castingSpell);
@@ -3377,7 +4044,7 @@ void CGUnit_C::EndSpellEffects(unsigned char status) {
   }
 
   KillSpellLoopedSound();
-  unsigned int torsoState = *reinterpret_cast<const unsigned int *>(reinterpret_cast<const unsigned char *>(this) + 0x6E8);
+  unsigned int torsoState = m_currentTorsoAnimState;
   if (torsoState == 37) {
     unsigned int torsoAnim = GetCurrentTorsoAnim();
     if (torsoAnim == 46 || torsoAnim == 49) {
@@ -3392,7 +4059,7 @@ void CGUnit_C::EndSpellEffects(unsigned char status) {
     }
   }
 
-  FATALASSERT(!*reinterpret_cast<const unsigned int *>(reinterpret_cast<const unsigned char *>(this) + 0x6FC));
+  FATALASSERT(!m_spellFizzleTimer);
 }
 
 NTempest::C3Vector CGUnit_C::GetPosition() const {
@@ -3412,31 +4079,78 @@ float CGUnit_C::GetFacing() const {
 }
 
 void CGUnit_C::AddDeathHold() {
-  ++reinterpret_cast<unsigned int *>(this)[448];
+  ++m_deathHolds;
 }
 
 NTempest::C3Vector CGUnit_C::GetGroundNormal() const {
-  return NTempest::C3Vector(0.0f, 0.0f, 1.0f);
+  return m_movement.m_groundNormal;
 }
 
-void CGUnit_C::DelDeathHold() {
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if (!self[448]) {
+unsigned __int64 CGUnit_C::GetUnitBeingLooted() const {
+  return 0;
+}
+
+void CGUnit_C::GetSwimMatrix(NTempest::C34Matrix *worldMatrix) const {
+  NTempest::C33Matrix rotation;
+  rotation.FromEulerAnglesZYX(-(6.2831855f - GetRenderFacing()), 6.2831855f - m_movement.m_pitch, 0.0f);
+
+  *worldMatrix = NTempest::C34Matrix(
+      rotation.a0, rotation.a1, rotation.a2,
+      rotation.b0, rotation.b1, rotation.b2,
+      rotation.c0, rotation.c1, rotation.c2,
+      0.0f, 0.0f, 0.0f
+  );
+  worldMatrix->Scale(GetScale() * GetRenderScale());
+  NTempest::C3Vector position = GetPosition();
+  worldMatrix->d0 = position.x;
+  worldMatrix->d1 = position.y;
+  worldMatrix->d2 = position.z;
+}
+
+void CGUnit_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
+  HMODEL model = GetObjectModel();
+  float  blendRatio;
+
+  if (m_currentBaseAnim == 1 || m_currentBaseAnim == 99) {
+    blendRatio = ModelGetPrimarySequenceCompletion(model);
+  } else if (
+      (m_movement.m_spline && !(m_movement.m_spline->flags & 4) && (m_movement.m_spline->flags & 0x200)) ||
+      m_currentBaseAnim == 100
+  ) {
+    blendRatio = 1.0f;
+  } else if (m_currentBaseAnim == 101) {
+    blendRatio = 1.0f - ModelGetPrimarySequenceCompletion(model);
+  } else {
+    if ((m_movement.m_moveFlags & 0x02000000) && (m_movement.m_moveFlags & 1)) {
+      GetSwimMatrix(worldMatrix);
+    } else {
+      ModelGetStandingMatrix(model, GetPosition(), GetGroundNormal(), GetRenderFacing(), GetScale() * GetRenderScale(), worldMatrix);
+    }
     return;
   }
 
-  self[493] = m_unit->health;
-  SignalDisplayHealthUpdate();
-  --self[448];
-  if (!m_unit->health) {
-    self[289] = GetTickCount();
+  ModelForceStandingMatrix(
+      model, GetPosition(), GetGroundNormal(), GetRenderFacing(), GetScale() * GetRenderScale(), 2, blendRatio, worldMatrix
+  );
+}
+
+void CGUnit_C::DelDeathHold() {
+  if (!m_deathHolds) {
+    return;
   }
 
-  if (!self[448]) {
+  m_displayHealth = m_unit->health;
+  SignalDisplayHealthUpdate();
+  --m_deathHolds;
+  if (!m_unit->health) {
+    m_lastDeathTime = OsGetAsyncTimeMs();
+  }
+
+  if (!m_deathHolds) {
     m_deathHoldBufferIndices.SetCount(0);
     m_deathHoldBuffer.SetCount(0);
     if (m_unit->health <= 0) {
-      if (!(self[314] & 0x2000)) {
+      if (!(m_animFlags & 0x2000)) {
         Reenable();
         CGGameUI::ClearTarget(GetGUID(), 1);
       }
@@ -3600,12 +4314,12 @@ unsigned int CGUnit_C::IsSlotComponented(unsigned int offset, int ignoreUsingRan
 }
 
 float CGUnit_C::DetermineWalkRunTimeScale(int currentState) {
-  if (!(reinterpret_cast<unsigned int *>(this)[32] & 0xF)) {
+  if (!(m_movement.m_moveFlags & 0xF)) {
     return 1.0f;
   }
 
   float  movementSpeed = m_movement.GetCurrentSpeed();
-  HMODEL model = reinterpret_cast<HMODEL *>(this)[4];
+  HMODEL model = m_model;
   float  animMovementSpeed = 0.0f;
   ModelGetSequenceMoveSpeed(model, ChooseAnimation(currentState), &animMovementSpeed);
   if (fabs(animMovementSpeed) < 0.00000023841858f) {
@@ -3618,12 +4332,11 @@ float CGUnit_C::DetermineWalkRunTimeScale(int currentState) {
 }
 
 void CGUnit_C::UpdateMovementAnimSpeed(int forMount, int currentState) {
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
   if (currentState == -1) {
-    currentState = self[440];
+    currentState = m_currentBaseAnimState;
   }
   if ((m_unit->flags & 0x2000) && forMount) {
-    currentState = self[444];
+    currentState = m_currentMountAnimState;
   }
 
   float scale = 1.0f;
@@ -3634,7 +4347,7 @@ void CGUnit_C::UpdateMovementAnimSpeed(int forMount, int currentState) {
   if ((animFlags & 0x40) || ((animFlags & 0x800) && !(m_animFlags & 4))) {
     scale = -scale;
   }
-  ModelSetTimeScale(reinterpret_cast<HMODEL *>(this)[4], scale, 0);
+  ModelSetTimeScale(m_model, scale, 0);
 }
 
 void CGUnit_C::AttachVirtualComponent(unsigned int slot, bool deferApply) {
@@ -3653,11 +4366,9 @@ void CGUnit_C::AttachVirtualComponent(unsigned int slot, bool deferApply) {
     showHidden = m_unit->weaponMode != WEAPONMODE_RANGED;
   }
 
-  void **vtable = *reinterpret_cast<void ***>(this);
-  typedef const VirtualItemInfo *(CGUnit_C::*GetVirtualItemInfoFn)(unsigned int, unsigned int);
-  GetVirtualItemInfoFn getVirtualItemInfo;
-  memcpy(&getVirtualItemInfo, &vtable[296 / 4], sizeof(getVirtualItemInfo));
-  const VirtualItemInfo *itemInfo = (this->*getVirtualItemInfo)(slot, 0);
+  const VirtualItemInfo *itemInfo = GetType() & TYPE_PLAYER
+      ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(slot, 0)
+      : CGUnit_C::GetVirtualItem(slot, 0);
   if (!itemInfo) {
     return;
   }
@@ -3666,10 +4377,9 @@ void CGUnit_C::AttachVirtualComponent(unsigned int slot, bool deferApply) {
   bool                   forceAlternate = subClass && (subClass->m_flags & 0x20) != 0;
   int                    sheathedAttachmentPoint = SheatheTypeToSheathePoint(itemInfo->m_sheatheType, invSlot);
 
-  typedef int (CGUnit_C::*GetVirtualItemDisplayFn)(unsigned int);
-  GetVirtualItemDisplayFn getVirtualItemDisplay;
-  memcpy(&getVirtualItemDisplay, &vtable[300 / 4], sizeof(getVirtualItemDisplay));
-  int displayID = (this->*getVirtualItemDisplay)(slot);
+  int displayID = GetType() & TYPE_PLAYER
+      ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItemDisplayID(slot)
+      : CGUnit_C::GetVirtualItemDisplayID(slot);
 
   AddObjectComponentBySlot(
       invSlot, displayID, itemInfo->m_inventoryType, forceAlternate, deferApply, false, sheathedAttachmentPoint, showHidden != 0
@@ -3689,7 +4399,7 @@ void CGUnit_C::AttachVirtualMonsterWeapons() {
 
   SetSheatheReason(static_cast<SHEATHEREASONS>(0), m_unit->weaponMode == WEAPONMODE_MELEE, 1);
   if (m_unit->virtualItemDisplay[2]) {
-    SetSheatheReason(static_cast<SHEATHEREASONS>(5), m_unit->weaponMode == WEAPONMODE_RANGED && reinterpret_cast<unsigned int *>(this)[617], 1);
+    SetSheatheReason(static_cast<SHEATHEREASONS>(5), m_unit->weaponMode == WEAPONMODE_RANGED && m_sheatheReasons, 1);
   }
 }
 
@@ -3698,8 +4408,8 @@ void CGUnit_C::RenderDebugPathing() {
   static NTempest::CImVector white(0xFFFFFFFF);
 
   TSGrowableArray<NTempest::C3Vector> &points =
-      *reinterpret_cast<TSGrowableArray<NTempest::C3Vector> *>(reinterpret_cast<unsigned char *>(this) + 0x714);
-  unsigned int &numPathNodes = *reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(this) + 0x728);
+      m_debugPathPoints;
+  unsigned int &numPathNodes = m_numDebugPathNodes;
 
   GxRsPush();
   if (m_modelData && !(m_modelData->m_flags & 4) && (m_modelData->m_flags & 0x200)) {
@@ -3741,7 +4451,7 @@ void CGUnit_C::RenderDebugPathing() {
     HandleClose(greenTex);
   } else {
     const NTempest::C3Vector  halfExtents(0.5f, 0.5f, 1.0f);
-    const NTempest::C3Vector &serverLoc = *reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const unsigned char *>(this) + 0x708);
+    const NTempest::C3Vector &serverLoc = m_serverLoc;
     NTempest::CAaBox          worldBox(serverLoc - halfExtents, serverLoc + halfExtents);
     ProjectTex2d(worldBox, green, 0, 0.5f);
 
@@ -3802,13 +4512,12 @@ bool CGUnit_C::CanAssist(const CGUnit_C *unit) const {
   }
 
   if (player1 && (player1->GetType() & TYPE_PLAYER) && player2 && (player2->GetType() & TYPE_PLAYER)) {
-    const unsigned char *playerData1 = *reinterpret_cast<const unsigned char *const *>(reinterpret_cast<const unsigned char *>(player1) + 2528);
-    const unsigned char *playerData2 = *reinterpret_cast<const unsigned char *const *>(reinterpret_cast<const unsigned char *>(player2) + 2528);
-    unsigned int         duelTeam1 = *reinterpret_cast<const unsigned int *>(playerData1 + 1776);
-    unsigned int         duelTeam2 = *reinterpret_cast<const unsigned int *>(playerData2 + 1776);
+    const CGPlayer_C *playerObject1 = static_cast<const CGPlayer_C *>(player1);
+    const CGPlayer_C *playerObject2 = static_cast<const CGPlayer_C *>(player2);
+    unsigned int      duelTeam1 = playerObject1->GetDuelTeam();
+    unsigned int      duelTeam2 = playerObject2->GetDuelTeam();
     if (duelTeam1 || duelTeam2) {
-      return *reinterpret_cast<const unsigned __int64 *>(playerData1 + 568) == *reinterpret_cast<const unsigned __int64 *>(playerData2 + 568) &&
-             duelTeam1 == duelTeam2;
+      return playerObject1->GetDuelArbiter() == playerObject2->GetDuelArbiter() && duelTeam1 == duelTeam2;
     }
   }
 
@@ -3841,13 +4550,13 @@ bool CGUnit_C::CanAttack(const CGUnit_C *unit) const {
   }
 
   if (player1 && (player1->GetType() & TYPE_PLAYER) && player2 && (player2->GetType() & TYPE_PLAYER)) {
-    const unsigned char *playerData1 = *reinterpret_cast<const unsigned char *const *>(reinterpret_cast<const unsigned char *>(player1) + 2528);
-    const unsigned char *playerData2 = *reinterpret_cast<const unsigned char *const *>(reinterpret_cast<const unsigned char *>(player2) + 2528);
-    unsigned int         duelTeam1 = *reinterpret_cast<const unsigned int *>(playerData1 + 1776);
-    unsigned int         duelTeam2 = *reinterpret_cast<const unsigned int *>(playerData2 + 1776);
+    const CGPlayer_C *playerObject1 = static_cast<const CGPlayer_C *>(player1);
+    const CGPlayer_C *playerObject2 = static_cast<const CGPlayer_C *>(player2);
+    unsigned int      duelTeam1 = playerObject1->GetDuelTeam();
+    unsigned int      duelTeam2 = playerObject2->GetDuelTeam();
 
     if (duelTeam1 || duelTeam2) {
-      if (*reinterpret_cast<const unsigned __int64 *>(playerData1 + 568) != *reinterpret_cast<const unsigned __int64 *>(playerData2 + 568)) {
+      if (playerObject1->GetDuelArbiter() != playerObject2->GetDuelArbiter()) {
         return false;
       }
       return duelTeam1 != duelTeam2;
@@ -3901,7 +4610,7 @@ unsigned int CGUnit_C::IsUnitInGroup(CGUnit_C *unit) {
 }
 
 void CGUnit_C::UpdatePlayerNameColor() {
-  PlayerNameTriggerColorUpdate(reinterpret_cast<HPLAYERNAME__ **>(this)[420]);
+  PlayerNameTriggerColorUpdate(m_unitNameHandle);
 }
 
 static int __fastcall IsInSitSleepPosition(unsigned int animState) {
@@ -3912,7 +4621,7 @@ void CGUnit_C::AddWorldDamageText(unsigned int damage, int normalCombatDamage) {
   if (damage) {
     char buffer[32];
     SStrPrintf(buffer, sizeof(buffer), "%d", damage);
-    HPLAYERNAME__ *name = *reinterpret_cast<HPLAYERNAME__ **>(reinterpret_cast<unsigned char *>(this) + 0x690);
+    HPLAYERNAME__ *name = m_unitNameHandle;
     PlayerNameCreateText(name, WT_DAMAGE, buffer, normalCombatDamage ? 0 : &COLOR_GOLD);
   }
 }
@@ -3921,7 +4630,7 @@ void CGUnit_C::AddWorldCritText(unsigned int damage, int normalCombatDamage) {
   if (damage) {
     char buffer[32];
     SStrPrintf(buffer, sizeof(buffer), "%d", damage);
-    HPLAYERNAME__ *name = *reinterpret_cast<HPLAYERNAME__ **>(reinterpret_cast<unsigned char *>(this) + 0x690);
+    HPLAYERNAME__ *name = m_unitNameHandle;
     PlayerNameCreateText(name, WT_CRIT, buffer, normalCombatDamage ? 0 : &COLOR_GOLD);
   }
 }
@@ -3931,7 +4640,7 @@ void CGUnit_C::AddWorldXPGainText(int xpGain) {
   char buffer[64] = "";
   SStrCopy(buf, FrameScript_GetText("XP", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
   SStrPrintf(buffer, sizeof(buffer), "%s: %d", buf, xpGain);
-  HPLAYERNAME__ *name = *reinterpret_cast<HPLAYERNAME__ **>(reinterpret_cast<unsigned char *>(this) + 0x690);
+  HPLAYERNAME__ *name = m_unitNameHandle;
   PlayerNameCreateText(name, WT_XPGAIN, buffer, 0);
 }
 
@@ -4023,13 +4732,13 @@ UNIT_REACTION CGUnit_C::UnitReaction(const CGUnit_C *unit) const {
   }
 
   if (player1 && (player1->GetType() & TYPE_PLAYER) && player2 && (player2->GetType() & TYPE_PLAYER)) {
-    const unsigned char *playerData1 = *reinterpret_cast<const unsigned char *const *>(reinterpret_cast<const unsigned char *>(player1) + 2528);
-    const unsigned char *playerData2 = *reinterpret_cast<const unsigned char *const *>(reinterpret_cast<const unsigned char *>(player2) + 2528);
-    unsigned int         duelTeam1 = *reinterpret_cast<const unsigned int *>(playerData1 + 1776);
-    unsigned int         duelTeam2 = *reinterpret_cast<const unsigned int *>(playerData2 + 1776);
+    const CGPlayer_C *playerObject1 = static_cast<const CGPlayer_C *>(player1);
+    const CGPlayer_C *playerObject2 = static_cast<const CGPlayer_C *>(player2);
+    unsigned int      duelTeam1 = playerObject1->GetDuelTeam();
+    unsigned int      duelTeam2 = playerObject2->GetDuelTeam();
 
     if (duelTeam1 || duelTeam2) {
-      if (*reinterpret_cast<const unsigned __int64 *>(playerData1 + 568) == *reinterpret_cast<const unsigned __int64 *>(playerData2 + 568)) {
+      if (playerObject1->GetDuelArbiter() == playerObject2->GetDuelArbiter()) {
         return duelTeam1 == duelTeam2 ? UNIT_REACTION_FRIENDLY : UNIT_REACTION_HOSTILE;
       }
       return UNIT_REACTION_HATED;
@@ -4042,7 +4751,7 @@ UNIT_REACTION CGUnit_C::UnitReaction(const CGUnit_C *unit) const {
       return UNIT_REACTION_FRIENDLY;
     }
 
-    if ((*reinterpret_cast<const unsigned int *>(playerData1 + 1368) & 1) && (*reinterpret_cast<const unsigned int *>(playerData2 + 1368) & 1)) {
+    if ((playerObject1->GetPlayerFlags() & 1) && (playerObject2->GetPlayerFlags() & 1)) {
       return UNIT_REACTION_HOSTILE;
     }
 
@@ -4098,7 +4807,7 @@ unsigned int CGUnit_C::GetRunSequence() const {
   if (!(m_unit->flags & 0x2000)) {
     return 5;
   }
-  unsigned int moveFlags = reinterpret_cast<const unsigned int *>(this)[32];
+  unsigned int moveFlags = m_movement.m_moveFlags;
   if ((moveFlags & 0x33) != 0x33) {
     return 5;
   }
@@ -4112,7 +4821,7 @@ unsigned int CGUnit_C::GetRunSequence() const {
 }
 
 unsigned int CGUnit_C::GetStopSequence() const {
-  HMODEL model = reinterpret_cast<HMODEL const *>(this)[4];
+  HMODEL model = m_model;
   if (ModelHasSequenceId(model, 3)) {
     return 3;
   }
@@ -4121,7 +4830,13 @@ unsigned int CGUnit_C::GetStopSequence() const {
 }
 
 void CGUnit_C::UpdateRenderFacing() {
-  m_displayFacing = GetFacing();
+  CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+  CGCamera     *camera = worldFrame->Camera();
+  if (GetGUID() != camera->m_target) {
+    UpdateSmoothFacing();
+  }
+  UpdateDisplayFacing();
+  SetAnimated(1);
 }
 
 float CGUnit_C::GetRenderFacing() const {
@@ -4296,6 +5011,34 @@ const char *CGUnit_C::GetUnitName() const {
   return m_stats ? m_stats->m_name[0] : "Unknown Being";
 }
 
+void CGUnit_C::UpdatePlayerNameWorldText() {
+  PlayerNameUpdateWorldText(m_unitNameHandle);
+}
+
+int CGUnit_C::ShouldRender(unsigned long worldStatus) {
+  if (m_animFlags & 0x8000) {
+    UnitEffectOneShot(SPECIALEFFECT_LEVELUP, GetGUID(), 0, 0.0f, 1.0f, false);
+  }
+  m_animFlags &= ~0x8000U;
+
+  if (!(worldStatus & 1)) {
+    RemoveUnitNamePlate();
+  }
+  if (!(m_flags & 0x100)) {
+    worldStatus &= ~1U;
+  }
+
+  int shouldRender = CGObject_C::ShouldRender(worldStatus);
+  if (m_texComponent && shouldRender && TexComponentCheckSections(m_texComponent, 0)) {
+    if (GetType() & TYPE_PLAYER) {
+      static_cast<CGPlayer_C *>(this)->CGPlayer_C::CommitTexture(0);
+    } else {
+      CGUnit_C::CommitTexture(0);
+    }
+  }
+  return shouldRender;
+}
+
 static unsigned char IsDayTime() {
     // TODO: implement
     return 0;
@@ -4307,7 +5050,7 @@ static unsigned char IsMountSpell(const SpellRec* rec) {
 }
 
 void CGUnit_C::PendingPrecastInterrupt(int spellID) {
-  int &interruptedSpell = *reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(this) + 0x69C);
+  int &interruptedSpell = m_interruptedSpell;
   if (interruptedSpell && !spellID) {
     SpellVisualsHandleCastStop(interruptedSpell, this, 2, 0);
   }
@@ -4315,10 +5058,9 @@ void CGUnit_C::PendingPrecastInterrupt(int spellID) {
 }
 
 void CGUnit_C::StoreXPGain(int XP) {
-  int *self = reinterpret_cast<int *>(this);
-  self[421] += XP;
-  unsigned int animFlags = self[314];
-  self[313] |= 0x80;
+  m_accumulatedXPDrop += XP;
+  unsigned int animFlags = m_animFlags;
+  m_flags |= 0x80;
   if (animFlags & 0x2000) {
     ShowPlayerXPGained();
   }
@@ -4326,11 +5068,10 @@ void CGUnit_C::StoreXPGain(int XP) {
 
 void CGUnit_C::UpdateInteractIcon(QUEST_GIVER_STATUS status) {
   FATALASSERT(status < QUEST_GIVER_NUMITEMS);
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if (s_questIconInfo[status] != s_questIconInfo[self[449]]) {
+  if (s_questIconInfo[status] != s_questIconInfo[m_questGiverStatus]) {
     UpdateInteractIcon(s_questIconInfo[status]);
   }
-  self[449] = status;
+  m_questGiverStatus = status;
 }
 
 void CGUnit_C::UpdateInteractIcon(INTERACTICONTYPE which) {
@@ -4341,11 +5082,9 @@ void CGUnit_C::UpdateInteractIcon(INTERACTICONTYPE which) {
     FATALASSERT(s_interactIconModelInfo[index].model);
     m_interactIconModel = ModelDuplicate(s_interactIconModelInfo[index].model, 0);
     if (m_interactIconModel) {
-      typedef int (CGUnit_C::*ShouldRenderUnitNameProc)(unsigned int) const;
-      ShouldRenderUnitNameProc shouldRenderUnitName;
-      void                   **vtable = *reinterpret_cast<void ***>(this);
-      memcpy(&shouldRenderUnitName, &vtable[0x130 / sizeof(void *)], sizeof(shouldRenderUnitName));
-      int renderName = (this->*shouldRenderUnitName)(PlayerNameGetUnitNameMode());
+      int renderName = GetType() & TYPE_PLAYER
+          ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::ShouldRenderUnitName(PlayerNameGetUnitNameMode())
+          : CGUnit_C::ShouldRenderUnitName(PlayerNameGetUnitNameMode());
       ModelSetSequence(m_interactIconModel, renderName != 0, 0);
 
       HMODEL charModel = GetCharacterModel(0);
@@ -4367,7 +5106,7 @@ void CGUnit_C::OnNPCGoodbye() {
 
 void CGUnit_C::QueueBloodSplat(BLOODSPURTLOCATION linkPoint) {
   BLOODSPLATNODE *node = NewBloodSplatNode();
-  node->time = GetTickCount() + 500;
+  node->time = OsGetAsyncTimeMs() + 500;
 
   float               y = NTempest::CRandom::reals_(g_rndSeed) / 6.0f;
   float               x = NTempest::CRandom::reals_(g_rndSeed) / 6.0f;
@@ -4405,7 +5144,7 @@ UnitBloodRec *CGUnit_C::GetBloodRecord() {
 }
 
 void CGUnit_C::HandleCastAnimEvent() {
-  int &castKit = reinterpret_cast<int *>(this)[395];
+  unsigned int &castKit = m_spellCastingEffectKit;
   if (castKit) {
     SpellVisualKitRec *kitRec = g_spellVisualKitDB.GetRecord(castKit);
     if (kitRec) {
@@ -4418,7 +5157,7 @@ void CGUnit_C::HandleCastAnimEvent() {
 void CGUnit_C::OnCharmedChanged() {
   unsigned __int64 guid = GetGUID();
   CGGameUI::UnitNameUpdate(guid);
-  HPLAYERNAME__ *unitNameHandle = *reinterpret_cast<HPLAYERNAME__ **>(reinterpret_cast<unsigned char *>(this) + 0x690);
+  HPLAYERNAME__ *unitNameHandle = m_unitNameHandle;
   if (unitNameHandle) {
     PlayerNameTriggerColorUpdate(unitNameHandle);
   }
@@ -4427,38 +5166,30 @@ void CGUnit_C::OnCharmedChanged() {
 }
 
 void CGUnit_C::CheckPendingMissileRelease(const NTempest::C3Vector *position) {
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if (self[396]) {
-    SndInterfacePlaySpellSound(self[396], this);
-    self[396] = 0;
+  if (m_spellCastingSoundID) {
+    SndInterfacePlaySpellSound(m_spellCastingSoundID, this);
+    m_spellCastingSoundID = 0;
   }
 
-  if (self[397]) {
+  if (m_spellCastingCameraShakeID) {
     NTempest::C3Vector effectPosition = position ? *position : GetPosition();
-    SpellVisualsPlayCameraShakeID(self[397], effectPosition);
-    self[397] = 0;
+    SpellVisualsPlayCameraShakeID(m_spellCastingCameraShakeID, effectPosition);
+    m_spellCastingCameraShakeID = 0;
   }
 
-  if (self[398]) {
-    if (self[409]) {
+  if (m_spellMissileStruct.caster) {
+    if (m_spellMissileStruct.ammoDisplayID) {
       if (!(GetType() & TYPE_PLAYER)) {
         ThrownMissileReleased();
       } else {
-        typedef unsigned long **(CGUnit_C::*GetDataProc)();
-        GetDataProc getData;
-        void      **vtable = *reinterpret_cast<void ***>(this);
-        memcpy(&getData, &vtable[3], sizeof(getData));
-        unsigned long  **data = (this->*getData)();
-        unsigned __int64 itemGUID = 0;
-        if (**data > 17) {
-          itemGUID = *reinterpret_cast<unsigned __int64 *>(reinterpret_cast<unsigned char *>(data[1]) + 136);
-        }
+        CGBag_C         *bag = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetBag();
+        unsigned __int64 itemGUID = bag->GetItem(17);
         CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
         if (item) {
           if (item->GetInventoryType() == 25) {
             ThrownMissileReleased();
           } else {
-            self[313] |= 0x800;
+            m_flags |= 0x800;
             SetRangedWeaponReleaseAnim();
           }
         }
@@ -4472,16 +5203,14 @@ void CGUnit_C::CheckPendingMissileRelease(const NTempest::C3Vector *position) {
       missilePosition = GetPosition();
       missilePosition.z += 1.0f;
     }
-    self[402] = *reinterpret_cast<unsigned int *>(&missilePosition.x);
-    self[403] = *reinterpret_cast<unsigned int *>(&missilePosition.y);
-    self[404] = *reinterpret_cast<unsigned int *>(&missilePosition.z);
+    m_spellMissileStruct.startPosition = missilePosition;
 
     int durationOffset = 0;
-    if (self[442] == 38) {
-      durationOffset = GetTickCount() - self[424];
+    if (m_currentTorsoAnimState == 38) {
+      durationOffset = OsGetAsyncTimeMs() - m_lastSpellCastAnimTime;
     }
-    UnitEffectAddMissile(*reinterpret_cast<MISSILESTRUCT *>(self + 398), durationOffset < 0 ? 0 : durationOffset);
-    self[398] = 0;
+    UnitEffectAddMissile(m_spellMissileStruct, durationOffset < 0 ? 0 : durationOffset);
+    m_spellMissileStruct.caster = 0;
   }
 
   HandleCastAnimEvent();
@@ -4497,17 +5226,13 @@ void CGUnit_C::ThrownMissileReleased() {
 }
 
 void CGUnit_C::CheckPendingThrownWeaponReattach(unsigned int force) {
-  typedef int (CGUnit_C::*GetVirtualItemDisplayIDFn)(unsigned int);
-  typedef VirtualItemInfo *(CGUnit_C::*GetVirtualItemFn)(unsigned int, unsigned int);
-  void                    **vtable = *reinterpret_cast<void ***>(this);
-  GetVirtualItemDisplayIDFn getVirtualItemDisplayID;
-  GetVirtualItemFn          getVirtualItem;
-  memcpy(&getVirtualItemDisplayID, &vtable[0x12C / 4], sizeof(getVirtualItemDisplayID));
-  memcpy(&getVirtualItem, &vtable[0x128 / 4], sizeof(getVirtualItem));
-
-  int              displayID = (this->*getVirtualItemDisplayID)(2);
-  VirtualItemInfo *itemInfo = (this->*getVirtualItem)(2, 0);
-  unsigned int    &flags = *reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(this) + 0x4E4);
+  int displayID = GetType() & TYPE_PLAYER
+      ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItemDisplayID(2)
+      : CGUnit_C::GetVirtualItemDisplayID(2);
+  const VirtualItemInfo *itemInfo = GetType() & TYPE_PLAYER
+      ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(2, 0)
+      : CGUnit_C::GetVirtualItem(2, 0);
+  unsigned int    &flags = m_flags;
   if ((force || (flags & 0x20000)) && displayID && itemInfo) {
     const ItemSubClassRec *subClass = SDBItemSubclassGetSubClassRec(itemInfo->m_classID, itemInfo->m_subclassID);
     unsigned int           forceAlternate = subClass && (subClass->m_flags & 0x20);
@@ -4558,40 +5283,41 @@ void CGUnit_C::UpdateDisplayInfo() {
     return;
   }
 
-  void **vtable = *reinterpret_cast<void ***>(this);
-  typedef void (CGUnit_C::*CleanupUnitArtworkFn)(int, int);
-  CleanupUnitArtworkFn cleanupUnitArtwork;
-  memcpy(&cleanupUnitArtwork, &vtable[0x150 / 4], sizeof(cleanupUnitArtwork));
-  (this->*cleanupUnitArtwork)(playerModelChanged, wasPlayerModel);
+  if (GetType() & TYPE_PLAYER) {
+    static_cast<CGPlayer_C *>(this)->CGPlayer_C::CleanupUnitArtwork(playerModelChanged, wasPlayerModel);
+  } else {
+    CGUnit_C::CleanupUnitArtwork(playerModelChanged, wasPlayerModel);
+  }
 
   RefreshDataPointers();
 
-  typedef void (CGUnit_C::*ArtworkFn)();
-  ArtworkFn reinitializeUnitArtwork;
-  memcpy(&reinitializeUnitArtwork, &vtable[0x154 / 4], sizeof(reinitializeUnitArtwork));
-  (this->*reinitializeUnitArtwork)();
+  if (GetType() & TYPE_PLAYER) {
+    static_cast<CGPlayer_C *>(this)->CGPlayer_C::ReinitializeUnitArtwork();
+  } else {
+    CGUnit_C::ReinitializeUnitArtwork();
+  }
 
   InitializeExtendedDisplay();
   AttachVirtualMonsterWeapons();
   InitializeNPCItems();
 
-  ArtworkFn postReinitializeArtwork;
-  memcpy(&postReinitializeArtwork, &vtable[0x158 / 4], sizeof(postReinitializeArtwork));
-  (this->*postReinitializeArtwork)();
-
-  void *geosetHandle = *reinterpret_cast<void **>(reinterpret_cast<unsigned char *>(this) + 0x770);
-  if (geosetHandle) {
-    CharCustomizationCommitItemGeosets(reinterpret_cast<HCHARGEOSET>(geosetHandle), 0);
+  if (GetType() & TYPE_PLAYER) {
+    static_cast<CGPlayer_C *>(this)->CGPlayer_C::PostReinitializeArtwork();
+  } else {
+    CGUnit_C::PostReinitializeArtwork();
   }
 
-  SpellRec *pendingShapeshift = *reinterpret_cast<SpellRec **>(reinterpret_cast<unsigned char *>(this) + 0x9D4);
-  if (pendingShapeshift) {
-    SpellVisualRec    *visual = g_spellVisualDB.GetRecord(pendingShapeshift->m_spellVisualID);
+  if (m_geosetHandle) {
+    CharCustomizationCommitItemGeosets(m_geosetHandle, 0);
+  }
+
+  if (m_shapeShiftPoof) {
+    SpellVisualRec    *visual = g_spellVisualDB.GetRecord(m_shapeShiftPoof->m_spellVisualID);
     SpellVisualKitRec *stateKit = visual ? g_spellVisualKitDB.GetRecord(visual->m_stateKit) : 0;
     if (stateKit) {
-      PlayImpactKit(pendingShapeshift->m_ID, stateKit);
+      PlayImpactKit(m_shapeShiftPoof->m_ID, stateKit);
     }
-    *reinterpret_cast<SpellRec **>(reinterpret_cast<unsigned char *>(this) + 0x9D4) = 0;
+    m_shapeShiftPoof = 0;
   }
 
   ReinitializePaperdollModel();
@@ -4722,10 +5448,10 @@ void CGUnit_C::StandStateChanged(unsigned int oldState) {
   if ((IsInStandSitTransition() || IsInSitSleepPosition()) && (!newState || oldState)) {
     PlayEmoteAnimation(s_standStateEndEmote[oldState], 0);
   }
-  if (newState || !(reinterpret_cast<unsigned int *>(this)[32] & 0x40FF)) {
+  if (newState || !(m_movement.m_moveFlags & 0x40FF)) {
     PlayEmoteAnimation(s_standStateStartEmote[newState], 0);
   }
-  if (reinterpret_cast<unsigned int *>(this)[442] == 46) {
+  if (m_currentTorsoAnimState == 46) {
     ClearTorsoAnimation(64);
   }
 }
@@ -4776,12 +5502,8 @@ void CGUnit_C::NPCFlagChanged(unsigned int oldNPCFlags) {
 
 void CGUnit_C::WeaponModeChanged() {
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
-    typedef void (CGUnit_C::*SetWeaponModeFn)(WEAPONMODE);
-    SetWeaponModeFn setWeaponMode;
-    void          **vtable = *reinterpret_cast<void ***>(this);
-    memcpy(&setWeaponMode, &vtable[0x194 / 4], sizeof(setWeaponMode));
-    (this->*setWeaponMode)(static_cast<WEAPONMODE>(-1));
-    if (!SheatheAnimPlaying() || (reinterpret_cast<const unsigned char *>(this)[0x4EA] & 1)) {
+    static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetLastWeaponModeSent(-1);
+    if (!SheatheAnimPlaying() || (m_animFlags & 0x10000)) {
       UpdateSheatheRangedReasons(1);
     }
   } else {
@@ -4816,7 +5538,7 @@ void CGUnit_C::HandlePrecastStop(int spellID, unsigned int force) {
   SpellVisualRec    *visualRec = spellRec ? g_spellVisualDB.GetRecord(spellRec->m_spellVisualID) : 0;
   SpellVisualKitRec *kitRec = visualRec ? g_spellVisualKitDB.GetRecord(visualRec->m_castKit) : 0;
   if (kitRec && kitRec->m_anim != -1 && !force) {
-    m_precastSheatheHoldTimer = GetTickCount() + 1000;
+    m_precastSheatheHoldTimer = OsGetAsyncTimeMs() + 1000;
   } else {
     SetSheatheReason(SHEATHEREASON_PRECAST, 0, 1);
     m_precastSheatheHoldTimer = -1;
@@ -4841,6 +5563,58 @@ void CGUnit_C::RecycleAnimNode(ANIMQUEUENODE *node) {
   }
 }
 
+void CGUnit_C::ProcessDiscardedAnim(ANIMQUEUENODE *node, bool doNotProcess) {
+  FATALASSERT(node);
+  FATALASSERT(node->type < ANIMQUEUE_NUMTYPES);
+
+  if (node->type == ANIMQUEUE_ATTACK && !doNotProcess) {
+    CGUnit_C *victim = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(node->roundInfo.victim, __FILE__, __LINE__));
+    if (victim) {
+      victim->DoVictimFeedback(&node->roundInfo, 0);
+    } else {
+      CGUnit_C *activePlayer =
+          static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (activePlayer) {
+        activePlayer->DDGENLOG(GetGUID(), "WARNING discarding attack queue with no victimptr!", __FILE__, __LINE__);
+      }
+    }
+  } else if (
+      node->type == ANIMQUEUE_SITDOWN || node->type == ANIMQUEUE_SITUP || node->type == ANIMQUEUE_SLEEPDOWN ||
+      node->type == ANIMQUEUE_SLEEPUP || node->type == ANIMQUEUE_SITCHAIR || node->type == ANIMQUEUE_SITCHAIRUP ||
+      node->type == ANIMQUEUE_SITCHAIRLOW || node->type == ANIMQUEUE_SITCHAIRMEDIUM ||
+      node->type == ANIMQUEUE_SITCHAIRHIGH || node->type == ANIMQUEUE_KNEELDOWN || node->type == ANIMQUEUE_KNEELUP
+  ) {
+    m_flags &= ~0x40000u;
+  }
+
+  RecycleAnimNode(node);
+}
+
+void CGUnit_C::PurgeAnimNodes(bool doNotProcess) {
+  while (ANIMQUEUENODE *node = m_animQueue.Head()) {
+    ProcessDiscardedAnim(node, doNotProcess);
+  }
+}
+
+void CGUnit_C::SpellAnimHit(int spellID) {
+  for (unsigned int slot = 0; slot < 56; ++slot) {
+    if (m_unit->auras[slot] == spellID && !m_auraFlags[slot]) {
+      AddAuraEffect(slot, 1);
+    }
+  }
+}
+
+void CGUnit_C::CheckPendingSpellAnimHits() {
+  for (unsigned int count = m_pendingHitAnimVictims.Count(); count; --count) {
+    CGUnit_C *victim =
+        static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_pendingHitAnimVictims[count - 1], __FILE__, __LINE__));
+    if (victim && victim->IsA(TYPE_UNIT)) {
+      victim->SpellAnimHit(m_pendingHitSpellID);
+    }
+  }
+  m_pendingHitAnimVictims.Clear();
+}
+
 static unsigned char NodesSame(const ANIMQUEUENODE* current, const ANIMQUEUENODE* next) {
     // TODO: implement
     return 0;
@@ -4862,24 +5636,24 @@ bool CGUnit_C::SetSpellPreCastingAnimation(ANIMENUMERATION anim) {
       sequence = 31;
     }
     HandleClose(charModel);
-    reinterpret_cast<unsigned int *>(this)[390] = sequence;
+    m_spellPrecastingAnim = static_cast<ANIMENUMERATION>(sequence);
     return result;
   }
 
-  reinterpret_cast<unsigned int *>(this)[392] = anim;
+  m_deferredPrecastAnim = anim;
   return false;
 }
 
 void CGUnit_C::SetSpellImpactKit(const SpellVisualKitRec *impactKit) {
   if (impactKit && impactKit->m_anim >= 1) {
-    reinterpret_cast<unsigned int *>(this)[277] = impactKit->m_anim;
+    m_pendingImpactAnim = static_cast<ANIMENUMERATION>(impactKit->m_anim);
     SetTorsoAnimation(47, 0, 0);
   }
 }
 
 int CGUnit_C::PlayEmoteAnimation(unsigned int emoteID, int flags) {
   EmotesRec *emote = g_emotesDB.GetRecord(emoteID);
-  if (!emote || m_unit->standState == 3 || (emote->m_EmoteFlags & 2) || (reinterpret_cast<const unsigned int *>(this)[32] & 0x2000000)) {
+  if (!emote || m_unit->standState == 3 || (emote->m_EmoteFlags & 2) || (m_movement.m_moveFlags & 0x2000000)) {
     return 0;
   }
   return SetEmoteAnimation(emoteID, flags);
@@ -4889,7 +5663,7 @@ void CGUnit_C::RequestTalkEmote(TALKANIMATION talkAnim) {
   FATALASSERT(talkAnim < TALKANIM_NUMTALKANIMS);
 
   EmotesRec *emote = s_talkEmotes[talkAnim];
-  if (emote && !(reinterpret_cast<unsigned int *>(this)[32] & 0x2000000) && SetEmoteAnimation(emote->m_ID, 0) && (emote->m_EmoteFlags & 0x800)) {
+  if (emote && !(m_movement.m_moveFlags & 0x2000000) && SetEmoteAnimation(emote->m_ID, 0) && (emote->m_EmoteFlags & 0x800)) {
     SetSheatheReason(SHEATHEREASON_6, 1, 1);
   }
 }
@@ -4941,7 +5715,7 @@ void CGUnit_C::UnregisterScript() {
 }
 
 int CGUnit_C::SetEmoteAnimation(unsigned int emoteID, int flags) {
-  reinterpret_cast<unsigned int *>(this)[394] = emoteID;
+  m_emoteID = emoteID;
   return SetTorsoAnimation(46, 0, flags);
 }
 
@@ -4960,7 +5734,7 @@ void CGUnit_C::SetEmoteQueue(TSStackArray<QUESTGIVEREMOTENODE> &list) {
 
 void CGUnit_C::SetEmoteQueue(const QUESTGIVEREMOTENODE *list, unsigned int num) {
   TSGrowableArray<QUESTGIVEREMOTENODE> &queue =
-      *reinterpret_cast<TSGrowableArray<QUESTGIVEREMOTENODE> *>(reinterpret_cast<unsigned char *>(this) + 1164);
+      m_emoteQueue;
   queue.SetCount(0);
 
   EMOTESPECPROCS proc = EMOTESPECPROC_0;
@@ -4972,7 +5746,7 @@ void CGUnit_C::SetEmoteQueue(const QUESTGIVEREMOTENODE *list, unsigned int num) 
   }
 
   if (queue.Count()) {
-    queue[queue.Count() - 1].delay += GetTickCount();
+    queue[queue.Count() - 1].delay += OsGetAsyncTimeMs();
   }
 }
 
@@ -5015,7 +5789,7 @@ unsigned int CGUnit_C::FacialHairID() const {
 
 void CGUnit_C::InitPreferredGeosets() {
   FATALASSERT(m_displayInfoExtra);
-  unsigned int *preferredGeosets = reinterpret_cast<unsigned int *>(this) + 478;
+  unsigned int *preferredGeosets = m_preferredGeosets;
   memset(preferredGeosets, 0, 15 * sizeof(*preferredGeosets));
   preferredGeosets[CGS_HAIR] = HairStyleID();
 
@@ -5030,7 +5804,7 @@ void CGUnit_C::InitPreferredGeosets() {
 }
 
 void CGUnit_C::InitializeNPCItems() {
-  if ((m_obj->m_type & TYPE_PLAYER) || !reinterpret_cast<unsigned int *>(this)[476] || !m_displayInfoExtra) {
+  if ((m_obj->m_type & TYPE_PLAYER) || !m_geosetHandle || !m_displayInfoExtra) {
     return;
   }
 
@@ -5039,10 +5813,10 @@ void CGUnit_C::InitializeNPCItems() {
 
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
-  HCHARGEOSET geosetHandle = reinterpret_cast<HCHARGEOSET *>(this)[476];
+  HCHARGEOSET geosetHandle = m_geosetHandle;
   FATALASSERT(geosetHandle);
-  HTEXCOMPONENT texComponent = reinterpret_cast<HTEXCOMPONENT *>(this)[477];
-  unsigned int *preferredGeosets = reinterpret_cast<unsigned int *>(this) + 478;
+  HTEXCOMPONENT texComponent = m_texComponent;
+  unsigned int *preferredGeosets = m_preferredGeosets;
 
   for (unsigned int i = 0; i < 10; ++i) {
     int displayID = m_displayInfoExtra->m_NPCItemDisplay[i];
@@ -5080,9 +5854,8 @@ void CGUnit_C::SignalDisplayHealthUpdate() const {
 }
 
 void CGUnit_C::UpdateDisplayHealth() {
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if (!self[448]) {
-    self[493] = m_unit->health;
+  if (!m_deathHolds) {
+    m_displayHealth = m_unit->health;
     SignalDisplayHealthUpdate();
   }
 }
@@ -5141,7 +5914,7 @@ void CGUnit_C::SetImpactKitEffect(int spellID, CGUnit_C *target, const SpellVisu
         desc->Set(GetGUID(), target->GetGUID(), impactKit, spellID);
       }
       typedef TSList<IMPACTEFFECTDESC, TSGetLink<IMPACTEFFECTDESC> > ImpactList;
-      ImpactList &impactEffects = *reinterpret_cast<ImpactList *>(reinterpret_cast<unsigned char *>(this) + 0x7BC);
+      ImpactList &impactEffects = m_impactEffectsDesc;
       impactEffects.LinkNode(desc, LIST_TAIL, 0);
     }
   }
@@ -5168,15 +5941,14 @@ void CGUnit_C::NPCAnimEndHandler() {
 }
 
 void CGUnit_C::PickNextRunHandler() {
-  const unsigned int *self = reinterpret_cast<const unsigned int *>(this);
-  if (((m_unit->flags & 0x2000) && (reinterpret_cast<const unsigned char *>(this)[1252] & 0x10) && self[444] == 6) || self[440] == 6) {
+  if (((m_unit->flags & 0x2000) && (m_flags & 0x10) && m_currentMountAnimState == 6) || m_currentBaseAnimState == 6) {
     UpdateBaseAnimation(6, 0x100);
   }
 }
 
 void CGUnit_C::CheckPendingImpactKit() {
   typedef TSList<IMPACTEFFECTDESC, TSGetLink<IMPACTEFFECTDESC> > ImpactList;
-  ImpactList       &impactEffects = *reinterpret_cast<ImpactList *>(reinterpret_cast<unsigned char *>(this) + 0x7BC);
+  ImpactList       &impactEffects = m_impactEffectsDesc;
   IMPACTEFFECTDESC *head;
   while ((head = impactEffects.Head()) != 0) {
     head->Unlink();
@@ -5191,7 +5963,7 @@ void CGUnit_C::CheckPendingImpactKit() {
 }
 
 void CGUnit_C::SpellAnimEndHandler() {
-  unsigned int state = reinterpret_cast<const unsigned int *>(this)[442];
+  unsigned int state = m_currentTorsoAnimState;
   if (state == 38 || state == 47 || state == 62 || state == 63) {
     ClearTorsoAnimation(0x40);
   }
@@ -5220,10 +5992,10 @@ void CGUnit_C::AddSpellProcAuraEffect(int auraslot, const SpellVisualKitRec *rec
   newDesc->isOneShot = 0;
 
   unsigned int     spellID;
-  SpellEffectList &list = *reinterpret_cast<SpellEffectList *>(reinterpret_cast<unsigned char *>(this) + 1988 + proc * 12);
+  SpellEffectList &list = m_spellEffectLists[proc];
   if (auraslot == -1) {
     spellID = m_unit->channelSpell;
-    SPELLEFFECTDESC **channelEffect = reinterpret_cast<SPELLEFFECTDESC **>(reinterpret_cast<unsigned char *>(this) + 2512);
+    SPELLEFFECTDESC **channelEffect = &m_channelSpellEffect;
     FATALASSERT(!*channelEffect);
     *channelEffect = newDesc;
   } else {
@@ -5244,7 +6016,7 @@ void CGUnit_C::RemoveSpellProcAuraEffect(ACTIVEAURAINFO *rec) {
   const SpellVisualKitRec *kitRec = 0;
 
   if (!rec) {
-    SPELLEFFECTDESC **channelEffect = reinterpret_cast<SPELLEFFECTDESC **>(reinterpret_cast<unsigned char *>(this) + 2512);
+    SPELLEFFECTDESC **channelEffect = &m_channelSpellEffect;
     desc = *channelEffect;
     *channelEffect = 0;
     if (!desc) {
@@ -5286,7 +6058,7 @@ void CGUnit_C::RemoveSpellProcAuraEffect(ACTIVEAURAINFO *rec) {
 
   SpellProcHandler handler = s_spellProcHandlerFunctions[proc];
   if (handler) {
-    SpellEffectList &list = *reinterpret_cast<SpellEffectList *>(reinterpret_cast<unsigned char *>(this) + 1988 + proc * 12);
+    SpellEffectList &list = m_spellEffectLists[proc];
     handler(SPELLPROCREMOVE, list, this, charModel, kitRec, desc, 0, 0.0f);
   }
   HandleClose(charModel);
@@ -5303,7 +6075,7 @@ void CGUnit_C::DeathAnimEndHandler() {
   }
 
   if (!m_unit->emoteState) {
-    reinterpret_cast<unsigned int *>(this)[435] = GetTickCount();
+    m_deathTime = OsGetAsyncTimeMs();
     HMODEL charModel = GetCharacterModel(0);
     FATALASSERT(charModel);
     unsigned int anim = (m_animFlags & 0x400) && IsUnderWater() ? 132 : 6;
@@ -5317,7 +6089,7 @@ SPELLEFFECTDESC *CGUnit_C::FindSpellEffectProcDesc(const SpellVisualKitRec *rec)
   if (proc >= 11) {
     return 0;
   }
-  SpellEffectList &list = *reinterpret_cast<SpellEffectList *>(reinterpret_cast<unsigned char *>(this) + 1988 + proc * 12);
+  SpellEffectList &list = m_spellEffectLists[proc];
   for (SPELLEFFECTDESC *desc = list.Head(); desc; desc = desc->Next()) {
     if (desc->kitPtr == rec) {
       return desc;
@@ -5327,25 +6099,17 @@ SPELLEFFECTDESC *CGUnit_C::FindSpellEffectProcDesc(const SpellVisualKitRec *rec)
 }
 
 int CGUnit_C::JumpTakeOffFinishedHandler() {
-  ObjectModelSetSequence(reinterpret_cast<HMODEL *>(this)[4], ANIM_JUMP, GetObjAnimFlags(2), 0);
+  ObjectModelSetSequence(m_model, ANIM_JUMP, GetObjAnimFlags(2), 0);
   return 1;
 }
 
 int CGUnit_C::JumpLandFinishedHandler() {
-  typedef void (CGUnit_C::*SetBaseAnimStateProc)(unsigned int);
-  SetBaseAnimStateProc setBaseAnimState;
-  void               **vtable = *reinterpret_cast<void ***>(this);
-  memcpy(&setBaseAnimState, &vtable[0x110 / sizeof(void *)], sizeof(setBaseAnimState));
-  (this->*setBaseAnimState)(0);
+  CGUnit_C::UpdateBaseAnimation(0);
   return 1;
 }
 
 void CGUnit_C::SitSleepAnimEndHandler() {
-  typedef void (CGUnit_C::*SetBaseAnimStateProc)(unsigned int);
-  SetBaseAnimStateProc setBaseAnimState;
-  void               **vtable = *reinterpret_cast<void ***>(this);
-  memcpy(&setBaseAnimState, &vtable[0x110 / sizeof(void *)], sizeof(setBaseAnimState));
-  (this->*setBaseAnimState)(0);
+  CGUnit_C::UpdateBaseAnimation(0);
 }
 
 void CGUnit_C::InternalProcessSpellProcEffects(SPELLPROC_ACTION action, float elapsed) {
@@ -5356,7 +6120,7 @@ void CGUnit_C::InternalProcessSpellProcEffects(SPELLPROC_ACTION action, float el
 
   for (unsigned int proc = 0; proc < 11; ++proc) {
     SpellProcHandler handler = s_spellProcHandlerFunctions[proc];
-    SpellEffectList &list = *reinterpret_cast<SpellEffectList *>(reinterpret_cast<unsigned char *>(this) + 1988 + proc * 12);
+    SpellEffectList &list = m_spellEffectLists[proc];
     if (handler && list.Head()) {
       handler(action, list, this, charModel, 0, 0, 0, elapsed);
     }
@@ -5373,7 +6137,7 @@ void CGUnit_C::UpdateSpellProcEffects(float elapsedTime) {
 }
 
 void CGUnit_C::AddEmissiveColor(const NTempest::CImVector &color) {
-  int *current = reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(this) + 0x848);
+  int *current = reinterpret_cast<int *>(&m_currentEmissive);
   current[0] += color.r;
   current[1] += color.g;
   current[2] += color.b;
@@ -5389,7 +6153,7 @@ void CGUnit_C::AddEmissiveColor(const NTempest::CImVector &color) {
 }
 
 void CGUnit_C::RemoveEmissiveColor(const NTempest::CImVector &color) {
-  int *current = reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(this) + 0x848);
+  int *current = reinterpret_cast<int *>(&m_currentEmissive);
   current[0] -= color.r;
   current[1] -= color.g;
   current[2] -= color.b;
@@ -5467,14 +6231,14 @@ int CGUnit_C::GetSpellRank(int spellID) {
 
 void CGUnit_C::OnLevelChange() {
   if (ShouldDelayLevelupAnim()) {
-    reinterpret_cast<unsigned int *>(this)[314] |= 0x4000;
+    m_animFlags |= 0x4000;
   } else {
     PerformLevelUpAnim(1);
   }
 }
 
 void CGUnit_C::PerformLevelUpAnim(int force) {
-  unsigned int &flags = reinterpret_cast<unsigned int *>(this)[314];
+  unsigned int &flags = m_animFlags;
   if (force || (flags & 0x4000)) {
     flags |= 0x8000;
   }
@@ -5505,7 +6269,7 @@ void CGUnit_C::AddWorldText(WORLDTEXTMISSTYPE type) {
   FATALASSERT(type < WORLDTEXTMISS_NUMTYPES);
   char buf[64] = "";
   SStrCopy(buf, FrameScript_GetText(s_worldTextInfo[type].string, -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-  HPLAYERNAME__ *name = *reinterpret_cast<HPLAYERNAME__ **>(reinterpret_cast<unsigned char *>(this) + 0x690);
+  HPLAYERNAME__ *name = m_unitNameHandle;
   PlayerNameCreateText(name, s_worldTextInfo[type].type, buf, 0);
 }
 
@@ -5610,12 +6374,12 @@ void CGUnit_C::SetRangedWeaponReleaseAnim() {
 void CGUnit_C::SetBaseAnim(unsigned int newAnim) {
   SetSheatheReason(SHEATHEREASON_3, AnimSheathesWeapon(newAnim), 0);
   FATALASSERT(newAnim != NUM_OBJECTANIMATIONS);
-  reinterpret_cast<unsigned int *>(this)[441] = newAnim;
+  m_currentBaseAnim = newAnim;
 }
 
 void CGUnit_C::SetTorsoAnim(unsigned int newAnim) {
   SetSheatheReason(SHEATHEREASON_4, AnimSheathesWeapon(newAnim), 0);
-  reinterpret_cast<unsigned int *>(this)[443] = newAnim;
+  m_currentTorsoAnim = newAnim;
 }
 
 static const char *const s_animQueueNames[15] = {"ANIMQUEUE_NONE",        "ANIMQUEUE_ATTACK",         "ANIMQUEUE_WOUND",
@@ -5651,11 +6415,11 @@ HMODEL CGUnit_C::GetRangedWeaponModel() {
     return 0;
   }
 
-  typedef const void *(CGUnit_C::*GetItemStatsProc)(int, unsigned int);
-  GetItemStatsProc getItemStats;
-  void           **vtable = *reinterpret_cast<void ***>(this);
-  memcpy(&getItemStats, &vtable[74], sizeof(getItemStats));
-  const unsigned char *itemStats = static_cast<const unsigned char *>((this->*getItemStats)(2, 0));
+  const unsigned char *itemStats = reinterpret_cast<const unsigned char *>(
+      GetType() & TYPE_PLAYER
+          ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(2, 0)
+          : CGUnit_C::GetVirtualItem(2, 0)
+  );
 
   unsigned int linkPoint;
   if (!itemStats || itemStats[3] == 25) {
@@ -5682,7 +6446,7 @@ HMODEL CGUnit_C::GetRangedWeaponModel() {
 }
 
 void CGUnit_C::ClearRangedStandTimer() {
-  unsigned int &timer = *reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(this) + 0x960);
+  unsigned int &timer = m_rangedStandTimer;
   if (timer) {
     ClientKillTimer(timer, RangedStandTimerHandler, "RangedStandTimerHandler");
     timer = 0;
@@ -5690,15 +6454,10 @@ void CGUnit_C::ClearRangedStandTimer() {
 }
 
 void CGUnit_C::OnRangedStandTimer() {
-  unsigned char *self = reinterpret_cast<unsigned char *>(this);
-  *reinterpret_cast<unsigned int *>(self + 0x960) = 0;
+  m_rangedStandTimer = 0;
   DetermineReadySequence(1);
-  if (*reinterpret_cast<unsigned int *>(self + 0x6E0) != 1) {
-    typedef void (CGUnit_C::*UpdateBaseAnimationFn)(unsigned int);
-    void                **vtable = *reinterpret_cast<void ***>(this);
-    UpdateBaseAnimationFn updateBaseAnimation;
-    memcpy(&updateBaseAnimation, &vtable[0x110 / 4], sizeof(updateBaseAnimation));
-    (this->*updateBaseAnimation)(0x100);
+  if (m_currentBaseAnimState != 1) {
+    CGUnit_C::UpdateBaseAnimation(0x100);
   }
 }
 
@@ -5743,6 +6502,17 @@ int CGUnit_C::UpdateTexComponentLoadStatus() {
   return 1;
 }
 
+void CGUnit_C::CommitTexture(int force) {
+  char    errorString[512];
+  CStatus status;
+  TexComponentCommitSections(&status, m_texComponent, force);
+  if (!status.IsEmpty()) {
+    status.GetErrorStr(errorString, sizeof(errorString), STATUS_INFO);
+    NTempest::C3Vector pos = GetPosition();
+    FATALERROR(("creatureID %d (%s)(%g,%g,%g): %s", m_obj->m_entryID, GetUnitName(), pos.x, pos.y, pos.z, errorString));
+  }
+}
+
 void CGUnit_C::DDWRITELOG(const char *buffer) {
   unsigned int current = m_deathHoldBuffer.Count();
   unsigned int bytes = SStrLen(buffer) + 1;
@@ -5753,21 +6523,21 @@ void CGUnit_C::DDWRITELOG(const char *buffer) {
 
 void CGUnit_C::DDADDLOG(unsigned __int64 guid, const char *string, const char *file, unsigned int line) {
   char buffer[512];
-  SStrPrintf(buffer, sizeof(buffer), "[DDADD 0x%016I64X (%d)]: %s (%s:%d)", guid, reinterpret_cast<unsigned int *>(this)[448], string, file, line);
+  SStrPrintf(buffer, sizeof(buffer), "[DDADD 0x%016I64X (%d)]: %s (%s:%d)", guid, m_deathHolds, string, file, line);
   DDWRITELOG(buffer);
   AddDeathHold();
 }
 
 void CGUnit_C::DDDELLOG(unsigned __int64 guid, const char *string, const char *file, unsigned int line) {
   char buffer[512];
-  SStrPrintf(buffer, sizeof(buffer), "[DDDEL 0x%016I64X (%d)]: %s (%s:%d)", guid, reinterpret_cast<unsigned int *>(this)[448], string, file, line);
+  SStrPrintf(buffer, sizeof(buffer), "[DDDEL 0x%016I64X (%d)]: %s (%s:%d)", guid, m_deathHolds, string, file, line);
   DDWRITELOG(buffer);
   DelDeathHold();
 }
 
 void CGUnit_C::DDGENLOG(unsigned __int64 guid, const char *string, const char *file, unsigned int line) {
   char buffer[512];
-  SStrPrintf(buffer, sizeof(buffer), "[DDGEN 0x%016I64X (%d)]: %s (%s:%d)", guid, reinterpret_cast<unsigned int *>(this)[448], string, file, line);
+  SStrPrintf(buffer, sizeof(buffer), "[DDGEN 0x%016I64X (%d)]: %s (%s:%d)", guid, m_deathHolds, string, file, line);
   DDWRITELOG(buffer);
 }
 
@@ -5800,7 +6570,7 @@ void DDGenerateLogString(HSLOG handle, TSGrowableArray<char> *stringBuffer, char
 }
 
 void CGUnit_C::RangedWeaponAnimEndHandler() {
-  unsigned int &flags = *reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(this) + 0x4E4);
+  unsigned int &flags = m_flags;
   if (!(flags & 0x800)) {
     SetRangedWeaponReleaseAnim();
     flags |= 0x800;
@@ -5838,9 +6608,7 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
     if (activePlayer->GetGUID() == GetGUID()) {
       SStrPrintf(labelString, sizeof(labelString), " (Local Player)");
     } else {
-      typedef unsigned __int64(__fastcall * GetLocalTargetFn)(CGUnit_C *, void *);
-      GetLocalTargetFn getLocalTarget = reinterpret_cast<GetLocalTargetFn>((*reinterpret_cast<void ***>(activePlayer))[41]);
-      if (getLocalTarget(activePlayer, 0) == GetGUID()) {
+      if (static_cast<CGPlayer_C *>(activePlayer)->CGPlayer_C::GetLocalTarget() == GetGUID()) {
         SStrPrintf(labelString, sizeof(labelString), " (Local Player's Target)");
       }
     }
@@ -5853,13 +6621,12 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
   GetPosition(pos);
   DDGenerateLogString(handle, stringBuffer, "Unit at %g, %g, %g", pos.x, pos.y, pos.z);
 
-  const unsigned int *self = reinterpret_cast<const unsigned int *>(this);
-  DDGenerateLogString(handle, stringBuffer, "Current Torso Anim State: %d", self[442]);
+  DDGenerateLogString(handle, stringBuffer, "Current Torso Anim State: %d", m_currentTorsoAnimState);
   DDGenerateLogString(handle, stringBuffer, "Current Torso Anim: %d", GetCurrentTorsoAnim());
-  DDGenerateLogString(handle, stringBuffer, "Current Base Anim State: %d", self[440]);
-  DDGenerateLogString(handle, stringBuffer, "Current Base Anim: %d", self[441]);
+  DDGenerateLogString(handle, stringBuffer, "Current Base Anim State: %d", m_currentBaseAnimState);
+  DDGenerateLogString(handle, stringBuffer, "Current Base Anim: %d", m_currentBaseAnim);
 
-  if (!self[448]) {
+  if (!m_deathHolds) {
     DDGenerateLogString(handle, stringBuffer, "No outstanding death holds.");
     return;
   }
@@ -5884,7 +6651,7 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
     DDGenerateLogString(handle, stringBuffer, "No anims queued");
   }
 
-  IMPACTEFFECTDESC *impact = reinterpret_cast<IMPACTEFFECTDESC *>(self[496]);
+  const IMPACTEFFECTDESC *impact = m_impactEffectsDesc.Head();
   if (impact) {
     DDGenerateLogString(handle, stringBuffer, "The following impact effects are queued:");
     while (impact) {
@@ -5902,7 +6669,7 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
 }
 
 int CGUnit_C::SetCastingSpell(int spellID, unsigned int force, unsigned int precastAnimSuccessful) {
-  int &castingSpell = *reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(this) + 0x698);
+  int &castingSpell = m_castingSpell;
   if (castingSpell && !force) {
     return 1;
   }
@@ -5939,7 +6706,7 @@ void CGUnit_C::OnChannelSpellChanged(unsigned int oldSpell) {
     }
 
     TSGrowableArray<unsigned __int64> &targets =
-        *reinterpret_cast<TSGrowableArray<unsigned __int64> *>(reinterpret_cast<unsigned char *>(this) + 2492);
+        m_savedChannelSpellTargets;
     if (targets.Count() && (spellRec->m_attributesEx & 0x4000)) {
       SaveTrackingTarget(targets[0], TRACKTYPE_SPELLCHANNEL, 0);
     }
@@ -5957,7 +6724,7 @@ void CGUnit_C::OnChannelSpellChanged(unsigned int oldSpell) {
     AddKitAuras(channelKit, spellRec);
     PlaySpellLoopedSound(channelKit->m_soundID);
     if (channelKit->m_anim && channelKit->m_anim != -1) {
-      reinterpret_cast<unsigned int *>(this)[391] = channelKit->m_anim;
+      m_spellCastingAnim = static_cast<ANIMENUMERATION>(channelKit->m_anim);
       SetTorsoAnimation(62, 0, 0);
     }
     return;
@@ -5968,7 +6735,7 @@ void CGUnit_C::OnChannelSpellChanged(unsigned int oldSpell) {
   if (GetTrackingTarget() && oldSpellRec && (oldSpellRec->m_attributesEx & 0x4000)) {
     ClearTrackingTarget(0);
   }
-  if (reinterpret_cast<unsigned int *>(this)[442] == 62) {
+  if (m_currentTorsoAnimState == 62) {
     ClearTorsoAnimation(0);
   }
   RefreshAuraVisuals();
@@ -5976,26 +6743,24 @@ void CGUnit_C::OnChannelSpellChanged(unsigned int oldSpell) {
 }
 
 void CGUnit_C::ClearSavedChannelSpellTargets() {
-  TSGrowableArray<unsigned __int64> &targets = *reinterpret_cast<TSGrowableArray<unsigned __int64> *>(reinterpret_cast<unsigned char *>(this) + 2492);
+  TSGrowableArray<unsigned __int64> &targets = m_savedChannelSpellTargets;
   targets.Clear();
 }
 
 void CGUnit_C::SetStandStateAnim(int standAnim) {
-  int *self = reinterpret_cast<int *>(this);
-  if (self[596] != standAnim) {
-    self[596] = standAnim;
-    if (self[440] == 3) {
+  if (m_standStateAnim != standAnim) {
+    m_standStateAnim = standAnim;
+    if (m_currentBaseAnimState == 3) {
       UpdateBaseAnimation(3, 0x100);
     }
   }
 }
 
 void CGUnit_C::SetWalkStateAnim(int walkAnim) {
-  int *self = reinterpret_cast<int *>(this);
-  if (self[595] != walkAnim) {
+  if (m_walkStateAnim != walkAnim) {
     FATALASSERT(walkAnim < NUM_OBJECTANIMATIONS);
-    self[595] = walkAnim;
-    if (self[440] == 5) {
+    m_walkStateAnim = walkAnim;
+    if (m_currentBaseAnimState == 5) {
       UpdateBaseAnimation(5, 0x100);
     }
   }
@@ -6003,16 +6768,16 @@ void CGUnit_C::SetWalkStateAnim(int walkAnim) {
 
 int CGUnit_C::GetStandStateAnim(HMODEL model) const {
   if (!model) {
-    model = reinterpret_cast<HMODEL const *>(this)[4];
+    model = m_model;
   }
 
-  unsigned int standStateAnim = reinterpret_cast<const unsigned int *>(this)[596];
+  unsigned int standStateAnim = m_standStateAnim;
   return ModelHasSequenceId(model, standStateAnim) ? standStateAnim : 0;
 }
 
 int CGUnit_C::GetWalkStateAnim() const {
-  unsigned int sequence = reinterpret_cast<const unsigned int *>(this)[595];
-  return ModelHasSequenceId(reinterpret_cast<HMODEL const *>(this)[4], sequence) ? sequence : 4;
+  unsigned int sequence = m_walkStateAnim;
+  return ModelHasSequenceId(m_model, sequence) ? sequence : 4;
 }
 
 SpellVisualRec *CGUnit_C::GetAppropriateSpellVisual(SpellRec *spellRec, SpellVisualRec &filled) {
@@ -6021,11 +6786,9 @@ SpellVisualRec *CGUnit_C::GetAppropriateSpellVisual(SpellRec *spellRec, SpellVis
   SpellVisualRec *itemVisual = 0;
   SpellVisualRec *spellVisual = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
   if (spellRec->m_attributes & 2) {
-    typedef int (CGUnit_C::*GetVirtualItemDisplayIDProc)(unsigned int);
-    GetVirtualItemDisplayIDProc getVirtualItemDisplayID;
-    void                      **vtable = *reinterpret_cast<void ***>(this);
-    memcpy(&getVirtualItemDisplayID, &vtable[75], sizeof(getVirtualItemDisplayID));
-    int                 displayID = (this->*getVirtualItemDisplayID)(2);
+    int displayID = GetType() & TYPE_PLAYER
+        ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItemDisplayID(2)
+        : CGUnit_C::GetVirtualItemDisplayID(2);
     ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
     if (displayInfo && displayInfo->m_spellVisualID) {
       itemVisual = g_spellVisualDB.GetRecord(displayInfo->m_spellVisualID);
@@ -6122,29 +6885,29 @@ void ATTACHMENTMODELINFO::ClearAttachmentFromModel(HMODEL charModel, HMODEL pape
 }
 
 void CGUnit_C::SetHandsState(HMODEL model) {
-  const unsigned int *self = reinterpret_cast<const unsigned int *>(this);
-  if (!(self[313] & 4)) {
+  if (!(m_flags & 4)) {
     ResetFingersSeq(model, 8, 17);
     return;
   }
 
-  typedef VirtualItemInfo *(CGUnit_C::*GetVirtualItemFn)(unsigned int, unsigned int);
-  GetVirtualItemFn getVirtualItem;
-  void           **vtable = *reinterpret_cast<void ***>(this);
-  memcpy(&getVirtualItem, &vtable[0x128 / 4], sizeof(getVirtualItem));
-
   if (m_unit->weaponMode == 2) {
-    VirtualItemInfo *item = (this->*getVirtualItem)(2, 0);
+    const VirtualItemInfo *item = GetType() & TYPE_PLAYER
+        ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(2, 0)
+        : CGUnit_C::GetVirtualItem(2, 0);
     if (item) {
-      if (reinterpret_cast<const unsigned char *>(item)[3] == 25) {
+      if (item->m_inventoryType == 25) {
         SetHandState(model, item, 8, 12);
       } else {
         SetHandState(model, item, 13, 17);
       }
     }
   } else {
-    VirtualItemInfo *left = (this->*getVirtualItem)(0, 0);
-    VirtualItemInfo *right = (this->*getVirtualItem)(1, 0);
+    const VirtualItemInfo *left = GetType() & TYPE_PLAYER
+        ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(0, 0)
+        : CGUnit_C::GetVirtualItem(0, 0);
+    const VirtualItemInfo *right = GetType() & TYPE_PLAYER
+        ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(1, 0)
+        : CGUnit_C::GetVirtualItem(1, 0);
     SetHandState(model, left, 8, 12);
     SetHandState(model, right, 13, 17);
   }
@@ -6187,14 +6950,13 @@ void CGUnit_C::AddObjectComponentBySlot(
         ((*found = CreateAttachmentInfo(invSlot, displayID, inventoryType, forceAlternate, sheathe, sheathedAttachmentPoint, showHidden)) != 0))
     {
       if ((1u << inventoryType) & s_canHideslots[0]) {
-        unsigned int *self = reinterpret_cast<unsigned int *>(this);
-        if (self[611 + attachmentSlot]) {
-          WeaponTrailClose(self[611 + attachmentSlot]);
+        if (m_weaponTrails[attachmentSlot]) {
+          WeaponTrailClose(m_weaponTrails[attachmentSlot]);
         }
-        self[611 + attachmentSlot] = 0;
+        m_weaponTrails[attachmentSlot] = 0;
         HMODEL model = (*found)->modelInfo[0].model;
         if (model && ModelIsLoaded(model, 1)) {
-          self[611 + attachmentSlot] = WeaponTrailCreate(model);
+          m_weaponTrails[attachmentSlot] = WeaponTrailCreate(model);
         }
       }
       if (!deferApply && !showHidden) {
@@ -6206,8 +6968,7 @@ void CGUnit_C::AddObjectComponentBySlot(
 }
 
 bool CGUnit_C::UpdateVisibilitySlots(HMODEL characterModel, int attachmentSlot, ACTIVEATTACHMENTINFO **&found, int displayID, bool deferApply) {
-  unsigned int          *self = reinterpret_cast<unsigned int *>(this);
-  ACTIVEATTACHMENTINFO **active = reinterpret_cast<ACTIVEATTACHMENTINFO **>(&self[601 + attachmentSlot]);
+  ACTIVEATTACHMENTINFO **active = &m_attachments[attachmentSlot];
   found = active;
   ACTIVEATTACHMENTINFO *current = *active;
   if (current && current->displayInfo->GetID() == displayID) {
@@ -6215,18 +6976,18 @@ bool CGUnit_C::UpdateVisibilitySlots(HMODEL characterModel, int attachmentSlot, 
     return deferApply;
   }
 
-  ACTIVEATTACHMENTINFO *deferred = reinterpret_cast<ACTIVEATTACHMENTINFO *>(self[606 + attachmentSlot]);
+  ACTIVEATTACHMENTINFO *deferred = m_deferredAttachments[attachmentSlot];
   if (deferred && deferred->displayInfo->GetID() == displayID) {
     *active = deferred;
-    self[606 + attachmentSlot] = reinterpret_cast<unsigned int>(current);
+    m_deferredAttachments[attachmentSlot] = current;
     ClearDeferredAttachment(characterModel, attachmentSlot);
     return deferApply;
   }
 
   ClearDeferredAttachment(characterModel, attachmentSlot);
   current = *active;
-  *active = reinterpret_cast<ACTIVEATTACHMENTINFO *>(self[606 + attachmentSlot]);
-  self[606 + attachmentSlot] = reinterpret_cast<unsigned int>(current);
+  *active = m_deferredAttachments[attachmentSlot];
+  m_deferredAttachments[attachmentSlot] = current;
   ClearDeferredAttachment(characterModel, attachmentSlot);
   return false;
 }
@@ -6241,16 +7002,15 @@ void CGUnit_C::ClearWeaponTrailHandles() {
 }
 
 void CGUnit_C::ClearDeferredAttachment(HMODEL charModel, int slot) {
-  unsigned int         *self = reinterpret_cast<unsigned int *>(this);
-  ACTIVEATTACHMENTINFO *info = reinterpret_cast<ACTIVEATTACHMENTINFO *>(self[606 + slot]);
+  ACTIVEATTACHMENTINFO *info = m_deferredAttachments[slot];
   if (info) {
-    info->ClearAttachmentFromModel(charModel, reinterpret_cast<HMODEL>(self[616]));
+    info->ClearAttachmentFromModel(charModel, reinterpret_cast<HMODEL>(m_paperDollModel));
     info->Clear();
     FATALASSERT(!info->modelInfo[0].model);
     FATALASSERT(!info->modelInfo[1].model);
     delete info;
   }
-  self[606 + slot] = 0;
+  m_deferredAttachments[slot] = 0;
 }
 
 ACTIVEATTACHMENTINFO *CGUnit_C::CreateAttachmentInfo(
@@ -6264,8 +7024,8 @@ ACTIVEATTACHMENTINFO *CGUnit_C::CreateAttachmentInfo(
 ) {
   HMODEL              models[2] = {0, 0};
   int                 attachmentPoints[2] = {0, 0};
-  const unsigned int *self = reinterpret_cast<const unsigned int *>(this);
-  bool                useMonsterComponent = (GetType() & TYPE_PLAYER) || self[477] || self[476] || self[221];
+  bool useMonsterComponent =
+      (GetType() & TYPE_PLAYER) || m_texComponent || m_geosetHandle || m_displayInfoExtra;
   if (!GetObjComponentInfo(
           GetDisplayRace(), GetDisplaySex(), displayID, inventoryType, useMonsterComponent, forceAlternate, models, attachmentPoints
       ))
@@ -6301,22 +7061,21 @@ void CGUnit_C::RemoveObjectComponentByInvSlot(int invSlot, bool deferDeleteFromM
     return;
   }
 
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if (self[611 + attachmentSlot]) {
-    WeaponTrailClose(self[611 + attachmentSlot]);
-    self[611 + attachmentSlot] = 0;
+  if (m_weaponTrails[attachmentSlot]) {
+    WeaponTrailClose(m_weaponTrails[attachmentSlot]);
+    m_weaponTrails[attachmentSlot] = 0;
   }
 
-  if (!self[601 + attachmentSlot] && !self[606 + attachmentSlot]) {
+  if (!m_attachments[attachmentSlot] && !m_deferredAttachments[attachmentSlot]) {
     return;
   }
 
   HMODEL model = GetCharacterModel(0);
   FATALASSERT(model);
   ClearDeferredAttachment(model, attachmentSlot);
-  unsigned int current = self[601 + attachmentSlot];
-  self[601 + attachmentSlot] = self[606 + attachmentSlot];
-  self[606 + attachmentSlot] = current;
+  ACTIVEATTACHMENTINFO *current = m_attachments[attachmentSlot];
+  m_attachments[attachmentSlot] = m_deferredAttachments[attachmentSlot];
+  m_deferredAttachments[attachmentSlot] = current;
   if (removeRecord || !deferDeleteFromModel) {
     ClearDeferredAttachment(model, attachmentSlot);
   }
@@ -6350,8 +7109,7 @@ unsigned int CGUnit_C::SheatheObjComponent(int slot, unsigned int sheathe) {
     return 0;
   }
 
-  unsigned int *self = reinterpret_cast<unsigned int *>(this);
-  if (!self[601 + attachmentSlot]) {
+  if (!m_attachments[attachmentSlot]) {
     return 0;
   }
 
@@ -6367,8 +7125,7 @@ bool CGUnit_C::ApplyAttachmentInfo(HMODEL characterModel, bool sheathe, int atta
   FATALASSERT(attachmentSlot < 5);
   FATALASSERT(characterModel);
 
-  unsigned int         *self = reinterpret_cast<unsigned int *>(this);
-  ACTIVEATTACHMENTINFO *info = reinterpret_cast<ACTIVEATTACHMENTINFO *>(self[601 + attachmentSlot]);
+  ACTIVEATTACHMENTINFO *info = m_attachments[attachmentSlot];
   if (!info) {
     return true;
   }
@@ -6385,7 +7142,7 @@ bool CGUnit_C::ApplyAttachmentInfo(HMODEL characterModel, bool sheathe, int atta
     sheathe = false;
   }
 
-  HMODEL paperDollModel = reinterpret_cast<HMODEL>(self[616]);
+  HMODEL paperDollModel = reinterpret_cast<HMODEL>(m_paperDollModel);
   info->ClearAttachmentFromModel(characterModel, paperDollModel);
   bool failed = false;
   for (int i = 0; i < 2; ++i) {
@@ -6405,7 +7162,7 @@ bool CGUnit_C::ApplyAttachmentInfo(HMODEL characterModel, bool sheathe, int atta
     int linked = attachmentSlot > 1 ? ModelAddLink(characterModel, modelInfo.currentLink, modelInfo.model, 1.0f)
                                     : AddAttachment(characterModel, modelInfo.currentLink, modelInfo.model, 1.0f);
     if (linked) {
-      ModelSetVertexAlpha(modelInfo.model, reinterpret_cast<const unsigned char *>(this)[44], 1);
+      ModelSetVertexAlpha(modelInfo.model, m_alpha, 1);
     } else {
       modelInfo.currentLink = -1;
       failed = true;
@@ -6434,26 +7191,25 @@ void CGUnit_C::SetAttachmentHidden(int attachmentSlot, unsigned int hide) {
     return;
   }
 
-  unsigned int         *self = reinterpret_cast<unsigned int *>(this);
-  ACTIVEATTACHMENTINFO *info = reinterpret_cast<ACTIVEATTACHMENTINFO *>(self[601 + attachmentSlot]);
+  ACTIVEATTACHMENTINFO *info = m_attachments[attachmentSlot];
   if (!info) {
     return;
   }
 
   HMODEL charModel = GetCharacterModel(0);
-  info->Hide(this, charModel, reinterpret_cast<HMODEL>(self[616]), hide);
+  info->Hide(this, charModel, reinterpret_cast<HMODEL>(m_paperDollModel), hide);
   HandleClose(charModel);
 }
 
 void CGUnit_C::ReinitializePaperdollModel() {
-  if (reinterpret_cast<unsigned int *>(this)[616]) {
+  if (m_paperDollModel) {
     unsigned __int64 guid = GetGUID();
     Script_SendUnitSignal(guid, 182);
   }
 }
 
 void CGUnit_C::CreatePaperdollModel() {
-  HMODEL      &paperDollModel = reinterpret_cast<HMODEL *>(this)[616];
+  HMODEL      &paperDollModel = m_paperDollModel;
   unsigned int sequence = 0;
   if (paperDollModel) {
     sequence = ModelGetPrimarySequence(paperDollModel);
@@ -6461,7 +7217,7 @@ void CGUnit_C::CreatePaperdollModel() {
   }
 
   paperDollModel = DuplicateCharacterModel(1);
-  HCHARGEOSET geosetHandle = reinterpret_cast<HCHARGEOSET *>(this)[476];
+  HCHARGEOSET geosetHandle = m_geosetHandle;
   CharCustomizationSetPaperDollGeoset(geosetHandle, paperDollModel);
   FATALASSERT(paperDollModel);
   ClearSpecialEffects(paperDollModel);
@@ -6472,7 +7228,7 @@ void CGUnit_C::CreatePaperdollModel() {
 }
 
 int CGUnit_C::ShouldDelayLevelupAnim() {
-  unsigned int state = reinterpret_cast<const unsigned int *>(this)[442];
+  unsigned int state = m_currentTorsoAnimState;
   FATALASSERT(state < 64);
   return ShouldDelayLevelupAnim(state);
 }
@@ -6483,7 +7239,7 @@ int CGUnit_C::ShouldDelayLevelupAnim(unsigned int state) {
 }
 
 HMODEL CGUnit_C::GetPaperDollModel(unsigned int duplicateModel) {
-  HMODEL &paperDollModel = reinterpret_cast<HMODEL *>(this)[616];
+  HMODEL &paperDollModel = m_paperDollModel;
   if (!paperDollModel) {
     CreatePaperdollModel();
   }
@@ -6513,8 +7269,7 @@ SpellVisualKitRec *CGUnit_C::GetRangedSpellAnim(int id, unsigned int castKit) {
 }
 
 unsigned int CGUnit_C::GetCurrentTorsoAnim() const {
-  const unsigned int *animation = reinterpret_cast<const unsigned int *>(reinterpret_cast<const unsigned char *>(this));
-  return animation[442] ? animation[443] : animation[441];
+  return m_currentTorsoAnimState ? m_currentTorsoAnim : m_currentBaseAnim;
 }
 
 HMODEL AuraVisual::GetModel() {
@@ -6532,29 +7287,27 @@ void CGUnit_C::SetSheatheReason(SHEATHEREASONS reason, unsigned int on, unsigned
     return;
   }
 
-  unsigned char *self = reinterpret_cast<unsigned char *>(this);
-  unsigned int  &reasons = *reinterpret_cast<unsigned int *>(self + 0x9A4);
+  int          &reasons = m_sheatheReasons;
   unsigned int   oldReasons = reasons;
   unsigned int   reasonFlag = 1u << reason;
   reasons = on ? reasons | reasonFlag : reasons & ~reasonFlag;
 
-  unsigned int &flags = *reinterpret_cast<unsigned int *>(self + 0x4E8);
+  unsigned int &flags = m_animFlags;
   if ((oldReasons == 0) != (reasons == 0) || (flags & 0x800)) {
     unsigned int playSound = !suppressSound && ((oldReasons ^ reasons) & 1);
-    unsigned int sheathe = flags & 0x800 ? reinterpret_cast<unsigned char *>(m_unit)[0x29B] == WEAPONMODE_MELEE : oldReasons == 0;
+    unsigned int sheathe = flags & 0x800 ? m_unit->weaponMode == WEAPONMODE_MELEE : oldReasons == 0;
     SheatheOrUnsheatheItems(reason, sheathe, playSound);
   }
 
   if (reasons) {
-    SheatheObjComponent(4, reinterpret_cast<unsigned char *>(m_unit)[0x29B] != WEAPONMODE_RANGED);
+    SheatheObjComponent(4, m_unit->weaponMode != WEAPONMODE_RANGED);
   }
   flags &= ~0x800u;
 }
 
 void CGUnit_C::SheatheOrUnsheatheItems(SHEATHEREASONS reason, unsigned int sheathe, unsigned int playSound) {
-  unsigned char *self = reinterpret_cast<unsigned char *>(this);
-  *reinterpret_cast<SHEATHEREASONS *>(self + 0x9B4) = reason;
-  unsigned int &flags = *reinterpret_cast<unsigned int *>(self + 0x9B0);
+  m_deferredSheatheReason = reason;
+  unsigned int &flags = m_deferredSheatheFlags;
   flags = sheathe ? 3 : 1;
   if (playSound) {
     flags |= 4;
@@ -6562,9 +7315,8 @@ void CGUnit_C::SheatheOrUnsheatheItems(SHEATHEREASONS reason, unsigned int sheat
 }
 
 void CGUnit_C::MaybeStartSheatheAnim() {
-  unsigned char *self = reinterpret_cast<unsigned char *>(this);
   if (SheatheAnimPlaying()) {
-    if (self[0x4EA] & 1) {
+    if (m_animFlags & 0x10000) {
       HandleSheatheAnimEvent(1, 1);
     }
     return;
@@ -6572,16 +7324,14 @@ void CGUnit_C::MaybeStartSheatheAnim() {
 
   static const unsigned int s_slots[2] = {0, 1};
   int                       found = 0;
-  int                      *handAnim = reinterpret_cast<int *>(self + 0x9A8);
-  typedef VirtualItemInfo *(CGUnit_C::*GetVirtualItemFn)(unsigned int, unsigned int);
-  void           **vtable = *reinterpret_cast<void ***>(this);
-  GetVirtualItemFn getVirtualItem;
-  memcpy(&getVirtualItem, &vtable[0x128 / 4], sizeof(getVirtualItem));
+  ANIMENUMERATION          *handAnim = m_handAnim;
   for (unsigned int i = 0; i < 2; ++i) {
-    const unsigned char *info = reinterpret_cast<unsigned char *>((this->*getVirtualItem)(s_slots[i], 0));
+    const VirtualItemInfo *info = GetType() & TYPE_PLAYER
+        ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(s_slots[i], 0)
+        : CGUnit_C::GetVirtualItem(s_slots[i], 0);
     if (info) {
       found = 1;
-      handAnim[i] = (((1u << info[4]) & 0x88) != 0) + 89;
+      handAnim[i] = static_cast<ANIMENUMERATION>((((1u << info->m_sheatheType) & 0x88) != 0) + 89);
     }
   }
 
@@ -6593,7 +7343,7 @@ void CGUnit_C::MaybeStartSheatheAnim() {
 }
 
 unsigned int CGUnit_C::SheatheAnimPlaying() {
-  const int *handAnim = reinterpret_cast<const int *>(reinterpret_cast<const unsigned char *>(this) + 0x9A8);
+  const ANIMENUMERATION *handAnim = m_handAnim;
   return handAnim[0] != -1 || handAnim[1] != -1;
 }
 
@@ -6606,10 +7356,10 @@ void CGUnit_C::HandleSheatheAnimEvent(bool clearSheatheAnim, bool suppressSound)
   ModelSetSequence(theModel, 2, 4, 6);
   HandleClose(theModel);
 
-  int *handAnim = reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(this) + 0x9A8);
-  handAnim[0] = -1;
-  handAnim[1] = -1;
-  if (!(reinterpret_cast<unsigned char *>(this)[0x4EA] & 1)) {
+  ANIMENUMERATION *handAnim = m_handAnim;
+  handAnim[0] = static_cast<ANIMENUMERATION>(-1);
+  handAnim[1] = static_cast<ANIMENUMERATION>(-1);
+  if (!(m_animFlags & 0x10000)) {
     UpdateSheatheRangedReasons(suppressSound);
   }
 }
@@ -6617,11 +7367,11 @@ void CGUnit_C::HandleSheatheAnimEvent(bool clearSheatheAnim, bool suppressSound)
 bool CGUnit_C::SetSheathingSequence() {
   HMODEL theModel = GetCharacterModel(0);
   FATALASSERT(theModel);
-  unsigned int &flags = *reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(this) + 0x4E8);
+  unsigned int &flags = m_animFlags;
   flags &= ~0x10000u;
 
   bool success = true;
-  int *handAnim = reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(this) + 0x9A8);
+  ANIMENUMERATION *handAnim = m_handAnim;
   for (unsigned int i = 0; i < 2; ++i) {
     if (handAnim[i] != -1) {
       success = success && ObjectModelSetBoneSequence(theModel, handAnim[i], s_hands[i], 0);
@@ -6646,11 +7396,11 @@ void CGUnit_C::SetWeaponMode(WEAPONMODE mode) {
   msg.Finalize();
   ClientServices_Send(&msg);
 
-  typedef void (CGUnit_C::*SetLastWeaponModeSentFn)(int);
-  void                  **vtable = *reinterpret_cast<void ***>(this);
-  SetLastWeaponModeSentFn setLastWeaponModeSent;
-  memcpy(&setLastWeaponModeSent, &vtable[0x194 / 4], sizeof(setLastWeaponModeSent));
-  (this->*setLastWeaponModeSent)(mode);
+  if (GetType() & TYPE_PLAYER) {
+    static_cast<CGPlayer_C *>(this)->CGPlayer_C::SetLastWeaponModeSent(mode);
+  } else {
+    CGUnit_C::SetLastWeaponModeSent(mode);
+  }
 }
 
 void CGUnit_C::AddSpellProcOneShotEffect(int spellID, const SpellVisualKitRec *rec) {
@@ -6674,7 +7424,7 @@ void CGUnit_C::AddSpellProcOneShotEffect(int spellID, const SpellVisualKitRec *r
   newDesc->kitPtr = const_cast<SpellVisualKitRec *>(rec);
   newDesc->isOneShot = 1;
 
-  SpellEffectList &list = *reinterpret_cast<SpellEffectList *>(reinterpret_cast<unsigned char *>(this) + 1988 + proc * 12);
+  SpellEffectList &list = m_spellEffectLists[proc];
   list.LinkNode(newDesc, LIST_TAIL, 0);
   SpellProcHandler handler = s_spellProcHandlerFunctions[proc];
   if (handler) {
@@ -6749,6 +7499,14 @@ void CGUnit_C::OnSetFacingLocal(unsigned long eventTime, float facing) {
   }
 }
 
+void CGUnit_C::OnSetRawFacingLocal(unsigned long eventTime, float facing) {
+  OnMovementInitiated(1);
+  m_movement.OnSetRawFacingLocal(eventTime, facing);
+  if (m_unit->standState == 3 || m_unit->standState == 2) {
+    ChangeStandState(0);
+  }
+}
+
 void CGUnit_C::OnSetPitchLocal(unsigned long eventTime, float pitch) {
   m_movement.OnSetPitchLocal(eventTime, pitch);
 }
@@ -6796,7 +7554,7 @@ void __fastcall ProcessLocalMoveEvent(unsigned int msgId) {
 }
 
 void CGUnit_C::EnableWeaponTrail(const NTempest::CImVector &color, int fadeOutRate, unsigned int duration) {
-  int *trails = reinterpret_cast<int *>(this) + 611;
+  int *trails = m_weaponTrails;
   for (unsigned int i = 0; i < 5; ++i) {
     if (trails[i]) {
       WeaponTrailSetDrawing(trails[i], color, fadeOutRate, duration);
@@ -6847,7 +7605,7 @@ void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, unsig
     return;
   }
 
-  unsigned long currentTime = GetTickCount();
+  unsigned long currentTime = OsGetAsyncTimeMs();
   if (target) {
     CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
     if (!object || !(object->GetType() & TYPE_UNIT)) {
@@ -6865,17 +7623,17 @@ void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, unsig
         CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(267));
         target = 0;
       } else if (!s_trackingTarget) {
-        if (reinterpret_cast<const unsigned int *>(this)[32] & 0x100) {
+        if (m_movement.m_moveFlags & 0x100) {
           s_trackingFlags &= ~4u;
         } else {
           s_trackingFlags |= 4;
         }
       }
-      s_trackingInterpStartTime = GetTickCount();
+      s_trackingInterpStartTime = OsGetAsyncTimeMs();
       s_trackLastCheckTime = s_trackingInterpStartTime;
     }
   } else if (s_trackingTarget) {
-    unsigned int objectFlags = reinterpret_cast<const unsigned int *>(this)[32];
+    unsigned int objectFlags = m_movement.m_moveFlags;
     if ((((s_trackingFlags >> 2) ^ static_cast<unsigned int>(~(objectFlags >> 8))) & 1) != 0) {
       OnSetRunModeLocal(currentTime, (s_trackingFlags >> 2) & 1);
     }
@@ -6894,7 +7652,7 @@ void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, unsig
       }
     }
 
-    if (s_trackTypeInfo[s_trackingType].snapOnClear && reinterpret_cast<const unsigned char *>(this)[128]) {
+    if (s_trackTypeInfo[s_trackingType].snapOnClear && m_movement.m_moveFlags) {
       s_trackingFlags |= 2;
       OnMoveStopLocal(currentTime);
       OnTurnStopLocal(currentTime);

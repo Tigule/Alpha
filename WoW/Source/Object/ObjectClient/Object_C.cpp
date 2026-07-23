@@ -13,6 +13,7 @@
 #include <Gx/Gx.h>
 #include <Model/IModel.h>
 #include <Model/CollisionData.h>
+#include <Os/OsTime.h>
 #include <Os/W32/OSSystem.h>
 #include <Services/SysMessage.h>
 #include <Services/Texture.h>
@@ -375,11 +376,11 @@ void CGObject_C::AddWorldObject() {
     flags |= 2;
   }
 
-  m_worldObject = CWorld::AddObject(GetGUID(), GetEntryID(), m_model, flags);
+  m_worldObject = CWorld::AddObject(GetGUID(), 0, m_model, flags);
   UpdateWorldObject();
 
   if (m_model) {
-    ModelSetLightSelectCallback(m_model, CMap::SelectLight, reinterpret_cast<void *>(m_worldObject), 1);
+    ModelSetLightSelectCallback(m_model, CWorld::SelectLight, reinterpret_cast<void *>(m_worldObject), 1);
   }
 }
 
@@ -390,20 +391,21 @@ void CGObject_C::UpdateWorldObject() {
 
   NTempest::C44Matrix tempMat;
   NTempest::CAaBox    extents;
+  memset(&extents, 0, sizeof(extents));
   if (m_model) {
-    ModelGetCollisionExtents(m_model, &extents);
+    ModelGetExtents(m_model, &extents);
   }
 
   tempMat.Translate(GetPosition());
 
   float facing;
   if (GetType() & TYPE_UNIT) {
-    facing = static_cast<CGUnit_C *>(this)->GetRenderFacing();
+    facing = static_cast<CGUnit_C *>(this)->GetDisplayFacing();
   } else {
     facing = GetFacing();
   }
 
-  tempMat *= NTempest::C44Matrix::Rotation(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
+  tempMat.Rotate(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
   tempMat.Scale(GetScale());
   CWorld::UpdateObject(m_worldObject, tempMat, extents);
 }
@@ -418,7 +420,7 @@ void CGObject_C::RemoveWorldObject() {
     m_worldObject = 0;
 
     if (m_model) {
-      ModelSetLightSelectCallback(m_model, 0, 0, 1);
+      ModelSetLightSelectCallback(m_model, CWorld::SelectLight, 0, 1);
     }
   }
 }
@@ -650,6 +652,10 @@ int CGObject_C::ShouldRender(unsigned long worldStatus) {
   return 0;
 }
 
+void CGObject_C::ObjectSetNotRendering() {
+  m_flags &= ~0x10U;
+}
+
 void CGObject_C::SetObjectModel(HMODEL__ *model) {
   RemoveWorldObject();
   m_model = model;
@@ -732,7 +738,7 @@ void CGObject_C::PreAnimate(CGWorldFrame *worldFrame) {
   if (!m_fadeStartTime) {
     alpha = m_endAlpha;
   } else {
-    int elapsed = GetTickCount() - m_fadeStartTime;
+    int elapsed = OsGetAsyncTimeMs() - m_fadeStartTime;
     if (elapsed > static_cast<int>(m_fadeDuration)) {
       m_fadeStartTime = 0;
       alpha = m_endAlpha;
@@ -1013,7 +1019,7 @@ int CGObject_C::IsInReenable() {
 void CGObject_C::DoFade(unsigned char alpha, unsigned int fadeTimeMs) {
   if (alpha != m_endAlpha) {
     m_endAlpha = alpha;
-    m_fadeStartTime = GetTickCount();
+    m_fadeStartTime = OsGetAsyncTimeMs();
     m_fadeDuration = fadeTimeMs;
     m_startAlpha = m_alpha;
   }

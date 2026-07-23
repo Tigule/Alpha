@@ -1,4 +1,5 @@
 #include "WorldFrame.h"
+#include <Os/OsTime.h>
 
 #include "Frame/CLayoutFrame.h"
 #include "Frame/CSimpleTop.h"
@@ -18,6 +19,7 @@
 #include "Ui/GameUI.h"
 #include "Ui/ChatFrame.h"
 #include "Ui/Tutorial.h"
+#include "Ui/UIBindings.h"
 #include "WorldClient/World.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
@@ -26,6 +28,7 @@
 #include <Console/ConsoleClient.h>
 #include <Console/ConsoleVar.h>
 #include <FrameScript/FrameScript.h>
+#include <Event/CMouseEvent.h>
 #include <Gx/Gx.h>
 #include <Model/IModel.h>
 #include <Os/W32/OsSound.h>
@@ -137,7 +140,7 @@ static TSHashTable<FADEOUTHASHOBJ, CHashKeyGUID> s_fadeOutModelTable;
 
 static int __fastcall CheckFadeOutModels(const char *command, const char *arguments) {
   int          count = 0;
-  unsigned int currentTime = GetTickCount();
+  unsigned int currentTime = OsGetAsyncTimeMs();
   for (FADEOUTHASHOBJ *fade = s_fadeOutModelTable.Head(); fade; fade = s_fadeOutModelTable.Next(fade)) {
     ConsolePrintf("Model %02d: %d ms elapsed\n", ++count, currentTime - fade->startTime);
   }
@@ -147,7 +150,7 @@ static int __fastcall CheckFadeOutModels(const char *command, const char *argume
 }
 
 void __fastcall RenderFadeOutModels(NTempest::C3Vector cameraPos, NTempest::C3Vector cameraTarg) {
-  int currentTime = GetTickCount();
+  int currentTime = OsGetAsyncTimeMs();
   for (FADEOUTHASHOBJ *curr = s_fadeOutModelTable.Head(); curr;) {
     FATALASSERT(curr->model);
     int elapsed = currentTime - curr->startTime;
@@ -366,7 +369,7 @@ static int GetObjectSelectCategory(CGObject_C *object) {
     if (unit->GetUnitData()->health > 0) {
       return 2;
     }
-    return unit->CanBeLooted(GetTickCount()) != 0;
+    return unit->CanBeLooted(OsGetAsyncTimeMs()) != 0;
   }
   return type == 33 && static_cast<CGGameObject_C *>(object)->CanHighlight();
 }
@@ -752,6 +755,148 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
   GxMasterEnableSet(GxMasterEnable_ClearOnPresent, 0);
 }
 
+int CGWorldFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
+  int result = CSimpleFrame::OnLayerTrackUpdate(evt);
+  if (result) {
+    CGInputControl::GetActive();
+    return 1;
+  }
+  return result;
+}
+
+void CGWorldFrame::OnLayerCursorExit() {
+  CSimpleFrame::OnLayerCursorExit();
+  if (m_lastUnitFade) {
+    HandleUnitFade(0, 1);
+    m_lastUnitFade = 0;
+  }
+  if (m_lastObjectTrack) {
+    CObjectTrackEvent spriteTrackEvent;
+    spriteTrackEvent.object = 0;
+    spriteTrackEvent.oldGUID = m_lastObjectTrack;
+    CGGameUI::HandleSpriteTrack(spriteTrackEvent);
+    m_lastObjectTrack = 0;
+  }
+  CursorResetCursor(0);
+  s_spellShadowStyle = SPELL_NONE;
+}
+
+int CGWorldFrame::OnLayerKeyDown(CKeyEvent &evt) {
+  if (CSimpleFrame::OnLayerKeyDown(evt)) {
+    return 1;
+  }
+  if (evt.key < KEY_LAST && CGUIBindings::KeyEventToString(evt, m_lastKey[evt.key], sizeof(m_lastKey[evt.key]))) {
+    return CGUIBindings::GetActive()->ExecKey(m_lastKey[evt.key], evt.time, 1);
+  }
+  return 0;
+}
+
+int CGWorldFrame::OnLayerKeyUp(CKeyEvent &evt) {
+  if (CSimpleFrame::OnLayerKeyUp(evt)) {
+    return 1;
+  }
+  if (evt.key >= KEY_LAST) {
+    return 0;
+  }
+
+  unsigned long processTime = evt.time;
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (player && (player->m_flags & 0x200) && static_cast<long>(evt.time - player->m_animEndTime) < 0) {
+    processTime = player->m_animEndTime;
+  }
+
+  char *key = m_lastKey[evt.key];
+  int result = 0;
+  if (*key || (CGUIBindings::KeyEventToString(evt, key, sizeof(m_lastKey[evt.key])), *key)) {
+    result = CGUIBindings::GetActive()->ExecKey(key, processTime, 0);
+    *key = 0;
+  }
+  return result;
+}
+
+int CGWorldFrame::OnLayerMouseDown(CMouseEvent &evt) {
+  if (CSimpleFrame::OnLayerMouseDown(evt)) {
+    return 1;
+  }
+  if (CGGameUI::HandleMouseDown(evt)) {
+    return 1;
+  }
+  char keyName[32];
+  if (CGUIBindings::MouseEventToString(evt, keyName, sizeof(keyName))) {
+    return CGUIBindings::GetActive()->ExecKey(keyName, evt.time, 1);
+  }
+  return 0;
+}
+
+int CGWorldFrame::OnLayerMouseUp(CMouseEvent &evt) {
+  if (CSimpleFrame::OnLayerMouseUp(evt)) {
+    return 1;
+  }
+  if (CGGameUI::HandleMouseUp(evt)) {
+    return 1;
+  }
+  char keyName[32];
+  if (CGUIBindings::MouseEventToString(evt, keyName, sizeof(keyName))) {
+    return CGUIBindings::GetActive()->ExecKey(keyName, evt.time, 0);
+  }
+  return 0;
+}
+
+int CGWorldFrame::OnLayerMouseWheel(CMouseEvent &evt) {
+  if (CSimpleFrame::OnLayerMouseWheel(evt)) {
+    return 1;
+  }
+  char keyName[32];
+  if (CGUIBindings::MouseEventToString(evt, keyName, sizeof(keyName))) {
+    return CGUIBindings::GetActive()->ExecKey(keyName, evt.time, 1);
+  }
+  return 0;
+}
+
+int CGWorldFrame::OnLayerMouseMoveRelative(CMouseEvent &evt) {
+  CGInputControl::GetActive()->OnMouseMoveRel(evt);
+  return 1;
+}
+
+unsigned __int64 CGWorldFrame::GetObjectUnderMouse() {
+  CModelRecord *record = m_models.Head();
+  return record ? record->guid : 0;
+}
+
+float CGWorldFrame::GetSkyProgress() {
+  return (g_clientGameTime.GetHourAndMinutes() + 720) % 1440 * 0.00069444446f * m_skyAnimDuration;
+}
+
+int CGWorldFrame::TogglePlayerRender() {
+  m_renderPlayer = !m_renderPlayer;
+  return m_renderPlayer;
+}
+
+int CGWorldFrame::SetPlayerRender(int state) {
+  int oldState = m_renderPlayer;
+  m_renderPlayer = state != 0;
+  return oldState;
+}
+
+void CGWorldFrame::OnMouseModeNormal() {
+  m_freeLookMode = 0;
+}
+
+void CGWorldFrame::OnMouseModeRelative() {
+  m_freeLookMode = 1;
+  if (m_lastUnitFade) {
+    HandleUnitFade(0, 1);
+    m_lastUnitFade = 0;
+  }
+  if (m_lastObjectTrack) {
+    CObjectTrackEvent spriteTrackEvent;
+    spriteTrackEvent.object = 0;
+    spriteTrackEvent.oldGUID = m_lastObjectTrack;
+    CGGameUI::HandleSpriteTrack(spriteTrackEvent);
+    m_lastObjectTrack = 0;
+  }
+}
+
 void CGWorldFrame::SetSpriteClickButtons(unsigned int buttons) {
   m_spriteButtons = buttons;
 }
@@ -1094,7 +1239,7 @@ void CGWorldFrame::OnWorldUpdate() {
   float               elapsedSec = m_elapsedSec;
   NTempest::C3Vector  cameraPos;
 
-  unsigned int idleTime = GetTickCount() - m_top->m_eventTime;
+  unsigned int idleTime = OsGetAsyncTimeMs() - m_top->m_eventTime;
   if (static_cast<int>(idleTime - 300000) >= 0) {
     if (static_cast<int>(idleTime - 1800000) < 0) {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(CGPlayer_C::GetActive(), __FILE__, __LINE__));
@@ -1109,10 +1254,10 @@ void CGWorldFrame::OnWorldUpdate() {
 
   CGInputControl *inputControl = CGInputControl::GetActive();
   FATALASSERT(inputControl);
-  if (!(inputControl->m_controlFlags & INPUT_PLAYER_MOVED) && static_cast<int>(GetTickCount() - inputControl->m_initializeTime - 90000) >= 0) {
+  if (!(inputControl->m_controlFlags & INPUT_PLAYER_MOVED) && static_cast<int>(OsGetAsyncTimeMs() - inputControl->m_initializeTime - 90000) >= 0) {
     CGTutorial::TriggerTutorial(TUTORIAL_MOVEMENT);
   }
-  if (!(inputControl->m_controlFlags & INPUT_CAMERA_MOVED) && static_cast<int>(GetTickCount() - inputControl->m_initializeTime - 120000) >= 0) {
+  if (!(inputControl->m_controlFlags & INPUT_CAMERA_MOVED) && static_cast<int>(OsGetAsyncTimeMs() - inputControl->m_initializeTime - 120000) >= 0) {
     CGTutorial::TriggerTutorial(TUTORIAL_CAMERA);
   }
 
@@ -1131,11 +1276,11 @@ void CGWorldFrame::OnWorldUpdate() {
 
   UpdateDayNightInfo(elapsedSec);
   UpdatePlayerAlpha(elapsedSec);
-  m_updateTimeStamp = GetTickCount();
+  m_updateTimeStamp = OsGetAsyncTimeMs();
   UpdatePortraits();
   UnitUpdate();
 
-  CWorld::SetUpdateTime(elapsedSec, GetTickCount());
+  CWorld::SetUpdateTime(elapsedSec, OsGetAsyncTimeMs());
   CWorld::SetObjectHandler(ObjectEnumProc, this);
   CWorld::SetObjectCollisionHandler(ObjectCollisionProc);
 
@@ -1235,7 +1380,7 @@ void __fastcall CGWorldFrame::RegisterObjectFadeoutModel(CGObject_C *object, HTE
   fade->texture = texture ? static_cast<HTEXCOMPONENT>(HandleDuplicate(texture)) : 0;
   fade->matrix = worldMatrix;
   fade->renderScale = object->GetScale() * object->GetRenderScale();
-  fade->startTime = GetTickCount();
+  fade->startTime = OsGetAsyncTimeMs();
   fade->startAlpha = startAlpha;
 }
 

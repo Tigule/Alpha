@@ -13,9 +13,113 @@ class ItemStats;
 class CGGameObject_C;
 class CGPetition;
 class EmotesTextRec;
-struct CGPlayerData;
+struct MirrorSkillInfo {
+  unsigned short m_skillLineID;
+  unsigned short m_skillRank;
+  unsigned short m_skillMaxRank;
+  short          m_skillModifier;
+  unsigned short m_skillStep;
+  unsigned short m_padding;
+};
+
+struct CQuestLogData {
+  int          m_questID;
+  int          m_questGiverID;
+  int          m_questRewarderID;
+  unsigned int m_questFlags;
+  int          m_questFailureTime;
+  int          m_qtyMonsterToKill;
+};
+
+struct CGPlayerData {
+  unsigned __int64 invSlots[69];
+  unsigned __int64 selection;
+  unsigned __int64 farsightObject;
+  unsigned __int64 duelArbiter;
+  unsigned int     numInvSlots;
+  unsigned int     guildID;
+  unsigned int     guildRank;
+  unsigned char    skinID;
+  unsigned char    faceID;
+  unsigned char    hairStyleID;
+  unsigned char    hairColorID;
+  int               XP;
+  int               nextLevelXP;
+  MirrorSkillInfo   skillInfo[64];
+  unsigned char     playerFlags;
+  unsigned char     facialHairStyleID;
+  unsigned char     numBankSlots;
+  unsigned char     padByte;
+  CQuestLogData     questLog[16];
+  int               characterPoints[2];
+  unsigned int      trackCreatureMask;
+  unsigned int      trackResourceMask;
+  unsigned int      chatFilters;
+  unsigned int      duelTeam;
+  float             blockPercentage;
+  float             dodgePercentage;
+  float             parryPercentage;
+  int               baseMana;
+  int               guildTimeStamp;
+};
 
 class CGPlayer {
+ public:
+  unsigned short GetMirrorSkillID(int index) const {
+    return m_plyr->skillInfo[index].m_skillLineID;
+  }
+  unsigned short GetMirrorSkillRank(int index) const {
+    return m_plyr->skillInfo[index].m_skillRank;
+  }
+  unsigned short GetMirrorSkillMaxRank(int index) const {
+    return m_plyr->skillInfo[index].m_skillMaxRank;
+  }
+  short GetMirrorSkillModifier(int index) const {
+    return m_plyr->skillInfo[index].m_skillModifier;
+  }
+  unsigned short GetMirrorSkillStep(int index) const {
+    return m_plyr->skillInfo[index].m_skillStep;
+  }
+  const CQuestLogData *GetQuestLogData(int index) const {
+    return &m_plyr->questLog[index];
+  }
+  unsigned int GetCreatureTracking() const {
+    return m_plyr->trackCreatureMask;
+  }
+  unsigned int GetResourceTracking() const {
+    return m_plyr->trackResourceMask;
+  }
+  unsigned char GetSkin() const {
+    return m_plyr->skinID;
+  }
+  unsigned char GetFace() const {
+    return m_plyr->faceID;
+  }
+  unsigned char GetHairStyle() const {
+    return m_plyr->hairStyleID;
+  }
+  unsigned char GetHairColorID() const {
+    return m_plyr->hairColorID;
+  }
+  unsigned char GetFacialHair() const {
+    return m_plyr->facialHairStyleID;
+  }
+  unsigned __int64 GetFarsightFocus() const {
+    return m_plyr->farsightObject;
+  }
+  unsigned int GetPlayerFlags() const {
+    return m_plyr->playerFlags;
+  }
+  const unsigned __int64 &GetDuelArbiter() const {
+    return m_plyr->duelArbiter;
+  }
+  unsigned int GetDuelTeam() const {
+    return m_plyr->duelTeam;
+  }
+  unsigned char GetNumBankSlots() const {
+    return m_plyr->numBankSlots;
+  }
+
  protected:
   explicit CGPlayer(unsigned long *storage) : m_plyr(reinterpret_cast<CGPlayerData *>(storage)) {
   }
@@ -51,6 +155,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
  public:
   CGPlayer_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
   virtual ~CGPlayer_C();
+  virtual int  ShouldRender(unsigned long worldStatus);
+  void         CommitTexture(int force);
 
   void                               SetStorage(unsigned long *storage);
   void                               PostInit(const CClientObjCreate &init);
@@ -88,8 +194,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void                               SheatheWeapon(unsigned int sheathe);
   void                               SetFarSightFocus(CGObject_C *obj);
   unsigned __int64                   GetFarSightFocusGUID() const {
-    const unsigned char *playerData = *reinterpret_cast<const unsigned char *const *>(reinterpret_cast<const unsigned char *>(this) + 0x9E0);
-    return *reinterpret_cast<const unsigned __int64 *>(playerData + 560);
+    return GetFarsightFocus();
   }
   void ToggleFarSight();
   void ClearFarSight();
@@ -101,6 +206,21 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual unsigned __int64 GetUnitBeingLooted() const {
     return m_lootingUnit;
   }
+  void SetBaseAnimState(unsigned int newState);
+  void SetEmoteState(unsigned int emoteID);
+  void PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const;
+  void OnDeathAnimate();
+  void SetTorsoAnimState(unsigned int newState);
+  int  GetSpellCastingTime(int spellID) const;
+  unsigned int DetermineWoundSequence() const;
+  const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
+  int  GetVirtualItemDisplayID(unsigned int slot) const;
+  int  ShouldRenderUnitName(unsigned int mode) const;
+  void OnDeath();
+  void CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
+  void ReinitializeUnitArtwork();
+  void PostReinitializeArtwork();
+  void SetLastWeaponModeSent(int mode);
   static bool __fastcall IsGiftWrapping();
   static void __fastcall CancelGiftWrap();
   void                   SetCombatMode(int state);
@@ -122,12 +242,10 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   int          CanEngageTarget(CGUnit_C *unitPtr);
   void         OnSpellFailed(const SpellRec *spellRec, unsigned int reason);
   unsigned int GetGuildID() const {
-    const unsigned int *playerData = *reinterpret_cast<const unsigned int *const *>(reinterpret_cast<const unsigned char *>(this) + 2528);
-    return playerData[145];
+    return m_plyr->guildID;
   }
   unsigned int GetGuildRank() const {
-    const unsigned int *playerData = *reinterpret_cast<const unsigned int *const *>(reinterpret_cast<const unsigned char *>(this) + 2528);
-    return playerData[146];
+    return m_plyr->guildRank;
   }
   void                SaveTabard(int eStyle, int eColor, int bStyle, int bColor, int bg, unsigned __int64 vendor) const;
   bool                OnGuildChanged();

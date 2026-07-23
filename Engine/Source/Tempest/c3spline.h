@@ -23,19 +23,21 @@ namespace NTempest {
     ~C3Spline() {
     }
 
+    C3Spline &operator=(const C3Spline &spline);
     void SetPoints(const C3Vector *pts, unsigned int count);
     void Pos(float t, C3Vector &pos, EvalType ptype) const;
     void Vel(float t, C3Vector &vel, EvalType ptype) const;
+    void Frame(float t, C34Matrix &frame, EvalType ptype) const;
 
    protected:
     friend class ::CSplineParticleEmitter;
-    virtual void  IPosParametric(float t, C3Vector &result) const = 0;
-    virtual void  IPosArclength(float t, C3Vector &result) const = 0;
-    virtual void  IVelParametric(float t, C3Vector &result) const = 0;
-    virtual void  IVelArclength(float t, C3Vector &result) const = 0;
-    virtual void  IFrameArclength(float t, C34Matrix &result) const = 0;
     virtual float ILength() const = 0;
     virtual void  IValidateCache() const = 0;
+    virtual void  IPosArclength(float t, C3Vector &result) const = 0;
+    virtual void  IPosParametric(float t, C3Vector &result) const = 0;
+    virtual void  IVelArclength(float t, C3Vector &result) const = 0;
+    virtual void  IVelParametric(float t, C3Vector &result) const = 0;
+    virtual void  IFrameArclength(float t, C34Matrix &result) const = 0;
     virtual void  ISetPoints(const C3Vector *pts, unsigned int count);
 
     void  Evaluate(unsigned int segment, float t, const C44Matrix &coeffs, C3Vector &pos) const;
@@ -52,13 +54,13 @@ namespace NTempest {
 
   class C3Spline_Bezier3 : public C3Spline {
    protected:
-    virtual void  IPosParametric(float t, C3Vector &pos) const;
-    virtual void  IPosArclength(float t, C3Vector &pos) const;
-    virtual void  IVelParametric(float t, C3Vector &vel) const;
-    virtual void  IVelArclength(float t, C3Vector &vel) const;
-    virtual void  IFrameArclength(float t, C34Matrix &frame) const;
     virtual float ILength() const;
     virtual void  IValidateCache() const;
+    virtual void  IPosArclength(float t, C3Vector &pos) const;
+    virtual void  IPosParametric(float t, C3Vector &pos) const;
+    virtual void  IVelArclength(float t, C3Vector &vel) const;
+    virtual void  IVelParametric(float t, C3Vector &vel) const;
+    virtual void  IFrameArclength(float t, C34Matrix &frame) const;
     virtual void  ISetPoints(const C3Vector *pts, unsigned int count);
 
    private:
@@ -72,11 +74,11 @@ namespace NTempest {
   class C3Spline_CatmullRom : public C3Spline {
    public:
     enum SPLINE_MODE {
-      SPLINE_MODE_CATMULLROM = 0,
-      SPLINE_MODE_LINEAR = 1
+      MODE_LINEAR = 0,
+      MODE_CATMULLROM = 1
     };
 
-    C3Spline_CatmullRom() : splineMode(SPLINE_MODE_LINEAR) {
+    C3Spline_CatmullRom() : splineMode(MODE_CATMULLROM) {
     }
 
     unsigned int NumPoints() const {
@@ -92,13 +94,13 @@ namespace NTempest {
     }
 
    protected:
-    virtual void  IPosParametric(float t, C3Vector &pos) const;
-    virtual void  IPosArclength(float t, C3Vector &pos) const;
-    virtual void  IVelParametric(float t, C3Vector &vel) const;
-    virtual void  IVelArclength(float t, C3Vector &vel) const;
-    virtual void  IFrameArclength(float t, C34Matrix &frame) const;
     virtual float ILength() const;
     virtual void  IValidateCache() const;
+    virtual void  IPosArclength(float t, C3Vector &pos) const;
+    virtual void  IPosParametric(float t, C3Vector &pos) const;
+    virtual void  IVelArclength(float t, C3Vector &vel) const;
+    virtual void  IVelParametric(float t, C3Vector &vel) const;
+    virtual void  IFrameArclength(float t, C34Matrix &frame) const;
     virtual void  ISetPoints(const C3Vector *pts, unsigned int count);
 
    private:

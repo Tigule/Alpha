@@ -199,8 +199,8 @@ void __fastcall CMap::PrepareChunks() {
   nGbChunksPrepared = 0;
 
   NTempest::C2iVector chunkIndex;
-  for (chunkIndex.y = CWorld::chunkRectHi.miny; chunkIndex.y <= CWorld::chunkRectHi.maxy; ++chunkIndex.y) {
-    for (chunkIndex.x = CWorld::chunkRectHi.minx; chunkIndex.x <= CWorld::chunkRectHi.maxx; ++chunkIndex.x) {
+  for (chunkIndex.y = CWorld::gbChunkRect.miny; chunkIndex.y <= CWorld::gbChunkRect.maxy; ++chunkIndex.y) {
+    for (chunkIndex.x = CWorld::gbChunkRect.minx; chunkIndex.x <= CWorld::gbChunkRect.maxx; ++chunkIndex.x) {
       unsigned int areaIndex = (chunkIndex.x >> 4) + 64 * (chunkIndex.y >> 4);
       int          cIdx = (chunkIndex.x & 0xF) + 16 * (chunkIndex.y & 0xF);
 
@@ -209,8 +209,8 @@ void __fastcall CMap::PrepareChunks() {
       }
 
       CMapArea *area = areaTable[areaIndex];
-      if (chunkIndex.x >= CWorld::gbChunkRect.minx && chunkIndex.x <= CWorld::gbChunkRect.maxx && chunkIndex.y >= CWorld::gbChunkRect.miny &&
-          chunkIndex.y <= CWorld::gbChunkRect.maxy)
+      if (chunkIndex.x >= CWorld::chunkRectHi.minx && chunkIndex.x <= CWorld::chunkRectHi.maxx && chunkIndex.y >= CWorld::chunkRectHi.miny &&
+          chunkIndex.y <= CWorld::chunkRectHi.maxy)
       {
         if (!area) {
           if (!areaInfo[areaIndex].asyncId) {

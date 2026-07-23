@@ -13,10 +13,10 @@ namespace NTempest {
         : a0(a0), a1(a1), a2(a2), b0(b0), b1(b1), b2(b2), c0(c0), c1(c1), c2(c2) {
     }
 
-    static C33Matrix __fastcall Rotation(float angle, C3Vector &axis, unsigned int unit);
+    static C33Matrix __fastcall Rotation(float angle, const C3Vector &axis, bool unit);
     void                        Scale(float x, float y, float z);
-    void                        Scale(C3Vector &scale);
-    void                        Rotate(float angle, C3Vector &axis, unsigned int unit);
+    void                        Scale(const C3Vector &scale);
+    void                        Rotate(float angle, const C3Vector &axis, bool unit);
     void                        FromEulerAnglesZYX(float yaw, float pitch, float roll);
     C33Matrix                   Transpose();
 

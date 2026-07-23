@@ -89,7 +89,7 @@ void CSimpleCamera::SetFacing(float yaw, float pitch, float roll) {
 
 void CSimpleCamera::SetGxProjectionAndView(const NTempest::CRect &projectionRect) {
   NTempest::C44Matrix projection;
-  m_aspect = (projectionRect.b - projectionRect.t) / (projectionRect.r - projectionRect.l);
+  m_aspect = (projectionRect.r - projectionRect.l) / (projectionRect.b - projectionRect.t);
   GxuXformCreateProjection(m_fov, m_aspect, m_nearZ, m_farZ, projection);
   GxXformSetProjection(projection);
 

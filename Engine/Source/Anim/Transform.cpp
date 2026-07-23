@@ -484,16 +484,82 @@ static int __fastcall AdvanceTime(CAnim *unique, CAnimData *shared) {
   return 1;
 }
 
-static void SetGeosetColor(const InterpInfo& animInfo, CAnimGeoset* currgeoset, CAnimGeosetObjStatus* geoStatus, NTempest::CImVector* currentColor) {
-    // TODO: implement
+static void SetGeosetColor(
+    const InterpInfo &animInfo,
+    CAnimGeoset *currgeoset,
+    CAnimGeosetObjStatus *geoStatus,
+    NTempest::CImVector *currentColor
+) {
+  ASSERT(currgeoset);
+  ASSERT(geoStatus);
+
+  C3Color color;
+  if (currgeoset->color.TotalKeys()) {
+    unsigned int keys = currgeoset->color.SetAnimTime(geoStatus->base, &geoStatus->color, animInfo);
+    if (keys > 1) {
+      const CAnimSequence &sequence = animInfo.shared->seq[geoStatus->base.currSeq];
+      currgeoset->color.Interpolate(geoStatus->color, sequence.time.h - sequence.time.l, &color);
+    } else {
+      if (!(geoStatus->base.flags & 0x10)) {
+        return;
+      }
+      if (keys) {
+        color = reinterpret_cast<const CLinearKeyFrame<C3Color> *>(
+                    currgeoset->color.GetKeyFrame(geoStatus->color.currKey)
+        )->transform;
+      }
+    }
+
+    currentColor->r = NTempest::CMath::ftol_0_256_(min(max(color.r, 0.0f), 1.0f) * 255.0f);
+    currentColor->g = NTempest::CMath::ftol_0_256_(min(max(color.g, 0.0f), 1.0f) * 255.0f);
+    currentColor->b = NTempest::CMath::ftol_0_256_(min(max(color.b, 0.0f), 1.0f) * 255.0f);
+  }
 }
 
-static void SetGeosetAlpha(const InterpInfo& animInfo, CAnimGeoset* currgeoset, CAnimGeosetObjStatus* geoStatus, CGeosetColor* color) {
-    // TODO: implement
+static void SetGeosetAlpha(
+    const InterpInfo &animInfo, CAnimGeoset *currgeoset, CAnimGeosetObjStatus *geoStatus, CGeosetColor *color
+) {
+  ASSERT(currgeoset);
+  ASSERT(geoStatus);
+
+  float alpha = 0.0f;
+  if (currgeoset->visibility.TotalKeys()) {
+    unsigned int keys = currgeoset->visibility.SetAnimTime(geoStatus->base, &geoStatus->visibility, animInfo);
+    if (keys > 1) {
+      const CAnimSequence &sequence = animInfo.shared->seq[geoStatus->base.currSeq];
+      currgeoset->visibility.Interpolate(geoStatus->visibility, sequence.time.h - sequence.time.l, &alpha);
+    } else {
+      if (!(geoStatus->base.flags & 0x10)) {
+        return;
+      }
+      if (keys) {
+        alpha = reinterpret_cast<const CLinearKeyFrame<float> *>(
+                    currgeoset->visibility.GetKeyFrame(geoStatus->visibility.currKey)
+        )->transform;
+      } else {
+        alpha = 1.0f;
+      }
+    }
+
+    color->animatedAlpha = min(max(alpha, 0.0f), 1.0f);
+    color->animatedColor.a =
+        NTempest::CMath::ftol_0_256_(color->animatedAlpha * color->proceduralAlpha * 255.0f);
+  }
 }
 
-void __fastcall CalcGeosetColor(const InterpInfo& animInfo, CAnimGeoset* geoset, CAnimGeosetObjStatus* geoStatus, CGeosetColor* color) {
-    // TODO: implement
+void __fastcall CalcGeosetColor(
+    const InterpInfo &animInfo, CAnimGeoset *geoset, CAnimGeosetObjStatus *geoStatus, CGeosetColor *color
+) {
+  ASSERT(geoset);
+  ASSERT(geoStatus);
+
+  SetGeosetAlpha(animInfo, geoset, geoStatus, color);
+  SetGeosetColor(animInfo, geoset, geoStatus, &color->animatedColor);
+  if (color->animatedColor.a) {
+    geoStatus->base.flags |= 1;
+  } else {
+    geoStatus->base.flags &= ~1;
+  }
 }
 
 static int __fastcall PickRandomSequence(const CVariations &selection, const CArray<CAnimSequence> &seqs) {

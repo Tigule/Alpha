@@ -12,6 +12,7 @@
 #include <Frame/CSimpleRender.h>
 #include <Frame/SimpleFrameRegistry.h>
 #include <Gx/Gx.h>
+#include <Os/OsTime.h>
 #include <Services/Texture.h>
 #include <Tempest/cmath.h>
 #include <Tempest/crandom.h>
@@ -119,7 +120,7 @@ void CGTabardModelFrame::InitializeTabardColors(const CGPlayer_C *playerPtr) {
     m_variations[4] = guild->m_backgroundColor;
   } else {
     NTempest::CRndSeed seed;
-    seed.SetSeed(GetTickCount());
+    seed.SetSeed(OsGetAsyncTimeMs());
     for (unsigned int i = 0; i < 5; ++i) {
       m_variations[i] = NTempest::CMath::mulhwu_(s_maxVariations[i], NTempest::CRandom::uint32_(seed));
     }

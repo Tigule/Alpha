@@ -15,6 +15,8 @@
 #include "SoundInterface/SoundInterface.h"
 #include "UIUtil/Camera.h"
 #include "WorldClient/World.h"
+#include <Event/EvtInt.h>
+#include <Os/OsTime.h>
 
 #include <Base/Handle.h>
 #include <Base/CDataAllocator.h>
@@ -355,7 +357,7 @@ static int MoveMissile(MISSILENODE *node) {
     GetMissileTargetPosition(target, GetMissileTargetLocation(node->caster, node->spellID), node->endPosition);
   }
 
-  unsigned int elapsed = GetTickCount() - node->startTime;
+  unsigned int elapsed = OsGetAsyncTimeMs() - node->startTime;
   if (elapsed >= node->travelTime) {
     if (target && (target->GetType() & TYPE_UNIT)) {
       CGUnit_C *unit = static_cast<CGUnit_C *>(target);
@@ -569,7 +571,7 @@ void MISSILENODE::CheckModelLoadStatus() {
     unsigned int duration;
     if (ModelGetSequenceDuration(model, 0, &duration)) {
       unsigned int finishTime = startTime + travelTime;
-      unsigned int currentTime = GetTickCount();
+      unsigned int currentTime = OsGetAsyncTimeMs();
       if (finishTime > currentTime) {
         ModelSetTimeScale(model, static_cast<float>(duration) / static_cast<float>(finishTime - currentTime), 1);
       }
@@ -638,7 +640,7 @@ static void __fastcall CheckReinitTimer(int current, unsigned int duration) {
 static int __fastcall PurgeTimerHandler(const void *timerData, void *userData) {
   s_purgeTimer = 0;
 
-  int                          current = GetTickCount();
+  int                          current = static_cast<const EvtContext *>(timerData)->m_currTime;
   int                          next = 0x7FFFFFFF;
   int                          found = 0;
   ONESHOTSTANDALONEEFFECTNODE *node = s_standAloneEffects.Head();
@@ -831,7 +833,7 @@ void __fastcall UnitEffectOneShot(
     return;
   }
 
-  int currentTime = GetTickCount();
+  int currentTime = OsGetAsyncTimeMs();
   CheckReinitTimer(currentTime, duration);
   s_standAloneEffects.LinkNode(unitEffectDesc, LIST_HEAD, 0);
   unitEffectDesc->model = model;
@@ -940,7 +942,7 @@ void __fastcall UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffs
   node->position = node->startPosition;
   node->endPosition = endPos;
   node->target = desc.target;
-  node->startTime = GetTickCount();
+  node->startTime = OsGetAsyncTimeMs();
   node->spellID = desc.spellID;
   node->victimEffect = desc.missileVictimEffect;
   node->miss = !desc.hits;

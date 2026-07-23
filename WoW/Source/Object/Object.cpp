@@ -1,6 +1,7 @@
 #include "Object.h"
 
 #include "Base/CDataStore.h"
+#include "Os/OsTime.h"
 
 #include <windows.h>
 
@@ -78,7 +79,7 @@ CDataStore &__fastcall operator<<(CDataStore &packet, const CClientMoveUpdate &u
     if (update.spline.flags & 0x00040000) {
       packet << update.spline.face.facing;
     }
-    packet << static_cast<unsigned long>(GetTickCount() - update.spline.start) << update.spline.time;
+    packet << static_cast<unsigned long>(OsGetAsyncTimeMs() - update.spline.start) << update.spline.time;
     unsigned int pointCount = update.spline.spline.NumPoints();
     packet << pointCount;
     for (unsigned int i = 0; i < pointCount; ++i) {
@@ -123,7 +124,7 @@ CDataStore &__fastcall operator>>(CDataStore &packet, CClientMoveUpdate &update)
     }
     unsigned long elapsed;
     packet.Get(elapsed);
-    update.spline.start = GetTickCount() - elapsed;
+    update.spline.start = OsGetAsyncTimeMs() - elapsed;
     packet.Get(update.spline.time);
     unsigned int pointCount = 0;
     packet.Get(pointCount);

@@ -39,11 +39,7 @@ static unsigned int __fastcall GetBankSlotCost(int bankSlot) {
 }
 
 static unsigned int __fastcall GetPlayerBankSlots(CGPlayer_C *player) {
-  if (!player) {
-    return 0;
-  }
-  const unsigned char *const *playerData = reinterpret_cast<const unsigned char *const *>(reinterpret_cast<const unsigned char *>(player) + 2528);
-  return (*playerData)[1370];
+  return player ? player->GetNumBankSlots() : 0;
 }
 
 static int __fastcall Script_GetBankSlotCost(lua_State *L) {
@@ -180,7 +176,7 @@ void __fastcall CGBankInfo::PickupItem(int slot, int isBag, int slotIsButtonID) 
   unsigned int virtualSlot;
   CGGameUI::GetCursorVirtualItem(virtualItem, virtualSlot);
 
-  CGBag_C         *inventory = reinterpret_cast<CGBag_C *>(reinterpret_cast<unsigned char *>(player) + 6200);
+  CGBag_C         *inventory = player->GetBag();
   unsigned __int64 slotItem = inventory->GetItem(slot);
   if (!cursorItem && !virtualItem) {
     if (slotItem) {
@@ -211,7 +207,7 @@ void __fastcall CGBankInfo::SplitItem(int slot, int split) {
     return;
   }
   slot = ButtonIDToSlotID(slot, 0);
-  CGBag_C         *inventory = reinterpret_cast<CGBag_C *>(reinterpret_cast<unsigned char *>(player) + 6200);
+  CGBag_C         *inventory = player->GetBag();
   unsigned __int64 itemGUID = inventory->GetItem(slot);
   CGItem_C        *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
   if (!item || !item->IsUnlocked() || split < 1 || split > item->GetStackCount()) {

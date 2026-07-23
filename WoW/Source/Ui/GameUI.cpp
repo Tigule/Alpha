@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include <Os/OsTime.h>
 #include "ActionBarFrame.h"
 #include "ChatFrame.h"
 #include "CharacterModelBase.h"
@@ -70,10 +71,15 @@ extern char **__fastcall Script_GetNamesFromGUID(const unsigned __int64 &guid, i
 
 void __fastcall             PortraitInitialize();
 void __fastcall             PortraitShutdown();
+void __fastcall             UpdatePortraitTexture(const unsigned __int64 &guid);
 void __fastcall             Trade_C_CancelTrade();
 void __fastcall             Trade_C_BeginTrade();
 CGUnit_C *__fastcall        Script_GetUnitFromName(const char *name);
 unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
+bool __fastcall             Spell_C_IsTargeting();
+bool __fastcall             Spell_C_WorldObjectHousing();
+void __fastcall             Spell_C_WorldObjectRotate();
+void __fastcall             Spell_C_StopTargeting();
 
 extern const char *g_scriptEvents[0x177];
 
@@ -3355,7 +3361,7 @@ static int __fastcall Script_ToggleSheath(lua_State *__formal) {
 }
 
 static int __fastcall Script_ToggleRun(lua_State *L) {
-  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : GetTickCount();
+  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   FATALASSERT(mover);
   const CGUnitData *unitData = mover->GetUnitData();
@@ -3371,7 +3377,7 @@ static int __fastcall Script_ToggleRun(lua_State *L) {
 }
 
 static int __fastcall Script_Jump(lua_State *L) {
-  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : GetTickCount();
+  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   FATALASSERT(mover);
   const CGUnitData *unitData = mover->GetUnitData();
@@ -4723,6 +4729,10 @@ unsigned __int64 __fastcall CGGameUI::GetPartyMember(unsigned int index) {
 void __fastcall CGGameUI::UnitNameUpdate(const unsigned __int64 &guid) {
 }
 
+void __fastcall CGGameUI::UnitPortraitUpdate(const unsigned __int64 &guid) {
+  UpdatePortraitTexture(guid);
+}
+
 void __fastcall ItemPushItemStatsCallback(int id, const unsigned __int64 &, void *arg, bool granted) {
   if (granted) {
     ItemPushInfo *info = static_cast<ItemPushInfo *>(arg);
@@ -5340,7 +5350,7 @@ static int __cdecl QSortCompareNearestEnemy(const void *a, const void *b) {
 }
 
 void __fastcall CGGameUI::TargetNearestEnemy(int reverse) {
-  unsigned int now = GetTickCount();
+  unsigned int now = OsGetAsyncTimeMs();
   if (!s_nearestListTime || !s_sameTargetTime || s_sameTargetTime + 3000 <= now || !s_nearestList.Count()) {
     s_nearestList.SetCount(0);
     s_nearestIndex = 0;
@@ -5351,7 +5361,7 @@ void __fastcall CGGameUI::TargetNearestEnemy(int reverse) {
       return;
     }
     qsort(s_nearestList.Ptr(), s_nearestList.Count(), sizeof(NearestEnemyData), QSortCompareNearestEnemy);
-    s_nearestListTime = GetTickCount();
+    s_nearestListTime = OsGetAsyncTimeMs();
   } else if (reverse) {
     if (s_nearestIndex) {
       --s_nearestIndex;
@@ -5360,7 +5370,7 @@ void __fastcall CGGameUI::TargetNearestEnemy(int reverse) {
     }
   } else if (++s_nearestIndex >= s_nearestList.Count()) {
     s_nearestIndex = 0;
-    if (s_nearestListTime + 3000 <= GetTickCount()) {
+    if (s_nearestListTime + 3000 <= OsGetAsyncTimeMs()) {
       s_nearestListTime = 0;
       TargetNearestEnemy(0);
       return;
@@ -5371,7 +5381,7 @@ void __fastcall CGGameUI::TargetNearestEnemy(int reverse) {
   do {
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_nearestList[s_nearestIndex].guid, __FILE__, __LINE__));
     if (unit && unit->GetUnitData()->health > 0) {
-      s_sameTargetTime = GetTickCount();
+      s_sameTargetTime = OsGetAsyncTimeMs();
       Target(s_nearestList[s_nearestIndex].guid, 1);
       return;
     }
@@ -5391,6 +5401,30 @@ void __fastcall CGGameUI::ScaleUI(float scale, int force) {
 
 void __fastcall CGGameUI::HideCursor() {
   m_simpleTop->m_cursorVisible = 0;
+}
+
+void __fastcall CGGameUI::ShowCursor() {
+  m_simpleTop->m_cursorVisible = 1;
+}
+
+int __fastcall CGGameUI::HandleMouseDown(const CMouseEvent &evt) {
+  if (evt.button == MOUSE_BUTTON_RIGHT) {
+    if (Spell_C_IsTargeting()) {
+      if (Spell_C_WorldObjectHousing()) {
+        Spell_C_WorldObjectRotate();
+      } else {
+        Spell_C_StopTargeting();
+      }
+    }
+    if (CGPlayer_C::IsGiftWrapping()) {
+      ClearCursor(1);
+    }
+  }
+  return 0;
+}
+
+int __fastcall CGGameUI::HandleMouseUp(const CMouseEvent &evt) {
+  return 0;
 }
 
 void __fastcall CGGameUI::AddErrorMessage(const char *string, int error) {
@@ -5692,6 +5726,36 @@ void __fastcall CGGameUI::UnlockItem(unsigned __int64 itemGUID) {
     }
     FrameScript_SignalEvent(184);
   }
+}
+
+void __fastcall CGGameUI::UnlockAllItems() {
+  CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
+  CGBag_C    *inventory = player ? player->GetBag() : 0;
+  if (!inventory) {
+    return;
+  }
+
+  for (unsigned int slot = 0; slot < inventory->NumSlots(); ++slot) {
+    CGObject_C *item = ClntObjMgrObjectPtr(inventory->GetItem(slot), __FILE__, __LINE__);
+    if (!item) {
+      continue;
+    }
+
+    static_cast<CGItem_C *>(item)->Unlock();
+    if (item->IsA(TYPE_CONTAINER)) {
+      CGBag_C *bag = item->GetBag();
+      if (bag) {
+        for (unsigned int bagSlot = 0; bagSlot < bag->NumSlots(); ++bagSlot) {
+          CGItem_C *bagItem = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(bagSlot), __FILE__, __LINE__));
+          if (bagItem) {
+            bagItem->Unlock();
+          }
+        }
+      }
+    }
+  }
+
+  FrameScript_SignalEvent(184);
 }
 
 int __fastcall CGGameUI::Idle(const void *, void *) {

@@ -893,6 +893,10 @@ const unsigned __int64 &__fastcall Spell_C_GetCurrentCaster() {
   return s_spellCast.caster;
 }
 
+const unsigned __int64 &__fastcall Spell_C_GetCurrentTarget() {
+  return s_spellCast.unitTarget;
+}
+
 void SendCast(SpellCast *cast) {
   unsigned __int64 castingItem = cast->caster == cast->casterUnit ? 0 : cast->caster;
 
@@ -970,7 +974,7 @@ void SendCast(SpellCast *cast) {
   castMsg.Finalize();
   ClientServices_Send(&castMsg);
 
-  if (caster->GetGUID() == ClntObjMgrGetActivePlayer() && (s_playerCast || !reinterpret_cast<const int *>(caster)[422])) {
+  if (caster->GetGUID() == ClntObjMgrGetActivePlayer() && (s_playerCast || !caster->GetCastingSpell())) {
     SpellVisualsHandleCastStart(cast->spellID, *cast, caster, 1000000, 4000, 0);
   }
 
@@ -978,7 +982,7 @@ void SendCast(SpellCast *cast) {
     SpellRec *spell = g_spellDB.GetRecord(cast->spellID);
     if (spell->m_startRecoveryCategory || spell->m_startRecoveryTime) {
       s_spellHistory[0].AddHistory(
-          cast->spellID, 0, GetTickCount(), 0, 0, GetTickCount(), 0, false, spell->m_startRecoveryCategory, spell->m_startRecoveryTime
+          cast->spellID, 0, OsGetAsyncTimeMs(), 0, 0, OsGetAsyncTimeMs(), 0, false, spell->m_startRecoveryCategory, spell->m_startRecoveryTime
       );
       CGSpellBook::UpdateCooldowns();
       CGActionBar::UpdateCooldowns();

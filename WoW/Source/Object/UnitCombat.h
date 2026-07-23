@@ -53,6 +53,8 @@ struct DamageData {
   float        damageFloat[5];
   int          damage[5];
   int          absorbed[5];
+
+  void Clear();
 };
 
 struct LOGBASE {
@@ -99,6 +101,7 @@ struct ATTACKROUNDINFO : public DAMAGELOGBASE {
   float        dualWieldHitRollNeededFloat;
   int          procSpell;
 
+  ATTACKROUNDINFO();
   virtual void PI(CDataStore &msg, int debug);
   virtual void UI(CDataStore &msg);
 };
@@ -188,8 +191,13 @@ struct ANIMQUEUENODE : public TSLinkedNode<ANIMQUEUENODE> {
 };
 
 class CCombat {
+  friend class CGUnit_C;
  public:
-  unsigned __int64 IsAttacking();
+  unsigned __int64 IsAttacking() const;
+  void             SetAttacking(unsigned __int64 victim);
+  void             StopAttack() {
+    m_victim = 0;
+  }
   void             SetClientInitData(CClientObjCreate &init);
 
  protected:
@@ -197,12 +205,23 @@ class CCombat {
 };
 
 class CCombatClient : public CCombat {
+  friend class CGUnit_C;
  public:
   int AttackBeenSent() const {
     return m_attackSent;
   }
 
   void SetAttackSent(unsigned __int64 victim);
+  void StopAttack() {
+    CCombat::StopAttack();
+    m_attackSent = 0;
+  }
+  void ClearAttackSent() {
+    m_attackSent = 0;
+  }
+  void SetStopSent(int stopSent) {
+    m_stopSent = stopSent;
+  }
 
   int StopBeenSent() const {
     return m_stopSent;

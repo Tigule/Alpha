@@ -10,18 +10,22 @@
 extern const FrameScript_Method s_CameraScriptFunctions[20];
 
 #include "Object/ObjectClient/Object_C.h"
+#include "Object/ObjectClient/GameObject_C.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
 #include "UIUtil/InputControl.h"
+#include "Ui/GameUI.h"
 #include "Ui/WorldFrame.h"
 #include "WorldClient/World.h"
 
 #include <Model/IModel.h>
 #include <Base/Coordinate.h>
 #include <Base/Handle.h>
+#include <Event/EvtApi.h>
 #include <Os/OsTime.h>
 #include <Services/DataMgr.h>
+#include <Services/SysMessage.h>
 #include <Tempest/caabox.h>
 #include <Tempest/caasphere.h>
 #include <storm.h>
@@ -151,7 +155,7 @@ void CGCamera::AddShake(
     shake->duration = duration;
     shake->phase = phase;
     shake->coefficient = coefficient;
-    shake->timestamp = GetTickCount();
+    shake->timestamp = OsGetAsyncTimeMs();
   }
 }
 
@@ -228,7 +232,7 @@ static bool __fastcall ValidateCameraAngle(CVar *cvar, const char *oldValue, con
 
 static int __fastcall Script_CameraZoomIn(lua_State *L) {
   FATALASSERT(CGInputControl::GetActive());
-  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : GetTickCount();
+  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   float         distance = lua_isnumber(L, 2) ? static_cast<float>(lua_tonumber(L, 2)) : 1.0f;
   CGWorldFrame::GetActiveCamera()->ZoomIn(distance, timestamp);
   return 0;
@@ -236,7 +240,7 @@ static int __fastcall Script_CameraZoomIn(lua_State *L) {
 
 static int __fastcall Script_CameraZoomOut(lua_State *L) {
   FATALASSERT(CGInputControl::GetActive());
-  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : GetTickCount();
+  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   float         distance = lua_isnumber(L, 2) ? static_cast<float>(lua_tonumber(L, 2)) : 1.0f;
   CGWorldFrame::GetActiveCamera()->ZoomOut(distance, timestamp);
   return 0;
@@ -244,14 +248,14 @@ static int __fastcall Script_CameraZoomOut(lua_State *L) {
 
 static int __fastcall Script_MoveViewStart(lua_State *L, CGCameraMotion motion) {
   FATALASSERT(CGInputControl::GetActive());
-  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : GetTickCount();
+  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGWorldFrame::GetActiveCamera()->StartMotion(motion, timestamp, 0);
   return 0;
 }
 
 static int __fastcall Script_MoveViewStop(lua_State *L, CGCameraMotion motion) {
   FATALASSERT(CGInputControl::GetActive());
-  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : GetTickCount();
+  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGWorldFrame::GetActiveCamera()->StopMotion(motion, timestamp);
   return 0;
 }
@@ -398,7 +402,7 @@ CGCamera::CGCamera()
       m_modelCamera(0),
       m_flags(0x11),
       m_relativeTo(0),
-      m_distance(s_cameraDistanceD->m_floatValue),
+      m_distance(s_cameraDistanceA->m_floatValue),
       m_yaw(0.0f),
       m_pitch(0.0f),
       m_roll(0.0f),
@@ -420,7 +424,7 @@ CGCamera::CGCamera()
   memset(m_motionStop, 0, sizeof(m_motionStop));
   memset(m_motionTimeout, 0, sizeof(m_motionTimeout));
   ResetView(-1);
-  ConsoleCommandRegister("cameraClip", CCommand_CameraClip, DEFAULT, 0);
+  ConsoleCommandRegister("cameraClip", CCommand_CameraClip, DEBUG, 0);
   SetTarget(0);
 }
 
@@ -828,8 +832,18 @@ void CGCamera::ToggleFreeLook() {
 }
 
 void CGCamera::EnableFreeLook() {
+  SetModeFreeLook();
+}
+
+void CGCamera::SetModeFreeLook() {
   if (!(m_flags & 0x8)) {
     m_flags |= 0x8;
+    CGGameUI::HideCursor();
+    EventSetMouseMode(MOUSE_MODE_RELATIVE, 0);
+    CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+    FATALASSERT(worldFrame);
+    worldFrame->OnMouseModeRelative();
+    SysMsgAdd("Camera FREELOOK", SYSMSG_INFO, 4);
     m_previousPitch = m_pitch;
     if (!(m_flags & 0x7)) {
       CGObject_C *target = ClntObjMgrObjectPtr(m_target, __FILE__, __LINE__);
@@ -841,7 +855,7 @@ void CGCamera::EnableFreeLook() {
 }
 
 void CGCamera::DisableFreeLook(int sticky) {
-  m_flags &= ~0x8;
+  SetModeNormal();
   m_distance = m_desiredDistance;
 
   unsigned int view = m_flags & 0x7;
@@ -874,11 +888,23 @@ void CGCamera::DisableFreeLook(int sticky) {
   }
 
   float motionTime = static_cast<float>(fabs(m_yawOffset - desiredAngle)) / 3.1415927f * s_cameraSmoothingTime->m_floatValue;
-  m_yawSmoothingTimestamp = GetTickCount();
+  m_yawSmoothingTimestamp = OsGetAsyncTimeMs();
   m_yawTime = motionTime;
   m_previousYaw = m_yawOffset;
   m_desiredYaw = desiredAngle;
   m_desiredPitch = m_pitch;
+}
+
+void CGCamera::SetModeNormal() {
+  if (m_flags & 0x8) {
+    m_flags &= ~0x8;
+    CGGameUI::ShowCursor();
+    EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
+    CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+    FATALASSERT(worldFrame);
+    worldFrame->OnMouseModeNormal();
+    SysMsgAdd("Camera NORMAL", SYSMSG_INFO, 4);
+  }
 }
 
 void CGCamera::CreateViewFromParams(int view, float dist, float pitch, float yaw) {
@@ -996,11 +1022,11 @@ void CGCamera::UpdateFreeLookFacing(float dx, float dy) {
   m_yaw -= dx;
   ClampAngles();
 
-  float playerYaw = m_yaw - m_yawFreelookStart;
+  float playerYaw = m_yaw - m_yawOffset;
   if (playerYaw < 0.0f) {
     playerYaw += 6.2831855f;
   }
-  CGInputControl::GetActive()->CameraTurnPlayer(GetTickCount(), playerYaw, m_pitch, false);
+  CGInputControl::GetActive()->CameraTurnPlayer(OsGetAsyncTimeMs(), playerYaw, m_pitch, false);
 }
 
 void CGCamera::SyncFreeLookFacing() {
@@ -1009,7 +1035,7 @@ void CGCamera::SyncFreeLookFacing() {
     playerYaw += 6.2831855f;
   }
 
-  CGInputControl::GetActive()->CameraTurnPlayer(GetTickCount(), playerYaw, m_pitch, 1);
+  CGInputControl::GetActive()->CameraTurnPlayer(OsGetAsyncTimeMs(), playerYaw, m_pitch, 1);
 }
 
 void CGCamera::UpdateMotion(unsigned long timestamp) {
@@ -1105,7 +1131,7 @@ void CGCamera::UpdateMotion(unsigned long timestamp) {
 void CGCamera::RunShakes() {
   if (!m_shakes.IsEmpty()) {
     NTempest::C3Vector shakeOffset(0.0f);
-    unsigned long      timestamp = GetTickCount();
+    unsigned long      timestamp = OsGetAsyncTimeMs();
     CGUnit_C          *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_target, __FILE__, __LINE__));
     FATALASSERT(target);
     float yaw = target->GetSmoothFacing();
@@ -1192,6 +1218,42 @@ void CGCamera::SetupWorldProjection(const NTempest::CRect &projectionRect) {
   SetGxProjectionAndView(projectionRect);
 }
 
+void CGCamera::MakeRelativeTo(unsigned __int64 guid) {
+  if (guid == m_relativeTo) {
+    return;
+  }
+
+  if (m_relativeTo) {
+    CGObject_C *object = ClntObjMgrObjectPtr(m_relativeTo, __FILE__, __LINE__);
+    FATALASSERT(object);
+    FATALASSERT(object->IsA(TYPE_GAMEOBJECT));
+    CGGameObject_C *transport = static_cast<CGGameObject_C *>(object);
+    FATALASSERT(transport->IsTransport());
+
+    m_yaw += transport->GetFacing();
+    if (m_yaw > 6.2831855f) {
+      m_yaw -= 6.2831855f;
+    }
+  }
+
+  m_relativeTo = guid;
+
+  if (guid) {
+    CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+    FATALASSERT(object);
+    FATALASSERT(object->IsA(TYPE_GAMEOBJECT));
+    CGGameObject_C *transport = static_cast<CGGameObject_C *>(object);
+    FATALASSERT(transport->IsTransport());
+
+    m_yaw -= transport->GetFacing();
+    if (m_yaw < 0.0f) {
+      m_yaw += 6.2831855f;
+    }
+  }
+
+  CSimpleCamera::SetFacing(m_yaw, m_pitch, m_roll);
+}
+
 NTempest::C33Matrix CGCamera::ParentToWorld() {
   FATALASSERT(m_relativeTo);
 
@@ -1259,7 +1321,7 @@ void CGCamera::SetView(int newView) {
     return;
   }
 
-  unsigned long timestamp = GetTickCount();
+  unsigned long timestamp = OsGetAsyncTimeMs();
   m_flags = (m_flags & ~0x7) | newView;
   m_zoomSmoothingTimestamp = timestamp;
   m_zoomTime = 0.0f;

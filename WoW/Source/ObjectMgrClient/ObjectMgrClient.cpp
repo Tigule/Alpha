@@ -453,25 +453,25 @@ static void __fastcall InitObject(unsigned long eventTime, OBJECT_TYPE_ID type, 
 
   switch (type) {
     case ID_ITEM:
-      new (storage) CGItem_C(reinterpret_cast<unsigned long *>(storage) + 23, eventTime, init);
+      new (storage) CGItem_C(reinterpret_cast<unsigned long *>(static_cast<CGItem_C *>(storage) + 1), eventTime, init);
       break;
     case ID_CONTAINER:
-      new (storage) CGContainer_C(reinterpret_cast<unsigned long *>(storage) + 30, eventTime, init);
+      new (storage) CGContainer_C(reinterpret_cast<unsigned long *>(static_cast<CGContainer_C *>(storage) + 1), eventTime, init);
       break;
     case ID_UNIT:
-      new (storage) CGUnit_C(reinterpret_cast<unsigned long *>(storage) + 632, eventTime, init);
+      new (storage) CGUnit_C(reinterpret_cast<unsigned long *>(static_cast<CGUnit_C *>(storage) + 1), eventTime, init);
       break;
     case ID_PLAYER:
-      new (storage) CGPlayer_C(reinterpret_cast<unsigned long *>(storage) + 1560, eventTime, init);
+      new (storage) CGPlayer_C(reinterpret_cast<unsigned long *>(static_cast<CGPlayer_C *>(storage) + 1), eventTime, init);
       break;
     case ID_GAMEOBJECT:
-      new (storage) CGGameObject_C(reinterpret_cast<unsigned long *>(storage) + 39, eventTime, init);
+      new (storage) CGGameObject_C(reinterpret_cast<unsigned long *>(static_cast<CGGameObject_C *>(storage) + 1), eventTime, init);
       break;
     case ID_DYNAMICOBJECT:
-      new (storage) CGDynamicObject_C(reinterpret_cast<unsigned long *>(storage) + 17, eventTime, init);
+      new (storage) CGDynamicObject_C(reinterpret_cast<unsigned long *>(static_cast<CGDynamicObject_C *>(storage) + 1), eventTime, init);
       break;
     case ID_CORPSE:
-      new (storage) CGCorpse_C(reinterpret_cast<unsigned long *>(storage) + 31, eventTime, init);
+      new (storage) CGCorpse_C(reinterpret_cast<unsigned long *>(static_cast<CGCorpse_C *>(storage) + 1), eventTime, init);
       break;
     default:
       FATALASSERT(0);

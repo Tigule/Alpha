@@ -11,6 +11,7 @@
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/GameUI.h"
 #include "Ui/PartyFrame.h"
+#include <Os/OsTime.h>
 
 #include <lauxlib.h>
 #include <lua.h>
@@ -260,7 +261,7 @@ static int PlayerXPUpdateHandler(unsigned __int64 guid, unsigned int offset, uns
 }
 
 static int __fastcall Script_GetTime(lua_State *L) {
-  double currentTime = static_cast<double>(GetTickCount()) * 0.001;
+  double currentTime = static_cast<double>(OsGetAsyncTimeMs()) * 0.001;
   lua_pushnumber(L, currentTime);
   return 1;
 }

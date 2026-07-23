@@ -22,6 +22,7 @@ namespace NTempest {
 
 class CWorldParam;
 class CDetailDoodadInst;
+class DNSky;
 class CWFrustum;
 class CGUnit_C;
 class CGxPixelShader;
@@ -304,6 +305,8 @@ class CWorld {
   static void __fastcall                      SetEnvironment();
   static void __fastcall                      Render();
   static void __fastcall                      RenderAlpha();
+  static void __fastcall
+  SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
   static void __fastcall                      SetShadowColor(NTempest::CImVector &color);
   static void __fastcall                      SetDetailDoodadDensity(unsigned int density);
   static void __fastcall                      SetNearClip(float nearClip);
@@ -324,6 +327,7 @@ class CWorld {
 
  private:
   friend class CDetailDoodadInst;
+  friend class DNSky;
   friend class CWorldParam;
   friend class CWorldScene;
   friend class CMapChunk;

@@ -16,4 +16,5 @@ void __fastcall PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name);
 void __fastcall PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name);
 void __fastcall PlayerNameUpdateEarly();
 void __fastcall PlayerNameUpdateLate();
+void __fastcall PlayerNameUpdateWorldText(HPLAYERNAME__ *name);
 void __fastcall PlayerNameRenderWorldText();

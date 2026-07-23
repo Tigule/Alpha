@@ -12,7 +12,7 @@ namespace NTempest {
     );
   }
 
-  C33Matrix __fastcall C33Matrix::Rotation(float angle, C3Vector &axis, unsigned int unit) {
+  C33Matrix __fastcall C33Matrix::Rotation(float angle, const C3Vector &axis, bool unit) {
     C3Vector axis_(axis);
 
     if (!unit) {
@@ -47,11 +47,11 @@ namespace NTempest {
     c2 *= z;
   }
 
-  void C33Matrix::Scale(C3Vector &scale) {
+  void C33Matrix::Scale(const C3Vector &scale) {
     Scale(scale.x, scale.y, scale.z);
   }
 
-  void C33Matrix::Rotate(float angle, C3Vector &axis, unsigned int unit) {
+  void C33Matrix::Rotate(float angle, const C3Vector &axis, bool unit) {
     *this = Rotation(angle, axis, unit) * *this;
   }
 

@@ -28,6 +28,8 @@ static int iIndiciesP[4][2] = {
     { 1, 18}
 };
 
+static unsigned short idxoffs[36] = {0, 1, 2, 0, 2, 3, 0, 4, 5, 0, 5, 1, 3, 7, 4, 3, 4, 0, 2, 6, 7, 2, 7, 3, 2, 6, 5, 2, 5, 1, 4, 5, 6, 4, 6, 7};
+
 static int s_vertexIndex[4][3] = {
     {17,  9,  0},
     { 9,  1,  0},
@@ -36,8 +38,6 @@ static int s_vertexIndex[4][3] = {
 };
 
 static int s_vertexIndexFlat[5] = {9, 17, 1, 18, 0};
-
-static unsigned short idxoffs[36] = {0, 1, 2, 0, 2, 3, 0, 4, 5, 0, 5, 1, 3, 7, 4, 3, 4, 0, 2, 6, 7, 2, 7, 3, 2, 6, 5, 2, 5, 1, 4, 5, 6, 4, 6, 7};
 
 unsigned int                       CMap::uniqueId;
 bool                               CMap::enablePixelShaders;

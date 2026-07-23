@@ -36,6 +36,8 @@ class CGUIBindings {
   static void __fastcall          Shutdown();
   static void __fastcall          LoadBindings(int useDefault);
   static void __fastcall          SaveBindings();
+  static const char *__fastcall   KeyEventToString(const CKeyEvent &evt, char *string, int maxLen);
+  static const char *__fastcall   MouseEventToString(const CMouseEvent &evt, char *string, int maxLen);
 
   static CGUIBindings *GetActive() {
     return s_bindings;
@@ -65,6 +67,8 @@ class CGUIBindings {
   }
 
  private:
+  static int __fastcall AddMetaPrefix(unsigned int metaKeyState, char *&string, int &maxLen);
+
   static CGUIBindings *s_bindings;
 
   int                                   m_numCommands;

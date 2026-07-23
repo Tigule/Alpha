@@ -180,7 +180,7 @@ void __fastcall CWorldScene::PrepareRender(NTempest::C3Vector &position, NTempes
   mvpCol3 = NTempest::C4Vector(mvp.a3, mvp.b3, mvp.c3, mvp.d3);
   CalcFrustumCorners(camFrustumCorners);
   camFrustumBounds = NTempest::CAaBox::Bounding(camFrustumCorners, 8);
-  bspStateBits = 0;
+  frustumIndex = 0;
   PrepareRenderLiquid();
 }
 
@@ -252,7 +252,7 @@ void __fastcall CWorldScene::RenderAlpha() {
       cMat = NTempest::C44Matrix();
       cMat.Translate(chunk->corner - camPos);
       GxXformSet(GxXform_World, cMat);
-      chunk->UpdateLights();
+      CMap::SelectLight(chunk);
       chunk->detailDoodadInst->RenderAlpha();
     }
     sortTable.visChunkList.UnlinkNode(chunk);
@@ -832,7 +832,7 @@ void __fastcall CWorldScene::RenderHorizon() {
   GxXformSetProjection(projMat);
 
   GxXformViewport(saveMin.x, saveMax.x, saveMin.y, saveMax.y, saveMin.z, saveMax.z);
-  GxXformSetViewport(saveMin.x, saveMax.x, saveMin.y, saveMax.y, saveMin.z, 1.0f);
+  GxXformSetViewport(saveMin.x, saveMax.x, saveMin.y, saveMax.y, saveMax.z, 1.0f);
 
   cMat = NTempest::C44Matrix();
   cMat.Translate(-camPos);
@@ -866,7 +866,7 @@ void __fastcall CWorldScene::RenderChunks() {
       cMat = NTempest::C44Matrix();
       cMat.Translate(chunk->corner - camPos);
       GxXformSet(GxXform_World, cMat);
-      chunk->UpdateLights();
+      CMap::SelectLight(chunk);
       chunk->Render();
     }
 
@@ -1106,7 +1106,7 @@ void __fastcall CWorldScene::RenderMagma() {
     if (CWorld::enables & CWorld::Enable_Water) {
       GxXformIdentity(GxXform_World);
       GxXformTranslate(GxXform_World, liquid->chunk->corner - camPos);
-      liquid->chunk->UpdateLights();
+      CMap::SelectLight(liquid->chunk);
       liquid->Render(2);
     }
 

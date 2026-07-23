@@ -8,6 +8,15 @@
 
 namespace NTempest {
 
+  C3Spline &C3Spline::operator=(const C3Spline &spline) {
+    if (this != &spline) {
+      cachedLength = spline.cachedLength;
+      points = spline.points;
+      cachedSegLength = spline.cachedSegLength;
+    }
+    return *this;
+  }
+
   void C3Spline::SetPoints(const C3Vector *pts, unsigned int count) {
     ISetPoints(pts, count);
     IValidateCache();
@@ -20,19 +29,28 @@ namespace NTempest {
       pos = points[0];
     } else if (t >= 1.0f) {
       pos = points[points.Count() - 1];
+    } else if (ptype == EVAL_PARAMETRIC) {
+      IPosParametric(t, pos);
     } else if (ptype == EVAL_ARCLENGTH) {
       IPosArclength(t, pos);
-    } else {
-      IPosParametric(t, pos);
     }
   }
 
   void C3Spline::Vel(float t, C3Vector &vel, EvalType ptype) const {
     t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
-    if (ptype == EVAL_ARCLENGTH) {
-      IVelArclength(t, vel);
-    } else {
+    if (ptype == EVAL_PARAMETRIC) {
       IVelParametric(t, vel);
+    } else if (ptype == EVAL_ARCLENGTH) {
+      IVelArclength(t, vel);
+    }
+  }
+
+  void C3Spline::Frame(float t, C34Matrix &frame, EvalType ptype) const {
+    t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+    if (ptype == EVAL_ARCLENGTH) {
+      IFrameArclength(t, frame);
+    } else {
+      ASSERT(0);
     }
   }
 
@@ -164,23 +182,31 @@ namespace NTempest {
   }
 
   void C3Spline_Bezier3::IFrameArclength(float t, C34Matrix &frame) const {
-    IPosArclength(t, *reinterpret_cast<C3Vector *>(&frame.d0));
-    C3Vector facing;
-    IVelArclength(t, facing);
-    if (facing.SquaredMag() >= 0.0001f) {
-      facing.Normalize();
+    unsigned int segment;
+    float        segmentT;
+    ArclengthSegT(t, segment, segmentT);
+    Evaluate(segment, segmentT, *reinterpret_cast<C3Vector *>(&frame.d0));
+
+    C3Vector newFacing;
+    EvaluateDer1(segment, segmentT, newFacing);
+    float magnitude = newFacing.Mag();
+    if (CMath::fabs_(magnitude) >= 0.01f) {
+      newFacing *= 1.0f / magnitude;
+      frame.a0 = newFacing.x;
+      frame.a1 = newFacing.y;
+      frame.a2 = newFacing.z;
     }
-    frame.a0 = facing.x;
-    frame.a1 = facing.y;
-    frame.a2 = facing.z;
-    C3Vector side(-facing.y, facing.x, 0.0f);
-    side.Normalize();
-    frame.b0 = side.x;
-    frame.b1 = side.y;
-    frame.b2 = side.z;
-    frame.c0 = -side.y * facing.z;
-    frame.c1 = side.x * facing.z;
-    frame.c2 = side.y * facing.x - side.x * facing.y;
+
+    frame.b0 = -frame.a1;
+    frame.b1 = frame.a0;
+    frame.b2 = 0.0f;
+    magnitude = CMath::sqrt_(frame.b0 * frame.b0 + frame.b1 * frame.b1);
+    frame.b0 /= magnitude;
+    frame.b1 /= magnitude;
+
+    frame.c0 = -frame.b1 * frame.a2;
+    frame.c1 = frame.b0 * frame.a2;
+    frame.c2 = frame.b1 * frame.a0 - frame.b0 * frame.a1;
   }
 
   void C3Spline_Bezier3::EvaluateDer1(unsigned int segment, float t, C3Vector &der) const {
@@ -223,7 +249,7 @@ namespace NTempest {
   static C44Matrix s_catmullRomCoeffs(-0.5f, 1.5f, -1.5f, 0.5f, 1.0f, -2.5f, 2.0f, -0.5f, -0.5f, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 
   void C3Spline_CatmullRom::Evaluate(unsigned int segment, float t, C3Vector &pos) const {
-    if (splineMode == SPLINE_MODE_CATMULLROM) {
+    if (splineMode == MODE_CATMULLROM) {
       C3Spline::Evaluate(segment, t, s_catmullRomCoeffs, pos);
     } else {
       const C3Vector &start = points[segment + 1];
@@ -298,23 +324,51 @@ namespace NTempest {
   }
 
   void C3Spline_CatmullRom::IFrameArclength(float t, C34Matrix &frame) const {
-    IPosArclength(t, *reinterpret_cast<C3Vector *>(&frame.d0));
-    C3Vector facing;
-    IVelArclength(t, facing);
-    if (facing.SquaredMag() >= 0.0001f) {
-      facing.Normalize();
+    unsigned int segment;
+    float        segmentT;
+    ArclengthSegT(t, segment, segmentT);
+    Evaluate(segment, segmentT, *reinterpret_cast<C3Vector *>(&frame.d0));
+
+    C3Vector linearFacing = points[segment + 2] - points[segment + 1];
+    float    magnitude = linearFacing.Mag();
+    if (CMath::fabs_(magnitude) >= 0.00000023841858f) {
+      linearFacing *= 1.0f / magnitude;
     }
-    frame.a0 = facing.x;
-    frame.a1 = facing.y;
-    frame.a2 = facing.z;
-    C3Vector side(-facing.y, facing.x, 0.0f);
-    side.Normalize();
-    frame.b0 = side.x;
-    frame.b1 = side.y;
-    frame.b2 = side.z;
-    frame.c0 = -side.y * facing.z;
-    frame.c1 = side.x * facing.z;
-    frame.c2 = side.y * facing.x - side.x * facing.y;
+
+    if (splineMode == MODE_CATMULLROM) {
+      C3Vector newFacing;
+      EvaluateDer1(segment, segmentT, newFacing);
+      magnitude = newFacing.Mag();
+      if (CMath::fabs_(magnitude) >= 0.01f) {
+        newFacing *= 1.0f / magnitude;
+        if (C3Vector::Dot(newFacing, linearFacing) >= 0.5f) {
+          frame.a0 = newFacing.x;
+          frame.a1 = newFacing.y;
+          frame.a2 = newFacing.z;
+        } else {
+          frame.a0 = linearFacing.x;
+          frame.a1 = linearFacing.y;
+          frame.a2 = linearFacing.z;
+        }
+      }
+    } else {
+      frame.a0 = linearFacing.x;
+      frame.a1 = linearFacing.y;
+      frame.a2 = linearFacing.z;
+    }
+
+    frame.b0 = -frame.a1;
+    frame.b1 = frame.a0;
+    frame.b2 = 0.0f;
+    magnitude = CMath::sqrt_(frame.b0 * frame.b0 + frame.b1 * frame.b1);
+    if (CMath::fabs_(magnitude) >= 0.00000023841858f) {
+      frame.b0 /= magnitude;
+      frame.b1 /= magnitude;
+    }
+
+    frame.c0 = -frame.b1 * frame.a2;
+    frame.c1 = frame.b0 * frame.a2;
+    frame.c2 = frame.b1 * frame.a0 - frame.b0 * frame.a1;
   }
 
   void C3Spline_CatmullRom::ISetPoints(const C3Vector *pts, unsigned int count) {

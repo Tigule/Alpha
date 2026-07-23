@@ -72,6 +72,7 @@ int __fastcall          ModelSetSequenceFidget(HMODEL model, unsigned int seqInd
 unsigned int __fastcall ModelGetNumSequenceFidgets(HMODEL model, unsigned int seqIndex);
 int __fastcall          ModelGetSequenceDuration(HMODEL model, unsigned int seqIndex, unsigned int *duration);
 int __fastcall          ModelGetSequenceTime(HMODEL model, unsigned int seqIndex);
+float __fastcall        ModelGetPrimarySequenceCompletion(HMODEL model);
 int __fastcall          ModelHasSequenceId(HMODEL model, unsigned int seqIndex);
 HMODEL __fastcall       ModelCreate(const char *sourcefile, CModelCreate *data, CStatus *status);
 HMODEL __fastcall       ModelCreateSolidSphere(float radius, HTEXTURE texture);

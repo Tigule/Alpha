@@ -1,6 +1,7 @@
 #include <Base/Handle.h>
 #include <Event/EvtApi.h>
 #include <Gx/Gx.h>
+#include <Os/OsTime.h>
 #include <Scrn/Scrn.h>
 #include <Tempest/c2vector.h>
 #include <Tempest/c3vector.h>
@@ -68,9 +69,9 @@ void __fastcall FadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
 
   if (s_fadingMode) {
     if (s_drawingFadingScreen) {
-      elapsed = static_cast<float>(GetTickCount() - s_fadingStart) * 0.001f;
+      elapsed = static_cast<float>(OsGetAsyncTimeMs() - s_fadingStart) * 0.001f;
     } else {
-      s_fadingStart = GetTickCount();
+      s_fadingStart = OsGetAsyncTimeMs();
     }
 
     if (elapsed >= s_fadingTime) {
