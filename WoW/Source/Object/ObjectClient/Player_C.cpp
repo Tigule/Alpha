@@ -5143,6 +5143,7 @@ CGPlayer_C::~CGPlayer_C() {
   }
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
     CGGameUI::LeaveWorld();
+    CGPlayer_C::SetActive(0);
   }
 }
 

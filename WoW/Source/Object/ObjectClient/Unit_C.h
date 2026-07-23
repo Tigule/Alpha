@@ -395,6 +395,8 @@ struct CGUnitData {
 };
 
 class CGUnit_C : public CGObject_C {
+  friend class CGObject_C;
+
  public:
   CGUnit_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
   virtual ~CGUnit_C();
@@ -402,6 +404,7 @@ class CGUnit_C : public CGObject_C {
   void SetStorage(unsigned long *storage);
   void PostInit(const CClientObjCreate &init);
   void PostMovementUpdate(CClientMoveUpdate &update);
+  void UpdateUnitCollisionBox(HMODEL model, const char *modelFileName);
   void SetClientInitData(unsigned long eventTime, CClientObjCreate &init, unsigned int partialUpdateOfActivePlayer);
   void UpdateMoveInfo(unsigned long eventTime, CClientMoveUpdate &update);
 

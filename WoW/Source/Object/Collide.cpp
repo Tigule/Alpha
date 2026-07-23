@@ -453,6 +453,24 @@ void CMovement::ProcessFalling(unsigned long eventTime) {
   CheckFallenFar(eventTime);
 }
 
+int CMovement::SetCollisionBox(const NTempest::CAaBox &box, float scale) {
+  float boxDepth = box.t.x - box.b.x;
+  float boxHeight = box.t.z - box.b.z;
+  if (NTempest::CMath::fabs_(scale) < 0.00000095367432f || NTempest::CMath::fabs_(boxDepth) < 0.00000095367432f ||
+      NTempest::CMath::fabs_(boxHeight) < 0.00000095367432f)
+  {
+    return 0;
+  }
+
+  m_stepUpHeight = scale;
+  m_collisionBoxHalfDepth = boxDepth * scale * 0.5f;
+  m_collisionBoxHeight = boxHeight * scale;
+  if (1.849399f * m_collisionBoxHalfDepth > scale) {
+    m_collisionBoxHalfDepth = scale * 0.54071623f;
+  }
+  return 1;
+}
+
 void CMovement::ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane) {
   startPlane->Set(0.87964189f, 0.0f, 0.4756366f, -m_position.z * 0.4756366f - m_position.x * 0.87964189f);
   sides[0].Set(-0.87964189f, 0.0f, -0.4756366f, m_position.x * 0.87964189f + (m_position.z - distance) * 0.4756366f);

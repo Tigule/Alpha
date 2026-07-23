@@ -850,6 +850,7 @@ void CMovement::UpdateAnchors(unsigned long eventTime) {
   m_moveStartTime = eventTime;
   m_moveFlags |= 0x200;
   CalcDirection();
+  MovementNotifyZoneMgr(m_guid);
 }
 
 int CMovement::StartMove(unsigned long eventTime, int forward) {

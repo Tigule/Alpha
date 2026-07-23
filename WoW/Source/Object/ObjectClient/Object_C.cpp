@@ -822,6 +822,12 @@ int CGObject_C::UpdateModelLoadStatus() {
   m_flags |= 0x20;
   UpdateObjectHeight(m_model);
   UpdateWorldObject();
+  if (GetType() & TYPE_UNIT) {
+    CGUnit_C *unit = static_cast<CGUnit_C *>(this);
+    if (!(unit->m_flags & 0x10)) {
+      unit->UpdateUnitCollisionBox(m_model, GetModelFileName());
+    }
+  }
   return 1;
 }
 

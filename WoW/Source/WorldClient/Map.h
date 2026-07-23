@@ -594,7 +594,7 @@ class CMapChunk : public CMapBaseObj {
   NTempest::CRndSeed                   rSeed;
   unsigned int                         zoneId;
   unsigned short                       predTex[8];
-  unsigned int                         noEffectDoodad[8];
+  unsigned char                        noEffectDoodad[8];
   NTempest::C3Vector                   normalList[145];
   NTempest::C3Vector                   vertexList[145];
   NTempest::C4Plane                    planeList[256];

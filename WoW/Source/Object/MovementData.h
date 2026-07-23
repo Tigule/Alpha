@@ -7,6 +7,7 @@
 #include "Object/Object.h"
 #include "Tempest/c2vector.h"
 #include "Tempest/c3vector.h"
+#include "Tempest/caabox.h"
 #include "Tempest/cfacet.h"
 #include "Tempest/cimvector.h"
 
@@ -210,6 +211,7 @@ class CMovement : public CMovementData {
   void UpdateTransportStatus(const CMovementStatus &update);
   void UpdateStatus(unsigned long eventTime, const CMovementStatus &update);
   void UpdateStatusLocal(unsigned long eventTime, const CMovementStatus &update);
+  int  SetCollisionBox(const NTempest::CAaBox &box, float scale);
 
   float GetCurrentTurnRate() const;
   float GetCurrentPitchRate() const;

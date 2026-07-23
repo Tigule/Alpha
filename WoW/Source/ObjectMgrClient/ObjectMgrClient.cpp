@@ -448,7 +448,7 @@ static void __fastcall InitObject(unsigned long eventTime, OBJECT_TYPE_ID type, 
   if (init->flags & 1) {
     ClntObjMgrSetActivePlayer(object->GetGUID());
     CGPlayer_C::SetActive(static_cast<CGPlayer_C *>(object));
-    CGUnit_C::SetActiveMover(object->GetGUID());
+    CGPlayer_C::SetRealActivePlayer(object->GetGUID());
   }
 
   switch (type) {
@@ -1279,11 +1279,63 @@ void __fastcall ClntObjMgrDestroyShared() {
 }
 
 void __fastcall ClntObjMgrDestroy() {
+  while (C_OBJECTHASH *hash = s_curMgr->m_objects.Head()) {
+    ClntObjMgrObjectOutOfRange(hash->m_key.GetGUID(), 1);
+  }
+
+  while (C_OBJECTHASH *hash = s_curMgr->m_lazyCleanupFifo.Head()) {
+    s_curMgr->m_lazyCleanupObjects.Unlink(hash);
+    s_curMgr->m_lazyCleanupFifo.UnlinkNode(hash);
+
+    CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(hash->memHandle));
+    FATALASSERT(object);
+    switch (GetSectionId(object->GetType())) {
+      case ID_OBJECT:
+        object->~CGObject_C();
+        break;
+      case ID_ITEM:
+        static_cast<CGItem_C *>(object)->~CGItem_C();
+        break;
+      case ID_CONTAINER:
+        static_cast<CGContainer_C *>(object)->~CGContainer_C();
+        break;
+      case ID_UNIT:
+        static_cast<CGUnit_C *>(object)->~CGUnit_C();
+        break;
+      case ID_PLAYER:
+        static_cast<CGPlayer_C *>(object)->~CGPlayer_C();
+        break;
+      case ID_GAMEOBJECT:
+        static_cast<CGGameObject_C *>(object)->~CGGameObject_C();
+        break;
+      case ID_DYNAMICOBJECT:
+        static_cast<CGDynamicObject_C *>(object)->~CGDynamicObject_C();
+        break;
+      case ID_CORPSE:
+        static_cast<CGCorpse_C *>(object)->~CGCorpse_C();
+        break;
+      default:
+        FATALASSERT(0);
+        break;
+    }
+
+    ObjectFree(hash->memHandle);
+    ClearObjectMirrorHandlers(hash);
+  }
+
   while (C_OBJECTHASH *hash = s_curMgr->m_freeObjects.Head()) {
     s_curMgr->m_freeObjects.UnlinkNode(hash);
-    unsigned int memHandle = hash->thisMemHandle;
-    hash->~C_OBJECTHASH();
-    ObjectFree(memHandle);
+    ClearObjectMirrorHandlers(hash);
+    ObjectFree(hash->thisMemHandle);
+  }
+
+  for (unsigned int objectType = 0; objectType < 8; ++objectType) {
+    for (unsigned int block = 0; block < 634; ++block) {
+      while (CMirrorHandler *handler = s_mirrorHandlers[objectType][block].Head()) {
+        s_mirrorHandlers[objectType][block].UnlinkNode(handler);
+        DEL(handler);
+      }
+    }
   }
 
   ClientServices_ClearMessageHandler(SMSG_UPDATE_OBJECT);

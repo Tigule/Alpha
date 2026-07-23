@@ -11,6 +11,7 @@
 #include <Base/CDataStore.h>
 #include <FrameScript/FrameScript.h>
 #include <Gx/Gx.h>
+#include <Model/CollisionData.h>
 
 #include <math.h>
 #include <malloc.h>
@@ -1644,6 +1645,18 @@ void CGUnit_C::PostMovementUpdate(CClientMoveUpdate &update) {
   UpdateBaseAnimation(0);
 }
 
+void CGUnit_C::UpdateUnitCollisionBox(HMODEL model, const char *modelFileName) {
+  NTempest::CAaBox extents(0.0f);
+  ModelGetCollisionExtents(model, &extents);
+  if (!m_movement.SetCollisionBox(extents, GetScale())) {
+    if (NTempest::CMath::fabs_(GetScale()) < 0.00000095367432f) {
+      SysMsgPrintf(SYSMSG_ERROR, 2, "ZEROSCALEUNIT|%d|%s", GetEntryID(), GetUnitName());
+    } else {
+      SysMsgPrintf(SYSMSG_ERROR, 2, "NOCOLLISIONBOX|%s", modelFileName);
+    }
+  }
+}
+
 void CGUnit_C::SetupFootprints() {
   FATALASSERT(m_modelData);
   m_footprintTextureID = m_modelData->m_footprintTextureID;
@@ -2671,6 +2684,9 @@ void CGUnit_C::ReinitializeUnitArtwork() {
   SetupFootprints();
   CGUnit_C::UpdateBaseAnimation(0x100);
   UpdateUnitAlpha();
+  if (mountShowing) {
+    HandleClose(model);
+  }
 
   HMODEL characterModel = GetCharacterModel(0);
   FATALASSERT(characterModel);
@@ -3380,7 +3396,7 @@ void __fastcall CGUnit_C::SetActiveMover(const unsigned __int64 &guid) {
   if (m_activeMover) {
     CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_activeMover, __FILE__, __LINE__));
     if (mover) {
-      CGInputControl::GetActive()->UpdatePlayer(OsGetAsyncTimeMs());
+      mover->OnMoveStopLocal(OsGetAsyncTimeMs());
     }
   }
   m_activeMover = guid;

@@ -671,7 +671,7 @@ if(MSVC_VERSION EQUAL 1200)
     )
     set_source_files_properties(
         Source/WorldClient/Map.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX-"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX- /QIfist"
     )
     set_source_files_properties(
         Source/WorldClient/AreaList.cpp
