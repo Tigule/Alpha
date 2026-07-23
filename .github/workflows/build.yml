@@ -32,6 +32,17 @@ jobs:
           file_path: VC6.zip
           extract_dir: VC6
 
+      - name: Download DirectX SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/DXSDK.zip" -OutFile "DXSDK.zip"
+
+      - name: Extract DirectX SDK
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: DXSDK.zip
+          extract_dir: DXSDK
+
       - name: Replace VCVARS32 absolute paths
         uses: richardrigutins/replace-in-files@v3
         with:
@@ -55,6 +66,8 @@ jobs:
 
       - name: Build solution
         shell: cmd
+        env:
+          DXSDK_DIR: ${{ github.workspace }}\DXSDK
         run: |
           call "VC6\VC98\Bin\VCVARS32.BAT"
           cd Build

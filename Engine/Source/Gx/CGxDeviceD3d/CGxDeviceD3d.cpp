@@ -8,21 +8,6 @@
 #include <new>
 #include <string.h>
 
-#pragma pack(push, 4)
-
-struct _D3DADAPTER_IDENTIFIER9 {
-  char          Driver[512];
-  char          Description[512];
-  char          DeviceName[32];
-  LARGE_INTEGER DriverVersion;
-  unsigned int  VendorId;
-  unsigned int  DeviceId;
-  unsigned int  SubSysId;
-  unsigned int  Revision;
-  GUID          DeviceIdentifier;
-  unsigned int  WHQLLevel;
-};
-
 struct DISPLAY_DEVICE_TARGET {
   unsigned int cb;
   char         DeviceName[32];
@@ -76,8 +61,6 @@ struct DEVMODE_TARGET {
   unsigned int dmPanningWidth;
   unsigned int dmPanningHeight;
 };
-
-#pragma pack(pop)
 
 typedef BOOL(__stdcall *ENUM_DISPLAY_DEVICES)(void *, unsigned long, void *, unsigned long);
 
@@ -294,7 +277,7 @@ int __fastcall CGxDevice::AdapterInfer(unsigned short &deviceID) {
     return 0;
   }
 
-  if (d3d->GetDeviceCaps(0, 1, &caps) >= 0) {
+  if (d3d->GetDeviceCaps(0, D3DDEVTYPE_HAL, &caps) >= 0) {
     if ((caps.DevCaps & 0x10000) && caps.MaxSimultaneousTextures > 2 && static_cast<unsigned short>(caps.PixelShaderVersion) >= 0x101) {
       deviceID = 2;
     } else if ((caps.DevCaps & 0x10000) && caps.MaxSimultaneousTextures >= 2) {

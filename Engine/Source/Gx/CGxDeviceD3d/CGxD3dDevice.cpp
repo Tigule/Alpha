@@ -434,7 +434,7 @@ int CGxDeviceD3d::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format)
     return 1;
   }
 
-  DeviceDestroy();
+  CGxDevice::DeviceDestroy();
   return 0;
 }
 
@@ -446,7 +446,7 @@ int CGxDeviceD3d::DeviceCreate(unsigned int hwnd, const CGxFormat &format) {
   if (ICreateD3d()) {
     return 1;
   }
-  DeviceDestroy();
+  CGxDevice::DeviceDestroy();
   return 0;
 }
 
@@ -489,7 +489,7 @@ void CGxDeviceD3d::DeviceSetGamma(float gamma) {
   CGxDevice::DeviceSetGamma(gamma);
 
   if ((m_d3dCaps.Caps2 & 0x00020000) && !IDevIsWindowed()) {
-    m_d3dDevice->SetGammaRamp(0, 0, &m_gammaRamp);
+    m_d3dDevice->SetGammaRamp(0, 0, reinterpret_cast<const D3DGAMMARAMP *>(&m_gammaRamp));
   }
 }
 
@@ -497,7 +497,7 @@ void CGxDeviceD3d::DeviceSetGamma(const CGxGammaRamp &ramp) {
   CGxDevice::DeviceSetGamma(ramp);
 
   if ((m_d3dCaps.Caps2 & 0x00020000) && !IDevIsWindowed()) {
-    m_d3dDevice->SetGammaRamp(0, 0, &m_gammaRamp);
+    m_d3dDevice->SetGammaRamp(0, 0, reinterpret_cast<const D3DGAMMARAMP *>(&m_gammaRamp));
   }
 }
 

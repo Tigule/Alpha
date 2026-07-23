@@ -504,6 +504,7 @@ target_include_directories(Engine
 
     PRIVATE
     ${CMAKE_SOURCE_DIR}/Storm/Source
+    "$ENV{DXSDK_DIR}/Include"
 )
 
 target_link_libraries(Engine Storm Expat FreeType lua)
@@ -511,9 +512,11 @@ target_link_libraries(Engine Storm Expat FreeType lua)
 if(WIN32)
     set(FMOD_IMPORT_LIBRARY
         "${CMAKE_CURRENT_SOURCE_DIR}/Source/FMOD/api/lib/fmodvc.lib")
+    find_library(D3DX9_IMPORT_LIBRARY d3dx9 PATHS "$ENV{DXSDK_DIR}/Lib/x86")
     target_link_libraries(
         Engine
         "${FMOD_IMPORT_LIBRARY}"
+        "${D3DX9_IMPORT_LIBRARY}"
         glu32
         imm32
         opengl32
