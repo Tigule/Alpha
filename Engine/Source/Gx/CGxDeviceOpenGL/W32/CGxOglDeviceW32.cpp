@@ -30,7 +30,7 @@ static unsigned short __fastcall WindowClassCreate() {
   wc.lpfnWndProc = CGxDeviceOpenGl::WindowProcGl;
   wc.hInstance = instance;
   wc.lpszClassName = s_WndClassName;
-  wc.hIcon = static_cast<HICON>(LoadImageA(instance, "BlizzardIcon.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE));
+  wc.hIcon = static_cast<HICON>(LoadImageA(instance, "BlizzardIcon.ico", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
   wc.hCursor = LoadCursorA(instance, "BlizzardCursor.cur");
   if (!wc.hCursor) {
     wc.hCursor = LoadCursorA(instance, IDC_ARROW);
