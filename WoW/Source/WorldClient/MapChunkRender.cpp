@@ -546,9 +546,6 @@ void CMapChunk::CreateDetailDoodads() {
   FATALASSERT(detailDoodadInst);
 
   unsigned int n = CWorld::detailDoodadTest ? 64 : CWorld::detailDoodadDensity;
-  if (n > 128) {
-    n = 128;
-  }
 
   for (i = 0; i < n; ++i) {
     if (CWorld::detailDoodadTest) {

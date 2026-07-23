@@ -248,6 +248,10 @@ void CMapDoodadDef::GetBounds(NTempest::CAaBox &bounds) {
   bounds = aaBox;
 }
 
+void CMapDoodadDef::GetCollideExt(NTempest::CAaBox &bounds) {
+  bounds = collideExt;
+}
+
 void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup) {
   static NTempest::C3Vector dirs[6] = {NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, -1.0f),
                                        NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(-1.0f, 0.0f, 0.0f),

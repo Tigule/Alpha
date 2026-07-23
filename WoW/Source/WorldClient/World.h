@@ -303,6 +303,7 @@ class CWorld {
   static float __fastcall                     GetFramerate();
   static void __fastcall                      GetCounts(int *const counts);
   static void __fastcall                      SetEnvironment();
+  static void __fastcall                      UpdateDayNight(int forceFull, const NTempest::C3Vector *position);
   static void __fastcall                      Render();
   static void __fastcall                      RenderAlpha();
   static void __fastcall
@@ -352,7 +353,6 @@ class CWorld {
   static int __fastcall  ParticleProjectCallback(const NTempest::C3Segment &seg, float &z);
   static int __fastcall  AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z);
   static void __fastcall CalcFPS();
-  static void __fastcall UpdateDayNight(int forceFull, NTempest::C3Vector *position);
   static void __fastcall PrepareAreaOfInterest(NTempest::C3Vector &position, NTempest::C3Vector &target);
 
   static int __fastcall ConsoleCommand_ShowDetailDoodads(const char *command, const char *arguments);

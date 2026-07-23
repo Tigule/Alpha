@@ -40,15 +40,15 @@ struct QUADDATA {
   QUADDATA() : rLink(0), sortz(0.0f), m_texture(0), m_flags(0), m_areaNum(-1), groupNum(0) {
   }
 
-  void            Render(unsigned int quad, NTempest::CImVector &color);
+  void            Render(unsigned int quad, const NTempest::CImVector &color) const;
   NTempest::CRect NormalizeToQuad(unsigned int quad, NTempest::CRect clippedRect);
   void            GenerateVertTexInfo(
-      NTempest::CRect    &rect,
-      unsigned int        quad,
-      NTempest::C2Vector &centerPoint,
-      float               radius,
-      NTempest::CRect    &maskBox,
-      float               layoutScale
+      const NTempest::CRect    &rect,
+      unsigned int              quad,
+      const NTempest::C2Vector &centerPoint,
+      float                     radius,
+      const NTempest::CRect    &maskBox,
+      float                     layoutScale
   );
   void UpdateData(unsigned int quad, NTempest::C2Vector centerPoint, float radius, float layoutScale);
 };

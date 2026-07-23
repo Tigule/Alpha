@@ -96,7 +96,7 @@ void __fastcall CMap::PrepareDoodadDefs() {
   CMapBaseObjLink *doodadDefLink = doodadDefLinkList.Head();
   while (reinterpret_cast<long>(doodadDefLink) > 0) {
     CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(doodadDefLink->owner);
-    if (!(doodadDef->flags & CMapBaseObj::Flag_GameObj)) {
+    if (!(doodadDef->flags & CMapBaseObj::Flag_Loaded)) {
       if (!doodadDef->model) {
         ++count;
         LoadDoodadModel(doodadDef, 0);

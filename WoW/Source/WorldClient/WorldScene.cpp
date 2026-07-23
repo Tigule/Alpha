@@ -656,7 +656,12 @@ void __fastcall CWorldScene::CullDoodads(CSortEntry *sortEntry) {
       sortTable.visDoodadList.LinkNode(doodadDef, LIST_TAIL, 0);
       ++nDoodadsRendered;
     } else {
-      doodadDef->rCount = CWorld::frameCnt;
+      if (doodadDef->rCount != CWorld::frameCnt) {
+        if (doodadDef->flagAlwaysAnimate && doodadDef->model) {
+          ModelAdvanceTime(doodadDef->model);
+        }
+        doodadDef->rCount = CWorld::frameCnt;
+      }
     }
     doodadDef = next;
   }
@@ -675,7 +680,12 @@ void __fastcall CWorldScene::CullDoodads(TSExplicitList<CMapBaseObjLink, 8> &doo
         sortTable.visDoodadList.LinkNode(doodadDef, LIST_TAIL, 0);
         ++nDoodadsRendered;
       } else {
-        doodadDef->rCount = CWorld::frameCnt;
+        if (doodadDef->rCount != CWorld::frameCnt) {
+          if (doodadDef->flagAlwaysAnimate && doodadDef->model) {
+            ModelAdvanceTime(doodadDef->model);
+          }
+          doodadDef->rCount = CWorld::frameCnt;
+        }
       }
     }
     link = doodadDefLinkList.Next(link);

@@ -172,7 +172,7 @@ NTempest::CRect QUADDATA::NormalizeToQuad(unsigned int quad, NTempest::CRect cli
   FATALASSERT(quad < 1024);
   const NTempest::CRect &box = s_mapBoxExtents[quad];
   return NTempest::CRect(
-      2.0f * (clippedRect.l - box.t), 2.0f * (clippedRect.t - box.l), 2.0f * (clippedRect.r - box.t), 2.0f * (clippedRect.b - box.l)
+      2.0f * (clippedRect.t - box.l), 2.0f * (clippedRect.l - box.t), 2.0f * (clippedRect.b - box.l), 2.0f * (clippedRect.r - box.t)
   );
 }
 
@@ -359,12 +359,12 @@ void CGMinimapFrame::UpdateArrowRotation(float angle) {
 }
 
 void QUADDATA::GenerateVertTexInfo(
-    NTempest::CRect    &rect,
-    unsigned int        quad,
-    NTempest::C2Vector &centerPoint,
-    float               radius,
-    NTempest::CRect    &maskBox,
-    float               layoutScale
+    const NTempest::CRect    &rect,
+    unsigned int              quad,
+    const NTempest::C2Vector &centerPoint,
+    float                     radius,
+    const NTempest::CRect    &maskBox,
+    float                     layoutScale
 ) {
   FATALASSERT(centerPoint.x + radius <= 1.0f);
   FATALASSERT(centerPoint.y + radius <= 1.0f);
@@ -404,13 +404,13 @@ void QUADDATA::GenerateVertTexInfo(
   verts[3] = NTempest::C3Vector(right, top, 0.0f);
 }
 
-void CGMinimapFrame::UpdateGeometry(NTempest::C2Vector &centerPoint, float radius) {
+void CGMinimapFrame::UpdateGeometry(const NTempest::C2Vector &centerPoint, float radius) {
   for (unsigned int quad = 0; quad < 1024; ++quad) {
     s_quadData[quad].UpdateData(quad, centerPoint, radius, GetLayoutScale());
   }
 }
 
-void CGMinimapFrame::RenderObjectBlips(DNInfo *dnInfo) {
+void CGMinimapFrame::RenderObjectBlips(const DNInfo *dnInfo) {
   FATALASSERT(dnInfo);
 
   CGxTex *texture = TextureGetGxTex(s_blipTexture, 1, 0);
@@ -529,7 +529,7 @@ void __fastcall CGMinimapFrame::RenderInsideTexture() {
   GxRsPop();
 }
 
-void CGMinimapFrame::RenderInside(float minimapSize, NTempest::C2Vector &localOffset) {
+void CGMinimapFrame::RenderInside(float minimapSize, const NTempest::C2Vector &localOffset) {
   NTempest::C44Matrix oldProjMtx;
   NTempest::C44Matrix projMtx;
   GxXformProjection(oldProjMtx);
@@ -609,7 +609,7 @@ void __fastcall CGMinimapFrame::MinimapTextureCallback(
   }
 }
 
-void QUADDATA::Render(unsigned int quad, NTempest::CImVector &color) {
+void QUADDATA::Render(unsigned int quad, const NTempest::CImVector &color) const {
   FATALASSERT(quad < 1024);
 
   if (!(m_flags & 1) || !m_texture) {
@@ -652,6 +652,8 @@ void __fastcall CGMinimapFrame::Initialize(int continentID) {
 
   s_blipTexture = TextureCreate("Interface\\Minimap\\ObjectIcons", textureFlags, &status, 0);
   FATALASSERT(s_blipTexture);
+
+  s_minimapTexParams.size = 10.0f;
 
   EGxTexFormat format;
   if (GxCaps().m_rttFormat[GxTex_Argb8888]) {
@@ -922,9 +924,9 @@ void __fastcall CGMinimapFrame::Shutdown() {
   }
   s_minimapTexParams.texture = 0;
 
-  s_POIInfo.~TSGrowableArray<POIINFO>();
+  s_POIInfo.Clear();
   for (unsigned int type = 0; type < 5; ++type) {
-    s_miniMapObjects[type].~TSGrowableArray<OBJINFO>();
+    s_miniMapObjects[type].Clear();
   }
 }
 

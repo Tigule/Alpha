@@ -155,6 +155,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
  public:
   CGPlayer_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
   virtual ~CGPlayer_C();
+  virtual void Disable(int shutdown);
+  virtual void Reenable();
   virtual int  ShouldRender(unsigned long worldStatus);
   void         CommitTexture(int force);
 

@@ -400,6 +400,8 @@ class CGUnit_C : public CGObject_C {
  public:
   CGUnit_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
   virtual ~CGUnit_C();
+  virtual void Disable(int shutdown);
+  virtual void Reenable();
 
   void SetStorage(unsigned long *storage);
   void PostInit(const CClientObjCreate &init);
@@ -428,6 +430,7 @@ class CGUnit_C : public CGObject_C {
   void                       AddUnitNamePlate(CGWorldFrame *worldFrame);
   void                       InsertSortedNamePlate(struct NAMEPLATEDESC *desc);
   void                       RemoveUnitNamePlate();
+  void                       DestroyFadingMounts();
   static void __fastcall     ResortAllUnitNameplates(CGWorldFrame *worldFrame);
   virtual NTempest::C3Vector GetPosition() const;
   virtual void               GetPosition(NTempest::C3Vector &vec) const;
@@ -752,6 +755,7 @@ class CGUnit_C : public CGObject_C {
   int                             CanBeLooted(unsigned long currentTime) const;
   void                            SetMirrorHandlers();
   void                            UnsetMirrorHandlers();
+  void                            ClearFishingObject();
   void                            SetAuraMirrorHandlers();
   void                            UnsetAuraMirrorHandlers();
   void SetAuraMirrorHandler(unsigned int slot, int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));

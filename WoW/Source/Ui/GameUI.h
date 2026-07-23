@@ -66,6 +66,7 @@ class CGGameUI {
   static void __fastcall             AssistByName(const char *name);
   static void __fastcall             FollowByName(const char *name);
   static int __fastcall              IsPartyMember(const unsigned __int64 &guid);
+  static void __fastcall             EnablePartyMember(unsigned __int64 guid, int enable);
   static unsigned __int64 __fastcall GetPartyMember(unsigned int index);
   static void __fastcall             ClearTarget(unsigned __int64 guid, int sendTarget);
   static void __fastcall             ClearInteractTarget(const unsigned __int64 &target);

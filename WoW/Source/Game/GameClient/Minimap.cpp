@@ -14,6 +14,7 @@
 #include <Base/Status.h>
 #include <DB/WowLocale.h>
 #include <FrameScript/FrameScript.h>
+#include <Services/SysMessage.h>
 #include <Tempest/c2ivector.h>
 #include <Tempest/c2vector.h>
 #include <Tempest/c3vector.h>
@@ -249,6 +250,7 @@ static void SetupTextureHandles(NTempest::C2iVector &upperLeftArea, int continen
       }
       if (quads[i].m_texture) {
         HandleClose(quads[i].m_texture);
+        quads[i].m_texture = 0;
       }
       quads[i].m_texture = TextureCreate(fileName, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
       quads[i].m_areaNum = currentArea;
@@ -257,7 +259,9 @@ static void SetupTextureHandles(NTempest::C2iVector &upperLeftArea, int continen
   }
 }
 
-static void SetupQuad(const unsigned int groupNum, QUADDATA &quadData, CWorld::MinimapQuad &wmmQuad, const float localz, const char *wmoName) {
+static void SetupQuad(
+    const unsigned int groupNum, QUADDATA &quadData, const CWorld::MinimapQuad &wmmQuad, const float localz, const char *wmoName
+) {
   char    fileName[260];
   CStatus status;
 
@@ -267,6 +271,7 @@ static void SetupQuad(const unsigned int groupNum, QUADDATA &quadData, CWorld::M
   if (name) {
     SStrPrintf(fileName, sizeof(fileName), s_mapObjTemplate, MINIMAP_MD5_DIR, name->filename);
   } else {
+    SysMsgPrintf(SYSMSG_ERROR, 2, "No minimap texture: \"%s\"", fileName);
     fileName[0] = 0;
   }
 
@@ -280,20 +285,45 @@ static void SetupQuad(const unsigned int groupNum, QUADDATA &quadData, CWorld::M
     quadData.m_flags &= ~2u;
   }
 
-  quadData.groupNum = groupNum;
+  quadData.groupNum = wmmQuad.groupNum;
   quadData.m_areaNum = wmmQuad.quad;
   quadData.aaBox = wmmQuad.aaBox;
-  quadData.sortz = (wmmQuad.aaBox.b.z + wmmQuad.aaBox.t.z) * 0.5f - localz;
+  if (wmmQuad.groupNum == groupNum) {
+    quadData.sortz = 0.0f;
+  } else {
+    quadData.sortz = (wmmQuad.aaBox.b.z + wmmQuad.aaBox.t.z) * 0.5f - localz;
+  }
 }
 
 static void SetupMapObj(unsigned long hWorldObject, NTempest::C44Matrix &minimapMtx) {
   const char *wmoName;
 
   CWorld::QueryMapObjMatrix(hWorldObject, &minimapMtx, &s_mapObjInvMtx);
+  float basisMag = minimapMtx.a0 * minimapMtx.a0 + minimapMtx.a1 * minimapMtx.a1 + minimapMtx.a2 * minimapMtx.a2;
+  if (fabs(basisMag - 1.0f) >= 0.00000023841858f) {
+    float basisScale = 1.0f / sqrt(basisMag);
+    float rowMag = sqrt(minimapMtx.a0 * minimapMtx.a0 + minimapMtx.a1 * minimapMtx.a1 + minimapMtx.a2 * minimapMtx.a2);
+    float rowScale = basisScale / rowMag;
+    minimapMtx.a0 *= rowScale;
+    minimapMtx.a1 *= rowScale;
+    minimapMtx.a2 *= rowScale;
+
+    rowMag = sqrt(minimapMtx.b0 * minimapMtx.b0 + minimapMtx.b1 * minimapMtx.b1 + minimapMtx.b2 * minimapMtx.b2);
+    rowScale = basisScale / rowMag;
+    minimapMtx.b0 *= rowScale;
+    minimapMtx.b1 *= rowScale;
+    minimapMtx.b2 *= rowScale;
+
+    rowMag = sqrt(minimapMtx.c0 * minimapMtx.c0 + minimapMtx.c1 * minimapMtx.c1 + minimapMtx.c2 * minimapMtx.c2);
+    rowScale = basisScale / rowMag;
+    minimapMtx.c0 *= rowScale;
+    minimapMtx.c1 *= rowScale;
+    minimapMtx.c2 *= rowScale;
+  }
   minimapMtx.d0 = 0.0f;
   minimapMtx.d1 = 0.0f;
   minimapMtx.d2 = 0.0f;
-  minimapMtx *= NTempest::C44Matrix::Rotation(90.0f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
+  minimapMtx.Rotate(90.0f * 0.017453292f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
 
   if (!CWorld::QueryMapObjFileName(hWorldObject, wmoName)) {
     s_mapObjDir[0] = 0;
@@ -481,6 +511,12 @@ int __fastcall MinimapUpdate(
     MinimapTexParams         &mmtp
 ) {
   unsigned int needsWork = s_flags & 1;
+  mmtp.updateTexture = (s_flags & 1) | mmtp.asyncTexWait;
+
+  if (continent == s_currentContinent && pos.x == s_currentPosition.x && pos.y == s_currentPosition.y && !(s_flags & 1)) {
+    return 0;
+  }
+
   unsigned int mapObjID;
   unsigned int instanceID;
   unsigned int groupID;
@@ -499,6 +535,9 @@ int __fastcall MinimapUpdate(
 
   if (!isInside) {
     mmtp.inside = 0;
+    s_mapObjID = -1;
+    s_mapObjInstanceID = -1;
+    s_mapObjGroupID = -1;
     return MinimapUpdatePosition(continent, pos, &centerPoint, &radius, quads) != 0;
   }
 
@@ -506,33 +545,59 @@ int __fastcall MinimapUpdate(
   s_currentPosition = pos;
 
   mmtp.inside = 1;
-  if (mapObjID != s_mapObjID || instanceID != s_mapObjInstanceID || groupID != s_mapObjGroupID) {
+  if (mapObjID != s_mapObjID || instanceID != s_mapObjInstanceID) {
     SetupMapObj(hWorldObject, mmtp.worldRotation);
     mmtp.invMapObjMtx = s_mapObjInvMtx;
     mmtp.updateTexture = 1;
     needsWork = 1;
     s_mapObjID = mapObjID;
     s_mapObjInstanceID = instanceID;
+  }
+
+  if (groupID != s_mapObjGroupID) {
+    mmtp.updateTexture = 1;
     s_mapObjGroupID = groupID;
   }
 
+  if (pos.x <= s_queryCenterBox.b.x || pos.y <= s_queryCenterBox.b.y || pos.x >= s_queryCenterBox.t.x || pos.y >= s_queryCenterBox.t.y) {
+    mmtp.updateTexture = 1;
+  }
+
   NTempest::C3Vector localPos = pos * s_mapObjInvMtx;
+  if (!mmtp.updateTexture) {
+    mmtp.localOffset = localPos - mmtp.localCenter;
+    s_flags &= ~1u;
+    return needsWork != 0;
+  }
+
   mmtp.size = s_minimapZoomSize[s_currentInsideZoom];
-  mmtp.localCenter = localPos;
-  mmtp.localOffset = NTempest::C3Vector(0.0f);
-  s_queryCenter = localPos;
+  const float halfSize = mmtp.size * 0.5f;
   s_queryCenterBox = NTempest::CAaBox(
-      NTempest::C3Vector(pos.x - mmtp.size, pos.y - mmtp.size, pos.z - mmtp.size),
-      NTempest::C3Vector(pos.x + mmtp.size, pos.y + mmtp.size, pos.z + mmtp.size)
+      NTempest::C3Vector(
+          static_cast<float>(floor(pos.x / mmtp.size)) * mmtp.size,
+          static_cast<float>(floor(pos.y / mmtp.size)) * mmtp.size,
+          pos.z - halfSize
+      ),
+      NTempest::C3Vector(0.0f)
   );
+  s_queryCenterBox.t = NTempest::C3Vector(
+      s_queryCenterBox.b.x + mmtp.size, s_queryCenterBox.b.y + mmtp.size, s_queryCenterBox.b.z + mmtp.size
+  );
+  s_queryCenter = (s_queryCenterBox.b + s_queryCenterBox.t) * 0.5f;
+  mmtp.localCenter = s_queryCenter * s_mapObjInvMtx;
+  mmtp.localOffset = localPos - mmtp.localCenter;
 
   unsigned char                     wmmStorage[sizeof(CWorld::MinimapQuad) * 1024];
   TSStackArray<CWorld::MinimapQuad> wmmQuads(wmmStorage, 1024, 0);
-  CWorld::QueryMapObjMinimap(hWorldObject, s_queryCenterBox, wmmQuads);
+  NTempest::CAaBox queryBox = s_queryCenterBox;
+  queryBox.b = queryBox.b - NTempest::C3Vector(mmtp.size);
+  queryBox.t += NTempest::C3Vector(mmtp.size);
+  CWorld::QueryMapObjMinimap(hWorldObject, queryBox, wmmQuads);
   unsigned int count = wmmQuads.Count();
   unsigned int quad;
+  const unsigned int groupNum = count ? wmmQuads[0].groupNum : 0;
   for (quad = 0; quad < count; ++quad) {
-    SetupQuad(wmmQuads[quad].groupNum, quads[quad], wmmQuads[quad], localPos.z, s_mapObjDir);
+    SetupQuad(groupNum, quads[quad], wmmQuads[quad], localPos.z, s_mapObjDir);
   }
   for (quad = count; quad < 1024; ++quad) {
     quads[quad].m_flags &= ~2u;

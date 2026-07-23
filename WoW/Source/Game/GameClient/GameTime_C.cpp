@@ -6,19 +6,19 @@
 
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleCommand.h"
+#include "WorldClient/World.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 CGameTime g_clientGameTime;
 static void(__fastcall *s_forcedChangeCallbacks[4])(unsigned int oldTime, unsigned int newTime);
 
 static void __fastcall UpdateTime() {
-  unsigned int gameTime;
-  DNInfo      *dnInfo = DayNightGetInfo();
+  DNInfo *dnInfo = DayNightGetInfo();
 
-  WowTime::WowEncodeTime(gameTime, &g_clientGameTime);
-  dnInfo->time = gameTime;
+  dnInfo->time = g_clientGameTime.GetHourAndMinutes();
   dnInfo->dayProgression = g_clientGameTime.GameTimeGetDayProgression();
   dnInfo->day = static_cast<float>(g_clientGameTime.GetDaysSinceEpoch());
+  CWorld::UpdateDayNight(1, 0);
 
   for (unsigned int index = 0; index < 4; ++index) {
     if (s_forcedChangeCallbacks[index]) {
@@ -260,4 +260,19 @@ void __fastcall ClientDestroyGameTime() {
   ClientServices_ClearMessageHandler(SMSG_GAMETIME_SET);
 
   g_clientGameTime.Destroy();
+}
+
+void __fastcall SetGameTimeForcedChangeCallback(
+    int set, void(__fastcall *callback)(unsigned int oldTime, unsigned int newTime)
+) {
+  for (unsigned int index = 0; index < 4; ++index) {
+    if ((!s_forcedChangeCallbacks[index] && set) || (s_forcedChangeCallbacks[index] == callback && !set)) {
+      s_forcedChangeCallbacks[index] = set ? callback : 0;
+      return;
+    }
+  }
+
+  if (set) {
+    FATALASSERT(!"Warning, not enough free callback slots, add to MAX_GAMETIMECHANGECALLBACKS!");
+  }
 }

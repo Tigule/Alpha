@@ -4722,6 +4722,10 @@ int __fastcall CGGameUI::IsPartyMember(const unsigned __int64 &guid) {
   return CGPartyInfo::IsMember(guid);
 }
 
+void __fastcall CGGameUI::EnablePartyMember(unsigned __int64 guid, int enable) {
+  CGPartyInfo::EnableMember(guid, enable);
+}
+
 unsigned __int64 __fastcall CGGameUI::GetPartyMember(unsigned int index) {
   return CGPartyInfo::GetMember(index);
 }

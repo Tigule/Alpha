@@ -558,30 +558,13 @@ void TSGrowableArray<T>::Reserve(unsigned int count, int round) {
 
 template <class T>
 void TSGrowableArray<T>::GrowToFit(unsigned int index, int zero) {
-  unsigned int oldCount = this->m_count;
-  unsigned int count;
-  unsigned int chunk;
-  void (TSFixedArray<T>::*reallocData)(unsigned int);
-
-  if (index < oldCount) {
-    return;
-  }
-
-  count = index + 1;
-  if (count > this->m_alloc) {
-    chunk = m_chunk;
-    if (!chunk) {
-      chunk = CalcChunkSize(count);
+  if (index >= this->m_count) {
+    Reserve(index - this->m_count + 1, 1);
+    if (zero) {
+      memset(&this->m_data[this->m_count], 0, (index - this->m_count + 1) * sizeof(T));
     }
-    reallocData = &TSFixedArray<T>::ReallocData;
-    (this->*reallocData)(RoundToChunk(count, chunk));
+    this->m_count = index + 1;
   }
-
-  if (zero) {
-    memset(&this->m_data[oldCount], 0, (count - oldCount) * sizeof(T));
-  }
-
-  this->m_count = count;
 }
 
 template <class T>

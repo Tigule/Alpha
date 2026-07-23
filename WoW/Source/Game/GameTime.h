@@ -49,5 +49,8 @@ extern CGameTime g_clientGameTime;
 int __fastcall  ClientGameTimeTickHandler(const void *data, void *__formal);
 void __fastcall ClientInitializeGameTime();
 void __fastcall ClientDestroyGameTime();
+void __fastcall SetGameTimeForcedChangeCallback(
+    int set, void(__fastcall *callback)(unsigned int oldTime, unsigned int newTime)
+);
 
 #endif

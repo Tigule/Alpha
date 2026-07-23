@@ -55,6 +55,7 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/GameUI.h"
 #include "Ui/NamePlateFrame.h"
+#include "Ui/PartyFrame.h"
 #include "Ui/ReputationInfo.h"
 #include "Ui/SpellBookFrame.h"
 #include "Ui/WorldFrame.h"
@@ -87,6 +88,10 @@ struct LightningObject;
 void __fastcall UnitEffectsInitialize();
 void __fastcall UnitEffectsShutdown();
 void __fastcall UnitEffectClear(CGObject_C *object);
+void __fastcall BotClientLoseTarget(const CGUnit_C *unit);
+void __fastcall ScriptEventsRegisterUnit(CGUnit_C *unit);
+void __fastcall ScriptEventsUnregisterUnit(CGUnit_C *unit);
+void __fastcall SpellVisualsFishingLineDestroy(FishingLineObject *object);
 void __fastcall SpellVisualClearLightning(LightningObject *lightning);
 void __fastcall SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects);
 void __fastcall UpdatePortraitTexture(const unsigned __int64 &guid);
@@ -95,6 +100,11 @@ const unsigned __int64 &__fastcall Spell_C_GetCurrentTarget();
 void __fastcall Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
 void __fastcall UnitCombatLogUnitDead(unsigned __int64 unit);
 void            UnitFootprintNewBloodSplat(UnitBloodRec *rec, unsigned int unitSize, NTempest::C3Vector &position);
+
+struct BLOODSPLATNODE : public TSLinkedNode<BLOODSPLATNODE> {
+  unsigned int       time;
+  NTempest::C3Vector position;
+};
 
 int __fastcall OnPickNextStandHandler(void *param, CGUnit_C *ptr) {
   ptr->CGUnit_C::OnPickNextStandHandler();
@@ -116,6 +126,84 @@ CGUnit_C::~CGUnit_C() {
   }
   ClearWeaponTrailHandles();
   ClearAnimCallbackData();
+}
+
+void CGUnit_C::Disable(int shutdown) {
+  ClearMeleeDeathHold();
+  m_savedChannelSpellTargets.SetCount(0);
+  m_animFlags &= ~0xC000U;
+  m_emoteQueue.SetCount(0);
+
+  while (BLOODSPLATNODE *node = m_bloodSplatNodes.Head()) {
+    delete node;
+  }
+
+  KillSpellLoopedSound();
+  KillCreatureLoopSound();
+  m_pendingHitAnimVictims.SetCount(0);
+  ProcessAnimEndCallbacks();
+  CheckPendingVictimFeedback();
+  CheckPendingMissileRelease(0);
+  ClearRangedStandTimer();
+  FinishAuraDecays();
+  m_questGiverStatus = QUEST_GIVER_NONE;
+  PurgeAnimNodes(false);
+  RemoveBloodPool();
+  RemoveInteractIcon();
+  UnitEffectClear(this);
+  UnsetMirrorHandlers();
+  FATALASSERT(!m_spellFizzleTimer);
+  m_spellFizzleTimer = 0;
+  RemoveUnitNamePlate();
+
+  if (!CGPartyInfo::IsMember(GetGUID())) {
+    CGGameUI::ClearTarget(GetGUID(), 1);
+  }
+
+  BotClientLoseTarget(this);
+  DestroyFadingMounts();
+  CGWorldFrame::RegisterObjectFadeoutModel(this, m_texComponent, m_alpha);
+  RemoveWorldObject();
+  FATALASSERT(!m_currentDamageInfo);
+  m_movement.CMovementData::~CMovementData();
+
+  if (m_scriptRegistered) {
+    ScriptEventsUnregisterUnit(this);
+  }
+
+  CGObject_C::Disable(shutdown);
+  ClearWeaponTrailHandles();
+  ProcessQuestItemMessages();
+  ClearFishingObject();
+  m_flags &= ~4U;
+}
+
+void CGUnit_C::Reenable() {
+  CGObject_C::Reenable();
+  SetMirrorHandlers();
+  UpdateDisplayInfo();
+  UpdateUnitAlpha();
+  SetSmoothFacing(m_movement.m_facing);
+  m_displayFacing = m_movement.m_facing;
+  AddWorldObject();
+
+  if (m_unit->health > 0 && static_cast<float>(m_unit->health) / static_cast<float>(m_unit->maxHealth) < 0.2f) {
+    AddBloodPool();
+  }
+}
+
+void CGUnit_C::DestroyFadingMounts() {
+  if (m_fadingPureMountModel) {
+    HandleClose(m_fadingPureMountModel);
+    m_fadingPureMountModel = 0;
+  }
+}
+
+void CGUnit_C::ClearFishingObject() {
+  if (m_fishingLineObject) {
+    SpellVisualsFishingLineDestroy(m_fishingLineObject);
+  }
+  m_fishingLineObject = 0;
 }
 
 int __fastcall DeathAnimEndHandler(void *param, CGUnit_C *ptr) {
@@ -174,11 +262,6 @@ static const char *s_interactIconAnimNames[2] = {"stand", "StandHigh"};
 
 static INTERACTICONTYPE s_questIconInfo[5] = {
     INTERACTICON_NONE, INTERACTICON_NONE, INTERACTICON_FUTURE, INTERACTICON_COMPLETION, INTERACTICON_NORMAL
-};
-
-struct BLOODSPLATNODE : public TSLinkedNode<BLOODSPLATNODE> {
-  unsigned int       time;
-  NTempest::C3Vector position;
 };
 
 static TSList<BLOODSPLATNODE, TSGetLink<BLOODSPLATNODE> > s_bloodSplatList;
@@ -1555,8 +1638,13 @@ CGUnit_C::CGUnit_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
   m_handAnim[0] = static_cast<ANIMENUMERATION>(-1);
   m_handAnim[1] = static_cast<ANIMENUMERATION>(-1);
   SetClientInitData(eventTime, *init, 0);
-  RefreshDataPointers();
   AddWorldObject();
+  RefreshDataPointers();
+  if (GetType() == HIER_TYPE_UNIT) {
+    InitializeExtendedDisplay();
+  }
+  MarkFootstepAnimations(m_model);
+  InitializeTextureVariations(m_displayInfo, m_model, m_modelData);
 }
 
 void CGUnit_C::InitializeExtendedDisplay() {
@@ -1622,15 +1710,24 @@ void CGUnit_C::InitializeExtendedDisplay() {
 
 void CGUnit_C::PostInit(const CClientObjCreate &init) {
   PostSetClientInitData(init.move);
+  m_fadingMountScale = GetMountScale();
   m_baseRadius = m_unit->boundingRadius;
   CGObject_C::PostInit(init);
+  UnitInitializeModel(m_model);
+  InitializeLoopSound();
   SetupFootprints();
-  RefreshAuraVisuals();
-  InitializeExtendedDisplay();
+  AttachVirtualMonsterWeapons();
+  InitializeNPCItems();
+  if (m_geosetHandle) {
+    CharCustomizationCommitItemGeosets(m_geosetHandle, 0);
+    CGObject_C::Animate();
+  }
+  m_flags |= 4;
+  UpdateUnitAlpha();
   UpdateDisplayHealth();
   SetAuraMirrorHandlers();
   SetSmoothFacing(GetFacing());
-  UpdateBaseAnimation(0);
+  UpdateBaseAnimation(0x100);
 
   for (unsigned int slot = 0; slot < 56; ++slot) {
     if (m_unit->auras[slot]) {
@@ -7226,9 +7323,9 @@ void CGUnit_C::ReinitializePaperdollModel() {
 
 void CGUnit_C::CreatePaperdollModel() {
   HMODEL      &paperDollModel = m_paperDollModel;
-  unsigned int sequence = 0;
+  int sequenceTime = 0;
   if (paperDollModel) {
-    sequence = ModelGetPrimarySequence(paperDollModel);
+    sequenceTime = ModelGetSequenceTime(paperDollModel, 0);
     HandleClose(paperDollModel);
   }
 
@@ -7240,7 +7337,7 @@ void CGUnit_C::CreatePaperdollModel() {
   if (!ModelSetSequence(paperDollModel, 0, 5)) {
     ConsolePrintf("UNITNOSTAND|%s", GetUnitName());
   }
-  ModelSetSequence(paperDollModel, 0, sequence, 0);
+  ModelForceSequenceTime(paperDollModel, 0, sequenceTime, 0);
 }
 
 int CGUnit_C::ShouldDelayLevelupAnim() {

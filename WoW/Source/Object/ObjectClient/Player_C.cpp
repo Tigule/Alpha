@@ -5147,6 +5147,29 @@ CGPlayer_C::~CGPlayer_C() {
   }
 }
 
+void CGPlayer_C::Disable(int shutdown) {
+  CGGameUI::EnablePartyMember(GetGUID(), 0);
+  UnsetPlayerMirrorHandlers();
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    UnsetActiveMirrorHandlers();
+  }
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CGGameUI::LeaveWorld();
+  }
+  CGUnit_C::Disable(shutdown);
+}
+
+void CGPlayer_C::Reenable() {
+  CGUnit_C::Reenable();
+  SetPlayerMirrorHandlers();
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    SetActiveMirrorHandlers();
+  }
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CGGameUI::EnterWorld();
+  }
+}
+
 void CGPlayer_C::HandleMountResult(unsigned int result) {
   if (result < 11) {
     CGGameUI::DisplayError(s_mountResultGameErrors[result]);

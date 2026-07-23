@@ -297,7 +297,7 @@ void __fastcall CDetailDoodadData::MdlReadCallback(unsigned int *fileData, unsig
   unsigned int sectionBytes = *reinterpret_cast<unsigned int *>(texSection);
   FATALASSERT(sectionBytes == 268);
   unsigned char *texData = texSection + sizeof(unsigned int);
-  detailDoodad->texture = TextureLoadImage(reinterpret_cast<char *>(texData + 4));
+  detailDoodad->texture = CMap::LoadTexture(reinterpret_cast<char *>(texData + 4));
 
   CDetailDoodadGeom *geom = CDetailDoodad::AllocGeom();
   FATALASSERT(geom);
@@ -383,10 +383,6 @@ void CDetailDoodadInst::AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos
   unsigned int idx;
   unsigned int iIdx;
 
-  if (doodadId >= CDetailDoodad::doodadList.Count()) {
-    return;
-  }
-
   CDetailDoodadData *detailData = CDetailDoodad::doodadList[doodadId];
   if (!detailData || (!detailData->loaded && !detailData->Load()) || !detailData->geom) {
     return;
@@ -430,7 +426,12 @@ void CDetailDoodadInst::AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos
 
   NTempest::CImVector argb(0xFFFFFFFF);
   if (flags & 1) {
-    argb.Set(static_cast<unsigned char>(0xC0), static_cast<unsigned char>(0xC0), static_cast<unsigned char>(0xC0), static_cast<unsigned char>(0xC0));
+    argb.r = 0xC0;
+    argb.g = 0xC0;
+    argb.b = 0xC0;
+  }
+  if (GxCaps().m_colorFormat == GxCF_rgba) {
+    argb.Set(argb.a, argb.b, argb.g, argb.r);
   }
 
   for (idx = 0; idx < vertexCount; ++idx) {

@@ -62,8 +62,8 @@ class CGMinimapFrame : public CSimpleFrame {
 
   void SetPlayerArrowPosition();
   void UpdateArrowRotation(float angle);
-  void UpdateGeometry(NTempest::C2Vector &centerPoint, float radius);
-  void RenderObjectBlips(DNInfo *dnInfo);
+  void UpdateGeometry(const NTempest::C2Vector &centerPoint, float radius);
+  void RenderObjectBlips(const DNInfo *dnInfo);
 
   static int __fastcall                ObjectEnumProc(unsigned __int64 object, void *param);
   static NTempest::C2Vector __fastcall WorldPosToMinimapFrameCoords(NTempest::C3Vector centerPoint, float radius, float x, float y, float scale);
@@ -77,7 +77,7 @@ class CGMinimapFrame : public CSimpleFrame {
       unsigned int &texelStrideInBytes,
       const void  *&texels
   );
-  void                   RenderInside(float minimapSize, NTempest::C2Vector &localOffset);
+  void                   RenderInside(float minimapSize, const NTempest::C2Vector &localOffset);
   static void __fastcall RenderInsideTexture();
   static void __fastcall RenderInsideSortQuads(QUADDATA *&rHead);
   static void __fastcall RenderInsideQuad(QUADDATA *q);

@@ -237,7 +237,7 @@ void __fastcall CWorld::SetEnvironment() {
   GxRsSet(GxRs_FogColor, dnInfo->fogInfo.color);
 }
 
-void __fastcall CWorld::UpdateDayNight(int forceFull, NTempest::C3Vector *position) {
+void __fastcall CWorld::UpdateDayNight(int forceFull, const NTempest::C3Vector *position) {
   DNInfo *dnInfo = DayNightGetInfo();
   if (forceFull) {
     if (position) {

@@ -17,7 +17,7 @@
 static const char *s_animationNames[1] = {"Stand"};
 
 static int __fastcall OnPickNextFidget(void *param) {
-  ModelSetSequence(static_cast<HMODEL>(param), 0, 0);
+  ModelSetRandomSequenceFidget(static_cast<HMODEL>(param), 0, 0);
   return 1;
 }
 
@@ -315,7 +315,7 @@ CMapDoodadDef *__fastcall CMap::CreateDoodadDef(
   doodadDef->mat.Rotate(smoDoodadDef.rot);
   doodadDef->mat.Scale(smoDoodadDef.scale);
   doodadDef->lMat = doodadDef->mat;
-  doodadDef->lMat *= mapObjDefMat;
+  doodadDef->mat *= mapObjDefMat;
   doodadDef->AdjustLightmap(smoDoodadDef.color, doodadDef->interiorDirColor, 112, doodadDef->ambient, 96);
   return doodadDef;
 }
@@ -403,7 +403,7 @@ int __fastcall CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait) {
   doodadDef->model = ModelCreate(doodadDef->modelName, &createData, &status);
   FATALASSERT(doodadDef->model);
 
-  ModelSetSequence(doodadDef->model, 0, 0);
+  ModelSetRandomSequenceFidget(doodadDef->model, 0, 0);
   ModelSetSeqFinishedHandler(doodadDef->model, OnPickNextFidget, doodadDef->model);
   ModelSetEventCallback(doodadDef->model, DoodadEventCallback, doodadDef, 0);
   ModelSetLightSelectCallback(doodadDef->model, SelectLight, doodadDef, 1);
@@ -416,9 +416,35 @@ int __fastcall CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait) {
 }
 
 void __fastcall CMap::ReloadDoodadModels() {
+  bPreload = 1;
+
+  CMapDoodadDef *doodadDef = doodadDefHash.Head();
+  while (doodadDef) {
+    ModelRemoveFromCache(doodadDef->modelName);
+    doodadDef = doodadDefHash.Next(doodadDef);
+  }
+
+  doodadDef = doodadDefHash.Head();
+  while (doodadDef) {
+    if (doodadDef->model) {
+      HandleClose(doodadDef->model);
+    }
+    doodadDef->model = 0;
+    LoadDoodadModel(doodadDef, 0);
+    doodadDef = doodadDefHash.Next(doodadDef);
+  }
+
+  bPreload = 0;
 }
 
 void __fastcall CMap::EnableDoodadFullAlpha(int enable) {
+  CMapDoodadDef *doodadDef = doodadDefHash.Head();
+  while (doodadDef) {
+    if (doodadDef->model) {
+      ModelEnableFullAlpha(doodadDef->model, enable);
+    }
+    doodadDef = doodadDefHash.Next(doodadDef);
+  }
 }
 
 void __fastcall CMap::CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef) {
