@@ -414,8 +414,9 @@ void __fastcall MinimapShutdown() {
   s_md5NameHash.Clear();
 }
 
-static int
-MinimapUpdatePosition(unsigned int continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads) {
+static int MinimapUpdatePosition(
+    unsigned int continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads
+) {
   FATALASSERT(radius);
   FATALASSERT(centerPoint);
   if (continent == s_currentContinent && pos.x == s_currentPosition.x && pos.y == s_currentPosition.y && pos.z == s_currentPosition.z &&

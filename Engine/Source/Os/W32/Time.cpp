@@ -96,11 +96,37 @@ float __fastcall OsGetAsyncTimeSec() {
   return (float)GetTickCount() * 0.001f;
 }
 
+void __fastcall OsGetTimeStr(char* timebuf, unsigned long len) {
+    // TODO: implement
+}
+
 void __fastcall OsGetTimeStamp(char *timeStamp, unsigned long len) {
   time_t ltime;
 
   time(&ltime);
   strftime(timeStamp, len, "%m%d%y_%H%M%S", localtime(&ltime));
+}
+
+void __fastcall OsGetTimeStr(char* timebuf, unsigned long len, const char* format, long timer) {
+    // TODO: implement
+}
+
+void __fastcall OsFileTimeGetCurrent(OSFILETIME* filetime) {
+    // TODO: implement
+}
+
+int __fastcall OsFileTimeCompare(const OSFILETIME* filetime1, const OSFILETIME* filetime2) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall OsFileTimeAdd(OSFILETIME* filetime, unsigned int seconds) {
+    // TODO: implement
+}
+
+unsigned __int64 __fastcall OsGetAsyncThreadTimeMs() {
+    // TODO: implement
+    return 0;
 }
 
 unsigned long __fastcall OsGetTime() {
@@ -218,4 +244,12 @@ void __fastcall OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime) 
   OsTimeToFileTime(time, &fileTime);
   OsFileTimeToLocalFileTime(&fileTime, &localFileTime);
   OsFileTimeToSystemTime(&localFileTime, localSysTime);
+}
+
+void __fastcall OsTimeStartup() {
+    // TODO: implement
+}
+
+void __fastcall OsTimeShutdown() {
+    // TODO: implement
 }

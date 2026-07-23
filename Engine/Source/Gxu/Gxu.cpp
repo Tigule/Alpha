@@ -8,6 +8,20 @@
 #ifdef INFINITY
 #undef INFINITY
 #endif
+static float D3dCeil(float f) {
+    // TODO: implement
+    return 0;
+}
+
+static float OglFloor(float f) {
+    // TODO: implement
+    return 0;
+}
+
+static void PixSnap(const CGxCaps& caps, const NTempest::C3Vector& src, NTempest::C3Vector& dst) {
+    // TODO: implement
+}
+
 void __fastcall GxuXformCreateProjection(float fovyInRadians, float aspect, float minZ, float maxZ, NTempest::C44Matrix &dst) {
   ASSERT(fovyInRadians > 0.0f && fovyInRadians < 3.1415927f);
   ASSERT(aspect > 0.0f);
@@ -94,6 +108,10 @@ void __fastcall GxuXformCreateLookAtSgCompat(
   dst.Translate(NTempest::C3Vector(-eye.x, -eye.y, -eye.z));
 }
 
+void __fastcall GxuXformCreateLookAtXXX(const NTempest::C3Vector& eye, const NTempest::C3Vector& center, const NTempest::C3Vector& up, NTempest::C44Matrix& dst) {
+    // TODO: implement
+}
+
 void __fastcall GxuXformCalcFrustumCorners(NTempest::C44Matrix &view, NTempest::C44Matrix &proj, NTempest::C3Vector *corners) {
   NTempest::C44Matrix projInv = proj.Inverse(proj.Determinant());
   NTempest::C44Matrix viewInv = view.Inverse(view.Determinant());
@@ -156,13 +174,16 @@ void __fastcall GxuXformCalcFrustumPlanes(NTempest::C44Matrix &viewProj, NTempes
   }
 }
 
-int __fastcall GxuTestSphereAndFrustumPlanes(NTempest::C3Vector &center, float radius, NTempest::C4Vector *planes, unsigned int numPlanes) {
-  for (unsigned int i = 0; i < numPlanes; ++i) {
-    if (planes[i].x * center.x + planes[i].y * center.y + planes[i].z * center.z + planes[i].w < -radius) {
-      return 0;
-    }
-  }
-  return 1;
+void __fastcall GxuXformCalcFrustumBounds(const NTempest::C44Matrix& view, const NTempest::C44Matrix& proj, NTempest::C3Vector& minBound, NTempest::C3Vector& maxBound) {
+    // TODO: implement
+}
+
+void __fastcall GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C3Vector* src, NTempest::C3Vector* dst) {
+    // TODO: implement
+}
+
+void __fastcall GxuTexScale(const void* srcPixels, EGxTexFormat srcFormat, unsigned int srcW, unsigned int srcH, unsigned int srcStrideInBytes, const void* dstPixels, EGxTexFormat dstFormat, unsigned int dstW, unsigned int dstH, unsigned int dstStrideInBytes) {
+    // TODO: implement
 }
 
 void __fastcall GxuUpdateSingleColorTexture(
@@ -190,6 +211,20 @@ void __fastcall GxuUpdateSingleColorTexture(
       texels = image;
       break;
   }
+}
+
+int __fastcall GxuTestRayAndSphere(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, const NTempest::C3Vector& sphereCenter, float sphereRadius, float& distance) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall GxuTestSphereAndFrustumPlanes(NTempest::C3Vector &center, float radius, NTempest::C4Vector *planes, unsigned int numPlanes) {
+  for (unsigned int i = 0; i < numPlanes; ++i) {
+    if (planes[i].x * center.x + planes[i].y * center.y + planes[i].z * center.z + planes[i].w < -radius) {
+      return 0;
+    }
+  }
+  return 1;
 }
 
 int __fastcall GxuTestRayAndTriangle(
@@ -230,4 +265,22 @@ int __fastcall GxuTestRayAndTriangle(
 
   distance = NTempest::C3Vector::Dot(e2, q) * f;
   return 1;
+}
+int __fastcall GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, const NTempest::C34Matrix* modelToWorldMatrices, unsigned int matrixCount, unsigned int posCount, const NTempest::C3Vector* pos, unsigned int posStride, unsigned int boneCount, const unsigned char* bone, unsigned int boneStride, EGxPrim primType, unsigned int indexCount, const unsigned short* indices, float& distance, unsigned int& primIntersected) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall GxuTestRayAndRigidMeshInModelSpace(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, unsigned int posCount, const NTempest::C3Vector* pos, EGxPrim primType, unsigned int indexCount, const unsigned short* indices, float& distance, unsigned int& primIntersected) {
+    // TODO: implement
+    return 0;
+}
+
+unsigned int __fastcall GxuClipCalcCode(const NTempest::C44Matrix& viewProj, const NTempest::C3Vector& pos) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall GxuSnapTexelsToPixels(const NTempest::C3Vector* pos, NTempest::C2Vector* tex, unsigned int texW, unsigned int texH) {
+    // TODO: implement
 }

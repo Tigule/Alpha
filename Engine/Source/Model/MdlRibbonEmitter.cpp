@@ -1,5 +1,7 @@
 #include "Model/ModelInternal.h"
 
+struct MDLDATA;
+
 #include "Model/Material.h"
 #include "Services/IParticleMisc.h"
 #include "Services/RibbonEmitter.h"
@@ -67,6 +69,11 @@ static void __fastcall LoadEmitterData(unsigned char *emitterData, CModelComplex
   ribbon->SetTexSlot(staticTextureSlot);
   ribbon->SetEnabled(0);
   ribbon->SetGravity(gravity);
+}
+
+int __fastcall MdlReadLoadRibbonEmitters(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared) {
+    // TODO: implement
+    return 0;
 }
 
 void __fastcall MdxReadRibbonEmitters(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr, CModelShared *shared) {

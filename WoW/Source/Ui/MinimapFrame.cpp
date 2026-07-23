@@ -94,13 +94,6 @@ static unsigned short idx[4] = {0, 1, 2, 3};
 NTempest::C2Vector CGMinimapFrame::m_pingPosition;
 MinimapTexParams   CGMinimapFrame::s_minimapTexParams;
 
-CGMinimapFrame::CGMinimapFrame(CSimpleFrame *parent) : CSimpleFrame(parent), m_lastFacing(-10000.0f), m_lastBlipUpdate(0) {
-  EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<unsigned int>(-1));
-}
-
-CGMinimapFrame::~CGMinimapFrame() {
-}
-
 NTempest::C2Vector __fastcall CGMinimapFrame::WorldPosToMinimapFrameCoords(
     NTempest::C3Vector centerPoint,
     float              radius,
@@ -111,6 +104,9 @@ NTempest::C2Vector __fastcall CGMinimapFrame::WorldPosToMinimapFrameCoords(
   const float halfSize = 0.108f * layoutScale * 0.5f;
   const float ooRadius = 1.0f / radius;
   return NTempest::C2Vector(halfSize - halfSize * (y - centerPoint.y) * ooRadius, halfSize + halfSize * (x - centerPoint.x) * ooRadius);
+}
+
+CGMinimapFrame::~CGMinimapFrame() {
 }
 
 int __fastcall CGMinimapFrame::ObjectEnumProc(unsigned __int64 object, void *param) {
@@ -171,15 +167,29 @@ int __fastcall CGMinimapFrame::ObjectEnumProc(unsigned __int64 object, void *par
   return 1;
 }
 
-void CGMinimapFrame::SetPlayerArrowPosition() {
-  NTempest::C3Vector offset(m_playerArrowFrame->GetWidth() * 0.5f, m_playerArrowFrame->GetHeight() * 0.5f, 0.0f);
-  m_playerArrowFrame->SetPosition(offset);
-  m_playerArrowFrame->m_flags |= MODEL_ARROW_LOADED;
+NTempest::CRect QUADDATA::NormalizeToQuad(unsigned int quad, NTempest::CRect clippedRect) {
+  FATALASSERT(quad < 1024);
+  const NTempest::CRect &box = s_mapBoxExtents[quad];
+  return NTempest::CRect(
+      2.0f * (clippedRect.l - box.t), 2.0f * (clippedRect.t - box.l), 2.0f * (clippedRect.r - box.t), 2.0f * (clippedRect.b - box.l)
+  );
 }
 
-void CGMinimapFrame::UpdateArrowRotation(float angle) {
-  m_lastFacing = angle;
-  m_playerArrowFrame->SetFacing(angle);
+void QUADDATA::UpdateData(unsigned int quad, NTempest::C2Vector centerPoint, float radius, float layoutScale) {
+  FATALASSERT(quad < 1024);
+  m_flags &= ~1u;
+  if (quad >= 4) {
+    return;
+  }
+
+  NTempest::CRect maskBox(centerPoint.y - radius, centerPoint.x - radius, centerPoint.y + radius, centerPoint.x + radius);
+  NTempest::CRect clippedRect = NTempest::CRect::Intersection(s_mapBoxExtents[quad], maskBox);
+  if (clippedRect.NotEmpty()) {
+    aaBox.b = NTempest::C3Vector(clippedRect.l, clippedRect.t, 0.0f);
+    aaBox.t = NTempest::C3Vector(clippedRect.r, clippedRect.b, 0.0f);
+    GenerateVertTexInfo(clippedRect, quad, centerPoint, radius, maskBox, layoutScale);
+    m_flags |= 1;
+  }
 }
 
 void CGMinimapFrame::OnLayerUpdate(float elapsedSec) {
@@ -196,91 +206,155 @@ void CGMinimapFrame::OnLayerUpdate(float elapsedSec) {
   }
 }
 
-void CGMinimapFrame::OnFrameRender(CRenderBatch *batch, unsigned int layer) {
-  CSimpleFrame::OnFrameRender(batch, layer);
-  batch->QueueCallback(RenderCallback, this);
+int CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
+  s_tooltipDisplayDistant = -1;
+  s_tooltipDisplayParty = -1;
+  s_tooltipDisplay = 0;
+
+  if (!CSimpleFrame::OnLayerTrackUpdate(evt)) {
+    m_tooltip->Hide();
+    return 0;
+  }
+
+  NTempest::CRect baseRect;
+  GetRect(&baseRect);
+
+  NTempest::C2Vector framecoords;
+  unsigned int       count;
+  for (count = 0; count < s_POIInfo.Count(); ++count) {
+    framecoords.x = baseRect.l + s_POIInfo[count].position.x;
+    framecoords.y = baseRect.t + s_POIInfo[count].position.y;
+
+    if (framecoords.x - ICON_HALF <= evt.x && framecoords.x + ICON_HALF >= evt.x && framecoords.y - ICON_HALF <= evt.y &&
+        framecoords.y + ICON_HALF >= evt.y)
+    {
+      if (!m_tooltipText->GetText() || !*m_tooltipText->GetText() || !s_POIInfo[count].string ||
+          SStrCmp(m_tooltipText->GetText(), s_POIInfo[count].string, 0x7FFFFFFF))
+      {
+        m_tooltipText->SetText(s_POIInfo[count].string);
+        m_tooltipText->SetWidth(m_tooltipText->GetWidth() + 0.015f);
+      }
+
+      float x = evt.x;
+      if (x > 0.8f - m_tooltipText->GetWidth() * 0.5f) {
+        x = 0.8f - m_tooltipText->GetWidth() * 0.5f;
+      }
+      m_tooltip->SetPoint(FRAMEPOINT_BOTTOM, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, x / GetLayoutScale(), evt.y / GetLayoutScale(), 1);
+      m_tooltip->Show();
+      s_tooltipDisplay = 1;
+      return 1;
+    }
+  }
+
+  for (unsigned int type = 0; type < 5; ++type) {
+    for (count = 0; count < s_miniMapObjects[type].Count(); ++count) {
+      framecoords.x = baseRect.l + s_miniMapObjects[type][count].position.x;
+      framecoords.y = baseRect.t + s_miniMapObjects[type][count].position.y;
+      float half = BLIP_HALF * s_miniMapTypeInfo[type].scale;
+
+      if (framecoords.x - half <= evt.x && framecoords.x + half >= evt.x && framecoords.y - half <= evt.y && framecoords.y + half >= evt.y) {
+        const char *string = 0;
+        CGObject_C *object = ClntObjMgrObjectPtr(s_miniMapObjects[type][count].object, __FILE__, __LINE__);
+        if (object) {
+          string = object->GetObjectName();
+        } else {
+          const NameCache *name = g_nameDBCache.GetRecord(s_miniMapObjects[type][count].object, s_miniMapObjects[type][count].object, 0, 0);
+          if (name) {
+            string = name->m_name;
+          }
+        }
+
+        if (string) {
+          if (!m_tooltipText->GetText() || !*m_tooltipText->GetText() || SStrCmp(m_tooltipText->GetText(), string, 0x7FFFFFFF)) {
+            m_tooltipText->SetText(string);
+            m_tooltipText->SetWidth(m_tooltipText->GetWidth() + 0.015f);
+          }
+
+          float x = evt.x;
+          if (x > 0.8f - m_tooltipText->GetWidth() * 0.5f) {
+            x = 0.8f - m_tooltipText->GetWidth() * 0.5f;
+          }
+          m_tooltip->SetPoint(
+              FRAMEPOINT_BOTTOM, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, x / GetLayoutScale(), evt.y / GetLayoutScale(), 1
+          );
+          m_tooltip->Show();
+          s_tooltipDisplay = 1;
+          return 1;
+        }
+      }
+    }
+  }
+
+  for (count = 0; count < 3; ++count) {
+    if (m_rotatingArrowFrame[count]->IsVisible()) {
+      NTempest::C3Vector pos = m_rotatingArrowFrame[count]->GetPosition();
+      float              x = baseRect.l + pos.x * GetLayoutScale();
+      float              y = baseRect.t + pos.y * GetLayoutScale();
+
+      if (x <= evt.x && x + 0.015f >= evt.x && y + 0.001f <= evt.y && y + 0.016f >= evt.y) {
+        if (!m_tooltipText->GetText() || !*m_tooltipText->GetText() ||
+            SStrCmp(m_tooltipText->GetText(), s_POIDirectionData[count].POIName, 0x7FFFFFFF))
+        {
+          m_tooltipText->SetText(s_POIDirectionData[count].POIName);
+          m_tooltipText->SetWidth(m_tooltipText->GetWidth() + 0.015f);
+        }
+
+        float tooltipX = evt.x;
+        if (tooltipX > 0.8f - m_tooltipText->GetWidth() * 0.5f) {
+          tooltipX = 0.8f - m_tooltipText->GetWidth() * 0.5f;
+        }
+        m_tooltip->SetPoint(
+            FRAMEPOINT_BOTTOM, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, tooltipX / GetLayoutScale(), evt.y / GetLayoutScale(), 1
+        );
+        m_tooltip->Show();
+        s_tooltipDisplayDistant = count;
+        return 1;
+      }
+    }
+  }
+
+  for (count = 0; count < 5; ++count) {
+    if (m_rotatingPartyFrame[count]->IsVisible()) {
+      NTempest::C3Vector pos = m_rotatingPartyFrame[count]->GetPosition();
+      float              x = baseRect.l + pos.x * GetLayoutScale();
+      float              y = baseRect.t + pos.y * GetLayoutScale();
+
+      if (x <= evt.x && x + 0.015f >= evt.x && y + 0.001f <= evt.y && y + 0.016f >= evt.y) {
+        if (!m_tooltipText->GetText() || !*m_tooltipText->GetText() ||
+            SStrCmp(m_tooltipText->GetText(), s_partyDirectionData[count].name, 0x7FFFFFFF))
+        {
+          m_tooltipText->SetText(s_partyDirectionData[count].name);
+          m_tooltipText->SetWidth(m_tooltipText->GetWidth() + 0.015f);
+        }
+
+        float tooltipX = evt.x;
+        if (tooltipX > 0.8f - m_tooltipText->GetWidth() * 0.5f) {
+          tooltipX = 0.8f - m_tooltipText->GetWidth() * 0.5f;
+        }
+        m_tooltip->SetPoint(
+            FRAMEPOINT_BOTTOM, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, tooltipX / GetLayoutScale(), evt.y / GetLayoutScale(), 1
+        );
+        m_tooltip->Show();
+        s_tooltipDisplayParty = count;
+        return 1;
+      }
+    }
+  }
+
+  m_tooltip->Hide();
+  return 1;
 }
 
-void __fastcall CGMinimapFrame::RenderCallback(void *param) {
-  static_cast<CGMinimapFrame *>(param)->Render();
+void CGMinimapFrame::OnLayerCursorExit() {
+  m_tooltip->Hide();
+  s_tooltipDisplay = 0;
+  s_tooltipDisplayDistant = -1;
+  s_tooltipDisplayParty = -1;
 }
 
-void CGMinimapFrame::PostLoadXML(const XMLNode *node, CStatus *status) {
-  CSimpleFrame::PostLoadXML(node, status);
-
-  unsigned int index;
-  for (index = 0; index < 3; ++index) {
-    m_rotatingArrowFrame[index] = NEW(CSimpleModel)(this);
-    m_rotatingArrowFrame[index]->SetPoint(FRAMEPOINT_CENTER, this, FRAMEPOINT_CENTER, 0.003f, 0.003f, 1);
-    m_rotatingArrowFrame[index]->SetWidth(0.1f);
-    m_rotatingArrowFrame[index]->SetHeight(0.1f);
-    m_rotatingArrowFrame[index]->Hide();
-    m_rotatingArrowFrame[index]->SetModel(node->GetAttributeByName("minimapLandmarkModel"), 0, status);
-  }
-
-  for (index = 0; index < 5; ++index) {
-    m_rotatingPartyFrame[index] = NEW(CSimpleModel)(this);
-    m_rotatingPartyFrame[index]->SetPoint(FRAMEPOINT_CENTER, this, FRAMEPOINT_CENTER, 0.003f, 0.003f, 1);
-    m_rotatingPartyFrame[index]->SetWidth(0.1f);
-    m_rotatingPartyFrame[index]->SetHeight(0.1f);
-    m_rotatingPartyFrame[index]->Hide();
-    m_rotatingPartyFrame[index]->SetModel(node->GetAttributeByName("minimapPartyMemberModel"), 0, status);
-  }
-
-  m_playerArrowFrame = NEW(CSimpleModel)(this);
-  m_playerArrowFrame->SetPoint(FRAMEPOINT_CENTER, this, FRAMEPOINT_CENTER, 0.001f, 0.001f, 1);
-  m_playerArrowFrame->SetModel(node->GetAttributeByName("minimapPlayerModel"), 0, status);
-  if (m_playerArrowFrame->m_flags & 0x1) {
-    SetPlayerArrowPosition();
-  } else {
-    m_playerArrowFrame->m_flags &= ~MODEL_ARROW_LOADED;
-  }
-
-  char name[128];
-  SStrPrintf(name, sizeof(name), "%sTooltip", GetName());
-  m_tooltip = SimpleFrameRegistryGetEntry(name, 0);
-  if (m_tooltip) {
-    SStrPrintf(name, sizeof(name), "%sTooltipText", GetName());
-    m_tooltipText = SimpleFontStringRegistryGetEntry(name, 0);
-    FATALASSERT(m_tooltipText);
-  }
-  FATALASSERT(m_tooltip);
-}
-
-void QUADDATA::Render(unsigned int quad, NTempest::CImVector &color) {
-  FATALASSERT(quad < 1024);
-
-  if (!(m_flags & 1) || !m_texture) {
-    return;
-  }
-
-  CGxTex *texture = TextureGetGxTex(m_texture, 0, 0);
-  if (!texture) {
-    return;
-  }
-
-  GxRsSet(GxRs_Texture0, texture);
-  GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
-  GxRsSet(GxRs_Texture1, TextureGetGxTex(s_minimapMaskTexture, 1, 0));
-  GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
-
-  static NTempest::C3Vector   normal(0.0f, 0.0f, 1.0f);
-  static const unsigned short vertIndices[4] = {0, 1, 2, 3};
-  GxPrimLockVertexPtrs(
-      4, verts, sizeof(NTempest::C3Vector), &normal, 0, &color, 0, 0, 0, texCoords, sizeof(NTempest::C2Vector), maskTexCoords,
-      sizeof(NTempest::C2Vector)
-  );
-  GxPrimDrawElements(GxPrim_TriangleStrip, 4, vertIndices);
-  GxPrimUnlockVertexPtrs();
-  GxRsSet(GxRs_Texture1, 0);
-}
-
-NTempest::CRect QUADDATA::NormalizeToQuad(unsigned int quad, NTempest::CRect clippedRect) {
-  FATALASSERT(quad < 1024);
-  const NTempest::CRect &box = s_mapBoxExtents[quad];
-  return NTempest::CRect(
-      2.0f * (clippedRect.l - box.t), 2.0f * (clippedRect.t - box.l), 2.0f * (clippedRect.r - box.t), 2.0f * (clippedRect.b - box.l)
-  );
+void CGMinimapFrame::UpdateArrowRotation(float angle) {
+  m_lastFacing = angle;
+  m_playerArrowFrame->SetFacing(angle);
 }
 
 void QUADDATA::GenerateVertTexInfo(
@@ -329,27 +403,49 @@ void QUADDATA::GenerateVertTexInfo(
   verts[3] = NTempest::C3Vector(right, top, 0.0f);
 }
 
-void QUADDATA::UpdateData(unsigned int quad, NTempest::C2Vector centerPoint, float radius, float layoutScale) {
-  FATALASSERT(quad < 1024);
-  m_flags &= ~1u;
-  if (quad >= 4) {
-    return;
-  }
-
-  NTempest::CRect maskBox(centerPoint.y - radius, centerPoint.x - radius, centerPoint.y + radius, centerPoint.x + radius);
-  NTempest::CRect clippedRect = NTempest::CRect::Intersection(s_mapBoxExtents[quad], maskBox);
-  if (clippedRect.NotEmpty()) {
-    aaBox.b = NTempest::C3Vector(clippedRect.l, clippedRect.t, 0.0f);
-    aaBox.t = NTempest::C3Vector(clippedRect.r, clippedRect.b, 0.0f);
-    GenerateVertTexInfo(clippedRect, quad, centerPoint, radius, maskBox, layoutScale);
-    m_flags |= 1;
-  }
-}
-
 void CGMinimapFrame::UpdateGeometry(NTempest::C2Vector &centerPoint, float radius) {
   for (unsigned int quad = 0; quad < 1024; ++quad) {
     s_quadData[quad].UpdateData(quad, centerPoint, radius, GetLayoutScale());
   }
+}
+
+void CGMinimapFrame::RenderObjectBlips(DNInfo *dnInfo) {
+  FATALASSERT(dnInfo);
+
+  CGxTex *texture = TextureGetGxTex(s_blipTexture, 1, 0);
+  if (!texture) {
+    return;
+  }
+
+  GxRsSet(GxRs_Texture0, texture);
+  static NTempest::C3Vector   normal(0.0f, 0.0f, 1.0f);
+  static NTempest::CImVector  white(0xFFFFFFFF);
+  static const unsigned short iconVertIndices[4] = {0, 1, 2, 3};
+
+  for (unsigned int type = 0; type < 5; ++type) {
+    const float half = BLIP_HALF * s_miniMapTypeInfo[type].scale;
+    for (unsigned int index = 0; index < s_miniMapObjects[type].Count(); ++index) {
+      const NTempest::C2Vector &position = s_miniMapObjects[type][index].position;
+      NTempest::C3Vector        vertices[4] = {
+          NTempest::C3Vector(position.x - half, position.y - half, 0.0f), NTempest::C3Vector(position.x + half, position.y - half, 0.0f),
+          NTempest::C3Vector(position.x + half, position.y + half, 0.0f), NTempest::C3Vector(position.x - half, position.y + half, 0.0f)
+      };
+      GxPrimLockVertexPtrs(
+          4, vertices, sizeof(NTempest::C3Vector), &normal, 0, &white, 0, 0, 0, s_iconCoords[type], sizeof(NTempest::C2Vector), 0, 0
+      );
+      GxPrimDrawElements(GxPrim_TriangleStrip, 4, iconVertIndices);
+      GxPrimUnlockVertexPtrs();
+    }
+  }
+}
+
+void CGMinimapFrame::OnFrameRender(CRenderBatch *batch, unsigned int layer) {
+  CSimpleFrame::OnFrameRender(batch, layer);
+  batch->QueueCallback(RenderCallback, this);
+}
+
+void __fastcall CGMinimapFrame::RenderCallback(void *param) {
+  static_cast<CGMinimapFrame *>(param)->Render();
 }
 
 void __fastcall CGMinimapFrame::RenderInsideSortQuads(QUADDATA *&rHead) {
@@ -485,36 +581,6 @@ void CGMinimapFrame::RenderInside(float minimapSize, NTempest::C2Vector &localOf
   GxRsPop();
 }
 
-void CGMinimapFrame::RenderObjectBlips(DNInfo *dnInfo) {
-  FATALASSERT(dnInfo);
-
-  CGxTex *texture = TextureGetGxTex(s_blipTexture, 1, 0);
-  if (!texture) {
-    return;
-  }
-
-  GxRsSet(GxRs_Texture0, texture);
-  static NTempest::C3Vector   normal(0.0f, 0.0f, 1.0f);
-  static NTempest::CImVector  white(0xFFFFFFFF);
-  static const unsigned short iconVertIndices[4] = {0, 1, 2, 3};
-
-  for (unsigned int type = 0; type < 5; ++type) {
-    const float half = BLIP_HALF * s_miniMapTypeInfo[type].scale;
-    for (unsigned int index = 0; index < s_miniMapObjects[type].Count(); ++index) {
-      const NTempest::C2Vector &position = s_miniMapObjects[type][index].position;
-      NTempest::C3Vector        vertices[4] = {
-          NTempest::C3Vector(position.x - half, position.y - half, 0.0f), NTempest::C3Vector(position.x + half, position.y - half, 0.0f),
-          NTempest::C3Vector(position.x + half, position.y + half, 0.0f), NTempest::C3Vector(position.x - half, position.y + half, 0.0f)
-      };
-      GxPrimLockVertexPtrs(
-          4, vertices, sizeof(NTempest::C3Vector), &normal, 0, &white, 0, 0, 0, s_iconCoords[type], sizeof(NTempest::C2Vector), 0, 0
-      );
-      GxPrimDrawElements(GxPrim_TriangleStrip, 4, iconVertIndices);
-      GxPrimUnlockVertexPtrs();
-    }
-  }
-}
-
 void __fastcall CGMinimapFrame::MinimapTextureCallback(
     EGxTexCommand cmd,
     unsigned int  w,
@@ -539,6 +605,75 @@ void __fastcall CGMinimapFrame::MinimapTextureCallback(
     RenderInsideTexture();
     GxDevSetRenderTarget(GxBuffers_Color, 0, 0);
     GxXformSetViewport(vp.b.x, vp.t.x, vp.b.y, vp.t.y, vp.b.z, vp.t.z);
+  }
+}
+
+void QUADDATA::Render(unsigned int quad, NTempest::CImVector &color) {
+  FATALASSERT(quad < 1024);
+
+  if (!(m_flags & 1) || !m_texture) {
+    return;
+  }
+
+  CGxTex *texture = TextureGetGxTex(m_texture, 0, 0);
+  if (!texture) {
+    return;
+  }
+
+  GxRsSet(GxRs_Texture0, texture);
+  GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
+  GxRsSet(GxRs_Texture1, TextureGetGxTex(s_minimapMaskTexture, 1, 0));
+  GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
+
+  static NTempest::C3Vector   normal(0.0f, 0.0f, 1.0f);
+  static const unsigned short vertIndices[4] = {0, 1, 2, 3};
+  GxPrimLockVertexPtrs(
+      4, verts, sizeof(NTempest::C3Vector), &normal, 0, &color, 0, 0, 0, texCoords, sizeof(NTempest::C2Vector), maskTexCoords,
+      sizeof(NTempest::C2Vector)
+  );
+  GxPrimDrawElements(GxPrim_TriangleStrip, 4, vertIndices);
+  GxPrimUnlockVertexPtrs();
+  GxRsSet(GxRs_Texture1, 0);
+}
+
+void __fastcall CGMinimapFrame::Initialize(int continentID) {
+  s_initialized = 1;
+  MinimapInitialize(continentID);
+
+  CStatus     status;
+  CGxTexFlags textureFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1);
+
+  s_minimapMaskTexture = TextureCreate("Textures\\MinimapMask", textureFlags, &status, 0);
+  FATALASSERT(s_minimapMaskTexture);
+
+  s_iconTexture = TextureCreate("Interface\\Minimap\\POIIcons", textureFlags, &status, 0);
+  FATALASSERT(s_iconTexture);
+
+  s_blipTexture = TextureCreate("Interface\\Minimap\\ObjectIcons", textureFlags, &status, 0);
+  FATALASSERT(s_blipTexture);
+
+  EGxTexFormat format;
+  if (GxCaps().m_rttFormat[GxTex_Argb8888]) {
+    format = GxTex_Argb8888;
+  } else if (GxCaps().m_rttFormat[GxTex_Rgb565]) {
+    format = GxTex_Rgb565;
+  } else {
+    FATALASSERT(!("CGMinimapFrame::Initialize(): can't get render target for minimap"));
+  }
+
+  CGxTexFlags renderTargetFlags(GxTex_Linear, 0, 0, 0, 0, 1, 1);
+  GxTexCreate(256, 256, format, renderTargetFlags, 0, MinimapTextureCallback, s_minimapTexParams.texture);
+
+  for (unsigned int icon = 0; icon < 16; ++icon) {
+    float left = static_cast<float>(32 * (icon & 3));
+    float right = left + 32.0f;
+    float top = static_cast<float>(32 * (icon / 4));
+    float bottom = top + 32.0f;
+
+    s_iconCoords[icon][0] = NTempest::C2Vector(left * 0.0078125f, bottom * 0.0078125f);
+    s_iconCoords[icon][1] = NTempest::C2Vector(right * 0.0078125f, bottom * 0.0078125f);
+    s_iconCoords[icon][2] = NTempest::C2Vector(left * 0.0078125f, top * 0.0078125f);
+    s_iconCoords[icon][3] = NTempest::C2Vector(right * 0.0078125f, top * 0.0078125f);
   }
 }
 
@@ -753,47 +888,6 @@ void CGMinimapFrame::Render() {
   GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 }
 
-void __fastcall CGMinimapFrame::Initialize(int continentID) {
-  s_initialized = 1;
-  MinimapInitialize(continentID);
-
-  CStatus     status;
-  CGxTexFlags textureFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1);
-
-  s_minimapMaskTexture = TextureCreate("Textures\\MinimapMask", textureFlags, &status, 0);
-  FATALASSERT(s_minimapMaskTexture);
-
-  s_iconTexture = TextureCreate("Interface\\Minimap\\POIIcons", textureFlags, &status, 0);
-  FATALASSERT(s_iconTexture);
-
-  s_blipTexture = TextureCreate("Interface\\Minimap\\ObjectIcons", textureFlags, &status, 0);
-  FATALASSERT(s_blipTexture);
-
-  EGxTexFormat format;
-  if (GxCaps().m_rttFormat[GxTex_Argb8888]) {
-    format = GxTex_Argb8888;
-  } else if (GxCaps().m_rttFormat[GxTex_Rgb565]) {
-    format = GxTex_Rgb565;
-  } else {
-    FATALASSERT(!("CGMinimapFrame::Initialize(): can't get render target for minimap"));
-  }
-
-  CGxTexFlags renderTargetFlags(GxTex_Linear, 0, 0, 0, 0, 1, 1);
-  GxTexCreate(256, 256, format, renderTargetFlags, 0, MinimapTextureCallback, s_minimapTexParams.texture);
-
-  for (unsigned int icon = 0; icon < 16; ++icon) {
-    float left = static_cast<float>(32 * (icon & 3));
-    float right = left + 32.0f;
-    float top = static_cast<float>(32 * (icon / 4));
-    float bottom = top + 32.0f;
-
-    s_iconCoords[icon][0] = NTempest::C2Vector(left * 0.0078125f, bottom * 0.0078125f);
-    s_iconCoords[icon][1] = NTempest::C2Vector(right * 0.0078125f, bottom * 0.0078125f);
-    s_iconCoords[icon][2] = NTempest::C2Vector(left * 0.0078125f, top * 0.0078125f);
-    s_iconCoords[icon][3] = NTempest::C2Vector(right * 0.0078125f, top * 0.0078125f);
-  }
-}
-
 void __fastcall CGMinimapFrame::Shutdown() {
   MinimapShutdown();
 
@@ -833,6 +927,58 @@ void __fastcall CGMinimapFrame::Shutdown() {
   }
 }
 
+CGMinimapFrame::CGMinimapFrame(CSimpleFrame *parent) : CSimpleFrame(parent), m_lastFacing(-10000.0f), m_lastBlipUpdate(0) {
+  EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<unsigned int>(-1));
+}
+
+void CGMinimapFrame::SetPlayerArrowPosition() {
+  NTempest::C3Vector offset(m_playerArrowFrame->GetWidth() * 0.5f, m_playerArrowFrame->GetHeight() * 0.5f, 0.0f);
+  m_playerArrowFrame->SetPosition(offset);
+  m_playerArrowFrame->m_flags |= MODEL_ARROW_LOADED;
+}
+
+void CGMinimapFrame::PostLoadXML(const XMLNode *node, CStatus *status) {
+  CSimpleFrame::PostLoadXML(node, status);
+
+  unsigned int index;
+  for (index = 0; index < 3; ++index) {
+    m_rotatingArrowFrame[index] = NEW(CSimpleModel)(this);
+    m_rotatingArrowFrame[index]->SetPoint(FRAMEPOINT_CENTER, this, FRAMEPOINT_CENTER, 0.003f, 0.003f, 1);
+    m_rotatingArrowFrame[index]->SetWidth(0.1f);
+    m_rotatingArrowFrame[index]->SetHeight(0.1f);
+    m_rotatingArrowFrame[index]->Hide();
+    m_rotatingArrowFrame[index]->SetModel(node->GetAttributeByName("minimapLandmarkModel"), 0, status);
+  }
+
+  for (index = 0; index < 5; ++index) {
+    m_rotatingPartyFrame[index] = NEW(CSimpleModel)(this);
+    m_rotatingPartyFrame[index]->SetPoint(FRAMEPOINT_CENTER, this, FRAMEPOINT_CENTER, 0.003f, 0.003f, 1);
+    m_rotatingPartyFrame[index]->SetWidth(0.1f);
+    m_rotatingPartyFrame[index]->SetHeight(0.1f);
+    m_rotatingPartyFrame[index]->Hide();
+    m_rotatingPartyFrame[index]->SetModel(node->GetAttributeByName("minimapPartyMemberModel"), 0, status);
+  }
+
+  m_playerArrowFrame = NEW(CSimpleModel)(this);
+  m_playerArrowFrame->SetPoint(FRAMEPOINT_CENTER, this, FRAMEPOINT_CENTER, 0.001f, 0.001f, 1);
+  m_playerArrowFrame->SetModel(node->GetAttributeByName("minimapPlayerModel"), 0, status);
+  if (m_playerArrowFrame->m_flags & 0x1) {
+    SetPlayerArrowPosition();
+  } else {
+    m_playerArrowFrame->m_flags &= ~MODEL_ARROW_LOADED;
+  }
+
+  char name[128];
+  SStrPrintf(name, sizeof(name), "%sTooltip", GetName());
+  m_tooltip = SimpleFrameRegistryGetEntry(name, 0);
+  if (m_tooltip) {
+    SStrPrintf(name, sizeof(name), "%sTooltipText", GetName());
+    m_tooltipText = SimpleFontStringRegistryGetEntry(name, 0);
+    FATALASSERT(m_tooltipText);
+  }
+  FATALASSERT(m_tooltip);
+}
+
 void __fastcall CGMinimapFrame::SetPingPosition(const unsigned __int64 &sender, const NTempest::C2Vector &pos) {
   char               name[32];
   NTempest::C2Vector diff;
@@ -860,19 +1006,6 @@ static int __fastcall CGMinimapFrame_GetZoomLevels(lua_State *L) {
   return 1;
 }
 
-static int __fastcall CGMinimapFrame_GetZoom(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(MinimapGetZoom()));
-  return 1;
-}
-
-static int __fastcall CGMinimapFrame_SetZoom(lua_State *L) {
-  if (!lua_isnumber(L, 2)) {
-    return luaL_error(L, "Usage: SetZoom(level)");
-  }
-  MinimapSetZoom(static_cast<unsigned int>(lua_tonumber(L, 2)));
-  return 0;
-}
-
 #define GET_MINIMAP_THIS(L, object)                                \
   CGMinimapFrame *object = 0;                                      \
   if (lua_type(L, 1) == LUA_TTABLE) {                              \
@@ -887,6 +1020,32 @@ static int __fastcall CGMinimapFrame_SetZoom(lua_State *L) {
     );                                                             \
   }                                                                \
   FATALASSERT(object)
+
+static int __fastcall CGMinimapFrame_GetZoom(lua_State *L) {
+  lua_pushnumber(L, static_cast<double>(MinimapGetZoom()));
+  return 1;
+}
+
+static int __fastcall CGMinimapFrame_SetZoom(lua_State *L) {
+  if (!lua_isnumber(L, 2)) {
+    return luaL_error(L, "Usage: SetZoom(level)");
+  }
+  MinimapSetZoom(static_cast<unsigned int>(lua_tonumber(L, 2)));
+  return 0;
+}
+
+static int __fastcall CGMinimapFrame_PingLocation(lua_State *L);
+static int __fastcall CGMinimapFrame_GetPingPosition(lua_State *L);
+
+static FrameScript_Method CGMinimapFrameMethods[5] = {
+    {  "GetZoomLevels",   CGMinimapFrame_GetZoomLevels},
+    {        "GetZoom",         CGMinimapFrame_GetZoom},
+    {        "SetZoom",         CGMinimapFrame_SetZoom},
+    {   "PingLocation",    CGMinimapFrame_PingLocation},
+    {"GetPingPosition", CGMinimapFrame_GetPingPosition}
+};
+
+TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CGMinimapFrame::s_scriptMethods;
 
 static int __fastcall CGMinimapFrame_PingLocation(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -938,16 +1097,6 @@ static int __fastcall CGMinimapFrame_GetPingPosition(lua_State *L) {
 
 #undef GET_MINIMAP_THIS
 
-static FrameScript_Method CGMinimapFrameMethods[5] = {
-    {  "GetZoomLevels",   CGMinimapFrame_GetZoomLevels},
-    {        "GetZoom",         CGMinimapFrame_GetZoom},
-    {        "SetZoom",         CGMinimapFrame_SetZoom},
-    {   "PingLocation",    CGMinimapFrame_PingLocation},
-    {"GetPingPosition", CGMinimapFrame_GetPingPosition}
-};
-
-TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CGMinimapFrame::s_scriptMethods;
-
 void __fastcall CGMinimapFrame::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(CGMinimapFrameMethods, 5, s_scriptMethods);
 }
@@ -961,150 +1110,4 @@ int CGMinimapFrame::LookupScriptMethod(lua_State *L, const char *name) {
     return 1;
   }
   return CSimpleFrame::LookupScriptMethod(L, name);
-}
-
-int CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
-  s_tooltipDisplayDistant = -1;
-  s_tooltipDisplayParty = -1;
-  s_tooltipDisplay = 0;
-
-  if (!CSimpleFrame::OnLayerTrackUpdate(evt)) {
-    m_tooltip->Hide();
-    return 0;
-  }
-
-  NTempest::CRect baseRect;
-  GetRect(&baseRect);
-
-  NTempest::C2Vector framecoords;
-  unsigned int       count;
-  for (count = 0; count < s_POIInfo.Count(); ++count) {
-    framecoords.x = baseRect.l + s_POIInfo[count].position.x;
-    framecoords.y = baseRect.t + s_POIInfo[count].position.y;
-
-    if (framecoords.x - ICON_HALF <= evt.x && framecoords.x + ICON_HALF >= evt.x && framecoords.y - ICON_HALF <= evt.y &&
-        framecoords.y + ICON_HALF >= evt.y)
-    {
-      if (!m_tooltipText->GetText() || !*m_tooltipText->GetText() || !s_POIInfo[count].string ||
-          SStrCmp(m_tooltipText->GetText(), s_POIInfo[count].string, 0x7FFFFFFF))
-      {
-        m_tooltipText->SetText(s_POIInfo[count].string);
-        m_tooltipText->SetWidth(m_tooltipText->GetWidth() + 0.015f);
-      }
-
-      float x = evt.x;
-      if (x > 0.8f - m_tooltipText->GetWidth() * 0.5f) {
-        x = 0.8f - m_tooltipText->GetWidth() * 0.5f;
-      }
-      m_tooltip->SetPoint(FRAMEPOINT_BOTTOM, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, x / GetLayoutScale(), evt.y / GetLayoutScale(), 1);
-      m_tooltip->Show();
-      s_tooltipDisplay = 1;
-      return 1;
-    }
-  }
-
-  for (unsigned int type = 0; type < 5; ++type) {
-    for (count = 0; count < s_miniMapObjects[type].Count(); ++count) {
-      framecoords.x = baseRect.l + s_miniMapObjects[type][count].position.x;
-      framecoords.y = baseRect.t + s_miniMapObjects[type][count].position.y;
-      float half = BLIP_HALF * s_miniMapTypeInfo[type].scale;
-
-      if (framecoords.x - half <= evt.x && framecoords.x + half >= evt.x && framecoords.y - half <= evt.y && framecoords.y + half >= evt.y) {
-        const char *string = 0;
-        CGObject_C *object = ClntObjMgrObjectPtr(s_miniMapObjects[type][count].object, __FILE__, __LINE__);
-        if (object) {
-          string = object->GetObjectName();
-        } else {
-          const NameCache *name = g_nameDBCache.GetRecord(s_miniMapObjects[type][count].object, s_miniMapObjects[type][count].object, 0, 0);
-          if (name) {
-            string = name->m_name;
-          }
-        }
-
-        if (string) {
-          if (!m_tooltipText->GetText() || !*m_tooltipText->GetText() || SStrCmp(m_tooltipText->GetText(), string, 0x7FFFFFFF)) {
-            m_tooltipText->SetText(string);
-            m_tooltipText->SetWidth(m_tooltipText->GetWidth() + 0.015f);
-          }
-
-          float x = evt.x;
-          if (x > 0.8f - m_tooltipText->GetWidth() * 0.5f) {
-            x = 0.8f - m_tooltipText->GetWidth() * 0.5f;
-          }
-          m_tooltip->SetPoint(
-              FRAMEPOINT_BOTTOM, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, x / GetLayoutScale(), evt.y / GetLayoutScale(), 1
-          );
-          m_tooltip->Show();
-          s_tooltipDisplay = 1;
-          return 1;
-        }
-      }
-    }
-  }
-
-  for (count = 0; count < 3; ++count) {
-    if (m_rotatingArrowFrame[count]->IsVisible()) {
-      NTempest::C3Vector pos = m_rotatingArrowFrame[count]->GetPosition();
-      float              x = baseRect.l + pos.x * GetLayoutScale();
-      float              y = baseRect.t + pos.y * GetLayoutScale();
-
-      if (x <= evt.x && x + 0.015f >= evt.x && y + 0.001f <= evt.y && y + 0.016f >= evt.y) {
-        if (!m_tooltipText->GetText() || !*m_tooltipText->GetText() ||
-            SStrCmp(m_tooltipText->GetText(), s_POIDirectionData[count].POIName, 0x7FFFFFFF))
-        {
-          m_tooltipText->SetText(s_POIDirectionData[count].POIName);
-          m_tooltipText->SetWidth(m_tooltipText->GetWidth() + 0.015f);
-        }
-
-        float tooltipX = evt.x;
-        if (tooltipX > 0.8f - m_tooltipText->GetWidth() * 0.5f) {
-          tooltipX = 0.8f - m_tooltipText->GetWidth() * 0.5f;
-        }
-        m_tooltip->SetPoint(
-            FRAMEPOINT_BOTTOM, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, tooltipX / GetLayoutScale(), evt.y / GetLayoutScale(), 1
-        );
-        m_tooltip->Show();
-        s_tooltipDisplayDistant = count;
-        return 1;
-      }
-    }
-  }
-
-  for (count = 0; count < 5; ++count) {
-    if (m_rotatingPartyFrame[count]->IsVisible()) {
-      NTempest::C3Vector pos = m_rotatingPartyFrame[count]->GetPosition();
-      float              x = baseRect.l + pos.x * GetLayoutScale();
-      float              y = baseRect.t + pos.y * GetLayoutScale();
-
-      if (x <= evt.x && x + 0.015f >= evt.x && y + 0.001f <= evt.y && y + 0.016f >= evt.y) {
-        if (!m_tooltipText->GetText() || !*m_tooltipText->GetText() ||
-            SStrCmp(m_tooltipText->GetText(), s_partyDirectionData[count].name, 0x7FFFFFFF))
-        {
-          m_tooltipText->SetText(s_partyDirectionData[count].name);
-          m_tooltipText->SetWidth(m_tooltipText->GetWidth() + 0.015f);
-        }
-
-        float tooltipX = evt.x;
-        if (tooltipX > 0.8f - m_tooltipText->GetWidth() * 0.5f) {
-          tooltipX = 0.8f - m_tooltipText->GetWidth() * 0.5f;
-        }
-        m_tooltip->SetPoint(
-            FRAMEPOINT_BOTTOM, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, tooltipX / GetLayoutScale(), evt.y / GetLayoutScale(), 1
-        );
-        m_tooltip->Show();
-        s_tooltipDisplayParty = count;
-        return 1;
-      }
-    }
-  }
-
-  m_tooltip->Hide();
-  return 1;
-}
-
-void CGMinimapFrame::OnLayerCursorExit() {
-  m_tooltip->Hide();
-  s_tooltipDisplay = 0;
-  s_tooltipDisplayDistant = -1;
-  s_tooltipDisplayParty = -1;
 }

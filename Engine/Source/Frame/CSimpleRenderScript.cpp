@@ -257,22 +257,6 @@ static FrameScript_Method SimpleTextureMethods[] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleTexture::s_scriptMethods;
 
-void __fastcall CSimpleTexture::RegisterScriptMethods() {
-  FrameScript_Object::FillScriptMethodTable(SimpleTextureMethods, sizeof(SimpleTextureMethods) / sizeof(SimpleTextureMethods[0]), s_scriptMethods);
-}
-
-void __fastcall CSimpleTexture::UnregisterScriptMethods() {
-  FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
-}
-
-int CSimpleTexture::LookupScriptMethod(lua_State *L, const char *name) {
-  return FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods);
-}
-
-DEFINE_RENDER_GET_NAME(CSimpleFontString, CSimpleFontString_GetName)
-DEFINE_RENDER_SET_VERTEX_COLOR(CSimpleFontString, CSimpleFontString_SetVertexColor)
-DEFINE_RENDER_SET_ALPHA(CSimpleFontString, CSimpleFontString_SetAlpha)
-
 int __fastcall CSimpleFontString_SetAlphaGradient(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
@@ -290,10 +274,6 @@ int __fastcall CSimpleFontString_SetAlphaGradient(lua_State *L) {
 
   return 1;
 }
-
-DEFINE_RENDER_SHOW(CSimpleFontString, CSimpleFontString_Show)
-DEFINE_RENDER_HIDE(CSimpleFontString, CSimpleFontString_Hide)
-DEFINE_RENDER_IS_VISIBLE(CSimpleFontString, CSimpleFontString_IsVisible)
 
 int __fastcall CSimpleFontString_SetText(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
@@ -314,7 +294,9 @@ int __fastcall CSimpleFontString_GetText(lua_State *L) {
   return 1;
 }
 
-DEFINE_RENDER_SET_VERTEX_COLOR(CSimpleFontString, CSimpleFontString_SetTextColor)
+DEFINE_RENDER_GET_NAME(CSimpleFontString, CSimpleFontString_GetName)
+DEFINE_RENDER_SET_VERTEX_COLOR(CSimpleFontString, CSimpleFontString_SetVertexColor)
+DEFINE_RENDER_SET_ALPHA(CSimpleFontString, CSimpleFontString_SetAlpha)
 
 int __fastcall CSimpleFontString_SetTextHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
@@ -326,6 +308,10 @@ int __fastcall CSimpleFontString_SetTextHeight(lua_State *L) {
   object->SetTextHeight(static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f));
   return 0;
 }
+
+DEFINE_RENDER_SHOW(CSimpleFontString, CSimpleFontString_Show)
+DEFINE_RENDER_HIDE(CSimpleFontString, CSimpleFontString_Hide)
+DEFINE_RENDER_IS_VISIBLE(CSimpleFontString, CSimpleFontString_IsVisible)
 
 int __fastcall CSimpleFontString_SetWidth(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
@@ -345,6 +331,8 @@ int __fastcall CSimpleFontString_GetWidth(lua_State *L) {
   return 1;
 }
 
+DEFINE_RENDER_SET_VERTEX_COLOR(CSimpleFontString, CSimpleFontString_SetTextColor)
+
 int __fastcall CSimpleFontString_SetHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
@@ -362,9 +350,6 @@ int __fastcall CSimpleFontString_GetHeight(lua_State *L) {
   lua_pushnumber(L, object->GetHeight() * 1024.0f * 1.25f);
   return 1;
 }
-
-DEFINE_RENDER_SET_POINT(CSimpleFontString, CSimpleFontString_SetPoint)
-DEFINE_RENDER_CLEAR_ALL_POINTS(CSimpleFontString, CSimpleFontString_ClearAllPoints)
 
 int __fastcall CSimpleFontString_SetJustifyH(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
@@ -388,6 +373,21 @@ int __fastcall CSimpleFontString_SetJustifyV(lua_State *L) {
 
   object->SetVerticalAlignment(flag);
   return 0;
+}
+
+void __fastcall CSimpleTexture::RegisterScriptMethods() {
+  FrameScript_Object::FillScriptMethodTable(SimpleTextureMethods, sizeof(SimpleTextureMethods) / sizeof(SimpleTextureMethods[0]), s_scriptMethods);
+}
+
+DEFINE_RENDER_SET_POINT(CSimpleFontString, CSimpleFontString_SetPoint)
+DEFINE_RENDER_CLEAR_ALL_POINTS(CSimpleFontString, CSimpleFontString_ClearAllPoints)
+
+void __fastcall CSimpleTexture::UnregisterScriptMethods() {
+  FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
+}
+
+int CSimpleTexture::LookupScriptMethod(lua_State *L, const char *name) {
+  return FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods);
 }
 
 #undef DEFINE_RENDER_CLEAR_ALL_POINTS

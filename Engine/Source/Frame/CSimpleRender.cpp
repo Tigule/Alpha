@@ -111,6 +111,174 @@ CSimpleTexture::~CSimpleTexture() {
   ClearFromSimpleRegistry();
 }
 
+void CSimpleTexture::SetBlendMode(EGxBlend mode) {
+  m_alphamode = mode;
+  OnRegionChanged();
+}
+
+void CSimpleTexture::TexCorrectRect(NTempest::CRect &rect) {
+  using namespace NTempest;
+
+  const float y = rect.t;
+  const float h = rect.b - rect.t;
+  const float x = rect.l;
+  const float w = rect.r - rect.l;
+
+  ASSERT(CMath::fequal_(m_texCoord[0].x, m_texCoord[1].x));
+  ASSERT(CMath::fequal_(m_texCoord[2].x, m_texCoord[3].x));
+  ASSERT(CMath::fequal_(m_texCoord[0].y, m_texCoord[2].y));
+  ASSERT(CMath::fequal_(m_texCoord[1].y, m_texCoord[3].y));
+
+  rect.l = w * m_texCoord[0].x + x;
+  rect.r = w * m_texCoord[2].x + x;
+  rect.t = h * m_texCoord[0].y + y;
+  rect.b = h * m_texCoord[1].y + y;
+
+  ASSERT(rect.minx <= rect.maxx);
+  ASSERT(rect.miny <= rect.maxy);
+}
+
+void CSimpleTexture::SetPosition(const NTempest::CRect &rect) {
+  m_position[0].z = 0.0f;
+  m_position[0].x = rect.l;
+  m_position[0].y = rect.b;
+  m_position[1].z = 0.0f;
+  m_position[1].x = rect.l;
+  m_position[1].y = rect.t;
+  m_position[2].z = 0.0f;
+  m_position[2].x = rect.r;
+  m_position[2].y = rect.b;
+  m_position[3].z = 0.0f;
+  m_position[3].x = rect.r;
+  m_position[3].y = rect.t;
+}
+
+CGxTex *CSimpleTexture::GetTexture() {
+  if (m_texture) {
+    return TextureGetGxTex(m_texture, 1, 0);
+  }
+
+  return 0;
+}
+
+void CSimpleFontStringAttributes::CopyFlags(const CSimpleFontStringAttributes &rhs) {
+  m_flags = rhs.m_flags;
+}
+
+int CSimpleTexture::SetTexture(const char *file, int uvWrapping) {
+  if (m_texture) {
+    HandleClose(m_texture);
+    m_texture = 0;
+  }
+
+  if (file) {
+    CStatus     status;
+    CGxTexFlags flags(s_textureFilterMode, uvWrapping, uvWrapping, 0, 0, 0, 1);
+
+    if (*file) {
+      m_texture = TextureCreate(file, flags, &status, 0);
+      SysMsgAdd(status, 4);
+    }
+  }
+
+  OnRegionChanged();
+  return 1;
+}
+
+int CSimpleTexture::SetTexture(HTEXTURE__ *texHandle) {
+  int result = 1;
+
+  if (m_texture) {
+    HandleClose(m_texture);
+    m_texture = 0;
+  }
+
+  if (texHandle) {
+    m_texture = static_cast<HTEXTURE>(HandleDuplicate(texHandle));
+  }
+
+  if (!m_texture) {
+    m_texture = TextureCreateSolid(NTempest::CImVector(0xFF00FF00), 0);
+    result = 0;
+  }
+
+  OnRegionChanged();
+  return result;
+}
+
+int CSimpleTexture::SetTexture(const NTempest::CImVector &color) {
+  int result = 1;
+
+  if (m_texture) {
+    HandleClose(m_texture);
+    m_texture = 0;
+  }
+
+  m_texture = TextureCreateSolid(color, 0);
+  ASSERT(m_texture);
+  if (!m_texture) {
+    result = 0;
+  }
+
+  OnRegionChanged();
+  return result;
+}
+
+CSimpleFontString::CSimpleFontString(CSimpleFrame *frame, unsigned int drawlayer, int show)
+    : CSimpleRegion(frame, drawlayer, show),
+      m_name(0),
+      m_registryContext(0),
+      m_font(0),
+      m_textMaxSize(0),
+      m_textCurSize(0),
+      m_text(0),
+      m_spacing(0.0f),
+      m_string(0),
+      m_cachedWidth(0.0f),
+      m_cachedHeight(0.0f),
+      m_shadowColor(0xFF000000ul),
+      m_shadowOffset(0.0f),
+      m_justificationOffset(0.0f),
+      m_alphaGradientStart(-1),
+      m_styleFlags(0x292) {
+}
+
+void CSimpleTexture::SetTexCoord(const NTempest::CRect &rect) {
+  m_texCoord[0].x = rect.l;
+  m_texCoord[0].y = rect.t;
+  m_texCoord[1].x = rect.l;
+  m_texCoord[1].y = rect.b;
+  m_texCoord[2].x = rect.r;
+  m_texCoord[2].y = rect.t;
+  m_texCoord[3].x = rect.r;
+  m_texCoord[3].y = rect.b;
+
+  if (m_TexCoordModifiesPosition) {
+    NTempest::CRect texRect;
+
+    if (GetRect(&texRect)) {
+      TexCorrectRect(texRect);
+      SetPosition(texRect);
+    }
+  }
+}
+
+void CSimpleTexture::SetTexCoord(const NTempest::C2Vector *texCoord) {
+  m_texCoord[0] = texCoord[0];
+  m_texCoord[1] = texCoord[1];
+  m_texCoord[2] = texCoord[2];
+  m_texCoord[3] = texCoord[3];
+
+  if (m_TexCoordModifiesPosition) {
+    NTempest::CRect texRect;
+
+    if (GetRect(&texRect)) {
+      TexCorrectRect(texRect);
+      SetPosition(texRect);
+    }
+  }
+}
+
 CLayoutFrame *CSimpleTexture::GetLayoutFrameByName(const char *name) {
   char newName[1024];
 
@@ -281,240 +449,97 @@ int CSimpleTexture::AddToRegistry(const char *name, unsigned int context) {
   return 1;
 }
 
-int CSimpleTexture::SetTexture(const char *file, int uvWrapping) {
-  if (m_texture) {
-    HandleClose(m_texture);
-    m_texture = 0;
+int CSimpleFontString::SetFont(const char *font, float fontHeight, unsigned int fontFlags) {
+  int okay = 1;
+
+  m_fontHeight = fontHeight;
+
+  if (m_string) {
+    HandleClose(m_string);
+    m_string = 0;
   }
 
-  if (file) {
-    CStatus     status;
-    CGxTexFlags flags(s_textureFilterMode, uvWrapping, uvWrapping, 0, 0, 0, 1);
+  if (m_font) {
+    HandleClose(m_font);
+    m_font = 0;
+  }
 
-    if (*file) {
-      m_texture = TextureCreate(file, flags, &status, 0);
-      SysMsgAdd(status, 4);
+  m_cachedWidth = 0.0f;
+  m_cachedHeight = 0.0f;
+  OnRegionChanged();
+
+  if (font && fontHeight != 0.0f) {
+    m_font = TextBlockGenerateFont(font, fontFlags, m_fontHeight * m_layoutScale);
+    if (!m_font) {
+      okay = 0;
+    } else if (m_styleFlags & 0x200) {
+      float height = GxuFontGetOneToOneHeight(TextBlockGetFontPtr(m_font)) / m_layoutScale;
+      NDCToDDC(0.0f, height, 0, &m_fontHeight);
     }
   }
 
-  OnRegionChanged();
-  return 1;
+  if (m_font && m_text && *m_text) {
+    UpdateString(0);
+  }
+
+  return okay;
 }
 
-int CSimpleTexture::SetTexture(HTEXTURE__ *texHandle) {
-  int result = 1;
+void CSimpleFontString::SetTextHeight(float height) {
+  static const float EPSILON = 2.38418579e-7f;
 
-  if (m_texture) {
-    HandleClose(m_texture);
-    m_texture = 0;
-  }
+  ASSERT(height > 0.0f);
 
-  if (texHandle) {
-    m_texture = static_cast<HTEXTURE>(HandleDuplicate(texHandle));
-  }
+  if (fabs(height - m_fontHeight) >= EPSILON) {
+    m_styleFlags &= ~0x200;
+    m_fontHeight = height;
+    m_cachedWidth = 0.0f;
+    m_cachedHeight = 0.0f;
 
-  if (!m_texture) {
-    m_texture = TextureCreateSolid(NTempest::CImVector(0xFF00FF00), 0);
-    result = 0;
-  }
-
-  OnRegionChanged();
-  return result;
-}
-
-int CSimpleTexture::SetTexture(const NTempest::CImVector &color) {
-  int result = 1;
-
-  if (m_texture) {
-    HandleClose(m_texture);
-    m_texture = 0;
-  }
-
-  m_texture = TextureCreateSolid(color, 0);
-  ASSERT(m_texture);
-  if (!m_texture) {
-    result = 0;
-  }
-
-  OnRegionChanged();
-  return result;
-}
-
-void CSimpleTexture::SetBlendMode(EGxBlend mode) {
-  m_alphamode = mode;
-  OnRegionChanged();
-}
-
-void CSimpleTexture::SetTexCoord(const NTempest::CRect &rect) {
-  m_texCoord[0].x = rect.l;
-  m_texCoord[0].y = rect.t;
-  m_texCoord[1].x = rect.l;
-  m_texCoord[1].y = rect.b;
-  m_texCoord[2].x = rect.r;
-  m_texCoord[2].y = rect.t;
-  m_texCoord[3].x = rect.r;
-  m_texCoord[3].y = rect.b;
-
-  if (m_TexCoordModifiesPosition) {
-    NTempest::CRect texRect;
-
-    if (GetRect(&texRect)) {
-      TexCorrectRect(texRect);
-      SetPosition(texRect);
+    if (m_string) {
+      HandleClose(m_string);
+      m_string = 0;
     }
+
+    Resize(0);
   }
 }
 
-void CSimpleTexture::SetTexCoord(const NTempest::C2Vector *texCoord) {
-  m_texCoord[0] = texCoord[0];
-  m_texCoord[1] = texCoord[1];
-  m_texCoord[2] = texCoord[2];
-  m_texCoord[3] = texCoord[3];
+void CSimpleFontString::SetTextLength(int size) {
+  if (size != m_textMaxSize) {
+    if (size) {
+      ASSERT(size > 0);
 
-  if (m_TexCoordModifiesPosition) {
-    NTempest::CRect texRect;
-
-    if (GetRect(&texRect)) {
-      TexCorrectRect(texRect);
-      SetPosition(texRect);
+      char *text = static_cast<char *>(ALLOC(size + 1));
+      *text = 0;
+      ASSERT(!m_text || !*m_text);
+      FREEIFUSED(m_text);
+      m_text = text;
+      m_textCurSize = size;
     }
+
+    m_textMaxSize = size;
   }
 }
 
-void CSimpleTexture::TexCorrectRect(NTempest::CRect &rect) {
-  using namespace NTempest;
+static bool __fastcall CheckJongsung(const unsigned short *text, int position) {
+  while (position >= 0) {
+    unsigned short character = text[position];
 
-  const float y = rect.t;
-  const float h = rect.b - rect.t;
-  const float x = rect.l;
-  const float w = rect.r - rect.l;
-
-  ASSERT(CMath::fequal_(m_texCoord[0].x, m_texCoord[1].x));
-  ASSERT(CMath::fequal_(m_texCoord[2].x, m_texCoord[3].x));
-  ASSERT(CMath::fequal_(m_texCoord[0].y, m_texCoord[2].y));
-  ASSERT(CMath::fequal_(m_texCoord[1].y, m_texCoord[3].y));
-
-  rect.l = w * m_texCoord[0].x + x;
-  rect.r = w * m_texCoord[2].x + x;
-  rect.t = h * m_texCoord[0].y + y;
-  rect.b = h * m_texCoord[1].y + y;
-
-  ASSERT(rect.minx <= rect.maxx);
-  ASSERT(rect.miny <= rect.maxy);
-}
-
-void CSimpleTexture::SetPosition(const NTempest::CRect &rect) {
-  m_position[0].z = 0.0f;
-  m_position[0].x = rect.l;
-  m_position[0].y = rect.b;
-  m_position[1].z = 0.0f;
-  m_position[1].x = rect.l;
-  m_position[1].y = rect.t;
-  m_position[2].z = 0.0f;
-  m_position[2].x = rect.r;
-  m_position[2].y = rect.b;
-  m_position[3].z = 0.0f;
-  m_position[3].x = rect.r;
-  m_position[3].y = rect.t;
-}
-
-void CSimpleTexture::OnFrameSizeChanged(const NTempest::CRect &rect) {
-  CLayoutFrame::OnFrameSizeChanged(rect);
-
-  if (m_TexCoordModifiesPosition) {
-    NTempest::CRect texRect = rect;
-
-    TexCorrectRect(texRect);
-    SetPosition(texRect);
-  } else {
-    SetPosition(rect);
-  }
-}
-
-void CSimpleTexture::Draw(CRenderBatch *batch) {
-  if (m_texture) {
-    batch->QueueTexture(this);
-  }
-}
-
-void CSimpleTexture::ClearFromSimpleRegistry() {
-  AddToRegistry(0, 0);
-}
-
-CGxTex *CSimpleTexture::GetTexture() {
-  if (m_texture) {
-    return TextureGetGxTex(m_texture, 1, 0);
-  }
-
-  return 0;
-}
-
-float CSimpleTexture::GetWidth() {
-  float width = CLayoutFrame::GetWidth();
-
-  if (width == 0.0f && m_texture) {
-    unsigned int pixels;
-
-    TextureGetDimensions(m_texture, &pixels, 0);
-    width = pixels * 0.0009765625f * 0.8f;
-  }
-
-  return width;
-}
-
-float CSimpleTexture::GetHeight() {
-  float height = CLayoutFrame::GetHeight();
-
-  if (height == 0.0f && m_texture) {
-    unsigned int pixels;
-
-    TextureGetDimensions(m_texture, 0, &pixels);
-    height = pixels * 0.0009765625f * 0.8f;
-  }
-
-  return height;
-}
-
-void CSimpleFontStringAttributes::UpdateString(CSimpleFontString *string, int force) {
-  FATALASSERT(string);
-
-  if (force) {
-    m_flags |= FLAG_COMPLETE_UPDATE;
-  }
-
-  if (m_flags & FLAG_FONT) {
-    string->SetFont(m_font, m_fontHeight, m_fontFlags);
-    m_flags &= ~FLAG_FONT;
-  }
-
-  if (m_flags & FLAG_STYLE) {
-    if (string->m_styleFlags != m_styleFlags) {
-      string->m_styleFlags = m_styleFlags;
-      if (string->m_string) {
-        string->UpdateString(0);
+    if (character & 0xFF00) {
+      if (character >= 0xAC00 && character <= 0xD7A3) {
+        return (character - 0xAC00) % 28 != 0;
       }
+    } else if (isdigit(character)) {
+      return NumericJongsung[character - '0'] != 0;
+    } else if (isalpha(character)) {
+      return AlphabeticJongsung[tolower(character) - 'a'] != 0;
     }
-    m_flags &= ~FLAG_STYLE;
+
+    --position;
   }
 
-  if (m_flags & FLAG_COLOR) {
-    string->SetVertexColor(m_color);
-    m_flags &= ~FLAG_COLOR;
-  }
-
-  if (m_flags & FLAG_SHADOW) {
-    if (m_shadowOffset.x == 0.0f && m_shadowOffset.y == 0.0f) {
-      string->RemoveShadow();
-    } else {
-      string->AddShadow(m_shadowColor, m_shadowOffset);
-    }
-    m_flags &= ~FLAG_SHADOW;
-  }
-
-  if (m_flags & FLAG_SPACING) {
-    string->SetSpacing(m_spacing);
-    m_flags &= ~FLAG_SPACING;
-  }
+  return false;
 }
 
 const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const CSimpleFontString &rhs) {
@@ -588,27 +613,80 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
   return *this;
 }
 
-void CSimpleFontStringAttributes::CopyFlags(const CSimpleFontStringAttributes &rhs) {
-  m_flags = rhs.m_flags;
+static const char *__fastcall LanguageRule1(const char *text) {
+  unsigned short *readpos;
+  unsigned short *writepos;
+
+  SUniConvertUTF8to16(output16, 0x1000, text, 0x7FFFFFFF, 0, 0);
+
+  readpos = output16;
+  writepos = output16;
+
+  while (*readpos) {
+    if (*readpos == '|') {
+      ++readpos;
+
+      if (*readpos == '1' && (readpos[1] < '0' || readpos[1] > '9')) {
+        unsigned short *jongsungText = readpos + 1;
+        unsigned short *nonJongsungText = jongsungText;
+        unsigned short *end;
+        unsigned short *selectedText;
+
+        while (*nonJongsungText && *nonJongsungText++ != ';') {
+        }
+
+        end = nonJongsungText;
+        while (*end && *end++ != ';') {
+        }
+
+        readpos = end - 1;
+        selectedText = CheckJongsung(output16, static_cast<int>(writepos - output16) - 1) ? jongsungText : nonJongsungText;
+
+        while (*selectedText && *selectedText != ';') {
+          *writepos++ = *selectedText++;
+        }
+
+        ++readpos;
+        continue;
+      }
+
+      *writepos++ = '|';
+    }
+
+    *writepos++ = *readpos++;
+  }
+
+  *writepos = 0;
+  SUniConvertUTF16to8(output8, 0x1000, output16, 0x7FFFFFFF, 0, 0);
+  return output8;
 }
 
-CSimpleFontString::CSimpleFontString(CSimpleFrame *frame, unsigned int drawlayer, int show)
-    : CSimpleRegion(frame, drawlayer, show),
-      m_name(0),
-      m_registryContext(0),
-      m_font(0),
-      m_textMaxSize(0),
-      m_textCurSize(0),
-      m_text(0),
-      m_spacing(0.0f),
-      m_string(0),
-      m_cachedWidth(0.0f),
-      m_cachedHeight(0.0f),
-      m_shadowColor(0xFF000000ul),
-      m_shadowOffset(0.0f),
-      m_justificationOffset(0.0f),
-      m_alphaGradientStart(-1),
-      m_styleFlags(0x292) {
+static const char *__fastcall LanguageProcess(const char *text) {
+  while (*text) {
+    const char *rule = text;
+
+    while (*rule) {
+      if (*rule == '|') {
+        ++rule;
+
+        if (*rule != '|' && isdigit(*rule)) {
+          break;
+        }
+      }
+
+      ++rule;
+    }
+
+    if (!*rule) {
+      return text;
+    }
+
+    if (SStrToUnsigned(rule) == 1) {
+      text = LanguageRule1(text);
+    }
+  }
+
+  return text;
 }
 
 CSimpleFontString::~CSimpleFontString() {
@@ -834,175 +912,6 @@ int CSimpleFontString::AddToRegistry(const char *name, unsigned int context) {
   return 1;
 }
 
-int CSimpleFontString::SetFont(const char *font, float fontHeight, unsigned int fontFlags) {
-  int okay = 1;
-
-  m_fontHeight = fontHeight;
-
-  if (m_string) {
-    HandleClose(m_string);
-    m_string = 0;
-  }
-
-  if (m_font) {
-    HandleClose(m_font);
-    m_font = 0;
-  }
-
-  m_cachedWidth = 0.0f;
-  m_cachedHeight = 0.0f;
-  OnRegionChanged();
-
-  if (font && fontHeight != 0.0f) {
-    m_font = TextBlockGenerateFont(font, fontFlags, m_fontHeight * m_layoutScale);
-    if (!m_font) {
-      okay = 0;
-    } else if (m_styleFlags & 0x200) {
-      float height = GxuFontGetOneToOneHeight(TextBlockGetFontPtr(m_font)) / m_layoutScale;
-      NDCToDDC(0.0f, height, 0, &m_fontHeight);
-    }
-  }
-
-  if (m_font && m_text && *m_text) {
-    UpdateString(0);
-  }
-
-  return okay;
-}
-
-void CSimpleFontString::SetTextHeight(float height) {
-  static const float EPSILON = 2.38418579e-7f;
-
-  ASSERT(height > 0.0f);
-
-  if (fabs(height - m_fontHeight) >= EPSILON) {
-    m_styleFlags &= ~0x200;
-    m_fontHeight = height;
-    m_cachedWidth = 0.0f;
-    m_cachedHeight = 0.0f;
-
-    if (m_string) {
-      HandleClose(m_string);
-      m_string = 0;
-    }
-
-    Resize(0);
-  }
-}
-
-void CSimpleFontString::SetTextLength(int size) {
-  if (size != m_textMaxSize) {
-    if (size) {
-      ASSERT(size > 0);
-
-      char *text = static_cast<char *>(ALLOC(size + 1));
-      *text = 0;
-      ASSERT(!m_text || !*m_text);
-      FREEIFUSED(m_text);
-      m_text = text;
-      m_textCurSize = size;
-    }
-
-    m_textMaxSize = size;
-  }
-}
-
-static bool __fastcall CheckJongsung(const unsigned short *text, int position) {
-  while (position >= 0) {
-    unsigned short character = text[position];
-
-    if (character & 0xFF00) {
-      if (character >= 0xAC00 && character <= 0xD7A3) {
-        return (character - 0xAC00) % 28 != 0;
-      }
-    } else if (isdigit(character)) {
-      return NumericJongsung[character - '0'] != 0;
-    } else if (isalpha(character)) {
-      return AlphabeticJongsung[tolower(character) - 'a'] != 0;
-    }
-
-    --position;
-  }
-
-  return false;
-}
-
-static const char *__fastcall LanguageRule1(const char *text) {
-  unsigned short *readpos;
-  unsigned short *writepos;
-
-  SUniConvertUTF8to16(output16, 0x1000, text, 0x7FFFFFFF, 0, 0);
-
-  readpos = output16;
-  writepos = output16;
-
-  while (*readpos) {
-    if (*readpos == '|') {
-      ++readpos;
-
-      if (*readpos == '1' && (readpos[1] < '0' || readpos[1] > '9')) {
-        unsigned short *jongsungText = readpos + 1;
-        unsigned short *nonJongsungText = jongsungText;
-        unsigned short *end;
-        unsigned short *selectedText;
-
-        while (*nonJongsungText && *nonJongsungText++ != ';') {
-        }
-
-        end = nonJongsungText;
-        while (*end && *end++ != ';') {
-        }
-
-        readpos = end - 1;
-        selectedText = CheckJongsung(output16, static_cast<int>(writepos - output16) - 1) ? jongsungText : nonJongsungText;
-
-        while (*selectedText && *selectedText != ';') {
-          *writepos++ = *selectedText++;
-        }
-
-        ++readpos;
-        continue;
-      }
-
-      *writepos++ = '|';
-    }
-
-    *writepos++ = *readpos++;
-  }
-
-  *writepos = 0;
-  SUniConvertUTF16to8(output8, 0x1000, output16, 0x7FFFFFFF, 0, 0);
-  return output8;
-}
-
-static const char *__fastcall LanguageProcess(const char *text) {
-  while (*text) {
-    const char *rule = text;
-
-    while (*rule) {
-      if (*rule == '|') {
-        ++rule;
-
-        if (*rule != '|' && isdigit(*rule)) {
-          break;
-        }
-      }
-
-      ++rule;
-    }
-
-    if (!*rule) {
-      return text;
-    }
-
-    if (SStrToUnsigned(rule) == 1) {
-      text = LanguageRule1(text);
-    }
-  }
-
-  return text;
-}
-
 void CSimpleFontString::SetText(const char *text) {
   ASSERT(m_font);
 
@@ -1103,6 +1012,106 @@ bool CSimpleFontString::SetAlphaGradient(int startChar, int length) {
   return !m_string || TextBlockSetGradient(m_string, startChar, length) < 2;
 }
 
+void CSimpleFontStringAttributes::UpdateString(CSimpleFontString *string, int force) {
+  FATALASSERT(string);
+
+  if (force) {
+    m_flags |= FLAG_COMPLETE_UPDATE;
+  }
+
+  if (m_flags & FLAG_FONT) {
+    string->SetFont(m_font, m_fontHeight, m_fontFlags);
+    m_flags &= ~FLAG_FONT;
+  }
+
+  if (m_flags & FLAG_STYLE) {
+    if (string->m_styleFlags != m_styleFlags) {
+      string->m_styleFlags = m_styleFlags;
+      if (string->m_string) {
+        string->UpdateString(0);
+      }
+    }
+    m_flags &= ~FLAG_STYLE;
+  }
+
+  if (m_flags & FLAG_COLOR) {
+    string->SetVertexColor(m_color);
+    m_flags &= ~FLAG_COLOR;
+  }
+
+  if (m_flags & FLAG_SHADOW) {
+    if (m_shadowOffset.x == 0.0f && m_shadowOffset.y == 0.0f) {
+      string->RemoveShadow();
+    } else {
+      string->AddShadow(m_shadowColor, m_shadowOffset);
+    }
+    m_flags &= ~FLAG_SHADOW;
+  }
+
+  if (m_flags & FLAG_SPACING) {
+    string->SetSpacing(m_spacing);
+    m_flags &= ~FLAG_SPACING;
+  }
+}
+
+float CSimpleFontString::GetStringWidth() {
+  if (m_cachedWidth == 0.0f && m_text && *m_text) {
+    TextBlockGetTextExtent(m_font, m_text, SStrLen(m_text), m_fontHeight * m_layoutScale, &m_cachedWidth, 0.0f, m_styleFlags);
+    m_cachedWidth /= m_layoutScale;
+  }
+
+  return m_cachedWidth;
+}
+
+float CSimpleTexture::GetWidth() {
+  float width = CLayoutFrame::GetWidth();
+
+  if (width == 0.0f && m_texture) {
+    unsigned int pixels;
+
+    TextureGetDimensions(m_texture, &pixels, 0);
+    width = pixels * 0.0009765625f * 0.8f;
+  }
+
+  return width;
+}
+
+float CSimpleFontString::GetStringHeight() {
+  if (m_cachedHeight == 0.0f && m_text && *m_text) {
+    m_cachedHeight =
+        TextBlockGetWrappedTextHeight(m_font, m_text, m_fontHeight * m_layoutScale, GetWidth() * m_layoutScale, m_spacing, m_styleFlags) /
+        m_layoutScale;
+  }
+
+  return m_cachedHeight;
+}
+
+float CSimpleTexture::GetHeight() {
+  float height = CLayoutFrame::GetHeight();
+
+  if (height == 0.0f && m_texture) {
+    unsigned int pixels;
+
+    TextureGetDimensions(m_texture, 0, &pixels);
+    height = pixels * 0.0009765625f * 0.8f;
+  }
+
+  return height;
+}
+
+float CSimpleFontString::GetTextWidth(const char *text, unsigned int textBytes) {
+  float width;
+
+  ASSERT(m_font);
+
+  if (!textBytes) {
+    textBytes = SStrLen(text);
+  }
+
+  TextBlockGetTextExtent(m_font, text, textBytes, m_fontHeight * m_layoutScale, &width, 0.0f, m_styleFlags);
+  return width / m_layoutScale;
+}
+
 void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
   if (!rect) {
     if (!(m_flags & 0x1)) {
@@ -1161,54 +1170,16 @@ void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
   OnRegionChanged();
 }
 
-float CSimpleFontString::GetStringWidth() {
-  if (m_cachedWidth == 0.0f && m_text && *m_text) {
-    TextBlockGetTextExtent(m_font, m_text, SStrLen(m_text), m_fontHeight * m_layoutScale, &m_cachedWidth, 0.0f, m_styleFlags);
-    m_cachedWidth /= m_layoutScale;
-  }
+unsigned int CSimpleFontString::WrapText(const char *text, float maxWidth, unsigned int *lineOffsets, unsigned int maxLines) {
+  ASSERT(m_font);
 
-  return m_cachedWidth;
+  return TextBlockWrapText(m_font, text, m_fontHeight * m_layoutScale, maxWidth * m_layoutScale, lineOffsets, maxLines, 0.0f, m_styleFlags);
 }
 
 float CSimpleFontString::GetWidth() {
   float width = CLayoutFrame::GetWidth();
 
   return width == 0.0f ? GetStringWidth() : width;
-}
-
-float CSimpleFontString::GetStringHeight() {
-  if (m_cachedHeight == 0.0f && m_text && *m_text) {
-    m_cachedHeight =
-        TextBlockGetWrappedTextHeight(m_font, m_text, m_fontHeight * m_layoutScale, GetWidth() * m_layoutScale, m_spacing, m_styleFlags) /
-        m_layoutScale;
-  }
-
-  return m_cachedHeight;
-}
-
-float CSimpleFontString::GetHeight() {
-  float height = CLayoutFrame::GetHeight();
-
-  return height == 0.0f ? GetStringHeight() : height;
-}
-
-float CSimpleFontString::GetTextWidth(const char *text, unsigned int textBytes) {
-  float width;
-
-  ASSERT(m_font);
-
-  if (!textBytes) {
-    textBytes = SStrLen(text);
-  }
-
-  TextBlockGetTextExtent(m_font, text, textBytes, m_fontHeight * m_layoutScale, &width, 0.0f, m_styleFlags);
-  return width / m_layoutScale;
-}
-
-unsigned int CSimpleFontString::WrapText(const char *text, float maxWidth, unsigned int *lineOffsets, unsigned int maxLines) {
-  ASSERT(m_font);
-
-  return TextBlockWrapText(m_font, text, m_fontHeight * m_layoutScale, maxWidth * m_layoutScale, lineOffsets, maxLines, 0.0f, m_styleFlags);
 }
 
 unsigned int CSimpleFontString::GetNumCharsWithinWidth(const char *text, unsigned int textBytes, float maxWidth) {
@@ -1222,6 +1193,12 @@ unsigned int CSimpleFontString::GetNumCharsWithinWidth(const char *text, unsigne
   return GxuFontGetMaxCharsWithinWidth(
       TextBlockGetFontPtr(m_font), text, m_fontHeight * m_layoutScale, maxWidth * m_layoutScale, textBytes, &width, 0.0f, m_styleFlags
   );
+}
+
+float CSimpleFontString::GetHeight() {
+  float height = CLayoutFrame::GetHeight();
+
+  return height == 0.0f ? GetStringHeight() : height;
 }
 
 unsigned int CSimpleFontString::GetNumCharsWithinWidthFromEnd(const char *text, unsigned int textBytes, float maxWidth) {
@@ -1252,6 +1229,29 @@ void CSimpleFontString::SetLayoutScale(float scale, bool force) {
       SetFont(fontName, m_fontHeight, fontFlags);
     }
   }
+}
+
+void CSimpleTexture::OnFrameSizeChanged(const NTempest::CRect &rect) {
+  CLayoutFrame::OnFrameSizeChanged(rect);
+
+  if (m_TexCoordModifiesPosition) {
+    NTempest::CRect texRect = rect;
+
+    TexCorrectRect(texRect);
+    SetPosition(texRect);
+  } else {
+    SetPosition(rect);
+  }
+}
+
+void CSimpleTexture::Draw(CRenderBatch *batch) {
+  if (m_texture) {
+    batch->QueueTexture(this);
+  }
+}
+
+void CSimpleTexture::ClearFromSimpleRegistry() {
+  AddToRegistry(0, 0);
 }
 
 void CSimpleFontString::OnFrameSizeChanged(const NTempest::CRect &rect) {

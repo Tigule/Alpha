@@ -159,6 +159,23 @@ void __fastcall CGWorldMap::ShutdownGame() {
   m_landmarks.Clear();
 }
 
+const char *__fastcall CGWorldMap::GetContinentName(unsigned int index) {
+  if (index >= m_continents.Count()) {
+    return 0;
+  }
+  MapRec *rec = g_mapDB.GetRecord(m_continents[index].continentID);
+  return rec ? rec->m_MapName_lang[CURRENT_LANGUAGE] : 0;
+}
+
+const char *__fastcall CGWorldMap::GetZoneName(unsigned int continent, unsigned int index) {
+  if (continent >= m_continents.Count() || index >= m_continents[continent].zoneList.Count()) {
+    return 0;
+  }
+  WorldMapAreaRec *map = g_worldMapAreaDB.GetRecord(m_continents[continent].zoneList[index]);
+  AreaTableRec    *area = map ? g_areaTableDB.GetRecord(map->m_areaID) : 0;
+  return area ? area->m_AreaName_lang[CURRENT_LANGUAGE] : 0;
+}
+
 void __fastcall CGWorldMap::SetMapToCurrentZone() {
   unsigned __int64 playerGuid = ClntObjMgrGetActivePlayer();
   if (!ClntObjMgrObjectPtr(playerGuid, __FILE__, __LINE__)) {
@@ -188,6 +205,10 @@ void __fastcall CGWorldMap::SetMapToCurrentZone() {
   }
 
   SetMap(continent, zone);
+}
+
+unsigned int __fastcall CGWorldMap::GetNumZones(unsigned int continent) {
+  return continent < m_continents.Count() ? m_continents[continent].zoneList.Count() : 0;
 }
 
 void __fastcall CGWorldMap::SetMap(int continent, int zone) {
@@ -244,27 +265,6 @@ void __fastcall CGWorldMap::SetMap(int continent, int zone) {
   FrameScript_SignalEvent(349);
 }
 
-const char *__fastcall CGWorldMap::GetContinentName(unsigned int index) {
-  if (index >= m_continents.Count()) {
-    return 0;
-  }
-  MapRec *rec = g_mapDB.GetRecord(m_continents[index].continentID);
-  return rec ? rec->m_MapName_lang[CURRENT_LANGUAGE] : 0;
-}
-
-unsigned int __fastcall CGWorldMap::GetNumZones(unsigned int continent) {
-  return continent < m_continents.Count() ? m_continents[continent].zoneList.Count() : 0;
-}
-
-const char *__fastcall CGWorldMap::GetZoneName(unsigned int continent, unsigned int index) {
-  if (continent >= m_continents.Count() || index >= m_continents[continent].zoneList.Count()) {
-    return 0;
-  }
-  WorldMapAreaRec *map = g_worldMapAreaDB.GetRecord(m_continents[continent].zoneList[index]);
-  AreaTableRec    *area = map ? g_areaTableDB.GetRecord(map->m_areaID) : 0;
-  return area ? area->m_AreaName_lang[CURRENT_LANGUAGE] : 0;
-}
-
 const char *__fastcall CGWorldMap::GetMapFilename() {
   if (m_currentContinent < 0) {
     return "World";
@@ -294,47 +294,6 @@ int __fastcall CGWorldMap::GetMapAreaFromPos(float x, float y) {
   int column = static_cast<int>(x * 128.0f);
   int row = static_cast<int>(y * 128.0f);
   return m_continents[m_currentContinent].chunkZones[row][column];
-}
-
-void __fastcall CGWorldMap::ProcessClick(float x, float y) {
-  if (m_currentContinent < 0) {
-    for (unsigned int i = 0; i < m_continents.Count(); ++i) {
-      const NTempest::CRect &rect = m_continents[i].hitRect;
-      if (x >= rect.l && x <= rect.r && y >= rect.t && y <= rect.b) {
-        SetMap(i, -1);
-        return;
-      }
-    }
-    return;
-  }
-  int mapArea = GetMapAreaFromPos(x, y);
-  for (unsigned int i = 0; mapArea && i < m_continents[m_currentContinent].zoneList.Count(); ++i) {
-    if (m_continents[m_currentContinent].zoneList[i] == mapArea) {
-      SetMap(m_currentContinent, i);
-      return;
-    }
-  }
-}
-
-int __fastcall CGWorldMap::GetMapHighlight(float x, float y) {
-  return GetMapAreaFromPos(x, y);
-}
-
-void __fastcall CGWorldMap::GetPlayerPosition(unsigned __int64 guid, float &x, float &y) {
-  CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
-  if (!object) {
-    x = y = 0.0f;
-    return;
-  }
-  NTempest::C3Vector position = object->GetPosition();
-  NTempest::C2Vector pos(position.x, position.y);
-  GetWorldPosition(pos, ClntObjMgrGetMapID(), x, y);
-}
-
-void __fastcall CGWorldMap::GetBindPosition(float &x, float &y) {
-  NTempest::C3Vector &position = CGPlayer_C::GetBindPoint();
-  NTempest::C2Vector  pos(position.x, position.y);
-  GetWorldPosition(pos, ClntObjMgrGetMapID(), x, y);
 }
 
 void __fastcall CGWorldMap::GetWorldPosition(const NTempest::C2Vector &pos, int mapID, float &x, float &y) {
@@ -387,6 +346,47 @@ void __fastcall CGWorldMap::GetWorldPosition(const NTempest::C2Vector &pos, int 
     x = 0.0f;
     y = 0.0f;
   }
+}
+
+void __fastcall CGWorldMap::ProcessClick(float x, float y) {
+  if (m_currentContinent < 0) {
+    for (unsigned int i = 0; i < m_continents.Count(); ++i) {
+      const NTempest::CRect &rect = m_continents[i].hitRect;
+      if (x >= rect.l && x <= rect.r && y >= rect.t && y <= rect.b) {
+        SetMap(i, -1);
+        return;
+      }
+    }
+    return;
+  }
+  int mapArea = GetMapAreaFromPos(x, y);
+  for (unsigned int i = 0; mapArea && i < m_continents[m_currentContinent].zoneList.Count(); ++i) {
+    if (m_continents[m_currentContinent].zoneList[i] == mapArea) {
+      SetMap(m_currentContinent, i);
+      return;
+    }
+  }
+}
+
+int __fastcall CGWorldMap::GetMapHighlight(float x, float y) {
+  return GetMapAreaFromPos(x, y);
+}
+
+void __fastcall CGWorldMap::GetPlayerPosition(unsigned __int64 guid, float &x, float &y) {
+  CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  if (!object) {
+    x = y = 0.0f;
+    return;
+  }
+  NTempest::C3Vector position = object->GetPosition();
+  NTempest::C2Vector pos(position.x, position.y);
+  GetWorldPosition(pos, ClntObjMgrGetMapID(), x, y);
+}
+
+void __fastcall CGWorldMap::GetBindPosition(float &x, float &y) {
+  NTempest::C3Vector &position = CGPlayer_C::GetBindPoint();
+  NTempest::C2Vector  pos(position.x, position.y);
+  GetWorldPosition(pos, ClntObjMgrGetMapID(), x, y);
 }
 
 void __fastcall CGWorldMap::GetPOIPosition(const AreaPOIRec *rec, float &x, float &y) {

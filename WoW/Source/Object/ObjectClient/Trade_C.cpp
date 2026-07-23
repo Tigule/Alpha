@@ -30,22 +30,54 @@ class CGTradeInfo {
   static void __fastcall Update(TradeItemData *items);
 };
 
-int __fastcall Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot) {
-  int enchantment = s_tradeProposedEnchantment[player];
-  if (enchantment <= 0) {
+static int CCommand_Trade(const char* command, const char* arguments) {
+    // TODO: implement
     return 0;
-  }
-  spellID = enchantment;
-  slot = s_tradeProposedEnchantmentSlot[player];
-  return 1;
 }
 
-unsigned int __fastcall Trade_C_GetPlayerTradeGold() {
-  return s_tradeGold[0];
+static int CCommand_AddTradeItem(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
 }
 
-unsigned int __fastcall Trade_C_GetTargetTradeGold() {
-  return s_tradeGold[1];
+static int CCommand_ClearTradeItem(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_ClearTrade(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_AcceptTrade(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_CancelTrade(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_ShowTrade(const char*, const char*) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_TradeGold(const char*, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_UnacceptTrade(const char*, const char*) {
+    // TODO: implement
+    return 0;
+}
+
+static int TradeStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* netmsg) {
+    // TODO: implement
+    return 0;
 }
 
 static int __fastcall TradeExtendedStatusHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
@@ -74,13 +106,28 @@ static int __fastcall TradeExtendedStatusHandler(void *, NETMESSAGE, unsigned lo
   return 1;
 }
 
-void __fastcall Trade_C_Initialize() {
-  memset(s_tradeItems, 0, sizeof(s_tradeItems));
-  memset(s_tradeProposedEnchantment, 0, sizeof(s_tradeProposedEnchantment));
-  memset(s_tradeProposedEnchantmentSlot, 0, sizeof(s_tradeProposedEnchantmentSlot));
-  memset(s_tradeGold, 0, sizeof(s_tradeGold));
-  memset(s_tradeFlags, 0, sizeof(s_tradeFlags));
-  ClientServices_SetMessageHandler(SMSG_TRADE_STATUS_EXTENDED, TradeExtendedStatusHandler, 0);
+unsigned __int64 __fastcall Trade_C_GetTradeTarget() {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall Trade_C_IsInitiator() {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall Trade_C_UseCursorItem() {
+  return s_initiator && s_useCursorItem;
+}
+
+int __fastcall Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot) {
+  int enchantment = s_tradeProposedEnchantment[player];
+  if (enchantment <= 0) {
+    return 0;
+  }
+  spellID = enchantment;
+  slot = s_tradeProposedEnchantmentSlot[player];
+  return 1;
 }
 
 void __fastcall TradeNameCallback(int, const unsigned __int64 &guid, void *, bool granted) {
@@ -90,10 +137,6 @@ void __fastcall TradeNameCallback(int, const unsigned __int64 &guid, void *, boo
       CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(169), name->m_name);
     }
   }
-}
-
-int __fastcall Trade_C_UseCursorItem() {
-  return s_initiator && s_useCursorItem;
 }
 
 void __fastcall Trade_C_InitiateTrade(unsigned __int64 target, int useCursorItem) {
@@ -118,11 +161,12 @@ void __fastcall Trade_C_BeginTrade() {
   ClientServices_Send(&msg);
 }
 
-void __fastcall Trade_C_CancelTrade() {
-  CDataStore msg;
-  msg.Put(CMSG_CANCEL_TRADE);
-  msg.Finalize();
-  ClientServices_Send(&msg);
+void __fastcall Trade_C_PlayerBusy() {
+    // TODO: implement
+}
+
+void __fastcall Trade_C_PlayerIgnored() {
+    // TODO: implement
 }
 
 void __fastcall Trade_C_AcceptTrade() {
@@ -136,6 +180,13 @@ void __fastcall Trade_C_AcceptTrade() {
 void __fastcall Trade_C_UnacceptTrade() {
   CDataStore msg;
   msg.Put(CMSG_UNACCEPT_TRADE);
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
+
+void __fastcall Trade_C_CancelTrade() {
+  CDataStore msg;
+  msg.Put(CMSG_CANCEL_TRADE);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -188,6 +239,23 @@ void __fastcall Trade_C_RemoveMoney(unsigned int money) {
     msg.Finalize();
     ClientServices_Send(&msg);
   }
+}
+
+unsigned int __fastcall Trade_C_GetPlayerTradeGold() {
+  return s_tradeGold[0];
+}
+
+unsigned int __fastcall Trade_C_GetTargetTradeGold() {
+  return s_tradeGold[1];
+}
+
+void __fastcall Trade_C_Initialize() {
+  memset(s_tradeItems, 0, sizeof(s_tradeItems));
+  memset(s_tradeProposedEnchantment, 0, sizeof(s_tradeProposedEnchantment));
+  memset(s_tradeProposedEnchantmentSlot, 0, sizeof(s_tradeProposedEnchantmentSlot));
+  memset(s_tradeGold, 0, sizeof(s_tradeGold));
+  memset(s_tradeFlags, 0, sizeof(s_tradeFlags));
+  ClientServices_SetMessageHandler(SMSG_TRADE_STATUS_EXTENDED, TradeExtendedStatusHandler, 0);
 }
 
 void __fastcall Trade_C_Destroy() {

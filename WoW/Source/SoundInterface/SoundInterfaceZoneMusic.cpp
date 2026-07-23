@@ -7,6 +7,28 @@ static int           s_flags;
 static ZoneMusicRec *s_currentMusic;
 static Sound        *s_sound;
 
+static int GetNextPlayTime() {
+    // TODO: implement
+    return 0;
+}
+
+static void PlayMusic() {
+    // TODO: implement
+}
+
+static int ZoneMusicIdle(const void* dataPtr, void* ptr) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall InitializeZoneMusic() {
+    // TODO: implement
+}
+
+void __fastcall ShutdownZoneMusic() {
+    // TODO: implement
+}
+
 void __fastcall SndInterfaceRegisterNewZone(unsigned int musicID) {
   ZoneMusicRec *previousMusic = s_currentMusic;
   s_currentMusic = g_zoneMusicDB.GetRecord(musicID);

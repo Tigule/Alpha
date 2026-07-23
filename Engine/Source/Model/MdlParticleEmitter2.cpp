@@ -379,6 +379,11 @@ CParticleEmitter2 *__fastcall CreateEmitter(unsigned char *emitterData, const MD
   return emitter;
 }
 
+int __fastcall MdlReadLoadEmitters2(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared, unsigned int flags, CStatus* status) {
+    // TODO: implement
+    return 0;
+}
+
 void __fastcall
 MdxReadEmitters2(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status) {
   ASSERT(data);

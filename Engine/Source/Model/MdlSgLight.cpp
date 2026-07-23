@@ -3,6 +3,8 @@
 #include "Gx/CGxDevice.h"
 #include "Gxu/IGxuLight.h"
 
+struct MDLDATA;
+
 unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
 static unsigned long __fastcall CreateGxLight(unsigned char *lightData) {
@@ -30,6 +32,11 @@ static unsigned long __fastcall CreateGxLight(unsigned char *lightData) {
   }
 
   return lightId;
+}
+
+int __fastcall MdlReadLoadLights(const MDLDATA& data, CModelComplex* modelptr) {
+    // TODO: implement
+    return 0;
 }
 
 void __fastcall MdxReadLights(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr) {

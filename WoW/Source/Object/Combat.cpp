@@ -2,12 +2,12 @@
 
 #include "Object/Object.h"
 
-unsigned __int64 CCombat::IsAttacking() {
-  return m_victim;
-}
-
 void CCombat::SetClientInitData(CClientObjCreate &init) {
   m_victim = init.victim;
+}
+
+unsigned __int64 CCombat::IsAttacking() {
+  return m_victim;
 }
 
 void CCombatClient::SetAttackSent(unsigned __int64 victim) {

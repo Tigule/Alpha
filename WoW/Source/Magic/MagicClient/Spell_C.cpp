@@ -20,6 +20,8 @@
 
 #include <Base/CDataStore.h>
 #include <FrameScript/FrameScript.h>
+
+extern FrameScript_Method s_SpellScriptFunctions[4];
 #include <lauxlib.h>
 #include <lua.h>
 #include <Os/OsTime.h>
@@ -242,6 +244,20 @@ int SpellHistory::GetCooldown(int spellID, int itemID, unsigned int *duration, u
     }
   }
   return latestEnd != now;
+}
+
+static const ItemSubClassRec* FindAnyItemSubclassRec(int classID, unsigned int subclassMask) {
+    // TODO: implement
+    return 0;
+}
+
+static const char* GetStringReason(unsigned char reason) {
+    // TODO: implement
+    return 0;
+}
+
+static void SpellMissingItemCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
 }
 
 void __fastcall Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2) {
@@ -616,6 +632,10 @@ void __fastcall Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, 
   }
 }
 
+static void SetItemCooldown(int itemID, int spellID, unsigned long startTime, unsigned char needsEvent) {
+    // TODO: implement
+}
+
 void __fastcall Spell_C_SetCooldownLeft(
     int  spellID,
     int  itemID,
@@ -723,6 +743,29 @@ int __fastcall Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsig
   return 0;
 }
 
+int __fastcall Spell_C_NeedsCooldownEvent(const SpellRec* srec, int isPet) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall Spell_C_NeedsCooldownEvent(int itemID) {
+    // TODO: implement
+    return 0;
+}
+
+static void Spell_C_CooldownEventTriggered(int spellID, unsigned long receivedTime, int isPet, int clear) {
+    // TODO: implement
+}
+
+static void Spell_C_ClearCooldowns(int isPet) {
+    // TODO: implement
+}
+
+int __fastcall Spell_C_GetSpellByName(const char* name) {
+    // TODO: implement
+    return 0;
+}
+
 int __fastcall Spell_C_GetSpellLevel(int id, int isPet) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (isPet) {
@@ -736,6 +779,16 @@ int __fastcall Spell_C_GetSpellLevel(int id, int isPet) {
   }
 
   return unit ? unit->GetSpellLevel(id) : 0;
+}
+
+int __fastcall Spell_C_GetManaCost(int id, int isPet) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall Spell_C_GetManaCostPerSecond(int id, int isPet) {
+    // TODO: implement
+    return 0;
 }
 
 int __fastcall Spell_C_GetCastTime(int id, int isPet) {
@@ -1143,12 +1196,12 @@ bool __fastcall Spell_C_IsTargeting() {
   return s_needTargets != 0;
 }
 
-void __fastcall Spell_C_StopTargeting() {
-  Spell_C_CancelSpell(0, 0, SPELL_FAILED_ERROR);
-}
-
 int __fastcall Spell_C_GetTargettingSpell() {
   return s_needTargets ? s_spellCast.spellID : 0;
+}
+
+void __fastcall Spell_C_StopTargeting() {
+  Spell_C_CancelSpell(0, 0, SPELL_FAILED_ERROR);
 }
 
 void __fastcall Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason) {
@@ -1187,6 +1240,10 @@ void __fastcall Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServ
     }
     s_spellCast.caster = 0;
   }
+}
+
+static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
 }
 
 bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item) {
@@ -1274,37 +1331,13 @@ bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item) {
   return true;
 }
 
-void __fastcall Spell_C_CancelCombatSpell() {
-  const SpellRec *spell = s_modalSpellID ? g_spellDB.GetRecord(s_modalSpellID) : 0;
-  if (spell && (spell->m_attributes & 0x404)) {
-    Spell_C_CancelSpell(0, 1, SPELL_FAILED_ERROR);
-  }
-
-  spell = s_modalSpellID ? g_spellDB.GetRecord(s_modalSpellID) : 0;
-  if (spell && (spell->m_attributes & 0x404)) {
-    Spell_C_CancelSpell(0, 1, SPELL_FAILED_ERROR);
-  }
-
-  spell = s_savedModalSpellID ? g_spellDB.GetRecord(s_savedModalSpellID) : 0;
-  if (spell && (spell->m_attributes & 0x404)) {
-    if (!s_savedModalItemID) {
-      CDataStore msg;
-      msg.Put(static_cast<unsigned int>(CMSG_CANCEL_CAST));
-      msg.Put(s_savedModalSpellID);
-      msg.Finalize();
-      ClientServices_Send(&msg);
-    }
-    s_savedModalSpellID = 0;
-    s_savedModalItemID = 0;
-  }
+unsigned int __fastcall Spell_C_CanTargetObject(CGObject_C *objectPtr) {
+  return (s_needTargets & 0x4800) && (objectPtr->GetType() & TYPE_GAMEOBJECT) &&
+         static_cast<CGGameObject_C *>(objectPtr)->IsValidTargetForSpell(s_spellCast.caster, s_spellCast.spellID);
 }
 
-void __fastcall Spell_C_CancelAura(int spellID) {
-  CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_CANCEL_AURA));
-  msg.Put(spellID);
-  msg.Finalize();
-  ClientServices_Send(&msg);
+unsigned int __fastcall Spell_C_CanTargetObjects() {
+  return (s_needTargets & 0x4800) != 0;
 }
 
 bool __fastcall Spell_C_HandleSpriteClick(CGObject_C *object) {
@@ -1396,15 +1429,6 @@ bool __fastcall Spell_C_HandleSpriteClick(CGObject_C *object) {
 
 bool __fastcall Spell_C_HandleSpriteClick(const CSpriteClickEvent &evt) {
   return Spell_C_HandleSpriteClick(ClntObjMgrObjectPtr(evt.objectGUID, __FILE__, __LINE__));
-}
-
-unsigned int __fastcall Spell_C_CanTargetObject(CGObject_C *objectPtr) {
-  return (s_needTargets & 0x4800) && (objectPtr->GetType() & TYPE_GAMEOBJECT) &&
-         static_cast<CGGameObject_C *>(objectPtr)->IsValidTargetForSpell(s_spellCast.caster, s_spellCast.spellID);
-}
-
-unsigned int __fastcall Spell_C_CanTargetObjects() {
-  return (s_needTargets & 0x4800) != 0;
 }
 
 unsigned int __fastcall Spell_C_CanTargetUnits() {
@@ -1574,6 +1598,11 @@ unsigned int __fastcall Spell_C_WaitingForStringInput() {
   return (s_needTargets >> 13) & 1;
 }
 
+int __fastcall Spell_C_TargetTradeItem(int tradeIndex) {
+    // TODO: implement
+    return 0;
+}
+
 unsigned int __fastcall Spell_C_WorldObjectCursor() {
   return s_spellWorldModel;
 }
@@ -1593,7 +1622,129 @@ bool __fastcall Spell_C_WorldObjectHousing() {
   return s_spellWorldModelHousing != 0;
 }
 
+void __fastcall Spell_C_WorldObjectRotate() {
+    // TODO: implement
+}
+
+static int CCommand_Cast(const char*, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
 unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
+
+static int CastResultHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static void SpellStart(unsigned __int64 casterGUID, unsigned __int64 casterUnit, int spellID, CDataStore* msg) {
+    // TODO: implement
+}
+
+static int SpellDelayed(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int SpellChannelStart(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int SpellChannelUpdate(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int SpellAddDynamicTarget(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static void SpellGo(const unsigned __int64& casterGUID, const unsigned __int64& casterUnit, int spellID, CDataStore* msg) {
+    // TODO: implement
+}
+
+static int SpellStartHandler(void*, NETMESSAGE msgID, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int SpellFailedHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int PetSpellFailedHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int SpellCooldownHandler(void*, NETMESSAGE, unsigned long eventTime, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int ItemCooldownHandler(void*, NETMESSAGE, unsigned long eventTime, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int CooldownEvent(void*, NETMESSAGE msgID, unsigned long timeReceived, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int CooldownCheat(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int PetTameFailure(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int PlaySpellVisualKit(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_Learn(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_Cooldown(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_CooldownPet(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_UseSkill(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_SetSkill(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_CancelAura(const char*, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static int CCommand_SpellString(const char*, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
 
 static int __fastcall Script_SpellIsTargeting(lua_State *L) {
   Spell_C_IsTargeting() ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
@@ -1633,23 +1784,69 @@ static int __fastcall Script_SpellStopTargeting(lua_State *L) {
   return 1;
 }
 
-static FrameScript_Method s_ScriptFunctions[4] = {
+void __fastcall SpellRegisterScriptFunctions() {
+  for (unsigned int i = 0; i < 4; ++i) {
+    FrameScript_RegisterFunction(s_SpellScriptFunctions[i].name, s_SpellScriptFunctions[i].method);
+  }
+}
+
+void __fastcall SpellUnregisterScriptFunctions() {
+  for (unsigned int i = 0; i < 4; ++i) {
+    FrameScript_UnregisterFunction(s_SpellScriptFunctions[i].name);
+  }
+}
+
+FrameScript_Method s_SpellScriptFunctions[4] = {
     {  "SpellIsTargeting",   Script_SpellIsTargeting},
     {"SpellCanTargetUnit", Script_SpellCanTargetUnit},
     {   "SpellTargetUnit",    Script_SpellTargetUnit},
     {"SpellStopTargeting", Script_SpellStopTargeting}
 };
 
-void __fastcall SpellRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 4; ++i) {
-    FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
+void __fastcall Spell_C_CancelCombatSpell() {
+  const SpellRec *spell = s_modalSpellID ? g_spellDB.GetRecord(s_modalSpellID) : 0;
+  if (spell && (spell->m_attributes & 0x404)) {
+    Spell_C_CancelSpell(0, 1, SPELL_FAILED_ERROR);
+  }
+
+  spell = s_modalSpellID ? g_spellDB.GetRecord(s_modalSpellID) : 0;
+  if (spell && (spell->m_attributes & 0x404)) {
+    Spell_C_CancelSpell(0, 1, SPELL_FAILED_ERROR);
+  }
+
+  spell = s_savedModalSpellID ? g_spellDB.GetRecord(s_savedModalSpellID) : 0;
+  if (spell && (spell->m_attributes & 0x404)) {
+    if (!s_savedModalItemID) {
+      CDataStore msg;
+      msg.Put(static_cast<unsigned int>(CMSG_CANCEL_CAST));
+      msg.Put(s_savedModalSpellID);
+      msg.Finalize();
+      ClientServices_Send(&msg);
+    }
+    s_savedModalSpellID = 0;
+    s_savedModalItemID = 0;
   }
 }
 
-void __fastcall SpellUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 4; ++i) {
-    FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
-  }
+void __fastcall Spell_C_CancelAura(int spellID) {
+  CDataStore msg;
+  msg.Put(static_cast<unsigned int>(CMSG_CANCEL_AURA));
+  msg.Put(spellID);
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
+
+unsigned int __fastcall Spell_C_GetPowerDisplayMod(POWER_TYPE type) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall Spell_C_Initialize() {
+    // TODO: implement
+}
+
+void __fastcall Spell_C_Destroy() {
+    // TODO: implement
 }
 
 bool __fastcall IsSpellAura(const SpellRec *rec) {

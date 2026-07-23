@@ -1,5 +1,10 @@
 #include <stpl.h>
 
+class Parser;
+class CMDLStatus;
+class TSet;
+struct MDLTEXTURESECTION;
+
 namespace MDL {
 
   const char *__fastcall TokenText(unsigned int token);
@@ -23,4 +28,16 @@ void __fastcall IWriteTextureFlags(unsigned int flags, TSGrowableArray<char> &bu
       MDL::WriteLine(buffer, "\t\t%s,\n", MDL::TokenText(s_textureFlags[i].token));
     }
   }
+}
+
+static void IReadFilename(Parser& parse, char* dest) {
+    // TODO: implement
+}
+
+static void IAddBitmapErrors(TSet& errors) {
+    // TODO: implement
+}
+
+static void IReadBitmap(Parser& parse, MDLTEXTURESECTION* bitmap, CMDLStatus* status) {
+    // TODO: implement
 }

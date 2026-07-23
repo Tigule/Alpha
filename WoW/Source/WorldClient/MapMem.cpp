@@ -43,6 +43,14 @@ CMapObj *__fastcall CMap::AllocMapObj() {
   return mapObj;
 }
 
+void __fastcall CMap::FreeMapObj(CMapObj *mapObj) {
+  ASSERT(mapObj);
+
+  mapObj->lameAssLink.Unlink();
+  mapObj->Clear();
+  mapObjFreeList.LinkNode(mapObj, LIST_TAIL, 0);
+}
+
 CMapObjGroup *__fastcall CMap::AllocMapObjGroup() {
   CMapObjGroup *group = mapObjGroupFreeList.Head();
   if (!group) {
@@ -54,6 +62,14 @@ CMapObjGroup *__fastcall CMap::AllocMapObjGroup() {
 
   group->Init();
   return group;
+}
+
+void __fastcall CMap::FreeMapObjGroup(CMapObjGroup *group) {
+  ASSERT(group);
+
+  group->lameAssLink.Unlink();
+  group->Clear();
+  mapObjGroupFreeList.LinkNode(group, LIST_TAIL, 0);
 }
 
 CChunkLayer *__fastcall CMap::GetLayer() {
@@ -69,22 +85,6 @@ CChunkLayer *__fastcall CMap::GetLayer() {
   ++counts[3];
   --freeCounts[3];
   return layer;
-}
-
-void __fastcall CMap::FreeMapObj(CMapObj *mapObj) {
-  ASSERT(mapObj);
-
-  mapObj->lameAssLink.Unlink();
-  mapObj->Clear();
-  mapObjFreeList.LinkNode(mapObj, LIST_TAIL, 0);
-}
-
-void __fastcall CMap::FreeMapObjGroup(CMapObjGroup *group) {
-  ASSERT(group);
-
-  group->lameAssLink.Unlink();
-  group->Clear();
-  mapObjGroupFreeList.LinkNode(group, LIST_TAIL, 0);
 }
 
 void __fastcall CMap::FreeLayer(CChunkLayer *layer) {
@@ -246,23 +246,6 @@ CMapDoodadDef *__fastcall CMap::AllocDoodadDef() {
   return doodadDef;
 }
 
-CMapEntity *__fastcall CMap::AllocEntity() {
-  CMapEntity *entity = entityFreeList.Head();
-  if (!entity) {
-    entity = NEWZERO(CMapEntity);
-    entityFreeList.LinkNode(entity, LIST_TAIL, 0);
-    FATALASSERT(entity);
-    ++freeCounts[7];
-  }
-
-  entity->lameAssLink.Unlink();
-  entityList.LinkNode(entity, LIST_TAIL, 0);
-
-  ++counts[7];
-  --freeCounts[7];
-  return entity;
-}
-
 void __fastcall CMap::FreeDoodadDef(CMapDoodadDef *doodadDef) {
   FATALASSERT(doodadDef);
 
@@ -283,6 +266,23 @@ void __fastcall CMap::FreeDoodadDef(CMapDoodadDef *doodadDef) {
   ++freeCounts[1];
 }
 
+CMapEntity *__fastcall CMap::AllocEntity() {
+  CMapEntity *entity = entityFreeList.Head();
+  if (!entity) {
+    entity = NEWZERO(CMapEntity);
+    entityFreeList.LinkNode(entity, LIST_TAIL, 0);
+    FATALASSERT(entity);
+    ++freeCounts[7];
+  }
+
+  entity->lameAssLink.Unlink();
+  entityList.LinkNode(entity, LIST_TAIL, 0);
+
+  ++counts[7];
+  --freeCounts[7];
+  return entity;
+}
+
 void __fastcall CMap::FreeEntity(CMapEntity *entity) {
   FATALASSERT(entity);
   FATALASSERT(entity->parentLinkList.Head() == 0);
@@ -292,21 +292,6 @@ void __fastcall CMap::FreeEntity(CMapEntity *entity) {
 
   --counts[7];
   ++freeCounts[7];
-}
-
-void __fastcall CMap::FreeChunkLiquid(CChunkLiquid *&cl) {
-  FATALASSERT(cl);
-
-  chunkLiquidList.UnlinkNode(cl);
-  chunkLiquidFreeList.LinkNode(cl, LIST_TAIL, 0);
-  cl = 0;
-}
-
-void __fastcall CMap::FreeSoundEmitter(CMapSoundEmitter *soundEmitter) {
-  FATALASSERT(soundEmitter);
-
-  soundEmitterFreeList.UnlinkNode(soundEmitter);
-  soundEmitterFreeList.LinkNode(soundEmitter, LIST_TAIL, 0);
 }
 
 CMapLight *__fastcall CMap::AllocLight() {
@@ -410,6 +395,21 @@ CMapObjDef *__fastcall CMap::AllocMapObjDef() {
   return mapObjDef;
 }
 
+void __fastcall CMap::FreeMapObjDef(CMapObjDef *mapObjDef) {
+  FATALASSERT(mapObjDef);
+  FATALASSERT(mapObjDef->parentLinkList.Head() == 0);
+  FATALASSERT(mapObjDef->groupLinkList.Head() == 0);
+
+  mapObjDef->lameAssLink.Unlink();
+  if (mapObjDef->m_linktoslot.IsLinked()) {
+    mapObjDefHash.Unlink(mapObjDef);
+  }
+  mapObjDefFreeList.LinkNode(mapObjDef, LIST_TAIL, 0);
+
+  --counts[5];
+  ++freeCounts[5];
+}
+
 CChunkLiquid *__fastcall CMap::AllocChunkLiquid() {
   CChunkLiquid *liquid = chunkLiquidFreeList.Head();
   if (!liquid) {
@@ -420,6 +420,14 @@ CChunkLiquid *__fastcall CMap::AllocChunkLiquid() {
   liquid->lameAssLink.Unlink();
   chunkLiquidList.LinkNode(liquid, LIST_TAIL, 0);
   return liquid;
+}
+
+void __fastcall CMap::FreeChunkLiquid(CChunkLiquid *&cl) {
+  FATALASSERT(cl);
+
+  chunkLiquidList.UnlinkNode(cl);
+  chunkLiquidFreeList.LinkNode(cl, LIST_TAIL, 0);
+  cl = 0;
 }
 
 CMapSoundEmitter *__fastcall CMap::AllocSoundEmitter() {
@@ -434,17 +442,9 @@ CMapSoundEmitter *__fastcall CMap::AllocSoundEmitter() {
   return soundEmitter;
 }
 
-void __fastcall CMap::FreeMapObjDef(CMapObjDef *mapObjDef) {
-  FATALASSERT(mapObjDef);
-  FATALASSERT(mapObjDef->parentLinkList.Head() == 0);
-  FATALASSERT(mapObjDef->groupLinkList.Head() == 0);
+void __fastcall CMap::FreeSoundEmitter(CMapSoundEmitter *soundEmitter) {
+  FATALASSERT(soundEmitter);
 
-  mapObjDef->lameAssLink.Unlink();
-  if (mapObjDef->m_linktoslot.IsLinked()) {
-    mapObjDefHash.Unlink(mapObjDef);
-  }
-  mapObjDefFreeList.LinkNode(mapObjDef, LIST_TAIL, 0);
-
-  --counts[5];
-  ++freeCounts[5];
+  soundEmitterFreeList.UnlinkNode(soundEmitter);
+  soundEmitterFreeList.LinkNode(soundEmitter, LIST_TAIL, 0);
 }

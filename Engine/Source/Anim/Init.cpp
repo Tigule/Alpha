@@ -1,5 +1,9 @@
 #include "Anim/AnimInternal.h"
 
+struct MDLTEXLAYER;
+struct MDLGEOSETANIMSECTION;
+struct MDLCAMERASECTION;
+
 unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
 static unsigned int __fastcall SetTransformationFlags(CAnimObj *currobj) {
@@ -531,6 +535,10 @@ void __fastcall AnimInit(CAnim *unique, CAnimData *shared) {
   shared->flags |= 1;
 }
 
+void __fastcall AnimAddMaterialLayer(CAnimData* shared, const MDLTEXLAYER& layerData, unsigned int layerId, MDLTRACKTYPE forceType) {
+    // TODO: implement
+}
+
 void __fastcall AnimAddMaterialLayers(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, CAnimData *shared, MDLTRACKTYPE forceType) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x534C544D);
   if (!section) {
@@ -628,6 +636,10 @@ void __fastcall AnimAddGeosets(unsigned char *fileData, unsigned int fileBytes, 
   ASSERT(data == dataDone);
 }
 
+void __fastcall AnimAddGeoset(CAnimData* shared, const MDLGEOSETANIMSECTION& geodata, MDLTRACKTYPE forceType) {
+    // TODO: implement
+}
+
 void __fastcall AnimAddCameras(unsigned char *fileData, unsigned int fileBytes, CAnimData *shared, MDLTRACKTYPE forceType) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x534D4143);
   if (!section) {
@@ -661,6 +673,10 @@ void __fastcall AnimAddCameras(unsigned char *fileData, unsigned int fileBytes, 
     );
   }
   ASSERT(data == dataDone);
+}
+
+void __fastcall AnimAddCamera(CAnimData* shared, const MDLCAMERASECTION& cameraData, MDLTRACKTYPE forceType) {
+    // TODO: implement
 }
 
 void __fastcall AnimAddSequences(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, CAnimData *shared) {

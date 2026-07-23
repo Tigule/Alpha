@@ -48,6 +48,19 @@ static LOOPEDDOODADDESC *__fastcall FindFreeDoodadLoop(int soundID, int &freeSlo
   return 0;
 }
 
+int __fastcall DoodadLoopHandler(const void* dataPtr, void* param) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall SoundInterfaceDoodadInitialize() {
+    // TODO: implement
+}
+
+void __fastcall SoundInterfaceDoodadDestroy() {
+    // TODO: implement
+}
+
 int LOOPEDDOODADDESC::FindFreeSlot() const {
   for (int slot = 0; slot < 8; ++slot) {
     if (!((1 << slot) & posInUseFlags)) {

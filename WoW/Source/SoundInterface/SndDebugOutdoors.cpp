@@ -282,11 +282,11 @@ int __fastcall SndDebugListChunksOUTDOORS(const char *command, const char *argum
   return 1;
 }
 
-void __fastcall SndDebugRegisterContinent(unsigned int continent) {
-  s_currentContinent = continent;
-}
-
 void __fastcall OutdoorsShutdown() {
   s_chunkHash.Clear();
   s_chunkList.Clear();
+}
+
+void __fastcall SndDebugRegisterContinent(unsigned int continent) {
+  s_currentContinent = continent;
 }

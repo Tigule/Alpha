@@ -777,4 +777,3 @@ StkId luaV_execute (lua_State *L) {
     }
   }
 }
-

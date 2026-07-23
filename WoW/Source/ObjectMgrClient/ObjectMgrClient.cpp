@@ -776,13 +776,6 @@ void __fastcall ClntObjMgrObjectInRange(unsigned __int64 guid) {
   }
 }
 
-void __fastcall ClntObjMgrHideObject(unsigned __int64 guid) {
-  C_OBJECTHASH *foundObj = FindActiveObj(guid);
-  if (foundObj && s_curMgr->m_visibleObjects.IsLinked(foundObj)) {
-    s_curMgr->m_visibleObjects.UnlinkNode(foundObj);
-  }
-}
-
 static void __fastcall UpdateInRangeObjects(CDataStore *msg) {
   unsigned __int64 guid;
   unsigned int     count;
@@ -998,9 +991,6 @@ static int __fastcall OnObjectDestroy(void *, NETMESSAGE, unsigned long, CDataSt
   return 1;
 }
 
-CMirrorHandler::~CMirrorHandler() {
-}
-
 static int __fastcall CCommand_ObjUsage(const char *command, const char *arguments) {
   C_OBJECTHASH *object;
   unsigned int  numVisible = 0;
@@ -1029,6 +1019,9 @@ static int __fastcall CCommand_ObjUsage(const char *command, const char *argumen
   ConsoleWriteA("    Objects waiting to be freed: %u objects", HIGHLIGHT_COLOR, numWaiting);
   ConsoleWriteA("    Free objects:                %u objects", HIGHLIGHT_COLOR, numFree);
   return 1;
+}
+
+CMirrorHandler::~CMirrorHandler() {
 }
 
 ClntObjMgr *__fastcall ClntObjMgrCreate(PLAYER_TYPE type, void *clientPtr) {
@@ -1187,6 +1180,17 @@ void __fastcall ClntObjMgrUnsetObjMirrorHandler(
     UnassignMirrorHandler(&foundObj->mirrorHandlers[offset >> 2], handler, param);
     ActivityEnd(ACTIVITY_OBJMGR);
   }
+}
+
+void __fastcall ClntObjMgrHideObject(unsigned __int64 guid) {
+  C_OBJECTHASH *foundObj = FindActiveObj(guid);
+  if (foundObj && s_curMgr->m_visibleObjects.IsLinked(foundObj)) {
+    s_curMgr->m_visibleObjects.UnlinkNode(foundObj);
+  }
+}
+
+void __fastcall ClntObjMgrShowObject(unsigned __int64 guid) {
+    // TODO: implement
 }
 
 int __fastcall ClntObjMgrEnumVisibleObjects(int(__fastcall *handler)(unsigned __int64, void *), void *param) {

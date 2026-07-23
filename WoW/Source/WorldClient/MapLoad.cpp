@@ -357,6 +357,70 @@ CMapObjDef *__fastcall CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest:
   return mapObjDef;
 }
 
+void __fastcall CMap::InitializeDoodadBounds(CMapDoodadDef *doodadDef) {
+  NTempest::CAaBox    localCollExtents;
+  NTempest::CAaBox    localExtents;
+  NTempest::CAaSphere localSphere;
+
+  if (doodadDef->model) {
+    ModelGetExtents(doodadDef->model, &localExtents);
+    ModelGetBounds(doodadDef->model, &localSphere);
+    ModelGetCollisionExtents(doodadDef->model, &localCollExtents);
+  }
+
+  doodadDef->aaSphere.c = localSphere.c * doodadDef->mat;
+  doodadDef->aaSphere.r = localSphere.r * doodadDef->scale;
+  CWorldMath::TransformAABox(doodadDef->mat, localExtents, doodadDef->aaBox);
+  CWorldMath::TransformAABox(doodadDef->mat, localCollExtents, doodadDef->collideExt);
+}
+
+int __fastcall CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait) {
+  FATALASSERT(doodadDef);
+
+  CModelCreate createData;
+  CStatus      status;
+
+  memset(&createData, 0, sizeof(createData));
+  createData.flags = 0x2802;
+  createData.sequenceNames = s_animationNames;
+  createData.numSequences = 1;
+
+  if (CWorld::enables & CWorld::Enable_NoFullAlpha) {
+    createData.flags = 0x2882;
+  }
+  if (CWorld::enables & CWorld::Enable_NoAnimation) {
+    createData.flags |= 0x100;
+  }
+  if (bPreload || bWait) {
+    createData.flags |= 0x8000;
+  }
+  if (CWorld::enables & CWorld::Enable_Anisotropic) {
+    createData.flags |= (CWorld::texMaxAnisotropyLog2 << 17) | 0x10000;
+  } else if (CWorld::enables & CWorld::Enable_Trilinear) {
+    createData.flags |= 0x1000;
+  }
+
+  doodadDef->model = ModelCreate(doodadDef->modelName, &createData, &status);
+  FATALASSERT(doodadDef->model);
+
+  ModelSetSequence(doodadDef->model, 0, 0);
+  ModelSetSeqFinishedHandler(doodadDef->model, OnPickNextFidget, doodadDef->model);
+  ModelSetEventCallback(doodadDef->model, DoodadEventCallback, doodadDef, 0);
+  ModelSetLightSelectCallback(doodadDef->model, SelectLight, doodadDef, 1);
+
+  if (bPreload || ModelIsLoaded(doodadDef->model, 1)) {
+    InitializeDoodadBounds(doodadDef);
+  }
+
+  return 1;
+}
+
+void __fastcall CMap::ReloadDoodadModels() {
+}
+
+void __fastcall CMap::EnableDoodadFullAlpha(int enable) {
+}
+
 void __fastcall CMap::CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef) {
   FATALASSERT(mapObj);
   FATALASSERT(mapObjDef);
@@ -460,70 +524,6 @@ void __fastcall CMap::CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapOb
     mapObjDefGroup->lightLinkList.LinkNode(link, LIST_TAIL, 0);
   }
   mapObjDefGroup->flags |= CMapBaseObj::Flag_HasLights;
-}
-
-void __fastcall CMap::InitializeDoodadBounds(CMapDoodadDef *doodadDef) {
-  NTempest::CAaBox    localCollExtents;
-  NTempest::CAaBox    localExtents;
-  NTempest::CAaSphere localSphere;
-
-  if (doodadDef->model) {
-    ModelGetExtents(doodadDef->model, &localExtents);
-    ModelGetBounds(doodadDef->model, &localSphere);
-    ModelGetCollisionExtents(doodadDef->model, &localCollExtents);
-  }
-
-  doodadDef->aaSphere.c = localSphere.c * doodadDef->mat;
-  doodadDef->aaSphere.r = localSphere.r * doodadDef->scale;
-  CWorldMath::TransformAABox(doodadDef->mat, localExtents, doodadDef->aaBox);
-  CWorldMath::TransformAABox(doodadDef->mat, localCollExtents, doodadDef->collideExt);
-}
-
-int __fastcall CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait) {
-  FATALASSERT(doodadDef);
-
-  CModelCreate createData;
-  CStatus      status;
-
-  memset(&createData, 0, sizeof(createData));
-  createData.flags = 0x2802;
-  createData.sequenceNames = s_animationNames;
-  createData.numSequences = 1;
-
-  if (CWorld::enables & CWorld::Enable_NoFullAlpha) {
-    createData.flags = 0x2882;
-  }
-  if (CWorld::enables & CWorld::Enable_NoAnimation) {
-    createData.flags |= 0x100;
-  }
-  if (bPreload || bWait) {
-    createData.flags |= 0x8000;
-  }
-  if (CWorld::enables & CWorld::Enable_Anisotropic) {
-    createData.flags |= (CWorld::texMaxAnisotropyLog2 << 17) | 0x10000;
-  } else if (CWorld::enables & CWorld::Enable_Trilinear) {
-    createData.flags |= 0x1000;
-  }
-
-  doodadDef->model = ModelCreate(doodadDef->modelName, &createData, &status);
-  FATALASSERT(doodadDef->model);
-
-  ModelSetSequence(doodadDef->model, 0, 0);
-  ModelSetSeqFinishedHandler(doodadDef->model, OnPickNextFidget, doodadDef->model);
-  ModelSetEventCallback(doodadDef->model, DoodadEventCallback, doodadDef, 0);
-  ModelSetLightSelectCallback(doodadDef->model, SelectLight, doodadDef, 1);
-
-  if (bPreload || ModelIsLoaded(doodadDef->model, 1)) {
-    InitializeDoodadBounds(doodadDef);
-  }
-
-  return 1;
-}
-
-void __fastcall CMap::ReloadDoodadModels() {
-}
-
-void __fastcall CMap::EnableDoodadFullAlpha(int enable) {
 }
 
 void DNPlanet::Initialize(const char *filename) {

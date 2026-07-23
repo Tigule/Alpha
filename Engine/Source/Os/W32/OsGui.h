@@ -20,6 +20,11 @@ struct OsGuiCallbackParams {
   void *user;
 };
 
+struct OsGuiMenuHotkey {
+  int keyID;
+  int modKeyID;
+};
+
 struct OsGuiTVDDInfo {
   COsTreeView *treeView;
   int          action;

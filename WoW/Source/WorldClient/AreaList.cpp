@@ -120,6 +120,11 @@ static void __fastcall LoadAreaTable() {
   InitializeMusic();
 }
 
+static int MIDISetHandler(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
 void __fastcall AreaListInitialize() {
   LoadAreaTable();
   s_currentContinent = 0;

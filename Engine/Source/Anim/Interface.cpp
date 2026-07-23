@@ -430,6 +430,10 @@ void __fastcall AnimSetObjectOrdering(HANIM anim, const char **boneNames, unsign
   SetObjectIndexOrdering(objNameHashTable, shared->objectOrder.m_data, shared->obj.m_data, shared->obj.m_count);
 }
 
+void __fastcall AnimResetObjectOrdering(HANIM__* anim) {
+    // TODO: implement
+}
+
 void __fastcall AnimSetSequenceOrderingDefault(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
@@ -581,6 +585,11 @@ unsigned int __fastcall AnimGetTotalKeys(HANIM anim) {
   return totalKeys;
 }
 
+unsigned int __fastcall AnimGetAttachmentObjId(HANIM__* anim, unsigned int index) {
+    // TODO: implement
+    return 0;
+}
+
 BOOL __fastcall AnimIsAttachmentEnabled(HANIM anim, unsigned int index) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
 
@@ -730,6 +739,10 @@ int __fastcall AnimRemoveObjectLookAt(HANIM anim, unsigned int objectId) {
   return RemoveObjectLookAtType(anim, objectId, 2);
 }
 
+int __fastcall AnimObjectUsingFaceDir(HANIM anim, unsigned int objectId) {
+  return AnimObjectUsingLookAtType(anim, objectId, 0x40);
+}
+
 int __fastcall AnimApplyObjectFaceDir(HANIM anim, unsigned int objectId, NTempest::C3Vector direction) {
   float magnitude = direction.Mag();
   if (NTempest::CMath::fabs_(magnitude) >= 0.00000023841858f) {
@@ -743,10 +756,6 @@ int __fastcall AnimApplyObjectFaceDir(HANIM anim, unsigned int objectId, NTempes
 
 int __fastcall AnimRemoveObjectFaceDir(HANIM anim, unsigned int objectId) {
   return RemoveObjectLookAtType(anim, objectId, 0x40);
-}
-
-int __fastcall AnimObjectUsingFaceDir(HANIM anim, unsigned int objectId) {
-  return AnimObjectUsingLookAtType(anim, objectId, 0x40);
 }
 
 int __fastcall AnimUsesBlending(HANIM anim) {

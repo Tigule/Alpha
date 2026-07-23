@@ -7,33 +7,6 @@
 #include <float.h>
 #include <math.h>
 
-inline CDataStore &operator<<(CDataStore &packet, float value) {
-  return packet.Put(value);
-}
-
-inline CDataStore &operator<<(CDataStore &packet, unsigned int value) {
-  return packet.Put(value);
-}
-
-inline CDataStore &operator<<(CDataStore &packet, unsigned long value) {
-  return packet.Put(value);
-}
-
-inline CDataStore &operator<<(CDataStore &packet, unsigned __int64 value) {
-  return packet.Put(value);
-}
-
-namespace NTempest {
-
-  CDataStore &__fastcall operator<<(CDataStore &s_, const C3Vector &d_) {
-    s_ << d_.x;
-    s_ << d_.y;
-    s_ << d_.z;
-    return s_;
-  }
-
-}  // namespace NTempest
-
 void __fastcall CClientMoveUpdate::Skip(CDataStore *packet) {
   void *unused;
   packet->GetDataInSitu(unused, 44);
@@ -59,6 +32,33 @@ void __fastcall CClientMoveUpdate::Skip(CDataStore *packet) {
     packet->GetDataInSitu(unused, 12 * pointCount);
   }
 }
+
+inline CDataStore &operator<<(CDataStore &packet, unsigned int value) {
+  return packet.Put(value);
+}
+
+inline CDataStore &operator<<(CDataStore &packet, unsigned long value) {
+  return packet.Put(value);
+}
+
+inline CDataStore &operator<<(CDataStore &packet, unsigned __int64 value) {
+  return packet.Put(value);
+}
+
+inline CDataStore &operator<<(CDataStore &packet, float value) {
+  return packet.Put(value);
+}
+
+namespace NTempest {
+
+  CDataStore &__fastcall operator<<(CDataStore &s_, const C3Vector &d_) {
+    s_ << d_.x;
+    s_ << d_.y;
+    s_ << d_.z;
+    return s_;
+  }
+
+}  // namespace NTempest
 
 CDataStore &__fastcall operator<<(CDataStore &packet, const CClientMoveUpdate &update) {
   packet << update.status.transport << update.status.transRelPosition.x << update.status.transRelPosition.y << update.status.transRelPosition.z
@@ -135,6 +135,11 @@ CDataStore &__fastcall operator>>(CDataStore &packet, CClientMoveUpdate &update)
   }
 
   return packet;
+}
+
+unsigned char __fastcall IsAngleWithinRange(float a, float b, float fieldofView) {
+    // TODO: implement
+    return 0;
 }
 
 float __fastcall CalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination) {

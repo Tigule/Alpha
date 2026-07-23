@@ -203,6 +203,10 @@ static float DistFromPlaneAlongVector(NTempest::C3Vector &point, NTempest::C4Pla
   return directDist / cosTheta;
 }
 
+static void LogHitInfoFlags(unsigned int flags) {
+    // TODO: implement
+}
+
 void CMovement::Redirect(
     unsigned long       timeStamp,
     NTempest::C3Vector &unitMoveVector,

@@ -68,4 +68,3 @@ static struct cclass {
 					"",
 	NULL,		0,		""
 };
-

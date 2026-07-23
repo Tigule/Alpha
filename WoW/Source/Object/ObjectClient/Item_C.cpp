@@ -18,6 +18,50 @@
 bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
 void __fastcall ClntObjMgrHideObject(unsigned __int64 guid);
 
+static int OnUpdateOwner(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+    // TODO: implement
+    return 0;
+}
+
+static int OnUpdateStackCount(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+    // TODO: implement
+    return 0;
+}
+
+CGItem_C::~CGItem_C() {
+}
+
+struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
+  char *textureName;
+};
+
+static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryTextures;
+static HASHKEY_NONE                            s_nullInventoryArtKey;
+
+static int OnUpdateEnchantments(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
+    // TODO: implement
+    return 0;
+}
+
+static void ItemIDChangedCacheCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static int OnUpdateItemID(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+    // TODO: implement
+    return 0;
+}
+
+static void __fastcall AddInventoryArtHash(unsigned int displayID, const char *fileName) {
+  INVENTORYART *entry = s_inventoryTextures.New(displayID, s_nullInventoryArtKey, 0, 0);
+  entry->textureName = SStrDupA(fileName, __FILE__, __LINE__);
+}
+
+static const char *__fastcall GetInventoryArtHash(unsigned int displayID) {
+  INVENTORYART *entry = s_inventoryTextures.Ptr(displayID, s_nullInventoryArtKey);
+  return entry ? entry->textureName : 0;
+}
+
 void CGItem_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
   m_item = reinterpret_cast<CGItemData *>(storage + 6);
@@ -44,24 +88,8 @@ CGItem_C::CGItem_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
   }
 }
 
-CGItem_C::~CGItem_C() {
-}
-
-struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
-  char *textureName;
-};
-
-static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryTextures;
-static HASHKEY_NONE                            s_nullInventoryArtKey;
-
-static void __fastcall AddInventoryArtHash(unsigned int displayID, const char *fileName) {
-  INVENTORYART *entry = s_inventoryTextures.New(displayID, s_nullInventoryArtKey, 0, 0);
-  entry->textureName = SStrDupA(fileName, __FILE__, __LINE__);
-}
-
-static const char *__fastcall GetInventoryArtHash(unsigned int displayID) {
-  INVENTORYART *entry = s_inventoryTextures.Ptr(displayID, s_nullInventoryArtKey);
-  return entry ? entry->textureName : 0;
+static void LoadItemCacheCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
 }
 
 const char *__fastcall CGItem_C::GetInventoryArt(int displayID) {
@@ -85,88 +113,6 @@ const char *__fastcall CGItem_C::GetInventoryArt(int displayID) {
 
   SysMsgPrintf(SYSMSG_ERROR, 2, "NOINVENTORYICON|%d", displayID);
   return "INV_Misc_QuestionMark";
-}
-
-int CGItem_C::GetDisplayID() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
-  return stats ? stats->m_displayInfoID : 0;
-}
-
-unsigned int CGItem_C::GetInventoryType() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
-  return stats ? stats->m_inventoryType : 0;
-}
-
-int CGItem_C::GetSheatheType() {
-  ItemStats *stats = GetStats();
-  return stats ? stats->m_sheatheType : 0;
-}
-
-ItemStats *CGItem_C::GetStats() {
-  const unsigned __int64 noGuid = 0;
-  return const_cast<ItemStats_C *>(g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0));
-}
-
-void CGItem_C::UpdateExpirationTime(int timeLeft) {
-  if (timeLeft <= 0) {
-    m_expirationTime = 0;
-  } else {
-    m_expirationTime = GetTickCount() + 1000 * timeLeft;
-  }
-}
-
-int CGItem_C::GetExpirationTimeLeft() {
-  if (m_expirationTime) {
-    unsigned long now = GetTickCount();
-    if (static_cast<long>(now - m_expirationTime) < 0) {
-      return m_expirationTime - now;
-    }
-  }
-  return 0;
-}
-
-void CGItem_C::UpdateEnchantmentTime(int slot, int timeLeft) {
-  FATALASSERT((slot >= 0) && (slot < 5));
-  if (timeLeft <= 0) {
-    m_enchantmentExpiration[slot] = 0;
-  } else {
-    m_enchantmentExpiration[slot] = GetTickCount() + 1000 * timeLeft;
-  }
-}
-
-void CGItem_C::SetTranslated() {
-  m_item->m_dynamicFlags |= 2;
-}
-
-void CGItem_C::UpdateEnchantments() {
-  CGUnit_C *owner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_item->m_owner, __FILE__, __LINE__));
-  if (owner) {
-    owner->UpdateObjComponentVisuals(this, m_item->m_enchantment, 5);
-  }
-}
-
-int CGItem_C::GetClassID() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
-  return stats ? stats->m_class : 0;
-}
-
-int CGItem_C::GetSubtypeID() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
-  return stats ? stats->m_subclass : 0;
-}
-
-int CGItem_C::GetSheatheType() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
-  return stats ? stats->m_sheatheType : 0;
-}
-
-const char *CGItem_C::GetInventoryArt() const {
-  return GetInventoryArt(GetDisplayID());
 }
 
 const char *CGItem_C::GetModelFileName() const {
@@ -281,13 +227,76 @@ void __fastcall CGItem_C::Shutdown() {
   s_inventoryTextures.Clear();
 }
 
-int CGItem_C::IsMetal() {
-  return IsMetal(GetMaterial());
+void CGItem_C::SetTranslated() {
+  m_item->m_dynamicFlags |= 2;
 }
 
-int __fastcall CGItem_C::IsMetal(unsigned int material) {
-  MaterialRec *rec = g_materialDB.GetRecord(material);
-  return rec && (rec->m_flags & 1);
+void CGItem_C::UpdateEnchantments() {
+  CGUnit_C *owner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_item->m_owner, __FILE__, __LINE__));
+  if (owner) {
+    owner->UpdateObjComponentVisuals(this, m_item->m_enchantment, 5);
+  }
+}
+
+void CGItem_C::UpdateExpirationTime(int timeLeft) {
+  if (timeLeft <= 0) {
+    m_expirationTime = 0;
+  } else {
+    m_expirationTime = GetTickCount() + 1000 * timeLeft;
+  }
+}
+
+int CGItem_C::GetExpirationTimeLeft() {
+  if (m_expirationTime) {
+    unsigned long now = GetTickCount();
+    if (static_cast<long>(now - m_expirationTime) < 0) {
+      return m_expirationTime - now;
+    }
+  }
+  return 0;
+}
+
+void CGItem_C::UpdateEnchantmentTime(int slot, int timeLeft) {
+  FATALASSERT((slot >= 0) && (slot < 5));
+  if (timeLeft <= 0) {
+    m_enchantmentExpiration[slot] = 0;
+  } else {
+    m_enchantmentExpiration[slot] = GetTickCount() + 1000 * timeLeft;
+  }
+}
+
+int CGItem_C::GetSheatheType() const {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  return stats ? stats->m_sheatheType : 0;
+}
+
+const char *CGItem_C::GetInventoryArt() const {
+  return GetInventoryArt(GetDisplayID());
+}
+
+int CGItem_C::GetClassID() const {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  return stats ? stats->m_class : 0;
+}
+
+int CGItem_C::GetSubtypeID() const {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  return stats ? stats->m_subclass : 0;
+}
+
+unsigned int CGItem_C::GetInventoryType() const {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  return stats ? stats->m_inventoryType : 0;
+}
+
+int CGItem_C::GetDisplayID() const {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  return stats ? stats->m_displayInfoID : 0;
 }
 
 int CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
@@ -298,4 +307,23 @@ int CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
 
 int CGItem_C::GetMaterial() {
   return m_itemInfo.m_material;
+}
+
+int CGItem_C::IsMetal() {
+  return IsMetal(GetMaterial());
+}
+
+int __fastcall CGItem_C::IsMetal(unsigned int material) {
+  MaterialRec *rec = g_materialDB.GetRecord(material);
+  return rec && (rec->m_flags & 1);
+}
+
+int CGItem_C::GetSheatheType() {
+  ItemStats *stats = GetStats();
+  return stats ? stats->m_sheatheType : 0;
+}
+
+ItemStats *CGItem_C::GetStats() {
+  const unsigned __int64 noGuid = 0;
+  return const_cast<ItemStats_C *>(g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0));
 }

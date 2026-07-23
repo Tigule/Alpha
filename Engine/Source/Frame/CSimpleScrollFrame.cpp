@@ -92,6 +92,10 @@ void CSimpleScrollFrame::SetVerticalScroll(float offset) {
   }
 }
 
+static void GetScrollChildRect(CSimpleFrame* frame, NTempest::CRect& rect) {
+    // TODO: implement
+}
+
 void CSimpleScrollFrame::UpdateScrollChild() {
   if (m_scrollChild) {
     m_scrollChild->ClearAllPoints(1);

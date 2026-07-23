@@ -434,14 +434,36 @@ REQUEST::~REQUEST() {
   Storm::SFile::RemoveStreamRef(stream);
 }
 
-Storm::SFile::ArchivePtr::ArchivePtr(HSARCHIVE hArchive) {
-  archive = GetArchivePtr(hArchive);
-  locked = 0;
+Storm::SFile::FILEREC::~FILEREC() {
+  if (handle != INVALID_HANDLE_VALUE) {
+    CloseHandle(handle);
+  }
+  if (archive) {
+    archive->sectorfile = NULL;
+  }
+  if (sectoroffsettable) {
+    FREE(sectoroffsettable);
+  }
+  if (readaheadbuffer) {
+    FREE(readaheadbuffer);
+  }
+  if (actualName) {
+    FREE(actualName);
+  }
+
+  Storm::SFile::s_archivelock.Enter();
+  Storm::SFile::RemoveArchiveRef(archive);
+  Storm::SFile::s_archivelock.Leave();
 }
 
 Storm::SFile::ArchivePtr::~ArchivePtr() {
   Leave();
   ReleaseArchivePtr(archive);
+}
+
+Storm::SFile::ArchivePtr::ArchivePtr(HSARCHIVE hArchive) {
+  archive = GetArchivePtr(hArchive);
+  locked = 0;
 }
 
 void Storm::SFile::ArchivePtr::Enter() {
@@ -451,6 +473,10 @@ void Storm::SFile::ArchivePtr::Enter() {
   locked = 1;
 }
 
+Storm::SFile::ArchivePtr::operator Storm::SFile::ARCHIVEREC *() const {
+  return archive;
+}
+
 void Storm::SFile::ArchivePtr::Leave() {
   if (locked && archive) {
     archive->sync.Leave();
@@ -458,24 +484,15 @@ void Storm::SFile::ArchivePtr::Leave() {
   locked = 0;
 }
 
-Storm::SFile::ArchivePtr::operator Storm::SFile::ARCHIVEREC *() const {
-  return archive;
-}
-
 Storm::SFile::ARCHIVEREC *Storm::SFile::ArchivePtr::operator->() {
   return archive;
-}
-
-Storm::SFile::ArchivePtrLocked::ArchivePtrLocked(HSARCHIVE hArchive) : ArchivePtr(hArchive) {
-  Enter();
 }
 
 Storm::SFile::ArchivePtrLocked::~ArchivePtrLocked() {
 }
 
-Storm::SFile::FilePtr::FilePtr(HSFILE hFile) {
-  file = GetFilePtr(hFile);
-  locked = 0;
+Storm::SFile::ArchivePtrLocked::ArchivePtrLocked(HSARCHIVE hArchive) : ArchivePtr(hArchive) {
+  Enter();
 }
 
 Storm::SFile::FilePtr::~FilePtr() {
@@ -505,16 +522,16 @@ Storm::SFile::FILEREC *Storm::SFile::FilePtr::operator->() {
   return file;
 }
 
-Storm::SFile::FilePtrLocked::FilePtrLocked(HSFILE hFile) : FilePtr(hFile) {
-  Enter();
+Storm::SFile::FilePtr::FilePtr(HSFILE hFile) {
+  file = GetFilePtr(hFile);
+  locked = 0;
 }
 
 Storm::SFile::FilePtrLocked::~FilePtrLocked() {
 }
 
-Storm::SFile::UseGlob::UseGlob() {
-  Storm::SFile::s_globcritsect.Enter();
-  globptr = &Storm::SFile::s_g;
+Storm::SFile::FilePtrLocked::FilePtrLocked(HSFILE hFile) : FilePtr(hFile) {
+  Enter();
 }
 
 Storm::SFile::UseGlob::~UseGlob() {
@@ -542,6 +559,11 @@ Storm::SFile::ARCHIVEREC::~ARCHIVEREC() {
   }
 
   Unlink();
+}
+
+Storm::SFile::UseGlob::UseGlob() {
+  Storm::SFile::s_globcritsect.Enter();
+  globptr = &Storm::SFile::s_g;
 }
 
 Storm::SFile::ARCHIVEREC *__fastcall Storm::SFile::GetArchivePtr(HSARCHIVE hArchive) {
@@ -591,28 +613,6 @@ int __fastcall Storm::SFile::IsSubArchive(HSARCHIVE archive) {
 int __fastcall Storm::SFile::IsReopenedArchive(HSARCHIVE archive) {
   ArchivePtr base(archive);
   return base && base->IsReopenedArchive();
-}
-
-Storm::SFile::FILEREC::~FILEREC() {
-  if (handle != INVALID_HANDLE_VALUE) {
-    CloseHandle(handle);
-  }
-  if (archive) {
-    archive->sectorfile = NULL;
-  }
-  if (sectoroffsettable) {
-    FREE(sectoroffsettable);
-  }
-  if (readaheadbuffer) {
-    FREE(readaheadbuffer);
-  }
-  if (actualName) {
-    FREE(actualName);
-  }
-
-  Storm::SFile::s_archivelock.Enter();
-  Storm::SFile::RemoveArchiveRef(archive);
-  Storm::SFile::s_archivelock.Leave();
 }
 
 Storm::SFile::FILEREC *__fastcall Storm::SFile::GetFilePtr(HSFILE hFile) {

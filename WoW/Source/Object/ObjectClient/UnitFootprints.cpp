@@ -206,8 +206,19 @@ void LISTBASE::SetTexture(const char *n) {
   }
 }
 
-unsigned int TIMEDTEXTURE::MakeSpace() {
-  return m_currentCount < m_maxCount;
+CHUNKDATA *LISTBASE::FindChunk(int id) {
+  CHUNKDATA *chunk = m_chunks.Head();
+  while (chunk && chunk->m_sourceID != id) {
+    chunk = m_chunks.RawNext(chunk);
+  }
+  if (!chunk) {
+    void *storage = s_freeChunks.GetData(0, typeid(CHUNKDATA).raw_name(), -2);
+    chunk = storage ? new (storage) CHUNKDATA : 0;
+    chunk->m_sourceID = id;
+    m_chunks.LinkNode(chunk, LIST_HEAD, 0);
+  }
+  chunk->m_flags |= m_flags;
+  return chunk;
 }
 
 unsigned int PERSISTENTTEXTURE::MakeSpace() {
@@ -218,6 +229,10 @@ unsigned int PERSISTENTTEXTURE::MakeSpace() {
     }
   }
   return 1;
+}
+
+unsigned int TIMEDTEXTURE::MakeSpace() {
+  return m_currentCount < m_maxCount;
 }
 
 static SPLATDATA *GetSplat() {
@@ -233,6 +248,20 @@ static SPLATDATA *GetSplat() {
     splat->color = 0xFFFFFFFF;
   }
   return splat;
+}
+
+void CHUNKDATA::Render() {
+  if (m_vertCount && m_indexCount) {
+    NTempest::C44Matrix batchMtx = m_matrix * s_currentWorld;
+    GxXformSet(GxXform_World, batchMtx);
+    CGxBuf *buf = GxBufGetDynamic(GxVBF_PNCT0T1);
+    buf->UserCallbackSet(ProjectTexRenderPNCT0T1);
+    buf->CountSet(m_vertCount, m_indexCount);
+    GxBufLock(buf);
+    CGxBatch batch(GxPrim_Triangles, m_indexCount, 0, -1, -1);
+    GxBufRender(batch);
+    GxBufUnlock();
+  }
 }
 
 int CHUNKDATA::GetVertCount(CWTriData::Batch &batch, int &lowest, int &highest) {
@@ -259,6 +288,15 @@ int CHUNKDATA::GetVertCount(CWTriData::Batch &batch, int &lowest, int &highest) 
       highest = index;
   }
   return found;
+}
+
+CHUNKDATA::~CHUNKDATA() {
+  while (m_splats.Head()) {
+    RecycleSplat(m_splats.Head());
+  }
+  FATALASSERT(!m_vertCount);
+  FATALASSERT(!m_indexCount);
+  Unlink();
 }
 
 SPLATDATA *CHUNKDATA::Add(CWTriData::Batch &batch, NTempest::CAaBox &box, NTempest::C44Matrix &basis) {
@@ -317,44 +355,6 @@ void CHUNKDATA::RecycleSplat(SPLATDATA *splat) {
   --m_numSplats;
   splat->chunk = 0;
   s_freeList.LinkNode(splat, LIST_TAIL, 0);
-}
-
-CHUNKDATA::~CHUNKDATA() {
-  while (m_splats.Head()) {
-    RecycleSplat(m_splats.Head());
-  }
-  FATALASSERT(!m_vertCount);
-  FATALASSERT(!m_indexCount);
-  Unlink();
-}
-
-void CHUNKDATA::Render() {
-  if (m_vertCount && m_indexCount) {
-    NTempest::C44Matrix batchMtx = m_matrix * s_currentWorld;
-    GxXformSet(GxXform_World, batchMtx);
-    CGxBuf *buf = GxBufGetDynamic(GxVBF_PNCT0T1);
-    buf->UserCallbackSet(ProjectTexRenderPNCT0T1);
-    buf->CountSet(m_vertCount, m_indexCount);
-    GxBufLock(buf);
-    CGxBatch batch(GxPrim_Triangles, m_indexCount, 0, -1, -1);
-    GxBufRender(batch);
-    GxBufUnlock();
-  }
-}
-
-CHUNKDATA *LISTBASE::FindChunk(int id) {
-  CHUNKDATA *chunk = m_chunks.Head();
-  while (chunk && chunk->m_sourceID != id) {
-    chunk = m_chunks.RawNext(chunk);
-  }
-  if (!chunk) {
-    void *storage = s_freeChunks.GetData(0, typeid(CHUNKDATA).raw_name(), -2);
-    chunk = storage ? new (storage) CHUNKDATA : 0;
-    chunk->m_sourceID = id;
-    m_chunks.LinkNode(chunk, LIST_HEAD, 0);
-  }
-  chunk->m_flags |= m_flags;
-  return chunk;
 }
 
 void LISTBASE::Add(NTempest::C3Vector &position, NTempest::CAaBox &box, NTempest::C44Matrix &matrix) {

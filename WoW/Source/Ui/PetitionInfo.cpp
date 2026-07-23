@@ -58,6 +58,16 @@ const CGPetition                   *CGPetitionInfo::m_petition;
 
 unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
 
+static void __fastcall SignatureNameQueryCallback(int, const unsigned __int64 &, void *, bool) {
+  CGPetitionInfo::DecrementPendingName();
+}
+
+static void __fastcall PetitionQueryCallback(int id, const unsigned __int64 &, void *, bool granted) {
+  if (granted) {
+    CGPetitionInfo::SetPetitionStats(id);
+  }
+}
+
 void __fastcall CGPetitionInfo::EnterWorld() {
   m_petitionGUID = 0;
   m_petitionID = 0;
@@ -69,16 +79,6 @@ void __fastcall CGPetitionInfo::EnterWorld() {
 
 void __fastcall CGPetitionInfo::LeaveWorld() {
   m_signatures.Clear();
-}
-
-static void __fastcall SignatureNameQueryCallback(int, const unsigned __int64 &, void *, bool) {
-  CGPetitionInfo::DecrementPendingName();
-}
-
-static void __fastcall PetitionQueryCallback(int id, const unsigned __int64 &, void *, bool granted) {
-  if (granted) {
-    CGPetitionInfo::SetPetitionStats(id);
-  }
 }
 
 void __fastcall CGPetitionInfo::ClearSignatures() {

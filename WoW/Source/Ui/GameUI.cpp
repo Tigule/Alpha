@@ -61,6 +61,9 @@
 #include <UIUtil/Tooltip.h>
 #include <UIUtil/InputControl.h>
 #include <storm.h>
+
+extern FrameScript_Method s_GameUIScriptFunctions[126];
+extern char **__fastcall Script_GetNamesFromGUID(const unsigned __int64 &guid, int &numnames);
 #include <ctype.h>
 #include <float.h>
 #include <stdlib.h>
@@ -2701,89 +2704,12 @@ bool __fastcall         Spell_C_HandleSpriteClick(CGObject_C *object);
 unsigned int __fastcall Spell_C_HandleTerrainClick(CTerrainClickEvent &evt);
 void __fastcall         Trade_C_InitiateTrade(unsigned __int64 target, int useCursorItem);
 
-void __fastcall ItemPushItemStatsCallback(int id, const unsigned __int64 &, void *arg, bool granted) {
-  if (granted) {
-    ItemPushInfo *info = static_cast<ItemPushInfo *>(arg);
-    FATALASSERT(info);
-    CGGameUI::OnItemPush(info->player, info->slot, id, info->pushed, info->display);
-    DEL(info);
-  }
-}
-
-void __fastcall EnableFadingScreen(float fadeTime, void(__fastcall *fadedCallback)(void *), void *param);
-
-void __fastcall CGGameUI::StartCinematic(int cinematicID) {
-  memset(&m_cinematic, 0, sizeof(m_cinematic));
-  m_cinematic.sequence = g_cinematicSequencesDB.GetRecord(cinematicID);
-  if (m_cinematic.sequence) {
-    FATALASSERT(!m_cinematic.sequenceMusic);
-    m_cinematic.sequenceMusic = SndInterfacePlayLoopedSound(m_cinematic.sequence->m_soundID, 0);
-    if (m_cinematic.sequence) {
-      m_cinematic.camera = g_cinematicCameraDB.GetRecord(m_cinematic.sequence->m_camera[0]);
-    }
-  }
-
-  m_cinematic.zoneMusicPaused = SndInterfaceIsZoneMusicPaused();
-  if (m_cinematic.zoneMusicPaused) {
-    SndInterfacePauseZoneMusic(1);
-  }
-  HideCursor();
-  EnableFadingScreen(0.25f, 0, 0);
-}
-
-int __fastcall CGGameUI::StopCinematic(void *__formal) {
-  Sound::KillSound(m_cinematic.sequenceMusic);
-  EnableFadingScreen(0.25f, 0, 0);
-  return 1;
-}
-
-void __fastcall CGGameUI::HideCursor() {
-  m_simpleTop->m_cursorVisible = 0;
-}
-
-void __fastcall CGGameUI::ResetCamera() {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  FATALASSERT(player);
-
-  CGWorldFrame *worldFramePtr = CGWorldFrame::GetActive();
-  FATALASSERT(worldFramePtr);
-  worldFramePtr->SetCameraTarget(player);
-}
-
-void __fastcall CGGameUI::SysMsgDisplay(const char *msg, SYSMSG_TYPE severity) {
-  char  string[512];
-  float b;
-  float r;
-  float g;
-
-  SysMsgGetSeverityColor(severity, r, g, b);
-
-  char *write = string;
-  int   count = 0;
-  if (*msg) {
-    do {
-      if (*msg == '|') {
-        *write++ = '|';
-        ++count;
-        *write = '|';
-      } else {
-        *write = *msg;
-      }
-      ++write;
-      if (++count == sizeof(string) - 1) {
-        break;
-      }
-    } while (*++msg);
-  }
-  *write = 0;
-
-  FrameScript_SignalEvent(214, "%s%f%f%f", string, r, g, b);
-}
-
 static int __fastcall CCommand_Script(const char *__formal, const char *arguments) {
   FrameScript_Execute(arguments, arguments);
   return 1;
 }
+
+void __fastcall EnableFadingScreen(float fadeTime, void(__fastcall *fadedCallback)(void *), void *param);
 
 static int __fastcall CCommand_ScaleUI(const char *__formal, const char *arguments) {
   float scale = SStrToFloat(arguments);
@@ -4107,7 +4033,237 @@ static int __fastcall Script_OpeningCinematic(lua_State *L) {
   return 0;
 }
 
-static FrameScript_Method s_ScriptFunctions[126] = {
+static void __fastcall LoadScriptFunctions() {
+  RegisterSimpleFrameScriptMethods();
+  CGTooltip::RegisterScriptMethods();
+  CGMinimapFrame::RegisterScriptMethods();
+  CGCharacterModelBase::RegisterScriptMethods();
+  CGTabardModelFrame::RegisterScriptMethods();
+
+  for (unsigned int i = 0; i < 126; ++i) {
+    FrameScript_RegisterFunction(s_GameUIScriptFunctions[i].name, s_GameUIScriptFunctions[i].method);
+  }
+
+  UIBindingsRegisterScriptFunctions();
+  InputControlRegisterScriptFunctions();
+  CameraRegisterScriptFunctions();
+  SoundRegisterScriptFunctions();
+  SpellRegisterScriptFunctions();
+  ScriptEventsRegisterFunctions();
+  ActionBarRegisterScriptFunctions();
+  BuffBarRegisterScriptFunctions();
+  PartyInfoRegisterScriptFunctions();
+  ChatRegisterScriptFunctions();
+  SpellBookRegisterScriptFunctions();
+  CharacterInfoRegisterScriptFunctions();
+  LootInfoRegisterScriptFunctions();
+  ItemTextRegisterScriptFunctions();
+  QuestInfoRegisterScriptFunctions();
+  CGTaxiMap::RegisterScriptFunctions();
+  QuestLogRegisterScriptFunctions();
+  ClassTrainerRegisterScriptFunctions();
+  CraftInfoRegisterScriptFunctions();
+  MerchantRegisterScriptFunctions();
+  TradeInfoRegisterScriptFunctions();
+  ContainerRegisterScriptFunctions();
+  BankRegisterScriptFunctions();
+  FriendList::RegisterScriptFunctions();
+  PetInfoRegisterScriptFunctions();
+  TradeSkillRegisterScriptFunctions();
+  WorldMapRegisterScriptFunctions();
+  ReputationInfoRegisterScriptFunctions();
+  SndInterfaceRegisterVocalScriptFunctions();
+  TabardCreationRegisterScriptFunctions();
+  GuildRegistrarRegisterScriptFunctions();
+  DuelInfoRegisterScriptFunctions();
+  TutorialRegisterScriptFunctions();
+  PetitionInfoRegisterScriptFunctions();
+}
+
+static void __fastcall UnloadScriptFunctions() {
+  TabardCreationUnregisterScriptFunctions();
+  SndInterfaceUnregisterVocalScriptFunctions();
+  UnregisterSimpleFrameScriptMethods();
+  CGTooltip::UnregisterScriptMethods();
+  CGMinimapFrame::UnregisterScriptMethods();
+  CGCharacterModelBase::UnregisterScriptMethods();
+  CGTabardModelFrame::UnregisterScriptMethods();
+
+  for (unsigned int i = 0; i < 126; ++i) {
+    FrameScript_UnregisterFunction(s_GameUIScriptFunctions[i].name);
+  }
+
+  UIBindingsUnegisterScriptFunctions();
+  InputControlUnregisterScriptFunctions();
+  CameraUnregisterScriptFunctions();
+  SoundUnregisterScriptFunctions();
+  SpellUnregisterScriptFunctions();
+  ScriptEventsUnregisterFunctions();
+  ActionBarUnregisterScriptFunctions();
+  BuffBarUnregisterScriptFunctions();
+  PartyInfoUnregisterScriptFunctions();
+  ChatUnregisterScriptFunctions();
+  SpellBookUnregisterScriptFunctions();
+  CharacterInfoUnregisterScriptFunctions();
+  LootInfoUnregisterScriptFunctions();
+  ItemTextUnregisterScriptFunctions();
+  QuestInfoUnregisterScriptFunctions();
+  CGTaxiMap::UnregisterScriptFunctions();
+  QuestLogUnregisterScriptFunctions();
+  ClassTrainerUnregisterScriptFunctions();
+  CraftInfoUnregisterScriptFunctions();
+  MerchantUnregisterScriptFunctions();
+  TradeInfoUnregisterScriptFunctions();
+  ContainerUnregisterScriptFunctions();
+  BankUnregisterScriptFunctions();
+  FriendList::UnregisterScriptFunctions();
+  PetInfoUnregisterScriptFunctions();
+  TradeSkillUnregisterScriptFunctions();
+  WorldMapUnregisterScriptFunctions();
+  ReputationInfoUnregisterScriptFunctions();
+  GuildRegistrarUnregisterScriptFunctions();
+  DuelInfoUnregisterScriptFunctions();
+  TutorialUnregisterScriptFunctions();
+  PetitionInfoUnregisterScriptFunctions();
+}
+
+static int __fastcall PlacedFrameCallback(CSimpleFrame *frame, void *param) {
+  char            line[128];
+  NTempest::CRect toprect;
+  NTempest::CRect rect;
+  unsigned long   count;
+
+  const char *name = frame->GetName();
+  if (!name || !name[0] || !frame->IsUserPlaced() || (!frame->IsMovable() && !frame->IsResizable())) {
+    return 1;
+  }
+
+  if (!frame->GetRect(&rect)) {
+    return 1;
+  }
+
+  if (!frame->GetLayoutParent() || !frame->GetLayoutParent()->GetRect(&toprect)) {
+    return 1;
+  }
+
+  SStrPrintf(line, sizeof(line), "Frame: %s\n", name);
+  OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+  SStrPrintf(line, sizeof(line), "FrameLevel: %d\n", frame->GetFrameLevel());
+  OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+
+  if (frame->IsMovable()) {
+    SStrPrintf(line, sizeof(line), "X: %d\n", static_cast<int>(-(toprect.l - rect.l) * 1024.0f * 1.25f));
+    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+    SStrPrintf(line, sizeof(line), "Y: %d\n", static_cast<int>(-(toprect.b - rect.b) * 1024.0f * 1.25f));
+    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+  }
+
+  if (frame->IsResizable()) {
+    SStrPrintf(line, sizeof(line), "W: %d\n", static_cast<int>((rect.r - rect.l) * 1024.0f * 1.25f));
+    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+    SStrPrintf(line, sizeof(line), "H: %d\n", static_cast<int>((rect.b - rect.t) * 1024.0f * 1.25f));
+    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+  }
+
+  return 1;
+}
+
+static int __fastcall SavePlacedFrames(CSimpleTop *top) {
+  if (!top) {
+    return 0;
+  }
+
+  HOSFILE file = OsCreateFile("PlacedFrames.txt", GENERIC_WRITE, 0, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0x3F3F3F3F);
+  if (file == HOSFILE_INVALID) {
+    return 0;
+  }
+
+  top->EnumerateFrames(PlacedFrameCallback, file);
+  OsCloseFile(file);
+  return 1;
+}
+
+static void __fastcall PlaceFrame(CSimpleFrame *frame, int framelevel, int x, int y, int w, int h) {
+  if (!frame) {
+    return;
+  }
+
+  if (framelevel >= 0) {
+    frame->SetFrameLevel(framelevel, 1);
+  }
+
+  if (frame->IsMovable() && x && y) {
+    frame->ClearAllPoints(1);
+    frame->SetPoint(FRAMEPOINT_TOPLEFT, frame->GetLayoutParent(), FRAMEPOINT_TOPLEFT, x / 1024.0f * 0.8f, y / 1024.0f * 0.8f, 1);
+    frame->SetUserPlaced(1);
+  }
+
+  if (frame->IsResizable()) {
+    if (w) {
+      frame->SetWidth(w / 1024.0f * 0.8f);
+      if (!h) {
+        frame->SetUserPlaced(1);
+      }
+    }
+    if (h) {
+      frame->SetHeight(h / 1024.0f * 0.8f);
+      frame->SetUserPlaced(1);
+    }
+  }
+}
+
+static void __fastcall LoadPlacedFrames() {
+  char          line[128];
+  void         *buffer;
+  const char   *readCursor;
+  int           h = 0;
+  CSimpleFrame *frame = 0;
+  int           framelevel = -1;
+  int           x = 0;
+  int           y = 0;
+  int           w = 0;
+
+  if (!SFileLoadFile("PlacedFrames.txt", &buffer, 0, 1, 0)) {
+    return;
+  }
+
+  readCursor = static_cast<const char *>(buffer);
+  do {
+    SStrTokenize(&readCursor, line, sizeof(line), "\r\n", 0);
+    if (!SStrCmp(line, "Frame: ", SStrLen("Frame: "))) {
+      PlaceFrame(frame, framelevel, x, y, w, h);
+      frame = SimpleFrameRegistryGetEntry(line + SStrLen("Frame: "), 0);
+      framelevel = -1;
+      x = 0;
+      y = 0;
+      w = 0;
+    } else if (!SStrCmp(line, "FrameLevel: ", SStrLen("FrameLevel: "))) {
+      framelevel = SStrToInt(line + SStrLen("FrameLevel: "));
+    } else if (!SStrCmp(line, "X: ", SStrLen("X: "))) {
+      x = SStrToInt(line + SStrLen("X: "));
+    } else if (!SStrCmp(line, "Y: ", SStrLen("Y: "))) {
+      y = SStrToInt(line + SStrLen("Y: "));
+    } else if (!SStrCmp(line, "W: ", SStrLen("W: "))) {
+      w = SStrToInt(line + SStrLen("W: "));
+    } else if (!SStrCmp(line, "H: ", SStrLen("H: "))) {
+      h = SStrToInt(line + SStrLen("H: "));
+    }
+  } while (line[0] && *readCursor);
+
+  PlaceFrame(frame, framelevel, x, y, w, h);
+  SFileUnloadFile(buffer);
+}
+
+void __fastcall CGGameUI::ResetCamera() {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  FATALASSERT(player);
+
+  CGWorldFrame *worldFramePtr = CGWorldFrame::GetActive();
+  FATALASSERT(worldFramePtr);
+  worldFramePtr->SetCameraTarget(player);
+}
+
+FrameScript_Method s_GameUIScriptFunctions[126] = {
     {          "FrameXML_Debug",           Script_FrameXML_Debug},
     {                "ReloadUI",                 Script_ReloadUI},
     {           "SetLayoutMode",            Script_SetLayoutMode},
@@ -4236,277 +4392,114 @@ static FrameScript_Method s_ScriptFunctions[126] = {
     {        "OpeningCinematic",         Script_OpeningCinematic}
 };
 
-static void __fastcall LoadScriptFunctions() {
-  RegisterSimpleFrameScriptMethods();
-  CGTooltip::RegisterScriptMethods();
-  CGMinimapFrame::RegisterScriptMethods();
-  CGCharacterModelBase::RegisterScriptMethods();
-  CGTabardModelFrame::RegisterScriptMethods();
-
-  for (unsigned int i = 0; i < 126; ++i) {
-    FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
+void __fastcall CGGameUI::StartCinematic(int cinematicID) {
+  memset(&m_cinematic, 0, sizeof(m_cinematic));
+  m_cinematic.sequence = g_cinematicSequencesDB.GetRecord(cinematicID);
+  if (m_cinematic.sequence) {
+    FATALASSERT(!m_cinematic.sequenceMusic);
+    m_cinematic.sequenceMusic = SndInterfacePlayLoopedSound(m_cinematic.sequence->m_soundID, 0);
+    if (m_cinematic.sequence) {
+      m_cinematic.camera = g_cinematicCameraDB.GetRecord(m_cinematic.sequence->m_camera[0]);
+    }
   }
 
-  UIBindingsRegisterScriptFunctions();
-  InputControlRegisterScriptFunctions();
-  CameraRegisterScriptFunctions();
-  SoundRegisterScriptFunctions();
-  SpellRegisterScriptFunctions();
-  ScriptEventsRegisterFunctions();
-  ActionBarRegisterScriptFunctions();
-  BuffBarRegisterScriptFunctions();
-  PartyInfoRegisterScriptFunctions();
-  ChatRegisterScriptFunctions();
-  SpellBookRegisterScriptFunctions();
-  CharacterInfoRegisterScriptFunctions();
-  LootInfoRegisterScriptFunctions();
-  ItemTextRegisterScriptFunctions();
-  QuestInfoRegisterScriptFunctions();
-  CGTaxiMap::RegisterScriptFunctions();
-  QuestLogRegisterScriptFunctions();
-  ClassTrainerRegisterScriptFunctions();
-  CraftInfoRegisterScriptFunctions();
-  MerchantRegisterScriptFunctions();
-  TradeInfoRegisterScriptFunctions();
-  ContainerRegisterScriptFunctions();
-  BankRegisterScriptFunctions();
-  FriendList::RegisterScriptFunctions();
-  PetInfoRegisterScriptFunctions();
-  TradeSkillRegisterScriptFunctions();
-  WorldMapRegisterScriptFunctions();
-  ReputationInfoRegisterScriptFunctions();
-  SndInterfaceRegisterVocalScriptFunctions();
-  TabardCreationRegisterScriptFunctions();
-  GuildRegistrarRegisterScriptFunctions();
-  DuelInfoRegisterScriptFunctions();
-  TutorialRegisterScriptFunctions();
-  PetitionInfoRegisterScriptFunctions();
+  m_cinematic.zoneMusicPaused = SndInterfaceIsZoneMusicPaused();
+  if (m_cinematic.zoneMusicPaused) {
+    SndInterfacePauseZoneMusic(1);
+  }
+  HideCursor();
+  EnableFadingScreen(0.25f, 0, 0);
 }
 
-static void __fastcall UnloadScriptFunctions() {
-  TabardCreationUnregisterScriptFunctions();
-  SndInterfaceUnregisterVocalScriptFunctions();
-  UnregisterSimpleFrameScriptMethods();
-  CGTooltip::UnregisterScriptMethods();
-  CGMinimapFrame::UnregisterScriptMethods();
-  CGCharacterModelBase::UnregisterScriptMethods();
-  CGTabardModelFrame::UnregisterScriptMethods();
-
-  for (unsigned int i = 0; i < 126; ++i) {
-    FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
-  }
-
-  UIBindingsUnegisterScriptFunctions();
-  InputControlUnregisterScriptFunctions();
-  CameraUnregisterScriptFunctions();
-  SoundUnregisterScriptFunctions();
-  SpellUnregisterScriptFunctions();
-  ScriptEventsUnregisterFunctions();
-  ActionBarUnregisterScriptFunctions();
-  BuffBarUnregisterScriptFunctions();
-  PartyInfoUnregisterScriptFunctions();
-  ChatUnregisterScriptFunctions();
-  SpellBookUnregisterScriptFunctions();
-  CharacterInfoUnregisterScriptFunctions();
-  LootInfoUnregisterScriptFunctions();
-  ItemTextUnregisterScriptFunctions();
-  QuestInfoUnregisterScriptFunctions();
-  CGTaxiMap::UnregisterScriptFunctions();
-  QuestLogUnregisterScriptFunctions();
-  ClassTrainerUnregisterScriptFunctions();
-  CraftInfoUnregisterScriptFunctions();
-  MerchantUnregisterScriptFunctions();
-  TradeInfoUnregisterScriptFunctions();
-  ContainerUnregisterScriptFunctions();
-  BankUnregisterScriptFunctions();
-  FriendList::UnregisterScriptFunctions();
-  PetInfoUnregisterScriptFunctions();
-  TradeSkillUnregisterScriptFunctions();
-  WorldMapUnregisterScriptFunctions();
-  ReputationInfoUnregisterScriptFunctions();
-  GuildRegistrarUnregisterScriptFunctions();
-  DuelInfoUnregisterScriptFunctions();
-  TutorialUnregisterScriptFunctions();
-  PetitionInfoUnregisterScriptFunctions();
+static unsigned char GetCinematicStartingCameraPosition(const char* modelFile, NTempest::C3Vector& origin, float facing, NTempest::C3Vector& position) {
+    // TODO: implement
+    return 0;
 }
 
-static void __fastcall PlaceFrame(CSimpleFrame *frame, int framelevel, int x, int y, int w, int h) {
-  if (!frame) {
-    return;
+int __fastcall CGGameUI::StopCinematic(void *__formal) {
+  Sound::KillSound(m_cinematic.sequenceMusic);
+  EnableFadingScreen(0.25f, 0, 0);
+  return 1;
+}
+
+void __fastcall CGGameUI::CloseLoot(unsigned int send, unsigned int moving) {
+  CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (playerPtr) {
+    playerPtr->m_lootingUnit = 0;
   }
 
-  if (framelevel >= 0) {
-    frame->SetFrameLevel(framelevel, 1);
-  }
+  unsigned __int64 object = CGLootInfo::m_object;
+  if (object) {
+    CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
+    if (!moving || !objectPtr || !(objectPtr->GetType() & TYPE_ITEM)) {
+      if (send) {
+        CDataStore lootRelease;
+        lootRelease.Put(static_cast<unsigned int>(CMSG_LOOT_RELEASE));
+        lootRelease.Put(object);
+        lootRelease.Finalize();
+        ClientServices_Send(&lootRelease);
+        if (playerPtr) {
+          playerPtr->m_flags |= 0x200;
+        }
+      }
 
-  if (frame->IsMovable() && x && y) {
-    frame->ClearAllPoints(1);
-    frame->SetPoint(FRAMEPOINT_TOPLEFT, frame->GetLayoutParent(), FRAMEPOINT_TOPLEFT, x / 1024.0f * 0.8f, y / 1024.0f * 0.8f, 1);
-    frame->SetUserPlaced(1);
-  }
-
-  if (frame->IsResizable()) {
-    if (w) {
-      frame->SetWidth(w / 1024.0f * 0.8f);
-      if (!h) {
-        frame->SetUserPlaced(1);
+      CGLootInfo::SetObject(0, 0, LOOT_ACQUIRE_FAILED);
+      ClearTarget(object, 0);
+      if (m_cursorItemType == UICURSOR_LOOT) {
+        ClearCursor(1);
       }
     }
-    if (h) {
-      frame->SetHeight(h / 1024.0f * 0.8f);
-      frame->SetUserPlaced(1);
-    }
   }
 }
 
-static void __fastcall LoadPlacedFrames() {
-  char          line[128];
-  void         *buffer;
-  const char   *readCursor;
-  int           h = 0;
-  CSimpleFrame *frame = 0;
-  int           framelevel = -1;
-  int           x = 0;
-  int           y = 0;
-  int           w = 0;
-
-  if (!SFileLoadFile("PlacedFrames.txt", &buffer, 0, 1, 0)) {
-    return;
-  }
-
-  readCursor = static_cast<const char *>(buffer);
-  do {
-    SStrTokenize(&readCursor, line, sizeof(line), "\r\n", 0);
-    if (!SStrCmp(line, "Frame: ", SStrLen("Frame: "))) {
-      PlaceFrame(frame, framelevel, x, y, w, h);
-      frame = SimpleFrameRegistryGetEntry(line + SStrLen("Frame: "), 0);
-      framelevel = -1;
-      x = 0;
-      y = 0;
-      w = 0;
-    } else if (!SStrCmp(line, "FrameLevel: ", SStrLen("FrameLevel: "))) {
-      framelevel = SStrToInt(line + SStrLen("FrameLevel: "));
-    } else if (!SStrCmp(line, "X: ", SStrLen("X: "))) {
-      x = SStrToInt(line + SStrLen("X: "));
-    } else if (!SStrCmp(line, "Y: ", SStrLen("Y: "))) {
-      y = SStrToInt(line + SStrLen("Y: "));
-    } else if (!SStrCmp(line, "W: ", SStrLen("W: "))) {
-      w = SStrToInt(line + SStrLen("W: "));
-    } else if (!SStrCmp(line, "H: ", SStrLen("H: "))) {
-      h = SStrToInt(line + SStrLen("H: "));
-    }
-  } while (line[0] && *readCursor);
-
-  PlaceFrame(frame, framelevel, x, y, w, h);
-  SFileUnloadFile(buffer);
+void __fastcall CGGameUI::OpenResurrectRequest(const char *inviter) {
+  FrameScript_SignalEvent(261, "%s", inviter);
 }
 
-static int __fastcall PlacedFrameCallback(CSimpleFrame *frame, void *param) {
-  char            line[128];
-  NTempest::CRect toprect;
-  NTempest::CRect rect;
-  unsigned long   count;
-
-  const char *name = frame->GetName();
-  if (!name || !name[0] || !frame->IsUserPlaced() || (!frame->IsMovable() && !frame->IsResizable())) {
-    return 1;
-  }
-
-  if (!frame->GetRect(&rect)) {
-    return 1;
-  }
-
-  if (!frame->GetLayoutParent() || !frame->GetLayoutParent()->GetRect(&toprect)) {
-    return 1;
-  }
-
-  SStrPrintf(line, sizeof(line), "Frame: %s\n", name);
-  OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-  SStrPrintf(line, sizeof(line), "FrameLevel: %d\n", frame->GetFrameLevel());
-  OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-
-  if (frame->IsMovable()) {
-    SStrPrintf(line, sizeof(line), "X: %d\n", static_cast<int>(-(toprect.l - rect.l) * 1024.0f * 1.25f));
-    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-    SStrPrintf(line, sizeof(line), "Y: %d\n", static_cast<int>(-(toprect.b - rect.b) * 1024.0f * 1.25f));
-    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-  }
-
-  if (frame->IsResizable()) {
-    SStrPrintf(line, sizeof(line), "W: %d\n", static_cast<int>((rect.r - rect.l) * 1024.0f * 1.25f));
-    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-    SStrPrintf(line, sizeof(line), "H: %d\n", static_cast<int>((rect.b - rect.t) * 1024.0f * 1.25f));
-    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-  }
-
-  return 1;
+void __fastcall CGGameUI::OpenPartyInvite(const char *inviter) {
+  FrameScript_SignalEvent(262, "%s", inviter);
 }
 
-static int __fastcall SavePlacedFrames(CSimpleTop *top) {
-  if (!top) {
-    return 0;
-  }
-
-  HOSFILE file = OsCreateFile("PlacedFrames.txt", GENERIC_WRITE, 0, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0x3F3F3F3F);
-  if (file == HOSFILE_INVALID) {
-    return 0;
-  }
-
-  top->EnumerateFrames(PlacedFrameCallback, file);
-  OsCloseFile(file);
-  return 1;
+void __fastcall CGGameUI::CancelPartyInvite() {
+  FrameScript_SignalEvent(263);
 }
 
-void __fastcall CGGameUI::ScaleUI(float scale, int force) {
-  if (m_UISimpleParent) {
-    m_UISimpleParent->SetLayoutScale(scale, force != 0);
-  }
+void __fastcall CGGameUI::OpenGuildInvite(const char *inviter, const char *guildName) {
+  FrameScript_SignalEvent(264, "%s%s", inviter, guildName);
 }
 
-int __fastcall CGGameUI::FilterMouseDown(const CMouseEvent &evt) {
-  if (evt.button == MOUSE_BUTTON_RIGHT &&
-      (m_cursorItem || m_cursorMoney || m_cursorSpell || m_cursorPetAction > 0 || m_cursorVirtualID || Spell_C_IsTargeting()))
-  {
-    ClearCursor(1);
-    return 1;
-  }
-  return 0;
+void __fastcall CGGameUI::CancelGuildInvite() {
+  FrameScript_SignalEvent(265);
 }
 
-int __fastcall CGGameUI::HandleDisplaySizeChanged(const CSizeEvent &evt) {
-  if (m_screenWidth <= 0 || m_screenWidth != evt.w) {
-    m_screenWidth = evt.w;
-    if (evt.w < 1024) {
-      CSimpleTexture::s_textureFilterMode = GxTex_Linear;
-    } else {
-      CSimpleTexture::s_textureFilterMode = GxTex_Nearest;
-      if (evt.w / 4 != evt.h / 3) {
-        CSimpleTexture::s_textureFilterMode = GxTex_Linear;
+void __fastcall CGGameUI::SysMsgDisplay(const char *msg, SYSMSG_TYPE severity) {
+  char  string[512];
+  float b;
+  float r;
+  float g;
+
+  SysMsgGetSeverityColor(severity, r, g, b);
+
+  char *write = string;
+  int   count = 0;
+  if (*msg) {
+    do {
+      if (*msg == '|') {
+        *write++ = '|';
+        ++count;
+        *write = '|';
+      } else {
+        *write = *msg;
       }
-    }
-    if (evt.w > 1024) {
-      ScaleUI(1024.0f / evt.w, 1);
-    } else {
-      ScaleUI(1.0f, 1);
-    }
+      ++write;
+      if (++count == sizeof(string) - 1) {
+        break;
+      }
+    } while (*++msg);
   }
-  return 1;
-}
+  *write = 0;
 
-void __fastcall CGGameUI::HandleScreenshot(int success) {
-  FrameScript_SignalEvent(success ? 199 : 200);
-}
-
-void __fastcall CGGameUI::HandleSpriteTrack(CObjectTrackEvent &evt) {
-  HandleObjectTrackChange(evt.object, evt.oldGUID, evt.x, evt.y);
-}
-
-int __fastcall CGGameUI::Idle(const void *, void *) {
-  if (m_reloadUI) {
-    Shutdown();
-    Initialize();
-  }
-  return 1;
+  FrameScript_SignalEvent(214, "%s%f%f%f", string, r, g, b);
 }
 
 void __fastcall CGGameUI::InitializeGame() {
@@ -4719,9 +4712,6 @@ void __fastcall CGGameUI::Reload() {
   m_reloadUI = true;
 }
 
-void __fastcall CGGameUI::UnitNameUpdate(const unsigned __int64 &guid) {
-}
-
 int __fastcall CGGameUI::IsPartyMember(const unsigned __int64 &guid) {
   return CGPartyInfo::IsMember(guid);
 }
@@ -4730,33 +4720,69 @@ unsigned __int64 __fastcall CGGameUI::GetPartyMember(unsigned int index) {
   return CGPartyInfo::GetMember(index);
 }
 
-void __fastcall CGGameUI::SetCursorItem(
-    unsigned __int64 itemGUID,
-    unsigned __int64 containerGUID,
-    unsigned int     slot,
-    int              unlock,
-    unsigned int     stackSplit
-) {
-  if (m_simpleTop) {
-    ClearCursor(unlock);
-    if (itemGUID) {
-      m_cursorItemContainer = containerGUID;
-      m_cursorItem = itemGUID;
-      m_cursorItemSlot = slot;
-      m_stackSplit = stackSplit;
-      m_cursorItemType = UICURSOR_ITEM;
-      CursorSetHeldItem(itemGUID);
-      CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
-      if (item) {
-        if (item->CanBeUsed()) {
-          CGActionBar::ShowGrid();
-          m_cursorHasAction = 1;
-        }
-        SndInterfacePlayItemSound(ITEMSOUND_PICKUP, item);
-      }
-      FrameScript_SignalEvent(272);
+void __fastcall CGGameUI::UnitNameUpdate(const unsigned __int64 &guid) {
+}
+
+void __fastcall ItemPushItemStatsCallback(int id, const unsigned __int64 &, void *arg, bool granted) {
+  if (granted) {
+    ItemPushInfo *info = static_cast<ItemPushInfo *>(arg);
+    FATALASSERT(info);
+    CGGameUI::OnItemPush(info->player, info->slot, id, info->pushed, info->display);
+    DEL(info);
+  }
+}
+
+void __fastcall CGGameUI::OnItemPush(unsigned __int64 player, int slot, int itemID, int pushed, int display) {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C     *stats = g_itemDBCache.GetRecord(itemID, noGuid, 0, 0);
+  if (!stats) {
+    ItemPushInfo *info = NEW(ItemPushInfo);
+    info->player = player;
+    info->slot = slot;
+    info->pushed = pushed;
+    info->display = display;
+    stats = g_itemDBCache.GetRecord(itemID, player, ItemPushItemStatsCallback, info);
+    FATALASSERT(!stats);
+    return;
+  }
+
+  const char *colorString = stats->m_overallQualityID < 3 ? "" : CGTooltip::GetItemQualityColorString(stats->m_overallQualityID);
+  const char *colorEnd = *colorString ? "|r" : "";
+  char        buffer[260];
+
+  if (player == ClntObjMgrGetActivePlayer()) {
+    const char *temp = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+    SStrPrintf(buffer, sizeof(buffer), "%s%s", temp, *temp ? "\\" : "");
+    SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
+    FrameScript_SignalEvent(249, "%d%s", slot == 255 ? 0 : slot + 1, buffer);
+
+    if (display) {
+      const char *format = FrameScript_GetText(pushed ? "LOOT_ITEM_PUSHED_SELF" : "LOOT_ITEM_SELF", -1, GENDER_NOT_APPLICABLE);
+      SStrPrintf(buffer, sizeof(buffer), format, colorString, itemID, stats->m_displayName[0], colorEnd);
+      CGChat::AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(24), 0, 0, 0, 0, 0);
+    }
+  } else if (!pushed && display) {
+    CGObject_C *object = ClntObjMgrObjectPtr(player, __FILE__, __LINE__);
+    if (object) {
+      const char *format = FrameScript_GetText("LOOT_ITEM", -1, GENDER_NOT_APPLICABLE);
+      SStrPrintf(
+          buffer, sizeof(buffer), format, static_cast<CGUnit_C *>(object)->GetUnitName(), colorString, itemID, stats->m_displayName[0], colorEnd
+      );
+      CGChat::AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(24), 0, 0, 0, 0, 0);
     }
   }
+}
+
+int __fastcall CGGameUI::OnTerrainClick(CTerrainClickEvent &evt) {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player || evt.button != MOUSE_BUTTON_LEFT) {
+    return 0;
+  }
+
+  if (Spell_C_HandleTerrainClick(evt)) {
+    return 1;
+  }
+  return player->OnTerrainClick(evt);
 }
 
 unsigned __int64 __fastcall CGGameUI::GetCursorItem() {
@@ -4773,110 +4799,66 @@ void __fastcall CGGameUI::GetCursorItem(unsigned __int64 &cursorItem, unsigned _
   slot = m_cursorItemSlot;
 }
 
-void __fastcall CGGameUI::SetCursorMoney(unsigned int money) {
-  if (m_simpleTop && (money || m_cursorItemType == UICURSOR_MONEY)) {
-    ClearCursor(1);
-    if (money) {
-      m_cursorMoney = money;
-      m_cursorItemType = UICURSOR_MONEY;
-      SndInterfacePlayInterfaceSound("LOOTWINDOWCOINSOUND");
-      CursorGrabMoney(money);
-      FrameScript_SignalEvent(49, "%s", "player");
-    }
+int __fastcall CGGameUI::OnSpriteLeftClick(unsigned __int64 object, float x, float y) {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
+    return 0;
   }
-}
 
-void __fastcall CGGameUI::SetCursorSpell(int spellId, int pet) {
-  if ((m_simpleTop || !pet) && spellId >= 0) {
-    SpellRec     *spell = g_spellDB.GetRecord(spellId);
-    SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
-    if (icon && icon->m_textureFilename && *icon->m_textureFilename) {
-      ClearCursor(1);
-      m_cursorSpell = spellId;
-      m_cursorItemType = pet ? UICURSOR_PET_SPELL : UICURSOR_SPELL;
-      SndInterfacePlayInterfaceSound("INTERFACESOUND_CURSORGRABOBJECT");
-      CursorGrabSpell(icon->m_textureFilename);
-      if (pet) {
-        CGPetInfo::ShowGrid();
-      } else {
-        CGActionBar::ShowGrid();
-      }
-      m_cursorHasAction = 1;
-    }
+  CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
+  if (!objectPtr) {
+    return 0;
   }
-}
 
-void __fastcall CGGameUI::DropCursorSpell() {
-  if (m_cursorItemType == UICURSOR_SPELL || m_cursorItemType == UICURSOR_PET_SPELL) {
-    ClearCursor(1);
+  if (Spell_C_IsTargeting()) {
+    Spell_C_HandleSpriteClick(objectPtr);
+    return 1;
   }
-}
 
-int __fastcall CGGameUI::GetCursorSpell() {
-  return m_cursorSpell;
-}
-
-void __fastcall CGGameUI::LockItem(unsigned __int64 itemGUID) {
-  if (itemGUID) {
-    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
-    if (item) {
-      item->Lock();
-    }
-    FrameScript_SignalEvent(184);
+  if (objectPtr->CanBeTargetted()) {
+    Target(object, 0);
   }
-}
+  objectPtr->OnLeftClick();
 
-void __fastcall CGGameUI::UnlockItem(unsigned __int64 itemGUID) {
-  if (itemGUID) {
-    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
-    if (item) {
-      item->Unlock();
-    }
-    FrameScript_SignalEvent(184);
+  if ((objectPtr->GetType() & TYPE_PLAYER) && m_lockedTarget && m_currentObjectTrack) {
+    Trade_C_InitiateTrade(object, 1);
   }
+  return 1;
 }
 
-void __fastcall CGGameUI::ClearInteractTarget(const unsigned __int64 &target) {
-  if (m_interactTarget && m_interactTarget == target) {
-    CloseInteraction();
+int __fastcall CGGameUI::OnSpriteRightClick(unsigned __int64 object, float x, float y) {
+  if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
+    return 1;
   }
-}
 
-void __fastcall CGGameUI::SetInteractTarget(const unsigned __int64 &target, float maxDist) {
-  if (m_interactTarget != target) {
-    if (m_interactTarget) {
-      ClearInteractTarget(m_interactTarget);
-    }
-    m_interactTarget = target;
-    m_interactMaxDist = maxDist;
-
-    if (target) {
-      CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
-      if (object) {
-        if (object->GetType() & TYPE_UNIT) {
-          static_cast<CGUnit_C *>(object)->OnNPCHello();
-        }
-        if (object->GetType() & TYPE_GAMEOBJECT) {
-          static_cast<CGGameObject_C *>(object)->StartInteraction();
-        }
-      }
-    }
+  CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
+  if (!objectPtr) {
+    return 1;
   }
+
+  if (objectPtr->CanBeTargetted()) {
+    Target(object, 0);
+  }
+  objectPtr->OnRightClick();
+  return 1;
 }
 
-void __fastcall CGGameUI::UpdateInteractTarget() {
-  if (m_interactTarget && m_interactMaxDist > 0.0f) {
-    CGObject_C *target = ClntObjMgrObjectPtr(m_interactTarget, __FILE__, __LINE__);
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    if (!target || target->IsDisabled() || !player) {
-      CloseInteraction();
-    } else if (!(target->GetType() & TYPE_ITEM)) {
-      NTempest::C3Vector targetPosition = target->GetPosition();
-      NTempest::C3Vector playerPosition = player->GetPosition();
-      if ((targetPosition - playerPosition).SquaredMag() > m_interactMaxDist * m_interactMaxDist) {
-        CloseInteraction();
-      }
-    }
+void __fastcall CGGameUI::OnTargetContextAction() {
+  CGObject_C *object = ClntObjMgrObjectPtr(m_lockedTarget, __FILE__, __LINE__);
+  if (!object || !(object->GetType() & TYPE_UNIT)) {
+    return;
+  }
+
+  CGUnit_C *unit = static_cast<CGUnit_C *>(object);
+  if (unit->GetUnitData()->charm != ClntObjMgrGetActivePlayer()) {
+    return;
+  }
+
+  NTempest::C2Vector      position(0.0f);
+  const unsigned __int64 &guid = *reinterpret_cast<const unsigned __int64 *>(&position);
+  const CreatureStats_C  *stats = g_creatureDBCache.GetRecord(unit->GetEntryID(), guid, 0, 0);
+  if (stats) {
+    FrameScript_SignalEvent(271, "%s", stats->m_name[2]);
   }
 }
 
@@ -4945,6 +4927,139 @@ void __fastcall CGGameUI::HandleObjectTrackChange(unsigned __int64 object, unsig
   }
 }
 
+int __fastcall CGGameUI::FilterMouseDown(const CMouseEvent &evt) {
+  if (evt.button == MOUSE_BUTTON_RIGHT &&
+      (m_cursorItem || m_cursorMoney || m_cursorSpell || m_cursorPetAction > 0 || m_cursorVirtualID || Spell_C_IsTargeting()))
+  {
+    ClearCursor(1);
+    return 1;
+  }
+  return 0;
+}
+
+int __fastcall CGGameUI::HandleTerrainClick(CTerrainClickEvent &evt) {
+  if (evt.button == MOUSE_BUTTON_RIGHT || m_cursorItemType != UICURSOR_EMPTY) {
+    ClearCursor(1);
+  }
+
+  if (!OnTerrainClick(evt)) {
+    const unsigned __int64 target = 0;
+    Target(target, 0);
+  }
+  return 1;
+}
+
+int __fastcall CGGameUI::HandleSpriteClick(CSpriteClickEvent &evt) {
+  if (m_cursorItemType != UICURSOR_EMPTY) {
+    ClearCursor(1);
+  }
+
+  if (evt.button == MOUSE_BUTTON_LEFT) {
+    return OnSpriteLeftClick(evt.objectGUID, evt.pos.x, evt.pos.y);
+  }
+  return OnSpriteRightClick(evt.objectGUID, evt.pos.x, evt.pos.y);
+}
+
+int __fastcall CGGameUI::HandleWorldClick(CWorldClickEvent &evt) {
+  int cursorWasEmpty = m_cursorItemType == UICURSOR_EMPTY;
+  if (evt.button == MOUSE_BUTTON_RIGHT || !m_lockedTarget || !m_currentObjectTrack) {
+    ClearCursor(1);
+  }
+
+  if (evt.button == MOUSE_BUTTON_LEFT) {
+    if (m_lockedTarget && m_currentObjectTrack) {
+      OnTargetContextAction();
+      return 1;
+    }
+    if (cursorWasEmpty) {
+      const unsigned __int64 target = 0;
+      Target(target, 0);
+    }
+  }
+  return 1;
+}
+
+void __fastcall CGGameUI::HandleSpriteTrack(CObjectTrackEvent &evt) {
+  HandleObjectTrackChange(evt.object, evt.oldGUID, evt.x, evt.y);
+}
+
+int __fastcall CGGameUI::HandleDisplaySizeChanged(const CSizeEvent &evt) {
+  if (m_screenWidth <= 0 || m_screenWidth != evt.w) {
+    m_screenWidth = evt.w;
+    if (evt.w < 1024) {
+      CSimpleTexture::s_textureFilterMode = GxTex_Linear;
+    } else {
+      CSimpleTexture::s_textureFilterMode = GxTex_Nearest;
+      if (evt.w / 4 != evt.h / 3) {
+        CSimpleTexture::s_textureFilterMode = GxTex_Linear;
+      }
+    }
+    if (evt.w > 1024) {
+      ScaleUI(1024.0f / evt.w, 1);
+    } else {
+      ScaleUI(1.0f, 1);
+    }
+  }
+  return 1;
+}
+
+void __fastcall CGGameUI::HandleScreenshot(int success) {
+  FrameScript_SignalEvent(success ? 199 : 200);
+}
+
+void __fastcall CGGameUI::SetInteractTarget(const unsigned __int64 &target, float maxDist) {
+  if (m_interactTarget != target) {
+    if (m_interactTarget) {
+      ClearInteractTarget(m_interactTarget);
+    }
+    m_interactTarget = target;
+    m_interactMaxDist = maxDist;
+
+    if (target) {
+      CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
+      if (object) {
+        if (object->GetType() & TYPE_UNIT) {
+          static_cast<CGUnit_C *>(object)->OnNPCHello();
+        }
+        if (object->GetType() & TYPE_GAMEOBJECT) {
+          static_cast<CGGameObject_C *>(object)->StartInteraction();
+        }
+      }
+    }
+  }
+}
+
+void __fastcall CGGameUI::ClearInteractTarget(const unsigned __int64 &target) {
+  if (m_interactTarget && m_interactTarget == target) {
+    CloseInteraction();
+  }
+}
+
+void __fastcall CGGameUI::UpdateInteractTarget() {
+  if (m_interactTarget && m_interactMaxDist > 0.0f) {
+    CGObject_C *target = ClntObjMgrObjectPtr(m_interactTarget, __FILE__, __LINE__);
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (!target || target->IsDisabled() || !player) {
+      CloseInteraction();
+    } else if (!(target->GetType() & TYPE_ITEM)) {
+      NTempest::C3Vector targetPosition = target->GetPosition();
+      NTempest::C3Vector playerPosition = player->GetPosition();
+      if ((targetPosition - playerPosition).SquaredMag() > m_interactMaxDist * m_interactMaxDist) {
+        CloseInteraction();
+      }
+    }
+  }
+}
+
+struct ClosestObjectMatchData {
+  OBJECT_TYPE type;
+  const char *match;
+  CGObject_C *origin;
+  CGObject_C *object;
+  int         matchLength;
+  float       distanceSq;
+};
+
 void __fastcall CGGameUI::CloseInteraction() {
   unsigned __int64 target = m_interactTarget;
   if (target) {
@@ -4978,18 +5093,6 @@ void __fastcall CGGameUI::CloseInteraction() {
         static_cast<CGGameObject_C *>(object)->CloseInteraction();
       }
     }
-  }
-}
-
-void __fastcall CGGameUI::UpdateActivePlayer() {
-  unsigned __int64 guid = ClntObjMgrGetActivePlayer();
-  CGUnit_C        *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  FATALASSERT(player);
-
-  if (player->GetUnitData()->health > 0) {
-    FrameScript_SignalEvent(255);
-  } else {
-    FrameScript_SignalEvent(256);
   }
 }
 
@@ -5115,15 +5218,6 @@ void __fastcall CGGameUI::ClearTarget(unsigned __int64 guid, int sendTarget) {
 
   FrameScript_SignalEvent(191);
 }
-
-struct ClosestObjectMatchData {
-  OBJECT_TYPE type;
-  const char *match;
-  CGObject_C *origin;
-  CGObject_C *object;
-  int         matchLength;
-  float       distanceSq;
-};
 
 static int __fastcall ClosestObjectMatchProc(unsigned __int64 guid, void *param) {
   ClosestObjectMatchData *data = static_cast<ClosestObjectMatchData *>(param);
@@ -5289,58 +5383,207 @@ void __fastcall CGGameUI::TargetNearestEnemy(int reverse) {
   s_nearestList.SetCount(0);
 }
 
-void __fastcall CGGameUI::CloseLoot(unsigned int send, unsigned int moving) {
-  CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (playerPtr) {
-    playerPtr->m_lootingUnit = 0;
-  }
-
-  unsigned __int64 object = CGLootInfo::m_object;
-  if (object) {
-    CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
-    if (!moving || !objectPtr || !(objectPtr->GetType() & TYPE_ITEM)) {
-      if (send) {
-        CDataStore lootRelease;
-        lootRelease.Put(static_cast<unsigned int>(CMSG_LOOT_RELEASE));
-        lootRelease.Put(object);
-        lootRelease.Finalize();
-        ClientServices_Send(&lootRelease);
-        if (playerPtr) {
-          playerPtr->m_flags |= 0x200;
-        }
-      }
-
-      CGLootInfo::SetObject(0, 0, LOOT_ACQUIRE_FAILED);
-      ClearTarget(object, 0);
-      if (m_cursorItemType == UICURSOR_LOOT) {
-        ClearCursor(1);
-      }
-    }
+void __fastcall CGGameUI::ScaleUI(float scale, int force) {
+  if (m_UISimpleParent) {
+    m_UISimpleParent->SetLayoutScale(scale, force != 0);
   }
 }
 
-void __fastcall CGGameUI::OpenResurrectRequest(const char *inviter) {
-  FrameScript_SignalEvent(261, "%s", inviter);
+void __fastcall CGGameUI::HideCursor() {
+  m_simpleTop->m_cursorVisible = 0;
 }
 
-void __fastcall CGGameUI::OpenPartyInvite(const char *inviter) {
-  FrameScript_SignalEvent(262, "%s", inviter);
-}
-
-void __fastcall CGGameUI::CancelPartyInvite() {
-  FrameScript_SignalEvent(263);
-}
-
-void __fastcall CGGameUI::OpenGuildInvite(const char *inviter, const char *guildName) {
-  FrameScript_SignalEvent(264, "%s%s", inviter, guildName);
-}
-
-void __fastcall CGGameUI::CancelGuildInvite() {
-  FrameScript_SignalEvent(265);
+void __fastcall CGGameUI::AddErrorMessage(const char *string, int error) {
+  if (string && *string) {
+    FrameScript_SignalEvent(error ? 215 : 216, "%s", string);
+  }
 }
 
 unsigned int __fastcall CGGameUI::GetCursorVirtualItem() {
   return m_cursorVirtualID;
+}
+
+void __fastcall CGGameUI::UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object) {
+  if (model && object) {
+    object->ShowHighlightType(HT_MOUSEOVER);
+  }
+}
+
+unsigned int __fastcall CGGameUI::GetCursorVirtualItem(UICURSORTYPE type) {
+  return m_cursorItemType == type ? m_cursorVirtualID : 0;
+}
+
+void __fastcall CGGameUI::GetCursorVirtualItem(unsigned int &cursorItem, unsigned int &slot) {
+  cursorItem = m_cursorVirtualID;
+  slot = m_cursorVirtualSlot;
+}
+
+void __fastcall CGGameUI::ShowHealingFeedback(const unsigned __int64 &guid, int amount) {
+  int    numnames;
+  char **names = Script_GetNamesFromGUID(guid, numnames);
+  for (int index = 0; index < numnames; ++index) {
+    FrameScript_SignalEvent(178, "%s%s%s%d", names[index], "HEAL", "", amount);
+  }
+}
+
+void __fastcall CGGameUI::ShowAutoFollowChange(unsigned __int64 newTarget, unsigned __int64 oldTarget, int type) {
+  if (type != 2) {
+    return;
+  }
+
+  int              event;
+  unsigned __int64 target;
+  if (newTarget) {
+    event = 350;
+    target = newTarget;
+  } else {
+    event = 351;
+    target = oldTarget;
+  }
+
+  CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
+  if (object && (object->GetType() & TYPE_UNIT)) {
+    FrameScript_SignalEvent(event, "%s", static_cast<CGUnit_C *>(object)->GetUnitName());
+  } else {
+    FrameScript_SignalEvent(event, "%s", "");
+  }
+}
+
+void __fastcall CGGameUI::NewZoneFeedback(int areaID, const char *zoneString, const char *subZoneString) {
+  int zoneChanged = 0;
+
+  int firstArea = !m_areaID;
+  m_areaID = areaID;
+  if (firstArea) {
+    CGWorldMap::SetMapToCurrentZone();
+  }
+
+  if (zoneString && *zoneString) {
+    if (!m_zoneText || SStrCmp(m_zoneText, zoneString, 0x7FFFFFFF)) {
+      FREEIFUSED(m_zoneText);
+      m_zoneText = SStrDupA(zoneString, __FILE__, __LINE__);
+      zoneChanged = 1;
+    }
+  } else if (m_zoneText && *m_zoneText) {
+    *m_zoneText = 0;
+    zoneChanged = 1;
+  }
+
+  if (subZoneString && *subZoneString) {
+    if (!m_subZoneText || SStrCmp(m_subZoneText, subZoneString, 0x7FFFFFFF)) {
+      FREEIFUSED(m_subZoneText);
+      m_subZoneText = SStrDupA(subZoneString, __FILE__, __LINE__);
+      FrameScript_SignalEvent(196);
+    }
+  } else if (m_subZoneText && *m_subZoneText) {
+    *m_subZoneText = 0;
+    FrameScript_SignalEvent(196);
+  }
+
+  if (zoneChanged) {
+    FrameScript_SignalEvent(196);
+  }
+}
+
+void __fastcall CGGameUI::SetMinimapZoneText(const char *areaName) {
+  if (areaName && *areaName) {
+    if (m_minimapZoneText && !SStrCmp(m_minimapZoneText, areaName, 0x7FFFFFFF)) {
+      return;
+    }
+    FREEIFUSED(m_minimapZoneText);
+    m_minimapZoneText = SStrDupA(areaName, __FILE__, __LINE__);
+    FrameScript_SignalEvent(197);
+  } else if (m_minimapZoneText && *m_minimapZoneText) {
+    *m_minimapZoneText = 0;
+    FrameScript_SignalEvent(197);
+  }
+}
+
+void __fastcall CGGameUI::SetCursorItem(
+    unsigned __int64 itemGUID,
+    unsigned __int64 containerGUID,
+    unsigned int     slot,
+    int              unlock,
+    unsigned int     stackSplit
+) {
+  if (m_simpleTop) {
+    ClearCursor(unlock);
+    if (itemGUID) {
+      m_cursorItemContainer = containerGUID;
+      m_cursorItem = itemGUID;
+      m_cursorItemSlot = slot;
+      m_stackSplit = stackSplit;
+      m_cursorItemType = UICURSOR_ITEM;
+      CursorSetHeldItem(itemGUID);
+      CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
+      if (item) {
+        if (item->CanBeUsed()) {
+          CGActionBar::ShowGrid();
+          m_cursorHasAction = 1;
+        }
+        SndInterfacePlayItemSound(ITEMSOUND_PICKUP, item);
+      }
+      FrameScript_SignalEvent(272);
+    }
+  }
+}
+
+void __fastcall CGGameUI::SetCursorMoney(unsigned int money) {
+  if (m_simpleTop && (money || m_cursorItemType == UICURSOR_MONEY)) {
+    ClearCursor(1);
+    if (money) {
+      m_cursorMoney = money;
+      m_cursorItemType = UICURSOR_MONEY;
+      SndInterfacePlayInterfaceSound("LOOTWINDOWCOINSOUND");
+      CursorGrabMoney(money);
+      FrameScript_SignalEvent(49, "%s", "player");
+    }
+  }
+}
+
+void __fastcall CGGameUI::SetCursorSpell(int spellId, int pet) {
+  if ((m_simpleTop || !pet) && spellId >= 0) {
+    SpellRec     *spell = g_spellDB.GetRecord(spellId);
+    SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
+    if (icon && icon->m_textureFilename && *icon->m_textureFilename) {
+      ClearCursor(1);
+      m_cursorSpell = spellId;
+      m_cursorItemType = pet ? UICURSOR_PET_SPELL : UICURSOR_SPELL;
+      SndInterfacePlayInterfaceSound("INTERFACESOUND_CURSORGRABOBJECT");
+      CursorGrabSpell(icon->m_textureFilename);
+      if (pet) {
+        CGPetInfo::ShowGrid();
+      } else {
+        CGActionBar::ShowGrid();
+      }
+      m_cursorHasAction = 1;
+    }
+  }
+}
+
+void __fastcall CGGameUI::DropCursorSpell() {
+  if (m_cursorItemType == UICURSOR_SPELL || m_cursorItemType == UICURSOR_PET_SPELL) {
+    ClearCursor(1);
+  }
+}
+
+void __fastcall CGGameUI::ShowCombatFeedback(const unsigned __int64 &guid, int amount, int damageClass, unsigned int flags) {
+  const char *flagText = "";
+  if (flags & 0x10000) {
+    flagText = "ABSORB";
+  } else if (flags & 0x8) {
+    flagText = "CRITICAL";
+  }
+
+  int    numnames;
+  char **names = Script_GetNamesFromGUID(guid, numnames);
+  for (int index = 0; index < numnames; ++index) {
+    FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], "WOUND", flagText, amount, damageClass);
+  }
+}
+
+int __fastcall CGGameUI::GetCursorSpell() {
+  return m_cursorSpell;
 }
 
 void __fastcall CGGameUI::SetCursorVirtualItem(unsigned int itemID, unsigned int displayID, unsigned int slot, UICURSORTYPE type) {
@@ -5359,15 +5602,6 @@ void __fastcall CGGameUI::SetCursorVirtualItem(unsigned int itemID, unsigned int
       SndInterfacePlayItemSound(ITEMSOUND_PICKUP, static_cast<int>(displayID));
     }
   }
-}
-
-unsigned int __fastcall CGGameUI::GetCursorVirtualItem(UICURSORTYPE type) {
-  return m_cursorItemType == type ? m_cursorVirtualID : 0;
-}
-
-void __fastcall CGGameUI::GetCursorVirtualItem(unsigned int &cursorItem, unsigned int &slot) {
-  cursorItem = m_cursorVirtualID;
-  slot = m_cursorVirtualSlot;
 }
 
 void __fastcall CGGameUI::ClearCursor(int unlock) {
@@ -5440,61 +5674,51 @@ void __fastcall CGGameUI::ClearCursor(int unlock) {
   FrameScript_SignalEvent(272);
 }
 
+void __fastcall CGGameUI::LockItem(unsigned __int64 itemGUID) {
+  if (itemGUID) {
+    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
+    if (item) {
+      item->Lock();
+    }
+    FrameScript_SignalEvent(184);
+  }
+}
+
+void __fastcall CGGameUI::UnlockItem(unsigned __int64 itemGUID) {
+  if (itemGUID) {
+    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
+    if (item) {
+      item->Unlock();
+    }
+    FrameScript_SignalEvent(184);
+  }
+}
+
+int __fastcall CGGameUI::Idle(const void *, void *) {
+  if (m_reloadUI) {
+    Shutdown();
+    Initialize();
+  }
+  return 1;
+}
+
+void __fastcall CGGameUI::UpdateActivePlayer() {
+  unsigned __int64 guid = ClntObjMgrGetActivePlayer();
+  CGUnit_C        *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  FATALASSERT(player);
+
+  if (player->GetUnitData()->health > 0) {
+    FrameScript_SignalEvent(255);
+  } else {
+    FrameScript_SignalEvent(256);
+  }
+}
+
 void __fastcall CGGameUI::ClearClientControls() {
   ClearCursor(1);
   const unsigned __int64 noTarget = 0;
   Target(noTarget, 0);
   Spell_C_CancelSpell(1, 1, SPELL_FAILED_ERROR);
-}
-
-void __fastcall CGGameUI::NewZoneFeedback(int areaID, const char *zoneString, const char *subZoneString) {
-  int zoneChanged = 0;
-
-  int firstArea = !m_areaID;
-  m_areaID = areaID;
-  if (firstArea) {
-    CGWorldMap::SetMapToCurrentZone();
-  }
-
-  if (zoneString && *zoneString) {
-    if (!m_zoneText || SStrCmp(m_zoneText, zoneString, 0x7FFFFFFF)) {
-      FREEIFUSED(m_zoneText);
-      m_zoneText = SStrDupA(zoneString, __FILE__, __LINE__);
-      zoneChanged = 1;
-    }
-  } else if (m_zoneText && *m_zoneText) {
-    *m_zoneText = 0;
-    zoneChanged = 1;
-  }
-
-  if (subZoneString && *subZoneString) {
-    if (!m_subZoneText || SStrCmp(m_subZoneText, subZoneString, 0x7FFFFFFF)) {
-      FREEIFUSED(m_subZoneText);
-      m_subZoneText = SStrDupA(subZoneString, __FILE__, __LINE__);
-      FrameScript_SignalEvent(196);
-    }
-  } else if (m_subZoneText && *m_subZoneText) {
-    *m_subZoneText = 0;
-    FrameScript_SignalEvent(196);
-  }
-
-  if (zoneChanged) {
-    FrameScript_SignalEvent(196);
-  }
-}
-
-void __fastcall CGGameUI::SetMinimapZoneText(const char *areaName) {
-  if (areaName && *areaName) {
-    if (m_minimapZoneText && !SStrCmp(m_minimapZoneText, areaName, 0x7FFFFFFF)) {
-      return;
-    }
-    FREEIFUSED(m_minimapZoneText);
-    m_minimapZoneText = SStrDupA(areaName, __FILE__, __LINE__);
-    FrameScript_SignalEvent(197);
-  } else if (m_minimapZoneText && *m_minimapZoneText) {
-    *m_minimapZoneText = 0;
-    FrameScript_SignalEvent(197);
-  }
 }
 
 void __fastcall CGGameUI::RegisterFrameFactories() {
@@ -5503,107 +5727,6 @@ void __fastcall CGGameUI::RegisterFrameFactories() {
   FrameXML_RegisterFactory("Minimap", CGMinimapFrame::Create);
   FrameXML_RegisterFactory("PlayerModel", CGCharacterModelBase::Create);
   FrameXML_RegisterFactory("TabardModel", CGTabardModelFrame::Create);
-}
-
-void __fastcall CGGameUI::AddErrorMessage(const char *string, int error) {
-  if (string && *string) {
-    FrameScript_SignalEvent(error ? 215 : 216, "%s", string);
-  }
-}
-
-void __fastcall CGGameUI::UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object) {
-  if (model && object) {
-    object->ShowHighlightType(HT_MOUSEOVER);
-  }
-}
-
-void __fastcall CGGameUI::OnItemPush(unsigned __int64 player, int slot, int itemID, int pushed, int display) {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(itemID, noGuid, 0, 0);
-  if (!stats) {
-    ItemPushInfo *info = NEW(ItemPushInfo);
-    info->player = player;
-    info->slot = slot;
-    info->pushed = pushed;
-    info->display = display;
-    stats = g_itemDBCache.GetRecord(itemID, player, ItemPushItemStatsCallback, info);
-    FATALASSERT(!stats);
-    return;
-  }
-
-  const char *colorString = stats->m_overallQualityID < 3 ? "" : CGTooltip::GetItemQualityColorString(stats->m_overallQualityID);
-  const char *colorEnd = *colorString ? "|r" : "";
-  char        buffer[260];
-
-  if (player == ClntObjMgrGetActivePlayer()) {
-    const char *temp = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-    SStrPrintf(buffer, sizeof(buffer), "%s%s", temp, *temp ? "\\" : "");
-    SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
-    FrameScript_SignalEvent(249, "%d%s", slot == 255 ? 0 : slot + 1, buffer);
-
-    if (display) {
-      const char *format = FrameScript_GetText(pushed ? "LOOT_ITEM_PUSHED_SELF" : "LOOT_ITEM_SELF", -1, GENDER_NOT_APPLICABLE);
-      SStrPrintf(buffer, sizeof(buffer), format, colorString, itemID, stats->m_displayName[0], colorEnd);
-      CGChat::AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(24), 0, 0, 0, 0, 0);
-    }
-  } else if (!pushed && display) {
-    CGObject_C *object = ClntObjMgrObjectPtr(player, __FILE__, __LINE__);
-    if (object) {
-      const char *format = FrameScript_GetText("LOOT_ITEM", -1, GENDER_NOT_APPLICABLE);
-      SStrPrintf(
-          buffer, sizeof(buffer), format, static_cast<CGUnit_C *>(object)->GetUnitName(), colorString, itemID, stats->m_displayName[0], colorEnd
-      );
-      CGChat::AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(24), 0, 0, 0, 0, 0);
-    }
-  }
-}
-
-extern char **__fastcall Script_GetNamesFromGUID(const unsigned __int64 &guid, int &numnames);
-
-void __fastcall CGGameUI::ShowCombatFeedback(const unsigned __int64 &guid, int amount, int damageClass, unsigned int flags) {
-  const char *flagText = "";
-  if (flags & 0x10000) {
-    flagText = "ABSORB";
-  } else if (flags & 0x8) {
-    flagText = "CRITICAL";
-  }
-
-  int    numnames;
-  char **names = Script_GetNamesFromGUID(guid, numnames);
-  for (int index = 0; index < numnames; ++index) {
-    FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], "WOUND", flagText, amount, damageClass);
-  }
-}
-
-void __fastcall CGGameUI::ShowHealingFeedback(const unsigned __int64 &guid, int amount) {
-  int    numnames;
-  char **names = Script_GetNamesFromGUID(guid, numnames);
-  for (int index = 0; index < numnames; ++index) {
-    FrameScript_SignalEvent(178, "%s%s%s%d", names[index], "HEAL", "", amount);
-  }
-}
-
-void __fastcall CGGameUI::ShowAutoFollowChange(unsigned __int64 newTarget, unsigned __int64 oldTarget, int type) {
-  if (type != 2) {
-    return;
-  }
-
-  int              event;
-  unsigned __int64 target;
-  if (newTarget) {
-    event = 350;
-    target = newTarget;
-  } else {
-    event = 351;
-    target = oldTarget;
-  }
-
-  CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
-  if (object && (object->GetType() & TYPE_UNIT)) {
-    FrameScript_SignalEvent(event, "%s", static_cast<CGUnit_C *>(object)->GetUnitName());
-  } else {
-    FrameScript_SignalEvent(event, "%s", "");
-  }
 }
 
 void __cdecl CGGameUI::DisplayError(GAME_ERROR_TYPE errorType, ...) {
@@ -5658,121 +5781,4 @@ const char *__fastcall CGGameUI::GetLastErrorString() {
 
 void __fastcall CGGameUI::PlayerCombatModeChanged(int newState) {
   FrameScript_SignalEvent(newState ? 189 : 190);
-}
-
-int __fastcall CGGameUI::OnTerrainClick(CTerrainClickEvent &evt) {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || evt.button != MOUSE_BUTTON_LEFT) {
-    return 0;
-  }
-
-  if (Spell_C_HandleTerrainClick(evt)) {
-    return 1;
-  }
-  return player->OnTerrainClick(evt);
-}
-
-int __fastcall CGGameUI::OnSpriteLeftClick(unsigned __int64 object, float x, float y) {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return 0;
-  }
-
-  CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
-  if (!objectPtr) {
-    return 0;
-  }
-
-  if (Spell_C_IsTargeting()) {
-    Spell_C_HandleSpriteClick(objectPtr);
-    return 1;
-  }
-
-  if (objectPtr->CanBeTargetted()) {
-    Target(object, 0);
-  }
-  objectPtr->OnLeftClick();
-
-  if ((objectPtr->GetType() & TYPE_PLAYER) && m_lockedTarget && m_currentObjectTrack) {
-    Trade_C_InitiateTrade(object, 1);
-  }
-  return 1;
-}
-
-int __fastcall CGGameUI::OnSpriteRightClick(unsigned __int64 object, float x, float y) {
-  if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
-    return 1;
-  }
-
-  CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
-  if (!objectPtr) {
-    return 1;
-  }
-
-  if (objectPtr->CanBeTargetted()) {
-    Target(object, 0);
-  }
-  objectPtr->OnRightClick();
-  return 1;
-}
-
-void __fastcall CGGameUI::OnTargetContextAction() {
-  CGObject_C *object = ClntObjMgrObjectPtr(m_lockedTarget, __FILE__, __LINE__);
-  if (!object || !(object->GetType() & TYPE_UNIT)) {
-    return;
-  }
-
-  CGUnit_C *unit = static_cast<CGUnit_C *>(object);
-  if (unit->GetUnitData()->charm != ClntObjMgrGetActivePlayer()) {
-    return;
-  }
-
-  NTempest::C2Vector      position(0.0f);
-  const unsigned __int64 &guid = *reinterpret_cast<const unsigned __int64 *>(&position);
-  const CreatureStats_C  *stats = g_creatureDBCache.GetRecord(unit->GetEntryID(), guid, 0, 0);
-  if (stats) {
-    FrameScript_SignalEvent(271, "%s", stats->m_name[2]);
-  }
-}
-
-int __fastcall CGGameUI::HandleTerrainClick(CTerrainClickEvent &evt) {
-  if (evt.button == MOUSE_BUTTON_RIGHT || m_cursorItemType != UICURSOR_EMPTY) {
-    ClearCursor(1);
-  }
-
-  if (!OnTerrainClick(evt)) {
-    const unsigned __int64 target = 0;
-    Target(target, 0);
-  }
-  return 1;
-}
-
-int __fastcall CGGameUI::HandleSpriteClick(CSpriteClickEvent &evt) {
-  if (m_cursorItemType != UICURSOR_EMPTY) {
-    ClearCursor(1);
-  }
-
-  if (evt.button == MOUSE_BUTTON_LEFT) {
-    return OnSpriteLeftClick(evt.objectGUID, evt.pos.x, evt.pos.y);
-  }
-  return OnSpriteRightClick(evt.objectGUID, evt.pos.x, evt.pos.y);
-}
-
-int __fastcall CGGameUI::HandleWorldClick(CWorldClickEvent &evt) {
-  int cursorWasEmpty = m_cursorItemType == UICURSOR_EMPTY;
-  if (evt.button == MOUSE_BUTTON_RIGHT || !m_lockedTarget || !m_currentObjectTrack) {
-    ClearCursor(1);
-  }
-
-  if (evt.button == MOUSE_BUTTON_LEFT) {
-    if (m_lockedTarget && m_currentObjectTrack) {
-      OnTargetContextAction();
-      return 1;
-    }
-    if (cursorWasEmpty) {
-      const unsigned __int64 target = 0;
-      Target(target, 0);
-    }
-  }
-  return 1;
 }

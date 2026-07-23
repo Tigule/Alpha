@@ -30,6 +30,11 @@ DWORD __fastcall OsPathGetRootChars(const char *path) {
   return 0;
 }
 
+const char* __fastcall OsGetCommandLine() {
+    // TODO: implement
+    return 0;
+}
+
 void __fastcall OsGetExeName(char *buffer, DWORD chars) {
   GetModuleFileNameA(0, buffer, chars);
 }
@@ -37,6 +42,24 @@ void __fastcall OsGetExeName(char *buffer, DWORD chars) {
 void __fastcall OsGetExePath(char *buffer, DWORD chars) {
   OsGetExeName(buffer, chars);
   OsPathStripFilename(buffer);
+}
+
+void __fastcall OsGetStormName(char* buffer, unsigned long chars) {
+    // TODO: implement
+}
+
+int __fastcall OsGetModuleName(unsigned long moduleId, char* buffer, unsigned long chars) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsSetModuleHandle(unsigned long moduleId, HINSTANCE__* moduleHandle) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall OsClearModuleHandle(unsigned long moduleId) {
+    // TODO: implement
 }
 
 void __fastcall OsPathStripFilename(char *buffer) {
@@ -51,6 +74,42 @@ void __fastcall OsPathStripFilename(char *buffer) {
       filename[1] = 0;
     }
   }
+}
+
+void __fastcall OsPathStripLastDir(char* buffer) {
+    // TODO: implement
+}
+
+void __fastcall OsPathGetFilename(const char* path, char* buffer, unsigned int size) {
+    // TODO: implement
+}
+
+void __fastcall OsPathGetLastDirectory(const char* string, char* buffer, unsigned int size) {
+    // TODO: implement
+}
+
+int __fastcall OsPathIsRelative(const char* path) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsPathHasInvalidChars(const char* path) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsFileNameHasInvalidChars(const char* filename) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsFileNameIsValid(const char* filename) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall OsGetSystemFontDirectory(char* buffer, unsigned int chars) {
+    // TODO: implement
 }
 
 void __fastcall OsBuildFontFilePath(const char *fileName, char *buffer, unsigned int size) {

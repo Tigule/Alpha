@@ -49,10 +49,9 @@ WORLDTEXTSTRING::WORLDTEXTSTRING() : worldTextType(NUM_WORLDTEXTTYPES), elapsedT
   savedStringText[0] = 0;
 }
 
-void WORLDTEXTSTRING::InitTextFrame(const char *text) {
-  if (text && *text) {
-    SStrPrintf(savedStringText, sizeof(savedStringText), "%s", text);
-  }
+static int IntInterp(float progress, int start, int end) {
+    // TODO: implement
+    return 0;
 }
 
 WORLDTEXTSTRING::~WORLDTEXTSTRING() {
@@ -68,6 +67,12 @@ void WORLDTEXTSTRING::Hide(int hide) {
 void WORLDTEXTSTRING::Render() {
   if (!hidden && string) {
     GxuFontRender(string);
+  }
+}
+
+void WORLDTEXTSTRING::InitTextFrame(const char *text) {
+  if (text && *text) {
+    SStrPrintf(savedStringText, sizeof(savedStringText), "%s", text);
   }
 }
 
@@ -174,6 +179,10 @@ void __fastcall WorldTextClearStrings() {
   }
 }
 
+void __fastcall WorldTextGetColor(WORLDTEXTTYPE type, NTempest::CImVector* color) {
+    // TODO: implement
+}
+
 HWORLDTEXT__ *__fastcall WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride) {
   FATALASSERT(type < NUM_WORLDTEXTTYPES);
   WORLDTEXTCREATEPARAMS *params = &s_worldTextParams[type];
@@ -197,6 +206,19 @@ HWORLDTEXT__ *__fastcall WorldTextCreate(WORLDTEXTTYPE type, const char *text, u
   FATALASSERT(params->shrinkTime <= worldTextPtr->totalTime);
   worldTextPtr->InitTextFrame(text);
   return reinterpret_cast<HWORLDTEXT__ *>(HandleCreate(worldTextPtr, "HWORLDTEXT"));
+}
+
+void __fastcall WorldTextUpdate(float elapsed, const NTempest::C44Matrix& matrix) {
+    // TODO: implement
+}
+
+void __fastcall WorldTextUpdate(HWORLDTEXT__* text, float elapsed, const NTempest::C44Matrix& matrix, const NTempest::C3Vector* position) {
+    // TODO: implement
+}
+
+int __fastcall WorldTextIsTextDone(HWORLDTEXT__* handle) {
+    // TODO: implement
+    return 0;
 }
 
 void __fastcall WorldTextShow(HWORLDTEXT__ *text, int show) {

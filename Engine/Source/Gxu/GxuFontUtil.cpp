@@ -1234,11 +1234,6 @@ void TEXTURECACHE::PasteGlyph(GLYPHBITMAPDATA *data, unsigned long *dst, int thi
   }
 }
 
-void GLYPHBITMAPDATA::Clear() {
-  FREEIFUSED(m_data);
-  m_data = 0;
-}
-
 void CGxString::SetStringPosition(const NTempest::C3Vector &position) {
   m_position = position;
   InitializeViewportOffsets();
@@ -1269,18 +1264,6 @@ void CGxString::SetColor(const NTempest::CImVector &color) {
   }
 }
 
-void CGxString::HandleScreenSizeChange() {
-  ASSERT(m_currentFace);
-  ClearStringMatrixEntry();
-
-  if (m_flags & 0x4) {
-    m_requestedFontHeight = GxuFontGetOneToOneHeight(m_currentFace);
-  }
-
-  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
-  CreateGeometry();
-}
-
 void CGxString::InternalRender() {
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsPush();
@@ -1307,6 +1290,22 @@ void CGxString::InternalRender() {
   }
 
   GxRsPop();
+}
+
+void CGxString::Recycle() {
+  m_batchedStringLink.Unlink();
+  g_freeStrings.LinkNode(this, LIST_TAIL, 0);
+  ClearInstanceData();
+  ClearStringMatrixEntry();
+}
+
+void CGxString::ClearInstanceData() {
+  m_hyperlinkInfo.SetCount(0);
+  m_textBlock.Recycle();
+  m_colorGradients.SetCount(0);
+  m_colorGradientShadows.SetCount(0);
+  m_lastGradientStart = -1;
+  m_lastGradientLength = -1;
 }
 
 void CGxString::Render(const NTempest::C44Matrix &xform) {
@@ -1351,22 +1350,6 @@ void CGxString::Render() {
 
   GxXformSetProjection(oldProjection);
   GxXformSetView(oldView);
-}
-
-void CGxString::Recycle() {
-  m_batchedStringLink.Unlink();
-  g_freeStrings.LinkNode(this, LIST_TAIL, 0);
-  ClearInstanceData();
-  ClearStringMatrixEntry();
-}
-
-void CGxString::ClearInstanceData() {
-  m_hyperlinkInfo.SetCount(0);
-  m_textBlock.Recycle();
-  m_colorGradients.SetCount(0);
-  m_colorGradientShadows.SetCount(0);
-  m_lastGradientStart = -1;
-  m_lastGradientLength = -1;
 }
 
 void CGxString::CreateGeometry() {
@@ -1589,59 +1572,6 @@ void CGxString::BuildProjection(NTempest::C44Matrix *projPtr, float minx, float 
 void CGxString::SetCharSpacing(float spacing) {
 }
 
-int CGxString::Initialize(
-    float                      fontHeight,
-    const NTempest::C3Vector  &position,
-    float                      blockWidth,
-    float                      blockHeight,
-    CGxFont                   *face,
-    const char                *text,
-    EGxFontVJusts              vertJust,
-    EGxFontHJusts              horzJust,
-    float                      spacing,
-    unsigned int               flags,
-    const NTempest::CImVector &color
-) {
-  unsigned int textLen;
-
-  ASSERT(text);
-  ASSERT(face);
-
-  textLen = SStrLen(text) + 1;
-  if (textLen > m_textLen) {
-    FREEIFUSED(m_text);
-    m_textLen = textLen;
-    m_text = static_cast<char *>(ALLOC(m_textLen));
-  }
-
-  SStrCopy(m_text, text, m_textLen);
-  m_blockWidth = blockWidth;
-  m_blockHeight = blockHeight;
-  m_spacing = spacing;
-  m_position = position;
-  m_vertJust = vertJust;
-  m_horzJust = horzJust;
-  m_flags = flags;
-  m_fontColor = color;
-
-  if (!(m_flags & 0x80)) {
-    m_position.z = 0.0f;
-  }
-
-  m_currentFace = face;
-  m_currentFace->m_strings.LinkNode(this, LIST_TAIL, 0);
-
-  if ((flags & 0x4) && !(flags & 0x80)) {
-    m_requestedFontHeight = GxuFontGetOneToOneHeight(face);
-  } else {
-    m_requestedFontHeight = fontHeight;
-  }
-
-  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
-  CreateGeometry();
-  return 1;
-}
-
 CGxString::CGxString()
     : m_requestedFontHeight(0.02f),
       m_currentFontHeight(0.02f),
@@ -1667,12 +1597,6 @@ CGxString::CGxString()
       m_lastGradientLength(-1) {
   m_colorGradients.SetChunkSize(128);
   m_colorGradientShadows.SetChunkSize(128);
-}
-
-CGxString::~CGxString() {
-  ClearStringMatrixEntry();
-  m_textBlock.Destroy();
-  FREEIFUSED(m_text);
 }
 
 void CGxString::RemoveShadow() {
@@ -1701,6 +1625,12 @@ int CGxFont::CheckStringGlyphs(const char *string) {
   }
 
   return 1;
+}
+
+CGxString::~CGxString() {
+  ClearStringMatrixEntry();
+  m_textBlock.Destroy();
+  FREEIFUSED(m_text);
 }
 
 int CGxFont::UpdateDimensions() {
@@ -1846,6 +1776,82 @@ int CGxFont::GetGlyphData(GLYPHBITMAPDATA *glyphData, FT_Face face, unsigned int
   return 1;
 }
 
+int CGxString::Initialize(
+    float                      fontHeight,
+    const NTempest::C3Vector  &position,
+    float                      blockWidth,
+    float                      blockHeight,
+    CGxFont                   *face,
+    const char                *text,
+    EGxFontVJusts              vertJust,
+    EGxFontHJusts              horzJust,
+    float                      spacing,
+    unsigned int               flags,
+    const NTempest::CImVector &color
+) {
+  unsigned int textLen;
+
+  ASSERT(text);
+  ASSERT(face);
+
+  textLen = SStrLen(text) + 1;
+  if (textLen > m_textLen) {
+    FREEIFUSED(m_text);
+    m_textLen = textLen;
+    m_text = static_cast<char *>(ALLOC(m_textLen));
+  }
+
+  SStrCopy(m_text, text, m_textLen);
+  m_blockWidth = blockWidth;
+  m_blockHeight = blockHeight;
+  m_spacing = spacing;
+  m_position = position;
+  m_vertJust = vertJust;
+  m_horzJust = horzJust;
+  m_flags = flags;
+  m_fontColor = color;
+
+  if (!(m_flags & 0x80)) {
+    m_position.z = 0.0f;
+  }
+
+  m_currentFace = face;
+  m_currentFace->m_strings.LinkNode(this, LIST_TAIL, 0);
+
+  if ((flags & 0x4) && !(flags & 0x80)) {
+    m_requestedFontHeight = GxuFontGetOneToOneHeight(face);
+  } else {
+    m_requestedFontHeight = fontHeight;
+  }
+
+  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
+  CreateGeometry();
+  return 1;
+}
+
+unsigned int CGxFont::GetNumCurrentTextures() {
+  unsigned int count = 0;
+  int          emptyFound = 0;
+
+  for (unsigned int i = 0; i < 8; ++i) {
+    if (m_textureCache[i].m_texture) {
+      ASSERT(!emptyFound);
+      ++count;
+    } else {
+      emptyFound = 1;
+    }
+  }
+
+  return count;
+}
+
+float CGxFont::GetCharAdvance(unsigned int code) {
+  GLYPHBITMAPDATA *glyph = m_glyphBitmapData.Ptr(code, s_nullHashKey);
+
+  ASSERT(glyph);
+  return glyph->m_glyphAdvance * m_pixelsPerUnit;
+}
+
 int CGxFont::Initialize(const char *name, unsigned int newFlags, float fontHeight) {
   ASSERT(name && *name);
 
@@ -1873,29 +1879,6 @@ int CGxFont::Initialize(const char *name, unsigned int newFlags, float fontHeigh
   }
 
   return UpdateDimensions();
-}
-
-unsigned int CGxFont::GetNumCurrentTextures() {
-  unsigned int count = 0;
-  int          emptyFound = 0;
-
-  for (unsigned int i = 0; i < 8; ++i) {
-    if (m_textureCache[i].m_texture) {
-      ASSERT(!emptyFound);
-      ++count;
-    } else {
-      emptyFound = 1;
-    }
-  }
-
-  return count;
-}
-
-float CGxFont::GetCharAdvance(unsigned int code) {
-  GLYPHBITMAPDATA *glyph = m_glyphBitmapData.Ptr(code, s_nullHashKey);
-
-  ASSERT(glyph);
-  return glyph->m_glyphAdvance * m_pixelsPerUnit;
 }
 
 float CGxFont::ComputeStep(unsigned int currentCode, unsigned int nextCode) {
@@ -1980,6 +1963,23 @@ float CGxFont::ComputeStepFixedWidth(unsigned int currentCode, unsigned int next
   return 0.0f;
 }
 
+void CGxString::HandleScreenSizeChange() {
+  ASSERT(m_currentFace);
+  ClearStringMatrixEntry();
+
+  if (m_flags & 0x4) {
+    m_requestedFontHeight = GxuFontGetOneToOneHeight(m_currentFace);
+  }
+
+  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
+  CreateGeometry();
+}
+
+const char *CGxFont::GetName() const {
+  ASSERT(m_faceHandle);
+  return FontFaceGetFontName(m_faceHandle);
+}
+
 void CGxFont::HandleScreenSizeChange() {
   int        success;
   CGxString *string;
@@ -1994,9 +1994,9 @@ void CGxFont::HandleScreenSizeChange() {
   }
 }
 
-const char *CGxFont::GetName() const {
-  ASSERT(m_faceHandle);
-  return FontFaceGetFontName(m_faceHandle);
+void GLYPHBITMAPDATA::Clear() {
+  FREEIFUSED(m_data);
+  m_data = 0;
 }
 
 void CGxFont::Clear() {

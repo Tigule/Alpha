@@ -98,8 +98,8 @@ add_library(WowShared STATIC
     Source/WorldClient/World.cpp
     Source/WorldClient/MapObjRender.cpp
     Source/WorldClient/MapMem.cpp
-    Common/ComponentCore/ComponentCore.cpp
-    Common/ComponentCore/CharacterCustomizationCore.cpp
+    Source/Component/Component.cpp
+    Source/Component/CharacterCustomization.cpp
     Source/Game/Loot.cpp
     Source/Game/GameTime.cpp
     Source/Game/GameClient/shadow.cpp
@@ -402,18 +402,18 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1"
     )
     set_source_files_properties(
-        Common/ComponentCore/ComponentCore.cpp
-        Common/ComponentCore/CharacterCustomizationCore.cpp
+        Source/Component/Component.cpp
+        Source/Component/CharacterCustomization.cpp
         Source/Glue/CharCreateInfo.cpp
         Source/Glue/CharSelectInfo.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-"
     )
     set_source_files_properties(
-        Common/ComponentCore/ComponentCore.cpp
+        Source/Component/Component.cpp
         PROPERTIES OBJECT_NAME Component
     )
     set_source_files_properties(
-        Common/ComponentCore/CharacterCustomizationCore.cpp
+        Source/Component/CharacterCustomization.cpp
         PROPERTIES OBJECT_NAME CharacterCustomization
     )
     set_source_files_properties(

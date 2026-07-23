@@ -152,12 +152,6 @@ void BlizzardObject::FreeShard(Shard *&shard) {
   shard = 0;
 }
 
-static inline void RenderFishingLines() {
-  for (FishingLineObject *object = s_fishingLineObjects.Head(); object; object = s_fishingLineObjects.Next(object)) {
-    object->Render();
-  }
-}
-
 void __fastcall BlizzardObject::WorldObjectRender(void *param, const NTempest::C44Matrix &mtx) {
   static_cast<BlizzardObject *>(param)->Render(mtx);
 }
@@ -202,6 +196,12 @@ static void __fastcall ShardEventCallback(const char *eventName, const NTempest:
   ++counter;
   if ((counter & 1) && *reinterpret_cast<const unsigned int *>(eventName) == 0x444E5324) {
     SndInterfacePlayInterfaceSound(eventName + 4);
+  }
+}
+
+static inline void RenderFishingLines() {
+  for (FishingLineObject *object = s_fishingLineObjects.Head(); object; object = s_fishingLineObjects.Next(object)) {
+    object->Render();
   }
 }
 
@@ -427,31 +427,6 @@ void EclipseObject::Update(unsigned int currentTime) {
   DayNightSetEclipse(color, amount);
 }
 
-void __fastcall SpellVisualsProc_Eclipse(CGUnit_C *caster, SpellVisualKitRec *kitRec, unsigned int spellID) {
-  FATALASSERT(kitRec->m_characterParam[1] >= 0.0f && kitRec->m_characterParam[1] <= 1.0f);
-
-  unsigned int    duration = 0;
-  const SpellRec *spellRec = g_spellDB.GetRecord(spellID);
-  if (spellRec) {
-    const SpellDurationRec *durationRec = g_spellDurationDB.GetRecord(spellRec->m_durationIndex);
-    if (durationRec) {
-      unsigned int level = 0;
-      CGUnit_C    *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      if (player) {
-        level = player->GetSpellRank(spellID) / 5;
-      }
-      int scaledDuration = durationRec->m_duration + level * durationRec->m_durationPerLevel;
-      duration = scaledDuration <= durationRec->m_maxDuration ? durationRec->m_maxDuration : scaledDuration;
-    }
-  }
-  s_eclipseObject.color = NTempest::CImVector(static_cast<unsigned long>(kitRec->m_characterParam[0]) | 0xFF000000ul);
-  unsigned int fadeDuration = static_cast<unsigned int>(duration * kitRec->m_characterParam[1]);
-  s_eclipseObject.startTime = GetTickCount();
-  s_eclipseObject.fadeInTime = s_eclipseObject.startTime + fadeDuration;
-  s_eclipseObject.fadeOutTime = s_eclipseObject.startTime + duration;
-  s_eclipseObject.endTime = s_eclipseObject.startTime + duration + 100;
-}
-
 static BlizzardObject *__fastcall AllocBlizzard() {
   if (!s_blizzardPool.Head()) {
     s_blizzardPool.NewNode(2, 0, 0);
@@ -464,15 +439,6 @@ static BlizzardObject *__fastcall AllocBlizzard() {
 
 static void __fastcall FreeBlizzard(BlizzardObject *bliz) {
   s_blizzardPool.LinkNode(bliz, 2, 0);
-}
-
-void __fastcall PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT attach, int spellID, unsigned int isCastEffect) {
-  if (effectID) {
-    FATALASSERT(object);
-    FATALASSERT(attach < NUM_UNITEFFECT_ATTACHPOINTS);
-    SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
-    UnitEffectOneShot(effectRec, object, attach, spellID, isCastEffect, 0);
-  }
 }
 
 static void __fastcall InitializeAuraNames() {
@@ -493,6 +459,15 @@ static void __fastcall InitializeAuraNames() {
 
   for (index = static_cast<int>(s_auraNames.Count()) - 1; index >= 0; --index) {
     ASSERT(s_auraNames[index]);
+  }
+}
+
+void __fastcall PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT attach, int spellID, unsigned int isCastEffect) {
+  if (effectID) {
+    FATALASSERT(object);
+    FATALASSERT(attach < NUM_UNITEFFECT_ATTACHPOINTS);
+    SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
+    UnitEffectOneShot(effectRec, object, attach, spellID, isCastEffect, 0);
   }
 }
 
@@ -692,48 +667,6 @@ void __fastcall SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned ch
   }
 }
 
-LightningObject::~LightningObject() {
-  unsigned int index;
-
-  ASSERT(s_lightningManager);
-  for (index = 0; index < bolts.Count(); ++index) {
-    if (bolts[index].boltID != BADBOLT) {
-      s_lightningManager->Remove(bolts[index].boltID);
-    }
-  }
-
-  bolts.Clear();
-  guids.Clear();
-  if (texture) {
-    HandleClose(texture);
-    texture = 0;
-  }
-}
-
-bool __fastcall IsShapeshiftSpell(const SpellRec *rec) {
-  for (unsigned int effect = 0; effect < 3; ++effect) {
-    if (rec->m_effect[effect] == 6 && (rec->m_effectAura[effect] == 36 || rec->m_effectAura[effect] == 56)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-unsigned int __fastcall SpellGetRangedPrecastHoldAnim(unsigned int loadAnim) {
-  return loadAnim < s_precastAnimTransitions.Count() ? s_precastAnimTransitions[loadAnim] : INVALID_ANIMATION;
-}
-
-void LightningObject::DelRef() {
-  FATALASSERT(refCount > 0);
-  if (!--refCount) {
-    delete this;
-  }
-}
-
-void LightningObject::AddRef() {
-  ++refCount;
-}
-
 NTempest::C3Vector __fastcall GetSpellChainEffectSource(const CGUnit_C &unit) {
   NTempest::C3Vector outVect;
   HMODEL             model = unit.GetCharacterModel(0);
@@ -751,6 +684,24 @@ NTempest::C3Vector __fastcall GetSpellChainEffectSource(const CGUnit_C &unit) {
   }
 
   return outVect;
+}
+
+LightningObject::~LightningObject() {
+  unsigned int index;
+
+  ASSERT(s_lightningManager);
+  for (index = 0; index < bolts.Count(); ++index) {
+    if (bolts[index].boltID != BADBOLT) {
+      s_lightningManager->Remove(bolts[index].boltID);
+    }
+  }
+
+  bolts.Clear();
+  guids.Clear();
+  if (texture) {
+    HandleClose(texture);
+    texture = 0;
+  }
 }
 
 unsigned int LightningObject::Tick(unsigned int currentTime) {
@@ -813,6 +764,31 @@ unsigned int LightningObject::Tick(unsigned int currentTime) {
   }
 
   return forever || currentTime < deathTime;
+}
+
+void __fastcall SpellVisualsProc_Eclipse(CGUnit_C *caster, SpellVisualKitRec *kitRec, unsigned int spellID) {
+  FATALASSERT(kitRec->m_characterParam[1] >= 0.0f && kitRec->m_characterParam[1] <= 1.0f);
+
+  unsigned int    duration = 0;
+  const SpellRec *spellRec = g_spellDB.GetRecord(spellID);
+  if (spellRec) {
+    const SpellDurationRec *durationRec = g_spellDurationDB.GetRecord(spellRec->m_durationIndex);
+    if (durationRec) {
+      unsigned int level = 0;
+      CGUnit_C    *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player) {
+        level = player->GetSpellRank(spellID) / 5;
+      }
+      int scaledDuration = durationRec->m_duration + level * durationRec->m_durationPerLevel;
+      duration = scaledDuration <= durationRec->m_maxDuration ? durationRec->m_maxDuration : scaledDuration;
+    }
+  }
+  s_eclipseObject.color = NTempest::CImVector(static_cast<unsigned long>(kitRec->m_characterParam[0]) | 0xFF000000ul);
+  unsigned int fadeDuration = static_cast<unsigned int>(duration * kitRec->m_characterParam[1]);
+  s_eclipseObject.startTime = GetTickCount();
+  s_eclipseObject.fadeInTime = s_eclipseObject.startTime + fadeDuration;
+  s_eclipseObject.fadeOutTime = s_eclipseObject.startTime + duration;
+  s_eclipseObject.endTime = s_eclipseObject.startTime + duration + 100;
 }
 
 static void __fastcall CreateLightningObj(
@@ -924,34 +900,12 @@ void __fastcall SpellVisualsProcedure(
   }
 }
 
-void __fastcall SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects) {
-  if (unitPtr) {
-    TSGrowableArray<unsigned __int64> &targets =
-        *reinterpret_cast<TSGrowableArray<unsigned __int64> *>(reinterpret_cast<unsigned char *>(unitPtr) + 2492);
-    CreateLightningObj(unitPtr, targets.Ptr(), targets.Count(), spellID, kitRec, objects, numObjects);
-  }
+static void PlayImpactKit(CGUnit_C* target, const SpellVisualKitRec* impactKit) {
+    // TODO: implement
 }
 
-void __fastcall SpellVisualClearLightning(LightningObject *lightning) {
-  lightning->deathTime = GetTickCount();
-  lightning->forever = 0;
-  lightning->DelRef();
-}
-
-BlizzardObject *__fastcall SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec) {
-  unsigned int nameSub;
-
-  BlizzardObject *blizzard = AllocBlizzard();
-
-  nameSub = NTempest::CMath::ftol_0_256_(kitRec->m_characterParam[0]);
-  FATALASSERT(nameSub < sizeof(modelNames) / sizeof(modelNames[0]));
-  blizzard->Init(pos, modelNames[nameSub], radius, kitRec->m_characterParam[1]);
-  return blizzard;
-}
-
-void __fastcall SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard) {
-  blizzard->dead = 1;
-  blizzard = 0;
+unsigned int __fastcall SpellGetRangedPrecastHoldAnim(unsigned int loadAnim) {
+  return loadAnim < s_precastAnimTransitions.Count() ? s_precastAnimTransitions[loadAnim] : INVALID_ANIMATION;
 }
 
 void SpellVisualsTick(float elapsed) {
@@ -994,4 +948,85 @@ void __fastcall SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempe
       CGWorldFrame::GetActiveCamera()->AddShake(rec->m_CameraShake[i], position);
     }
   }
+}
+
+void __fastcall SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects) {
+  if (unitPtr) {
+    TSGrowableArray<unsigned __int64> &targets =
+        *reinterpret_cast<TSGrowableArray<unsigned __int64> *>(reinterpret_cast<unsigned char *>(unitPtr) + 2492);
+    CreateLightningObj(unitPtr, targets.Ptr(), targets.Count(), spellID, kitRec, objects, numObjects);
+  }
+}
+
+void __fastcall SpellVisualClearLightning(LightningObject *lightning) {
+  lightning->deathTime = GetTickCount();
+  lightning->forever = 0;
+  lightning->DelRef();
+}
+
+BlizzardObject *__fastcall SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec) {
+  unsigned int nameSub;
+
+  BlizzardObject *blizzard = AllocBlizzard();
+
+  nameSub = NTempest::CMath::ftol_0_256_(kitRec->m_characterParam[0]);
+  FATALASSERT(nameSub < sizeof(modelNames) / sizeof(modelNames[0]));
+  blizzard->Init(pos, modelNames[nameSub], radius, kitRec->m_characterParam[1]);
+  return blizzard;
+}
+
+void __fastcall SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard) {
+  blizzard->dead = 1;
+  blizzard = 0;
+}
+
+FishingLineObject* __fastcall SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec, const unsigned __int64& gameObj, const unsigned __int64& caster) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall SpellVisualsFishingLineDestroy(FishingLineObject* object) {
+    // TODO: implement
+}
+
+void __fastcall SpellVisualFishingLineSetVisible(FishingLineObject* obj) {
+    // TODO: implement
+}
+
+void LightningObject::AddRef() {
+  ++refCount;
+}
+
+void LightningObject::DelRef() {
+  FATALASSERT(refCount > 0);
+  if (!--refCount) {
+    delete this;
+  }
+}
+
+bool __fastcall IsShapeshiftSpell(const SpellRec *rec) {
+  for (unsigned int effect = 0; effect < 3; ++effect) {
+    if (rec->m_effect[effect] == 6 && (rec->m_effectAura[effect] == 36 || rec->m_effectAura[effect] == 56)) {
+      return true;
+    }
+  }
+  return false;
+}
+void __fastcall SpellVisualsPlayKit(CGUnit_C* target, unsigned int id) {
+    // TODO: implement
+}
+
+static unsigned char GetSpellRecords(CGUnit_C* caster, int spellID, const SpellRec*& srec, SpellVisualRec& visRecData, const SpellVisualRec*& visRec, const SpellVisualKitRec*& kitRec) {
+    // TODO: implement
+    return 0;
+}
+
+const char* __fastcall GetSpellAuraEffectName(int effectID) {
+    // TODO: implement
+    return 0;
+}
+
+const char* __fastcall GetSpellAuraEffectToken(int effectID) {
+    // TODO: implement
+    return 0;
 }

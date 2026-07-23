@@ -118,6 +118,10 @@ static int __fastcall Script_ContainerIDToInventoryID(lua_State *L) {
   return 1;
 }
 
+static void __fastcall SignalBankSlotsChanged() {
+  FrameScript_SignalEvent(329);
+}
+
 static int __fastcall Script_PurchaseSlot(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
@@ -149,10 +153,6 @@ static int __fastcall Script_PickupBagFromBankSlot(lua_State *L) {
     CGBankInfo::PickupItem(slot, 1, 0);
   }
   return 0;
-}
-
-static void __fastcall SignalBankSlotsChanged() {
-  FrameScript_SignalEvent(329);
 }
 
 static int __fastcall BankUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
@@ -222,10 +222,6 @@ void __fastcall CGBankInfo::SplitItem(int slot, int split) {
   CGGameUI::LockItem(itemGUID);
 }
 
-void __fastcall CGBankInfo::CloseBank() {
-  FrameScript_SignalEvent(328);
-}
-
 void __fastcall CGBankInfo::OpenBank(const unsigned __int64 &guid) {
   OnCloseBank();
   if (guid) {
@@ -233,6 +229,10 @@ void __fastcall CGBankInfo::OpenBank(const unsigned __int64 &guid) {
     CGGameUI::SetInteractTarget(guid, MAX_SHOP_DISTANCE_SQUARED);
     FrameScript_SignalEvent(327);
   }
+}
+
+void __fastcall CGBankInfo::CloseBank() {
+  FrameScript_SignalEvent(328);
 }
 
 void __fastcall CGBankInfo::OnCloseBank() {

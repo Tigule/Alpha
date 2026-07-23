@@ -732,183 +732,6 @@ void __fastcall CWorldScene::CullChunks(CSortEntry *sortEntry) {
   }
 }
 
-void __fastcall CWorldScene::CullMapObjDefs(CSortEntry *sortEntry, NTempest::CRect &sRect) {
-  NTempest::C44Matrix mapObjM;
-  CMapObj            *mapObj;
-  CMapObjDef         *mapObjDefnext_node;
-  NTempest::C44Matrix gxWm;
-
-  CMapObjDef *mapObjDef = sortEntry->mapObjDefList.Head();
-  while (mapObjDef) {
-    mapObjDefnext_node = sortEntry->mapObjDefList.Next(mapObjDef);
-    mapObj = mapObjDef->mapObj;
-    FATALASSERT(mapObj);
-
-    if (!FrustumCull(mapObjDef->aaBox) && !ClipBufferCull(mapObjDef->aaBox, 1)) {
-      mapObjM = NTempest::C44Matrix();
-      mapObjM.Translate(-camPos);
-      gxWm = mapObjDef->mat * mapObjM;
-      GxXformSet(GxXform_World, gxWm);
-
-      CMapObj::localCamPos = camPos * mapObjDef->invMat;
-      CMapObj::SetGroupRenderCallback(CullMapObjDefGroup, mapObjDef);
-      CMapObj::curMapObjDef = mapObjDef;
-      mapObj->ExtRender(mapObjDef->mat, sRect);
-      sortEntry->mapObjDefList.UnlinkNode(mapObjDef);
-    }
-
-    mapObjDef = mapObjDefnext_node;
-  }
-}
-
-void __fastcall CWorldScene::CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<unsigned int> &inGroups) {
-  NTempest::C44Matrix mapObjM;
-  CMapObj            *mapObj;
-  NTempest::C44Matrix gxWm;
-
-  FATALASSERT(mapObjDef);
-  FATALASSERT(inGroups.Count() != 0);
-  mapObj = mapObjDef->mapObj;
-  FATALASSERT(mapObj);
-
-  mapObjM = NTempest::C44Matrix();
-  mapObjM.Translate(-camPos);
-  gxWm = mapObjDef->mat * mapObjM;
-  GxXformSet(GxXform_World, gxWm);
-
-  CMapObj::localCamPos = camPos * mapObjDef->invMat;
-  CMapObj::SetGroupRenderCallback(CullMapObjDefGroup, mapObjDef);
-  CMapObj::curMapObjDef = mapObjDef;
-  mapObj->IntRender(mapObjDef->mat, inGroups);
-  mapObjDef->sceneLink.Unlink();
-}
-
-void __fastcall CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, const void *userParam, const int rDrawSharedLiquidToggle) {
-  CMapBaseObjLink *link;
-  CMapObjDef      *mapObjDef = const_cast<CMapObjDef *>(static_cast<const CMapObjDef *>(userParam));
-  FATALASSERT(mapObjDef);
-
-  CMapObjDefGroup *mapObjDefGroup = 0;
-  for (link = mapObjDef->groupLinkList.Head(); link; link = mapObjDef->groupLinkList.Next(link)) {
-    mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
-    if (mapObjDefGroup->groupNum == groupNum) {
-      break;
-    }
-    mapObjDefGroup = 0;
-  }
-  FATALASSERT(mapObjDefGroup);
-
-  if (mapObjDefGroup->sceneLink.IsLinked()) {
-    CWFrustum *frustum = AllocFrustum();
-    memcpy(frustum, &FrustumGet(), sizeof(*frustum) - sizeof(frustum->sceneLink));
-    mapObjDefGroup->frustumList.LinkNode(frustum, LIST_TAIL, 0);
-  } else {
-    sortTable.visMapObjDefGroupList.LinkNode(mapObjDefGroup, LIST_TAIL, 0);
-    mapObjDefGroup->ambient = mapObjDef->ambient;
-    mapObjDefGroup->rDrawSharedLiquidToggle = rDrawSharedLiquidToggle;
-    FATALASSERT(mapObjDefGroup->frustumList.Head() == 0);
-    CWFrustum *frustum = AllocFrustum();
-    memcpy(frustum, &FrustumGet(), sizeof(*frustum) - sizeof(frustum->sceneLink));
-    mapObjDefGroup->frustumList.LinkNode(frustum, LIST_TAIL, 0);
-  }
-
-  if (CWorld::enables & 0x400081) {
-    CullDoodads(mapObjDefGroup->doodadDefLinkList);
-  }
-
-  link = mapObjDefGroup->entityLinkList.Head();
-  while (link) {
-    CMapEntity *entity = static_cast<CMapEntity *>(link->owner);
-    if (!entity->flagVisible) {
-      entity->camDist = camPlaneXY.DistSigned(entity->aaSphere.c) - entity->aaSphere.r;
-      if (entity->camDist <= cullDistance && !FrustumCull(entity->aaSphere.c, entity->aaSphere.r)) {
-        entity->flagVisible = 1;
-        entity->sceneLink.Unlink();
-        sortTable.visEntityList.LinkNode(entity, LIST_TAIL, 0);
-      }
-    }
-    link = mapObjDefGroup->entityLinkList.Next(link);
-  }
-}
-
-void __fastcall CWorldScene::ClipBufferClear() {
-  for (unsigned int i = 0; i < 128; ++i) {
-    clipBuffer[i] = -1.0f;
-  }
-}
-
-int __fastcall CWorldScene::ClipBufferCull(NTempest::C3Vector &center, float radius, unsigned int cullFlags) {
-  NTempest::C4Vector v(center.x, center.y, center.z, 1.0f);
-  NTempest::C4Vector vr(radius, radius, 0.0f, 0.0f);
-  if (!(CWorld::enables & CWorld::Enable_Culling) || NTempest::CMath::fabs_(radius) < 2.38418579e-7f) {
-    return 0;
-  }
-
-  v = v * mvp;
-  vr = vr * mp;
-  if (!(cullFlags & 8) && v.w < 50.0f) {
-    return 0;
-  }
-
-  float ooW = 1.0f / v.w;
-  float left = (v.x - NTempest::CMath::fabs_(vr.x)) * ooW + 1.0f;
-  float right = (v.x + NTempest::CMath::fabs_(vr.x)) * ooW + 1.0f;
-  float top = (v.y + NTempest::CMath::fabs_(vr.y)) * ooW;
-  int   first = static_cast<int>(left * 64.0f - 0.5f);
-  int   last = static_cast<int>(right * 64.0f - 0.5f) + 1;
-  if (first < 0) {
-    first = 0;
-  }
-  if (last > 127) {
-    last = 127;
-  }
-  while (first <= last && clipBuffer[first] >= top) {
-    ++first;
-  }
-  return first > last;
-}
-
-int __fastcall CWorldScene::ClipBufferCull(NTempest::CAaBox &aaBox, unsigned int cullFlags) {
-  NTempest::C3Vector  aaBoxMin = aaBox.b;
-  NTempest::C3Vector  aaBoxMax = aaBox.t;
-  NTempest::C3Vector *aaBoxMinMax[2] = {&aaBoxMin, &aaBoxMax};
-  if (!(CWorld::enables & CWorld::Enable_Culling)) {
-    return 0;
-  }
-
-  float minX = 3.4028235e38f;
-  float maxX = -3.4028235e38f;
-  float maxY = -3.4028235e38f;
-  for (unsigned int i = 0; i < 8; ++i) {
-    NTempest::C3Vector corner(aaBoxMinMax[(i >> 0) & 1]->x, aaBoxMinMax[(i >> 1) & 1]->y, aaBoxMinMax[(i >> 2) & 1]->z);
-    NTempest::C4Vector v(corner.x, corner.y, corner.z, 1.0f);
-    v = v * mvp;
-    if (!(cullFlags & 8) && v.w < 50.0f) {
-      return 0;
-    }
-    float ooW = 1.0f / v.w;
-    float x = v.x * ooW;
-    float y = v.y * ooW;
-    if (x < minX)
-      minX = x;
-    if (x > maxX)
-      maxX = x;
-    if (y > maxY)
-      maxY = y;
-  }
-
-  int first = static_cast<int>((minX + 1.0f) * 64.0f - 0.5f);
-  int last = static_cast<int>((maxX + 1.0f) * 64.0f - 0.5f) + 1;
-  if (first < 0)
-    first = 0;
-  if (last > 127)
-    last = 127;
-  while (first <= last && clipBuffer[first] >= maxY) {
-    ++first;
-  }
-  return first > last;
-}
-
 void __fastcall CWorldScene::RenderObjects() {
   CMapEntity *entity = sortTable.visEntityList.Head();
   while (entity) {
@@ -1057,6 +880,78 @@ void __fastcall CWorldScene::RenderChunks() {
 
     chunk = chunknext_node;
   }
+}
+
+int __fastcall CWorldScene::ClipBufferCull(NTempest::C3Vector &center, float radius, unsigned int cullFlags) {
+  NTempest::C4Vector v(center.x, center.y, center.z, 1.0f);
+  NTempest::C4Vector vr(radius, radius, 0.0f, 0.0f);
+  if (!(CWorld::enables & CWorld::Enable_Culling) || NTempest::CMath::fabs_(radius) < 2.38418579e-7f) {
+    return 0;
+  }
+
+  v = v * mvp;
+  vr = vr * mp;
+  if (!(cullFlags & 8) && v.w < 50.0f) {
+    return 0;
+  }
+
+  float ooW = 1.0f / v.w;
+  float left = (v.x - NTempest::CMath::fabs_(vr.x)) * ooW + 1.0f;
+  float right = (v.x + NTempest::CMath::fabs_(vr.x)) * ooW + 1.0f;
+  float top = (v.y + NTempest::CMath::fabs_(vr.y)) * ooW;
+  int   first = static_cast<int>(left * 64.0f - 0.5f);
+  int   last = static_cast<int>(right * 64.0f - 0.5f) + 1;
+  if (first < 0) {
+    first = 0;
+  }
+  if (last > 127) {
+    last = 127;
+  }
+  while (first <= last && clipBuffer[first] >= top) {
+    ++first;
+  }
+  return first > last;
+}
+
+int __fastcall CWorldScene::ClipBufferCull(NTempest::CAaBox &aaBox, unsigned int cullFlags) {
+  NTempest::C3Vector  aaBoxMin = aaBox.b;
+  NTempest::C3Vector  aaBoxMax = aaBox.t;
+  NTempest::C3Vector *aaBoxMinMax[2] = {&aaBoxMin, &aaBoxMax};
+  if (!(CWorld::enables & CWorld::Enable_Culling)) {
+    return 0;
+  }
+
+  float minX = 3.4028235e38f;
+  float maxX = -3.4028235e38f;
+  float maxY = -3.4028235e38f;
+  for (unsigned int i = 0; i < 8; ++i) {
+    NTempest::C3Vector corner(aaBoxMinMax[(i >> 0) & 1]->x, aaBoxMinMax[(i >> 1) & 1]->y, aaBoxMinMax[(i >> 2) & 1]->z);
+    NTempest::C4Vector v(corner.x, corner.y, corner.z, 1.0f);
+    v = v * mvp;
+    if (!(cullFlags & 8) && v.w < 50.0f) {
+      return 0;
+    }
+    float ooW = 1.0f / v.w;
+    float x = v.x * ooW;
+    float y = v.y * ooW;
+    if (x < minX)
+      minX = x;
+    if (x > maxX)
+      maxX = x;
+    if (y > maxY)
+      maxY = y;
+  }
+
+  int first = static_cast<int>((minX + 1.0f) * 64.0f - 0.5f);
+  int last = static_cast<int>((maxX + 1.0f) * 64.0f - 0.5f) + 1;
+  if (first < 0)
+    first = 0;
+  if (last > 127)
+    last = 127;
+  while (first <= last && clipBuffer[first] >= maxY) {
+    ++first;
+  }
+  return first > last;
 }
 
 void __fastcall CWorldScene::RenderMapObjDefGroups() {
@@ -1219,6 +1114,111 @@ void __fastcall CWorldScene::RenderMagma() {
   }
 
   GxRsPop();
+}
+
+void __fastcall CWorldScene::CullMapObjDefs(CSortEntry *sortEntry, NTempest::CRect &sRect) {
+  NTempest::C44Matrix mapObjM;
+  CMapObj            *mapObj;
+  CMapObjDef         *mapObjDefnext_node;
+  NTempest::C44Matrix gxWm;
+
+  CMapObjDef *mapObjDef = sortEntry->mapObjDefList.Head();
+  while (mapObjDef) {
+    mapObjDefnext_node = sortEntry->mapObjDefList.Next(mapObjDef);
+    mapObj = mapObjDef->mapObj;
+    FATALASSERT(mapObj);
+
+    if (!FrustumCull(mapObjDef->aaBox) && !ClipBufferCull(mapObjDef->aaBox, 1)) {
+      mapObjM = NTempest::C44Matrix();
+      mapObjM.Translate(-camPos);
+      gxWm = mapObjDef->mat * mapObjM;
+      GxXformSet(GxXform_World, gxWm);
+
+      CMapObj::localCamPos = camPos * mapObjDef->invMat;
+      CMapObj::SetGroupRenderCallback(CullMapObjDefGroup, mapObjDef);
+      CMapObj::curMapObjDef = mapObjDef;
+      mapObj->ExtRender(mapObjDef->mat, sRect);
+      sortEntry->mapObjDefList.UnlinkNode(mapObjDef);
+    }
+
+    mapObjDef = mapObjDefnext_node;
+  }
+}
+
+void __fastcall CWorldScene::CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<unsigned int> &inGroups) {
+  NTempest::C44Matrix mapObjM;
+  CMapObj            *mapObj;
+  NTempest::C44Matrix gxWm;
+
+  FATALASSERT(mapObjDef);
+  FATALASSERT(inGroups.Count() != 0);
+  mapObj = mapObjDef->mapObj;
+  FATALASSERT(mapObj);
+
+  mapObjM = NTempest::C44Matrix();
+  mapObjM.Translate(-camPos);
+  gxWm = mapObjDef->mat * mapObjM;
+  GxXformSet(GxXform_World, gxWm);
+
+  CMapObj::localCamPos = camPos * mapObjDef->invMat;
+  CMapObj::SetGroupRenderCallback(CullMapObjDefGroup, mapObjDef);
+  CMapObj::curMapObjDef = mapObjDef;
+  mapObj->IntRender(mapObjDef->mat, inGroups);
+  mapObjDef->sceneLink.Unlink();
+}
+
+void __fastcall CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, const void *userParam, const int rDrawSharedLiquidToggle) {
+  CMapBaseObjLink *link;
+  CMapObjDef      *mapObjDef = const_cast<CMapObjDef *>(static_cast<const CMapObjDef *>(userParam));
+  FATALASSERT(mapObjDef);
+
+  CMapObjDefGroup *mapObjDefGroup = 0;
+  for (link = mapObjDef->groupLinkList.Head(); link; link = mapObjDef->groupLinkList.Next(link)) {
+    mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
+    if (mapObjDefGroup->groupNum == groupNum) {
+      break;
+    }
+    mapObjDefGroup = 0;
+  }
+  FATALASSERT(mapObjDefGroup);
+
+  if (mapObjDefGroup->sceneLink.IsLinked()) {
+    CWFrustum *frustum = AllocFrustum();
+    memcpy(frustum, &FrustumGet(), sizeof(*frustum) - sizeof(frustum->sceneLink));
+    mapObjDefGroup->frustumList.LinkNode(frustum, LIST_TAIL, 0);
+  } else {
+    sortTable.visMapObjDefGroupList.LinkNode(mapObjDefGroup, LIST_TAIL, 0);
+    mapObjDefGroup->ambient = mapObjDef->ambient;
+    mapObjDefGroup->rDrawSharedLiquidToggle = rDrawSharedLiquidToggle;
+    FATALASSERT(mapObjDefGroup->frustumList.Head() == 0);
+    CWFrustum *frustum = AllocFrustum();
+    memcpy(frustum, &FrustumGet(), sizeof(*frustum) - sizeof(frustum->sceneLink));
+    mapObjDefGroup->frustumList.LinkNode(frustum, LIST_TAIL, 0);
+  }
+
+  if (CWorld::enables & 0x400081) {
+    CullDoodads(mapObjDefGroup->doodadDefLinkList);
+  }
+
+  link = mapObjDefGroup->entityLinkList.Head();
+  while (link) {
+    CMapEntity *entity = static_cast<CMapEntity *>(link->owner);
+    if (!entity->flagVisible) {
+      entity->camDist = camPlaneXY.DistSigned(entity->aaSphere.c) - entity->aaSphere.r;
+      if (entity->camDist <= cullDistance && !FrustumCull(entity->aaSphere.c, entity->aaSphere.r)) {
+        entity->flagVisible = 1;
+        entity->sceneLink.Unlink();
+        sortTable.visEntityList.LinkNode(entity, LIST_TAIL, 0);
+      }
+    }
+    link = mapObjDefGroup->entityLinkList.Next(link);
+  }
+}
+
+void __fastcall CWorldScene::ClipBufferClear() {
+  for (unsigned int i = 0; i < 128; ++i) {
+    clipBuffer[i] = -1.0f;
+  }
 }
 
 CWFrustum::CWFrustum() {

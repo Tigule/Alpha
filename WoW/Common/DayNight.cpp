@@ -90,63 +90,37 @@ static void ValueTableInit() {
   }
 }
 
-DNClouds::DNClouds() {
-  ValueTableInit();
-  m_texid = 0;
-  m_nOctaves = 4;
-}
-
-void DNSky::GenSphere(float sphRadius) {
-  m_sphThetaTess = 16;
-  m_geoVerts.SetCount(112);
-  m_clrVerts.SetCount(112);
-  m_indices.SetCount(204);
-
-  NTempest::C3Vector *newVert = m_geoVerts.Ptr();
-  unsigned short     *newIndex = m_indices.Ptr();
-  float               prevPhi = 0.0f;
-  int                 prevRowIdx = 0;
-  for (int phiStep = 0; phiStep < SKY_NUMBANDS; ++phiStep) {
-    float phi = PI * m_stripSizes[phiStep];
-    float cosPhi = static_cast<float>(cos(phi));
-    float sinPhi = static_cast<float>(sin(phi));
-    int   thisRowIdx = static_cast<int>(newVert - m_geoVerts.Ptr());
-
-    for (int thetaStep = 0; thetaStep < m_sphThetaTess; ++thetaStep) {
-      float theta = thetaStep * (1.0f / m_sphThetaTess) * PI * 2.0f;
-      newVert->x = static_cast<float>(sin(theta)) * sinPhi * sphRadius;
-      newVert->y = static_cast<float>(cos(theta)) * sinPhi * sphRadius;
-      newVert->z = cosPhi * sphRadius;
-      ++newVert;
-      if (NTempest::CMath::fabs_(phi) < 0.00000095367432f || NTempest::CMath::fabs_(phi - PI) < 0.00000095367432f) {
-        break;
-      }
-    }
-
-    if (phiStep > 0) {
-      for (int thetaStep = 0; thetaStep <= m_sphThetaTess; ++thetaStep) {
-        unsigned short prev = NTempest::CMath::fabs_(prevPhi) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess);
-        unsigned short current = NTempest::CMath::fabs_(phi - PI) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess);
-        *newIndex++ = static_cast<unsigned short>(prevRowIdx + prev);
-        *newIndex++ = static_cast<unsigned short>(thisRowIdx + current);
-      }
-    }
-
-    prevRowIdx = thisRowIdx;
-    prevPhi = phi;
-  }
-
-  m_nVerts = static_cast<unsigned short>(newVert - m_geoVerts.Ptr());
-  m_nIndices = 204;
-  m_sphRadius = sphRadius;
-}
-
 static inline float __fastcall Interp(float range1, float range2, float percent) {
   if (range2 < range1) {
     return range1 - (range1 - range2) * percent;
   }
 
   return (range2 - range1) * percent + range1;
+}
+
+class LightQE {
+ public:
+  LightQE() {
+  }
+
+  LightQE(float pDist, int pSubscript) : dist(pDist), subscript(pSubscript) {
+  }
+
+  static unsigned int HasHigherPriority(LightQE &a, LightQE &b) {
+    return a.dist >= b.dist;
+  }
+
+  float dist;
+  int   subscript;
+};
+
+static NTempest::CImVector BlendColor(NTempest::CImVector from, NTempest::CImVector to, float scale) {
+  NTempest::CImVector color;
+  color.Set(
+      static_cast<unsigned char>(Interp(from.a, to.a, scale)), static_cast<unsigned char>(Interp(from.r, to.r, scale)),
+      static_cast<unsigned char>(Interp(from.g, to.g, scale)), static_cast<unsigned char>(Interp(from.b, to.b, scale))
+  );
+  return color;
 }
 
 static float __fastcall InterpTable(NTempest::C2Vector *table, unsigned long size, float key) {
@@ -178,46 +152,6 @@ static float __fastcall InterpTable(NTempest::C2Vector *table, unsigned long siz
   }
 
   return Interp(table[previous].y, table[next].y, position / range);
-}
-
-class LightQE {
- public:
-  LightQE() {
-  }
-
-  LightQE(float pDist, int pSubscript) : dist(pDist), subscript(pSubscript) {
-  }
-
-  static unsigned int HasHigherPriority(LightQE &a, LightQE &b) {
-    return a.dist >= b.dist;
-  }
-
-  float dist;
-  int   subscript;
-};
-
-static NTempest::CImVector BlendColor(NTempest::CImVector from, NTempest::CImVector to, float scale) {
-  NTempest::CImVector color;
-  color.Set(
-      static_cast<unsigned char>(Interp(from.a, to.a, scale)), static_cast<unsigned char>(Interp(from.r, to.r, scale)),
-      static_cast<unsigned char>(Interp(from.g, to.g, scale)), static_cast<unsigned char>(Interp(from.b, to.b, scale))
-  );
-  return color;
-}
-
-static void BlendRGB255(NTempest::CImVector &from, NTempest::CImVector to, unsigned int amount) {
-  if (!amount) {
-    return;
-  }
-  if (amount == 255) {
-    from.r = to.r;
-    from.g = to.g;
-    from.b = to.b;
-    return;
-  }
-  from.r = static_cast<unsigned char>(from.r + ((amount * (to.r - from.r)) >> 8));
-  from.g = static_cast<unsigned char>(from.g + ((amount * (to.g - from.g)) >> 8));
-  from.b = static_cast<unsigned char>(from.b + ((amount * (to.b - from.b)) >> 8));
 }
 
 static void ScaleOutputs(CurrentLight &globalLight, CurrentLight &areaLight, float scale) {
@@ -279,6 +213,21 @@ static void DoAreaLights(int underWater) {
   }
 }
 
+static void BlendRGB255(NTempest::CImVector &from, NTempest::CImVector to, unsigned int amount) {
+  if (!amount) {
+    return;
+  }
+  if (amount == 255) {
+    from.r = to.r;
+    from.g = to.g;
+    from.b = to.b;
+    return;
+  }
+  from.r = static_cast<unsigned char>(from.r + ((amount * (to.r - from.r)) >> 8));
+  from.g = static_cast<unsigned char>(from.g + ((amount * (to.g - from.g)) >> 8));
+  from.b = static_cast<unsigned char>(from.b + ((amount * (to.b - from.b)) >> 8));
+}
+
 static void ResetLightPos() {
   NTempest::C2Vector offset(0.0f, 0.0f);
   if (!CMap::bDungeon) {
@@ -325,51 +274,6 @@ static NTempest::CImVector DarkenColor(NTempest::CImVector clr, float amount) {
       clr.a, static_cast<unsigned char>(NTempest::CMath::fuint_n(rgb.x * 255.0f)),
       static_cast<unsigned char>(NTempest::CMath::fuint_n(rgb.y * 255.0f)), static_cast<unsigned char>(NTempest::CMath::fuint_n(rgb.z * 255.0f))
   );
-}
-
-void DNSky::SetColors() {
-  NTempest::CImVector midColors[6];
-  float               darkness = InterpTable(const_cast<NTempest::C2Vector *>(m_darkTable), 7, s_dnInfo.dayProgression) * s_dnInfo.light.Darkness;
-
-  for (unsigned int i = 0; i < 5; ++i) {
-    midColors[i + 1] = BlendColor(s_dnInfo.light.SkyArray[i + 1], s_dnInfo.light.SkyArray[0], darkness);
-  }
-
-  NTempest::CImVector *color = m_clrVerts.Ptr();
-  *color++ = DarkenColor(s_dnInfo.light.SkyArray[0], 1.0f);
-
-  for (unsigned int band = 1; band <= 4; ++band) {
-    float angle = s_dnInfo.faceAngle * 0.15915494f + 0.25f;
-    if (angle > 1.0f) {
-      angle -= 1.0f;
-    }
-    float angleDelta = -1.0f / m_sphThetaTess;
-
-    for (int theta = 0; theta < m_sphThetaTess; ++theta) {
-      if (angle < 0.0f) {
-        angle += 1.0f;
-      }
-      float               fade = InterpTable(const_cast<NTempest::C2Vector *>(m_fadeTable), 6, angle);
-      NTempest::CImVector bandColor;
-      if (fade >= 0.0f) {
-        bandColor = BlendColor(midColors[band], s_dnInfo.light.SkyArray[band], (1.0f - fade) * darkness);
-      } else {
-        NTempest::CImVector botColor = BlendColor(midColors[band], s_dnInfo.light.SkyArray[0], darkness * 0.69999999f);
-        bandColor = BlendColor(midColors[band], botColor, -fade * darkness);
-      }
-      BlendRGB255(bandColor, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
-      *color++ = bandColor;
-      angle += angleDelta;
-    }
-  }
-
-  NTempest::CImVector botColor = s_dnInfo.light.SkyArray[5];
-  BlendRGB255(botColor, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
-  for (int theta = 0; theta < m_sphThetaTess; ++theta) {
-    *color++ = botColor;
-  }
-  *color = s_dnInfo.light.SkyArray[5];
-  BlendRGB255(*color, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
 }
 
 static void SetLightColors() {
@@ -436,66 +340,49 @@ static void SetFogColors() {
   BlendRGB255(s_dnInfo.intFogInfo.color, fog.color, NTempest::CMath::fuint_n(pct * 255.0f));
 }
 
-static void SetColors() {
-  unsigned int camLiquid = CWorld::SceneCamLiquidStatus();
-  int          underWater = (camLiquid & 0xF) == 0 || (camLiquid & 0xF) == 1;
+void DNSky::SetColors() {
+  NTempest::CImVector midColors[6];
+  float               darkness = InterpTable(const_cast<NTempest::C2Vector *>(m_darkTable), 7, s_dnInfo.dayProgression) * s_dnInfo.light.Darkness;
 
-  if (g_areaLights.m_lightData.Count()) {
-    if (camLiquid == 15 || underWater) {
-      LightData     &global = g_areaLights.m_lightData[0];
-      LightDataItem *lightdata;
-      LightDataItem *stormdata;
-      if (underWater) {
-        lightdata = &global.m_lightdataWater;
-        stormdata = &global.m_stormdataWater;
-      } else {
-        lightdata = &global.m_lightdata;
-        stormdata = &global.m_stormdata;
+  for (unsigned int i = 0; i < 5; ++i) {
+    midColors[i + 1] = BlendColor(s_dnInfo.light.SkyArray[i + 1], s_dnInfo.light.SkyArray[0], darkness);
+  }
+
+  NTempest::CImVector *color = m_clrVerts.Ptr();
+  *color++ = DarkenColor(s_dnInfo.light.SkyArray[0], 1.0f);
+
+  for (unsigned int band = 1; band <= 4; ++band) {
+    float angle = s_dnInfo.faceAngle * 0.15915494f + 0.25f;
+    if (angle > 1.0f) {
+      angle -= 1.0f;
+    }
+    float angleDelta = -1.0f / m_sphThetaTess;
+
+    for (int theta = 0; theta < m_sphThetaTess; ++theta) {
+      if (angle < 0.0f) {
+        angle += 1.0f;
       }
-      CalcLightColors(
-          static_cast<int>(s_dnInfo.dayProgression * 2880.0f), &s_dnInfo.light, lightdata, stormdata,
-          static_cast<int>(s_dnInfo.stormPercentage * 100.0f)
-      );
-      DoAreaLights(underWater);
-    } else if ((camLiquid & 0xF) == 2) {
-      s_dnInfo.light = s_magmaLight;
-    } else if ((camLiquid & 0xF) == 3) {
-      s_dnInfo.light = s_slimeLight;
+      float               fade = InterpTable(const_cast<NTempest::C2Vector *>(m_fadeTable), 6, angle);
+      NTempest::CImVector bandColor;
+      if (fade >= 0.0f) {
+        bandColor = BlendColor(midColors[band], s_dnInfo.light.SkyArray[band], (1.0f - fade) * darkness);
+      } else {
+        NTempest::CImVector botColor = BlendColor(midColors[band], s_dnInfo.light.SkyArray[0], darkness * 0.69999999f);
+        bandColor = BlendColor(midColors[band], botColor, -fade * darkness);
+      }
+      BlendRGB255(bandColor, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
+      *color++ = bandColor;
+      angle += angleDelta;
     }
-  } else {
-    memset(&s_dnInfo.light, 0xFF, sizeof(s_dnInfo.light));
-    s_dnInfo.light.FogEnd = 10000000000.0f;
-    s_dnInfo.light.FogStartScalar = 0.5f;
   }
 
-  SetLightColors();
-  SetFogColors();
-  if (underWater) {
-    float darken = 1.0f;
-    if (camLiquid == 1) {
-      float z = s_dnInfo.playerPos.z < -30.0f ? -30.0f : s_dnInfo.playerPos.z;
-      darken = 1.0f + z / 30.0f;
-    }
-    float ambientDarken = (darken + 1.0f) * 0.5f;
-    s_dnInfo.fogInfo.color = DarkenColor(s_dnInfo.fogInfo.color, ambientDarken);
-    s_dnInfo.lightInfo.ambColor = DarkenColor(s_dnInfo.lightInfo.ambColor, ambientDarken);
-    s_dnInfo.lightInfo.dirColor = DarkenColor(s_dnInfo.lightInfo.dirColor, darken * 0.25f + 0.75f);
+  NTempest::CImVector botColor = s_dnInfo.light.SkyArray[5];
+  BlendRGB255(botColor, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
+  for (int theta = 0; theta < m_sphThetaTess; ++theta) {
+    *color++ = botColor;
   }
-
-  s_sky.SetColors();
-  s_planets[0].m_color = s_dnInfo.light.SkyArray[5];
-  s_sunGlare.m_color = s_dnInfo.light.SkyArray[5];
-  s_planets[1].m_color = s_dnInfo.light.SkyArray[5];
-  s_moonGlare.m_color = s_dnInfo.light.SkyArray[5];
-  if (s_dnInfo.eclipseAmount) {
-    BlendRGB255(s_dnInfo.fogInfo.color, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
-    BlendRGB255(s_dnInfo.lightInfo.ambColor, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
-    BlendRGB255(s_dnInfo.lightInfo.dirColor, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
-    BlendRGB255(s_planets[0].m_color, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
-    BlendRGB255(s_planets[1].m_color, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
-  }
-  s_dnInfo.sidn = DayNightSI(0.0f);
-  s_dnInfo.unitSelect = DayNightUnitSelectColor();
+  *color = s_dnInfo.light.SkyArray[5];
+  BlendRGB255(*color, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
 }
 
 static void SetDirection() {
@@ -593,203 +480,70 @@ static void SetPlanets() {
   }
 }
 
-void DNGlare::Update(float elapsedSec) {
-  m_targetOpacity = 1.0f;
+static void SetColors() {
+  unsigned int camLiquid = CWorld::SceneCamLiquidStatus();
+  int          underWater = (camLiquid & 0xF) == 0 || (camLiquid & 0xF) == 1;
 
-  NTempest::C3Vector glareDir = m_pos - s_dnInfo.playerPos;
-  glareDir.Normalize();
-
-  m_targetOpacity *= GetCloudDensityFade();
-  m_targetOpacity *= InterpTable(m_fadeTable, 4, s_dnInfo.dayProgression);
-  if (m_targetOpacity != 0.0f && !IsVisible()) {
-    m_targetOpacity = 0.0f;
-  }
-
-  if (m_targetOpacity > m_opacity) {
-    m_opacity += elapsedSec * m_fadeRate;
-    if (m_opacity > m_targetOpacity) {
-      m_opacity = m_targetOpacity;
+  if (g_areaLights.m_lightData.Count()) {
+    if (camLiquid == 15 || underWater) {
+      LightData     &global = g_areaLights.m_lightData[0];
+      LightDataItem *lightdata;
+      LightDataItem *stormdata;
+      if (underWater) {
+        lightdata = &global.m_lightdataWater;
+        stormdata = &global.m_stormdataWater;
+      } else {
+        lightdata = &global.m_lightdata;
+        stormdata = &global.m_stormdata;
+      }
+      CalcLightColors(
+          static_cast<int>(s_dnInfo.dayProgression * 2880.0f), &s_dnInfo.light, lightdata, stormdata,
+          static_cast<int>(s_dnInfo.stormPercentage * 100.0f)
+      );
+      DoAreaLights(underWater);
+    } else if ((camLiquid & 0xF) == 2) {
+      s_dnInfo.light = s_magmaLight;
+    } else if ((camLiquid & 0xF) == 3) {
+      s_dnInfo.light = s_slimeLight;
     }
-  } else if (m_targetOpacity < m_opacity) {
-    m_opacity -= elapsedSec * m_fadeRate;
-    if (m_opacity < m_targetOpacity) {
-      m_opacity = m_targetOpacity;
-    }
+  } else {
+    memset(&s_dnInfo.light, 0xFF, sizeof(s_dnInfo.light));
+    s_dnInfo.light.FogEnd = 10000000000.0f;
+    s_dnInfo.light.FogStartScalar = 0.5f;
   }
 
-  float dot = NTempest::C3Vector::Dot(s_dnInfo.cameraDir, glareDir);
-  if (dot < m_dotMin) {
-    dot = m_dotMin;
+  SetLightColors();
+  SetFogColors();
+  if (underWater) {
+    float darken = 1.0f;
+    if (camLiquid == 1) {
+      float z = s_dnInfo.playerPos.z < -30.0f ? -30.0f : s_dnInfo.playerPos.z;
+      darken = 1.0f + z / 30.0f;
+    }
+    float ambientDarken = (darken + 1.0f) * 0.5f;
+    s_dnInfo.fogInfo.color = DarkenColor(s_dnInfo.fogInfo.color, ambientDarken);
+    s_dnInfo.lightInfo.ambColor = DarkenColor(s_dnInfo.lightInfo.ambColor, ambientDarken);
+    s_dnInfo.lightInfo.dirColor = DarkenColor(s_dnInfo.lightInfo.dirColor, darken * 0.25f + 0.75f);
   }
-  float pct = (dot - m_dotMin) / (1.0f - m_dotMin);
-  m_curScale = ((m_scaleMax - m_scaleMin) * pct + m_scaleMin) * m_baseScale * s_dnInfo.sunMoonPath;
-  m_color.a = static_cast<unsigned char>(((m_alphaMax - m_alphaMin) * pct + m_alphaMin) * m_opacity * 255.0f);
+
+  s_sky.SetColors();
+  s_planets[0].m_color = s_dnInfo.light.SkyArray[5];
+  s_sunGlare.m_color = s_dnInfo.light.SkyArray[5];
+  s_planets[1].m_color = s_dnInfo.light.SkyArray[5];
+  s_moonGlare.m_color = s_dnInfo.light.SkyArray[5];
+  if (s_dnInfo.eclipseAmount) {
+    BlendRGB255(s_dnInfo.fogInfo.color, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
+    BlendRGB255(s_dnInfo.lightInfo.ambColor, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
+    BlendRGB255(s_dnInfo.lightInfo.dirColor, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
+    BlendRGB255(s_planets[0].m_color, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
+    BlendRGB255(s_planets[1].m_color, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
+  }
+  s_dnInfo.sidn = DayNightSI(0.0f);
+  s_dnInfo.unitSelect = DayNightUnitSelectColor();
 }
 
 float DNSunGlare::GetCloudDensityFade() {
   return 1.0f - s_clouds.GetDensity(m_pos, 1.0f);
-}
-
-float DNMoonGlare::GetCloudDensityFade() {
-  float density = s_clouds.GetDensity(m_pos, 1.0f);
-  return 1.0f - fabs((density - 0.5f) + (density - 0.5f));
-}
-
-void DNSky::GenTexture(unsigned int w, unsigned int h, NTempest::CImVector *texels) {
-  unsigned int         halfh = h >> 1;
-  float                halfhFloat = static_cast<float>(halfh);
-  NTempest::CImVector *texptr = texels;
-
-  {
-    for (unsigned int i = 0; i < 5; ++i) {
-      unsigned int startY = static_cast<unsigned int>((m_stripSizes[i] + m_stripSizes[i]) * halfhFloat);
-      unsigned int endY = static_cast<unsigned int>((m_stripSizes[i + 1] + m_stripSizes[i + 1]) * halfhFloat);
-      float        blend = 0.0f;
-      unsigned int next = i + 1;
-      float        delta = 1.0f / (endY - startY + 1);
-
-      if (i == 4) {
-        next = 4;
-      }
-
-      for (unsigned int y = startY; y < endY; ++y) {
-        unsigned char       b = static_cast<unsigned char>(NTempest::CMath::fint_mi(
-            Interp(static_cast<float>(s_dnInfo.light.SkyArray[i].b), static_cast<float>(s_dnInfo.light.SkyArray[next].b), blend)
-        ));
-        unsigned char       g = static_cast<unsigned char>(NTempest::CMath::fint_mi(
-            Interp(static_cast<float>(s_dnInfo.light.SkyArray[i].g), static_cast<float>(s_dnInfo.light.SkyArray[next].g), blend)
-        ));
-        unsigned char       r = static_cast<unsigned char>(NTempest::CMath::fint_mi(
-            Interp(static_cast<float>(s_dnInfo.light.SkyArray[i].r), static_cast<float>(s_dnInfo.light.SkyArray[next].r), blend)
-        ));
-        NTempest::CImVector clr;
-
-        clr.Set(0xFF, r, g, b);
-        for (unsigned int x = 0; x < w; ++x) {
-          texptr[x] = clr;
-        }
-
-        texptr += w;
-        blend += delta;
-      }
-    }
-  }
-
-  NTempest::CImVector *src = texptr - w;
-  {
-    for (unsigned int mirrorY = 0; mirrorY < halfh; ++mirrorY) {
-      for (unsigned int mirrorX = 0; mirrorX < w; ++mirrorX) {
-        texptr[mirrorX] = src[mirrorX];
-      }
-
-      texptr += w;
-      src -= w;
-    }
-  }
-}
-
-DNInfo *__fastcall DayNightGetInfo() {
-  return &s_dnInfo;
-}
-
-void DNPlanet::GenGeometry(
-    NTempest::C3Vector  *geov,
-    NTempest::C2Vector  *texv,
-    NTempest::CImVector *clrv,
-    unsigned short      *idx,
-    unsigned long       &vertCount,
-    unsigned long       &idxCount
-) {
-  static const NTempest::C3Vector s_geov[6] = {NTempest::C3Vector(0.0f, -0.5f, 0.5f),   NTempest::C3Vector(0.0f, 0.5f, 0.5f),
-                                               NTempest::C3Vector(0.0f, -0.5f, -0.5f),  NTempest::C3Vector(0.0f, 0.5f, -0.5f),
-                                               NTempest::C3Vector(0.0f, -0.5f, 100.0f), NTempest::C3Vector(0.0f, 0.5f, 100.0f)};
-  static const NTempest::C2Vector s_texv[6] = {NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(0.0f, 1.0f),   NTempest::C2Vector(1.0f, 0.0f),
-                                               NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(100.0f, 0.0f), NTempest::C2Vector(100.0f, 1.0f)};
-
-  for (unsigned int i = 0; i < 6; ++i) {
-    geov[i] = s_geov[i] * m_period;
-    texv[i] = s_texv[i];
-    clrv[i] = m_color;
-  }
-
-  idx[0] = 0;
-  idx[1] = 2;
-  idx[2] = 1;
-  idx[3] = 3;
-  idxCount = 4;
-  vertCount = 0;
-
-  float localZ = m_pos.z - DayNightGetInfo()->playerPos.z;
-  float clip1 = localZ + geov[0].z;
-  float clip2 = localZ + geov[2].z;
-  if (clip1 > 0.0f || clip2 > 0.0f) {
-    if (clip1 <= 0.0f || clip2 <= 0.0f) {
-      vertCount = 4;
-      float clipt = clip1 / (clip1 - clip2);
-      geov[2].z = geov[3].z = geov[0].z + (geov[2].z - geov[0].z) * clipt;
-      texv[2].y = texv[3].y = clipt;
-    } else {
-      vertCount = 4;
-    }
-
-    float fadeBegin = DayNightGetInfo()->farClip * 0.4f;
-    float fade1 = clip1 - fadeBegin;
-    float fade2 = clip2 - fadeBegin;
-    if (fade1 > 0.001f && fade2 < 0.001f) {
-      vertCount = 6;
-      idxCount = 8;
-      const unsigned short fadeIdx[8] = {0, 4, 1, 5, 5, 3, 4, 2};
-      memcpy(idx, fadeIdx, sizeof(fadeIdx));
-      float clipt = fade1 / (fade1 - fade2);
-      geov[4].z = geov[5].z = geov[0].z + (geov[2].z - geov[0].z) * clipt;
-      texv[4].y = texv[5].y = texv[0].y + (texv[2].y - texv[0].y) * clipt;
-    }
-
-    for (unsigned int i = 0; i < vertCount; ++i) {
-      float fade = localZ + geov[i].z - fadeBegin;
-      if (fade < 0.001f) {
-        clrv[i].a = static_cast<unsigned char>((fadeBegin - -fade) / fadeBegin * 255.0f);
-      }
-    }
-  }
-}
-
-void __fastcall DayNightRenderGlares() {
-  if (s_initialized) {
-    s_sunGlare.Render();
-    s_moonGlare.Render();
-  }
-}
-
-void __fastcall DayNightRenderSky() {
-  if (s_initialized) {
-    if (CWorld::SceneCamLiquidStatus() == 15) {
-      GxSceneSetClearColor(NTempest::CImVector(0xFF000000));
-      if (!GxMasterEnable(GxMasterEnable_ClearOnPresent)) {
-        GxSceneClear(3);
-      }
-
-      s_sky.Render();
-      s_stars.Render();
-      for (unsigned int i = 0; i < 3; ++i) {
-        s_planets[i].Render();
-      }
-      s_clouds.Render();
-    } else {
-      GxSceneSetClearColor(s_dnInfo.fogInfo.color);
-      GxSceneClear(3);
-    }
-  } else {
-    GxSceneSetClearColor(NTempest::CImVector(0xFF000000));
-    GxSceneClear(3);
-  }
-}
-
-void __fastcall DayNightSetEclipse(NTempest::CImVector color, float amount) {
-  FATALASSERT(amount >= 0.0f && amount <= 1.0f);
-
-  s_dnInfo.eclipseColor = color;
-  s_dnInfo.eclipseAmount = static_cast<unsigned char>(NTempest::CMath::fuint_n(amount * 255.0f));
 }
 
 void DNClouds::WorldToTexture(NTempest::C3Vector &worldPt, NTempest::C2Vector &tex) {
@@ -851,6 +605,11 @@ float DNClouds::GetDensity(NTempest::C3Vector &worldPoint, float area) {
   WorldToTexture(worldPoint, texv);
   unsigned int index = static_cast<unsigned int>(texv.x) + (static_cast<unsigned int>(texv.y) << m_tmShift);
   return static_cast<float>(m_height[index]) * 0.0039215689f;
+}
+
+float DNMoonGlare::GetCloudDensityFade() {
+  float density = s_clouds.GetDensity(m_pos, 1.0f);
+  return 1.0f - fabs((density - 0.5f) + (density - 0.5f));
 }
 
 void DNClouds::BumpMap() {
@@ -927,6 +686,163 @@ void DNClouds::FullUpdate() {
   m_updateSize = m_tmSize;
   Update();
   m_updateSize = updateSize;
+}
+
+void DNGlare::Update(float elapsedSec) {
+  m_targetOpacity = 1.0f;
+
+  NTempest::C3Vector glareDir = m_pos - s_dnInfo.playerPos;
+  glareDir.Normalize();
+
+  m_targetOpacity *= GetCloudDensityFade();
+  m_targetOpacity *= InterpTable(m_fadeTable, 4, s_dnInfo.dayProgression);
+  if (m_targetOpacity != 0.0f && !IsVisible()) {
+    m_targetOpacity = 0.0f;
+  }
+
+  if (m_targetOpacity > m_opacity) {
+    m_opacity += elapsedSec * m_fadeRate;
+    if (m_opacity > m_targetOpacity) {
+      m_opacity = m_targetOpacity;
+    }
+  } else if (m_targetOpacity < m_opacity) {
+    m_opacity -= elapsedSec * m_fadeRate;
+    if (m_opacity < m_targetOpacity) {
+      m_opacity = m_targetOpacity;
+    }
+  }
+
+  float dot = NTempest::C3Vector::Dot(s_dnInfo.cameraDir, glareDir);
+  if (dot < m_dotMin) {
+    dot = m_dotMin;
+  }
+  float pct = (dot - m_dotMin) / (1.0f - m_dotMin);
+  m_curScale = ((m_scaleMax - m_scaleMin) * pct + m_scaleMin) * m_baseScale * s_dnInfo.sunMoonPath;
+  m_color.a = static_cast<unsigned char>(((m_alphaMax - m_alphaMin) * pct + m_alphaMin) * m_opacity * 255.0f);
+}
+
+void DNSky::GenSphere(float sphRadius) {
+  m_sphThetaTess = 16;
+  m_geoVerts.SetCount(112);
+  m_clrVerts.SetCount(112);
+  m_indices.SetCount(204);
+
+  NTempest::C3Vector *newVert = m_geoVerts.Ptr();
+  unsigned short     *newIndex = m_indices.Ptr();
+  float               prevPhi = 0.0f;
+  int                 prevRowIdx = 0;
+  for (int phiStep = 0; phiStep < SKY_NUMBANDS; ++phiStep) {
+    float phi = PI * m_stripSizes[phiStep];
+    float cosPhi = static_cast<float>(cos(phi));
+    float sinPhi = static_cast<float>(sin(phi));
+    int   thisRowIdx = static_cast<int>(newVert - m_geoVerts.Ptr());
+
+    for (int thetaStep = 0; thetaStep < m_sphThetaTess; ++thetaStep) {
+      float theta = thetaStep * (1.0f / m_sphThetaTess) * PI * 2.0f;
+      newVert->x = static_cast<float>(sin(theta)) * sinPhi * sphRadius;
+      newVert->y = static_cast<float>(cos(theta)) * sinPhi * sphRadius;
+      newVert->z = cosPhi * sphRadius;
+      ++newVert;
+      if (NTempest::CMath::fabs_(phi) < 0.00000095367432f || NTempest::CMath::fabs_(phi - PI) < 0.00000095367432f) {
+        break;
+      }
+    }
+
+    if (phiStep > 0) {
+      for (int thetaStep = 0; thetaStep <= m_sphThetaTess; ++thetaStep) {
+        unsigned short prev = NTempest::CMath::fabs_(prevPhi) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess);
+        unsigned short current = NTempest::CMath::fabs_(phi - PI) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess);
+        *newIndex++ = static_cast<unsigned short>(prevRowIdx + prev);
+        *newIndex++ = static_cast<unsigned short>(thisRowIdx + current);
+      }
+    }
+
+    prevRowIdx = thisRowIdx;
+    prevPhi = phi;
+  }
+
+  m_nVerts = static_cast<unsigned short>(newVert - m_geoVerts.Ptr());
+  m_nIndices = 204;
+  m_sphRadius = sphRadius;
+}
+
+void __fastcall DNClouds::Callback_GxTex(
+    EGxTexCommand cmd,
+    unsigned int  w,
+    unsigned int  h,
+    unsigned int  d,
+    unsigned int  mipLevel,
+    void         *userArg,
+    unsigned int &texelStrideInBytes,
+    const void  *&gxTexels
+) {
+  if (cmd == GxTex_Latch && mipLevel == 0) {
+    DNClouds *clouds = static_cast<DNClouds *>(userArg);
+    texelStrideInBytes = w * sizeof(NTempest::CImVector);
+    gxTexels = clouds->m_texels.Ptr();
+  }
+}
+
+void DNClouds::Destroy() {
+  GxTexDestroy(m_texid);
+  m_texid = 0;
+}
+
+void DNClouds::OverrideDensitySharpness(float newDensity, float newSharpness) {
+  m_densityOverride = newDensity;
+  SetDensity(newDensity);
+}
+
+void DNClouds::SetSharpness(float newSharpness) {
+  float cldelta = static_cast<float>(255 - static_cast<unsigned char>(m_density)) / 256.0f;
+  float clval = 0.0f;
+  m_sharpness = newSharpness;
+  for (unsigned int i = 0; i < 256; ++i) {
+    cloudTable[i] = static_cast<unsigned char>(255.0f - pow(m_sharpness, clval) * 255.0f);
+    clval += cldelta;
+  }
+}
+
+void DNClouds::SetDensity(float newDensity) {
+  if (m_densityOverride != 0.0f) {
+    newDensity = m_densityOverride;
+  }
+  m_density = static_cast<unsigned char>((1.0f - newDensity) * 255.0f);
+}
+
+void DNClouds::SetLOD(unsigned long newlod, unsigned long newUpdateSize) {
+  if (m_texid) {
+    GxTexDestroy(m_texid);
+    m_texid = 0;
+    m_texels.SetCount(0);
+    m_height.SetCount(0);
+    m_noise.SetCount(0);
+    m_lastBumpNoiseY.SetCount(0);
+    m_bump.SetCount(0);
+  }
+
+  m_lod = newlod;
+  m_tmSize = m_tmSizeTable[newlod];
+  m_updateSize = newUpdateSize ? newUpdateSize : 32;
+  m_wrapMask = m_tmSize - 1;
+  m_tmShift = m_tmShiftTable[newlod];
+  unsigned long texelCount = m_tmSize * m_tmSize;
+  m_texels.SetCount(texelCount);
+  m_height.SetCount(texelCount);
+  m_noise.SetCount(texelCount);
+  m_lastBumpNoiseY.SetCount(m_tmSize);
+  m_bump.SetCount(texelCount);
+
+  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
+  GxTexCreate(m_tmSize, m_tmSize, GxTex_Argb8888, flags, this, Callback_GxTex, m_texid);
+  m_updateRow = 0;
+  m_lastTime = 0;
+}
+
+DNClouds::DNClouds() {
+  ValueTableInit();
+  m_texid = 0;
+  m_nOctaves = 4;
 }
 
 void DNClouds::Update() {
@@ -1106,82 +1022,119 @@ void DNClouds::GenSphere(float size) {
   m_nIndices = 102;
 }
 
-void __fastcall DNClouds::Callback_GxTex(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&gxTexels
+void DNSky::GenTexture(unsigned int w, unsigned int h, NTempest::CImVector *texels) {
+  unsigned int         halfh = h >> 1;
+  float                halfhFloat = static_cast<float>(halfh);
+  NTempest::CImVector *texptr = texels;
+
+  {
+    for (unsigned int i = 0; i < 5; ++i) {
+      unsigned int startY = static_cast<unsigned int>((m_stripSizes[i] + m_stripSizes[i]) * halfhFloat);
+      unsigned int endY = static_cast<unsigned int>((m_stripSizes[i + 1] + m_stripSizes[i + 1]) * halfhFloat);
+      float        blend = 0.0f;
+      unsigned int next = i + 1;
+      float        delta = 1.0f / (endY - startY + 1);
+
+      if (i == 4) {
+        next = 4;
+      }
+
+      for (unsigned int y = startY; y < endY; ++y) {
+        unsigned char       b = static_cast<unsigned char>(NTempest::CMath::fint_mi(
+            Interp(static_cast<float>(s_dnInfo.light.SkyArray[i].b), static_cast<float>(s_dnInfo.light.SkyArray[next].b), blend)
+        ));
+        unsigned char       g = static_cast<unsigned char>(NTempest::CMath::fint_mi(
+            Interp(static_cast<float>(s_dnInfo.light.SkyArray[i].g), static_cast<float>(s_dnInfo.light.SkyArray[next].g), blend)
+        ));
+        unsigned char       r = static_cast<unsigned char>(NTempest::CMath::fint_mi(
+            Interp(static_cast<float>(s_dnInfo.light.SkyArray[i].r), static_cast<float>(s_dnInfo.light.SkyArray[next].r), blend)
+        ));
+        NTempest::CImVector clr;
+
+        clr.Set(0xFF, r, g, b);
+        for (unsigned int x = 0; x < w; ++x) {
+          texptr[x] = clr;
+        }
+
+        texptr += w;
+        blend += delta;
+      }
+    }
+  }
+
+  NTempest::CImVector *src = texptr - w;
+  {
+    for (unsigned int mirrorY = 0; mirrorY < halfh; ++mirrorY) {
+      for (unsigned int mirrorX = 0; mirrorX < w; ++mirrorX) {
+        texptr[mirrorX] = src[mirrorX];
+      }
+
+      texptr += w;
+      src -= w;
+    }
+  }
+}
+
+void DNPlanet::GenGeometry(
+    NTempest::C3Vector  *geov,
+    NTempest::C2Vector  *texv,
+    NTempest::CImVector *clrv,
+    unsigned short      *idx,
+    unsigned long       &vertCount,
+    unsigned long       &idxCount
 ) {
-  if (cmd == GxTex_Latch && mipLevel == 0) {
-    DNClouds *clouds = static_cast<DNClouds *>(userArg);
-    texelStrideInBytes = w * sizeof(NTempest::CImVector);
-    gxTexels = clouds->m_texels.Ptr();
-  }
-}
+  static const NTempest::C3Vector s_geov[6] = {NTempest::C3Vector(0.0f, -0.5f, 0.5f),   NTempest::C3Vector(0.0f, 0.5f, 0.5f),
+                                               NTempest::C3Vector(0.0f, -0.5f, -0.5f),  NTempest::C3Vector(0.0f, 0.5f, -0.5f),
+                                               NTempest::C3Vector(0.0f, -0.5f, 100.0f), NTempest::C3Vector(0.0f, 0.5f, 100.0f)};
+  static const NTempest::C2Vector s_texv[6] = {NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(0.0f, 1.0f),   NTempest::C2Vector(1.0f, 0.0f),
+                                               NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(100.0f, 0.0f), NTempest::C2Vector(100.0f, 1.0f)};
 
-void DNClouds::SetSharpness(float newSharpness) {
-  float cldelta = static_cast<float>(255 - static_cast<unsigned char>(m_density)) / 256.0f;
-  float clval = 0.0f;
-  m_sharpness = newSharpness;
-  for (unsigned int i = 0; i < 256; ++i) {
-    cloudTable[i] = static_cast<unsigned char>(255.0f - pow(m_sharpness, clval) * 255.0f);
-    clval += cldelta;
-  }
-}
-
-void DNClouds::SetLOD(unsigned long newlod, unsigned long newUpdateSize) {
-  if (m_texid) {
-    GxTexDestroy(m_texid);
-    m_texid = 0;
-    m_texels.SetCount(0);
-    m_height.SetCount(0);
-    m_noise.SetCount(0);
-    m_lastBumpNoiseY.SetCount(0);
-    m_bump.SetCount(0);
+  for (unsigned int i = 0; i < 6; ++i) {
+    geov[i] = s_geov[i] * m_period;
+    texv[i] = s_texv[i];
+    clrv[i] = m_color;
   }
 
-  m_lod = newlod;
-  m_tmSize = m_tmSizeTable[newlod];
-  m_updateSize = newUpdateSize ? newUpdateSize : 32;
-  m_wrapMask = m_tmSize - 1;
-  m_tmShift = m_tmShiftTable[newlod];
-  unsigned long texelCount = m_tmSize * m_tmSize;
-  m_texels.SetCount(texelCount);
-  m_height.SetCount(texelCount);
-  m_noise.SetCount(texelCount);
-  m_lastBumpNoiseY.SetCount(m_tmSize);
-  m_bump.SetCount(texelCount);
+  idx[0] = 0;
+  idx[1] = 2;
+  idx[2] = 1;
+  idx[3] = 3;
+  idxCount = 4;
+  vertCount = 0;
 
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  GxTexCreate(m_tmSize, m_tmSize, GxTex_Argb8888, flags, this, Callback_GxTex, m_texid);
-  m_updateRow = 0;
-  m_lastTime = 0;
-}
+  float localZ = m_pos.z - DayNightGetInfo()->playerPos.z;
+  float clip1 = localZ + geov[0].z;
+  float clip2 = localZ + geov[2].z;
+  if (clip1 > 0.0f || clip2 > 0.0f) {
+    if (clip1 <= 0.0f || clip2 <= 0.0f) {
+      vertCount = 4;
+      float clipt = clip1 / (clip1 - clip2);
+      geov[2].z = geov[3].z = geov[0].z + (geov[2].z - geov[0].z) * clipt;
+      texv[2].y = texv[3].y = clipt;
+    } else {
+      vertCount = 4;
+    }
 
-void DNClouds::SetDensity(float newDensity) {
-  if (m_densityOverride != 0.0f) {
-    newDensity = m_densityOverride;
+    float fadeBegin = DayNightGetInfo()->farClip * 0.4f;
+    float fade1 = clip1 - fadeBegin;
+    float fade2 = clip2 - fadeBegin;
+    if (fade1 > 0.001f && fade2 < 0.001f) {
+      vertCount = 6;
+      idxCount = 8;
+      const unsigned short fadeIdx[8] = {0, 4, 1, 5, 5, 3, 4, 2};
+      memcpy(idx, fadeIdx, sizeof(fadeIdx));
+      float clipt = fade1 / (fade1 - fade2);
+      geov[4].z = geov[5].z = geov[0].z + (geov[2].z - geov[0].z) * clipt;
+      texv[4].y = texv[5].y = texv[0].y + (texv[2].y - texv[0].y) * clipt;
+    }
+
+    for (unsigned int i = 0; i < vertCount; ++i) {
+      float fade = localZ + geov[i].z - fadeBegin;
+      if (fade < 0.001f) {
+        clrv[i].a = static_cast<unsigned char>((fadeBegin - -fade) / fadeBegin * 255.0f);
+      }
+    }
   }
-  m_density = static_cast<unsigned char>((1.0f - newDensity) * 255.0f);
-}
-
-void DNClouds::OverrideDensitySharpness(float newDensity, float newSharpness) {
-  m_densityOverride = newDensity;
-  SetDensity(newDensity);
-}
-
-void DNClouds::Destroy() {
-  GxTexDestroy(m_texid);
-  m_texid = 0;
-}
-
-void DNStars::Update() {
-  m_pos = s_dnInfo.playerPos;
-  m_color.a = static_cast<unsigned char>(InterpTable(s_sidnTable, 4, s_dnInfo.dayProgression) * 254.0f + 1.0f);
 }
 
 static int __fastcall ConsoleCommand_SkyCloudDensity(const char *__formal, const char *args) {
@@ -1252,6 +1205,11 @@ static int __fastcall ConsoleCommand_SkySunGlare(const char *__formal, const cha
     s_moonGlare.m_enabled = 0;
   }
   return 1;
+}
+
+void DNStars::Update() {
+  m_pos = s_dnInfo.playerPos;
+  m_color.a = static_cast<unsigned char>(InterpTable(s_sidnTable, 4, s_dnInfo.dayProgression) * 254.0f + 1.0f);
 }
 
 static int __fastcall ConsoleCommand_SkyShow(const char *__formal, const char *args) {
@@ -1387,12 +1345,54 @@ void __fastcall DayNightUpdateLighting() {
   }
 }
 
+void __fastcall DayNightSetEclipse(NTempest::CImVector color, float amount) {
+  FATALASSERT(amount >= 0.0f && amount <= 1.0f);
+
+  s_dnInfo.eclipseColor = color;
+  s_dnInfo.eclipseAmount = static_cast<unsigned char>(NTempest::CMath::fuint_n(amount * 255.0f));
+}
+
 float __fastcall DayNightSI(float offset) {
   return InterpTable(s_sidnTable, 4, s_dnInfo.dayProgression + offset);
 }
 
 float __fastcall DayNightUnitSelectColor() {
   return InterpTable(s_unitColorTable, 2, s_dnInfo.dayProgression);
+}
+
+DNInfo *__fastcall DayNightGetInfo() {
+  return &s_dnInfo;
+}
+
+void __fastcall DayNightRenderGlares() {
+  if (s_initialized) {
+    s_sunGlare.Render();
+    s_moonGlare.Render();
+  }
+}
+
+void __fastcall DayNightRenderSky() {
+  if (s_initialized) {
+    if (CWorld::SceneCamLiquidStatus() == 15) {
+      GxSceneSetClearColor(NTempest::CImVector(0xFF000000));
+      if (!GxMasterEnable(GxMasterEnable_ClearOnPresent)) {
+        GxSceneClear(3);
+      }
+
+      s_sky.Render();
+      s_stars.Render();
+      for (unsigned int i = 0; i < 3; ++i) {
+        s_planets[i].Render();
+      }
+      s_clouds.Render();
+    } else {
+      GxSceneSetClearColor(s_dnInfo.fogInfo.color);
+      GxSceneClear(3);
+    }
+  } else {
+    GxSceneSetClearColor(NTempest::CImVector(0xFF000000));
+    GxSceneClear(3);
+  }
 }
 
 void __fastcall DayNightSkyTexCallback(

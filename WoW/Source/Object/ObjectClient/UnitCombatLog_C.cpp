@@ -19,6 +19,27 @@
 #include <storm.h>
 
 class CGPlayer_C;
+struct COMBATLOGDESC;
+
+struct COMBATMESSAGEPRONOUNS {
+  char attackerName[48];
+  char victimName[48];
+};
+
+enum COMBATMESSAGETYPE {
+  COMBATMESSAGETYPE_NORMALHIT = 0,
+  COMBATMESSAGETYPE_NORMALMISS = 1,
+  COMBATMESSAGETYPE_NORMALBLOCK = 2,
+  COMBATMESSAGETYPE_NORMALPARRY = 3,
+  COMBATMESSAGETYPE_NORMALDODGE = 4,
+  COMBATMESSAGETYPE_NORMALEVADE = 5,
+  COMBATMESSAGETYPE_NORMALIMMUNE = 6,
+  NUM_COMBATMESSAGETYPES = 7,
+  COMBATMESSAGETYPE_UNKNOWN = 255
+};
+
+void __fastcall UnitCombatLogEnableFileLog(int enable);
+void __fastcall UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp);
 
 static HSLOG        s_logHandle;
 static HSLOG        s_generalLogHandle;
@@ -103,6 +124,11 @@ static unsigned int __fastcall ShouldLogAttacker(
   return x * x + y * y + z * z <= dist * dist;
 }
 
+static int ShouldLog(unsigned __int64 object, UNITAFFILIATION& aAff, CGObject_C*& objectPtr, CGUnit_C*& attackerPtr, unsigned __int64 subject, UNITAFFILIATION& vAff, CGObject_C*& subjectPtr, CGUnit_C*& victimPtr, unsigned char suppressIfAllUnaffiliated) {
+    // TODO: implement
+    return 0;
+}
+
 static unsigned int __fastcall IsSpellTeach(SpellRec *rec) {
   for (unsigned int effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 36) {
@@ -116,12 +142,30 @@ static unsigned int __fastcall IsSpellAbility(SpellRec *rec) {
   return (rec->m_attributes >> 4) & 1;
 }
 
+static unsigned char IsSpellHarmful(const SpellRec* rec) {
+    // TODO: implement
+    return 0;
+}
+
+static unsigned char IsSpellOpenLock(const SpellRec* rec) {
+    // TODO: implement
+    return 0;
+}
+
 static unsigned int __fastcall IsSpellQuiet(SpellRec *rec) {
   return (rec->m_attributes >> 7) & 1;
 }
 
 bool __fastcall IsSpellAura(const SpellRec *rec);
 void __fastcall UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim);
+
+static void LogEnchantmentRequest(const ENCHANTMENTLOG& log) {
+    // TODO: implement
+}
+
+static void CloseDebugLogHandle() {
+    // TODO: implement
+}
 
 static void __cdecl GeneralLogPrintf(SLASH_COMMAND_ID type, const char *format, ...) {
   char    buffer[512];
@@ -142,6 +186,78 @@ static void __fastcall ReportError(const char *string) {
   }
 }
 
+static void UnitCombatLogSpellTeach(const SpellRec* rec, unsigned __int64 caster, unsigned __int64 target) {
+    // TODO: implement
+}
+
+static void HandleTerseVictimLogging(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID) {
+    // TODO: implement
+}
+
+static void HandleGeneralHealLogging(const DamageData& dmg, unsigned int spellID, unsigned __int64 attacker, unsigned __int64 victim) {
+    // TODO: implement
+}
+
+static void HandleGeneralCombatOrSpellHitLogging(int combat, const DamageData& dmg, unsigned int spellID, CGUnit_C* attackerPtr, CGUnit_C* victimPtr, int critted, unsigned int specialSpellID, unsigned int specialSpellDamage, UNITAFFILIATION aAff, UNITAFFILIATION vAff) {
+    // TODO: implement
+}
+
+static void HandleSpellLogTerse(CGUnit_C* attackerPtr, UNITAFFILIATION aAff, const char* spellNameString) {
+    // TODO: implement
+}
+
+static void HandleGeneralCombatLoggingMissed(const ATTACKROUNDINFO& info, CGUnit_C* attackerPtr, CGUnit_C* victimPtr, UNITAFFILIATION aAff, UNITAFFILIATION vAff) {
+    // TODO: implement
+}
+
+static void HandleGeneralCombatEvadeLogging(ATTACKROUNDINFO info, CGUnit_C* attackerPtr, CGUnit_C* victimPtr, UNITAFFILIATION aAff, UNITAFFILIATION vAff) {
+    // TODO: implement
+}
+
+static void HandleGeneralCombatLogging(const ATTACKROUNDINFO& info) {
+    // TODO: implement
+}
+
+static void FormatSpellMissString(char* string, unsigned int size, const SPELLMISSLOG& log) {
+    // TODO: implement
+}
+
+static void FormatSpellString(char* string, unsigned int size, const SPELLLOG& log) {
+    // TODO: implement
+}
+
+static void Capitalize(char* string) {
+    // TODO: implement
+}
+
+static void NormalHitHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+    // TODO: implement
+}
+
+static void NormalMissHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+    // TODO: implement
+}
+
+static void NormalBlockHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+    // TODO: implement
+}
+
+static void NormalParryHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+    // TODO: implement
+}
+
+static void NormalDodgeHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+    // TODO: implement
+}
+
+static void NormalImmuneHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+    // TODO: implement
+}
+
+static void NormalEvadeHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+    // TODO: implement
+}
+
 static void __fastcall WriteMessage(const char *message) {
   if (message && *message && (s_flags & 2) && s_logHandle) {
     SLogWrite(s_logHandle, "%s", message);
@@ -155,17 +271,67 @@ static int __fastcall CCommand_PlayerCombatLogDebug(const char *, const char *ar
   return 1;
 }
 
-void __fastcall UnitCombatLogEnableFileLog(int enable) {
-  if (enable) {
-    if (!s_logHandle) {
-      SLogCreate("Logs.Client\\PlayerCombatLog.txt", 0, &s_logHandle);
-    }
-  } else {
-    if (s_logHandle) {
-      SLogClose(s_logHandle);
-    }
-    s_logHandle = 0;
-  }
+static int DebugCombatLogHandler(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+static void GeneratePronouns(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info) {
+    // TODO: implement
+}
+
+static COMBATMESSAGETYPE DetermineResultType(const ATTACKROUNDINFO& info) {
+    // TODO: implement
+    return COMBATMESSAGETYPE();
+}
+
+static void OutputCombatMessage(const ATTACKROUNDINFO& info) {
+    // TODO: implement
+}
+
+static void WriteSpellInfo(const COMBATLOGDESC& unit) {
+    // TODO: implement
+}
+
+static void WriteAttemptsHitsMisses(const COMBATLOGDESC& attacker) {
+    // TODO: implement
+}
+
+static void WriteVictimStates(const COMBATLOGDESC& victim, const char* name, unsigned int attempts, unsigned int successes) {
+    // TODO: implement
+}
+
+static float RoundTo(float roundThis, float toThis) {
+    // TODO: implement
+    return 0;
+}
+
+static void WriteDamageTallies(const COMBATLOGDESC& desc, float seconds) {
+    // TODO: implement
+}
+
+static void LogResults() {
+    // TODO: implement
+}
+
+static void UnitCombatLogEnchantmentRemoved(const ENCHANTMENTLOG& log, unsigned char isCallback) {
+    // TODO: implement
+}
+
+static void UnitCombatLogEnchantmentAdded(const ENCHANTMENTLOG& log, unsigned char isCallback) {
+    // TODO: implement
+}
+
+static void ItemEnchantmentCacheCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static void ClearUnitDataStructs() {
+    // TODO: implement
+}
+
+void __fastcall UnitDebugCombatLogOnEnable(int enable) {
+    // TODO: implement
 }
 
 static int __fastcall Script_ToggleCombatLogFileWrite(lua_State *L) {
@@ -195,6 +361,54 @@ void __fastcall UnitCombatDebugLogEnable(int enable) {
   msg.Put(enable);
   msg.Finalize();
   ClientServices_Send(&msg);
+}
+
+void __fastcall UnitCombatLogCastGo(unsigned int spellID, unsigned __int64 casterUnit, unsigned __int64 target) {
+    // TODO: implement
+}
+
+void __fastcall UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster) {
+  if (!s_activePlayer) {
+    return;
+  }
+
+  CGObject_C     *casterObjPtr = ClntObjMgrObjectPtr(caster, __FILE__, __LINE__);
+  UNITAFFILIATION aAff;
+  if (!ShouldLogAttacker(caster, aAff, casterObjPtr, 0, 0, -1) || !casterObjPtr || !(casterObjPtr->GetType() & TYPE_UNIT)) {
+    return;
+  }
+
+  SpellRec *rec = g_spellDB.GetRecord(spellID);
+  if (!rec || IsSpellQuiet(rec) || (caster == ClntObjMgrGetActivePlayer() && !IsSpellAura(rec)) || IsSpellTeach(rec)) {
+    return;
+  }
+
+  const char  *casterName = static_cast<CGUnit_C *>(casterObjPtr)->GetUnitName();
+  const char  *spellName = rec->m_name_lang[CURRENT_LANGUAGE];
+  unsigned int selfCasting = caster == ClntObjMgrGetActivePlayer();
+  const char  *templateTag;
+  if (selfCasting) {
+    templateTag = IsSpellAbility(rec) ? "SPELLPERFORMSELFSTART" : "SPELLCASTSELFSTART";
+  } else {
+    templateTag = IsSpellAbility(rec) ? "SPELLPERFORMOTHERSTART" : "SPELLCASTOTHERSTART";
+  }
+
+  const char *format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
+  if (!format || !*format) {
+    ReportError(templateTag);
+    return;
+  }
+
+  char output[256];
+  if (selfCasting) {
+    SStrPrintf(output, sizeof(output), format, spellName);
+  } else {
+    SStrPrintf(output, sizeof(output), format, casterName, spellName);
+  }
+  if (s_flags & 2) {
+    ConsoleWrite(output, DEFAULT_COLOR);
+    WriteMessage(output);
+  }
 }
 
 void __fastcall UnitCombatLog(ATTACKROUNDINFO &roundInfo) {
@@ -311,50 +525,6 @@ void __fastcall UnitCombatLog(ENVIRONMENTALDAMAGE &log) {
   }
 }
 
-void __fastcall UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster) {
-  if (!s_activePlayer) {
-    return;
-  }
-
-  CGObject_C     *casterObjPtr = ClntObjMgrObjectPtr(caster, __FILE__, __LINE__);
-  UNITAFFILIATION aAff;
-  if (!ShouldLogAttacker(caster, aAff, casterObjPtr, 0, 0, -1) || !casterObjPtr || !(casterObjPtr->GetType() & TYPE_UNIT)) {
-    return;
-  }
-
-  SpellRec *rec = g_spellDB.GetRecord(spellID);
-  if (!rec || IsSpellQuiet(rec) || (caster == ClntObjMgrGetActivePlayer() && !IsSpellAura(rec)) || IsSpellTeach(rec)) {
-    return;
-  }
-
-  const char  *casterName = static_cast<CGUnit_C *>(casterObjPtr)->GetUnitName();
-  const char  *spellName = rec->m_name_lang[CURRENT_LANGUAGE];
-  unsigned int selfCasting = caster == ClntObjMgrGetActivePlayer();
-  const char  *templateTag;
-  if (selfCasting) {
-    templateTag = IsSpellAbility(rec) ? "SPELLPERFORMSELFSTART" : "SPELLCASTSELFSTART";
-  } else {
-    templateTag = IsSpellAbility(rec) ? "SPELLPERFORMOTHERSTART" : "SPELLCASTOTHERSTART";
-  }
-
-  const char *format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
-  if (!format || !*format) {
-    ReportError(templateTag);
-    return;
-  }
-
-  char output[256];
-  if (selfCasting) {
-    SStrPrintf(output, sizeof(output), format, spellName);
-  } else {
-    SStrPrintf(output, sizeof(output), format, casterName, spellName);
-  }
-  if (s_flags & 2) {
-    ConsoleWrite(output, DEFAULT_COLOR);
-    WriteMessage(output);
-  }
-}
-
 void __fastcall UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added, int auraSlot) {
   SpellRec       *spellRec = g_spellDB.GetRecord(spellID);
   CGObject_C     *dummy;
@@ -396,16 +566,6 @@ void __fastcall UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, 
   if (s_flags & 2) {
     ConsoleWrite(string, DEFAULT_COLOR);
     WriteMessage(string);
-  }
-}
-
-void __fastcall UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp) {
-  CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(victim, __FILE__, __LINE__));
-  if (victimPtr && (victimPtr->GetUnitData()->flags & 8)) {
-    GeneralLogPrintf(
-        static_cast<SLASH_COMMAND_ID>(26), FrameScript_GetText("COMBATLOG_XPGAIN_FIRSTPERSON", -1, GENDER_NOT_APPLICABLE), victimPtr->GetUnitName(),
-        xp
-    );
   }
 }
 
@@ -472,6 +632,27 @@ void __fastcall UnitCombatLogSpellMissed(unsigned int missReason, unsigned int s
   }
   GeneralLogPrintf(s_affiliationLogType[aAff], "%s", output);
   WriteMessage(output);
+}
+
+void __fastcall UnitCombatLogUnitDead(unsigned __int64 unit) {
+    // TODO: implement
+}
+
+void __fastcall UnitCombatLogEnableFileLog(int enable) {
+  if (enable) {
+    if (!s_logHandle) {
+      SLogCreate("Logs.Client\\PlayerCombatLog.txt", 0, &s_logHandle);
+    }
+  } else {
+    if (s_logHandle) {
+      SLogClose(s_logHandle);
+    }
+    s_logHandle = 0;
+  }
+}
+
+void __fastcall UnitCombatLogSetActivePlayer(CGPlayer_C *playerPtr) {
+  s_activePlayer = playerPtr;
 }
 
 void __fastcall UnitCombatLogXPGain(const unsigned __int64 &victim, CDataStore *msg, unsigned int count) {
@@ -641,8 +822,8 @@ void __fastcall UnitCombatLogEnchantment(ENCHANTMENTLOG &log) {
   GeneralLogPrintf(s_affiliationLogType[aAff], "%s", output);
 }
 
-void __fastcall UnitCombatLogSetActivePlayer(CGPlayer_C *playerPtr) {
-  s_activePlayer = playerPtr;
+void __fastcall UnitCombatLogString(const char* buffer) {
+    // TODO: implement
 }
 
 void __fastcall UnitCombatLogFactionChanged(int faction, int delta) {
@@ -687,4 +868,14 @@ void __fastcall UnitCombatLogPartyKill(PARTYKILLLOG &log) {
   GeneralLogPrintf(
       static_cast<SLASH_COMMAND_ID>(27), format, static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName(), static_cast<CGUnit_C *>(objPtr)->GetUnitName()
   );
+}
+
+void __fastcall UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp) {
+  CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(victim, __FILE__, __LINE__));
+  if (victimPtr && (victimPtr->GetUnitData()->flags & 8)) {
+    GeneralLogPrintf(
+        static_cast<SLASH_COMMAND_ID>(26), FrameScript_GetText("COMBATLOG_XPGAIN_FIRSTPERSON", -1, GENDER_NOT_APPLICABLE), victimPtr->GetUnitName(),
+        xp
+    );
+  }
 }

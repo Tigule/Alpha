@@ -2,6 +2,7 @@
 
 #include "Tempest/c3ray.h"
 #include "Tempest/cfacet.h"
+#include "Tempest/c2vector.h"
 
 namespace NTempest {
 
@@ -36,3 +37,18 @@ namespace NTempest {
   }
 
 }  // namespace NTempest
+
+static int EdgeIntersectTriEdge(NTempest::C2Vector& a0, NTempest::C2Vector& a1, NTempest::C2Vector& b0, NTempest::C2Vector& b1, NTempest::C2Vector& b2) {
+    // TODO: implement
+    return 0;
+}
+
+static int PointInTri(NTempest::C2Vector& p, NTempest::C2Vector& a0, NTempest::C2Vector& a1, NTempest::C2Vector& a2) {
+    // TODO: implement
+    return 0;
+}
+
+static unsigned char CoplanarTriIntersectTri(const NTempest::CFacet& facet0, const NTempest::CFacet& facet1) {
+    // TODO: implement
+    return 0;
+}

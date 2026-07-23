@@ -4,6 +4,7 @@
 #include <Base/Handle.h>
 #include <Gx/Gx.h>
 #include <Gxu/IGxuFont.h>
+#include <Os/OsNet.h>
 #include <Os/OsTime.h>
 #include <Services/TextBlock.h>
 #include <Tempest/c3vector.h>
@@ -386,6 +387,33 @@ void __fastcall IPerfResetTimePeaks() {
   s_avgPerfIndex = 0;
 }
 
+void __stdcall IPerfHostAddrProc(const NETADDR* addrs, unsigned long addrCount, void* user) {
+    // TODO: implement
+}
+
+int __stdcall ChatEventProc(HNETCONN__* conn, const NETCONNADDR* conAddr, NETNOTE note, void* user, const void* data, unsigned long bytes, unsigned long* bytesProcessed) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall IPerfRemoteLoggingIni() {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall IPerfGetFromBuffer(char*& buf1, long& len1, char*& buf2, long& len2) {
+    // TODO: implement
+}
+
+void __fastcall IPerfRemoteSendQueued() {
+    // TODO: implement
+}
+
+unsigned int __stdcall IPerfRemoteLoggingThread(void*) {
+    // TODO: implement
+    return 0;
+}
+
 int __fastcall IPerfRemoteSpaceAvail(unsigned long size) {
   unsigned long space;
 
@@ -541,12 +569,32 @@ void __fastcall IPerfRemoteQueueLogString(const char *prompt) {
   IPerfRemoteQueueOnRingBuffer(&queuePromptBuf, packetBytes);
 }
 
+int __fastcall IPerfRemoteLoggingStartup() {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall IPerfRemoteLoggingShutdown() {
+    // TODO: implement
+    return 0;
+}
+
 void __fastcall ScrnPerfEnable(int enable) {
   s_enabled = enable;
 }
 
 int __fastcall ScrnPerfIsEnabled() {
   return s_enabled;
+}
+
+int __fastcall ScrnPerfRemoteShutdown() {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall ScrnPerfRemoteStartup() {
+    // TODO: implement
+    return 0;
 }
 
 void __fastcall ScrnPerfRemoteSetMode(PERF_REMOTE_MODE mode) {

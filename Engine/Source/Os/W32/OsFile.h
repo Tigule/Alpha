@@ -6,6 +6,12 @@ DECLARE_STRICT_HANDLE(HOSFILE);
 
 #define HOSFILE_INVALID ((HOSFILE) - 1)
 
+struct OS_FILE_DATA {
+  unsigned long size;
+  unsigned long flags;
+  char          fileName[260];
+};
+
 HOSFILE __fastcall OsCreateFile(
     const char   *fileName,
     unsigned long desiredAccess,

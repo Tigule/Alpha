@@ -33,6 +33,8 @@ void __fastcall   SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTem
 HMODEL __fastcall InitializeModel(const char *fileName, void(__fastcall *callback)(const char *, const NTempest::C3Vector &, void *), void *param);
 static void __fastcall DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size);
 static void __fastcall SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
+static void __fastcall SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
+static void __fastcall SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
 static int __fastcall  OneShotEndHandler(void *param);
 static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
 static int __fastcall  PurgeTimerHandler(const void *timerData, void *userData);
@@ -88,15 +90,8 @@ void __fastcall PreloadModelsByKit(int record, CStatus *status) {
   }
 }
 
-HMODEL __fastcall InitializeModel(const char *fileName, void(__fastcall *callback)(const char *, const NTempest::C3Vector &, void *), void *param) {
-  CStatus status;
-  HMODEL  model = CreateModel(fileName, &status);
-  if (callback) {
-    ModelSetEventCallback(model, callback, param, 0);
-  }
-  ModelSetSequence(model, 0, 0);
-  SysMsgAdd(status, 16);
-  return model;
+static void SpellAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
+    // TODO: implement
 }
 
 class NODEBASE {
@@ -203,50 +198,120 @@ static const GEOCOMPONENTLINKS g_attachmentPoints[12] = {
     static_cast<GEOCOMPONENTLINKS>(24), static_cast<GEOCOMPONENTLINKS>(25), static_cast<GEOCOMPONENTLINKS>(16), static_cast<GEOCOMPONENTLINKS>(15)
 };
 
-GEOCOMPONENTLINKS __fastcall UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach) {
-  FATALASSERT(attach >= 0);
-  FATALASSERT(static_cast<unsigned int>(attach) < sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0]));
-  return g_attachmentPoints[attach];
+static void __fastcall SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+  ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
+  unsigned int       event = *reinterpret_cast<const unsigned int *>(eventName);
+
+  CGObject_C *object = node ? ClntObjMgrObjectPtr(node->objectGUID, __FILE__, __LINE__) : 0;
+  CGUnit_C   *unit = object && (object->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
+
+  switch (event) {
+    case 0x50504324:  // $CPP
+    case 0x48414324:  // $ACH
+    case 0x53534324:  // $CSS
+      if (unit) {
+        NTempest::C3Vector eventPosition = position;
+        unit->HandleCombatAnimEvent(eventName, event, eventPosition);
+      }
+      break;
+    case 0x48544424:  // $DTH
+      if (node) {
+        node->ReleaseDeathHolds();
+      }
+      break;
+    case 0x444E5324:    // $SND
+    case 0x58444E53: {  // SNDX
+      NTempest::C3Vector soundPos = position;
+      if (object) {
+        soundPos += object->GetPosition();
+      }
+      SpellSoundEffectCallback(eventName + 1, soundPos);
+      break;
+    }
+    case 0x54494824:  // $HIT
+      if (unit) {
+        unit->PlayDeathThud();
+      }
+      break;
+    default:
+      SysMsgPrintf(SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|ONESHOTEFFECTNODE|SpellUnitAnimEventCallback", eventName);
+      break;
+  }
 }
 
-HMODEL __fastcall UnitEffectCreateAuraModel(unsigned int effectID) {
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
-  if (effectRec) {
-    return InitializeModel(effectRec->m_fileName, 0, 0);
-  }
+void ONESHOTEFFECTNODE::ReleaseDeathHolds() {
+  ClearDeathHoldTimer();
 
-  SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTIDNOTFOUND|%d", effectID);
+  if (!(flags & 3)) {
+    flags |= 1;
+    CGObject_C *object = ClntObjMgrObjectPtr(objectGUID, __FILE__, __LINE__);
+    if (object && (object->GetType() & TYPE_UNIT)) {
+      static_cast<CGUnit_C *>(object)->DDDELLOG(object->GetGUID(), "ONESHOTEFFECTNODE::ReleaseDeathHolds", __FILE__, __LINE__);
+    }
+  }
+}
+
+static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+  ONESHOTSTANDALONEEFFECTNODE *node = static_cast<ONESHOTSTANDALONEEFFECTNODE *>(param);
+  unsigned int                 event = *reinterpret_cast<const unsigned int *>(eventName);
+
+  switch (event) {
+    case 0x4B485324:  // $SHK
+      SpellCameraShakeCallback(eventName + 1, position);
+      break;
+    case 0x48544424:  // $DTH
+      if (node) {
+        node->ReleaseDeathHolds();
+      }
+      break;
+    case 0x444E5324:    // $SND
+    case 0x58444E53: {  // SNDX
+      NTempest::C3Vector soundPos = position;
+      if (node) {
+        soundPos += node->position;
+      }
+      SpellSoundEffectCallback(eventName + 1, soundPos);
+      break;
+    }
+    case 0x54494824:  // $HIT
+      if (node) {
+        for (unsigned int index = 0; index < node->objects.Count(); ++index) {
+          CGObject_C *object = ClntObjMgrObjectPtr(node->objects[index], __FILE__, __LINE__);
+          if (object && (object->GetType() & TYPE_UNIT)) {
+            static_cast<CGUnit_C *>(object)->PlayDeathThud();
+          }
+        }
+      }
+      break;
+    default:
+      SysMsgPrintf(SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|ONESHOTSTANDALONEEFFECTNODE|SpellAreaAnimEventCallback", eventName);
+      break;
+  }
+}
+
+static int __fastcall OneShotEndHandler(void *param) {
+  FATALASSERT(param);
+
+  ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
+  if (node->isCastEffect) {
+    delete node;
+  }
   return 0;
 }
 
-unsigned int __fastcall UnitEffectIsAuraWorldObject(unsigned int effectID, unsigned int &isWorldObj) {
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
-  if (!effectRec) {
-    return 0;
+HMODEL __fastcall InitializeModel(const char *fileName, void(__fastcall *callback)(const char *, const NTempest::C3Vector &, void *), void *param) {
+  CStatus status;
+  HMODEL  model = CreateModel(fileName, &status);
+  if (callback) {
+    ModelSetEventCallback(model, callback, param, 0);
   }
-
-  isWorldObj = (effectRec->m_VisualEffectNameFlags & 8) != 0;
-  return 1;
+  ModelSetSequence(model, 0, 0);
+  SysMsgAdd(status, 16);
+  return model;
 }
 
-unsigned long __fastcall UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest::C3Vector &location, float facing) {
-  if (!effect) {
-    return 0;
-  }
-
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effect);
-  HMODEL                    model = InitializeModel(effectRec->m_fileName, 0, 0);
-  if (!model) {
-    return 0;
-  }
-
-  NTempest::C44Matrix tempMat;
-  tempMat.Translate(location);
-  NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
-  tempMat.Rotate(facing, axis, 1);
-  unsigned long object = CWorld::AddDoodad(effectRec->m_fileName, model, tempMat, 6);
-  HandleClose(model);
-  return object;
+static void RenderModel(HMODEL__* model, const NTempest::C3Vector& position, const NTempest::C44Matrix& orientation, CGCamera* camera, float scale) {
+    // TODO: implement
 }
 
 int __fastcall GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID) {
@@ -260,6 +325,12 @@ int __fastcall GetMissileTargetLocation(unsigned __int64 caster, unsigned int sp
   SpellVisualRec *visual =
       casterUnit ? casterUnit->GetAppropriateSpellVisual(spellRec, filled) : g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
   return visual ? visual->m_missileDestinationAttachment : 1;
+}
+
+static void RecycleMissileNode(MISSILENODE *node) {
+  s_missiles.UnlinkNode(node);
+  node->~MISSILENODE();
+  s_freeMissiles.PutData(node, 0, 0);
 }
 
 void __fastcall GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position) {
@@ -276,12 +347,6 @@ void __fastcall GetMissileTargetPosition(CGObject_C *target, int hitLocation, NT
     position = target->GetPosition();
   }
   HandleClose(model);
-}
-
-static void RecycleMissileNode(MISSILENODE *node) {
-  s_missiles.UnlinkNode(node);
-  node->~MISSILENODE();
-  s_freeMissiles.PutData(node, 0, 0);
 }
 
 static int MoveMissile(MISSILENODE *node) {
@@ -340,6 +405,24 @@ static int MoveMissile(MISSILENODE *node) {
   return 1;
 }
 
+static void AddUnitDeathHold(CGUnit_C *unitPtr) {
+  if (unitPtr) {
+    unitPtr->DDADDLOG(unitPtr->GetGUID(), "UnitEffectOneShot", __FILE__, __LINE__);
+  }
+}
+
+unsigned int NODEBASE::CheckModelLoadStatus() {
+  if ((flags & 4) || !ModelIsLoaded(model, 1)) {
+    return 0;
+  }
+
+  flags |= 4;
+  if (!ModelAnimHasObjectId(model, 0)) {
+    flags |= 1;
+  }
+  return 1;
+}
+
 static void RenderMissiles(CGCamera *camera) {
   if (!camera) {
     return;
@@ -357,80 +440,6 @@ static void RenderMissiles(CGCamera *camera) {
   }
 }
 
-void __fastcall UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset) {
-  NTempest::C3Vector endPos;
-  CGObject_C        *target = desc.target ? ClntObjMgrObjectPtr(desc.target, __FILE__, __LINE__) : 0;
-  if (desc.target && !target) {
-    return;
-  }
-  unsigned __int64 caster = desc.caster ? desc.caster->GetGUID() : 0;
-  if (target) {
-    GetMissileTargetPosition(target, GetMissileTargetLocation(caster, desc.spellID), endPos);
-  } else {
-    endPos = desc.destination;
-  }
-
-  char                      modelName[MAX_PATH];
-  HMODEL                    model = 0;
-  unsigned int              dummy1 = 0;
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(desc.missileEffect);
-  if (effectRec && effectRec->m_fileName && *effectRec->m_fileName) {
-    DecorateEffectFilename(effectRec->m_fileName, 0, desc.caster, modelName, sizeof(modelName));
-    model = InitializeModel(modelName, 0, 0);
-  } else if (desc.ammoDisplayID) {
-    model = ObjComponentBuildAmmoModel(g_itemDisplayInfoDB.GetRecord(desc.ammoDisplayID), desc.inventoryType, dummy1);
-  }
-  if (!model) {
-    return;
-  }
-
-  MISSILENODE *node = static_cast<MISSILENODE *>(s_freeMissiles.GetData(0, typeid(MISSILENODE).raw_name(), -2));
-  if (node) {
-    new (node) MISSILENODE;
-  }
-  s_missiles.LinkNode(node, LIST_HEAD, 0);
-  node->model = model;
-  node->caster = caster;
-  node->startPosition = desc.startPosition;
-  node->pathType = desc.missilePathType;
-  if (node->pathType == 1) {
-    NTempest::C3Vector scanStart = node->startPosition;
-    scanStart.z += 5.0f;
-    NTempest::C3Vector scanEnd = node->startPosition;
-    scanEnd.z -= 25.0f;
-    NTempest::C3Segment seg(scanStart, scanEnd);
-    NTempest::C4Plane   facet;
-    float               segT;
-    if (CWorld::GetFacet(seg, segT, facet, 273)) {
-      node->startPosition.z = scanStart.z + (scanEnd.z - scanStart.z) * segT;
-    } else {
-      node->pathType = 0;
-    }
-  }
-  node->position = node->startPosition;
-  node->endPosition = endPos;
-  node->target = desc.target;
-  node->startTime = GetTickCount();
-  node->spellID = desc.spellID;
-  node->victimEffect = desc.missileVictimEffect;
-  node->miss = !desc.hits;
-  node->missReason = desc.reason;
-  node->sound = SndInterfacePlayLoopedSound(desc.sound, node->position, 0);
-
-  float distance = (node->endPosition - node->startPosition).Mag();
-  int   duration = static_cast<int>(distance / desc.speed * 1000.0f - 0.5f);
-  if (durationOffset < duration) {
-    duration -= durationOffset;
-  }
-  node->travelTime = duration < 0 ? 0 : duration;
-  if (node->travelTime) {
-    node->flags |= 1;
-  }
-  if (target && (target->GetType() & TYPE_UNIT)) {
-    static_cast<CGUnit_C *>(target)->DDADDLOG(node->caster, "UnitEffectAddMissile", __FILE__, __LINE__);
-  }
-}
-
 int __fastcall DeathHoldEventTimerHandler(const void *packetData, void *param) {
   FATALASSERT(param);
 
@@ -444,24 +453,6 @@ void NODEBASE::ClearDeathHoldTimer() {
   if (deathHoldTimer) {
     ClientKillTimer(deathHoldTimer, DeathHoldEventTimerHandler, "DeathHoldEventTimerHandler");
     deathHoldTimer = 0;
-  }
-}
-
-unsigned int NODEBASE::CheckModelLoadStatus() {
-  if ((flags & 4) || !ModelIsLoaded(model, 1)) {
-    return 0;
-  }
-
-  flags |= 4;
-  if (!ModelAnimHasObjectId(model, 0)) {
-    flags |= 1;
-  }
-  return 1;
-}
-
-static void AddUnitDeathHold(CGUnit_C *unitPtr) {
-  if (unitPtr) {
-    unitPtr->DDADDLOG(unitPtr->GetGUID(), "UnitEffectOneShot", __FILE__, __LINE__);
   }
 }
 
@@ -485,16 +476,39 @@ void ONESHOTSTANDALONEEFFECTNODE::CheckModelLoadStatus() {
   }
 }
 
-void ONESHOTEFFECTNODE::ReleaseDeathHolds() {
-  ClearDeathHoldTimer();
+static void __fastcall DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size) {
+  FATALASSERT(object);
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+  FATALASSERT(fileName);
 
-  if (!(flags & 3)) {
-    flags |= 1;
-    CGObject_C *object = ClntObjMgrObjectPtr(objectGUID, __FILE__, __LINE__);
-    if (object && (object->GetType() & TYPE_UNIT)) {
-      static_cast<CGUnit_C *>(object)->DDDELLOG(object->GetGUID(), "ONESHOTEFFECTNODE::ReleaseDeathHolds", __FILE__, __LINE__);
-    }
+  if (!*fileName) {
+    fileName = "GimmeTheShaneCube";
   }
+
+  if (!raceSexSpecific || !(object->GetType() & TYPE_UNIT)) {
+    SStrCopy(buffer, fileName, size);
+    return;
+  }
+
+  char scratchBuffer[MAX_PATH];
+  char extensionString[5] = "";
+  SStrCopy(scratchBuffer, fileName, sizeof(scratchBuffer));
+  char *extension = SStrChrR(scratchBuffer, '.');
+  if (extension && *extension) {
+    SStrCopy(extensionString, extension, sizeof(extensionString));
+    *extension = 0;
+  }
+
+  CGUnit_C    *unit = static_cast<CGUnit_C *>(object);
+  unsigned int sex = unit->GetDisplaySex();
+  unsigned int race = unit->GetDisplayRace();
+  FATALASSERT(sex < UNITSEX_LAST);
+  ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(race);
+  FATALASSERT(raceRec);
+
+  static const char *const sexNames[UNITSEX_LAST] = {"Male", "Female", "NOSEX"};
+  SStrPrintf(buffer, size, "%s%s%s%s", scratchBuffer, raceRec->m_clientFileString, sexNames[sex], extensionString);
 }
 
 NODEBASE::~NODEBASE() {
@@ -563,41 +577,6 @@ void MISSILENODE::CheckModelLoadStatus() {
   }
 }
 
-static void __fastcall DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size) {
-  FATALASSERT(object);
-  FATALASSERT(buffer);
-  FATALASSERT(size);
-  FATALASSERT(fileName);
-
-  if (!*fileName) {
-    fileName = "GimmeTheShaneCube";
-  }
-
-  if (!raceSexSpecific || !(object->GetType() & TYPE_UNIT)) {
-    SStrCopy(buffer, fileName, size);
-    return;
-  }
-
-  char scratchBuffer[MAX_PATH];
-  char extensionString[5] = "";
-  SStrCopy(scratchBuffer, fileName, sizeof(scratchBuffer));
-  char *extension = SStrChrR(scratchBuffer, '.');
-  if (extension && *extension) {
-    SStrCopy(extensionString, extension, sizeof(extensionString));
-    *extension = 0;
-  }
-
-  CGUnit_C    *unit = static_cast<CGUnit_C *>(object);
-  unsigned int sex = unit->GetDisplaySex();
-  unsigned int race = unit->GetDisplayRace();
-  FATALASSERT(sex < UNITSEX_LAST);
-  ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(race);
-  FATALASSERT(raceRec);
-
-  static const char *const sexNames[UNITSEX_LAST] = {"Male", "Female", "NOSEX"};
-  SStrPrintf(buffer, size, "%s%s%s%s", scratchBuffer, raceRec->m_clientFileString, sexNames[sex], extensionString);
-}
-
 void __fastcall UnitEffectsInitialize() {
   s_showEffectsStandalone = CVar::Register("showEffectsStandalone", 0, 0, "1", 0, 5, false, 0);
 }
@@ -643,10 +622,74 @@ void __fastcall UnitEffectUpdate(CGCamera *camera) {
   }
 }
 
-static void __fastcall SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position) {
-  if (eventName && *eventName) {
-    SndInterfacePlaySound(SStrToInt(eventName), position, -1, 1.0f);
+static void __fastcall CheckReinitTimer(int current, unsigned int duration) {
+  int triggerTime = current + duration;
+  if (s_purgeTimer) {
+    if (triggerTime >= s_purgeTime) {
+      return;
+    }
+    ClientKillTimer(s_purgeTimer, PurgeTimerHandler, "PurgeTimerHandler");
   }
+
+  s_purgeTimer = ClientSetTimer(duration, PurgeTimerHandler, 0);
+  s_purgeTime = triggerTime;
+}
+
+static int __fastcall PurgeTimerHandler(const void *timerData, void *userData) {
+  s_purgeTimer = 0;
+
+  int                          current = GetTickCount();
+  int                          next = 0x7FFFFFFF;
+  int                          found = 0;
+  ONESHOTSTANDALONEEFFECTNODE *node = s_standAloneEffects.Head();
+  while (node) {
+    ONESHOTSTANDALONEEFFECTNODE *nextNode = s_standAloneEffects.RawNext(node);
+    if (node->expireTime > current) {
+      if (next >= node->expireTime) {
+        next = node->expireTime;
+      }
+      ++found;
+    } else {
+      s_standAloneEffects.UnlinkNode(node);
+      node->~ONESHOTSTANDALONEEFFECTNODE();
+      s_freeStandaloneEffects.PutData(node, 0, 0);
+    }
+    node = nextNode;
+  }
+
+  if (found) {
+    CheckReinitTimer(current, next - current);
+  }
+  return 1;
+}
+
+void __fastcall UnitEffectClear(CGObject_C* object) {
+    // TODO: implement
+}
+
+void __fastcall UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
+  if (!object) {
+    return;
+  }
+
+  unsigned __int64       guid = object->GetGUID();
+  CHashKeyGUID           key(guid);
+  UNITONESHOTEFFECTDESC *effectDesc = s_oneShotEffects.Ptr(static_cast<unsigned int>(guid), key);
+  if (!effectDesc) {
+    return;
+  }
+
+  ONESHOTEFFECTNODE *nodenext_node;
+  for (ONESHOTEFFECTNODE *node = effectDesc->m_effects.Head(); node; node = nodenext_node) {
+    nodenext_node = effectDesc->m_effects.RawNext(node);
+    if (node->spellID == spellID && !node->isCastEffect) {
+      effectDesc->m_effects.DeleteNode(node);
+    }
+  }
+}
+
+int __fastcall UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber) {
+  return s_specialEffects[effectNumber];
 }
 
 static void __fastcall SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position) {
@@ -655,93 +698,10 @@ static void __fastcall SpellCameraShakeCallback(const char *eventName, const NTe
   }
 }
 
-static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
-  ONESHOTSTANDALONEEFFECTNODE *node = static_cast<ONESHOTSTANDALONEEFFECTNODE *>(param);
-  unsigned int                 event = *reinterpret_cast<const unsigned int *>(eventName);
-
-  switch (event) {
-    case 0x4B485324:  // $SHK
-      SpellCameraShakeCallback(eventName + 1, position);
-      break;
-    case 0x48544424:  // $DTH
-      if (node) {
-        node->ReleaseDeathHolds();
-      }
-      break;
-    case 0x444E5324:    // $SND
-    case 0x58444E53: {  // SNDX
-      NTempest::C3Vector soundPos = position;
-      if (node) {
-        soundPos += node->position;
-      }
-      SpellSoundEffectCallback(eventName + 1, soundPos);
-      break;
-    }
-    case 0x54494824:  // $HIT
-      if (node) {
-        for (unsigned int index = 0; index < node->objects.Count(); ++index) {
-          CGObject_C *object = ClntObjMgrObjectPtr(node->objects[index], __FILE__, __LINE__);
-          if (object && (object->GetType() & TYPE_UNIT)) {
-            static_cast<CGUnit_C *>(object)->PlayDeathThud();
-          }
-        }
-      }
-      break;
-    default:
-      SysMsgPrintf(SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|ONESHOTSTANDALONEEFFECTNODE|SpellAreaAnimEventCallback", eventName);
-      break;
+static void __fastcall SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position) {
+  if (eventName && *eventName) {
+    SndInterfacePlaySound(SStrToInt(eventName), position, -1, 1.0f);
   }
-}
-
-static void __fastcall SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
-  ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
-  unsigned int       event = *reinterpret_cast<const unsigned int *>(eventName);
-
-  CGObject_C *object = node ? ClntObjMgrObjectPtr(node->objectGUID, __FILE__, __LINE__) : 0;
-  CGUnit_C   *unit = object && (object->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
-
-  switch (event) {
-    case 0x50504324:  // $CPP
-    case 0x48414324:  // $ACH
-    case 0x53534324:  // $CSS
-      if (unit) {
-        NTempest::C3Vector eventPosition = position;
-        unit->HandleCombatAnimEvent(eventName, event, eventPosition);
-      }
-      break;
-    case 0x48544424:  // $DTH
-      if (node) {
-        node->ReleaseDeathHolds();
-      }
-      break;
-    case 0x444E5324:    // $SND
-    case 0x58444E53: {  // SNDX
-      NTempest::C3Vector soundPos = position;
-      if (object) {
-        soundPos += object->GetPosition();
-      }
-      SpellSoundEffectCallback(eventName + 1, soundPos);
-      break;
-    }
-    case 0x54494824:  // $HIT
-      if (unit) {
-        unit->PlayDeathThud();
-      }
-      break;
-    default:
-      SysMsgPrintf(SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|ONESHOTEFFECTNODE|SpellUnitAnimEventCallback", eventName);
-      break;
-  }
-}
-
-static int __fastcall OneShotEndHandler(void *param) {
-  FATALASSERT(param);
-
-  ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
-  if (node->isCastEffect) {
-    delete node;
-  }
-  return 0;
 }
 
 void __fastcall UnitEffectOneShot(
@@ -823,45 +783,20 @@ void __fastcall UnitEffectOneShot(
   HandleClose(objectModel);
 }
 
-static void __fastcall CheckReinitTimer(int current, unsigned int duration) {
-  int triggerTime = current + duration;
-  if (s_purgeTimer) {
-    if (triggerTime >= s_purgeTime) {
-      return;
-    }
-    ClientKillTimer(s_purgeTimer, PurgeTimerHandler, "PurgeTimerHandler");
-  }
-
-  s_purgeTimer = ClientSetTimer(duration, PurgeTimerHandler, 0);
-  s_purgeTime = triggerTime;
+GEOCOMPONENTLINKS __fastcall UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach) {
+  FATALASSERT(attach >= 0);
+  FATALASSERT(static_cast<unsigned int>(attach) < sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0]));
+  return g_attachmentPoints[attach];
 }
 
-static int __fastcall PurgeTimerHandler(const void *timerData, void *userData) {
-  s_purgeTimer = 0;
-
-  int                          current = GetTickCount();
-  int                          next = 0x7FFFFFFF;
-  int                          found = 0;
-  ONESHOTSTANDALONEEFFECTNODE *node = s_standAloneEffects.Head();
-  while (node) {
-    ONESHOTSTANDALONEEFFECTNODE *nextNode = s_standAloneEffects.RawNext(node);
-    if (node->expireTime > current) {
-      if (next >= node->expireTime) {
-        next = node->expireTime;
-      }
-      ++found;
-    } else {
-      s_standAloneEffects.UnlinkNode(node);
-      node->~ONESHOTSTANDALONEEFFECTNODE();
-      s_freeStandaloneEffects.PutData(node, 0, 0);
-    }
-    node = nextNode;
+HMODEL __fastcall UnitEffectCreateAuraModel(unsigned int effectID) {
+  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
+  if (effectRec) {
+    return InitializeModel(effectRec->m_fileName, 0, 0);
   }
 
-  if (found) {
-    CheckReinitTimer(current, next - current);
-  }
-  return 1;
+  SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTIDNOTFOUND|%d", effectID);
+  return 0;
 }
 
 void __fastcall UnitEffectOneShot(
@@ -922,29 +857,108 @@ void __fastcall UnitEffectOneShot(
   }
 }
 
-void __fastcall UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
-  if (!object) {
-    return;
+unsigned int __fastcall UnitEffectIsAuraWorldObject(unsigned int effectID, unsigned int &isWorldObj) {
+  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
+  if (!effectRec) {
+    return 0;
   }
 
-  unsigned __int64       guid = object->GetGUID();
-  CHashKeyGUID           key(guid);
-  UNITONESHOTEFFECTDESC *effectDesc = s_oneShotEffects.Ptr(static_cast<unsigned int>(guid), key);
-  if (!effectDesc) {
-    return;
-  }
-
-  ONESHOTEFFECTNODE *nodenext_node;
-  for (ONESHOTEFFECTNODE *node = effectDesc->m_effects.Head(); node; node = nodenext_node) {
-    nodenext_node = effectDesc->m_effects.RawNext(node);
-    if (node->spellID == spellID && !node->isCastEffect) {
-      effectDesc->m_effects.DeleteNode(node);
-    }
-  }
+  isWorldObj = (effectRec->m_VisualEffectNameFlags & 8) != 0;
+  return 1;
 }
 
-int __fastcall UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber) {
-  return s_specialEffects[effectNumber];
+unsigned long __fastcall UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest::C3Vector &location, float facing) {
+  if (!effect) {
+    return 0;
+  }
+
+  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effect);
+  HMODEL                    model = InitializeModel(effectRec->m_fileName, 0, 0);
+  if (!model) {
+    return 0;
+  }
+
+  NTempest::C44Matrix tempMat;
+  tempMat.Translate(location);
+  NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
+  tempMat.Rotate(facing, axis, 1);
+  unsigned long object = CWorld::AddDoodad(effectRec->m_fileName, model, tempMat, 6);
+  HandleClose(model);
+  return object;
+}
+
+void __fastcall UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset) {
+  NTempest::C3Vector endPos;
+  CGObject_C        *target = desc.target ? ClntObjMgrObjectPtr(desc.target, __FILE__, __LINE__) : 0;
+  if (desc.target && !target) {
+    return;
+  }
+  unsigned __int64 caster = desc.caster ? desc.caster->GetGUID() : 0;
+  if (target) {
+    GetMissileTargetPosition(target, GetMissileTargetLocation(caster, desc.spellID), endPos);
+  } else {
+    endPos = desc.destination;
+  }
+
+  char                      modelName[MAX_PATH];
+  HMODEL                    model = 0;
+  unsigned int              dummy1 = 0;
+  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(desc.missileEffect);
+  if (effectRec && effectRec->m_fileName && *effectRec->m_fileName) {
+    DecorateEffectFilename(effectRec->m_fileName, 0, desc.caster, modelName, sizeof(modelName));
+    model = InitializeModel(modelName, 0, 0);
+  } else if (desc.ammoDisplayID) {
+    model = ObjComponentBuildAmmoModel(g_itemDisplayInfoDB.GetRecord(desc.ammoDisplayID), desc.inventoryType, dummy1);
+  }
+  if (!model) {
+    return;
+  }
+
+  MISSILENODE *node = static_cast<MISSILENODE *>(s_freeMissiles.GetData(0, typeid(MISSILENODE).raw_name(), -2));
+  if (node) {
+    new (node) MISSILENODE;
+  }
+  s_missiles.LinkNode(node, LIST_HEAD, 0);
+  node->model = model;
+  node->caster = caster;
+  node->startPosition = desc.startPosition;
+  node->pathType = desc.missilePathType;
+  if (node->pathType == 1) {
+    NTempest::C3Vector scanStart = node->startPosition;
+    scanStart.z += 5.0f;
+    NTempest::C3Vector scanEnd = node->startPosition;
+    scanEnd.z -= 25.0f;
+    NTempest::C3Segment seg(scanStart, scanEnd);
+    NTempest::C4Plane   facet;
+    float               segT;
+    if (CWorld::GetFacet(seg, segT, facet, 273)) {
+      node->startPosition.z = scanStart.z + (scanEnd.z - scanStart.z) * segT;
+    } else {
+      node->pathType = 0;
+    }
+  }
+  node->position = node->startPosition;
+  node->endPosition = endPos;
+  node->target = desc.target;
+  node->startTime = GetTickCount();
+  node->spellID = desc.spellID;
+  node->victimEffect = desc.missileVictimEffect;
+  node->miss = !desc.hits;
+  node->missReason = desc.reason;
+  node->sound = SndInterfacePlayLoopedSound(desc.sound, node->position, 0);
+
+  float distance = (node->endPosition - node->startPosition).Mag();
+  int   duration = static_cast<int>(distance / desc.speed * 1000.0f - 0.5f);
+  if (durationOffset < duration) {
+    duration -= durationOffset;
+  }
+  node->travelTime = duration < 0 ? 0 : duration;
+  if (node->travelTime) {
+    node->flags |= 1;
+  }
+  if (target && (target->GetType() & TYPE_UNIT)) {
+    static_cast<CGUnit_C *>(target)->DDADDLOG(node->caster, "UnitEffectAddMissile", __FILE__, __LINE__);
+  }
 }
 
 void __fastcall UnitEffectOneShot(

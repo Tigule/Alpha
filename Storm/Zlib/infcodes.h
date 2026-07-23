@@ -24,4 +24,3 @@ extern int inflate_codes OF((
 extern void inflate_codes_free OF((
     inflate_codes_statef *,
     z_streamp ));
-

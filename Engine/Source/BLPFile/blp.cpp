@@ -47,6 +47,11 @@ int CBLPFile::Open(const char *filename) {
   return Source(s_blpFileLoadBuffer.Ptr());
 }
 
+static int IsLegalDimension(unsigned int dimension) {
+    // TODO: implement
+    return 0;
+}
+
 int CBLPFile::IsValidMip(unsigned int level) const {
   return !level || HasMips() && level < m_numLevels;
 }

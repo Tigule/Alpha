@@ -1,6 +1,9 @@
 #include "MDLStatus.h"
+#include "MDLTypes.h"
 
 #include <storm.h>
+
+class CMsgBuffer;
 
 namespace MDL {
 
@@ -11,11 +14,45 @@ namespace MDL {
 
 static CNullStatus s_nullStatus;
 
+static int TextToModelData(const void* buffer, MDLDATA& data, CMDLStatus* status) {
+    // TODO: implement
+    return 0;
+}
+
+static int BinToModelData(CMsgBuffer& buf, unsigned int size, MDLDATA& data, CMDLStatus* status) {
+    // TODO: implement
+    return 0;
+}
+
+static int ModelDataToBin(const MDLDATA& data, CMsgBuffer& buffer, CMDLStatus* status) {
+    // TODO: implement
+    return 0;
+}
+
+static int IWriteFile(const char* path, const char* mode, const void* data, unsigned int bytes) {
+    // TODO: implement
+    return 0;
+}
+
 static void __fastcall FileReadError(const char *path, CMDLStatus *status) {
   char errorText[256];
 
   SErrGetErrorStr(SErrGetLastError(), errorText, sizeof(errorText));
   status->Add(STATUS_FATAL, "%s: %s\n", path, errorText);
+}
+
+static unsigned int PickAlternateFilename(char* path, unsigned int type) {
+    // TODO: implement
+    return 0;
+}
+
+static void FileWriteError(const char* path, CMDLStatus* status) {
+    // TODO: implement
+}
+
+static unsigned int DiscoverFileType(const char* path) {
+    // TODO: implement
+    return 0;
 }
 
 void __fastcall MDLFileInitialize() {
@@ -24,6 +61,20 @@ void __fastcall MDLFileInitialize() {
 
 void __fastcall MDLFileDestroy() {
   MDL::DestroyTokenText();
+}
+
+static int IWriteMdlFile(const char* path, const MDLDATA& mdldata, CMDLStatus* status) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall MDLFileSetDefaultWriteFormat(const char* extension) {
+    // TODO: implement
+}
+
+int __fastcall MDLFileWrite(const char* path, const MDLDATA& mdldata, CStatus* status) {
+    // TODO: implement
+    return 0;
 }
 
 static void *__fastcall LoadMdlData(char *path, unsigned long *bytes) {
@@ -46,6 +97,16 @@ static void *__fastcall LoadMdlData(char *path, unsigned long *bytes) {
 
   SFile::Close(file);
   return fileData;
+}
+
+static int ReadMdlFile(char* path, MDLDATA* mdldata, CMDLStatus* status) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall MDLFileRead(const char* path, MDLDATA* mdldata, CStatus* status) {
+    // TODO: implement
+    return 0;
 }
 
 unsigned char *__fastcall MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status) {
@@ -91,4 +152,9 @@ unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned in
   }
 
   return 0;
+}
+
+int __fastcall MDLFileBinaryWrite(const char* path, const unsigned char* fileData, unsigned int fileBytes) {
+    // TODO: implement
+    return 0;
 }

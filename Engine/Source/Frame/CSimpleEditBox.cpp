@@ -404,28 +404,6 @@ void CSimpleEditBox::UpdateTextInfo() {
   }
 }
 
-void CSimpleEditBox::UpdateVisibleCursor() {
-  if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen) {
-    m_cursor->Hide();
-    return;
-  }
-
-  char *text = m_password && m_textHidden ? m_textHidden : m_text;
-  float offset_x = 0.0f;
-
-  if (m_cursorPos != m_visiblePos) {
-    offset_x = m_string->GetTextWidth(text + m_visiblePos, m_cursorPos - m_visiblePos);
-  }
-
-  m_cursor->SetPoint(FRAMEPOINT_LEFT, m_string, FRAMEPOINT_LEFT, offset_x, 0.0f, 0);
-  m_cursor->Resize(1);
-  m_blinkElapsedTime = 0.0f;
-
-  if (s_currentFocus == this) {
-    m_cursor->Show();
-  }
-}
-
 int CSimpleEditBox::GetNumToLen(int offset, int amount, bool checkHyperLink) {
   unsigned int *textInfo = m_textInfo;
   unsigned int *info = &textInfo[offset];
@@ -584,6 +562,17 @@ void CSimpleEditBox::SetText(const char *text) {
   }
 }
 
+void CSimpleEditBox::Delete(int amount) {
+  FATALASSERT(amount);
+
+  int length = GetNumToLen(m_cursorPos, amount, 1);
+  if (amount < 0) {
+    DeleteSubstring(m_cursorPos - length, m_cursorPos);
+  } else {
+    DeleteSubstring(m_cursorPos, m_cursorPos + length);
+  }
+}
+
 void CSimpleEditBox::Insert(const char *utf8string, int isIME) {
   if ((m_textInfo[m_cursorPos] & 0x80000000) && m_cursorPos > 0 && (m_textInfo[PrevCharOffset(m_cursorPos)] & 0x80000000)) {
     return;
@@ -677,17 +666,6 @@ void CSimpleEditBox::Insert(unsigned int utf16) {
   }
 }
 
-void CSimpleEditBox::Delete(int amount) {
-  FATALASSERT(amount);
-
-  int length = GetNumToLen(m_cursorPos, amount, 1);
-  if (amount < 0) {
-    DeleteSubstring(m_cursorPos - length, m_cursorPos);
-  } else {
-    DeleteSubstring(m_cursorPos, m_cursorPos + length);
-  }
-}
-
 void CSimpleEditBox::DeleteSubstring(int left, int right) {
   if (m_highlightLeft != m_highlightRight) {
     m_highlightRight = 0;
@@ -772,6 +750,28 @@ void CSimpleEditBox::AddHistoryLine(const char *line) {
 
   SStrCopy(m_history[m_curHistory], line, INT_MAX);
   m_curHistory = (m_curHistory + 1) % m_numHistory;
+}
+
+void CSimpleEditBox::UpdateVisibleCursor() {
+  if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen) {
+    m_cursor->Hide();
+    return;
+  }
+
+  char *text = m_password && m_textHidden ? m_textHidden : m_text;
+  float offset_x = 0.0f;
+
+  if (m_cursorPos != m_visiblePos) {
+    offset_x = m_string->GetTextWidth(text + m_visiblePos, m_cursorPos - m_visiblePos);
+  }
+
+  m_cursor->SetPoint(FRAMEPOINT_LEFT, m_string, FRAMEPOINT_LEFT, offset_x, 0.0f, 0);
+  m_cursor->Resize(1);
+  m_blinkElapsedTime = 0.0f;
+
+  if (s_currentFocus == this) {
+    m_cursor->Show();
+  }
 }
 
 void __fastcall CSimpleEditBox::SetKeyboardFocus(CSimpleEditBox *focus) {

@@ -197,3 +197,46 @@ void __fastcall OsCallResetContext(void *contextDataPtr) {
   contextData->m_threadData = 0;
   s_critsect.Leave();
 }
+
+void __fastcall OsCallBeginTurn() {
+    // TODO: implement
+}
+
+unsigned long __fastcall OsCallEndTurn() {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall OsCallCompleteTurn() {
+    // TODO: implement
+}
+
+static void OsCallDumpContextData(_iobuf* file, const ContextData* contextData) {
+    // TODO: implement
+}
+
+static void OsCallDumpProfileData(const char* fileName, const ContextData* contextData) {
+    // TODO: implement
+}
+
+void __fastcall OsCallDump(const char* fileName) {
+    // TODO: implement
+}
+
+int __cdecl OsCallEnter(unsigned long funcAddr, unsigned long retAddr) {
+    // TODO: implement
+    return 0;
+}
+
+unsigned long __cdecl OsCallExit() {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall OsCallData(unsigned long data) {
+    // TODO: implement
+}
+
+void __fastcall OsCallData(float data) {
+    // TODO: implement
+}

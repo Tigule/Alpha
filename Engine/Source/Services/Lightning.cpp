@@ -79,94 +79,6 @@ CLightning::~CLightning() {
   }
 }
 
-void CLightning::SetTexture(HTEXTURE texture) {
-  if (mTexture) {
-    HandleClose(mTexture);
-  }
-  mTexture = static_cast<HTEXTURE>(HandleDuplicate(texture));
-}
-
-CLightningManager::CLightningManager() {
-}
-
-CLightningManager::~CLightningManager() {
-  unsigned int count = mLiveBolts.Count();
-
-  while (count) {
-    CLightning *lightning = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[--count]) & ~NOTUSEDFLAG);
-    DELIFUSED(lightning);
-  }
-}
-
-BoltID CLightningManager::Add(
-    NTempest::C3Vector &source,
-    NTempest::C3Vector &dest,
-    float               avgSegLen,
-    float               width,
-    NTempest::CImVector color,
-    float               noiseScale,
-    float               texCoordScale,
-    float               duration,
-    HTEXTURE            texture,
-    void(__fastcall *updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
-    void *context
-) {
-  BoltID      boltId;
-  CLightning *lightning;
-
-  if (mDeadBolts.Count()) {
-    boltId = mDeadBolts[mDeadBolts.Count() - 1];
-    mDeadBolts.SetCount(mDeadBolts.Count() - 1);
-    lightning = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[boltId]) & ~NOTUSEDFLAG);
-    mLiveBolts[boltId] = lightning;
-  } else {
-    boltId = mLiveBolts.Count();
-    lightning = new CLightning;
-    *mLiveBolts.New() = lightning;
-  }
-
-  lightning->mSrcPos = source;
-  lightning->mRebuildPoints = 1;
-  lightning->mDstPos = dest;
-  lightning->mRebuildPoints = 1;
-  lightning->mAvgSegLen = avgSegLen;
-  lightning->mWidth = width;
-  lightning->mColor = color;
-  lightning->mNoiseScale = noiseScale;
-  lightning->mTexCoordScale = texCoordScale;
-  lightning->mDuration = duration;
-  lightning->SetTexture(texture);
-  lightning->mCoordUpdateData.callback = updateproc;
-  lightning->mCoordUpdateData.context = context;
-  return boltId;
-}
-
-void CLightningManager::Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C3Vector *dst) {
-  ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
-  ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
-  FATALASSERT(src || dst);
-
-  if (src) {
-    mLiveBolts[boltId]->mSrcPos = *src;
-    mLiveBolts[boltId]->mRebuildPoints = 1;
-  }
-  if (dst) {
-    mLiveBolts[boltId]->mDstPos = *dst;
-    mLiveBolts[boltId]->mRebuildPoints = 1;
-  }
-}
-
-void CLightningManager::Update(float elapsed) {
-  unsigned int count = mLiveBolts.Count();
-
-  while (count) {
-    --count;
-    if (!(reinterpret_cast<ulong>(mLiveBolts[count]) & NOTUSEDFLAG)) {
-      mLiveBolts[count]->Update(elapsed);
-    }
-  }
-}
-
 void CLightning::Render(unsigned int boltId, const NTempest::C3Vector &cameraPos) {
   if (mCoordUpdateData.callback) {
     NTempest::C3Vector sourcePos = mSrcPos;
@@ -239,6 +151,94 @@ void CLightning::Render(unsigned int boltId, const NTempest::C3Vector &cameraPos
   GxXformSetView(view);
   GxXformPop(GxXform_World);
   GxXformPop(GxXform_Tex0);
+}
+
+void CLightning::SetTexture(HTEXTURE texture) {
+  if (mTexture) {
+    HandleClose(mTexture);
+  }
+  mTexture = static_cast<HTEXTURE>(HandleDuplicate(texture));
+}
+
+CLightningManager::~CLightningManager() {
+  unsigned int count = mLiveBolts.Count();
+
+  while (count) {
+    CLightning *lightning = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[--count]) & ~NOTUSEDFLAG);
+    DELIFUSED(lightning);
+  }
+}
+
+CLightningManager::CLightningManager() {
+}
+
+BoltID CLightningManager::Add(
+    NTempest::C3Vector &source,
+    NTempest::C3Vector &dest,
+    float               avgSegLen,
+    float               width,
+    NTempest::CImVector color,
+    float               noiseScale,
+    float               texCoordScale,
+    float               duration,
+    HTEXTURE            texture,
+    void(__fastcall *updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
+    void *context
+) {
+  BoltID      boltId;
+  CLightning *lightning;
+
+  if (mDeadBolts.Count()) {
+    boltId = mDeadBolts[mDeadBolts.Count() - 1];
+    mDeadBolts.SetCount(mDeadBolts.Count() - 1);
+    lightning = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[boltId]) & ~NOTUSEDFLAG);
+    mLiveBolts[boltId] = lightning;
+  } else {
+    boltId = mLiveBolts.Count();
+    lightning = new CLightning;
+    *mLiveBolts.New() = lightning;
+  }
+
+  lightning->mSrcPos = source;
+  lightning->mRebuildPoints = 1;
+  lightning->mDstPos = dest;
+  lightning->mRebuildPoints = 1;
+  lightning->mAvgSegLen = avgSegLen;
+  lightning->mWidth = width;
+  lightning->mColor = color;
+  lightning->mNoiseScale = noiseScale;
+  lightning->mTexCoordScale = texCoordScale;
+  lightning->mDuration = duration;
+  lightning->SetTexture(texture);
+  lightning->mCoordUpdateData.callback = updateproc;
+  lightning->mCoordUpdateData.context = context;
+  return boltId;
+}
+
+void CLightningManager::Update(float elapsed) {
+  unsigned int count = mLiveBolts.Count();
+
+  while (count) {
+    --count;
+    if (!(reinterpret_cast<ulong>(mLiveBolts[count]) & NOTUSEDFLAG)) {
+      mLiveBolts[count]->Update(elapsed);
+    }
+  }
+}
+
+void CLightningManager::Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C3Vector *dst) {
+  ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
+  ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
+  FATALASSERT(src || dst);
+
+  if (src) {
+    mLiveBolts[boltId]->mSrcPos = *src;
+    mLiveBolts[boltId]->mRebuildPoints = 1;
+  }
+  if (dst) {
+    mLiveBolts[boltId]->mDstPos = *dst;
+    mLiveBolts[boltId]->mRebuildPoints = 1;
+  }
 }
 
 void CLightningManager::Render(const NTempest::C3Vector &cameraPos) {

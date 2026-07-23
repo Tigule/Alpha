@@ -4,6 +4,7 @@
 #include <Tempest/c3vector.h>
 
 class SoundEntriesRec;
+struct CVar;
 
 struct LIQUIDINFO {
   Sound             *m_sound;
@@ -32,6 +33,28 @@ static void __fastcall ClearAllSounds(int immediate) {
   for (unsigned int i = 0; i < 4; ++i) {
     s_liquidInfo[i].StopSound(immediate);
   }
+}
+
+static unsigned char ToggleCallback(CVar* h, const char* oldValue, const char* newValue, void* arg) {
+    // TODO: implement
+    return 0;
+}
+
+static void HandleWaterAmbiences() {
+    // TODO: implement
+}
+
+static int WaterHandler(const void* dataPtr, void* param) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall InitializeWaterAmbiences() {
+    // TODO: implement
+}
+
+void __fastcall ShutdownWaterAmbiences() {
+    // TODO: implement
 }
 
 void __fastcall WaterAmbiencesUnderwaterChanged() {

@@ -141,6 +141,11 @@ static void __fastcall FootstepTerrainInitialize() {
   }
 }
 
+static unsigned int GetFootstepTerrain(unsigned int soundID, unsigned int terrainID, int splashing) {
+    // TODO: implement
+    return 0;
+}
+
 static float __fastcall ObstructionCallback(const NTempest::C3Vector &listener, const NTempest::C3Vector &source) {
   NTempest::C3Vector ip;
   float              dist = 1.0f;
@@ -308,17 +313,17 @@ void __fastcall SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, int itemDispl
   }
 }
 
-void __fastcall SndInterfacePlayInterfaceSound(const char *name) {
-  UISOUNDLOOKUP *lookup;
+static int WorldIdle(const void* dataPtr, void* ptr) {
+    // TODO: implement
+    return 0;
+}
 
-  if (!name || !*name) {
-    return;
-  }
+void __fastcall SndInterfaceWorldInitialize() {
+    // TODO: implement
+}
 
-  lookup = g_uiSoundLookups.Ptr(name);
-  if (lookup) {
-    SndInterfacePlaySound(lookup->soundID, -1);
-  }
+void __fastcall SndInterfaceWorldDestroy() {
+    // TODO: implement
 }
 
 void __fastcall
@@ -362,6 +367,12 @@ SndInterfacePlayHitSound(VirtualItemInfo *attackingWeapon, unsigned int defendin
   SndInterfacePlaySound(soundID, position, -1, 1.0f);
 }
 
+void __fastcall SndInterfacePlayDeflectedSound(NTempest::C3Vector &position) {
+  NTempest::C3Vector pos = position;
+  pos.z += 2.0f;
+  SndInterfacePlaySound(3263, pos, -1, 1.0f);
+}
+
 void __fastcall SndInterfacePlayWeaponSwooshSound(WEAPONSWING_SOUNDTYPES soundType, int criticalHit, const NTempest::C3Vector &position, int missed) {
   if (soundType >= NUM_WEAPONSWING_SOUNDTYPES) {
     return;
@@ -371,12 +382,6 @@ void __fastcall SndInterfacePlayWeaponSwooshSound(WEAPONSWING_SOUNDTYPES soundTy
   soundPosition.z += 1.0f;
   unsigned int soundID = g_weaponSwingSounds[soundType].soundList[criticalHit != 0];
   SndInterfacePlaySound(soundID, soundPosition, -1, missed ? 0.5f : 1.0f);
-}
-
-void __fastcall SndInterfacePlayDeflectedSound(NTempest::C3Vector &position) {
-  NTempest::C3Vector pos = position;
-  pos.z += 2.0f;
-  SndInterfacePlaySound(3263, pos, -1, 1.0f);
 }
 
 void __fastcall SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj) {
@@ -393,25 +398,99 @@ void __fastcall SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj) {
   }
 }
 
-void __fastcall SndInterfacePlaySpellFizzleSound(unsigned int spellID, const CGUnit_C *caster) {
-  SpellRec *spellRec = g_spellDB.GetRecord(spellID);
-  if (!spellRec) {
+void __fastcall SndInterfacePlayInterfaceSound(const char *name) {
+  UISOUNDLOOKUP *lookup;
+
+  if (!name || !*name) {
     return;
   }
 
-  ResistancesRec *resistance = g_resistancesDB.GetRecord(spellRec->m_school);
-  if (resistance) {
-    SndInterfacePlaySpellSound(resistance->m_FizzleSoundID, const_cast<CGUnit_C *>(caster));
+  lookup = g_uiSoundLookups.Ptr(name);
+  if (lookup) {
+    SndInterfacePlaySound(lookup->soundID, -1);
   }
 }
 
-void __fastcall SndInterfacePlayImmuneSound(NTempest::C3Vector &pos) {
-  NTempest::C3Vector position = pos;
-  position.z += 2.0f;
-  SndInterfacePlaySound(3334, position, -1, 1.0f);
+void __fastcall SndInterfaceInitializeVocalUISounds(unsigned int race, unsigned int sex) {
+  unsigned int i;
+
+  s_lastPlayedVocalUISound = static_cast<VOCALUISOUNDS>(66);
+  s_currentVocalUISoundType = VUISOUNDTYPE_NORMAL;
+  s_vocalUISoundPlayCount = 0;
+
+  for (i = 0; i < 66; ++i) {
+    s_vocalUISounds[i].Clear();
+  }
+
+  if (sex > 1) {
+    return;
+  }
+
+  for (i = g_vocalUISoundsDB.GetNumRecords(); i; --i) {
+    VocalUISoundsRec *rec = g_vocalUISoundsDB.GetRecordByIndex(i - 1);
+    FATALASSERT(rec);
+
+    if (static_cast<unsigned int>(rec->m_vocalUIEnum) < 66 && static_cast<unsigned int>(rec->m_raceID) == race) {
+      VOCALUISOUND &sound = s_vocalUISounds[rec->m_vocalUIEnum];
+      sound.soundTypes[VUISOUNDTYPE_NORMAL] = rec->m_NormalSoundID[sex];
+      sound.soundTypes[VUISOUNDTYPE_PISSED] = rec->m_PissedSoundID[sex];
+
+      SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(rec->m_PissedSoundID[sex]);
+      if (definition) {
+        sound.pissedCount = definition->m_fileNames.Count();
+      }
+    }
+  }
 }
 
-void __fastcall SndInterfacePlayAbsorbedSound(NTempest::C3Vector &pos) {
+void __fastcall SndInterfacePlayVocalUISound(VOCALUISOUNDS soundType) {
+  CVar *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
+  bool  soundEffectsEnabled = masterSoundEffects && masterSoundEffects->m_intValue;
+  CVar *enableErrorSpeech = CVar::Lookup("EnableErrorSpeech");
+
+  if (!enableErrorSpeech || !enableErrorSpeech->m_intValue || soundType >= 66 || !soundEffectsEnabled) {
+    return;
+  }
+
+  if (soundType != s_lastPlayedVocalUISound) {
+    s_currentVocalUISoundType = VUISOUNDTYPE_NORMAL;
+    s_vocalUISoundPlayCount = 0;
+  }
+
+  s_lastPlayedVocalUISound = soundType;
+
+  if (s_currentVocalUISoundType == VUISOUNDTYPE_PISSED) {
+    if (s_vocalUISoundPlayCount < s_vocalUISounds[soundType].pissedCount &&
+        !InternalPlaySound(SOUNDCATEGORY_NONE, s_vocalUISounds[soundType].soundTypes[VUISOUNDTYPE_PISSED], s_vocalUISoundPlayCount))
+    {
+      return;
+    }
+
+    s_currentVocalUISoundType = VUISOUNDTYPE_NORMAL;
+    s_vocalUISoundPlayCount = 0;
+  }
+
+  if (!s_vocalUISounds[soundType].soundTypes[VUISOUNDTYPE_NORMAL] ||
+      (InternalPlaySound(SOUNDCATEGORY_NONE, s_vocalUISounds[soundType].soundTypes[VUISOUNDTYPE_NORMAL], -1) && ++s_vocalUISoundPlayCount >= 4))
+  {
+    s_currentVocalUISoundType = VUISOUNDTYPE_PISSED;
+    s_vocalUISoundPlayCount = 0;
+  }
+}
+
+void __fastcall SndInterfacePlayFootstepSound(unsigned int footstepID, const NTempest::C3Vector& position, unsigned int terrainID, int splashing) {
+    // TODO: implement
+}
+
+void __fastcall SndInterfacePlayFoleySound(unsigned int materialID, const NTempest::C3Vector& position) {
+    // TODO: implement
+}
+
+void __fastcall SndInterfacePlaySheatheSound(const VirtualItemInfo* info, int sheathing, const NTempest::C3Vector& position) {
+    // TODO: implement
+}
+
+void __fastcall SndInterfacePlayImmuneSound(NTempest::C3Vector &pos) {
   NTempest::C3Vector position = pos;
   position.z += 2.0f;
   SndInterfacePlaySound(3334, position, -1, 1.0f);
@@ -443,6 +522,17 @@ static bool __fastcall InternalPlaySound(SOUNDCATEGORIES category, unsigned int 
   }
 
   return true;
+}
+
+void __fastcall SndInterfacePlayAbsorbedSound(NTempest::C3Vector &pos) {
+  NTempest::C3Vector position = pos;
+  position.z += 2.0f;
+  SndInterfacePlaySound(3334, position, -1, 1.0f);
+}
+
+unsigned int __fastcall SndInterfaceGetSoundVariations(unsigned int soundID) {
+    // TODO: implement
+    return 0;
 }
 
 static int __fastcall Script_PlaySound(lua_State *L) {
@@ -501,8 +591,9 @@ bool __fastcall SndInterfacePlaySound(unsigned int soundID, const NTempest::C3Ve
   return InternalPlaySound(SOUNDCATEGORY_NONE, soundID, position, forceIndex, volumeScaler);
 }
 
-bool __fastcall SndInterfacePlaySplashSound(unsigned int soundID, const NTempest::C3Vector &position) {
-  return InternalPlaySound(SOUNDCATEGORY_SPLASHES, soundID, position, -1, 1.0f);
+unsigned char __fastcall SoundInterfaceIsSoundLooping(unsigned int soundID, unsigned char& looping) {
+    // TODO: implement
+    return 0;
 }
 
 Sound *__fastcall SndInterfacePlayLoopedSound(unsigned int soundID, unsigned int loopCount) {
@@ -578,6 +669,22 @@ InternalPlaySound(SOUNDCATEGORIES category, unsigned int soundID, const NTempest
   return true;
 }
 
+bool __fastcall SndInterfacePlaySplashSound(unsigned int soundID, const NTempest::C3Vector &position) {
+  return InternalPlaySound(SOUNDCATEGORY_SPLASHES, soundID, position, -1, 1.0f);
+}
+
+void __fastcall SndInterfacePlaySpellFizzleSound(unsigned int spellID, const CGUnit_C *caster) {
+  SpellRec *spellRec = g_spellDB.GetRecord(spellID);
+  if (!spellRec) {
+    return;
+  }
+
+  ResistancesRec *resistance = g_resistancesDB.GetRecord(spellRec->m_school);
+  if (resistance) {
+    SndInterfacePlaySpellSound(resistance->m_FizzleSoundID, const_cast<CGUnit_C *>(caster));
+  }
+}
+
 void __fastcall SndInterfaceAssociateSoundWithObject(Sound *sound, CGObject_C *objectPtr) {
   if (objectPtr) {
     NTempest::C3Vector position = objectPtr->GetPosition();
@@ -619,71 +726,17 @@ Sound *__fastcall SndInterfaceCreateSound(unsigned int soundID, float fadeInRate
   return sound;
 }
 
-void __fastcall SndInterfaceInitializeVocalUISounds(unsigned int race, unsigned int sex) {
-  unsigned int i;
-
-  s_lastPlayedVocalUISound = static_cast<VOCALUISOUNDS>(66);
-  s_currentVocalUISoundType = VUISOUNDTYPE_NORMAL;
-  s_vocalUISoundPlayCount = 0;
-
-  for (i = 0; i < 66; ++i) {
-    s_vocalUISounds[i].Clear();
-  }
-
-  if (sex > 1) {
-    return;
-  }
-
-  for (i = g_vocalUISoundsDB.GetNumRecords(); i; --i) {
-    VocalUISoundsRec *rec = g_vocalUISoundsDB.GetRecordByIndex(i - 1);
-    FATALASSERT(rec);
-
-    if (static_cast<unsigned int>(rec->m_vocalUIEnum) < 66 && static_cast<unsigned int>(rec->m_raceID) == race) {
-      VOCALUISOUND &sound = s_vocalUISounds[rec->m_vocalUIEnum];
-      sound.soundTypes[VUISOUNDTYPE_NORMAL] = rec->m_NormalSoundID[sex];
-      sound.soundTypes[VUISOUNDTYPE_PISSED] = rec->m_PissedSoundID[sex];
-
-      SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(rec->m_PissedSoundID[sex]);
-      if (definition) {
-        sound.pissedCount = definition->m_fileNames.Count();
-      }
-    }
-  }
+static unsigned char SoundPositionCallback(__int64 handle, NTempest::C3Vector& pos) {
+    // TODO: implement
+    return 0;
 }
 
-void __fastcall SndInterfacePlayVocalUISound(VOCALUISOUNDS soundType) {
-  CVar *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
-  bool  soundEffectsEnabled = masterSoundEffects && masterSoundEffects->m_intValue;
-  CVar *enableErrorSpeech = CVar::Lookup("EnableErrorSpeech");
+void __fastcall SndInterfaceSetPositionCallback() {
+    // TODO: implement
+}
 
-  if (!enableErrorSpeech || !enableErrorSpeech->m_intValue || soundType >= 66 || !soundEffectsEnabled) {
-    return;
-  }
-
-  if (soundType != s_lastPlayedVocalUISound) {
-    s_currentVocalUISoundType = VUISOUNDTYPE_NORMAL;
-    s_vocalUISoundPlayCount = 0;
-  }
-
-  s_lastPlayedVocalUISound = soundType;
-
-  if (s_currentVocalUISoundType == VUISOUNDTYPE_PISSED) {
-    if (s_vocalUISoundPlayCount < s_vocalUISounds[soundType].pissedCount &&
-        !InternalPlaySound(SOUNDCATEGORY_NONE, s_vocalUISounds[soundType].soundTypes[VUISOUNDTYPE_PISSED], s_vocalUISoundPlayCount))
-    {
-      return;
-    }
-
-    s_currentVocalUISoundType = VUISOUNDTYPE_NORMAL;
-    s_vocalUISoundPlayCount = 0;
-  }
-
-  if (!s_vocalUISounds[soundType].soundTypes[VUISOUNDTYPE_NORMAL] ||
-      (InternalPlaySound(SOUNDCATEGORY_NONE, s_vocalUISounds[soundType].soundTypes[VUISOUNDTYPE_NORMAL], -1) && ++s_vocalUISoundPlayCount >= 4))
-  {
-    s_currentVocalUISoundType = VUISOUNDTYPE_PISSED;
-    s_vocalUISoundPlayCount = 0;
-  }
+void __fastcall SndInterfaceClearPositionCallback() {
+    // TODO: implement
 }
 
 float SOUNDDEFINITION::GetVolume(float volumeScale, bool neverVary) const {

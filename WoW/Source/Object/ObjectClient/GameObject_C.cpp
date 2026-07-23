@@ -15,24 +15,14 @@ class CGameObjectDef {
 
 void __fastcall ClntObjMgrHideObject(unsigned __int64 guid);
 
-void CGGameObject_C::SetStorage(unsigned long *storage) {
-  CGObject_C::SetStorage(storage);
-  m_gameObj = reinterpret_cast<CGGameObjectData *>(storage + 6);
+static int PageTextHandler(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+    // TODO: implement
+    return 0;
 }
 
-CGGameObject_C::CGGameObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), m_baseObj(0), m_stats(0), m_serverTimeOffset(init->move.timeFallen - eventTime), m_isSolid(0) {
-  m_gameObj = reinterpret_cast<CGGameObjectData *>(storage + 6);
-
-  ClntObjMgrHideObject(GetGUID());
-  m_gameObj->m_position = init->move.status.worldPosition;
-  m_gameObj->m_facing = init->move.status.worldFacing;
-}
-
-CGGameObject_C::~CGGameObject_C() {
-  if (m_baseObj) {
-    DEL(m_baseObj);
-  }
+static int CustomAnimHandler(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+    // TODO: implement
+    return 0;
 }
 
 NTempest::C3Vector CGGameObject_C_TypeBase::GetPosition() const {
@@ -41,6 +31,41 @@ NTempest::C3Vector CGGameObject_C_TypeBase::GetPosition() const {
 
 float CGGameObject_C_TypeBase::GetFacing() const {
   return m_owner->m_gameObj->m_facing;
+}
+
+int CGGameObject_C::GetPageTextLanguage() const {
+  FATALASSERT(m_stats);
+  return m_stats->m_propValue[1];
+}
+
+int CGGameObject_C::GetPageTextMaterial() const {
+  CGGameObject_C *object = const_cast<CGGameObject_C *>(this);
+  int             prop = CGameObjectDef::GetPropNum(object->GetType(), 17);
+  return object->GetPropertyValue(prop);
+}
+
+CGGameObject_C::~CGGameObject_C() {
+  if (m_baseObj) {
+    DEL(m_baseObj);
+  }
+}
+
+static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static void AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
+    // TODO: implement
+}
+
+static int AnimFinishedCallback(void* param) {
+    // TODO: implement
+    return 0;
+}
+
+static int OnUpdateState(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+    // TODO: implement
+    return 0;
 }
 
 NTempest::C3Vector CGGameObject_C::GetPosition() const {
@@ -56,6 +81,27 @@ void CGGameObject_C::GetPosition(NTempest::C3Vector &vec) const {
 float CGGameObject_C::GetFacing() const {
   FATALASSERT(m_baseObj);
   return m_baseObj->GetFacing();
+}
+
+void CGGameObject_C::SetStorage(unsigned long *storage) {
+  CGObject_C::SetStorage(storage);
+  m_gameObj = reinterpret_cast<CGGameObjectData *>(storage + 6);
+}
+
+CGGameObject_C::CGGameObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
+    : CGObject_C(storage, eventTime, init), m_baseObj(0), m_stats(0), m_serverTimeOffset(init->move.timeFallen - eventTime), m_isSolid(0) {
+  m_gameObj = reinterpret_cast<CGGameObjectData *>(storage + 6);
+
+  ClntObjMgrHideObject(GetGUID());
+  m_gameObj->m_position = init->move.status.worldPosition;
+  m_gameObj->m_facing = init->move.status.worldFacing;
+}
+
+UNIT_REACTION CGGameObject_C::ObjectReaction(const CGUnit_C *unit) const {
+  if (m_gameObj->m_factionTemplate) {
+    return CGUnit_C::UnitReaction(m_gameObj->m_factionTemplate, unit, -1);
+  }
+  return UNIT_REACTION_NEUTRAL;
 }
 
 const char *CGGameObject_C::GetModelFileNameInternal() const {
@@ -82,23 +128,6 @@ const char *CGGameObject_C::GetModelFileName() const {
     }
   }
   return modelName;
-}
-
-int CGGameObject_C::IsTransport() const {
-  FATALASSERT(m_stats);
-  unsigned int type = *reinterpret_cast<const unsigned int *>(m_stats);
-  return type == 11 || type == 15;
-}
-
-int CGGameObject_C::GetPageTextLanguage() const {
-  FATALASSERT(m_stats);
-  return m_stats->m_propValue[1];
-}
-
-int CGGameObject_C::GetPageTextMaterial() const {
-  CGGameObject_C *object = const_cast<CGGameObject_C *>(this);
-  int             prop = CGameObjectDef::GetPropNum(object->GetType(), 17);
-  return object->GetPropertyValue(prop);
 }
 
 int CGGameObject_C::GetType() {
@@ -179,9 +208,8 @@ void CGGameObject_C::CloseInteraction() {
   m_baseObj->CloseInteraction();
 }
 
-UNIT_REACTION CGGameObject_C::ObjectReaction(const CGUnit_C *unit) const {
-  if (m_gameObj->m_factionTemplate) {
-    return CGUnit_C::UnitReaction(m_gameObj->m_factionTemplate, unit, -1);
-  }
-  return UNIT_REACTION_NEUTRAL;
+int CGGameObject_C::IsTransport() const {
+  FATALASSERT(m_stats);
+  unsigned int type = *reinterpret_cast<const unsigned int *>(m_stats);
+  return type == 11 || type == 15;
 }

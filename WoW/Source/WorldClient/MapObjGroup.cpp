@@ -83,6 +83,10 @@ class BspQuery_Segment : public BspQuery {
     maxT = segMag * *hitT;
   }
 
+
+
+
+
   void operator()(unsigned short faceIndex) {
     if (faces[faceIndex].flags & faceIgnoreFlags) {
       return;
@@ -116,16 +120,6 @@ class BspQuery_Segment : public BspQuery {
   unsigned short      faceIgnoreFlags;
 };
 
-void __fastcall CMapObjGroup::FreeExtGxBuf(CGxBuf *&gxBuf) {
-  unsigned int index;
-
-  ASSERT(gxBuf);
-  index = extGxBufFreeList.Count();
-  extGxBufFreeList.SetCount(index + 1);
-  extGxBufFreeList[index] = gxBuf;
-  gxBuf = 0;
-}
-
 CGxBuf *__fastcall CMapObjGroup::AllocExtGxBuf(unsigned int nVerts, unsigned int nIndices) {
   if (!extGxBufFreeList.Count()) {
     return GxBufCreate(GxBWF_Low, static_cast<EGxVertexBufferFormat>(2), nVerts, nIndices, ExtGxBufFill, 0);
@@ -138,28 +132,21 @@ CGxBuf *__fastcall CMapObjGroup::AllocExtGxBuf(unsigned int nVerts, unsigned int
   return gxBuf;
 }
 
+void __fastcall CMapObjGroup::FreeExtGxBuf(CGxBuf *&gxBuf) {
+  unsigned int index;
+
+  ASSERT(gxBuf);
+  index = extGxBufFreeList.Count();
+  extGxBufFreeList.SetCount(index + 1);
+  extGxBufFreeList[index] = gxBuf;
+  gxBuf = 0;
+}
+
 void __fastcall CMapObjGroup::ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
   CMapObjGroup *group = static_cast<CMapObjGroup *>(buf->UserArg());
   FATALASSERT(group);
   group->ExtGxBufFillVertex(cmd, buf);
   group->GxBufFillIndex(cmd, buf);
-}
-
-void __fastcall CMapObjGroup::IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
-  CMapObjGroup *group = static_cast<CMapObjGroup *>(buf->UserArg());
-  FATALASSERT(group);
-  group->IntGxBufFillVertex(cmd, buf);
-  group->GxBufFillIndex(cmd, buf);
-}
-
-void __fastcall CMapObjGroup::FreeIntGxBuf(CGxBuf *&gxBuf) {
-  unsigned int index;
-
-  ASSERT(gxBuf);
-  index = intGxBufFreeList.Count();
-  intGxBufFreeList.SetCount(index + 1);
-  intGxBufFreeList[index] = gxBuf;
-  gxBuf = 0;
 }
 
 CGxBuf *__fastcall CMapObjGroup::AllocIntGxBuf(unsigned int nVerts, unsigned int nIndices) {
@@ -172,6 +159,23 @@ CGxBuf *__fastcall CMapObjGroup::AllocIntGxBuf(unsigned int nVerts, unsigned int
   gxBuf->CountSet(nVerts, nIndices);
   gxBuf->Invalidate(CGxBuf::S_INVALID_DISCARD, CGxBuf::S_INVALID_DISCARD);
   return gxBuf;
+}
+
+void __fastcall CMapObjGroup::FreeIntGxBuf(CGxBuf *&gxBuf) {
+  unsigned int index;
+
+  ASSERT(gxBuf);
+  index = intGxBufFreeList.Count();
+  intGxBufFreeList.SetCount(index + 1);
+  intGxBufFreeList[index] = gxBuf;
+  gxBuf = 0;
+}
+
+void __fastcall CMapObjGroup::IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
+  CMapObjGroup *group = static_cast<CMapObjGroup *>(buf->UserArg());
+  FATALASSERT(group);
+  group->IntGxBufFillVertex(cmd, buf);
+  group->GxBufFillIndex(cmd, buf);
 }
 
 void __fastcall CMapObjGroup::Destroy() {
@@ -307,61 +311,6 @@ unsigned int CMapObjGroup::GetTris(CWTriData &triData, NTempest::CAaBox &aaBox, 
   return result;
 }
 
-unsigned int CMapObjGroup::QueryLiquidStatus(NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir) {
-  if (groupLiquid != 15) {
-    liquid = groupLiquid;
-    surface = FLT_MAX;
-    dir.x = 0.0f;
-    dir.y = 0.0f;
-    dir.z = 0.0f;
-    return 1;
-  }
-
-  if (!(flags & 0x1000)) {
-    return 0;
-  }
-
-  NTempest::C2Vector subf;
-  subf.x = (pos.y - liquidCorner.y) / 4.1666665f;
-  subf.y = -(pos.x - liquidCorner.x) / 4.1666665f;
-
-  NTempest::C2iVector subi;
-  subi.x = static_cast<int>(floor(subf.x));
-  subi.y = static_cast<int>(floor(subf.y));
-  if (subi.x < 0 || subi.y < 0 || subi.x >= liquidTiles.x || subi.y >= liquidTiles.y) {
-    return 0;
-  }
-
-  unsigned int tile = liquidTileList[subi.y * liquidTiles.x + subi.x].flags & 0xF;
-  if (tile == 0xF) {
-    return 0;
-  }
-
-  liquid = tile & 3;
-  if (liquid == 1) {
-    return 0;
-  }
-
-  NTempest::C2Vector frac;
-  frac.x = subf.x - static_cast<float>(subi.x);
-  frac.y = subf.y - static_cast<float>(subi.y);
-
-  unsigned int vertex = subi.y * liquidVerts.x + subi.x;
-  float        h0 = liquidVertexList[vertex].height + (liquidVertexList[vertex + 1].height - liquidVertexList[vertex].height) * frac.x;
-  vertex += liquidVerts.x;
-  float h1 = liquidVertexList[vertex].height + (liquidVertexList[vertex + 1].height - liquidVertexList[vertex].height) * frac.x;
-  float height = h0 + (h1 - h0) * frac.y;
-  if (height <= pos.z) {
-    return 0;
-  }
-
-  surface = height;
-  dir.x = 0.0f;
-  dir.y = 0.0f;
-  dir.z = 0.0f;
-  return 1;
-}
-
 void CMapObjGroup::Init() {
   flags = 0;
   aaBox.b.x = 0.0f;
@@ -465,6 +414,61 @@ void CMapObjGroup::Clear() {
   }
 
   bLoaded = 0;
+}
+
+unsigned int CMapObjGroup::QueryLiquidStatus(NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir) {
+  if (groupLiquid != 15) {
+    liquid = groupLiquid;
+    surface = FLT_MAX;
+    dir.x = 0.0f;
+    dir.y = 0.0f;
+    dir.z = 0.0f;
+    return 1;
+  }
+
+  if (!(flags & 0x1000)) {
+    return 0;
+  }
+
+  NTempest::C2Vector subf;
+  subf.x = (pos.y - liquidCorner.y) / 4.1666665f;
+  subf.y = -(pos.x - liquidCorner.x) / 4.1666665f;
+
+  NTempest::C2iVector subi;
+  subi.x = static_cast<int>(floor(subf.x));
+  subi.y = static_cast<int>(floor(subf.y));
+  if (subi.x < 0 || subi.y < 0 || subi.x >= liquidTiles.x || subi.y >= liquidTiles.y) {
+    return 0;
+  }
+
+  unsigned int tile = liquidTileList[subi.y * liquidTiles.x + subi.x].flags & 0xF;
+  if (tile == 0xF) {
+    return 0;
+  }
+
+  liquid = tile & 3;
+  if (liquid == 1) {
+    return 0;
+  }
+
+  NTempest::C2Vector frac;
+  frac.x = subf.x - static_cast<float>(subi.x);
+  frac.y = subf.y - static_cast<float>(subi.y);
+
+  unsigned int vertex = subi.y * liquidVerts.x + subi.x;
+  float        h0 = liquidVertexList[vertex].height + (liquidVertexList[vertex + 1].height - liquidVertexList[vertex].height) * frac.x;
+  vertex += liquidVerts.x;
+  float h1 = liquidVertexList[vertex].height + (liquidVertexList[vertex + 1].height - liquidVertexList[vertex].height) * frac.x;
+  float height = h0 + (h1 - h0) * frac.y;
+  if (height <= pos.z) {
+    return 0;
+  }
+
+  surface = height;
+  dir.x = 0.0f;
+  dir.y = 0.0f;
+  dir.z = 0.0f;
+  return 1;
 }
 
 bool CMapObjGroup::QueryLightmap(const NTempest::C3Vector &point, unsigned short polyIdx, NTempest::CImVector &color) {
@@ -611,4 +615,14 @@ bool CMapObjGroup::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVe
     );
   }
   return false;
+}
+
+unsigned char __fastcall QueryCull(const NTempest::CAaBox& aaBox, const NTempest::C3Vector* verts) {
+    // TODO: implement
+    return 0;
+}
+
+unsigned char __fastcall QueryCull(const CWFrustum& frustum, const NTempest::C3Vector* verts) {
+    // TODO: implement
+    return 0;
 }

@@ -32,7 +32,20 @@ static void __fastcall GuildCallback(int, const unsigned __int64 &, void *, bool
 
 static const unsigned int s_maxVariations[5] = {42, 4, 2, 4, 19};
 
-CGTabardModelFrame::CGTabardModelFrame(CSimpleFrame *parent) : CGCharacterModelBase(parent), m_charComponent(0) {
+static void __fastcall EmblemTextureUpdate(
+    EGxTexCommand cmd,
+    unsigned int  w,
+    unsigned int  h,
+    unsigned int  d,
+    unsigned int  mipLevel,
+    void         *userArg,
+    unsigned int &texelStrideInBytes,
+    const void  *&texels
+) {
+  if (cmd == GxTex_Latch) {
+    texelStrideInBytes = 4 * w;
+    texels = static_cast<TSFixedArray<NTempest::CImVector> *>(userArg)->Ptr();
+  }
 }
 
 CGTabardModelFrame::~CGTabardModelFrame() {
@@ -40,6 +53,30 @@ CGTabardModelFrame::~CGTabardModelFrame() {
     HandleClose(m_charComponent);
   }
 }
+
+static void __fastcall GuildCallback(int, const unsigned __int64 &, void *, bool granted) {
+  if (granted) {
+    FrameScript_SignalEvent(359);
+  }
+}
+
+CGTabardModelFrame::CGTabardModelFrame(CSimpleFrame *parent) : CGCharacterModelBase(parent), m_charComponent(0) {
+}
+
+#define GET_TABARD_MODEL_THIS(L, object)                               \
+  CGTabardModelFrame *object = 0;                                      \
+  if (lua_type(L, 1) == LUA_TTABLE) {                                  \
+    lua_rawgeti(L, 1, 0);                                              \
+    object = static_cast<CGTabardModelFrame *>(lua_touserdata(L, -1)); \
+    lua_pop(L, 1);                                                     \
+  } else {                                                             \
+    return luaL_error(                                                 \
+        L,                                                             \
+        "Attempt to find 'this' in non-table object (used '.' "        \
+        "instead of ':' ?)"                                            \
+    );                                                                 \
+  }                                                                    \
+  FATALASSERT(object)
 
 void CGTabardModelFrame::InitializeModel(HMODEL model) {
   if (!model) {
@@ -86,43 +123,6 @@ void CGTabardModelFrame::InitializeTabardColors(const CGPlayer_C *playerPtr) {
     for (unsigned int i = 0; i < 5; ++i) {
       m_variations[i] = NTempest::CMath::mulhwu_(s_maxVariations[i], NTempest::CRandom::uint32_(seed));
     }
-  }
-}
-
-#define GET_TABARD_MODEL_THIS(L, object)                               \
-  CGTabardModelFrame *object = 0;                                      \
-  if (lua_type(L, 1) == LUA_TTABLE) {                                  \
-    lua_rawgeti(L, 1, 0);                                              \
-    object = static_cast<CGTabardModelFrame *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                     \
-  } else {                                                             \
-    return luaL_error(                                                 \
-        L,                                                             \
-        "Attempt to find 'this' in non-table object (used '.' "        \
-        "instead of ':' ?)"                                            \
-    );                                                                 \
-  }                                                                    \
-  FATALASSERT(object)
-
-static void __fastcall EmblemTextureUpdate(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
-  if (cmd == GxTex_Latch) {
-    texelStrideInBytes = 4 * w;
-    texels = static_cast<TSFixedArray<NTempest::CImVector> *>(userArg)->Ptr();
-  }
-}
-
-static void __fastcall GuildCallback(int, const unsigned __int64 &, void *, bool granted) {
-  if (granted) {
-    FrameScript_SignalEvent(359);
   }
 }
 

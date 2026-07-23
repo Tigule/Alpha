@@ -46,3 +46,7 @@ void __fastcall SpellPutCastTargets(SpellCast *cast, CDataStore *msg) {
     msg->PutData(cast->targetString, sizeof(cast->targetString));
   }
 }
+
+void __fastcall SpellGetCastTargets(SpellCast* cast, CDataStore* msg) {
+    // TODO: implement
+}

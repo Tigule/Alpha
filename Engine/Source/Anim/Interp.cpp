@@ -1,5 +1,10 @@
 #include "Anim/AnimInternal.h"
 
+static float EvaluateCubicPolynomial(float t, const float* coefficients) {
+    // TODO: implement
+    return 0;
+}
+
 void CKeyFrameTrackBase::SetNumKeys(unsigned int numKeys, unsigned int keySize) {
   m_keyFrameSize = keySize;
   m_keyFrames = static_cast<CKeyFrame *>(SMemAlloc(numKeys * keySize, __FILE__, __LINE__, 0));

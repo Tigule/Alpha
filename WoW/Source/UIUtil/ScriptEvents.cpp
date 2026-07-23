@@ -106,6 +106,11 @@ CGUnit_C *__fastcall Script_GetUnitFromName(const char *name) {
   return object && (object->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
 }
 
+CGObject_C* __fastcall Script_GetObjectFromName(const char* name) {
+    // TODO: implement
+    return 0;
+}
+
 unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name) {
   CGUnit_C        *unit = Script_GetUnitFromName(name);
   unsigned __int64 guid;
@@ -238,6 +243,21 @@ static FrameScript_Method s_UnitFunctions[38] = {
     {     "GetComboPoints",      Script_GetComboPoints},
     {          "IsInGuild",           Script_IsInGuild}
 };
+
+static int UnitUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+    // TODO: implement
+    return 0;
+}
+
+static int UnitInventoryUpdate(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+    // TODO: implement
+    return 0;
+}
+
+static int PlayerXPUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+    // TODO: implement
+    return 0;
+}
 
 static int __fastcall Script_GetTime(lua_State *L) {
   double currentTime = static_cast<double>(GetTickCount()) * 0.001;
@@ -1091,4 +1111,12 @@ void __fastcall ScriptEventsUnregisterFunctions() {
   for (i = 0; i < sizeof(s_UnitFunctions) / sizeof(s_UnitFunctions[0]); ++i) {
     FrameScript_UnregisterFunction(s_UnitFunctions[i].name);
   }
+}
+
+void __fastcall ScriptEventsRegisterUnit(CGUnit_C* unit) {
+    // TODO: implement
+}
+
+void __fastcall ScriptEventsUnregisterUnit(CGUnit_C* unit) {
+    // TODO: implement
 }

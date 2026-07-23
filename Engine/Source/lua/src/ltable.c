@@ -506,4 +506,3 @@ TObject *luaH_setnum (lua_State *L, Table *t, int key) {
     return newkey(L, t, &k);
   }
 }
-

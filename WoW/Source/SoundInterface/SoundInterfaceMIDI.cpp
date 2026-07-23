@@ -39,6 +39,14 @@ void __fastcall SoundInterfaceInitializeWorldMIDICVars() {
   CVar::Register("EnableAmbience", "MIDI ambience", 0, "1", EnableAmbienceHandler, SOUND, false, 0);
 }
 
+void __fastcall SoundInterfaceInitializeWorldMIDI() {
+    // TODO: implement
+}
+
+void __fastcall SoundInterfaceShutdownWorldMIDI() {
+    // TODO: implement
+}
+
 static void __fastcall StartAmbience() {
   Sound::MIDI_Stop();
 
@@ -66,6 +74,14 @@ void __fastcall SndInterfaceSetMIDIArea(int normal, int underwater) {
   s_ambienceRecNormal = normalRec;
   s_ambienceRecUnderwater = underwaterRec;
   StartAmbience();
+}
+
+void __fastcall SndInterfaceClearMIDI() {
+    // TODO: implement
+}
+
+void __fastcall SndInterfaceMIDIAmbienceChanged() {
+    // TODO: implement
 }
 
 void __fastcall SndInterfaceMIDIUnderwaterChanged() {

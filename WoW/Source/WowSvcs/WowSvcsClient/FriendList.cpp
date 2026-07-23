@@ -11,6 +11,8 @@
 #include <Base/CDataStore.h>
 #include <FrameScript/FrameScript.h>
 
+extern FrameScript_Method s_FriendListScriptFunctions[19];
+
 #include <ctype.h>
 #include <lua.h>
 #include <lauxlib.h>
@@ -34,66 +36,50 @@ static unsigned int s_numWhos;
 static unsigned int s_totalNumWhos;
 static int          s_whoToUI;
 
-char *__fastcall StripQuotes(char *string) {
-  if (!string) {
-    return 0;
-  }
-
-  int length = strlen(string);
-  if (length < 2 || (string[0] != '"' && string[0] != '\'')) {
-    return string;
-  }
-  if (string[length - 1] != '"' && string[length - 1] != '\'') {
-    return string;
-  }
-
-  string[length - 1] = 0;
-  return string + 1;
-}
-
 FriendList::FriendList() : m_friendNamesPending(0), m_selectedFriend(0), m_ignoreNamesPending(0), m_selectedIgnore(0) {
   memset(m_friends, 0, sizeof(m_friends));
   memset(m_ignore, 0, sizeof(m_ignore));
 }
 
+static int FriendListStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static void FriendListNameCallbackWithSort(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static void IgnoreListNameCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
 FriendList::~FriendList() {
 }
 
-unsigned int FriendList::GetNumFriends() const {
-  unsigned int count = 0;
-  while (count < 50 && m_friends[count].guid) {
-    ++count;
-  }
-  return count;
+static int FriendListHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
 }
 
-FriendList::Friend *FriendList::GetFriend(unsigned int index) {
-  return index < GetNumFriends() ? &m_friends[index] : 0;
+static int CCommand_Friends(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
 }
 
-void FriendList::SetFriendSelectionIndex(unsigned int index) {
-  Friend *entry = GetFriend(index);
-  m_selectedFriend = entry ? entry->guid : 0;
+static int CCommand_AddFriend(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
 }
 
-int FriendList::GetFriendSelectionIndex() const {
-  for (unsigned int i = 0; i < GetNumFriends(); ++i) {
-    if (m_friends[i].guid == m_selectedFriend) {
-      return i;
-    }
-  }
-  return -1;
+static int CCommand_RemoveFriend(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
 }
 
-void FriendList::AddFriend(const char *name) {
-  if (!name || !*name) {
-    return;
-  }
-  CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_ADD_FRIEND));
-  msg.PutString(name);
-  msg.Finalize();
-  ClientServices_Send(&msg);
+static int WhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
 }
 
 void FriendList::RemoveFriend(unsigned int index) {
@@ -108,95 +94,19 @@ void FriendList::RemoveFriend(unsigned int index) {
   ClientServices_Send(&msg);
 }
 
-void FriendList::ShowFriends() {
-  FrameScript_SignalEvent(250);
+static int ReverseWhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
 }
 
-unsigned int FriendList::GetNumIgnores() const {
-  unsigned int count = 0;
-  while (count < 25 && m_ignore[count]) {
-    ++count;
-  }
-  return count;
+static int CCommand_Whois(const char*, const char* args) {
+    // TODO: implement
+    return 0;
 }
 
-unsigned __int64 FriendList::GetIgnore(unsigned int index) const {
-  return index < GetNumIgnores() ? m_ignore[index] : 0;
-}
-
-void FriendList::SetIgnoreSelectionIndex(unsigned int index) {
-  m_selectedIgnore = GetIgnore(index);
-}
-
-int FriendList::GetIgnoreSelectionIndex() const {
-  for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
-    if (m_ignore[i] == m_selectedIgnore) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-void FriendList::AddOrDelIgnore(const char *name) {
-  if (!name || !*name) {
-    return;
-  }
-  for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
-    NameCache *entry = const_cast<NameCache *>(g_nameDBCache.GetRecord(m_ignore[i], m_ignore[i], 0, 0));
-    if (entry && !SStrCmpI(entry->m_name, name, 0x7FFFFFFF)) {
-      DelIgnore(name);
-      return;
-    }
-  }
-  AddIgnore(name);
-}
-
-void FriendList::AddIgnore(const char *name) {
-  if (!name || !*name) {
-    return;
-  }
-  CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_ADD_IGNORE));
-  msg.PutString(name);
-  msg.Finalize();
-  ClientServices_Send(&msg);
-}
-
-void FriendList::DelIgnore(const char *name) {
-  if (!name || !*name) {
-    return;
-  }
-  for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
-    NameCache *entry = const_cast<NameCache *>(g_nameDBCache.GetRecord(m_ignore[i], m_ignore[i], 0, 0));
-    if (entry && !SStrCmpI(entry->m_name, name, 0x7FFFFFFF)) {
-      CDataStore msg;
-      msg.Put(static_cast<unsigned int>(CMSG_DEL_IGNORE));
-      msg.Put(m_ignore[i]);
-      msg.Finalize();
-      ClientServices_Send(&msg);
-      return;
-    }
-  }
-}
-
-void __fastcall FriendList::Destroy() {
-  if (g_friendList) {
-    ClientServices_ClearMessageHandler(SMSG_WHO);
-    ClientServices_ClearMessageHandler(SMSG_WHOIS);
-    ClientServices_ClearMessageHandler(SMSG_RWHOIS);
-    ClientServices_ClearMessageHandler(SMSG_FRIEND_LIST);
-    ClientServices_ClearMessageHandler(SMSG_FRIEND_STATUS);
-    ClientServices_ClearMessageHandler(SMSG_IGNORE_LIST);
-
-    ConsoleCommandUnregister("whois");
-    ConsoleCommandUnregister("rwhois");
-    ConsoleCommandUnregister("friends");
-    ConsoleCommandUnregister("addfriend");
-    ConsoleCommandUnregister("removefriend");
-
-    delete g_friendList;
-    g_friendList = 0;
-  }
+static int CCommand_RWhois(const char*, const char* args) {
+    // TODO: implement
+    return 0;
 }
 
 static int __fastcall Script_GetNumFriends(lua_State *L) {
@@ -236,6 +146,23 @@ static int __fastcall Script_SetSelectedFriend(lua_State *L) {
 static int __fastcall Script_GetSelectedFriend(lua_State *L) {
   lua_pushnumber(L, g_friendList ? g_friendList->GetFriendSelectionIndex() + 1 : 0);
   return 1;
+}
+
+void FriendList::DelIgnore(const char *name) {
+  if (!name || !*name) {
+    return;
+  }
+  for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
+    NameCache *entry = const_cast<NameCache *>(g_nameDBCache.GetRecord(m_ignore[i], m_ignore[i], 0, 0));
+    if (entry && !SStrCmpI(entry->m_name, name, 0x7FFFFFFF)) {
+      CDataStore msg;
+      msg.Put(static_cast<unsigned int>(CMSG_DEL_IGNORE));
+      msg.Put(m_ignore[i]);
+      msg.Finalize();
+      ClientServices_Send(&msg);
+      return;
+    }
+  }
 }
 
 static int __fastcall Script_AddFriend(lua_State *L) {
@@ -382,7 +309,146 @@ static int __fastcall Script_SortWho(lua_State *L) {
   return 0;
 }
 
-static FrameScript_Method s_ScriptFunctions[19] = {
+void __fastcall FriendList::RegisterScriptFunctions() {
+  for (int i = 0; i < 19; ++i) {
+    FrameScript_RegisterFunction(s_FriendListScriptFunctions[i].name, s_FriendListScriptFunctions[i].method);
+  }
+}
+
+void __fastcall FriendList::UnregisterScriptFunctions() {
+  for (int i = 0; i < 19; ++i) {
+    FrameScript_UnregisterFunction(s_FriendListScriptFunctions[i].name);
+  }
+}
+
+static void PrintWho(const char* name, const char* guild, int level, int classID, int raceID, int areaID) {
+    // TODO: implement
+}
+
+static int OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+static int OnIgnoreList(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall FriendList::Destroy() {
+  if (g_friendList) {
+    ClientServices_ClearMessageHandler(SMSG_WHO);
+    ClientServices_ClearMessageHandler(SMSG_WHOIS);
+    ClientServices_ClearMessageHandler(SMSG_RWHOIS);
+    ClientServices_ClearMessageHandler(SMSG_FRIEND_LIST);
+    ClientServices_ClearMessageHandler(SMSG_FRIEND_STATUS);
+    ClientServices_ClearMessageHandler(SMSG_IGNORE_LIST);
+
+    ConsoleCommandUnregister("whois");
+    ConsoleCommandUnregister("rwhois");
+    ConsoleCommandUnregister("friends");
+    ConsoleCommandUnregister("addfriend");
+    ConsoleCommandUnregister("removefriend");
+
+    delete g_friendList;
+    g_friendList = 0;
+  }
+}
+
+unsigned int FriendList::GetNumFriends() const {
+  unsigned int count = 0;
+  while (count < 50 && m_friends[count].guid) {
+    ++count;
+  }
+  return count;
+}
+
+FriendList::Friend *FriendList::GetFriend(unsigned int index) {
+  return index < GetNumFriends() ? &m_friends[index] : 0;
+}
+
+void FriendList::SetFriendSelectionIndex(unsigned int index) {
+  Friend *entry = GetFriend(index);
+  m_selectedFriend = entry ? entry->guid : 0;
+}
+
+int FriendList::GetFriendSelectionIndex() const {
+  for (unsigned int i = 0; i < GetNumFriends(); ++i) {
+    if (m_friends[i].guid == m_selectedFriend) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+unsigned int FriendList::GetNumIgnores() const {
+  unsigned int count = 0;
+  while (count < 25 && m_ignore[count]) {
+    ++count;
+  }
+  return count;
+}
+
+unsigned __int64 FriendList::GetIgnore(unsigned int index) const {
+  return index < GetNumIgnores() ? m_ignore[index] : 0;
+}
+
+void FriendList::SetIgnoreSelectionIndex(unsigned int index) {
+  m_selectedIgnore = GetIgnore(index);
+}
+
+int FriendList::GetIgnoreSelectionIndex() const {
+  for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
+    if (m_ignore[i] == m_selectedIgnore) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+void FriendList::ShowFriends() {
+  FrameScript_SignalEvent(250);
+}
+
+void FriendList::AddFriend(const char *name) {
+  if (!name || !*name) {
+    return;
+  }
+  CDataStore msg;
+  msg.Put(static_cast<unsigned int>(CMSG_ADD_FRIEND));
+  msg.PutString(name);
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
+
+static int QSortFriends(const void* a, const void* b) {
+    // TODO: implement
+    return 0;
+}
+
+static int QSortIgnore(const void* a, const void* b) {
+    // TODO: implement
+    return 0;
+}
+
+char *__fastcall StripQuotes(char *string) {
+  if (!string) {
+    return 0;
+  }
+
+  int length = strlen(string);
+  if (length < 2 || (string[0] != '"' && string[0] != '\'')) {
+    return string;
+  }
+  if (string[length - 1] != '"' && string[length - 1] != '\'') {
+    return string;
+  }
+
+  string[length - 1] = 0;
+  return string + 1;
+}
+
+FrameScript_Method s_FriendListScriptFunctions[19] = {
     {    "GetNumFriends",     Script_GetNumFriends},
     {    "GetFriendInfo",     Script_GetFriendInfo},
     {"SetSelectedFriend", Script_SetSelectedFriend},
@@ -403,18 +469,6 @@ static FrameScript_Method s_ScriptFunctions[19] = {
     {       "SetWhoToUI",        Script_SetWhoToUI},
     {          "SortWho",           Script_SortWho}
 };
-
-void __fastcall FriendList::RegisterScriptFunctions() {
-  for (int i = 0; i < 19; ++i) {
-    FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
-  }
-}
-
-void __fastcall FriendList::UnregisterScriptFunctions() {
-  for (int i = 0; i < 19; ++i) {
-    FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
-  }
-}
 
 void FriendList::SendWho(const char *str) {
   char         words[4][128];
@@ -568,6 +622,31 @@ void FriendList::SendWho(const char *str) {
   for (int j = 0; j < w; ++j) {
     msg.PutString(wordptrs[j]);
   }
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
+
+void FriendList::AddOrDelIgnore(const char *name) {
+  if (!name || !*name) {
+    return;
+  }
+  for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
+    NameCache *entry = const_cast<NameCache *>(g_nameDBCache.GetRecord(m_ignore[i], m_ignore[i], 0, 0));
+    if (entry && !SStrCmpI(entry->m_name, name, 0x7FFFFFFF)) {
+      DelIgnore(name);
+      return;
+    }
+  }
+  AddIgnore(name);
+}
+
+void FriendList::AddIgnore(const char *name) {
+  if (!name || !*name) {
+    return;
+  }
+  CDataStore msg;
+  msg.Put(static_cast<unsigned int>(CMSG_ADD_IGNORE));
+  msg.PutString(name);
   msg.Finalize();
   ClientServices_Send(&msg);
 }

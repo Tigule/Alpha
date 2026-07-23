@@ -3,10 +3,6 @@
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Object/GuildStats.h"
 
-unsigned int __fastcall GuildGetTabardCost() {
-  return 100000;
-}
-
 bool __fastcall GuildGetGuildTabard(
     unsigned int guildID,
     void(__fastcall *callback)(int, const unsigned __int64 &, void *, bool),
@@ -37,4 +33,8 @@ bool __fastcall GuildGetGuildTabard(
   bColor = guild->m_borderColor;
   background = guild->m_backgroundColor;
   return true;
+}
+
+unsigned int __fastcall GuildGetTabardCost() {
+  return 100000;
 }

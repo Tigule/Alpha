@@ -101,6 +101,11 @@ CGxString *__fastcall TextBlockGetStringPtr(HTEXTBLOCK text) {
   return reinterpret_cast<TEXTBLOCK *>(text)->string;
 }
 
+float __fastcall TextBlockGetOneToOneHeight(HTEXTFONT__* fontHandle) {
+    // TODO: implement
+    return 0;
+}
+
 void __fastcall TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempest::C2Vector &shadowOffset) {
   NTempest::C2Vector offset;
 
@@ -208,10 +213,19 @@ void __fastcall TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) 
   GxuFontSetStringPosition(reinterpret_cast<TEXTBLOCK *>(htb)->string, position);
 }
 
+void __fastcall TextBlockRender(HTEXTBLOCK__* htb) {
+    // TODO: implement
+}
+
 void __fastcall TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor) {
   FATALASSERT(htb);
 
   GxuFontSetStringColor(reinterpret_cast<TEXTBLOCK *>(htb)->string, textColor);
+}
+
+float __fastcall TextBlockGetHeight(HTEXTBLOCK__* htb) {
+    // TODO: implement
+    return 0;
 }
 
 void __fastcall TextBlockGetTextExtent(
@@ -273,6 +287,10 @@ void __fastcall TextBlockGetTextExtent(
   NDCToDDC(*extent, 0.0f, extent, 0);
 }
 
+void __fastcall TextBlockGetWrapPoint(HTEXTFONT__* font, const char* text, float fontHeight, float blockWidth, unsigned int* numBytes, float* pExtent, const char** pNextText, float spacing, unsigned int flags) {
+    // TODO: implement
+}
+
 float __fastcall
 TextBlockGetWrappedTextHeight(HTEXTFONT font, const char *text, float fontHeight, float blockWidth, float spacing, unsigned int flags) {
   FONTHASHOBJ *fontPtr;
@@ -323,6 +341,11 @@ TextBlockGetWrappedTextHeight(HTEXTFONT font, const char *text, float fontHeight
   height = GxuFontGetWrappedTextHeight(fontPtr->font, text, fontHeight, blockWidth, spacing, gxFlags);
   NDCToDDC(0.0f, height, 0, &height);
   return height;
+}
+
+unsigned int __fastcall TextBlockGetMaxCharsWithinWidth(HTEXTFONT__* font, const char* text, float height, float maxWidth, unsigned int lineBytes, float* extent, float charSpacing, unsigned int flags) {
+    // TODO: implement
+    return 0;
 }
 
 unsigned int __fastcall TextBlockGetMaxCharsWithinWidthFromEnd(

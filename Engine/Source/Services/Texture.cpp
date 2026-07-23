@@ -1360,6 +1360,10 @@ HTEXTURE __fastcall TextureAllocImage(EGxTexFormat format, unsigned int width, u
   return reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));
 }
 
+void __fastcall TextureUnloadImage(MipBits* image) {
+    // TODO: implement
+}
+
 HTEXTURE __fastcall
 TextureCreate(const char *name, unsigned int width, unsigned int height, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags) {
   CTexture *texture = new (SMemAlloc(sizeof(CTexture), "HTEXTURE", SERR_LINECODE_OBJECT, 0)) CTexture;
@@ -1506,6 +1510,11 @@ MipBits *__fastcall TextureGetMips(HTEXTURE texture, int force) {
   return textureObject->mipBits;
 }
 
+int __fastcall TextureIsOpaque(HTEXTURE__* texture) {
+    // TODO: implement
+    return 0;
+}
+
 unsigned int __fastcall TextureCalcMipCount(unsigned int width, unsigned int height) {
   unsigned int mipCount = 1;
 
@@ -1579,6 +1588,11 @@ MipBits *__fastcall TextureAllocMippedImg(EGxTexFormat format, unsigned int widt
   return reinterpret_cast<MipBits *>(ptr);
 }
 
+MipBits* __fastcall TextureCopyMippedImage(MipBits* srcData, EGxTexFormat format, unsigned int width, unsigned int height) {
+    // TODO: implement
+    return 0;
+}
+
 void __fastcall TextureFreeMippedImg(MipBits *image) {
   FREEIFUSED(image);
 }
@@ -1630,6 +1644,11 @@ unsigned int __fastcall TexturePickAlternateFilename(const char *path, TEXFILETY
   }
 
   return fileType;
+}
+
+unsigned long __fastcall TextureGetUniqueID(HTEXTURE__* texture) {
+    // TODO: implement
+    return 0;
 }
 
 void __fastcall TextureGetDimensions(HTEXTURE texture, unsigned int *width, unsigned int *height) {

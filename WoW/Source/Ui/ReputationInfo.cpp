@@ -60,16 +60,19 @@ void __fastcall CGReputationInfo::ShutdownGame() {
   m_numFactions = 0;
 }
 
-int __fastcall CGReputationInfo::IndexToFaction(int index) {
-  return m_factionMap[index];
+int __fastcall CGReputationInfo::FactionToIndex(int faction) {
+  FactionRec *rec = g_factionDB.GetRecord(faction);
+  FATALASSERT(rec);
+  FATALASSERT(rec->m_reputationIndex >= 0 && rec->m_reputationIndex < 64);
+  return rec->m_reputationIndex;
 }
 
 unsigned int __fastcall CGReputationInfo::GetNumFactions() {
   return m_numFactions;
 }
 
-int __fastcall CGReputationInfo::GetFactionFromSortIndex(unsigned int index) {
-  return index < m_numFactions ? IndexToFaction(m_factionSorting[index]) : 0;
+int __fastcall CGReputationInfo::IndexToFaction(int index) {
+  return m_factionMap[index];
 }
 
 void __fastcall CGReputationInfo::OnInitializeFactions(CDataStore *msg) {
@@ -154,6 +157,10 @@ void __fastcall CGReputationInfo::SortFactions() {
   qsort(m_factionSorting, m_numFactions, sizeof(m_factionSorting[0]), QSortFactions);
 }
 
+int __fastcall CGReputationInfo::GetFactionFromSortIndex(unsigned int index) {
+  return index < m_numFactions ? IndexToFaction(m_factionSorting[index]) : 0;
+}
+
 void __fastcall CGReputationInfo::SetFactionFlags(int index, unsigned char flags) {
   FATALASSERT(index >= 0 && index < 64);
   m_factionFlags[index] = flags;
@@ -179,22 +186,15 @@ void __fastcall CGReputationInfo::SetAtWar(int faction, unsigned int state) {
   ClientServices_Send(&msg);
 }
 
+bool __fastcall CGReputationInfo::IsAtWar(int faction) {
+  return (m_factionFlags[FactionToIndex(faction)] & 2) != 0;
+}
+
 void __fastcall CGReputationInfo::SetFactionStanding(int factionIndex, int standing) {
   FATALASSERT(factionIndex >= 0 && factionIndex < 64);
   m_factionStandings[factionIndex] = standing;
   int faction = IndexToFaction(factionIndex);
   UnitCombatLogFactionChanged(faction, GetFactionStanding(faction));
-}
-
-int __fastcall CGReputationInfo::FactionToIndex(int faction) {
-  FactionRec *rec = g_factionDB.GetRecord(faction);
-  FATALASSERT(rec);
-  FATALASSERT(rec->m_reputationIndex >= 0 && rec->m_reputationIndex < 64);
-  return rec->m_reputationIndex;
-}
-
-bool __fastcall CGReputationInfo::IsAtWar(int faction) {
-  return (m_factionFlags[FactionToIndex(faction)] & 2) != 0;
 }
 
 int __fastcall CGReputationInfo::GetFactionStanding(int faction) {

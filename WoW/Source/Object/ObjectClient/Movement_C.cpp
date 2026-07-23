@@ -8,14 +8,6 @@
 
 static TSExplicitList<CGGameObject_C, 52> s_transports;
 
-void __fastcall MovementSetGlobals(void *ptr) {
-  ClntObjMgrSetMovementGlobals(ptr);
-}
-
-void *__fastcall MovementGetGlobals() {
-  return ClntObjMgrGetMovementGlobals();
-}
-
 void __fastcall MovementLockMoversList(int forWriting) {
 }
 
@@ -71,6 +63,22 @@ void __fastcall MovementAddToTransport(CMovementData *mover, unsigned __int64 tr
 void __fastcall MovementFixUpMoveHistory(unsigned __int64 mover, const NTempest::C34Matrix &fixup) {
 }
 
+void __fastcall MovementUpdateCameraYaw(unsigned __int64 transportGUID) {
+    // TODO: implement
+}
+
+void __fastcall MovementSetGlobals(void *ptr) {
+  ClntObjMgrSetMovementGlobals(ptr);
+}
+
+void *__fastcall MovementGetGlobals() {
+  return ClntObjMgrGetMovementGlobals();
+}
+
+void __fastcall MovementClearClobals() {
+    // TODO: implement
+}
+
 int __fastcall MovementGameObjIsTransport(unsigned __int64 transportGUID) {
   CGGameObject_C *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
   if (!transport) {
@@ -93,4 +101,8 @@ float __fastcall MovementGetTransportFacing(unsigned __int64 transportGUID) {
   CGGameObject_C *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
   FATALASSERT(transport);
   return transport->GetFacing();
+}
+int __fastcall MovementInsideTransport(unsigned __int64 transportGUID, const NTempest::C3Vector& position) {
+    // TODO: implement
+    return 0;
 }

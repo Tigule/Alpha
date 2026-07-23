@@ -4,6 +4,10 @@
 #include <malloc.h>
 #include <stpl.h>
 
+struct MDLMATERIALSECTION;
+struct MDLGEOSETANIMSECTION;
+struct MDLCAMERASECTION;
+
 unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
 CAnim *__fastcall AnimCreate(unsigned int *const objectCounts, unsigned int numGeosets, unsigned int numCameras, unsigned int numMaterialLayers);
@@ -32,6 +36,20 @@ struct ANIMHASH : public TSHashObject<ANIMHASH, HASHKEY_STRI> {
 };
 
 static TSHashTable<ANIMHASH, HASHKEY_STRI> s_animCache;
+
+static int AnimGetReferenceCount(HANIM__* anim) {
+    // TODO: implement
+    return 0;
+}
+
+static HANIM__* GetAnim(const char* modelFName) {
+    // TODO: implement
+    return 0;
+}
+
+static void HashNewAnim(const char* modelFName, HANIM__* anim) {
+    // TODO: implement
+}
 
 static unsigned int __fastcall GetObjectFlags(unsigned int mdlFlags) {
   unsigned int flags = 0;

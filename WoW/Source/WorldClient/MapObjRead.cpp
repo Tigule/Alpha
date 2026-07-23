@@ -39,15 +39,6 @@ void __fastcall CMapObj::AsyncPostloadCallbackHeader(void *userArg) {
   AsyncFileReadObject(mapObj->asyncObject);
 }
 
-void __fastcall CMapObj::AsyncPostloadCallbackAll(void *userArg) {
-  CMapObj *mapObj = static_cast<CMapObj *>(userArg);
-  FATALASSERT(mapObj);
-
-  AsyncFileReadDestroyObject(mapObj->asyncObject);
-  mapObj->asyncObject = 0;
-  mapObj->CreateData();
-}
-
 void __fastcall CMapObj::AsyncPostloadCallback(void *userArg) {
   CMapObj *mapObj = static_cast<CMapObj *>(userArg);
   FATALASSERT(mapObj);
@@ -67,6 +58,15 @@ void __fastcall CMapObj::AsyncPostloadCallback(void *userArg) {
 
   mapObj->CreateData();
   mapObj->CreateAllGroups();
+}
+
+void __fastcall CMapObj::AsyncPostloadCallbackAll(void *userArg) {
+  CMapObj *mapObj = static_cast<CMapObj *>(userArg);
+  FATALASSERT(mapObj);
+
+  AsyncFileReadDestroyObject(mapObj->asyncObject);
+  mapObj->asyncObject = 0;
+  mapObj->CreateData();
 }
 
 int CMapObj::Read(const char *fileName) {
@@ -402,74 +402,6 @@ void CMapObjGroup::Create(unsigned char *rawData) {
   bLoaded = 1;
 }
 
-void CMapObjGroup::CreateLightmapPointers(unsigned char *&pData) {
-  SIffChunk *pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOLM');
-  pData += sizeof(SIffChunk);
-  lightmapList = reinterpret_cast<SMOLightmap *>(pData);
-  lightmapCount = pIffChunk->size / sizeof(*lightmapList);
-  pData += pIffChunk->size;
-
-  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOLD');
-  pData += sizeof(SIffChunk);
-  lightmapTexList = reinterpret_cast<SMOLightmapTex *>(pData);
-  lightmapTexCount = pIffChunk->size / sizeof(*lightmapTexList);
-  pData += pIffChunk->size;
-}
-
-void CMapObjGroup::CreateDataPointers(unsigned char *pData) {
-  SIffChunk *pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOPY');
-  pData += sizeof(SIffChunk);
-  polyList = reinterpret_cast<SMOPoly *>(pData);
-  polyCount = pIffChunk->size / 4;
-  pData += pIffChunk->size;
-
-  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOVT');
-  pData += sizeof(SIffChunk);
-  vertexList = reinterpret_cast<NTempest::C3Vector *>(pData);
-  vertexCount = pIffChunk->size / 12;
-  pData += pIffChunk->size;
-
-  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MONR');
-  pData += sizeof(SIffChunk);
-  normalList = reinterpret_cast<NTempest::C3Vector *>(pData);
-  normalCount = pIffChunk->size / 12;
-  pData += pIffChunk->size;
-
-  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOTV');
-  pData += sizeof(SIffChunk);
-  textureVertexList = reinterpret_cast<NTempest::C2Vector *>(pData);
-  textureVertexCount = pIffChunk->size / 8;
-  pData += pIffChunk->size;
-
-  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOLV');
-  pData += sizeof(SIffChunk);
-  lightmapVertexList = reinterpret_cast<NTempest::C2Vector *>(pData);
-  lightmapVertexCount = pIffChunk->size / 8;
-  pData += pIffChunk->size;
-
-  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOIN');
-  pData += sizeof(SIffChunk);
-  indexList = reinterpret_cast<unsigned short *>(pData);
-  indexCount = pIffChunk->size / 2;
-  pData += pIffChunk->size;
-
-  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOBA');
-  pData += sizeof(SIffChunk);
-  batchList = reinterpret_cast<SMOBatch *>(pData);
-  batchCount = pIffChunk->size / 24;
-  pData += pIffChunk->size;
-  CreateOptionalDataPointers(pData);
-}
-
 void CMapObjGroup::CreateOptionalDataPointers(unsigned char *pData) {
   SIffChunk *pIffChunk;
   if (flags & 0x200) {
@@ -546,4 +478,72 @@ void CMapObjGroup::CreateOptionalDataPointers(unsigned char *pData) {
     pData += sizeof(SMOLVert) * liquidVerts.x * liquidVerts.y;
     liquidTileList = reinterpret_cast<SMOLTile *>(pData);
   }
+}
+
+void CMapObjGroup::CreateDataPointers(unsigned char *pData) {
+  SIffChunk *pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+  FATALASSERT(pIffChunk->token == 'MOPY');
+  pData += sizeof(SIffChunk);
+  polyList = reinterpret_cast<SMOPoly *>(pData);
+  polyCount = pIffChunk->size / 4;
+  pData += pIffChunk->size;
+
+  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+  FATALASSERT(pIffChunk->token == 'MOVT');
+  pData += sizeof(SIffChunk);
+  vertexList = reinterpret_cast<NTempest::C3Vector *>(pData);
+  vertexCount = pIffChunk->size / 12;
+  pData += pIffChunk->size;
+
+  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+  FATALASSERT(pIffChunk->token == 'MONR');
+  pData += sizeof(SIffChunk);
+  normalList = reinterpret_cast<NTempest::C3Vector *>(pData);
+  normalCount = pIffChunk->size / 12;
+  pData += pIffChunk->size;
+
+  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+  FATALASSERT(pIffChunk->token == 'MOTV');
+  pData += sizeof(SIffChunk);
+  textureVertexList = reinterpret_cast<NTempest::C2Vector *>(pData);
+  textureVertexCount = pIffChunk->size / 8;
+  pData += pIffChunk->size;
+
+  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+  FATALASSERT(pIffChunk->token == 'MOLV');
+  pData += sizeof(SIffChunk);
+  lightmapVertexList = reinterpret_cast<NTempest::C2Vector *>(pData);
+  lightmapVertexCount = pIffChunk->size / 8;
+  pData += pIffChunk->size;
+
+  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+  FATALASSERT(pIffChunk->token == 'MOIN');
+  pData += sizeof(SIffChunk);
+  indexList = reinterpret_cast<unsigned short *>(pData);
+  indexCount = pIffChunk->size / 2;
+  pData += pIffChunk->size;
+
+  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+  FATALASSERT(pIffChunk->token == 'MOBA');
+  pData += sizeof(SIffChunk);
+  batchList = reinterpret_cast<SMOBatch *>(pData);
+  batchCount = pIffChunk->size / 24;
+  pData += pIffChunk->size;
+  CreateOptionalDataPointers(pData);
+}
+
+void CMapObjGroup::CreateLightmapPointers(unsigned char *&pData) {
+  SIffChunk *pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+  FATALASSERT(pIffChunk->token == 'MOLM');
+  pData += sizeof(SIffChunk);
+  lightmapList = reinterpret_cast<SMOLightmap *>(pData);
+  lightmapCount = pIffChunk->size / sizeof(*lightmapList);
+  pData += pIffChunk->size;
+
+  pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+  FATALASSERT(pIffChunk->token == 'MOLD');
+  pData += sizeof(SIffChunk);
+  lightmapTexList = reinterpret_cast<SMOLightmapTex *>(pData);
+  lightmapTexCount = pIffChunk->size / sizeof(*lightmapTexList);
+  pData += pIffChunk->size;
 }

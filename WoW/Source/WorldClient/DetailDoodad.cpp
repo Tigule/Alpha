@@ -257,6 +257,11 @@ CDetailDoodadData::~CDetailDoodadData() {
   }
 }
 
+static int IsBinaryModelFile(char* path) {
+    // TODO: implement
+    return 0;
+}
+
 int CDetailDoodadData::Load() {
   FATALASSERT(fileName);
 

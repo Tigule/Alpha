@@ -1,6 +1,8 @@
 #include "Tooltip.h"
 
 #include "DB/DBClient/AutoCode/SpellRec.h"
+#include "DB/DBClient/AutoCode/SpellAuraNamesRec.h"
+#include "DB/DBClient/AutoCode/SpellEffectNamesRec.h"
 #include "DB/DBClient/AutoCode/SpellItemEnchantmentRec.h"
 #include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/DBClient.h"
@@ -207,6 +209,57 @@ static FrameScript_Method CGTooltipMethods[26] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CGTooltip::s_scriptMethods;
 
+static void FrameScriptGetSpellString(TOOLTIP_DETAIL detail, const char* stringLabel, int points, char* positive, unsigned int positiveSize, char* negative, unsigned int negativeSize) {
+    // TODO: implement
+}
+
+static void FrameScriptGetEnchantString(TOOLTIP_DETAIL detail, const char* stringLabel, char* buf, unsigned int bufSize) {
+    // TODO: implement
+}
+
+static const SpellEffectNamesRec* GetEffectNameRec(int enumID) {
+    // TODO: implement
+    return 0;
+}
+
+static const SpellAuraNamesRec* GetAuraNameRec(int enumID) {
+    // TODO: implement
+    return 0;
+}
+
+static int HealthUpdateHandler(unsigned __int64 guid, unsigned int, unsigned int, const void*, void* param) {
+    // TODO: implement
+    return 0;
+}
+
+static void TooltipObjectLockItemStatsCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static void TooltipItemStatsCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static void TooltipItemPetitionCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static void TooltipSpellItemStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static void TooltipSpellCreatureStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static void TooltipSpellGameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+static void TooltipItemCreatorCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
 CGTooltip::CGTooltip(CSimpleFrame *parent) : CSimpleFrame(parent) {
   m_owner = 0;
   m_anchorPoint = TOOLTIP_ANCHOR_LEFT;
@@ -226,14 +279,6 @@ CGTooltip::CGTooltip(CSimpleFrame *parent) : CSimpleFrame(parent) {
 }
 
 CGTooltip::~CGTooltip() {
-}
-
-void __fastcall CGTooltip::RegisterScriptMethods() {
-  FrameScript_Object::FillScriptMethodTable(CGTooltipMethods, 26, s_scriptMethods);
-}
-
-void __fastcall CGTooltip::UnregisterScriptMethods() {
-  FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
 void CGTooltip::PostLoadXML(const XMLNode *node, CStatus *status) {
@@ -277,230 +322,6 @@ void CGTooltip::PostLoadXML(const XMLNode *node, CStatus *status) {
   m_statusBar = reinterpret_cast<CSimpleStatusBar *>(SimpleFrameRegistryGetEntry(buf, 0));
 }
 
-const char *__fastcall CGTooltip::GetItemQualityColorString(unsigned int quality) {
-  static const char *colors[] = {"|cff9d9d9d", "|cffffc600", "|cff1eff00", "|cff0070dd", "|cffa335ee", "|cffff0000", "|cffff1e38"};
-
-  return quality < 7 ? colors[quality] : "";
-}
-
-void __fastcall CGTooltip::GetSpellEffectString(
-    char           *buf,
-    unsigned int    bufSize,
-    const SpellRec *spell,
-    unsigned int    effectIndex,
-    unsigned int    level,
-    int             isPet,
-    TOOLTIP_DETAIL  detail
-) {
-  if (!buf || !bufSize) {
-    return;
-  }
-  buf[0] = 0;
-  if (!spell || effectIndex >= 3 || !spell->m_effect[effectIndex]) {
-    return;
-  }
-  int points = spell->m_effectBasePoints[effectIndex] + 1;
-  SStrPrintf(buf, bufSize, "%d", points);
-}
-
-void __fastcall CGTooltip::GetAuraEffectString(
-    char           *buf,
-    unsigned int    bufSize,
-    const SpellRec *spell,
-    unsigned int    effectIndex,
-    unsigned int    level,
-    int             isPet,
-    TOOLTIP_DETAIL  detail
-) {
-  GetSpellEffectString(buf, bufSize, spell, effectIndex, level, isPet, detail);
-}
-
-void __fastcall CGTooltip::GetItemEnchantString(
-    char                          *buf,
-    unsigned int                   bufSize,
-    const SpellItemEnchantmentRec *enchant,
-    unsigned int                   effectIndex,
-    TOOLTIP_DETAIL                 detail
-) {
-  if (!buf || !bufSize) {
-    return;
-  }
-  buf[0] = 0;
-  if (!enchant || effectIndex >= 3 || !enchant->m_effect[effectIndex]) {
-    return;
-  }
-  if (enchant->m_name_lang[0]) {
-    SStrCopy(buf, enchant->m_name_lang[0], bufSize);
-  }
-}
-
-void __fastcall CGTooltip::GetSpellTargetString(char *buf, unsigned int bufSize, const SpellRec *spell, unsigned int effectIndex) {
-  if (!buf || !bufSize) {
-    return;
-  }
-  buf[0] = 0;
-  if (!spell || effectIndex >= 3) {
-    return;
-  }
-  int target = spell->m_implicitTargetA[effectIndex];
-  if (target) {
-    SStrPrintf(buf, bufSize, "%d", target);
-  }
-}
-
-void __fastcall CGTooltip::GetSummonedByString(const CGUnit_C *unitPtr, char *string, unsigned int size) {
-  if (!string || !size) {
-    return;
-  }
-  string[0] = 0;
-  if (unitPtr && unitPtr->GetUnitName()) {
-    SStrPrintf(string, size, FrameScript_GetText("UNITNAME_SUMMONED_BY", -1, GENDER_NOT_APPLICABLE), unitPtr->GetUnitName());
-  }
-}
-
-void CGTooltip::SetOwner(CLayoutFrame *owner, TOOLTIP_ANCHORPOINT anchorpoint, float yoffset) {
-  m_owner = owner;
-  m_anchorPoint = anchorpoint;
-  ClearAllPoints(1);
-
-  if (!owner || anchorpoint == TOOLTIP_ANCHOR_CURSOR || anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(6)) {
-    return;
-  }
-
-  FRAMEPOINT point = FRAMEPOINT_LEFT;
-  FRAMEPOINT relativePoint = FRAMEPOINT_RIGHT;
-  float      xOffset = 0.0f;
-  if (anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(1)) {
-    point = FRAMEPOINT_RIGHT;
-    relativePoint = FRAMEPOINT_LEFT;
-  } else if (anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(2)) {
-    point = FRAMEPOINT_TOPLEFT;
-    relativePoint = FRAMEPOINT_BOTTOMLEFT;
-  } else if (anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(3)) {
-    point = FRAMEPOINT_TOPRIGHT;
-    relativePoint = FRAMEPOINT_BOTTOMRIGHT;
-  } else if (anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(4)) {
-    point = FRAMEPOINT_BOTTOMLEFT;
-    relativePoint = FRAMEPOINT_TOPLEFT;
-  }
-  SetPoint(point, owner, relativePoint, xOffset, yoffset, 1);
-}
-
-void CGTooltip::SetOwner(CLayoutFrame *owner, float x, float y) {
-  m_owner = owner;
-  m_anchorPoint = static_cast<TOOLTIP_ANCHORPOINT>(4);
-  SetPosition(x, y);
-}
-
-void CGTooltip::SetPosition(float x, float y) {
-  ClearAllPoints(1);
-  SetPoint(FRAMEPOINT_BOTTOMLEFT, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, x, y, 1);
-}
-
-void CGTooltip::ClearLines() {
-  for (unsigned int i = 0; i < m_linesMax; ++i) {
-    if (m_leftStrings[i]) {
-      m_leftStrings[i]->SetText(0);
-      m_leftStrings[i]->Hide();
-    }
-    if (m_rightStrings[i]) {
-      m_rightStrings[i]->SetText(0);
-      m_rightStrings[i]->Hide();
-    }
-    m_wrapLine[i] = 0;
-  }
-  if (m_statusBar) {
-    m_statusBar->Hide();
-  }
-  m_lines = 0;
-  m_unit = 0;
-  m_objectGUID = 0;
-  m_itemGUID = 0;
-  m_corpseGUID = 0;
-  m_itemID = 0;
-}
-
-void CGTooltip::AddLine(
-    const char                *leftText,
-    const char                *rightText,
-    const NTempest::CImVector &leftColor,
-    const NTempest::CImVector &rightColor,
-    int                        wrapped
-) {
-  if (m_lines >= m_linesMax) {
-    return;
-  }
-  CSimpleFontString *left = m_leftStrings[m_lines];
-  CSimpleFontString *right = m_rightStrings[m_lines];
-  if (left) {
-    left->SetText(leftText ? leftText : "");
-    left->SetVertexColor(leftColor);
-    left->Show();
-  }
-  if (right) {
-    right->SetText(rightText ? rightText : "");
-    right->SetVertexColor(rightColor);
-    if (rightText && *rightText) {
-      right->Show();
-    } else {
-      right->Hide();
-    }
-  }
-  m_wrapLine[m_lines] = wrapped;
-  ++m_lines;
-  m_reposition = 1;
-}
-
-void CGTooltip::AddLine(const char *leftText, const char *rightText, int wrapped) {
-  static const NTempest::CImVector color(0xFFFFFFFFUL);
-  AddLine(leftText, rightText, color, color, wrapped);
-}
-
-void CGTooltip::AddLine(const char *text, const NTempest::CImVector &color, int wrapped) {
-  AddLine(text, 0, color, color, wrapped);
-}
-
-void CGTooltip::AppendText(const char *text) {
-  if (!m_lines || !text || !m_leftStrings[m_lines - 1]) {
-    return;
-  }
-  char buf[256];
-  SStrPrintf(buf, sizeof(buf), "%s%s", m_leftStrings[m_lines - 1]->GetText() ? m_leftStrings[m_lines - 1]->GetText() : "", text);
-  m_leftStrings[m_lines - 1]->SetText(buf);
-  m_reposition = 1;
-}
-
-void CGTooltip::SetTooltipPadding(float right) {
-  m_padding = right;
-}
-
-void CGTooltip::CalculateSize() {
-  float width = 0.0f;
-  float height = 0.0f;
-  for (unsigned int i = 0; i < m_lines; ++i) {
-    float lineWidth = 0.0f;
-    float lineHeight = 0.0f;
-    if (m_leftStrings[i]) {
-      lineWidth += m_leftStrings[i]->GetStringWidth();
-      lineHeight = m_leftStrings[i]->GetStringHeight();
-    }
-    if (m_rightStrings[i] && m_rightStrings[i]->GetText() && *m_rightStrings[i]->GetText()) {
-      lineWidth += 16.0f + m_rightStrings[i]->GetStringWidth();
-      float rightHeight = m_rightStrings[i]->GetStringHeight();
-      if (rightHeight > lineHeight) {
-        lineHeight = rightHeight;
-      }
-    }
-    if (lineWidth > width) {
-      width = lineWidth;
-    }
-    height += lineHeight + 2.0f;
-  }
-  SetWidth(width + m_padding + 20.0f);
-  SetHeight(height + 20.0f);
-  m_reposition = 0;
-}
-
 int CGTooltip::SetUnit(const unsigned __int64 &unit) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (!unitPtr) {
@@ -523,6 +344,25 @@ void CGTooltip::SetObject(const unsigned __int64 &object) {
   char text[64];
   SStrPrintf(text, sizeof(text), "Object %08X", static_cast<unsigned int>(object));
   AddLine(text, 0, 0);
+}
+
+const char *__fastcall CGTooltip::GetItemQualityColorString(unsigned int quality) {
+  static const char *colors[] = {"|cff9d9d9d", "|cffffc600", "|cff1eff00", "|cff0070dd", "|cffa335ee", "|cffff0000", "|cffff1e38"};
+
+  return quality < 7 ? colors[quality] : "";
+}
+
+static void TooltipCorpseNameCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
+    // TODO: implement
+}
+
+void CGTooltip::SetCorpse(const unsigned __int64 &corpseGUID) {
+  if (!ClntObjMgrObjectPtr(corpseGUID, __FILE__, __LINE__)) {
+    return;
+  }
+  ClearLines();
+  m_corpseGUID = corpseGUID;
+  AddLine(FrameScript_GetText("CORPSE", -1, GENDER_NOT_APPLICABLE), 0, 0);
 }
 
 int CGTooltip::SetItem(
@@ -577,18 +417,222 @@ void CGTooltip::SetBuff(int spellID, unsigned int flags) {
   SetSpell(spellID, 0, 0, 0);
 }
 
-void CGTooltip::SetCorpse(const unsigned __int64 &corpseGUID) {
-  if (!ClntObjMgrObjectPtr(corpseGUID, __FILE__, __LINE__)) {
+void CGTooltip::SetOwner(CLayoutFrame *owner, TOOLTIP_ANCHORPOINT anchorpoint, float yoffset) {
+  m_owner = owner;
+  m_anchorPoint = anchorpoint;
+  ClearAllPoints(1);
+
+  if (!owner || anchorpoint == TOOLTIP_ANCHOR_CURSOR || anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(6)) {
     return;
   }
-  ClearLines();
-  m_corpseGUID = corpseGUID;
-  AddLine(FrameScript_GetText("CORPSE", -1, GENDER_NOT_APPLICABLE), 0, 0);
+
+  FRAMEPOINT point = FRAMEPOINT_LEFT;
+  FRAMEPOINT relativePoint = FRAMEPOINT_RIGHT;
+  float      xOffset = 0.0f;
+  if (anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(1)) {
+    point = FRAMEPOINT_RIGHT;
+    relativePoint = FRAMEPOINT_LEFT;
+  } else if (anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(2)) {
+    point = FRAMEPOINT_TOPLEFT;
+    relativePoint = FRAMEPOINT_BOTTOMLEFT;
+  } else if (anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(3)) {
+    point = FRAMEPOINT_TOPRIGHT;
+    relativePoint = FRAMEPOINT_BOTTOMRIGHT;
+  } else if (anchorpoint == static_cast<TOOLTIP_ANCHORPOINT>(4)) {
+    point = FRAMEPOINT_BOTTOMLEFT;
+    relativePoint = FRAMEPOINT_TOPLEFT;
+  }
+  SetPoint(point, owner, relativePoint, xOffset, yoffset, 1);
 }
 
-void CGTooltip::FadeOut() {
-  m_fading = 1;
-  m_fadeTime = 1.0f;
+void CGTooltip::SetOwner(CLayoutFrame *owner, float x, float y) {
+  m_owner = owner;
+  m_anchorPoint = static_cast<TOOLTIP_ANCHORPOINT>(4);
+  SetPosition(x, y);
+}
+
+void __fastcall CGTooltip::GetSpellEffectString(
+    char           *buf,
+    unsigned int    bufSize,
+    const SpellRec *spell,
+    unsigned int    effectIndex,
+    unsigned int    level,
+    int             isPet,
+    TOOLTIP_DETAIL  detail
+) {
+  if (!buf || !bufSize) {
+    return;
+  }
+  buf[0] = 0;
+  if (!spell || effectIndex >= 3 || !spell->m_effect[effectIndex]) {
+    return;
+  }
+  int points = spell->m_effectBasePoints[effectIndex] + 1;
+  SStrPrintf(buf, bufSize, "%d", points);
+}
+
+void __fastcall CGTooltip::GetAuraEffectString(
+    char           *buf,
+    unsigned int    bufSize,
+    const SpellRec *spell,
+    unsigned int    effectIndex,
+    unsigned int    level,
+    int             isPet,
+    TOOLTIP_DETAIL  detail
+) {
+  GetSpellEffectString(buf, bufSize, spell, effectIndex, level, isPet, detail);
+}
+
+void CGTooltip::AddLine(
+    const char                *leftText,
+    const char                *rightText,
+    const NTempest::CImVector &leftColor,
+    const NTempest::CImVector &rightColor,
+    int                        wrapped
+) {
+  if (m_lines >= m_linesMax) {
+    return;
+  }
+  CSimpleFontString *left = m_leftStrings[m_lines];
+  CSimpleFontString *right = m_rightStrings[m_lines];
+  if (left) {
+    left->SetText(leftText ? leftText : "");
+    left->SetVertexColor(leftColor);
+    left->Show();
+  }
+  if (right) {
+    right->SetText(rightText ? rightText : "");
+    right->SetVertexColor(rightColor);
+    if (rightText && *rightText) {
+      right->Show();
+    } else {
+      right->Hide();
+    }
+  }
+  m_wrapLine[m_lines] = wrapped;
+  ++m_lines;
+  m_reposition = 1;
+}
+
+void CGTooltip::AddLine(const char *leftText, const char *rightText, int wrapped) {
+  static const NTempest::CImVector color(0xFFFFFFFFUL);
+  AddLine(leftText, rightText, color, color, wrapped);
+}
+
+void CGTooltip::AddLine(const char *text, const NTempest::CImVector &color, int wrapped) {
+  AddLine(text, 0, color, color, wrapped);
+}
+
+void __fastcall CGTooltip::GetItemEnchantString(
+    char                          *buf,
+    unsigned int                   bufSize,
+    const SpellItemEnchantmentRec *enchant,
+    unsigned int                   effectIndex,
+    TOOLTIP_DETAIL                 detail
+) {
+  if (!buf || !bufSize) {
+    return;
+  }
+  buf[0] = 0;
+  if (!enchant || effectIndex >= 3 || !enchant->m_effect[effectIndex]) {
+    return;
+  }
+  if (enchant->m_name_lang[0]) {
+    SStrCopy(buf, enchant->m_name_lang[0], bufSize);
+  }
+}
+
+void __fastcall CGTooltip::GetSpellTargetString(char *buf, unsigned int bufSize, const SpellRec *spell, unsigned int effectIndex) {
+  if (!buf || !bufSize) {
+    return;
+  }
+  buf[0] = 0;
+  if (!spell || effectIndex >= 3) {
+    return;
+  }
+  int target = spell->m_implicitTargetA[effectIndex];
+  if (target) {
+    SStrPrintf(buf, bufSize, "%d", target);
+  }
+}
+
+void __fastcall CGTooltip::GetSummonedByString(const CGUnit_C *unitPtr, char *string, unsigned int size) {
+  if (!string || !size) {
+    return;
+  }
+  string[0] = 0;
+  if (unitPtr && unitPtr->GetUnitName()) {
+    SStrPrintf(string, size, FrameScript_GetText("UNITNAME_SUMMONED_BY", -1, GENDER_NOT_APPLICABLE), unitPtr->GetUnitName());
+  }
+}
+
+void CGTooltip::SetPosition(float x, float y) {
+  ClearAllPoints(1);
+  SetPoint(FRAMEPOINT_BOTTOMLEFT, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, x, y, 1);
+}
+
+void CGTooltip::ClearLines() {
+  for (unsigned int i = 0; i < m_linesMax; ++i) {
+    if (m_leftStrings[i]) {
+      m_leftStrings[i]->SetText(0);
+      m_leftStrings[i]->Hide();
+    }
+    if (m_rightStrings[i]) {
+      m_rightStrings[i]->SetText(0);
+      m_rightStrings[i]->Hide();
+    }
+    m_wrapLine[i] = 0;
+  }
+  if (m_statusBar) {
+    m_statusBar->Hide();
+  }
+  m_lines = 0;
+  m_unit = 0;
+  m_objectGUID = 0;
+  m_itemGUID = 0;
+  m_corpseGUID = 0;
+  m_itemID = 0;
+}
+
+void CGTooltip::AppendText(const char *text) {
+  if (!m_lines || !text || !m_leftStrings[m_lines - 1]) {
+    return;
+  }
+  char buf[256];
+  SStrPrintf(buf, sizeof(buf), "%s%s", m_leftStrings[m_lines - 1]->GetText() ? m_leftStrings[m_lines - 1]->GetText() : "", text);
+  m_leftStrings[m_lines - 1]->SetText(buf);
+  m_reposition = 1;
+}
+
+void CGTooltip::SetTooltipPadding(float right) {
+  m_padding = right;
+}
+
+void CGTooltip::CalculateSize() {
+  float width = 0.0f;
+  float height = 0.0f;
+  for (unsigned int i = 0; i < m_lines; ++i) {
+    float lineWidth = 0.0f;
+    float lineHeight = 0.0f;
+    if (m_leftStrings[i]) {
+      lineWidth += m_leftStrings[i]->GetStringWidth();
+      lineHeight = m_leftStrings[i]->GetStringHeight();
+    }
+    if (m_rightStrings[i] && m_rightStrings[i]->GetText() && *m_rightStrings[i]->GetText()) {
+      lineWidth += 16.0f + m_rightStrings[i]->GetStringWidth();
+      float rightHeight = m_rightStrings[i]->GetStringHeight();
+      if (rightHeight > lineHeight) {
+        lineHeight = rightHeight;
+      }
+    }
+    if (lineWidth > width) {
+      width = lineWidth;
+    }
+    height += lineHeight + 2.0f;
+  }
+  SetWidth(width + m_padding + 20.0f);
+  SetHeight(height + 20.0f);
+  m_reposition = 0;
 }
 
 int CGTooltip::HideThis() {
@@ -606,6 +650,11 @@ int CGTooltip::ShowThis() {
   m_shown = 0;
   HideThis();
   return 0;
+}
+
+void CGTooltip::FadeOut() {
+  m_fading = 1;
+  m_fadeTime = 1.0f;
 }
 
 void CGTooltip::OnLayerUpdate(float elapsedSec) {
@@ -649,6 +698,19 @@ void CGTooltip::OnLayerUpdate(float elapsedSec) {
     );                                                          \
   }                                                             \
   ASSERT(tooltip)
+
+static NTempest::CImVector TooltipColor(lua_State *L, int index, const NTempest::CImVector &fallback) {
+  if (!lua_isnumber(L, index)) {
+    return fallback;
+  }
+  float               red = static_cast<float>(lua_tonumber(L, index));
+  float               green = static_cast<float>(lua_tonumber(L, index + 1));
+  float               blue = static_cast<float>(lua_tonumber(L, index + 2));
+  float               alpha = lua_isnumber(L, index + 3) ? static_cast<float>(lua_tonumber(L, index + 3)) : 1.0f;
+  NTempest::CImVector color;
+  color.Set(alpha, red, green, blue);
+  return color;
+}
 
 int __fastcall CGTooltip_SetPadding(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
@@ -707,19 +769,6 @@ int __fastcall CGTooltip_ClearLines(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   tooltip->ClearLines();
   return 0;
-}
-
-static NTempest::CImVector TooltipColor(lua_State *L, int index, const NTempest::CImVector &fallback) {
-  if (!lua_isnumber(L, index)) {
-    return fallback;
-  }
-  float               red = static_cast<float>(lua_tonumber(L, index));
-  float               green = static_cast<float>(lua_tonumber(L, index + 1));
-  float               blue = static_cast<float>(lua_tonumber(L, index + 2));
-  float               alpha = lua_isnumber(L, index + 3) ? static_cast<float>(lua_tonumber(L, index + 3)) : 1.0f;
-  NTempest::CImVector color;
-  color.Set(alpha, red, green, blue);
-  return color;
 }
 
 int __fastcall CGTooltip_AddLine(lua_State *L) {
@@ -1147,6 +1196,14 @@ int __fastcall CGTooltip_NumLines(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   lua_pushnumber(L, static_cast<double>(tooltip->NumLines()));
   return 1;
+}
+
+void __fastcall CGTooltip::RegisterScriptMethods() {
+  FrameScript_Object::FillScriptMethodTable(CGTooltipMethods, 26, s_scriptMethods);
+}
+
+void __fastcall CGTooltip::UnregisterScriptMethods() {
+  FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
 #undef GET_TOOLTIP_THIS

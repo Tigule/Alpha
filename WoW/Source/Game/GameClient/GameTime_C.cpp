@@ -157,19 +157,6 @@ int __fastcall ReceiveNewGameSpeed(void *, NETMESSAGE msgId, unsigned long, CDat
   return 1;
 }
 
-int __fastcall ReceiveGameTimeUpdate(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
-  unsigned int gameTime;
-  msg->Get(gameTime);
-
-  if (!msg->IsRead()) {
-    ConsoleWriteA("Malformed message recieved: Id = %d, Len = %d, Read = %d\n", DEFAULT_COLOR, msgId, msg->Size(), msg->Tell());
-    return 0;
-  }
-
-  g_clientGameTime.GameTimeSync(WowTime(gameTime), false);
-  return 1;
-}
-
 int __fastcall ReceiveNewTimeSpeed(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
   unsigned int gameTime;
   float        newSpeed;
@@ -187,6 +174,19 @@ int __fastcall ReceiveNewTimeSpeed(void *, NETMESSAGE msgId, unsigned long, CDat
   char  buffer[256];
   SStrPrintf(buffer, sizeof(buffer), "Gamespeed set from %.03f to %.03f", oldSpeed, newSpeed);
   ConsoleWrite(buffer, DEFAULT_COLOR);
+  return 1;
+}
+
+int __fastcall ReceiveGameTimeUpdate(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
+  unsigned int gameTime;
+  msg->Get(gameTime);
+
+  if (!msg->IsRead()) {
+    ConsoleWriteA("Malformed message recieved: Id = %d, Len = %d, Read = %d\n", DEFAULT_COLOR, msgId, msg->Size(), msg->Tell());
+    return 0;
+  }
+
+  g_clientGameTime.GameTimeSync(WowTime(gameTime), false);
   return 1;
 }
 

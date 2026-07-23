@@ -8,6 +8,23 @@ static int    s_lastPlayTime = -1;
 static Sound *s_sound;
 static int    s_priority = -1;
 
+void __fastcall SndInterfaceZoneIntroIdler() {
+    // TODO: implement
+}
+
+static int CCommand_ZoneIntroReset(const char* command, const char* arguments) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall SndInterfaceZoneIntroInitialize() {
+    // TODO: implement
+}
+
+void __fastcall SndInterfaceZoneIntroDestroy() {
+    // TODO: implement
+}
+
 void __fastcall SndInterfaceRegisterNewZoneIntro(int soundID, int priority) {
   if (soundID && !SndInterfaceIsZoneMusicPaused()) {
     if (!s_sound || !s_sound->IsPlaying() || priority > s_priority) {

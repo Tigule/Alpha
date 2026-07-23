@@ -700,20 +700,20 @@ SCritSect::~SCritSect() {
   DeleteCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
 }
 
-void SCritSect::Enter() {
-  EnterCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
+CDebugSCritSect::CDebugSCritSect() {
+  CDebugLock<CDebugSCritSect>::Construct((CDebugLockData *)m_debugData);
 }
 
-void SCritSect::Leave() {
-  LeaveCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
+void SCritSect::Enter() {
+  EnterCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
 }
 
 int SCritSect::TryEnter() {
   return STryEnterCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
 }
 
-CDebugSCritSect::CDebugSCritSect() {
-  CDebugLock<CDebugSCritSect>::Construct((CDebugLockData *)m_debugData);
+void SCritSect::Leave() {
+  LeaveCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
 }
 
 CDebugSCritSect::~CDebugSCritSect() {
@@ -987,20 +987,20 @@ int SEvent::Reset() {
   return ResetEvent(*(HANDLE *)m_opaqueData);
 }
 
-int __fastcall SThread::Create(STHREADPROC threadProc, void *param, SThread &thread, char *threadName) {
-  unsigned int id;
-
-  (void)threadName;
-  *(HANDLE *)thread.m_opaqueData = (HANDLE)SCreateThread(threadProc, param, &id, NULL, NULL);
-  return *(HANDLE *)thread.m_opaqueData != NULL;
-}
-
 SSemaphore::SSemaphore(unsigned int initialCount, unsigned int maximumCount) {
   *(HANDLE *)m_opaqueData = CreateSemaphoreA(NULL, initialCount, maximumCount, NULL);
 }
 
 int SSemaphore::Signal(unsigned int count) {
   return ReleaseSemaphore(*(HANDLE *)m_opaqueData, count, NULL);
+}
+
+int __fastcall SThread::Create(STHREADPROC threadProc, void *param, SThread &thread, char *threadName) {
+  unsigned int id;
+
+  (void)threadName;
+  *(HANDLE *)thread.m_opaqueData = (HANDLE)SCreateThread(threadProc, param, &id, NULL, NULL);
+  return *(HANDLE *)thread.m_opaqueData != NULL;
 }
 
 SMutex::SMutex() {

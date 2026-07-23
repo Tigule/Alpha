@@ -19,6 +19,8 @@ namespace NTempest {
     rndvls = 4 * ((seed % 61) | (((seed % 59) | (((seed % 53) | ((seed % 47) << 8)) << 8)) << 8));
   }
 
+
+
   C3Vector __fastcall CRandom::C3Vector_(CRndSeed &seed) {
     const float z = reals_(seed);
     const float angle = real_(seed) * 6.28318530717958647692f;
@@ -33,3 +35,8 @@ namespace NTempest {
   }
 
 }  // namespace NTempest
+
+static unsigned long lattice_(long x) {
+    // TODO: implement
+    return 0;
+}

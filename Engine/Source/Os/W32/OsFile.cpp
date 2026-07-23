@@ -5,6 +5,10 @@
 
 DWORD __fastcall OsPathGetRootChars(const char *path);
 
+static void UTF16ToUTF8(const unsigned short* src, char* dest, unsigned long destLength) {
+    // TODO: implement
+}
+
 HOSFILE __fastcall OsCreateFile(
     const char   *fileName,
     unsigned long desiredAccess,
@@ -80,6 +84,11 @@ int __fastcall OsWriteFile(HOSFILE fileHandle, const void *buffer, unsigned long
   return WriteFile(reinterpret_cast<HANDLE>(fileHandle), buffer, bytesToWrite, bytesWritten, 0);
 }
 
+int __fastcall OsFlushFile(HOSFILE__* fileHandle) {
+    // TODO: implement
+    return 0;
+}
+
 unsigned __int64 __fastcall OsSetFilePointer(HOSFILE fileHandle, __int64 distanceToMove, unsigned long moveMethod) {
   LARGE_INTEGER distance;
 
@@ -93,6 +102,31 @@ unsigned __int64 __fastcall OsSetFilePointer(HOSFILE fileHandle, __int64 distanc
   return static_cast<unsigned __int64>(distance.QuadPart);
 }
 
+unsigned __int64 __fastcall OsGetFileSize(HOSFILE__* fileHandle) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsGetFileTime(HOSFILE__* fileHandle, OSFILETIME* createFileTime, OSFILETIME* accessFileTime, OSFILETIME* writeFileTime) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsSetFileTime(HOSFILE__* fileHandle, const OSFILETIME* createFileTime, const OSFILETIME* accessFileTime, const OSFILETIME* writeFileTime) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsGetFileTime(const char* fileName, OSFILETIME* createFileTime, OSFILETIME* accessFileTime, OSFILETIME* writeFileTime) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsSetEndOfFile(HOSFILE__* fileHandle) {
+    // TODO: implement
+    return 0;
+}
+
 unsigned long __fastcall OsGetFileAttributes(const char *fileName) {
   unsigned short fileName16[MAX_PATH];
 
@@ -100,6 +134,21 @@ unsigned long __fastcall OsGetFileAttributes(const char *fileName) {
 
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
   return GetFileAttributesW(reinterpret_cast<LPCWSTR>(fileName16));
+}
+
+int __fastcall OsSetFileAttributes(const char* fileName, unsigned long attributes) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsMoveFile(const char* existingFileName, const char* newFileName) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsCopyFile(const char* existingFileName, const char* newFileName, int failIfExists) {
+    // TODO: implement
+    return 0;
 }
 
 int __fastcall OsDeleteFile(const char *fileName) {
@@ -134,6 +183,21 @@ int __fastcall OsCreateDirectory(const char *pathName, int recursive) {
   return CreateDirectoryW(reinterpret_cast<LPCWSTR>(pathName16), 0);
 }
 
+int __fastcall OsRemoveDirectory(const char* pathName) {
+    // TODO: implement
+    return 0;
+}
+
+static int EnumRemoveDirectoryRecurse(OS_FILE_DATA& file, void* param) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsRemoveDirectoryRecurse(const char* pathName, unsigned long flags) {
+    // TODO: implement
+    return 0;
+}
+
 int __fastcall OsSetCurrentDirectory(const char *pathName) {
   unsigned short dst[MAX_PATH];
 
@@ -141,4 +205,32 @@ int __fastcall OsSetCurrentDirectory(const char *pathName) {
 
   SUniConvertUTF8to16(dst, MAX_PATH, pathName, 0x7FFFFFFF, 0, 0);
   return SetCurrentDirectoryW(reinterpret_cast<LPCWSTR>(dst));
+}
+
+int __fastcall OsGetCurrentDirectory(unsigned long pathLen, char* pathName) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall OsFileAssocGetIdentifier(const char* inFileExt, char* inBuffer, int inBufSize) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall OsFileAssocSetIdentifier(const char* inFileExt, const char* inIdentifier) {
+    // TODO: implement
+}
+
+int __fastcall OsFileAssocGetValue(const char* inFileExt, int inAssocType, char* inBuffer, int inBufSize) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall OsFileAssocSetValue(const char* inFileExt, int inAssocType, const char* inValue) {
+    // TODO: implement
+}
+
+__int64 __fastcall OsFileFreeSpace(const char* path) {
+    // TODO: implement
+    return 0;
 }

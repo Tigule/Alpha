@@ -105,27 +105,6 @@ TSList<WaterRadWave, TSGetLink<WaterRadWave> > CMap::waterRipplesFree;
 TSList<WaterRadWave, TSGetLink<WaterRadWave> > CMap::waterRipplesActive;
 CGxPixelShader                                *CMap::psOcean0;
 
-void __fastcall CMap::UpdateLiquidTextures() {
-}
-
-int CMapArea::ccWaterLOD = -1;
-int CMapArea::ccWaterMaxLOD = 4;
-int CMapArea::ccWaterWaves = 2;
-int CMapArea::ccWaterSpecular = 1;
-int CMapArea::ccWaterRipples = 1;
-
-int WaterRadWave::Update(float deltat) {
-  curTime += deltat;
-  if (curTime > timeLength) {
-    return 0;
-  }
-
-  rb = curTime * velocity;
-  ra = rb - length;
-  decay = 1.0f - curTime * ooTimeLength;
-  return 1;
-}
-
 void WaterRadWave::Init(NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq) {
   pos = p_pos;
   length = len;
@@ -140,16 +119,11 @@ void WaterRadWave::Init(NTempest::C3Vector &p_pos, float len, float time, float 
   ra = -len;
 }
 
-void __fastcall CMap::WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
-  if (!CMapArea::ccWaterRipples || waterRipplesFree.IsEmpty()) {
-    return;
-  }
-
-  WaterRadWave *wave = waterRipplesFree.Head();
-  waterRipplesFree.UnlinkNode(wave);
-  waterRipplesActive.LinkNode(wave, LIST_TAIL, 0);
-  wave->Init(pos, len, time, amp, vel, freq);
-}
+int CMapArea::ccWaterLOD = -1;
+int CMapArea::ccWaterMaxLOD = 4;
+int CMapArea::ccWaterWaves = 2;
+int CMapArea::ccWaterSpecular = 1;
+int CMapArea::ccWaterRipples = 1;
 
 void LODArrays::GenFixes(unsigned int p_nFixes, unsigned int vertsPerSide, unsigned int tilesPerSide) {
   nFixes = p_nFixes;
@@ -406,6 +380,24 @@ void __fastcall CMap::UnloadLiquidTexture(unsigned int liquid) {
   liquidTexLoaded[liquid] = false;
 }
 
+void __fastcall CMap::UpdateLiquidTextures() {
+}
+
+static void fft2(float* data, unsigned long* nn, int ndim, float isign) {
+    // TODO: implement
+}
+
+void __fastcall CMap::WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
+  if (!CMapArea::ccWaterRipples || waterRipplesFree.IsEmpty()) {
+    return;
+  }
+
+  WaterRadWave *wave = waterRipplesFree.Head();
+  waterRipplesFree.UnlinkNode(wave);
+  waterRipplesActive.LinkNode(wave, LIST_TAIL, 0);
+  wave->Init(pos, len, time, amp, vel, freq);
+}
+
 void __fastcall CMap::WaterInitialize() {
   skyTexid = 0;
   riverDiffTexid = 0;
@@ -507,6 +499,40 @@ void __fastcall CMap::WaterDestroy() {
   GxPixelShaderDestroy(psOcean0);
 }
 
+void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
+  unsigned int       tx;
+  unsigned int       vrowx;
+  float              fx;
+  unsigned int       ty;
+  float              dy;
+  NTempest::C3Vector vertWorldPos;
+  NTempest::C2Vector farCorner;
+  float              dx;
+  NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
+  float              temp;
+
+  fx = static_cast<float>(chunk->aIndex.x + 1) * 33.333332f;
+  temp = static_cast<float>(chunk->aIndex.y + 1) * 33.333332f;
+  farCorner = NTempest::C2Vector(fx, temp);
+  temp = 17066.666f - farCorner.x;
+  farCorner.x = 17066.666f - farCorner.y;
+  farCorner.y = temp;
+  dy = (farCorner.x - chunk->corner.x) / 8.0f;
+  dx = (farCorner.y - chunk->corner.y) / 8.0f;
+
+  for (ty = 0; ty < 9; ++ty) {
+    vrowx = 9 * ty;
+    vertWorldPos.x = static_cast<float>(ty) * dy + chunk->corner.x;
+    for (tx = 0; tx < 9; ++tx) {
+      vertWorldPos.y = static_cast<float>(tx) * dx + chunk->corner.y;
+      vtx->p = vertWorldPos - CWorldScene::camPos;
+      vtx->n = dumbNormal;
+      vtx->tc[0] = NTempest::C2Vector(0.5f, s_oceanDepthCoordTable[verts[vrowx + tx].oceanVert.depth]);
+      ++vtx;
+    }
+  }
+}
+
 static void __fastcall SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPNT0 *&vtx, unsigned short *&idx) {
   FATALASSERT(cmd.vertex.op != GxBufOp_Nop);
   FATALASSERT(cmd.index.op != GxBufOp_Nop);
@@ -546,40 +572,6 @@ static void __fastcall SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexP
   } else {
     idx = static_cast<unsigned short *>(GxAllocIndexMem(gxBuf->IndexCount() * sizeof(*idx)));
     *cmd.index.mem[GxVM_Position] = idx;
-  }
-}
-
-void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
-  unsigned int       tx;
-  unsigned int       vrowx;
-  float              fx;
-  unsigned int       ty;
-  float              dy;
-  NTempest::C3Vector vertWorldPos;
-  NTempest::C2Vector farCorner;
-  float              dx;
-  NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
-  float              temp;
-
-  fx = static_cast<float>(chunk->aIndex.x + 1) * 33.333332f;
-  temp = static_cast<float>(chunk->aIndex.y + 1) * 33.333332f;
-  farCorner = NTempest::C2Vector(fx, temp);
-  temp = 17066.666f - farCorner.x;
-  farCorner.x = 17066.666f - farCorner.y;
-  farCorner.y = temp;
-  dy = (farCorner.x - chunk->corner.x) / 8.0f;
-  dx = (farCorner.y - chunk->corner.y) / 8.0f;
-
-  for (ty = 0; ty < 9; ++ty) {
-    vrowx = 9 * ty;
-    vertWorldPos.x = static_cast<float>(ty) * dy + chunk->corner.x;
-    for (tx = 0; tx < 9; ++tx) {
-      vertWorldPos.y = static_cast<float>(tx) * dx + chunk->corner.y;
-      vtx->p = vertWorldPos - CWorldScene::camPos;
-      vtx->n = dumbNormal;
-      vtx->tc[0] = NTempest::C2Vector(0.5f, s_oceanDepthCoordTable[verts[vrowx + tx].oceanVert.depth]);
-      ++vtx;
-    }
   }
 }
 
@@ -881,15 +873,15 @@ Particulate::Particulate(float particleScale, float boxSize, const char *particu
   InitMovement();
 }
 
+void Particulate::SetPercentage(float percent) {
+  ASSERT(percent >= 0.0f && percent <= 1.0f);
+  numParticles = static_cast<unsigned int>(percent * 4000.0f);
+}
+
 Particulate::~Particulate() {
   if (texture) {
     HandleClose(texture);
   }
-}
-
-void Particulate::SetPercentage(float percent) {
-  ASSERT(percent >= 0.0f && percent <= 1.0f);
-  numParticles = static_cast<unsigned int>(percent * 4000.0f);
 }
 
 void Particulate::SetScale(float s) {
@@ -926,6 +918,18 @@ void Particulate::InitParticles(unsigned int l) {
   }
 
   liquid = l & 3;
+}
+
+int WaterRadWave::Update(float deltat) {
+  curTime += deltat;
+  if (curTime > timeLength) {
+    return 0;
+  }
+
+  rb = curTime * velocity;
+  ra = rb - length;
+  decay = 1.0f - curTime * ooTimeLength;
+  return 1;
 }
 
 void Particulate::Update() {

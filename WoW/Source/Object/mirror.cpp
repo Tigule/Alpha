@@ -1,4 +1,5 @@
 #include "mirror.h"
+#include "Object/Object.h"
 
 #include <storm.h>
 #include <string.h>
@@ -218,4 +219,9 @@ void __fastcall MirrorInitialize() {
 
   memcpy(s_corpseDescriptors, s_objDescriptors, sizeof(s_objDescriptors));
   CopyAndExpandDescriptors(s_corpseDescriptors + 6, s_corpseBaseDescriptors, 11, 30);
+}
+
+const ObjDataDescriptor* __fastcall MirrorGetObjDataDescriptor(OBJECT_TYPE type, unsigned int blockID) {
+    // TODO: implement
+    return 0;
 }

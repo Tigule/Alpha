@@ -23,6 +23,13 @@
 #include <storm.h>
 
 #include "Console/ConsoleCommand.h"
+
+static const char *s_boneNames[26] = {"ArmL",          "ArmR",         "ShoulderL",     "ShoulderR",    "SpineLow",    "Waist",  "Head",
+                                      "Jaw",           "IndexFingerR", "MiddleFingerR", "PinkyFingerR", "RingFingerR", "ThumbR", "IndexFingerL",
+                                      "MiddleFingerL", "PinkyFingerL", "RingFingerL",   "ThumbL",       "$BTH",        "$CSR",   "$CSL",
+                                      "_Breath",       "_Name",        "_NameMount",    "$CHD",         "$CCH"};
+
+static const char *s_cameraNames[2] = {"Portrait", "Paperdoll"};
 #include "Console/ConsoleVar.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "WorldClient/World.h"
@@ -53,22 +60,6 @@ static unsigned int __fastcall GenerateAnimFlags(unsigned int objectFlags) {
 
   return animFlags;
 }
-
-unsigned int __fastcall Object_C_AnimHasHitEvent(int anim) {
-  FATALASSERT(anim < NUM_OBJECTANIMATIONS);
-  return g_seqInformation[anim].flags & 1;
-}
-
-static void __fastcall s_BlobFadeTex(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-);
 
 static void __fastcall s_BlobFadeTex(
     EGxTexCommand cmd,
@@ -121,6 +112,57 @@ static void __fastcall s_BlobFadeTex(
   }
 }
 
+static void __fastcall s_BlobFadeTex(
+    EGxTexCommand cmd,
+    unsigned int  w,
+    unsigned int  h,
+    unsigned int  d,
+    unsigned int  mipLevel,
+    void         *userArg,
+    unsigned int &texelStrideInBytes,
+    const void  *&texels
+);
+
+HMODEL __fastcall ObjectModelCreate(const char *filename, OBJECT_TYPE objectType, unsigned int mdlCreateFlags) {
+  FATALASSERT(filename);
+
+  CModelCreate  createData;
+  CStatus       status;
+  unsigned long processorFeatures = OsGetProcessorFeatures();
+
+  memset(&createData, 0, sizeof(createData));
+  createData.flags = mdlCreateFlags | 0x202A;
+  if (static_cast<long>(processorFeatures) < 0) {
+    unsigned int processorClass = 0;
+    while (processorFeatures >>= 1) {
+      ++processorClass;
+    }
+    createData.flags |= (processorClass << 17) | 0x10000;
+  } else if (processorFeatures & 0x800000) {
+    createData.flags |= 0x1000;
+  }
+
+  if (objectType & TYPE_GAMEOBJECT) {
+    createData.sequenceNames = &g_animationNames[FIRST_GAMEOBJECTANIMATION];
+    createData.numSequences = NUM_GAMEOBJECTANIMATIONS;
+  } else if (objectType & TYPE_DYNAMICOBJECT) {
+    createData.sequenceNames = &g_animationNames[FIRST_EFFECTANIMATION];
+    createData.numSequences = NUM_EFFECTANIMATIONS;
+  } else {
+    createData.flags |= 0x44;
+    createData.sequenceNames = g_animationNames;
+    createData.numSequences = NUM_OBJECTANIMATIONS;
+    createData.boneNames = s_boneNames;
+    createData.numBones = 26;
+    createData.cameraNames = s_cameraNames;
+    createData.numCameras = 2;
+  }
+
+  HMODEL model = ModelCreate(filename, &createData, &status);
+  FATALASSERT(model);
+  return model;
+}
+
 void CGObject_C::SetTypeID(OBJECT_TYPE_ID typeID) {
   switch (typeID) {
     case ID_OBJECT:
@@ -153,58 +195,68 @@ void CGObject_C::SetTypeID(OBJECT_TYPE_ID typeID) {
   }
 }
 
-void CGObject_C::SetStorage(unsigned long *storage) {
-  m_data = storage;
-  m_obj = reinterpret_cast<CGObjectData *>(storage);
-}
-
-CGObject_C::CGObject_C(unsigned long *storage, unsigned long, CClientObjCreate *)
-    : m_renderScale(1.0f),
-      m_model(0),
-      m_highlightTypes(0),
-      m_objectHeight(1.0f),
-      m_worldObject(0),
-      m_flags(0),
-      m_fadeStartTime(0),
-      m_fadeDuration(0),
-      m_alpha(0),
-      m_startAlpha(0),
-      m_endAlpha(0),
-      m_maxAlpha(255) {
-  SetStorage(storage);
-
-  char modelFileName[260] = {0};
-  if (!InitModelFileName(modelFileName, sizeof(modelFileName))) {
-    return;
+int CGObject_C::ObjectModelSetSequence(HMODEL__ *model, unsigned int sequence, unsigned int flags, const char *modelName) {
+  if (sequence > NUM_OBJECTANIMATIONS) {
+    SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIMMODEL|%d|%s", sequence, modelName);
+    return 0;
   }
 
-  unsigned int createFlags = 0x200;
-  if (GetType() == HIER_TYPE_PLAYER || GetType() == HIER_TYPE_GAMEOBJECT) {
-    createFlags = 0x100800;
+  if (!(m_flags & 1)) {
+    flags |= 8;
   }
 
-  m_model = ObjectModelCreate(modelFileName, GetType(), createFlags);
-  ObjectModelSetSequence(m_model, 0, 0, modelFileName);
-}
-
-void CGObject_C::PostInit(const CClientObjCreate &init) {
-  m_flags |= 8;
-  m_renderScale = 1.0f;
-  DoFade(255, ShouldFadeIn() ? 2000 : 0);
-}
-
-void CGObject_C::PostMovementUpdate() {
-}
-
-int CGObject_C::IsPostInited() {
-  return m_flags & 8;
-}
-
-CGObject_C::~CGObject_C() {
-  RemoveWorldObject();
-  if (m_model) {
-    HandleClose(m_model);
+  unsigned int animFlags = GenerateAnimFlags(flags);
+  int          result = flags & 1 ? ModelSetSequence(model, sequence, animFlags) : ModelSetRandomSequenceFidget(model, sequence, animFlags);
+  if (result) {
+    return 1;
   }
+
+  switch (SErrGetLastError()) {
+    case 1:
+      ReportMissingAnimation(sequence, modelName);
+      break;
+    case 3:
+      ReportNoAnimation(modelName);
+      break;
+  }
+  return 0;
+}
+
+int CGObject_C::ObjectModelSetBoneSequence(HMODEL__ *model, unsigned int sequence, unsigned int objectID, unsigned int flags) {
+  if (sequence > 135) {
+    SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIM|%d", sequence);
+    return 0;
+  }
+
+  if (!(m_flags & 1)) {
+    flags |= 8;
+  }
+
+  unsigned int animFlags = GenerateAnimFlags(flags);
+  int          result;
+  if (flags & 1) {
+    result = ModelSetSequence(model, sequence, objectID, animFlags);
+  } else {
+    result = ModelSetRandomSequenceFidget(model, sequence, objectID, animFlags);
+  }
+
+  if (result) {
+    return 1;
+  }
+
+  switch (SErrGetLastError()) {
+    case 1:
+      ReportMissingAnimation(sequence, 0);
+      break;
+    case 2:
+      ReportMissingBone(objectID, 0);
+      break;
+    case 3:
+      ReportNoAnimation(0);
+      break;
+  }
+
+  return 0;
 }
 
 int CGObject_C::InitModelFileName(char *modelFileName, unsigned int size) {
@@ -255,153 +307,54 @@ int CGObject_C::InitModelFileName(char *modelFileName, unsigned int size) {
   return modelFileName[0] != 0;
 }
 
-int CGObject_C::ObjectModelSetBoneSequence(HMODEL__ *model, unsigned int sequence, unsigned int objectID, unsigned int flags) {
-  if (sequence > 135) {
-    SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIM|%d", sequence);
-    return 0;
-  }
-
-  if (!(m_flags & 1)) {
-    flags |= 8;
-  }
-
-  unsigned int animFlags = GenerateAnimFlags(flags);
-  int          result;
-  if (flags & 1) {
-    result = ModelSetSequence(model, sequence, objectID, animFlags);
-  } else {
-    result = ModelSetRandomSequenceFidget(model, sequence, objectID, animFlags);
-  }
-
-  if (result) {
-    return 1;
-  }
-
-  switch (SErrGetLastError()) {
-    case 1:
-      ReportMissingAnimation(sequence, 0);
-      break;
-    case 2:
-      ReportMissingBone(objectID, 0);
-      break;
-    case 3:
-      ReportNoAnimation(0);
-      break;
-  }
-
-  return 0;
+void CGObject_C::PostMovementUpdate() {
 }
 
-int CGObject_C::ObjectModelSetSequence(HMODEL__ *model, unsigned int sequence, unsigned int flags, const char *modelName) {
-  if (sequence > NUM_OBJECTANIMATIONS) {
-    SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIMMODEL|%d|%s", sequence, modelName);
-    return 0;
-  }
-
-  if (!(m_flags & 1)) {
-    flags |= 8;
-  }
-
-  unsigned int animFlags = GenerateAnimFlags(flags);
-  int          result = flags & 1 ? ModelSetSequence(model, sequence, animFlags) : ModelSetRandomSequenceFidget(model, sequence, animFlags);
-  if (result) {
-    return 1;
-  }
-
-  switch (SErrGetLastError()) {
-    case 1:
-      ReportMissingAnimation(sequence, modelName);
-      break;
-    case 3:
-      ReportNoAnimation(modelName);
-      break;
-  }
-  return 0;
+void CGObject_C::SetStorage(unsigned long *storage) {
+  m_data = storage;
+  m_obj = reinterpret_cast<CGObjectData *>(storage);
 }
 
-int CGObject_C::AddAttachment(HMODEL__ *parent, unsigned int parentIndex, HMODEL__ *child, float scale) {
-  FATALASSERT(m_model);
-
-  if (ModelAddLink(parent, parentIndex, child, scale)) {
-    m_flags &= ~0x40;
-    return 1;
-  }
-
-  return 0;
-}
-
-void __fastcall CGObject_C::Initialize() {
-  s_objectSelectionCircle = CVar::Register("ObjectSelectionCircle", 0, 0, "1", 0, DEBUG, false, 0);
-  s_debugTargetPath = CVar::Register("DebugTargetPath", 0, 0, "0", 0, DEBUG, false, 0);
-
-  if (s_fadeTex) {
-    GxTexDestroy(s_fadeTex);
-  }
-
-  static const unsigned int FADETEX_WIDTH = static_cast<unsigned int>(Gx_MaxTexAspect * 8.0f);
-  static const unsigned int FADETEX_HEIGHT = 8;
-  CGxTexFlags               flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  GxTexCreate(FADETEX_HEIGHT, FADETEX_WIDTH, GxTex_Argb8888, flags, 0, s_BlobFadeTex, s_fadeTex);
-
-  if (s_selectionTexture) {
-    HandleClose(s_selectionTexture);
-  }
-
-  CStatus status;
-  s_selectionTexture = TextureCreate("Textures\\UnitSelectTexture.blp", flags, &status, 0);
-}
-
-void __fastcall CGObject_C::Shutdown() {
-  if (s_fadeTex) {
-    GxTexDestroy(s_fadeTex);
-  }
-  s_fadeTex = 0;
-
-  if (s_selectionTexture) {
-    HandleClose(s_selectionTexture);
-  }
-  s_selectionTexture = 0;
-}
-
-void CGObject_C::HideHighlightType(HIGHLIGHTTYPE type) {
-  FATALASSERT(type < NUM_HIGHLIGHTTYPES);
-
-  m_highlightTypes &= ~(1 << type);
-  if (!m_highlightTypes) {
-    ModelSetEmissiveColor(m_model, NTempest::CImVector(0), 1);
+CGObject_C::~CGObject_C() {
+  RemoveWorldObject();
+  if (m_model) {
+    HandleClose(m_model);
   }
 }
 
-void CGObject_C::ShowHighlightType(HIGHLIGHTTYPE type) {
-  FATALASSERT(type < NUM_HIGHLIGHTTYPES);
+CGObject_C::CGObject_C(unsigned long *storage, unsigned long, CClientObjCreate *)
+    : m_renderScale(1.0f),
+      m_model(0),
+      m_highlightTypes(0),
+      m_objectHeight(1.0f),
+      m_worldObject(0),
+      m_flags(0),
+      m_fadeStartTime(0),
+      m_fadeDuration(0),
+      m_alpha(0),
+      m_startAlpha(0),
+      m_endAlpha(0),
+      m_maxAlpha(255) {
+  SetStorage(storage);
 
-  m_highlightTypes |= 1 << type;
-  ModelSetEmissiveColor(m_model, DayNightGetInfo()->unitSelect, 1);
-}
-
-void CGObject_C::UpdateWorldObject() {
-  if (ClntObjMgrGetPlayerType() || !m_worldObject) {
+  char modelFileName[260] = {0};
+  if (!InitModelFileName(modelFileName, sizeof(modelFileName))) {
     return;
   }
 
-  NTempest::C44Matrix tempMat;
-  NTempest::CAaBox    extents;
-  if (m_model) {
-    ModelGetCollisionExtents(m_model, &extents);
+  unsigned int createFlags = 0x200;
+  if (GetType() == HIER_TYPE_PLAYER || GetType() == HIER_TYPE_GAMEOBJECT) {
+    createFlags = 0x100800;
   }
 
-  tempMat.Translate(GetPosition());
+  m_model = ObjectModelCreate(modelFileName, GetType(), createFlags);
+  ObjectModelSetSequence(m_model, 0, 0, modelFileName);
+}
 
-  float facing;
-  if (GetType() & TYPE_UNIT) {
-    facing = static_cast<CGUnit_C *>(this)->GetRenderFacing();
-  } else {
-    facing = GetFacing();
-  }
-
-  tempMat *= NTempest::C44Matrix::Rotation(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
-  tempMat.Scale(GetScale());
-  CWorld::UpdateObject(m_worldObject, tempMat, extents);
+void CGObject_C::PostInit(const CClientObjCreate &init) {
+  m_flags |= 8;
+  m_renderScale = 1.0f;
+  DoFade(255, ShouldFadeIn() ? 2000 : 0);
 }
 
 void CGObject_C::AddWorldObject() {
@@ -428,6 +381,31 @@ void CGObject_C::AddWorldObject() {
   if (m_model) {
     ModelSetLightSelectCallback(m_model, CMap::SelectLight, reinterpret_cast<void *>(m_worldObject), 1);
   }
+}
+
+void CGObject_C::UpdateWorldObject() {
+  if (ClntObjMgrGetPlayerType() || !m_worldObject) {
+    return;
+  }
+
+  NTempest::C44Matrix tempMat;
+  NTempest::CAaBox    extents;
+  if (m_model) {
+    ModelGetCollisionExtents(m_model, &extents);
+  }
+
+  tempMat.Translate(GetPosition());
+
+  float facing;
+  if (GetType() & TYPE_UNIT) {
+    facing = static_cast<CGUnit_C *>(this)->GetRenderFacing();
+  } else {
+    facing = GetFacing();
+  }
+
+  tempMat *= NTempest::C44Matrix::Rotation(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
+  tempMat.Scale(GetScale());
+  CWorld::UpdateObject(m_worldObject, tempMat, extents);
 }
 
 void CGObject_C::RemoveWorldObject() {
@@ -491,6 +469,61 @@ unsigned int __fastcall CGObject_C::OffsetOf(OBJECT_TYPE_ID type) {
   return 0;
 }
 
+void CGObject_C::ReportMissingAnimation(unsigned int sequence, const char *modelName) const {
+  if (!modelName) {
+    modelName = GetModelFileName();
+  }
+  if (!modelName) {
+    modelName = "<unknown model>";
+  }
+
+  SysMsgPrintf(SYSMSG_WARNING, 8, "MODELMISSINGANIM|%s|%s|%d", modelName, g_animationNames[sequence], sequence);
+}
+
+void CGObject_C::ReportMissingAnimObj(const char *message, unsigned int objectID, const char *modelName) const {
+  if (!modelName) {
+    modelName = GetModelFileName();
+  }
+  if (!modelName) {
+    modelName = "<unknown model>";
+  }
+
+  SysMsgPrintf(SYSMSG_WARNING, 8, "%s|%s|%s|%d", message, modelName, s_boneNames[objectID], objectID);
+}
+
+void CGObject_C::ReportMissingAttachment(unsigned int objectID, const char *modelName) const {
+  ReportMissingAnimObj("MODELMISSINGATTACHMENT", objectID, modelName);
+}
+
+void CGObject_C::ReportMissingBone(unsigned int objectID, const char *modelName) const {
+  ReportMissingAnimObj("MODELMISSINGBONE", objectID, modelName);
+}
+
+void CGObject_C::ReportNoAnimation(const char *modelName) {
+  if (!modelName) {
+    modelName = GetModelFileName();
+  }
+  if (!modelName) {
+    modelName = "<unknown model>";
+  }
+
+  SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTNOANIM|%s", modelName);
+}
+
+ANIMENUMERATION __fastcall Object_C_GetAnimIndex(const char* animName) {
+    // TODO: implement
+    return ANIMENUMERATION();
+}
+
+void CGObject_C::HideHighlightType(HIGHLIGHTTYPE type) {
+  FATALASSERT(type < NUM_HIGHLIGHTTYPES);
+
+  m_highlightTypes &= ~(1 << type);
+  if (!m_highlightTypes) {
+    ModelSetEmissiveColor(m_model, NTempest::CImVector(0), 1);
+  }
+}
+
 CGBag_C *CGObject_C::GetBag() {
   return 0;
 }
@@ -503,12 +536,11 @@ NTempest::C3Vector CGObject_C::GetGroundNormal() const {
   return NTempest::C3Vector(0.0f, 0.0f, 1.0f);
 }
 
-HMODEL__ *CGObject_C::GetCharacterModel(int *mounted) const {
-  if (mounted) {
-    *mounted = 0;
-  }
+void CGObject_C::ShowHighlightType(HIGHLIGHTTYPE type) {
+  FATALASSERT(type < NUM_HIGHLIGHTTYPES);
 
-  return static_cast<HMODEL>(HandleDuplicate(m_model));
+  m_highlightTypes |= 1 << type;
+  ModelSetEmissiveColor(m_model, DayNightGetInfo()->unitSelect, 1);
 }
 
 const char *CGObject_C::GetModelFileName() const {
@@ -531,63 +563,12 @@ int CGObject_C::UpdateTexComponentLoadStatus() {
 void CGObject_C::PreRender(int currentTime, float elapsed) {
 }
 
-void CGObject_C::PreAnimate(CGWorldFrame *worldFrame) {
-  const unsigned __int64 lockedGUID = CGGameUI::GetLockedTarget();
-  if (GetGUID() == lockedGUID && GetGUID() != ClntObjMgrGetActivePlayer() && s_objectSelectionCircle->GetInt()) {
-    RenderTargetSelection();
-  }
-
-  if (s_debugTargetPath->GetInt()) {
-    const unsigned __int64 guid = GetGUID();
-    const unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
-
-    if (guid == lockedGUID) {
-      static_cast<CGUnit_C *>(this)->RenderDebugPathing();
-    } else if (guid == activePlayer) {
-      CGUnit_C          *unit = static_cast<CGUnit_C *>(this);
-      const CGUnitData  *unitData = unit->GetUnitData();
-      const unsigned int unitFlags = unitData->flags;
-
-      if (!(unitFlags & 0x01000000) &&
-          (!(GetType() & TYPE_PLAYER) || unitData->charm || (!(unitFlags & 2) && (unitFlags & 0x00C00004)) || (unitFlags & 1)))
-      {
-        unit->RenderDebugPathing();
-      }
-    }
-  }
-
-  unsigned char alpha;
-  if (!m_fadeStartTime) {
-    alpha = m_endAlpha;
+void CGObject_C::SetAnimated(int animated) {
+  if (animated) {
+    m_flags |= 1;
   } else {
-    int elapsed = GetTickCount() - m_fadeStartTime;
-    if (elapsed > static_cast<int>(m_fadeDuration)) {
-      m_fadeStartTime = 0;
-      alpha = m_endAlpha;
-    } else {
-      if (elapsed < 0) {
-        elapsed = 0;
-      }
-      float amount = static_cast<float>(m_startAlpha) + static_cast<float>(elapsed) / static_cast<float>(m_fadeDuration) *
-                                                            (static_cast<float>(m_endAlpha) - static_cast<float>(m_startAlpha));
-      if (amount < 0.0f) {
-        amount = 0.0f;
-      } else if (amount > 255.0f) {
-        amount = 255.0f;
-      }
-      alpha = static_cast<unsigned char>(NTempest::CMath::fuint_n(amount));
-    }
+    m_flags &= ~1U;
   }
-
-  if (alpha > m_maxAlpha) {
-    alpha = m_maxAlpha;
-  }
-  if (alpha != m_alpha) {
-    ModelSetVertexAlpha(m_model, alpha, 1);
-    m_alpha = alpha;
-  }
-
-  UpdateRenderFacing();
 }
 
 void CGObject_C::PostAnimate(CGWorldFrame *worldFrame) {
@@ -657,10 +638,6 @@ void CGObject_C::Reenable() {
   DoFade(255, ShouldFadeIn() ? 2000 : 0);
 }
 
-void CGObject_C::PostReenable() {
-  m_flags &= ~4U;
-}
-
 int CGObject_C::ShouldRender(unsigned long worldStatus) {
   if (worldStatus & 1) {
     m_flags |= 0x10;
@@ -682,30 +659,107 @@ void CGObject_C::SetObjectModel(HMODEL__ *model) {
   }
 }
 
-int CGObject_C::UpdateAttachmentLoadStatus() {
-  if ((m_flags & 0x40) || !m_model || !ModelIsLoaded(m_model, 1)) {
-    return 0;
+int CGObject_C::AddAttachment(HMODEL__ *parent, unsigned int parentIndex, HMODEL__ *child, float scale) {
+  FATALASSERT(m_model);
+
+  if (ModelAddLink(parent, parentIndex, child, scale)) {
+    m_flags &= ~0x40;
+    return 1;
   }
 
-  m_flags |= 0x40;
-  return 1;
+  return 0;
 }
 
-int CGObject_C::UpdateModelLoadStatus() {
-  int modelLoaded = m_model ? ModelIsLoaded(m_model, 0) : 0;
-  if ((m_flags & 0x20) || !m_model || !modelLoaded) {
-    return 0;
+void __fastcall CGObject_C::Initialize() {
+  s_objectSelectionCircle = CVar::Register("ObjectSelectionCircle", 0, 0, "1", 0, DEBUG, false, 0);
+  s_debugTargetPath = CVar::Register("DebugTargetPath", 0, 0, "0", 0, DEBUG, false, 0);
+
+  if (s_fadeTex) {
+    GxTexDestroy(s_fadeTex);
   }
 
-  m_flags |= 0x20;
-  UpdateObjectHeight(m_model);
-  UpdateWorldObject();
-  return 1;
+  static const unsigned int FADETEX_WIDTH = static_cast<unsigned int>(Gx_MaxTexAspect * 8.0f);
+  static const unsigned int FADETEX_HEIGHT = 8;
+  CGxTexFlags               flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
+  GxTexCreate(FADETEX_HEIGHT, FADETEX_WIDTH, GxTex_Argb8888, flags, 0, s_BlobFadeTex, s_fadeTex);
+
+  if (s_selectionTexture) {
+    HandleClose(s_selectionTexture);
+  }
+
+  CStatus status;
+  s_selectionTexture = TextureCreate("Textures\\UnitSelectTexture.blp", flags, &status, 0);
 }
 
-void CGObject_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
-  float scale = GetScale() * m_renderScale;
-  ModelGetStandingMatrix(m_model, GetPosition(), GetGroundNormal(), GetRenderFacing(), scale, worldMatrix);
+void __fastcall CGObject_C::Shutdown() {
+  if (s_fadeTex) {
+    GxTexDestroy(s_fadeTex);
+  }
+  s_fadeTex = 0;
+
+  if (s_selectionTexture) {
+    HandleClose(s_selectionTexture);
+  }
+  s_selectionTexture = 0;
+}
+
+void CGObject_C::PreAnimate(CGWorldFrame *worldFrame) {
+  const unsigned __int64 lockedGUID = CGGameUI::GetLockedTarget();
+  if (GetGUID() == lockedGUID && GetGUID() != ClntObjMgrGetActivePlayer() && s_objectSelectionCircle->GetInt()) {
+    RenderTargetSelection();
+  }
+
+  if (s_debugTargetPath->GetInt()) {
+    const unsigned __int64 guid = GetGUID();
+    const unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
+
+    if (guid == lockedGUID) {
+      static_cast<CGUnit_C *>(this)->RenderDebugPathing();
+    } else if (guid == activePlayer) {
+      CGUnit_C          *unit = static_cast<CGUnit_C *>(this);
+      const CGUnitData  *unitData = unit->GetUnitData();
+      const unsigned int unitFlags = unitData->flags;
+
+      if (!(unitFlags & 0x01000000) &&
+          (!(GetType() & TYPE_PLAYER) || unitData->charm || (!(unitFlags & 2) && (unitFlags & 0x00C00004)) || (unitFlags & 1)))
+      {
+        unit->RenderDebugPathing();
+      }
+    }
+  }
+
+  unsigned char alpha;
+  if (!m_fadeStartTime) {
+    alpha = m_endAlpha;
+  } else {
+    int elapsed = GetTickCount() - m_fadeStartTime;
+    if (elapsed > static_cast<int>(m_fadeDuration)) {
+      m_fadeStartTime = 0;
+      alpha = m_endAlpha;
+    } else {
+      if (elapsed < 0) {
+        elapsed = 0;
+      }
+      float amount = static_cast<float>(m_startAlpha) + static_cast<float>(elapsed) / static_cast<float>(m_fadeDuration) *
+                                                            (static_cast<float>(m_endAlpha) - static_cast<float>(m_startAlpha));
+      if (amount < 0.0f) {
+        amount = 0.0f;
+      } else if (amount > 255.0f) {
+        amount = 255.0f;
+      }
+      alpha = static_cast<unsigned char>(NTempest::CMath::fuint_n(amount));
+    }
+  }
+
+  if (alpha > m_maxAlpha) {
+    alpha = m_maxAlpha;
+  }
+  if (alpha != m_alpha) {
+    ModelSetVertexAlpha(m_model, alpha, 1);
+    m_alpha = alpha;
+  }
+
+  UpdateRenderFacing();
 }
 
 void CGObject_C::Animate() {
@@ -736,12 +790,38 @@ void CGObject_C::Animate(const NTempest::C34Matrix &camRelativeMatrix) {
 void CGObject_C::UpdateRenderFacing() {
 }
 
-void CGObject_C::SetAnimated(int animated) {
-  if (animated) {
-    m_flags |= 1;
-  } else {
-    m_flags &= ~1U;
+int CGObject_C::IsObjectModelLoaded() {
+  return m_flags & 0x20;
+}
+
+int CGObject_C::UpdateAttachmentLoadStatus() {
+  if ((m_flags & 0x40) || !m_model || !ModelIsLoaded(m_model, 1)) {
+    return 0;
   }
+
+  m_flags |= 0x40;
+  return 1;
+}
+
+float CGObject_C::GetRenderFacing() const {
+  return GetFacing();
+}
+
+int CGObject_C::UpdateModelLoadStatus() {
+  int modelLoaded = m_model ? ModelIsLoaded(m_model, 0) : 0;
+  if ((m_flags & 0x20) || !m_model || !modelLoaded) {
+    return 0;
+  }
+
+  m_flags |= 0x20;
+  UpdateObjectHeight(m_model);
+  UpdateWorldObject();
+  return 1;
+}
+
+void CGObject_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
+  float scale = GetScale() * m_renderScale;
+  ModelGetStandingMatrix(m_model, GetPosition(), GetGroundNormal(), GetRenderFacing(), scale, worldMatrix);
 }
 
 void CGObject_C::UpdateObjectHeight(HMODEL__ *model) {
@@ -750,33 +830,12 @@ void CGObject_C::UpdateObjectHeight(HMODEL__ *model) {
   m_objectHeight = extents.t.z - extents.b.z;
 }
 
-float CGObject_C::GetRenderFacing() const {
-  return GetFacing();
+void CGObject_C::PostReenable() {
+  m_flags &= ~4U;
 }
 
-int CGObject_C::ObjectIsRendering() {
-  return m_flags & 0x10;
-}
-
-int CGObject_C::IsDisabled() {
-  return m_flags & 2;
-}
-
-int CGObject_C::IsInReenable() {
-  return m_flags & 4;
-}
-
-int CGObject_C::IsObjectModelLoaded() {
-  return m_flags & 0x20;
-}
-
-void CGObject_C::DoFade(unsigned char alpha, unsigned int fadeTimeMs) {
-  if (alpha != m_endAlpha) {
-    m_endAlpha = alpha;
-    m_fadeStartTime = GetTickCount();
-    m_fadeDuration = fadeTimeMs;
-    m_startAlpha = m_alpha;
-  }
+int CGObject_C::IsPostInited() {
+  return m_flags & 8;
 }
 
 const char *g_animationNames[] = {
@@ -939,90 +998,40 @@ const char *g_animationNames[] = {
     "BowRelease"
 };
 
-static const char *s_boneNames[26] = {"ArmL",          "ArmR",         "ShoulderL",     "ShoulderR",    "SpineLow",    "Waist",  "Head",
-                                      "Jaw",           "IndexFingerR", "MiddleFingerR", "PinkyFingerR", "RingFingerR", "ThumbR", "IndexFingerL",
-                                      "MiddleFingerL", "PinkyFingerL", "RingFingerL",   "ThumbL",       "$BTH",        "$CSR",   "$CSL",
-                                      "_Breath",       "_Name",        "_NameMount",    "$CHD",         "$CCH"};
-
-static const char *s_cameraNames[2] = {"Portrait", "Paperdoll"};
-
-HMODEL __fastcall ObjectModelCreate(const char *filename, OBJECT_TYPE objectType, unsigned int mdlCreateFlags) {
-  FATALASSERT(filename);
-
-  CModelCreate  createData;
-  CStatus       status;
-  unsigned long processorFeatures = OsGetProcessorFeatures();
-
-  memset(&createData, 0, sizeof(createData));
-  createData.flags = mdlCreateFlags | 0x202A;
-  if (static_cast<long>(processorFeatures) < 0) {
-    unsigned int processorClass = 0;
-    while (processorFeatures >>= 1) {
-      ++processorClass;
-    }
-    createData.flags |= (processorClass << 17) | 0x10000;
-  } else if (processorFeatures & 0x800000) {
-    createData.flags |= 0x1000;
-  }
-
-  if (objectType & TYPE_GAMEOBJECT) {
-    createData.sequenceNames = &g_animationNames[FIRST_GAMEOBJECTANIMATION];
-    createData.numSequences = NUM_GAMEOBJECTANIMATIONS;
-  } else if (objectType & TYPE_DYNAMICOBJECT) {
-    createData.sequenceNames = &g_animationNames[FIRST_EFFECTANIMATION];
-    createData.numSequences = NUM_EFFECTANIMATIONS;
-  } else {
-    createData.flags |= 0x44;
-    createData.sequenceNames = g_animationNames;
-    createData.numSequences = NUM_OBJECTANIMATIONS;
-    createData.boneNames = s_boneNames;
-    createData.numBones = 26;
-    createData.cameraNames = s_cameraNames;
-    createData.numCameras = 2;
-  }
-
-  HMODEL model = ModelCreate(filename, &createData, &status);
-  FATALASSERT(model);
-  return model;
+int CGObject_C::ObjectIsRendering() {
+  return m_flags & 0x10;
 }
 
-void CGObject_C::ReportMissingAnimation(unsigned int sequence, const char *modelName) const {
-  if (!modelName) {
-    modelName = GetModelFileName();
-  }
-  if (!modelName) {
-    modelName = "<unknown model>";
-  }
-
-  SysMsgPrintf(SYSMSG_WARNING, 8, "MODELMISSINGANIM|%s|%s|%d", modelName, g_animationNames[sequence], sequence);
+int CGObject_C::IsDisabled() {
+  return m_flags & 2;
 }
 
-void CGObject_C::ReportMissingAnimObj(const char *message, unsigned int objectID, const char *modelName) const {
-  if (!modelName) {
-    modelName = GetModelFileName();
-  }
-  if (!modelName) {
-    modelName = "<unknown model>";
-  }
-
-  SysMsgPrintf(SYSMSG_WARNING, 8, "%s|%s|%s|%d", message, modelName, s_boneNames[objectID], objectID);
+int CGObject_C::IsInReenable() {
+  return m_flags & 4;
 }
 
-void CGObject_C::ReportMissingBone(unsigned int objectID, const char *modelName) const {
-  ReportMissingAnimObj("MODELMISSINGBONE", objectID, modelName);
+void CGObject_C::DoFade(unsigned char alpha, unsigned int fadeTimeMs) {
+  if (alpha != m_endAlpha) {
+    m_endAlpha = alpha;
+    m_fadeStartTime = GetTickCount();
+    m_fadeDuration = fadeTimeMs;
+    m_startAlpha = m_alpha;
+  }
 }
 
-void CGObject_C::ReportMissingAttachment(unsigned int objectID, const char *modelName) const {
-  ReportMissingAnimObj("MODELMISSINGATTACHMENT", objectID, modelName);
+HMODEL__ *CGObject_C::GetCharacterModel(int *mounted) const {
+  if (mounted) {
+    *mounted = 0;
+  }
+
+  return static_cast<HMODEL>(HandleDuplicate(m_model));
 }
 
-void CGObject_C::ReportNoAnimation(const char *modelName) {
-  if (!modelName) {
-    modelName = GetModelFileName();
-  }
-  if (!modelName) {
-    modelName = "<unknown model>";
-  }
-
-  SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTNOANIM|%s", modelName);
+unsigned int __fastcall Object_C_AnimHasHitEvent(int anim) {
+  FATALASSERT(anim < NUM_OBJECTANIMATIONS);
+  return g_seqInformation[anim].flags & 1;
+}
+static int UpdateAllWorldObjectsCallback(unsigned __int64 obj, void*) {
+    // TODO: implement
+    return 0;
 }

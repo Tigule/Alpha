@@ -97,15 +97,10 @@ static HMATERIAL __fastcall MaterialDuplicate(HMATERIAL material) {
   return static_cast<HMATERIAL>(HandleCreate(duplicate, "HMATERIAL"));
 }
 
-CModelBase::~CModelBase() {
-  if (m_anim) {
-    HandleClose(m_anim);
-  }
-  if (m_boundsModel) {
-    HandleClose(m_boundsModel);
-  }
-  if (m_collideModel) {
-    HandleClose(m_collideModel);
+void CModelSimple::CopyMaterials(const CModelSimple &source) {
+  m_materials.SetCount(source.m_materials.Count());
+  for (unsigned int i = 0; i < source.m_materials.Count(); ++i) {
+    m_materials[i] = static_cast<HMATERIAL>(HandleDuplicate(source.m_materials[i]));
   }
 }
 
@@ -137,20 +132,6 @@ CModelComplex::~CModelComplex() {
   numElements = m_lights.Count();
   for (i = 0; i < numElements; ++i) {
     GxuLightDestroy(m_lights[i]);
-  }
-}
-
-CModelSimple::~CModelSimple() {
-  unsigned int i;
-  for (i = 0; i < m_materials.Count(); ++i) {
-    HandleClose(m_materials.Ptr()[i]);
-  }
-}
-
-void CModelSimple::CopyMaterials(const CModelSimple &source) {
-  m_materials.SetCount(source.m_materials.Count());
-  for (unsigned int i = 0; i < source.m_materials.Count(); ++i) {
-    m_materials[i] = static_cast<HMATERIAL>(HandleDuplicate(source.m_materials[i]));
   }
 }
 
@@ -208,6 +189,25 @@ void __fastcall
 GxuLightSelectCallback(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
   (void)parm;
   GxuLightSelect(worldPos, cameraWorldPos, maxLightsToUse);
+}
+
+CModelBase::~CModelBase() {
+  if (m_anim) {
+    HandleClose(m_anim);
+  }
+  if (m_boundsModel) {
+    HandleClose(m_boundsModel);
+  }
+  if (m_collideModel) {
+    HandleClose(m_collideModel);
+  }
+}
+
+CModelSimple::~CModelSimple() {
+  unsigned int i;
+  for (i = 0; i < m_materials.Count(); ++i) {
+    HandleClose(m_materials.Ptr()[i]);
+  }
 }
 
 CModelBase::CModelBase(const CModelBase &source)
@@ -1933,6 +1933,18 @@ int __fastcall ModelAnimHasObjectId(HMODEL model, unsigned int objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimHasObjectId(unique->m_anim, objectId);
+}
+
+static void IModelSetMaterialDisables(HMATERIAL__** materials, unsigned int numMaterials, unsigned int setMask, unsigned int unsetMask) {
+    // TODO: implement
+}
+
+static void ComplexModelSetMaterialDisables(CModelComplex* unique, unsigned int setMask, unsigned int unsetMask, int doLinkedModels) {
+    // TODO: implement
+}
+
+void __fastcall ModelSetMaterialDisables(HMODEL__* model, unsigned int setMask, unsigned int unsetMask, int doLinkedModels) {
+    // TODO: implement
 }
 
 unsigned int __fastcall ModelGetNumTextures(HMODEL model) {

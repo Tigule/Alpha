@@ -201,8 +201,9 @@ void SWING::AddVerts(
   m_lastMatrix = matrix;
 }
 
-WTOBJECT::WTOBJECT()
-    : m_model(0), m_geosetID(-1), m_bottomCoord(0.0f), m_topCoord(0.0f), m_color(0), m_fadeOutRate(-1), m_flags(0), m_timer(0), m_currentAlpha(0) {
+static bool __fastcall ToggleCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+  s_masterEnable = SStrToInt(newValue);
+  return true;
 }
 
 WTOBJECT::~WTOBJECT() {
@@ -221,6 +222,100 @@ WTOBJECT::~WTOBJECT() {
 
   if (m_timer) {
     ClientKillTimer(m_timer, DiscontinueTimerHandler, "DiscontinueTimerHandler");
+  }
+}
+
+static void __fastcall GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis, void *param) {
+  FATALASSERT(param);
+
+  NTempest::C44Matrix renderBasis(
+      basis.a0, basis.a1, basis.a2, 0.0f, basis.b0, basis.b1, basis.b2, 0.0f, basis.c0, basis.c1, basis.c2, 0.0f, basis.d0, basis.d1, basis.d2, 1.0f
+  );
+  static_cast<WTOBJECT *>(param)->Render(renderBasis);
+}
+
+static int __fastcall DiscontinueTimerHandler(const void *data, void *userArg) {
+  WTOBJECT *trail = static_cast<WTOBJECT *>(userArg);
+  FATALASSERT(trail);
+
+  trail->m_flags |= 2;
+  trail->m_timer = 0;
+  return 1;
+}
+
+WTOBJECT::WTOBJECT()
+    : m_model(0), m_geosetID(-1), m_bottomCoord(0.0f), m_topCoord(0.0f), m_color(0), m_fadeOutRate(-1), m_flags(0), m_timer(0), m_currentAlpha(0) {
+}
+
+void WTOBJECT::RenderVerts(const NTempest::C3Vector &cameraPos) {
+  GxVertexShaderSelect(GxVS_PassThru);
+  GxRsPush();
+  GxRsSet(GxRs_Culling, 0);
+  GxRsSet(GxRs_Fog, 0);
+  GxRsSet(GxRs_Lighting, 0);
+  GxRsSet(GxRs_Blend, GxBlend_Alpha);
+  GxRsSet(GxRs_DepthWrite, 1);
+  GxRsSet(GxRs_DepthTest, 1);
+
+  NTempest::C44Matrix world;
+  world.Translate(NTempest::C3Vector(-cameraPos.x, -cameraPos.y, -cameraPos.z));
+  GxXformPush(GxXform_World, world);
+
+  for (SWING *swing = m_swings.Head(); swing; swing = m_swings.Next(swing)) {
+    swing->Render();
+  }
+
+  GxXformPop(GxXform_World);
+  GxRsPop();
+}
+
+void WTOBJECT::Render(const NTempest::C44Matrix &basis) {
+  if (!m_model) {
+    return;
+  }
+
+  SWING *swing = m_swings.Head();
+  if (m_flags & 2) {
+    if (m_currentAlpha >= ALPHAFADEOUTRATE) {
+      m_currentAlpha -= ALPHAFADEOUTRATE;
+    } else {
+      m_flags &= ~3;
+    }
+  }
+
+  NTempest::C3Vector cameraPos(0.0f);
+  CGWorldFrame::GetCameraPosition(&cameraPos);
+
+  if (s_masterEnable && swing && (m_flags & 1)) {
+    swing->AddVerts(basis, m_bottomCoord, m_topCoord, m_color, static_cast<unsigned char>(m_currentAlpha), cameraPos);
+  }
+
+  RenderVerts(cameraPos);
+  FadeVerts();
+}
+
+void WTOBJECT::FadeVerts() {
+  for (SWING *swing = m_swings.Head(); swing;) {
+    SWING *next = m_swings.Next(swing);
+    FATALASSERT(m_fadeOutRate < 0);
+
+    int visible = 0;
+    for (unsigned int i = 0; i < swing->m_trail.Count(); ++i) {
+      int alpha = swing->m_trail[i].c.a + m_fadeOutRate;
+      if (alpha >= 0) {
+        swing->m_trail[i].c.a = alpha;
+        visible = 1;
+      } else {
+        swing->m_trail[i].c.a = 0;
+      }
+    }
+
+    if (swing->m_trail.Count() && !visible) {
+      swing->Recycle();
+      swing->~SWING();
+      s_freeSwings.PutData(swing, 0, 0);
+    }
+    swing = next;
   }
 }
 
@@ -256,92 +351,6 @@ void WTOBJECT::SetFadeOutRate(int fadeOutRate) {
   m_fadeOutRate = fadeOutRate < -1 ? fadeOutRate : -1;
 }
 
-void WTOBJECT::Render(const NTempest::C44Matrix &basis) {
-  if (!m_model) {
-    return;
-  }
-
-  SWING *swing = m_swings.Head();
-  if (m_flags & 2) {
-    if (m_currentAlpha >= ALPHAFADEOUTRATE) {
-      m_currentAlpha -= ALPHAFADEOUTRATE;
-    } else {
-      m_flags &= ~3;
-    }
-  }
-
-  NTempest::C3Vector cameraPos(0.0f);
-  CGWorldFrame::GetCameraPosition(&cameraPos);
-
-  if (s_masterEnable && swing && (m_flags & 1)) {
-    swing->AddVerts(basis, m_bottomCoord, m_topCoord, m_color, static_cast<unsigned char>(m_currentAlpha), cameraPos);
-  }
-
-  RenderVerts(cameraPos);
-  FadeVerts();
-}
-
-void WTOBJECT::RenderVerts(const NTempest::C3Vector &cameraPos) {
-  GxVertexShaderSelect(GxVS_PassThru);
-  GxRsPush();
-  GxRsSet(GxRs_Culling, 0);
-  GxRsSet(GxRs_Fog, 0);
-  GxRsSet(GxRs_Lighting, 0);
-  GxRsSet(GxRs_Blend, GxBlend_Alpha);
-  GxRsSet(GxRs_DepthWrite, 1);
-  GxRsSet(GxRs_DepthTest, 1);
-
-  NTempest::C44Matrix world;
-  world.Translate(NTempest::C3Vector(-cameraPos.x, -cameraPos.y, -cameraPos.z));
-  GxXformPush(GxXform_World, world);
-
-  for (SWING *swing = m_swings.Head(); swing; swing = m_swings.Next(swing)) {
-    swing->Render();
-  }
-
-  GxXformPop(GxXform_World);
-  GxRsPop();
-}
-
-void WTOBJECT::FadeVerts() {
-  for (SWING *swing = m_swings.Head(); swing;) {
-    SWING *next = m_swings.Next(swing);
-    FATALASSERT(m_fadeOutRate < 0);
-
-    int visible = 0;
-    for (unsigned int i = 0; i < swing->m_trail.Count(); ++i) {
-      int alpha = swing->m_trail[i].c.a + m_fadeOutRate;
-      if (alpha >= 0) {
-        swing->m_trail[i].c.a = alpha;
-        visible = 1;
-      } else {
-        swing->m_trail[i].c.a = 0;
-      }
-    }
-
-    if (swing->m_trail.Count() && !visible) {
-      swing->Recycle();
-      swing->~SWING();
-      s_freeSwings.PutData(swing, 0, 0);
-    }
-    swing = next;
-  }
-}
-
-static int __fastcall DiscontinueTimerHandler(const void *data, void *userArg) {
-  WTOBJECT *trail = static_cast<WTOBJECT *>(userArg);
-  FATALASSERT(trail);
-
-  trail->m_flags |= 2;
-  trail->m_timer = 0;
-  return 1;
-}
-
-static bool __fastcall ToggleCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
-  s_masterEnable = SStrToInt(newValue);
-  return true;
-}
-
 void __fastcall WeaponTrailsInitialize() {
   s_consoleVarHandle = CVar::Register("weapontrails", "Toggles weapon trails on or off", 0, "1", ToggleCallback, DEFAULT, false, 0);
 }
@@ -349,15 +358,6 @@ void __fastcall WeaponTrailsInitialize() {
 void __fastcall WeaponTrailsShutdown() {
   s_vertexBuffer.Clear();
   s_freeVertexIndices.Clear();
-}
-
-static void __fastcall GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis, void *param) {
-  FATALASSERT(param);
-
-  NTempest::C44Matrix renderBasis(
-      basis.a0, basis.a1, basis.a2, 0.0f, basis.b0, basis.b1, basis.b2, 0.0f, basis.c0, basis.c1, basis.c2, 0.0f, basis.d0, basis.d1, basis.d2, 1.0f
-  );
-  static_cast<WTOBJECT *>(param)->Render(renderBasis);
 }
 
 int __fastcall WeaponTrailCreate(HMODEL model) {

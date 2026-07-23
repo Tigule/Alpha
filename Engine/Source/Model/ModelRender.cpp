@@ -220,14 +220,6 @@ int __fastcall CTexLayer::Compare(const CModelTexture *aTextures, const CModelTe
   return 0;
 }
 
-bool __fastcall CTransparentObject::HasHigherPriority(CTransparentObject *a, CTransparentObject *b) {
-  if (a->priorityPlane == b->priorityPlane) {
-    return a->sqDistFromCamera >= b->sqDistFromCamera;
-  }
-
-  return a->priorityPlane <= b->priorityPlane;
-}
-
 static void __fastcall SaveFog() {
   GxRsGet(GxRs_FogColor, s_fogColor);
   GxRsGet(GxRs_FogStart, s_fogStart);
@@ -271,6 +263,14 @@ static int __fastcall CompareTexLayers(COpaqueLayer *a, COpaqueLayer *b) {
   }
 
   return (a->flags & 0xF) <= (b->flags & 0xF);
+}
+
+bool __fastcall CTransparentObject::HasHigherPriority(CTransparentObject *a, CTransparentObject *b) {
+  if (a->priorityPlane == b->priorityPlane) {
+    return a->sqDistFromCamera >= b->sqDistFromCamera;
+  }
+
+  return a->priorityPlane <= b->priorityPlane;
 }
 
 bool __fastcall COpaqueLayer::HasHigherPriority(COpaqueLayer *a, COpaqueLayer *b) {
@@ -972,6 +972,14 @@ static void __fastcall RenderGeosetLayers(CModelRenderData *modelptr, CGeosetSha
   }
 }
 
+static void TransformBounds(const NTempest::C3Vector& position, float rotationAngle, const NTempest::C3Vector& rotationAxis, float scale, NTempest::CAaSphere* bounds) {
+    // TODO: implement
+}
+
+static void TransformBounds(const NTempest::C34Matrix& modelToWorld, float scale, NTempest::CAaSphere* bounds) {
+    // TODO: implement
+}
+
 static void __fastcall RenderGeosetPrep(CModelBase *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared) {
   ASSERT(modelptr);
   ASSERT(geoUnique);
@@ -1211,6 +1219,26 @@ static int __fastcall IModelGetExtents(CModelBase *modelptr, CModelShared *share
   }
 
   return 1;
+}
+
+static int GeosetTestRay(CGeoset* geoUnique, CGeosetShared* geoShared, CGeosetColor* geosetColor, const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, float* distance) {
+    // TODO: implement
+    return 0;
+}
+
+static int IModelTestRay(CModelSimple* modelptr, CModelShared* shared, const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayEnd, float* distance) {
+    // TODO: implement
+    return 0;
+}
+
+static int IModelTestRay(CModelComplex* modelptr, CModelShared* shared, const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayEnd, float* distance, int testLinkedModels) {
+    // TODO: implement
+    return 0;
+}
+
+static int IModelTestRay(CModelBase* modelptr, CModelShared* shared, const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayEnd, float* distance, int testLinkedModels) {
+    // TODO: implement
+    return 0;
 }
 
 static void __fastcall CreateBoxGeometry(
@@ -2009,6 +2037,47 @@ int __fastcall ModelTestSphere(HMODEL model, NTempest::C34Matrix &orientation, f
   return 0;
 }
 
+void __fastcall ModelSceneGetFrustumPlanes(NTempest::C4Vector *const fp) {
+  for (unsigned int i = 0; i < 6; ++i) {
+    fp[i] = s_frustumPlanes[i];
+  }
+}
+
+void __fastcall ModelSceneSetFrustumPlanes(NTempest::C4Vector *const fp) {
+  for (unsigned int i = 0; i < 6; ++i) {
+    s_frustumPlanes[i] = fp[i];
+  }
+}
+
+int __fastcall ModelIntersectLineSegment(HMODEL__* model, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float radius, float* linePos, int testLinkedModels) {
+    // TODO: implement
+    return 0;
+}
+
+static int LineSegmentIntersectBox(const NTempest::C34Matrix& boxToWorld, float boxScale, const NTempest::C3Vector& boxMin, const NTempest::C3Vector& boxMax, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float* linePos) {
+    // TODO: implement
+    return 0;
+}
+
+static int LineSegmentIntersectCylinder(const NTempest::C34Matrix& cylToWorld, float cylScale, const NTempest::C3Vector& cylBottom, float cylHeight, float cylRadius, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float* linePos) {
+    // TODO: implement
+    return 0;
+}
+
+static int LineSegmentIntersectSphere(const NTempest::C34Matrix& sphToWorld, float sphScale, const NTempest::C3Vector& sphCenter, float sphRadius, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float* linePos) {
+    // TODO: implement
+    return 0;
+}
+
+static int IModelTestCollisionVolumes(CModelComplex* modelptr, CModelShared* shared, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float* linePos) {
+    // TODO: implement
+    return 0;
+}
+
+static void AddHitTestGeometryGeoset(HMODEL__* modelHandle, HTEXTURE__* tex) {
+    // TODO: implement
+}
+
 int __fastcall ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
@@ -2168,16 +2237,9 @@ int __fastcall ModelHitTestGeometry(HMODEL model, float scale, NTempest::C3Vecto
   return 0;
 }
 
-void __fastcall ModelSceneGetFrustumPlanes(NTempest::C4Vector *const fp) {
-  for (unsigned int i = 0; i < 6; ++i) {
-    fp[i] = s_frustumPlanes[i];
-  }
-}
-
-void __fastcall ModelSceneSetFrustumPlanes(NTempest::C4Vector *const fp) {
-  for (unsigned int i = 0; i < 6; ++i) {
-    s_frustumPlanes[i] = fp[i];
-  }
+ModelIntersectResult __fastcall ModelIntersectLineSegmentEx(HMODEL__* model, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, unsigned int hitTestFlags, float* linePos, float* centerDistSq, int testLinkedModels) {
+    // TODO: implement
+    return ModelIntersectResult();
 }
 
 void __fastcall ModelShowBoundingSphere(HMODEL model) {
@@ -2229,6 +2291,14 @@ void __fastcall ModelHideBounds(HMODEL model) {
     HandleClose(unique->m_boundsModel);
     unique->m_boundsModel = 0;
   }
+}
+
+void __fastcall ModelShowHitTestGeometry(HMODEL__* model) {
+    // TODO: implement
+}
+
+void __fastcall ModelHideHitTestGeometry(HMODEL__* model) {
+    // TODO: implement
 }
 
 int __fastcall ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {

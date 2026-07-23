@@ -53,38 +53,6 @@ static void __fastcall TradeSkillItemCallback(int id, const unsigned __int64 &gu
   }
 }
 
-int __fastcall GetSkillLineFromService(int serviceSpell) {
-  SpellRec *spell = g_spellDB.GetRecord(serviceSpell);
-  if (!spell) {
-    return 0;
-  }
-
-  int effectIndex = -1;
-  int petSpell = 0;
-  for (int index = 0; index < 3; ++index) {
-    if (spell->m_effect[index] == 36 || spell->m_effect[index] == 57) {
-      effectIndex = index;
-      petSpell = spell->m_effect[index] == 57;
-      break;
-    }
-  }
-
-  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!unit) {
-    return 0;
-  }
-  if (petSpell) {
-    const CGUnitData *unitData = unit->GetUnitData();
-    unsigned __int64  pet = unitData->charm ? unitData->charm : unitData->summon;
-    unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(pet, __FILE__, __LINE__));
-  }
-  if (!unit) {
-    return 0;
-  }
-
-  return unit->GetSpellSkillLine(effectIndex < 0 ? spell->m_ID : spell->m_effectTriggerSpell[effectIndex]);
-}
-
 void __fastcall CGClassTrainer::InitializeGame() {
 }
 
@@ -259,6 +227,38 @@ int __cdecl QSortServices_Talent(const void *a, const void *b) {
   SpellRec *spell1 = g_spellDB.GetRecord(info1->spellID);
   SpellRec *spell2 = g_spellDB.GetRecord(info2->spellID);
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
+}
+
+int __fastcall GetSkillLineFromService(int serviceSpell) {
+  SpellRec *spell = g_spellDB.GetRecord(serviceSpell);
+  if (!spell) {
+    return 0;
+  }
+
+  int effectIndex = -1;
+  int petSpell = 0;
+  for (int index = 0; index < 3; ++index) {
+    if (spell->m_effect[index] == 36 || spell->m_effect[index] == 57) {
+      effectIndex = index;
+      petSpell = spell->m_effect[index] == 57;
+      break;
+    }
+  }
+
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!unit) {
+    return 0;
+  }
+  if (petSpell) {
+    const CGUnitData *unitData = unit->GetUnitData();
+    unsigned __int64  pet = unitData->charm ? unitData->charm : unitData->summon;
+    unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(pet, __FILE__, __LINE__));
+  }
+  if (!unit) {
+    return 0;
+  }
+
+  return unit->GetSpellSkillLine(effectIndex < 0 ? spell->m_ID : spell->m_effectTriggerSpell[effectIndex]);
 }
 
 void __fastcall CGClassTrainer::AddServices(

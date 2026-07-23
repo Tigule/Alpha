@@ -51,13 +51,6 @@ void __fastcall CMapObj::ClearCache(int force) {
   }
 }
 
-void __fastcall CMapObj::Delete(CMapObj *mapObj) {
-  --mapObj->refCount;
-  if (mapObj->refCount <= 0) {
-    mapObj->flushTime = 30.0f;
-  }
-}
-
 CMapObj *__fastcall CMapObj::Create(const char *fileName) {
   unsigned int hashval = SStrHashHT(fileName);
   CMapObj     *mapObj = mapObjHash.Ptr(hashval, nullHashKey);
@@ -75,6 +68,13 @@ CMapObj *__fastcall CMapObj::Create(const char *fileName) {
   mapObjHash.Insert(mapObj, hashval, nullHashKey);
   mapObj->refCount = 1;
   return mapObj;
+}
+
+void __fastcall CMapObj::Delete(CMapObj *mapObj) {
+  --mapObj->refCount;
+  if (mapObj->refCount <= 0) {
+    mapObj->flushTime = 30.0f;
+  }
 }
 
 CMapObj::CMapObj() {

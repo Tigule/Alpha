@@ -127,27 +127,6 @@ void __fastcall CGPartyInfo::AddMember(unsigned __int64 guid, int connected) {
   }
 }
 
-void __fastcall CGPartyInfo::RemoveActivePlayer(unsigned __int64 guid) {
-  for (unsigned int i = 0; i < 4; ++i) {
-    if (m_members[i] == guid) {
-      memmove(&m_members[i], &m_members[i + 1], (3 - i) * sizeof(m_members[0]));
-      memmove(&m_remoteStats[i], &m_remoteStats[i + 1], (3 - i) * sizeof(m_remoteStats[0]));
-      m_members[3] = 0;
-      memset(&m_remoteStats[3], 0, sizeof(m_remoteStats[3]));
-      FrameScript_SignalEvent(209);
-      return;
-    }
-  }
-}
-
-void __fastcall CGPartyInfo::EnableMember(unsigned __int64 guid, int enable) {
-  RemoteStats *stats = GetRemoteStats(guid);
-  if (stats && stats->connected != enable) {
-    stats->connected = enable;
-    FrameScript_SignalEvent(209);
-  }
-}
-
 void __fastcall CGPartyInfo::RemoveAll() {
   unsigned int index;
   for (index = 0; index < 4; ++index) {
@@ -169,6 +148,35 @@ void __fastcall CGPartyInfo::RemoveAll() {
   m_leader = 0;
   m_leaderIndex = 0;
   FrameScript_SignalEvent(209);
+}
+
+void __fastcall CGPartyInfo::RemoveActivePlayer(unsigned __int64 guid) {
+  for (unsigned int i = 0; i < 4; ++i) {
+    if (m_members[i] == guid) {
+      memmove(&m_members[i], &m_members[i + 1], (3 - i) * sizeof(m_members[0]));
+      memmove(&m_remoteStats[i], &m_remoteStats[i + 1], (3 - i) * sizeof(m_remoteStats[0]));
+      m_members[3] = 0;
+      memset(&m_remoteStats[3], 0, sizeof(m_remoteStats[3]));
+      FrameScript_SignalEvent(209);
+      return;
+    }
+  }
+}
+
+void __fastcall CGPartyInfo::EnableMember(unsigned __int64 guid, int enable) {
+  RemoteStats *stats = GetRemoteStats(guid);
+  if (stats && stats->connected != enable) {
+    stats->connected = enable;
+    FrameScript_SignalEvent(209);
+  }
+}
+
+unsigned int __fastcall CGPartyInfo::NumMembers() {
+  unsigned int count = 0;
+  while (count < 4 && m_members[count]) {
+    ++count;
+  }
+  return count;
 }
 
 void __fastcall CGPartyInfo::SetLootMethod(LOOT_METHOD method, unsigned __int64 master) {
@@ -197,14 +205,6 @@ void __fastcall CGPartyInfo::SetLootMethod(LOOT_METHOD method, unsigned __int64 
     m_lootMaster = master;
   }
   FrameScript_SignalEvent(213);
-}
-
-unsigned int __fastcall CGPartyInfo::NumMembers() {
-  unsigned int count = 0;
-  while (count < 4 && m_members[count]) {
-    ++count;
-  }
-  return count;
 }
 
 CGPartyInfo::RemoteStats *__fastcall CGPartyInfo::GetRemoteStats(unsigned __int64 guid) {

@@ -153,6 +153,10 @@ void __fastcall OsSetBackgroundSleepMs(DWORD sleepMs) {
   s_backgroundSleepMs = sleepMs;
 }
 
+void __fastcall OsPause() {
+    // TODO: implement
+}
+
 OsType __fastcall OsGetVersion() {
   OSVERSIONINFOEX osvi;
   OsType          retVal = OsType_Unknown;
@@ -310,4 +314,17 @@ int __fastcall OsLaunchURL(const char *url) {
 
   DeleteFileA("8BLZ2112.HTM");
   return reinterpret_cast<unsigned long>(launchResult) > 32;
+}
+
+void __fastcall OsClearFP(int errCheck) {
+    // TODO: implement
+}
+
+int __fastcall OsGetCurrentThreadPriority() {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall OsSetCurrentThreadPriority(int priority) {
+    // TODO: implement
 }

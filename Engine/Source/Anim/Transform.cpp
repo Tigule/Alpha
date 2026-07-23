@@ -484,6 +484,18 @@ static int __fastcall AdvanceTime(CAnim *unique, CAnimData *shared) {
   return 1;
 }
 
+static void SetGeosetColor(const InterpInfo& animInfo, CAnimGeoset* currgeoset, CAnimGeosetObjStatus* geoStatus, NTempest::CImVector* currentColor) {
+    // TODO: implement
+}
+
+static void SetGeosetAlpha(const InterpInfo& animInfo, CAnimGeoset* currgeoset, CAnimGeosetObjStatus* geoStatus, CGeosetColor* color) {
+    // TODO: implement
+}
+
+void __fastcall CalcGeosetColor(const InterpInfo& animInfo, CAnimGeoset* geoset, CAnimGeosetObjStatus* geoStatus, CGeosetColor* color) {
+    // TODO: implement
+}
+
 static int __fastcall PickRandomSequence(const CVariations &selection, const CArray<CAnimSequence> &seqs) {
   if (!selection.variation.Count()) {
     return selection.primary;
@@ -623,6 +635,15 @@ float __fastcall AnimGetObjectTimeScale(HANIM anim, unsigned int objectId) {
   CAnimObj    *object = shared->obj[sharedObjectId];
   unsigned int sequence = unique->status[object->animObjId]->base.currSeq;
   return unique->seq[sequence].seqTimeScale;
+}
+
+void __fastcall AnimSetGlobalTimeScale(float timeScale) {
+    // TODO: implement
+}
+
+float __fastcall AnimGetGlobalTimeScale() {
+    // TODO: implement
+    return 0;
 }
 
 int __fastcall AnimForceCurrentSequenceTime(HANIM anim, int time) {
@@ -823,21 +844,6 @@ int __fastcall AnimMatchSequence(HANIM anim, unsigned int objectId, unsigned int
   return 1;
 }
 
-int __fastcall AnimGetSequenceTime(HANIM anim, unsigned int seqIndex) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  FATALASSERT(unique);
-
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  FATALASSERT(shared);
-
-  CVariations &selection = shared->seqOrder[unique->seqMapIndex].order[seqIndex];
-  if (selection.primary == 0xFF) {
-    return 0;
-  }
-
-  return unique->seq[selection.primary].elapsed - shared->seq[selection.primary].time.l;
-}
-
 void __fastcall AnimResetGlobalSequenceTimes(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
@@ -888,4 +894,23 @@ void __fastcall AnimPauseTime(HANIM anim, int pause) {
   } else {
     unique->flags &= ~8;
   }
+}
+
+void __fastcall AnimPauseGlobalTime(int pause) {
+    // TODO: implement
+}
+
+int __fastcall AnimGetSequenceTime(HANIM anim, unsigned int seqIndex) {
+  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  FATALASSERT(unique);
+
+  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  FATALASSERT(shared);
+
+  CVariations &selection = shared->seqOrder[unique->seqMapIndex].order[seqIndex];
+  if (selection.primary == 0xFF) {
+    return 0;
+  }
+
+  return unique->seq[selection.primary].elapsed - shared->seq[selection.primary].time.l;
 }

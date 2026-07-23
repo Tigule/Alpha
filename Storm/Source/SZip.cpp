@@ -381,16 +381,6 @@ ZipFileArchive::~ZipFileArchive() {
   }
 }
 
-int ZipFileArchive::Open(const char *archivename) {
-  FATALASSERT(archivename);
-  file = fopen(archivename, "rb");
-  if (!file) {
-    return 0;
-  }
-  SStrCopy(filename, archivename, sizeof(filename));
-  return 1;
-}
-
 int ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader) {
   if (fseek(file, 0, SEEK_END)) {
     return 0;
@@ -438,6 +428,7 @@ int ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader
   cdirHeader.EndianCorrect();
   return cdirHeader.thisDiskNumber == cdirHeader.directoryStartDiskNumber && cdirHeader.directoryEntriesThisDisk == cdirHeader.directoryEntriesTotal;
 }
+
 int ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader) {
   DWORD i;
 
@@ -452,7 +443,6 @@ int ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader) 
   }
   return 1;
 }
-
 static void __fastcall ConvertFromZip(char *str) {
   while (*str) {
     if (*str == '/') {
@@ -547,9 +537,6 @@ ZipFileDirEntry::ZipFileDirEntry() {
   startOffset = 0;
 }
 
-ZipFileDirEntry::~ZipFileDirEntry() {
-}
-
 static int __fastcall GetDirEntry(const char *filename, ZipFileDirEntry **dirEntry) {
   ZipFileDirEntry *found = s_directory.Ptr(filename);
 
@@ -560,6 +547,9 @@ static int __fastcall GetDirEntry(const char *filename, ZipFileDirEntry **dirEnt
     *dirEntry = found;
   }
   return 1;
+}
+
+ZipFileDirEntry::~ZipFileDirEntry() {
 }
 
 static void *__fastcall zalloc(void *opaque, unsigned int count, unsigned int size) {
@@ -895,6 +885,16 @@ TestFile::TestFile(WowFileSystemProvider *provider, FILE *f) : WowFile(provider)
 }
 
 TestFileSystemProvider::TestFileSystemProvider() {
+}
+
+int ZipFileArchive::Open(const char *archivename) {
+  FATALASSERT(archivename);
+  file = fopen(archivename, "rb");
+  if (!file) {
+    return 0;
+  }
+  SStrCopy(filename, archivename, sizeof(filename));
+  return 1;
 }
 
 TestFileSystemProvider::~TestFileSystemProvider() {

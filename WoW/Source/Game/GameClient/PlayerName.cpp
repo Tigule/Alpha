@@ -9,6 +9,7 @@
 #include <storm.h>
 
 class CGUnit_C;
+struct HMODEL__;
 struct HWORLDTEXT__;
 
 enum UNITNAME_SHOWTYPE_GROUPS {
@@ -62,8 +63,8 @@ static CVar                             *s_showTypeCVars[8];
 static unsigned int                      s_showTypeFlags[2] = {-1, -1};
 static unsigned int                      s_lastRenderFrame;
 
-void __fastcall PlayerNameShow(int show) {
-  s_showNames = show;
+static void PlayerNameRenderCallback(HMODEL__* model, const NTempest::C34Matrix& basis, void* param) {
+    // TODO: implement
 }
 
 static const CVARINFO s_cvarInfo[8] = {
@@ -92,6 +93,10 @@ static bool __fastcall   UnitNameShowTypeCallback(CVar *h, const char *oldValue,
 static void __fastcall   TriggerNameRegenerate();
 void __fastcall          PlayerNameShutdown();
 HWORLDTEXT__ *__fastcall WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride);
+
+static void CalculateBillboardRotation(const NTempest::C3Vector& direction, NTempest::C44Matrix& matrix) {
+    // TODO: implement
+}
 
 void PLAYERNAMEDESC::RenderWorldText() {
   for (unsigned int i = 0; i < 4; ++i) {
@@ -185,10 +190,13 @@ void __fastcall PlayerNameShutdown() {
   ConsoleCommandUnregister("PlayerNames");
 }
 
-void __fastcall PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name) {
-  if (name) {
-    reinterpret_cast<PLAYERNAMEDESC *>(name)->m_flags |= 1;
-  }
+void __fastcall PlayerNameShow(int show) {
+  s_showNames = show;
+}
+
+HPLAYERNAME__* __fastcall PlayerNameCreate(CGUnit_C* unitPtr) {
+    // TODO: implement
+    return 0;
 }
 
 void __fastcall PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name) {
@@ -208,6 +216,10 @@ void __fastcall PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, co
   }
 }
 
+void __fastcall PlayerNameUpdateWorldText(HPLAYERNAME__* name) {
+    // TODO: implement
+}
+
 void __fastcall PlayerNameUpdateEarly() {
   ++s_lastRenderFrame;
 }
@@ -218,6 +230,16 @@ void __fastcall PlayerNameUpdateLate() {
       desc->ShowWorldText(0);
     }
   }
+}
+
+void __fastcall PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name) {
+  if (name) {
+    reinterpret_cast<PLAYERNAMEDESC *>(name)->m_flags |= 1;
+  }
+}
+
+void __fastcall PlayerNameChangeLocation(HPLAYERNAME__* name, const NTempest::C3Vector& namePosition) {
+    // TODO: implement
 }
 
 unsigned int __fastcall PlayerNameGetUnitNameMode() {

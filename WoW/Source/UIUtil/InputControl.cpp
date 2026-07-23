@@ -541,48 +541,6 @@ int CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
   return 1;
 }
 
-int CGInputControl::CameraCanTurnPlayer() const {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return 0;
-  }
-
-  const CGUnitData *unit = player->GetUnitData();
-  bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charm &&
-                                                                     ((unit->flags & 2) || !(unit->flags & 0xC00004)) && !(unit->flags & 1));
-  if (unit->health <= 0 || !canIssueMovement || (unit->flags & 0x40000) || player->IsInStandSitTransition() || unit->standState) {
-    return 0;
-  }
-
-  CGCamera *camera = Camera();
-  if (camera->m_target != player->GetGUID() || !(camera->m_flags & 8)) {
-    return 0;
-  }
-  return (m_controlFlags & INPUT_TURN_PLAYER) != 0;
-}
-
-void CGInputControl::CameraTurnPlayer(unsigned long timestamp, float yaw, float pitch, unsigned int setSmoothFacing) {
-  if (!CameraCanTurnPlayer()) {
-    return;
-  }
-
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return;
-  }
-
-  if (setSmoothFacing) {
-    player->SetSmoothFacing(yaw);
-    return;
-  }
-
-  player->OnSetFacingLocal(timestamp, yaw);
-  if (player->m_flags & 0x2000000) {
-    player->OnSetPitchLocal(timestamp, 6.2831855f - pitch);
-  }
-  m_controlFlags &= 0xFFFF3FFF;
-}
-
 void CGInputControl::MovePlayer(unsigned long now, CGUnit_C *player) {
   int direction = (m_controlFlags & INPUT_MOVE_PLAYER_AUTORUN) != 0;
   if (m_controlFlags & INPUT_MOVE_PLAYER_FORWARD_KEY) {
@@ -669,4 +627,46 @@ void CGInputControl::PitchPlayer(unsigned long now, CGUnit_C *player) {
       m_controlFlags &= ~INPUT_PITCH_PLAYER_SENT;
     }
   }
+}
+
+int CGInputControl::CameraCanTurnPlayer() const {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
+    return 0;
+  }
+
+  const CGUnitData *unit = player->GetUnitData();
+  bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charm &&
+                                                                     ((unit->flags & 2) || !(unit->flags & 0xC00004)) && !(unit->flags & 1));
+  if (unit->health <= 0 || !canIssueMovement || (unit->flags & 0x40000) || player->IsInStandSitTransition() || unit->standState) {
+    return 0;
+  }
+
+  CGCamera *camera = Camera();
+  if (camera->m_target != player->GetGUID() || !(camera->m_flags & 8)) {
+    return 0;
+  }
+  return (m_controlFlags & INPUT_TURN_PLAYER) != 0;
+}
+
+void CGInputControl::CameraTurnPlayer(unsigned long timestamp, float yaw, float pitch, unsigned int setSmoothFacing) {
+  if (!CameraCanTurnPlayer()) {
+    return;
+  }
+
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
+    return;
+  }
+
+  if (setSmoothFacing) {
+    player->SetSmoothFacing(yaw);
+    return;
+  }
+
+  player->OnSetFacingLocal(timestamp, yaw);
+  if (player->m_flags & 0x2000000) {
+    player->OnSetPitchLocal(timestamp, 6.2831855f - pitch);
+  }
+  m_controlFlags &= 0xFFFF3FFF;
 }

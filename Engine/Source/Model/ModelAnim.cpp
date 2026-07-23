@@ -114,53 +114,6 @@ static void __fastcall IGetLayerIDs(unsigned int *array, unsigned int numLayers)
   }
 }
 
-static void __fastcall IModelGetStandingBasis(
-    GROUND_TRACK              trackType,
-    const NTempest::C3Vector &groundNormal,
-    float                     facing,
-    NTempest::C3Vector       *xprime,
-    NTempest::C3Vector       *yprime,
-    NTempest::C3Vector       *zprime
-) {
-  float sinFacing;
-  float cosFacing;
-  NTempest::CMath::sincos_(facing, sinFacing, cosFacing);
-
-  if (trackType == TRACK_PITCH_YAW) {
-    yprime->Set(-sinFacing, cosFacing, 0.0f);
-    *xprime = NTempest::C3Vector::Cross(*yprime, groundNormal);
-    xprime->Normalize();
-    *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
-  } else if (trackType == TRACK_PITCH_YAW_ROLL) {
-    *zprime = groundNormal;
-    yprime->Set(-sinFacing * zprime->z, cosFacing * zprime->z, sinFacing * zprime->x - cosFacing * zprime->y);
-    yprime->Normalize();
-    *xprime = NTempest::C3Vector::Cross(*yprime, *zprime);
-  } else {
-    xprime->Set(cosFacing, sinFacing, 0.0f);
-    yprime->Set(-sinFacing, cosFacing, 0.0f);
-    zprime->Set(0.0f, 0.0f, 1.0f);
-  }
-}
-
-static void __fastcall IModelGetStandingMatrix(
-    GROUND_TRACK              trackType,
-    const NTempest::C3Vector &position,
-    const NTempest::C3Vector &groundNormal,
-    float                     facing,
-    float                     scale,
-    NTempest::C34Matrix      *orientation
-) {
-  IModelGetStandingBasis(
-      trackType, groundNormal, facing, reinterpret_cast<NTempest::C3Vector *>(&orientation->a0),
-      reinterpret_cast<NTempest::C3Vector *>(&orientation->b0), reinterpret_cast<NTempest::C3Vector *>(&orientation->c0)
-  );
-  orientation->d0 = position.x;
-  orientation->d1 = position.y;
-  orientation->d2 = position.z;
-  orientation->Scale(scale);
-}
-
 static void __fastcall BuildPrimBone(NTempest::C34Matrix *boneMatrices, unsigned int *matrix, unsigned int mtxCount, NTempest::C34Matrix *bone) {
   unsigned int i;
 
@@ -231,6 +184,28 @@ static void __fastcall SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetC
   }
 }
 
+static void __fastcall SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared) {
+  if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].proceduralColor.a) {
+    ASSERT(geoShared->groupMatrixCounts.Count() <= 1);
+
+    geoUnique->weightedBones = MatrixAlloc(1);
+    WorldMatrixGet(MatrixDeref(geoUnique->weightedBones));
+  }
+}
+
+static void __fastcall SetCollisionMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
+  NTempest::C34Matrix *source = boneMatrices + shared->numBones - shared->hitTest.Count();
+  NTempest::C34Matrix *target = unique->m_hitTestMtx.Ptr();
+  unsigned int         count = unique->m_hitTestMtx.Count();
+
+  while (count) {
+    *target = *source;
+    ++target;
+    ++source;
+    --count;
+  }
+}
+
 static void __fastcall SetGeosetMatrices(CModelSimple *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
   ASSERT(unique);
 
@@ -254,12 +229,14 @@ static void __fastcall SetGeosetMatrices(CModelComplex *unique, CModelShared *sh
   }
 }
 
-static void __fastcall SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared) {
-  if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].proceduralColor.a) {
-    ASSERT(geoShared->groupMatrixCounts.Count() <= 1);
+static void __fastcall SetUnanimatedCollisionMatrices(CModelComplex *unique) {
+  NTempest::C34Matrix *matrix = unique->m_hitTestMtx.Ptr();
+  unsigned int         count = unique->m_hitTestMtx.Count();
 
-    geoUnique->weightedBones = MatrixAlloc(1);
-    WorldMatrixGet(MatrixDeref(geoUnique->weightedBones));
+  while (count) {
+    WorldMatrixGet(matrix);
+    ++matrix;
+    --count;
   }
 }
 
@@ -288,30 +265,6 @@ static void __fastcall SetUnanimatedGeosetMatrices(CModelComplex *unique, CModel
   }
 }
 
-static void __fastcall SetCollisionMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
-  NTempest::C34Matrix *source = boneMatrices + shared->numBones - shared->hitTest.Count();
-  NTempest::C34Matrix *target = unique->m_hitTestMtx.Ptr();
-  unsigned int         count = unique->m_hitTestMtx.Count();
-
-  while (count) {
-    *target = *source;
-    ++target;
-    ++source;
-    --count;
-  }
-}
-
-static void __fastcall SetUnanimatedCollisionMatrices(CModelComplex *unique) {
-  NTempest::C34Matrix *matrix = unique->m_hitTestMtx.Ptr();
-  unsigned int         count = unique->m_hitTestMtx.Count();
-
-  while (count) {
-    WorldMatrixGet(matrix);
-    ++matrix;
-    --count;
-  }
-}
-
 static void __fastcall GetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsigned char *layerAlpha) {
   for (unsigned int i = 0; i < numMaterials; ++i) {
     CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[i]);
@@ -333,6 +286,34 @@ static void __fastcall SetLayerAlpha(HMATERIAL *materials, unsigned int numMater
     for (unsigned int layer = 0; layer < numLayers; ++layer) {
       uniqueMtl->layers[layer].layerAlpha = *layerAlpha++;
     }
+  }
+}
+
+static void __fastcall UpdateEmitters(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos) {
+  float elapsed = AnimGetElapsedTime() * 0.001f;
+
+  unsigned int i;
+  unsigned int numEmitters = unique->m_emitters2.Count();
+  for (i = 0; i < numEmitters; ++i) {
+    NTempest::C34Matrix currentWorldMatrix = unique->m_modelToWorld;
+    currentWorldMatrix.Translate(shared->positions[shared->emitter2Order[i]]);
+    currentWorldMatrix.Rotate(PI * 0.5f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
+    unique->m_emitters2[i]->SetEnabled(1, 1);
+    unique->m_emitters2[i]->Update(elapsed, currentWorldMatrix, cameraWorldPos);
+  }
+
+  unsigned int numRibbons = unique->m_ribbons.Count();
+  for (i = 0; i < numRibbons; ++i) {
+    unique->m_ribbons[i]->SetEnabled(1);
+    unique->m_ribbons[i]->Update(elapsed, 0);
+  }
+}
+
+static void __fastcall IModelAnimateBounds(HMODEL model) {
+  CModelBase   *unique;
+  CModelShared *shared;
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+    IModelAnimate(unique, shared, NTempest::C3Vector(), NTempest::C3Vector());
   }
 }
 
@@ -398,24 +379,34 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
   SetLayerAlpha(unique->m_materials.Ptr(), numMaterials, s_layerAlpha.Ptr());
 }
 
-static void __fastcall UpdateEmitters(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos) {
-  float elapsed = AnimGetElapsedTime() * 0.001f;
-
-  unsigned int i;
-  unsigned int numEmitters = unique->m_emitters2.Count();
-  for (i = 0; i < numEmitters; ++i) {
-    NTempest::C34Matrix currentWorldMatrix = unique->m_modelToWorld;
-    currentWorldMatrix.Translate(shared->positions[shared->emitter2Order[i]]);
-    currentWorldMatrix.Rotate(PI * 0.5f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
-    unique->m_emitters2[i]->SetEnabled(1, 1);
-    unique->m_emitters2[i]->Update(elapsed, currentWorldMatrix, cameraWorldPos);
+static void __fastcall ModelAnimateAttached(
+    HMODEL                    model,
+    float                     scale,
+    unsigned int              transform,
+    int                       normalizeNorms,
+    const NTempest::C3Vector &cameraWorldPos,
+    const NTempest::C3Vector &cameraVector
+) {
+  CModelBase   *unique;
+  CModelShared *shared;
+  ASSERT(model);
+  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+    return;
   }
-
-  unsigned int numRibbons = unique->m_ribbons.Count();
-  for (i = 0; i < numRibbons; ++i) {
-    unique->m_ribbons[i]->SetEnabled(1);
-    unique->m_ribbons[i]->Update(elapsed, 0);
-  }
+  WorldMatrixPush();
+  WorldMatrixLoad(*GetTransformPtr(transform));
+  WorldMatrixScale(scale);
+  WorldMatrixGet(&unique->m_modelToWorld);
+  if (normalizeNorms)
+    unique->m_flags |= 2;
+  else
+    unique->m_flags &= ~2;
+  IModelAnimate(unique, shared, cameraWorldPos, cameraVector);
+  if (unique->m_boundsModel)
+    IModelAnimateBounds(unique->m_boundsModel);
+  if (unique->m_collideModel)
+    IModelAnimateBounds(unique->m_collideModel);
+  WorldMatrixPop();
 }
 
 static void __fastcall
@@ -518,11 +509,37 @@ IModelAnimate(CModelBase *unique, CModelShared *shared, const NTempest::C3Vector
   }
 }
 
-static void __fastcall IModelAnimateBounds(HMODEL model) {
-  CModelBase   *unique;
-  CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
-    IModelAnimate(unique, shared, NTempest::C3Vector(), NTempest::C3Vector());
+static void __fastcall IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
+  FATALASSERT(unique);
+  FATALASSERT(shared);
+
+  if (unique->m_anim) {
+    AnimProcessEvents(unique->m_anim, shared->positions);
+  }
+
+  if (!(unique->m_flags & 0x20)) {
+    return;
+  }
+
+  CModelComplex *complex = static_cast<CModelComplex *>(unique);
+  unsigned int   numAttached = complex->m_attached.Count();
+  for (unsigned int index = 0; index < numAttached; ++index) {
+    int enabled = !unique->m_anim || AnimIsAttachmentEnabled(unique->m_anim, index);
+    if (!enabled) {
+      continue;
+    }
+
+    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &attached = complex->m_attached[index];
+    for (LINKUNIQUE *link = attached.Head(); link; link = attached.Next(link)) {
+      CModelBase   *childModel;
+      CModelShared *childShared;
+      if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childModel, &childShared)) {
+        WorldMatrixPush();
+        WorldMatrixLoad(childModel->m_modelToWorld);
+        IModelProcessEvents(childModel, childShared);
+        WorldMatrixPop();
+      }
+    }
   }
 }
 
@@ -558,68 +575,51 @@ static void __fastcall ApplyWorldTransforms(
   orientation->Scale(nonUniformScale);
 }
 
-static void __fastcall ModelAnimateAttached(
-    HMODEL                    model,
-    float                     scale,
-    unsigned int              transform,
-    int                       normalizeNorms,
-    const NTempest::C3Vector &cameraWorldPos,
-    const NTempest::C3Vector &cameraVector
+static void __fastcall IModelGetStandingBasis(
+    GROUND_TRACK              trackType,
+    const NTempest::C3Vector &groundNormal,
+    float                     facing,
+    NTempest::C3Vector       *xprime,
+    NTempest::C3Vector       *yprime,
+    NTempest::C3Vector       *zprime
 ) {
-  CModelBase   *unique;
-  CModelShared *shared;
-  ASSERT(model);
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
-    return;
+  float sinFacing;
+  float cosFacing;
+  NTempest::CMath::sincos_(facing, sinFacing, cosFacing);
+
+  if (trackType == TRACK_PITCH_YAW) {
+    yprime->Set(-sinFacing, cosFacing, 0.0f);
+    *xprime = NTempest::C3Vector::Cross(*yprime, groundNormal);
+    xprime->Normalize();
+    *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
+  } else if (trackType == TRACK_PITCH_YAW_ROLL) {
+    *zprime = groundNormal;
+    yprime->Set(-sinFacing * zprime->z, cosFacing * zprime->z, sinFacing * zprime->x - cosFacing * zprime->y);
+    yprime->Normalize();
+    *xprime = NTempest::C3Vector::Cross(*yprime, *zprime);
+  } else {
+    xprime->Set(cosFacing, sinFacing, 0.0f);
+    yprime->Set(-sinFacing, cosFacing, 0.0f);
+    zprime->Set(0.0f, 0.0f, 1.0f);
   }
-  WorldMatrixPush();
-  WorldMatrixLoad(*GetTransformPtr(transform));
-  WorldMatrixScale(scale);
-  WorldMatrixGet(&unique->m_modelToWorld);
-  if (normalizeNorms)
-    unique->m_flags |= 2;
-  else
-    unique->m_flags &= ~2;
-  IModelAnimate(unique, shared, cameraWorldPos, cameraVector);
-  if (unique->m_boundsModel)
-    IModelAnimateBounds(unique->m_boundsModel);
-  if (unique->m_collideModel)
-    IModelAnimateBounds(unique->m_collideModel);
-  WorldMatrixPop();
 }
 
-static void __fastcall IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
-  FATALASSERT(unique);
-  FATALASSERT(shared);
-
-  if (unique->m_anim) {
-    AnimProcessEvents(unique->m_anim, shared->positions);
-  }
-
-  if (!(unique->m_flags & 0x20)) {
-    return;
-  }
-
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
-  unsigned int   numAttached = complex->m_attached.Count();
-  for (unsigned int index = 0; index < numAttached; ++index) {
-    int enabled = !unique->m_anim || AnimIsAttachmentEnabled(unique->m_anim, index);
-    if (!enabled) {
-      continue;
-    }
-
-    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &attached = complex->m_attached[index];
-    for (LINKUNIQUE *link = attached.Head(); link; link = attached.Next(link)) {
-      CModelBase   *childModel;
-      CModelShared *childShared;
-      if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childModel, &childShared)) {
-        WorldMatrixPush();
-        WorldMatrixLoad(childModel->m_modelToWorld);
-        IModelProcessEvents(childModel, childShared);
-        WorldMatrixPop();
-      }
-    }
-  }
+static void __fastcall IModelGetStandingMatrix(
+    GROUND_TRACK              trackType,
+    const NTempest::C3Vector &position,
+    const NTempest::C3Vector &groundNormal,
+    float                     facing,
+    float                     scale,
+    NTempest::C34Matrix      *orientation
+) {
+  IModelGetStandingBasis(
+      trackType, groundNormal, facing, reinterpret_cast<NTempest::C3Vector *>(&orientation->a0),
+      reinterpret_cast<NTempest::C3Vector *>(&orientation->b0), reinterpret_cast<NTempest::C3Vector *>(&orientation->c0)
+  );
+  orientation->d0 = position.x;
+  orientation->d1 = position.y;
+  orientation->d2 = position.z;
+  orientation->Scale(scale);
 }
 
 void __fastcall ModelAnimateInitialize() {

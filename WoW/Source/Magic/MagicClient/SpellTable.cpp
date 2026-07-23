@@ -109,3 +109,8 @@ const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceI
 
   return s_skillLineTable->Lookup(raceID, classID, spellID);
 }
+
+const SkillLineAbilityRec* __fastcall SpellTableLookupPetAbility(int skillLineID, unsigned int spellID) {
+    // TODO: implement
+    return 0;
+}

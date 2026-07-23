@@ -36,6 +36,11 @@ struct UncachableNode : public TSHashObject<UncachableNode, HASHKEY_STRI> {};
 typedef TSExplicitList<PrefetchNode, -572662307>   PrefetchList;
 typedef TSExplicitList<UncachableNode, -572662307> UncachableList;
 
+static PrefetchNode* IBaseFileStartLoad(const char* fileName) {
+    // TODO: implement
+    return 0;
+}
+
 static void __fastcall IBaseFileWaitForLoad(PrefetchNode *theFile) {
   ASSERT(theFile != 0);
 
@@ -65,6 +70,15 @@ HASHKEY_STR &HASHKEY_STR::operator=(const char *str) {
   return *this;
 }
 
+int __fastcall IBaseFileLoad(const char* fileName, const void** fileBuffer, unsigned long* fileSize) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall IBaseFileUnload(const char* fileName) {
+    // TODO: implement
+}
+
 void __fastcall BaseFileInitialize() {
 }
 
@@ -75,6 +89,25 @@ void __fastcall BaseFileDestroy() {
   s_critSect.Leave();
 }
 
+int __fastcall BaseFilePrefetch(const char* fileName) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall BaseFileIsFetched(const char* fileName) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall BaseFileLoad(const char* fileName, void** fileBuffer, unsigned long* fileSize) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall BaseFileFlush() {
+    // TODO: implement
+}
+
 void __fastcall BaseFileRegisterUncachable(const char *fileName) {
   FATALASSERT(fileName);
 
@@ -83,4 +116,12 @@ void __fastcall BaseFileRegisterUncachable(const char *fileName) {
     s_uncachableFiles.New(fileName, 0, 0);
   }
   s_critSect.Leave();
+}
+
+void __fastcall BaseFileUnregisterUncachable(const char* fileName) {
+    // TODO: implement
+}
+
+void __fastcall BaseFileDumpStats() {
+    // TODO: implement
 }

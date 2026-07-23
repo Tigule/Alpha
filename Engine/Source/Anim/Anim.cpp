@@ -1,5 +1,7 @@
 #include "Anim/AnimInternal.h"
 
+struct CameraInfo;
+
 #include "Anim/WorldMatrix.h"
 #include "Gx/CGxDevice.h"
 #include "Gxu/IGxuLight.h"
@@ -245,6 +247,98 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
         *reinterpret_cast<const CSplineKeyFrame<NTempest::C4QuaternionCompressed> *>(next), ratio, transform
     );
   }
+}
+
+static void PlaceEventObject(const AnimInfo& animInfo, CAnimEventObj* currobj) {
+    // TODO: implement
+}
+
+static void IProcessEvent(const InterpInfo& animInfo, CAnimEventObj* currEvent) {
+    // TODO: implement
+}
+
+static void PlaceModelObject(const AnimInfo& animInfo, CAnimModelObj* modelObj) {
+    // TODO: implement
+}
+
+static void SetLightColor(const AnimInfo& animInfo, CAnimLightObj* currobj, CAnimLightObjStatus* lightStatus, CGxLight* light) {
+    // TODO: implement
+}
+
+static void SetLightIntensity(const AnimInfo& animInfo, CAnimLightObj* currobj, CAnimLightObjStatus* lightStatus, CGxLight* light) {
+    // TODO: implement
+}
+
+static void SetLightDirection(CGxLight* light) {
+    // TODO: implement
+}
+
+static void SetLightValues(const AnimInfo& animInfo, CAnimLightObj* currobj, const NTempest::C3Vector& currPos) {
+    // TODO: implement
+}
+
+static void SetParticleVariation2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetParticleSpeed2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetParticleEmissionRate2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetParticleGravity2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetEmitterLatitude2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetEmitterLongitude2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetEmitterWidth2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetEmitterLength2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetEmitterZsource2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetEmitterLifeSpan2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetRibbonHeight(const AnimInfo& animInfo, CAnimRibbonObj* currobj, CAnimRibbonObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetRibbonTexSlot(const AnimInfo& animInfo, CAnimRibbonObj* currobj, CAnimRibbonObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetRibbonColor(const AnimInfo& animInfo, CAnimRibbonObj* currobj, CAnimRibbonObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetRibbonAlpha(const AnimInfo& animInfo, CAnimRibbonObj* currobj, CAnimRibbonObjStatus* status) {
+    // TODO: implement
+}
+
+static void SetEmitter2Values(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj) {
+    // TODO: implement
+}
+
+static void SetRibbonValues(const AnimInfo& animInfo, CAnimRibbonObj* currobj) {
+    // TODO: implement
 }
 
 static void __fastcall PlaceObject(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos) {
@@ -503,6 +597,97 @@ static void __fastcall AnimateTextureMap(const AnimInfo &animInfo, CAnimTransfor
   TranslateTexture(animInfo, texAnim, status, transform);
 }
 
+static void AnimateCamera(const InterpInfo& animInfo, CAnimCameraObj* object, CAnimCameraObjStatus* status, HCAMERA__* camera) {
+    // TODO: implement
+}
+
+static void AnimateAllCameras(CameraInfo* animInfo) {
+    // TODO: implement
+}
+
+static void AnimateAllTextureMaps(AnimInfo* animInfo) {
+    // TODO: implement
+}
+
+static void AnimateAllGeosets(AnimInfo* animInfo) {
+    // TODO: implement
+}
+
+static void AnimateAllMaterialLayers(AnimInfo* animInfo, unsigned int* tex) {
+    // TODO: implement
+}
+
+static void ISetEventSequenceUnchanged(CAnim* container) {
+    // TODO: implement
+}
+
+static void ISetSequenceUnchanged(CAnim* container, CAnimData* animptr) {
+    // TODO: implement
+}
+
+void __fastcall AnimProcessEvents(HANIM anim, const TSFixedArray<NTempest::C3Vector> &positions) {
+  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  ASSERT(unique);
+
+  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  ASSERT(shared);
+  ASSERT(shared->flags & 1);
+  ASSERT(!(shared->flags & 4));
+
+  InterpInfo interpInfo(unique, shared, positions);
+  for (unsigned int i = 0; i < shared->eventObjs.Count(); ++i) {
+    CAnimEventObj       &eventObject = shared->eventObjs[i];
+    CAnimEventObjStatus &status = unique->eventStatus[i];
+    if (!unique->appEvent.callback || (unique->flags & 8) || !eventObject.events.TotalKeys()) {
+      continue;
+    }
+
+    if (eventObject.animObjId < positions.Count()) {
+      status.position = positions[eventObject.animObjId];
+    }
+    if (eventObject.events.SetAnimTime(status.base, &status.event, interpInfo)) {
+      unique->appEvent.callback(eventObject.name, status.position, unique->appEvent.param);
+    }
+  }
+
+  if (!(unique->flags & 4)) {
+    for (unsigned int i = 0; i < unique->eventStatus.Count(); ++i) {
+      unique->eventStatus[i].base.flags &= ~0x10;
+    }
+    unique->flags |= 4;
+  }
+}
+
+void __fastcall AnimAnimateCameras(HANIM anim, const TSFixedArray<HCAMERA> &cameras) {
+  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  ASSERT(unique);
+
+  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  ASSERT(shared);
+  ASSERT(shared->flags & 1);
+  ASSERT(!(shared->flags & 4));
+
+  TSFixedArray<NTempest::C3Vector> positions;
+  InterpInfo                       interpInfo(unique, shared, positions);
+  unsigned int                     count = min(cameras.Count(), shared->cameraObjs.Count());
+  for (unsigned int i = 0; i < count; ++i) {
+    CAnimCameraObj       &cameraObject = shared->cameraObjs[i];
+    CAnimCameraObjStatus &status = unique->cameraStatus[i];
+    status.visible = AnimFloat(cameraObject.visibility, status.base, status.visibility, interpInfo, 1.0f);
+
+    NTempest::C3Vector position = AnimVector(cameraObject.translation, status.base, status.translation, interpInfo, cameraObject.pivot);
+    position += cameraObject.pivot;
+    NTempest::C3Vector target =
+        AnimVector(cameraObject.targetTranslation, status.base, status.targetTranslation, interpInfo, cameraObject.targetPivot);
+    target += cameraObject.targetPivot;
+    float roll = AnimFloat(cameraObject.roll, status.base, status.roll, interpInfo, 0.0f);
+    DataMgrSetCoord(cameras[i], 7, position, 0);
+    DataMgrSetCoord(cameras[i], 8, target, 0);
+    DataMgrSetFloat(cameras[i], 5, roll);
+    status.base.flags &= ~0x10;
+  }
+}
+
 void __fastcall IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnimationData &data) {
   ASSERT(shared->flags & 1);
   ASSERT(!(shared->flags & 4));
@@ -590,69 +775,6 @@ void __fastcall IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnima
     unique->flags |= 1;
   else
     unique->flags |= 2;
-}
-
-void __fastcall AnimProcessEvents(HANIM anim, const TSFixedArray<NTempest::C3Vector> &positions) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
-
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  ASSERT(shared->flags & 1);
-  ASSERT(!(shared->flags & 4));
-
-  InterpInfo interpInfo(unique, shared, positions);
-  for (unsigned int i = 0; i < shared->eventObjs.Count(); ++i) {
-    CAnimEventObj       &eventObject = shared->eventObjs[i];
-    CAnimEventObjStatus &status = unique->eventStatus[i];
-    if (!unique->appEvent.callback || (unique->flags & 8) || !eventObject.events.TotalKeys()) {
-      continue;
-    }
-
-    if (eventObject.animObjId < positions.Count()) {
-      status.position = positions[eventObject.animObjId];
-    }
-    if (eventObject.events.SetAnimTime(status.base, &status.event, interpInfo)) {
-      unique->appEvent.callback(eventObject.name, status.position, unique->appEvent.param);
-    }
-  }
-
-  if (!(unique->flags & 4)) {
-    for (unsigned int i = 0; i < unique->eventStatus.Count(); ++i) {
-      unique->eventStatus[i].base.flags &= ~0x10;
-    }
-    unique->flags |= 4;
-  }
-}
-
-void __fastcall AnimAnimateCameras(HANIM anim, const TSFixedArray<HCAMERA> &cameras) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
-
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  ASSERT(shared->flags & 1);
-  ASSERT(!(shared->flags & 4));
-
-  TSFixedArray<NTempest::C3Vector> positions;
-  InterpInfo                       interpInfo(unique, shared, positions);
-  unsigned int                     count = min(cameras.Count(), shared->cameraObjs.Count());
-  for (unsigned int i = 0; i < count; ++i) {
-    CAnimCameraObj       &cameraObject = shared->cameraObjs[i];
-    CAnimCameraObjStatus &status = unique->cameraStatus[i];
-    status.visible = AnimFloat(cameraObject.visibility, status.base, status.visibility, interpInfo, 1.0f);
-
-    NTempest::C3Vector position = AnimVector(cameraObject.translation, status.base, status.translation, interpInfo, cameraObject.pivot);
-    position += cameraObject.pivot;
-    NTempest::C3Vector target =
-        AnimVector(cameraObject.targetTranslation, status.base, status.targetTranslation, interpInfo, cameraObject.targetPivot);
-    target += cameraObject.targetPivot;
-    float roll = AnimFloat(cameraObject.roll, status.base, status.roll, interpInfo, 0.0f);
-    DataMgrSetCoord(cameras[i], 7, position, 0);
-    DataMgrSetCoord(cameras[i], 8, target, 0);
-    DataMgrSetFloat(cameras[i], 5, roll);
-    status.base.flags &= ~0x10;
-  }
 }
 
 void __fastcall AnimAnimateModel(HANIM anim, const CAnimationData &data) {

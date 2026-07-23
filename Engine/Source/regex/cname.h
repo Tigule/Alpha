@@ -139,4 +139,3 @@ static struct cname {
 	"DEL",	'\177',
 	NULL,	0,
 };
-

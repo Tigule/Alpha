@@ -229,6 +229,13 @@ void __fastcall CWorld::Update() {
   ActivityEnd(ACTIVITY_WORLD);
 }
 
+void __fastcall CWorld::SetEnvironment() {
+  DNInfo *dnInfo = DayNightGetInfo();
+  GxRsSet(GxRs_FogStart, dnInfo->fogInfo.start);
+  GxRsSet(GxRs_FogEnd, dnInfo->fogInfo.end);
+  GxRsSet(GxRs_FogColor, dnInfo->fogInfo.color);
+}
+
 void __fastcall CWorld::UpdateDayNight(int forceFull, NTempest::C3Vector *position) {
   DNInfo *dnInfo = DayNightGetInfo();
   if (forceFull) {
@@ -248,11 +255,30 @@ void __fastcall CWorld::UpdateDayNight(int forceFull, NTempest::C3Vector *positi
   CMap::sunLight->gxLight.m_specIntensity = 1.0f;
 }
 
-void __fastcall CWorld::SetHidden(unsigned long hWorldObject, int hidden) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
-  FATALASSERT(entity);
-  FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
-  entity->flagHidden = hidden != 0;
+void __fastcall CWorld::Render() {
+  ActivityBegin(ACTIVITY_WORLD);
+  if (enables & Enable_ShowTris) {
+    GxMasterEnableSet(GxMasterEnable_PolygonFill, 0);
+  }
+
+  CWorldScene::Render();
+
+  if ((enables & Enable_Particulates) && CWorldScene::camLiquid != 15) {
+    ModelAddToScene(NTempest::C3Vector(), 0, Particulate::CustomRenderCallback, particulate, 0);
+  }
+
+  if (enables & Enable_ShowTris) {
+    GxMasterEnableSet(GxMasterEnable_PolygonFill, 1);
+  }
+
+  CMap::ProjectLights();
+  ActivityEnd(ACTIVITY_WORLD);
+}
+
+void __fastcall CWorld::RenderAlpha() {
+  ActivityBegin(ACTIVITY_WORLD);
+  CWorldScene::RenderAlpha();
+  ActivityEnd(ACTIVITY_WORLD);
 }
 
 unsigned int __fastcall CWorld::QueryAreaId(float x, float y) {
@@ -310,28 +336,6 @@ unsigned int __fastcall CWorld::QueryMapObjMatrix(unsigned long hWorldObject, NT
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   return entity->flagInside ? entity->QueryMapObjMatrix(mtx, invMtx) : 0;
-}
-
-float __fastcall CWorld::GetFramerate() {
-  float elapsed = 0.0f;
-  int   index = profIdx;
-  for (int count = 0; count < 30; ++count) {
-    elapsed += profTimes[index++];
-    if (index == 30) {
-      index = 0;
-    }
-  }
-
-  elapsed *= 1.0f / 30.0f;
-  return elapsed >= 0.01f ? 1.0f / elapsed : 100.0f;
-}
-
-void __fastcall CWorld::GetCounts(int *const counts) {
-  CMap::GetCounts(counts);
-}
-
-const char *__fastcall CWorld::QueryChunkName() {
-  return CWorldScene::currentChunkName;
 }
 
 bool __fastcall CWorld::QueryMapObjAreaTable(unsigned long hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec) {
@@ -424,13 +428,6 @@ void __fastcall CWorld::SetObjectCollisionHandler(int(__fastcall *handler)(unsig
   CMap::entityCollisionHandler = handler;
 }
 
-void __fastcall CWorld::SetCameraTarget(unsigned long hWorldObject) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
-  FATALASSERT(entity);
-  FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
-  CWorldScene::camTargEntity = entity;
-}
-
 unsigned long __fastcall CWorld::AddObject(unsigned __int64 param64, unsigned long param32, HMODEL__ *hModel, unsigned int objFlags) {
   CMapEntity *entity = CMap::AllocEntity();
   FATALASSERT(entity);
@@ -487,47 +484,6 @@ void __fastcall CWorld::SetObjectRenderCallback(unsigned long hWorldObject, void
   doodad->renderCBParam = param;
 }
 
-const NTempest::C3Vector &__fastcall CWorld::GetCamPos() {
-  return CWorldScene::camPos;
-}
-
-const NTempest::C3Vector &__fastcall CWorld::GetCamTarget() {
-  return CWorldScene::camTarg;
-}
-
-void __fastcall CWorld::SetEnvironment() {
-  DNInfo *dnInfo = DayNightGetInfo();
-  GxRsSet(GxRs_FogStart, dnInfo->fogInfo.start);
-  GxRsSet(GxRs_FogEnd, dnInfo->fogInfo.end);
-  GxRsSet(GxRs_FogColor, dnInfo->fogInfo.color);
-}
-
-void __fastcall CWorld::Render() {
-  ActivityBegin(ACTIVITY_WORLD);
-  if (enables & Enable_ShowTris) {
-    GxMasterEnableSet(GxMasterEnable_PolygonFill, 0);
-  }
-
-  CWorldScene::Render();
-
-  if ((enables & Enable_Particulates) && CWorldScene::camLiquid != 15) {
-    ModelAddToScene(NTempest::C3Vector(), 0, Particulate::CustomRenderCallback, particulate, 0);
-  }
-
-  if (enables & Enable_ShowTris) {
-    GxMasterEnableSet(GxMasterEnable_PolygonFill, 1);
-  }
-
-  CMap::ProjectLights();
-  ActivityEnd(ACTIVITY_WORLD);
-}
-
-void __fastcall CWorld::RenderAlpha() {
-  ActivityBegin(ACTIVITY_WORLD);
-  CWorldScene::RenderAlpha();
-  ActivityEnd(ACTIVITY_WORLD);
-}
-
 void __fastcall CWorld::UpdateObject(unsigned long hWorldObject, NTempest::C44Matrix &mat, NTempest::CAaBox &aaBox) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(hWorldObject);
 
@@ -575,6 +531,13 @@ void __fastcall CWorld::TickObject(unsigned long hWorldObject) {
   entity->Tick();
 }
 
+void __fastcall CWorld::SetHidden(unsigned long hWorldObject, int hidden) {
+  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  FATALASSERT(entity);
+  FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
+  entity->flagHidden = hidden != 0;
+}
+
 void __fastcall CWorld::RemoveObject(unsigned long hWorldObject) {
   CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
   FATALASSERT(entity);
@@ -603,8 +566,11 @@ void __fastcall CWorld::RemoveObject(unsigned long hWorldObject) {
   }
 }
 
-void __fastcall CWorld::WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
-  CMap::WaterRipple(pos, len, time, amp, vel, freq);
+void __fastcall CWorld::SetCameraTarget(unsigned long hWorldObject) {
+  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  FATALASSERT(entity);
+  FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
+  CWorldScene::camTargEntity = entity;
 }
 
 float __fastcall CWorld::CalcAltitude(float x, float y, float radius) {
@@ -629,18 +595,6 @@ bool __fastcall CWorld::GetFacet(const NTempest::C3Segment &seg, float &t, NTemp
   return result;
 }
 
-void __fastcall CWorld::GetFacets(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags) {
-  ActivityBegin(ACTIVITY_WORLD);
-  CMap::GetFacets(aaBox, facetData, queryFlags);
-  ActivityEnd(ACTIVITY_WORLD);
-}
-
-void __fastcall CWorld::GetFacets(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags) {
-  ActivityBegin(ACTIVITY_WORLD);
-  CMap::GetFacets(frustum, facetData, queryFlags);
-  ActivityEnd(ACTIVITY_WORLD);
-}
-
 unsigned int __fastcall CWorld::GetTris(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags) {
   ActivityBegin(ACTIVITY_WORLD);
   unsigned int result = CMap::GetTris(aaBox, triData, queryFlags);
@@ -655,6 +609,52 @@ int __fastcall CWorld::QueryLiquidStatus(NTempest::C3Vector &point, unsigned int
 
 unsigned int __fastcall CWorld::SceneCamLiquidStatus() {
   return CWorldScene::camLiquid;
+}
+
+void __fastcall CWorld::WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
+  CMap::WaterRipple(pos, len, time, amp, vel, freq);
+}
+
+float __fastcall CWorld::GetFramerate() {
+  float elapsed = 0.0f;
+  int   index = profIdx;
+  for (int count = 0; count < 30; ++count) {
+    elapsed += profTimes[index++];
+    if (index == 30) {
+      index = 0;
+    }
+  }
+
+  elapsed *= 1.0f / 30.0f;
+  return elapsed >= 0.01f ? 1.0f / elapsed : 100.0f;
+}
+
+void __fastcall CWorld::GetCounts(int *const counts) {
+  CMap::GetCounts(counts);
+}
+
+void __fastcall CWorld::GetFacets(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags) {
+  ActivityBegin(ACTIVITY_WORLD);
+  CMap::GetFacets(aaBox, facetData, queryFlags);
+  ActivityEnd(ACTIVITY_WORLD);
+}
+
+void __fastcall CWorld::GetFacets(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags) {
+  ActivityBegin(ACTIVITY_WORLD);
+  CMap::GetFacets(frustum, facetData, queryFlags);
+  ActivityEnd(ACTIVITY_WORLD);
+}
+
+const char *__fastcall CWorld::QueryChunkName() {
+  return CWorldScene::currentChunkName;
+}
+
+const NTempest::C3Vector &__fastcall CWorld::GetCamPos() {
+  return CWorldScene::camPos;
+}
+
+const NTempest::C3Vector &__fastcall CWorld::GetCamTarget() {
+  return CWorldScene::camTarg;
 }
 
 void __fastcall CWorld::SetShadowColor(NTempest::CImVector &color) {

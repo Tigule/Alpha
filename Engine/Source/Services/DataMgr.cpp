@@ -1,4 +1,9 @@
 #include "Services/Camera.h"
+#include "Base/Color.h"
+#include "Tempest/c33matrix.h"
+#include "Tempest/cimvector.h"
+
+struct UpdateInfo;
 
 float CAngle::ClampTo2Pi(float angle) {
   const float twoPi = 2.0f * 3.14159265358979323846f;
@@ -39,6 +44,19 @@ void CDataMgr::LinkManaged(CBaseManaged *m) {
   m_updateList.LinkNode(m, LIST_LINK_BEFORE, insertBefore);
 }
 
+int __fastcall DataMgrGetBool(HDATAMGR__* mgr, unsigned int fieldId) {
+    // TODO: implement
+    return 0;
+}
+
+void __fastcall DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, NTempest::CImVector* color) {
+    // TODO: implement
+}
+
+void __fastcall DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, C3Color* color) {
+    // TODO: implement
+}
+
 void __fastcall DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3Vector *coord) {
   ASSERT(mgr);
   ASSERT(coord);
@@ -62,6 +80,15 @@ void __fastcall DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3
   *coord = static_cast<TManaged<NTempest::C3Vector> *>(managed)->m_data;
 }
 
+void __fastcall DataMgrGetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, NTempest::C33Matrix* matrix) {
+    // TODO: implement
+}
+
+int __fastcall DataMgrGetInt(HDATAMGR__* mgr, unsigned int fieldId) {
+    // TODO: implement
+    return 0;
+}
+
 float __fastcall DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   FATALASSERT(mgrPtr);
@@ -83,6 +110,22 @@ float __fastcall DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId) {
   return static_cast<TManaged<float> *>(managed)->m_data;
 }
 
+void __fastcall DataMgrGetUpdateInfo(HDATAMGR__* mgr, unsigned int fieldId, UpdateInfo* info) {
+    // TODO: implement
+}
+
+void __fastcall DataMgrSetBool(HDATAMGR__* mgr, unsigned int fieldId, int val) {
+    // TODO: implement
+}
+
+void __fastcall DataMgrSetColor(HDATAMGR__* mgr, unsigned int fieldId, const NTempest::CImVector& color) {
+    // TODO: implement
+}
+
+void __fastcall DataMgrSetColor(HDATAMGR__* mgr, unsigned int fieldId, const C3Color& color) {
+    // TODO: implement
+}
+
 void __fastcall DataMgrSetCoord(HDATAMGR mgr, unsigned int fieldId, const NTempest::C3Vector &coord, unsigned int coordFlags) {
   NTempest::C3Vector current(0.0f);
   DataMgrGetCoord(mgr, fieldId, &current);
@@ -102,6 +145,14 @@ void __fastcall DataMgrSetCoord(HDATAMGR mgr, unsigned int fieldId, const NTempe
   managed->m_updateData = 0;
   managed->m_updatePriority = 0.0f;
   static_cast<TManaged<NTempest::C3Vector> *>(managed)->Set_(setTo);
+}
+
+void __fastcall DataMgrSetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, const NTempest::C33Matrix& matrix) {
+    // TODO: implement
+}
+
+void __fastcall DataMgrSetInt(HDATAMGR__* mgr, unsigned int fieldId, int val) {
+    // TODO: implement
 }
 
 void __fastcall DataMgrSetFloat(HDATAMGR mgr, unsigned int fieldId, float val) {

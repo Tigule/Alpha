@@ -231,6 +231,11 @@ static void __fastcall HashNewModel(const char *modelFName, HMODEL model, unsign
   entry->timeStamp = currentTime;
 }
 
+static int MdlReadLoadNumMatrices(const MDLDATA& data, CModelShared* shared, unsigned int flags) {
+    // TODO: implement
+    return 0;
+}
+
 static void __fastcall MdxReadNumMatrices(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelShared *shared) {
   ASSERT(shared);
 
@@ -276,6 +281,11 @@ static unsigned int __fastcall ConvertAnimCreateFlags(unsigned int loadFlags) {
   }
 
   return createFlags;
+}
+
+static int MdlReadLoadAnim(const MDLDATA& data, CModelBase* modelptr, unsigned int loadFlags, CStatus* status) {
+    // TODO: implement
+    return 0;
 }
 
 static int __fastcall MdxReadAnimation(unsigned char *fileData, unsigned int fileBytes, CModelBase *modelptr, unsigned int loadFlags) {
@@ -359,6 +369,11 @@ static void __fastcall MdxReadHitTestData(unsigned char *data, unsigned int file
   FATALASSERT(dataDone == reinterpret_cast<unsigned int *>(data));
 }
 
+static int MdlReadLoadHitTestData(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared) {
+    // TODO: implement
+    return 0;
+}
+
 static void __fastcall ComputeBoundingRadius(const CGeosetShared *geosets, unsigned int numGeosets, const NTempest::C3Vector &center, float *radius) {
   float bestDistSqd = 0.0f;
 
@@ -395,6 +410,11 @@ static void __fastcall IModelComputeBounds(CModelShared *shared) {
   ComputeBoundingBox(shared->geosets.Ptr(), shared->geosets.Count(), &shared->bounds.extent);
   shared->bounds.sphere.c = (shared->bounds.extent.b + shared->bounds.extent.t) * 0.5f;
   ComputeBoundingRadius(shared->geosets.Ptr(), shared->geosets.Count(), shared->bounds.sphere.c, &shared->bounds.sphere.r);
+}
+
+static int MdlReadLoadExtents(const MDLDATA& data, CModelBase* modelptr, CModelShared* shared) {
+    // TODO: implement
+    return 0;
 }
 
 static unsigned char *__fastcall LoadBoundsData(unsigned char *data, CBoundsData *bounds) {
@@ -441,6 +461,11 @@ static void __fastcall MdxReadExtents(unsigned char *data, unsigned int fileByte
       LoadBoundsData(sequenceData + 0x68, &shared->bounds);
     }
   }
+}
+
+static int MdlReadLoadPositions(const MDLDATA& data, unsigned int flags, CModelShared* shared) {
+    // TODO: implement
+    return 0;
 }
 
 static void __fastcall MdxReadPositions(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelShared *shared) {
@@ -585,6 +610,16 @@ static void __fastcall BuildModelFromMdxData(
   MdxReadExtents(fileData, fileBytes, modelptr, shared);
   MdxReadPositions(fileData, fileBytes, flags, shared);
   MdxReadCameras(fileData, fileBytes, &modelptr->m_cameras);
+}
+
+static int BuildSimpleModelFromMdlData(const MDLDATA& source, CModelSimple* modelptr, CModelShared* shared, unsigned int flags, CStatus* status) {
+    // TODO: implement
+    return 0;
+}
+
+static int BuildModelFromMdlData(const MDLDATA& source, CModelBase* baseModel, CModelShared* shared, unsigned int flags, CStatus* status) {
+    // TODO: implement
+    return 0;
 }
 
 static HMATERIAL __fastcall BuildSimpleMaterial(

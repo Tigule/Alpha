@@ -102,26 +102,6 @@ static const FrameScript_Method s_ScriptFunctions[20] = {
     {              "CreateCharacter",               Script_CreateCharacter}
 };
 
-void CHARCREATEINFO::Shutdown() {
-  uint sex;
-
-  for (sex = 0; sex < 2; ++sex) {
-    if (characterModel[sex]) {
-      HandleClose(characterModel[sex]);
-    }
-    if (geosetHandle[sex]) {
-      HandleClose(geosetHandle[sex]);
-    }
-    if (characterComponent[sex]) {
-      HandleClose(characterComponent[sex]);
-    }
-
-    characterModel[sex] = 0;
-    geosetHandle[sex] = 0;
-    characterComponent[sex] = 0;
-  }
-}
-
 void CHARCREATEINFO::UpdateOutfit(int increment, uint race, uint sex) {
   FATALASSERT(increment <= 1 && increment >= -1);
   FATALASSERT(sex < 2);
@@ -151,6 +131,260 @@ void CHARCREATEINFO::CommitGeoset(uint sex) {
   CharCustomizationCommitGeosets(geosetHandle[sex]);
 }
 
+void __fastcall ReportMissingComponentTextures(uint race, uint sex) {
+  const ChrRacesRec *raceInfo;
+  const char        *raceName;
+
+  sex = min(max(static_cast<int>(sex), 0), 3);
+  raceInfo = g_chrRacesDB.GetRecord(race);
+  raceName = raceInfo ? raceInfo->m_name_lang[CURRENT_LANGUAGE] : "unknown race";
+
+  SysMsgPrintf(SYSMSG_WARNING, 0x10, "MODELHASNOCOMPONENTABLETEXTURES|%s|%d|%s|%d", raceName, race, s_sexName[sex], sex);
+}
+
+void CHARCREATEINFO::FindRange(uint group, uint *start, uint *end) {
+  FATALASSERT(start);
+  FATALASSERT(end);
+  *start = group * 100 + 1;
+  *end = group * 100 + 99;
+}
+
+void CHARCREATEINFO::CommitTexture(int race, int sex) {
+  if (sex < 2) {
+    char    errorString[512];
+    CStatus status;
+    TexComponentCommitSections(&status, characterComponent[sex], 1);
+    if (!status.IsEmpty()) {
+      status.GetErrorStr(errorString, sizeof(errorString), STATUS_INFO);
+      FATALERROR(("Race %d Sex %d: %s", race, sex, errorString));
+    }
+  }
+}
+
+void __fastcall CCharCreateInfo::Initialize() {
+  uint                   numFactions;
+  uint                   i;
+  uint                   count = 0;
+  const FactionGroupRec *group;
+  uint                   numRaces = 0;
+
+  memset(m_charInfo.currentGeosets, 0, sizeof(m_charInfo.currentGeosets));
+
+  for (i = 0; i < 2; ++i) {
+    m_charInfo.characterModel[i] = 0;
+    m_charInfo.geosetHandle[i] = 0;
+    m_charInfo.characterComponent[i] = 0;
+  }
+
+  for (i = 0; i < static_cast<uint>(g_chrRacesDB.GetNumRecords()); ++i) {
+    const ChrRacesRec *race = g_chrRacesDB.GetRecordByIndex(i);
+
+    if (!(race->m_flags & 1)) {
+      ++numRaces;
+    }
+  }
+
+  m_raceIndex.SetCount(numRaces);
+  numFactions = g_factionGroupDB.GetNumRecords();
+
+  for (i = 0; i < numFactions; ++i) {
+    group = g_factionGroupDB.GetRecordByIndex(i);
+
+    if (group->m_maskID == 1 || group->m_maskID == 2) {
+      uint factionCount = m_factionIndex.Count();
+      uint raceIndex;
+
+      m_factionIndex.SetCount(factionCount + 1);
+      m_factionIndex[factionCount] = group->m_ID;
+
+      for (raceIndex = 0; raceIndex < numRaces; ++raceIndex) {
+        const ChrRacesRec        *race = g_chrRacesDB.GetRecordByIndex(raceIndex);
+        const FactionTemplateRec *factionTemplate;
+
+        if (race->m_flags & 1) {
+          continue;
+        }
+
+        factionTemplate = g_factionTemplateDB.GetRecord(race->m_factionID);
+        if (factionTemplate && ((1 << group->m_maskID) & factionTemplate->m_factionGroup)) {
+          m_raceIndex[count++] = race->m_ID;
+        }
+      }
+    }
+  }
+
+  ASSERT(count == numRaces);
+}
+
+void CHARCREATEINFO::Shutdown() {
+  uint sex;
+
+  for (sex = 0; sex < 2; ++sex) {
+    if (characterModel[sex]) {
+      HandleClose(characterModel[sex]);
+    }
+    if (geosetHandle[sex]) {
+      HandleClose(geosetHandle[sex]);
+    }
+    if (characterComponent[sex]) {
+      HandleClose(characterComponent[sex]);
+    }
+
+    characterModel[sex] = 0;
+    geosetHandle[sex] = 0;
+    characterComponent[sex] = 0;
+  }
+}
+
+void __fastcall CCharCreateInfo::SetCharCustomizeFrame(CSimpleModel *frame) {
+  m_charCustomizeFrame = frame;
+}
+
+void __fastcall CCharCreateInfo::SetCharCustomizeModel(const char *filename) {
+  CModelCreate createData;
+
+  if (!m_charCustomizeFrame || !filename || !*filename) {
+    return;
+  }
+
+  createData.sequenceNames = 0;
+  createData.numSequences = 0;
+  createData.cameraNames = 0;
+  createData.numCameras = 0;
+  createData.flags = 4;
+  createData.boneNames = g_glueBgObjNames;
+  createData.numBones = 2;
+  m_charCustomizeFrame->SetModel(filename, &createData, 0);
+}
+
+uint __fastcall CCharCreateInfo::GetNumOutfits(uint raceID, uint classID, uint sexID) {
+  uint count = 0;
+  for (int i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
+    const CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
+    if (outfit->m_raceID == raceID && outfit->m_classID == classID && outfit->m_sexID == sexID) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+CharStartOutfitRec *__fastcall CCharCreateInfo::GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID) {
+  for (int i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
+    CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
+    if (outfit->m_raceID == raceID && outfit->m_classID == classID && outfit->m_sexID == sexID && outfit->m_outfitID == outfitID) {
+      return outfit;
+    }
+  }
+  return 0;
+}
+
+void __fastcall CCharCreateInfo::ResetCharCustomizeInfo() {
+  if (m_charCustomizeFrame && ModelIsLoaded(m_charCustomizeFrame->GetModel(), 0) && m_raceIndex.Count()) {
+    m_selectedRace = RandomSelection(m_raceIndex.Count());
+    UpdateAvailableClasses();
+    if (m_classIndex.Count()) {
+      m_selectedClass = 0;
+      m_selectedSex = RandomSelection(2);
+      SetSelectedRace(m_selectedRace, 1);
+    }
+  }
+}
+
+void __fastcall CCharCreateInfo::SetCharFacing(float facing) {
+  m_charFacing = facing;
+
+  HMODEL model = m_charCustomizeFrame ? m_charCustomizeFrame->GetModel() : 0;
+  if (model) {
+    NTempest::C3Vector facingVector(cos(facing), sin(facing), 0.0f);
+    ModelApplyObjectFaceDir(model, 0, facingVector);
+  }
+}
+
+const char *__fastcall CCharCreateInfo::GetRaceNameByIndex(uint index) {
+  if (index >= m_raceIndex.Count()) {
+    return 0;
+  }
+
+  const ChrRacesRec *race = g_chrRacesDB.GetRecord(m_raceIndex[index]);
+  return race ? race->m_name_lang[CURRENT_LANGUAGE] : 0;
+}
+
+void __fastcall CCharCreateInfo::UpdateAvailableClasses() {
+  if (static_cast<uint>(m_selectedRace) >= m_raceIndex.Count()) {
+    return;
+  }
+
+  uint numRecords = g_chrClassesDB.GetNumRecords();
+  m_classIndex.SetCount(numRecords);
+
+  uint count = 0;
+  for (uint i = 0; i < static_cast<uint>(g_charBaseInfoDB.GetNumRecords()); ++i) {
+    const CharBaseInfoRec *rec = g_charBaseInfoDB.GetRecordByIndex(i);
+    if (rec->m_raceID == m_raceIndex[m_selectedRace]) {
+      m_classIndex[count++] = rec->m_classID;
+    }
+  }
+
+  m_classIndex.SetCount(count);
+}
+
+const char *__fastcall CCharCreateInfo::GetClassNameByIndex(uint index) {
+  if (index >= m_classIndex.Count()) {
+    return 0;
+  }
+
+  const ChrClassesRec *classInfo = g_chrClassesDB.GetRecord(m_classIndex[index]);
+  return classInfo ? classInfo->m_name_lang[CURRENT_LANGUAGE] : 0;
+}
+
+void __fastcall CCharCreateInfo::Shutdown() {
+  m_factionIndex.Clear();
+  m_raceIndex.Clear();
+  m_classIndex.Clear();
+  m_charInfo.Shutdown();
+}
+
+uint __fastcall CCharCreateInfo::GetSelectedRaceID() {
+  if (static_cast<uint>(m_selectedRace) < m_raceIndex.Count()) {
+    return m_raceIndex[m_selectedRace];
+  }
+
+  return 0;
+}
+
+uint __fastcall CCharCreateInfo::GetSelectedSexID() {
+  return m_selectedSex;
+}
+
+uint __fastcall CCharCreateInfo::GetSelectedClassID() {
+  if (static_cast<uint>(m_selectedClass) < m_classIndex.Count()) {
+    return m_classIndex[m_selectedClass];
+  }
+
+  return 0;
+}
+
+void __fastcall CCharCreateInfo::UpdateAllCharacterInfo(int race, uint sex) {
+  FATALASSERT(sex < 2);
+  InitializeCharacterInfo(sex, 1);
+  m_charInfo.CommitTexture(race, sex);
+  CommitCurrentGeoset(sex);
+}
+
+void __fastcall CCharCreateInfo::InitializeCharacterInfo(uint sex, int doNotCommitGeosets) {
+  FATALASSERT(sex < UNITSEX_LAST);
+  uint race = GetSelectedRaceID();
+  if (race) {
+    m_charInfo.UpdateCharacterInfo(race, sex);
+    UpdateGeosets(sex);
+    ChangeSkinTexture(doNotCommitGeosets, sex);
+    ChangeFaceTexture(sex);
+    ChangeFacialHairTexture(sex);
+    ChangeScalpHairTexture(sex);
+    ChangeHairGeosets(sex);
+  }
+}
+
 void CHARCREATEINFO::UpdateCharacterInfo(uint race, uint sex) {
   FATALASSERT(sex < 2);
 
@@ -175,10 +409,6 @@ void CHARCREATEINFO::UpdateCharacterInfo(uint race, uint sex) {
     FATALASSERT(geosetHandle[sex]);
     ModelSetSequence(characterModel[sex], 0, 0);
   }
-}
-
-void CHARCREATEINFO::ChangeHairGeosets(uint race, uint sex) {
-  CharCustomizationResetHairGeoset(geosetHandle[sex], race, sex, selections[sex].hairStyle);
 }
 
 void CHARCREATEINFO::UpdateEquipment(int doNotCommitGeosets, uint race, uint sex) {
@@ -303,268 +533,18 @@ void CHARCREATEINFO::ChangeScalpHairTexture(uint race, uint sex) {
   }
 }
 
+void CHARCREATEINFO::ChangeHairGeosets(uint race, uint sex) {
+  CharCustomizationResetHairGeoset(geosetHandle[sex], race, sex, selections[sex].hairStyle);
+}
+
 void CHARCREATEINFO::UpdateGeosets(uint beardGeoset, uint sideBurnGeoset, uint moustacheGeoset, uint sex) {
   FATALASSERT(sex < 2);
   CharCustomizationInitBaseCharacter(geosetHandle[sex], beardGeoset, sideBurnGeoset, moustacheGeoset, 2);
 }
 
-void CHARCREATEINFO::FindRange(uint group, uint *start, uint *end) {
-  FATALASSERT(start);
-  FATALASSERT(end);
-  *start = group * 100 + 1;
-  *end = group * 100 + 99;
-}
-
-void CHARCREATEINFO::CommitTexture(int race, int sex) {
-  if (sex < 2) {
-    char    errorString[512];
-    CStatus status;
-    TexComponentCommitSections(&status, characterComponent[sex], 1);
-    if (!status.IsEmpty()) {
-      status.GetErrorStr(errorString, sizeof(errorString), STATUS_INFO);
-      FATALERROR(("Race %d Sex %d: %s", race, sex, errorString));
-    }
-  }
-}
-
-void __fastcall ReportMissingComponentTextures(uint race, uint sex) {
-  const ChrRacesRec *raceInfo;
-  const char        *raceName;
-
-  sex = min(max(static_cast<int>(sex), 0), 3);
-  raceInfo = g_chrRacesDB.GetRecord(race);
-  raceName = raceInfo ? raceInfo->m_name_lang[CURRENT_LANGUAGE] : "unknown race";
-
-  SysMsgPrintf(SYSMSG_WARNING, 0x10, "MODELHASNOCOMPONENTABLETEXTURES|%s|%d|%s|%d", raceName, race, s_sexName[sex], sex);
-}
-
-void __fastcall CCharCreateInfo::Initialize() {
-  uint                   numFactions;
-  uint                   i;
-  uint                   count = 0;
-  const FactionGroupRec *group;
-  uint                   numRaces = 0;
-
-  memset(m_charInfo.currentGeosets, 0, sizeof(m_charInfo.currentGeosets));
-
-  for (i = 0; i < 2; ++i) {
-    m_charInfo.characterModel[i] = 0;
-    m_charInfo.geosetHandle[i] = 0;
-    m_charInfo.characterComponent[i] = 0;
-  }
-
-  for (i = 0; i < static_cast<uint>(g_chrRacesDB.GetNumRecords()); ++i) {
-    const ChrRacesRec *race = g_chrRacesDB.GetRecordByIndex(i);
-
-    if (!(race->m_flags & 1)) {
-      ++numRaces;
-    }
-  }
-
-  m_raceIndex.SetCount(numRaces);
-  numFactions = g_factionGroupDB.GetNumRecords();
-
-  for (i = 0; i < numFactions; ++i) {
-    group = g_factionGroupDB.GetRecordByIndex(i);
-
-    if (group->m_maskID == 1 || group->m_maskID == 2) {
-      uint factionCount = m_factionIndex.Count();
-      uint raceIndex;
-
-      m_factionIndex.SetCount(factionCount + 1);
-      m_factionIndex[factionCount] = group->m_ID;
-
-      for (raceIndex = 0; raceIndex < numRaces; ++raceIndex) {
-        const ChrRacesRec        *race = g_chrRacesDB.GetRecordByIndex(raceIndex);
-        const FactionTemplateRec *factionTemplate;
-
-        if (race->m_flags & 1) {
-          continue;
-        }
-
-        factionTemplate = g_factionTemplateDB.GetRecord(race->m_factionID);
-        if (factionTemplate && ((1 << group->m_maskID) & factionTemplate->m_factionGroup)) {
-          m_raceIndex[count++] = race->m_ID;
-        }
-      }
-    }
-  }
-
-  ASSERT(count == numRaces);
-}
-
-void __fastcall CCharCreateInfo::Shutdown() {
-  m_factionIndex.Clear();
-  m_raceIndex.Clear();
-  m_classIndex.Clear();
-  m_charInfo.Shutdown();
-}
-
-void __fastcall CCharCreateInfo::SetCharCustomizeFrame(CSimpleModel *frame) {
-  m_charCustomizeFrame = frame;
-}
-
-void __fastcall CCharCreateInfo::SetCharCustomizeModel(const char *filename) {
-  CModelCreate createData;
-
-  if (!m_charCustomizeFrame || !filename || !*filename) {
-    return;
-  }
-
-  createData.sequenceNames = 0;
-  createData.numSequences = 0;
-  createData.cameraNames = 0;
-  createData.numCameras = 0;
-  createData.flags = 4;
-  createData.boneNames = g_glueBgObjNames;
-  createData.numBones = 2;
-  m_charCustomizeFrame->SetModel(filename, &createData, 0);
-}
-
-void __fastcall CCharCreateInfo::ResetCharCustomizeInfo() {
-  if (m_charCustomizeFrame && ModelIsLoaded(m_charCustomizeFrame->GetModel(), 0) && m_raceIndex.Count()) {
-    m_selectedRace = RandomSelection(m_raceIndex.Count());
-    UpdateAvailableClasses();
-    if (m_classIndex.Count()) {
-      m_selectedClass = 0;
-      m_selectedSex = RandomSelection(2);
-      SetSelectedRace(m_selectedRace, 1);
-    }
-  }
-}
-
-uint __fastcall CCharCreateInfo::GetNumOutfits(uint raceID, uint classID, uint sexID) {
-  uint count = 0;
-  for (int i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
-    const CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
-    if (outfit->m_raceID == raceID && outfit->m_classID == classID && outfit->m_sexID == sexID) {
-      ++count;
-    }
-  }
-  return count;
-}
-
-CharStartOutfitRec *__fastcall CCharCreateInfo::GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID) {
-  for (int i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
-    CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
-    if (outfit->m_raceID == raceID && outfit->m_classID == classID && outfit->m_sexID == sexID && outfit->m_outfitID == outfitID) {
-      return outfit;
-    }
-  }
-  return 0;
-}
-
-void __fastcall CCharCreateInfo::SetCharFacing(float facing) {
-  m_charFacing = facing;
-
-  HMODEL model = m_charCustomizeFrame ? m_charCustomizeFrame->GetModel() : 0;
-  if (model) {
-    NTempest::C3Vector facingVector(cos(facing), sin(facing), 0.0f);
-    ModelApplyObjectFaceDir(model, 0, facingVector);
-  }
-}
-
-const char *__fastcall CCharCreateInfo::GetRaceNameByIndex(uint index) {
-  if (index >= m_raceIndex.Count()) {
-    return 0;
-  }
-
-  const ChrRacesRec *race = g_chrRacesDB.GetRecord(m_raceIndex[index]);
-  return race ? race->m_name_lang[CURRENT_LANGUAGE] : 0;
-}
-
-void __fastcall CCharCreateInfo::UpdateAvailableClasses() {
-  if (static_cast<uint>(m_selectedRace) >= m_raceIndex.Count()) {
-    return;
-  }
-
-  uint numRecords = g_chrClassesDB.GetNumRecords();
-  m_classIndex.SetCount(numRecords);
-
-  uint count = 0;
-  for (uint i = 0; i < static_cast<uint>(g_charBaseInfoDB.GetNumRecords()); ++i) {
-    const CharBaseInfoRec *rec = g_charBaseInfoDB.GetRecordByIndex(i);
-    if (rec->m_raceID == m_raceIndex[m_selectedRace]) {
-      m_classIndex[count++] = rec->m_classID;
-    }
-  }
-
-  m_classIndex.SetCount(count);
-}
-
-const char *__fastcall CCharCreateInfo::GetClassNameByIndex(uint index) {
-  if (index >= m_classIndex.Count()) {
-    return 0;
-  }
-
-  const ChrClassesRec *classInfo = g_chrClassesDB.GetRecord(m_classIndex[index]);
-  return classInfo ? classInfo->m_name_lang[CURRENT_LANGUAGE] : 0;
-}
-
-uint __fastcall CCharCreateInfo::GetSelectedRaceID() {
-  if (static_cast<uint>(m_selectedRace) < m_raceIndex.Count()) {
-    return m_raceIndex[m_selectedRace];
-  }
-
-  return 0;
-}
-
-uint __fastcall CCharCreateInfo::GetSelectedSexID() {
-  return m_selectedSex;
-}
-
-uint __fastcall CCharCreateInfo::GetSelectedClassID() {
-  if (static_cast<uint>(m_selectedClass) < m_classIndex.Count()) {
-    return m_classIndex[m_selectedClass];
-  }
-
-  return 0;
-}
-
-uint __fastcall CCharCreateInfo::GetNumCharCustomizations(uint index) {
-  uint race = GetSelectedRaceID();
-  if (!race) {
-    return 0;
-  }
-
-  int numVariations = 0;
-  switch (index) {
-    case 0:
-      CharCustomizationGetNumSkinTextures(race, m_selectedSex, &numVariations, 0);
-      return numVariations;
-    case 1:
-      CharCustomizationNumFaces(race, m_selectedSex, &numVariations, 0);
-      return numVariations;
-    case 2:
-      return CharCustomizationNumHairStyles(race, m_selectedSex);
-    case 3:
-      return CharCustomizationNumHairColors(race, m_selectedSex);
-    case 4:
-      return CharCustomizationNumBeardStyles(race, m_selectedSex);
-  }
-
-  return 0;
-}
-
-void __fastcall CCharCreateInfo::UpdateAllCharacterInfo(int race, uint sex) {
-  FATALASSERT(sex < 2);
-  InitializeCharacterInfo(sex, 1);
-  m_charInfo.CommitTexture(race, sex);
-  CommitCurrentGeoset(sex);
-}
-
-void __fastcall CCharCreateInfo::InitializeCharacterInfo(uint sex, int doNotCommitGeosets) {
+void __fastcall CCharCreateInfo::CommitCurrentGeoset(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
-  uint race = GetSelectedRaceID();
-  if (race) {
-    m_charInfo.UpdateCharacterInfo(race, sex);
-    UpdateGeosets(sex);
-    ChangeSkinTexture(doNotCommitGeosets, sex);
-    ChangeFaceTexture(sex);
-    ChangeFacialHairTexture(sex);
-    ChangeScalpHairTexture(sex);
-    ChangeHairGeosets(sex);
-  }
+  m_charInfo.CommitGeoset(sex);
 }
 
 void __fastcall CCharCreateInfo::UpdateCharacterInfo(uint sex) {
@@ -645,11 +625,6 @@ void __fastcall CCharCreateInfo::UpdateGeosets(uint sex) {
     CharCustomizationGetBeardStyle(race, sex, m_charInfo.selections[sex].facialStyle, &facialData);
     m_charInfo.UpdateGeosets(facialData.beardGeoset, facialData.sideBurnGeoset, facialData.moustacheGeoset, sex);
   }
-}
-
-void __fastcall CCharCreateInfo::CommitCurrentGeoset(uint sex) {
-  FATALASSERT(sex < UNITSEX_LAST);
-  m_charInfo.CommitGeoset(sex);
 }
 
 void __fastcall CCharCreateInfo::SetSelectedRace(uint index, int updateModel) {
@@ -751,6 +726,31 @@ void __fastcall CCharCreateInfo::SetSelectedClass(uint index) {
     m_charInfo.CommitTexture(GetSelectedRaceID(), m_selectedSex);
     CommitCurrentGeoset(m_selectedSex);
   }
+}
+
+uint __fastcall CCharCreateInfo::GetNumCharCustomizations(uint index) {
+  uint race = GetSelectedRaceID();
+  if (!race) {
+    return 0;
+  }
+
+  int numVariations = 0;
+  switch (index) {
+    case 0:
+      CharCustomizationGetNumSkinTextures(race, m_selectedSex, &numVariations, 0);
+      return numVariations;
+    case 1:
+      CharCustomizationNumFaces(race, m_selectedSex, &numVariations, 0);
+      return numVariations;
+    case 2:
+      return CharCustomizationNumHairStyles(race, m_selectedSex);
+    case 3:
+      return CharCustomizationNumHairColors(race, m_selectedSex);
+    case 4:
+      return CharCustomizationNumBeardStyles(race, m_selectedSex);
+  }
+
+  return 0;
 }
 
 void __fastcall CCharCreateInfo::CycleCharCustomization(uint index, int delta) {

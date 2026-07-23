@@ -63,10 +63,42 @@ struct OBJALLOCGLOBALS {
 static OBJALLOCGLOBALS s_globals;
 static SCritSect       s_globalsLock;
 
+unsigned int CObjectHeapList::BlocksAllocated() const {
+  unsigned int numHeaps = m_heaps.Count();
+  unsigned int blocks = 0;
+  unsigned int heap;
+
+  for (heap = 0; heap < numHeaps; ++heap) {
+    blocks += m_heaps[heap].m_allocated;
+  }
+  return blocks;
+}
+
 CObjectHeap::~CObjectHeap() {
   if (m_obj) {
     FREE(m_obj);
   }
+}
+
+CObjectHeap &CObjectHeap::operator=(const CObjectHeap &heap) {
+  return *this;
+}
+
+int CObjectHeap::Allocate(unsigned int objSize, unsigned int heapObjects) {
+  unsigned int index;
+
+  ASSERT(m_obj == 0);
+
+  m_obj = ALLOC(heapObjects * (objSize + sizeof(unsigned int)));
+  m_indexStack = reinterpret_cast<unsigned int *>(static_cast<char *>(m_obj) + heapObjects * objSize);
+  m_bytes = heapObjects * objSize;
+
+  for (index = 0; index < heapObjects; ++index) {
+    m_indexStack[index] = index;
+  }
+
+  m_allocated = 0;
+  return m_obj != 0;
 }
 
 int CObjectHeapList::New(unsigned int *index) {
@@ -108,11 +140,14 @@ int CObjectHeapList::New(unsigned int *index) {
   return 1;
 }
 
-void *CObjectHeapList::Ptr(unsigned int index) {
-  unsigned int heap = index / m_objsPerBlock;
-  unsigned int object = index % m_objsPerBlock;
-
-  return m_heaps[heap].Ptr(object, m_objSize, m_objsPerBlock);
+CObjectHeap::CObjectHeap(const CObjectHeap &heap) {
+  m_bytes = heap.m_bytes;
+  heap.m_bytes = 0;
+  m_obj = heap.m_obj;
+  m_indexStack = heap.m_indexStack;
+  heap.m_obj = 0;
+  heap.m_indexStack = 0;
+  m_allocated = heap.m_allocated;
 }
 
 void CObjectHeapList::Delete(unsigned int index) {
@@ -125,46 +160,11 @@ void CObjectHeapList::Delete(unsigned int index) {
   m_heaps[heap].Delete(object, m_objSize, m_objsPerBlock);
 }
 
-unsigned int CObjectHeapList::BlocksAllocated() const {
-  unsigned int numHeaps = m_heaps.Count();
-  unsigned int blocks = 0;
-  unsigned int heap;
+void *CObjectHeapList::Ptr(unsigned int index) {
+  unsigned int heap = index / m_objsPerBlock;
+  unsigned int object = index % m_objsPerBlock;
 
-  for (heap = 0; heap < numHeaps; ++heap) {
-    blocks += m_heaps[heap].m_allocated;
-  }
-  return blocks;
-}
-
-CObjectHeap::CObjectHeap(const CObjectHeap &heap) {
-  m_bytes = heap.m_bytes;
-  heap.m_bytes = 0;
-  m_obj = heap.m_obj;
-  m_indexStack = heap.m_indexStack;
-  heap.m_obj = 0;
-  heap.m_indexStack = 0;
-  m_allocated = heap.m_allocated;
-}
-
-CObjectHeap &CObjectHeap::operator=(const CObjectHeap &heap) {
-  return *this;
-}
-
-int CObjectHeap::Allocate(unsigned int objSize, unsigned int heapObjects) {
-  unsigned int index;
-
-  ASSERT(m_obj == 0);
-
-  m_obj = ALLOC(heapObjects * (objSize + sizeof(unsigned int)));
-  m_indexStack = reinterpret_cast<unsigned int *>(static_cast<char *>(m_obj) + heapObjects * objSize);
-  m_bytes = heapObjects * objSize;
-
-  for (index = 0; index < heapObjects; ++index) {
-    m_indexStack[index] = index;
-  }
-
-  m_allocated = 0;
-  return m_obj != 0;
+  return m_heaps[heap].Ptr(object, m_objSize, m_objsPerBlock);
 }
 
 int CObjectHeap::New(unsigned int objSize, unsigned int heapObjects, unsigned int *index) {

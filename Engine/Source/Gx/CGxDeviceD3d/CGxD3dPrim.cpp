@@ -169,33 +169,17 @@ void CVertexBufferList::Release() {
   m_numVerts = 0;
 }
 
-CGxVertexBuffer_D3d *CVertexBufferList::Lock(void *&mem, unsigned int numVertices, unsigned int base) {
-  CGxVertexBuffer_D3d *vb = m_vbList[m_currentVB];
-
-  while (vb->m_next + numVertices > vb->m_count) {
-    if (vb->m_discard && numVertices <= vb->m_count) {
-      break;
-    }
-
-    vb->Discard();
-
-    if (++m_currentVB >= m_vbList.Count()) {
-      m_currentVB = 0;
-    }
-
-    vb = m_vbList[m_currentVB];
-  }
-
-  vb->Lock(mem, numVertices, base);
-  return vb;
-}
-
 unsigned int CVertexBufferList::GetBase() {
   return m_vbList[m_currentVB]->m_base;
 }
 
 CGxVertexBuffer_D3d::CGxVertexBuffer_D3d(EGxVertexBufferFormat format, IDirect3DVertexBuffer9 *vb, unsigned int numVertices)
     : CGxVertexBuffer(numVertices), m_d3dvb(vb), m_vbFormat(format) {
+}
+
+void CGxVertexBuffer_D3d::Discard() {
+  CGxMemBuffer::Discard();
+  InvalidateBufs(CGxBuf::S_INVALID_DISCARD, CGxBuf::S_VALID);
 }
 
 void CGxVertexBuffer_D3d::Lock(void *&mem, unsigned int numVertices, unsigned int base) {
@@ -228,13 +212,28 @@ void CGxVertexBuffer_D3d::Lock(void *&mem, unsigned int numVertices, unsigned in
   }
 }
 
-void CGxVertexBuffer_D3d::Discard() {
-  CGxMemBuffer::Discard();
-  InvalidateBufs(CGxBuf::S_INVALID_DISCARD, CGxBuf::S_VALID);
+CGxIndexBuffer_D3d::CGxIndexBuffer_D3d(IDirect3DIndexBuffer9 *ib, unsigned int numIndices) : CGxIndexBuffer(numIndices), m_d3dib(ib) {
 }
 
-void CGxVertexBuffer_D3d::Unlock() {
-  m_d3dvb->Unlock();
+CGxVertexBuffer_D3d *CVertexBufferList::Lock(void *&mem, unsigned int numVertices, unsigned int base) {
+  CGxVertexBuffer_D3d *vb = m_vbList[m_currentVB];
+
+  while (vb->m_next + numVertices > vb->m_count) {
+    if (vb->m_discard && numVertices <= vb->m_count) {
+      break;
+    }
+
+    vb->Discard();
+
+    if (++m_currentVB >= m_vbList.Count()) {
+      m_currentVB = 0;
+    }
+
+    vb = m_vbList[m_currentVB];
+  }
+
+  vb->Lock(mem, numVertices, base);
+  return vb;
 }
 
 CGxVertexBuffer_D3d::~CGxVertexBuffer_D3d() {
@@ -242,7 +241,8 @@ CGxVertexBuffer_D3d::~CGxVertexBuffer_D3d() {
   CGxDeviceD3d::m_thisDevice->IReleaseD3dVB(m_d3dvb);
 }
 
-CGxIndexBuffer_D3d::CGxIndexBuffer_D3d(IDirect3DIndexBuffer9 *ib, unsigned int numIndices) : CGxIndexBuffer(numIndices), m_d3dib(ib) {
+void CGxVertexBuffer_D3d::Unlock() {
+  m_d3dvb->Unlock();
 }
 
 void CGxIndexBuffer_D3d::Lock(void *&mem, unsigned int numIndices, unsigned int base) {

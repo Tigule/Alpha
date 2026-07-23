@@ -141,5 +141,3 @@ LUALIB_API int   lua_dobuffer (lua_State *L, const char *buff, size_t sz,
 
 
 #endif
-
-

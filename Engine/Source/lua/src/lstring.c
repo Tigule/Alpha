@@ -99,4 +99,3 @@ Udata *luaS_newudata (lua_State *L, size_t s) {
   G(L)->rootudata = valtogco(u);
   return u;
 }
-

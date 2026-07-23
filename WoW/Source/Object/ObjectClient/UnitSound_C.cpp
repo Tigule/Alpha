@@ -30,19 +30,16 @@ static int __fastcall GetSoundID(CreatureSoundDataRec *soundData, UNITSOUNDTYPE 
   return offset ? *reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(soundData) + offset) : 0;
 }
 
+int __fastcall GetFidgetSoundID(const CreatureSoundDataRec* soundData, unsigned int soundType) {
+    // TODO: implement
+    return 0;
+}
+
 static int __fastcall CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
   FATALASSERT(static_cast<unsigned int>(soundType) < 16);
   unsigned int random = NTempest::CRandom::uint32_(g_rndSeed);
   unsigned int value = static_cast<unsigned int>((static_cast<unsigned __int64>(101) * random) >> 32);
   return s_unitSoundChances[soundType] >= value;
-}
-
-static int __fastcall CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
-  FATALASSERT(static_cast<unsigned int>(soundType) < 16);
-  unsigned long currentTime = GetTickCount();
-  int           canPlay = static_cast<long>(currentTime - s_unitSoundTimers[soundType]) > 0;
-  s_unitSoundTimers[soundType] = currentTime + s_unitSoundTimeouts[soundType];
-  return canPlay;
 }
 
 void __fastcall GenerateDeathThudSounds() {
@@ -68,7 +65,107 @@ void __fastcall ClearDeathThudSounds() {
   }
 }
 
+void __fastcall UnitSoundShutdown() {
+    // TODO: implement
+}
+
+void __fastcall UnitSoundInitialize() {
+    // TODO: implement
+}
+
+static int __fastcall CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
+  FATALASSERT(static_cast<unsigned int>(soundType) < 16);
+  unsigned long currentTime = GetTickCount();
+  int           canPlay = static_cast<long>(currentTime - s_unitSoundTimers[soundType]) > 0;
+  s_unitSoundTimers[soundType] = currentTime + s_unitSoundTimeouts[soundType];
+  return canPlay;
+}
+
 const ItemSubClassRec *__fastcall SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
+
+void CGUnit_C::HandlePlayStandSound(unsigned long code, const char *eventName) {
+  if (code == 0x58444624) {
+    PlayStandSound();
+    return;
+  }
+
+  FATALASSERT(eventName && *eventName);
+  PlayFidgetSound(eventName[3] - '1');
+}
+
+void CGUnit_C::HandleFootfallAnimEvent(const NTempest::C3Vector &position) {
+  if (m_soundData && m_soundData->m_soundFootstepID) {
+    SndInterfacePlaySound(m_soundData->m_soundFootstepID, position, -1, 1.0f);
+  }
+}
+
+void CGUnit_C::PlayFidgetSound(unsigned int fidgetNumber) {
+  FATALASSERT(m_soundData);
+  FATALASSERT(fidgetNumber < 4);
+  int soundID = m_soundData->m_soundFidget[fidgetNumber];
+  if (soundID) {
+    NTempest::C3Vector position;
+    GetPosition(position);
+    position.z += 2.0f;
+    SndInterfacePlaySound(soundID, position, -1, 1.0f);
+  }
+}
+
+void CGUnit_C::PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const {
+  if (soundType == 8 || (!alwaysPlay && !CheckUnitPlaySound(soundType))) {
+    return;
+  }
+  if (!CheckUnitSoundTimer(soundType)) {
+    return;
+  }
+
+  int soundID = GetSoundID(m_soundData, soundType);
+  if (!soundID) {
+    return;
+  }
+
+  NTempest::C3Vector position;
+  GetPosition(position);
+  position.z += 2.0f;
+  SndInterfacePlaySound(soundID, position, -1, 1.0f);
+}
+
+void CGUnit_C::PlayParrySound(unsigned int ignoreMainHand, ATTACKROUNDINFO *roundInfo, NTempest::C3Vector &position) {
+  FATALASSERT(roundInfo);
+
+  CGUnit_C        *attacker = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo->attacker, __FILE__, __LINE__));
+  VirtualItemInfo *attackingWeapon = attacker ? attacker->GetAttackingWeapon(static_cast<COMBATHAND>((roundInfo->flags >> 9) & 1)) : 0;
+  VirtualItemInfo *defendingItem = GetParryingItem(ignoreMainHand);
+  if (defendingItem) {
+    SndInterfacePlayParrySound(attackingWeapon, defendingItem, roundInfo->flags & 8, position);
+  }
+}
+
+void CGUnit_C::PlayImpactSound(unsigned __int64 attacker, int criticalHit, COMBATHAND hand) {
+  CGUnit_C *attackerPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__));
+  if (!attackerPtr) {
+    return;
+  }
+
+  NTempest::C3Vector position;
+  GetPosition(position);
+  SndInterfacePlayHitSound(attackerPtr->GetAttackingWeapon(hand), GetImpactType(), criticalHit, position);
+}
+
+void CGUnit_C::PlayCustomAttackSound(int sound, NTempest::C3Vector &position) {
+  SndInterfacePlaySound(sound, position, -1, 1.0f);
+}
+
+void CGUnit_C::SetCustomAttackSound(int sound, const NTempest::C3Vector &position) {
+  m_customAttackSound = sound;
+  m_customAttackPosition = position;
+}
+
+void CGUnit_C::PlayStandSound() {
+  if (GetGUID() != ClntObjMgrGetActivePlayer()) {
+    PlayUnitSound(static_cast<UNITSOUNDTYPE>(6), 0);
+  }
+}
 
 void CGUnit_C::PlayDeathThud() const {
   NTempest::C3Vector pos;
@@ -101,6 +198,29 @@ void CGUnit_C::PlayDeathThud() const {
 
 void CGUnit_C::PlaySplashSound(const NTempest::C3Vector &position) {
   SndInterfacePlaySplashSound(m_splashSoundID, position);
+}
+
+VirtualItemInfo *CGUnit_C::GetParryingItem(unsigned int ignoreMainHand) {
+  VirtualItemInfo *item = &m_unit->virtualItemInfo[0];
+  if (!ignoreMainHand && item->m_classID == 2) {
+    return item;
+  }
+
+  item = &m_unit->virtualItemInfo[1];
+  if (item->m_classID != 2 && item->m_classID != 4) {
+    return 0;
+  }
+  return item;
+}
+
+VirtualItemInfo *CGUnit_C::GetDefendingItem() {
+  return GetParryingItem(0);
+}
+
+VirtualItemInfo *CGUnit_C::GetAttackingWeapon(COMBATHAND hand) {
+  FATALASSERT(hand < NUMHANDS);
+  VirtualItemInfo *item = &m_unit->virtualItemInfo[hand == COMBAT_OFFHAND];
+  return item->m_classID == 2 ? item : 0;
 }
 
 void CGUnit_C::PlaySpellLoopedSound(int soundID) {
@@ -140,59 +260,6 @@ int CGUnit_C::PlayNPCSound(NPCSOUNDS sound, unsigned int index) {
   return SndInterfacePlaySound(sounds[sound], position, index, 1.0f);
 }
 
-void CGUnit_C::HandlePlayStandSound(unsigned long code, const char *eventName) {
-  if (code == 0x58444624) {
-    PlayStandSound();
-    return;
-  }
-
-  FATALASSERT(eventName && *eventName);
-  PlayFidgetSound(eventName[3] - '1');
-}
-
-void CGUnit_C::HandleFootfallAnimEvent(const NTempest::C3Vector &position) {
-  if (m_soundData && m_soundData->m_soundFootstepID) {
-    SndInterfacePlaySound(m_soundData->m_soundFootstepID, position, -1, 1.0f);
-  }
-}
-
-void CGUnit_C::PlayFidgetSound(unsigned int fidgetNumber) {
-  FATALASSERT(m_soundData);
-  FATALASSERT(fidgetNumber < 4);
-  int soundID = m_soundData->m_soundFidget[fidgetNumber];
-  if (soundID) {
-    NTempest::C3Vector position;
-    GetPosition(position);
-    position.z += 2.0f;
-    SndInterfacePlaySound(soundID, position, -1, 1.0f);
-  }
-}
-
-void CGUnit_C::PlayStandSound() {
-  if (GetGUID() != ClntObjMgrGetActivePlayer()) {
-    PlayUnitSound(static_cast<UNITSOUNDTYPE>(6), 0);
-  }
-}
-
-void CGUnit_C::PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const {
-  if (soundType == 8 || (!alwaysPlay && !CheckUnitPlaySound(soundType))) {
-    return;
-  }
-  if (!CheckUnitSoundTimer(soundType)) {
-    return;
-  }
-
-  int soundID = GetSoundID(m_soundData, soundType);
-  if (!soundID) {
-    return;
-  }
-
-  NTempest::C3Vector position;
-  GetPosition(position);
-  position.z += 2.0f;
-  SndInterfacePlaySound(soundID, position, -1, 1.0f);
-}
-
 bool CGUnit_C::GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type) {
   unsigned int slot = !mainHand;
   void       **vtable = *reinterpret_cast<void ***>(this);
@@ -220,61 +287,7 @@ bool CGUnit_C::GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type) {
   return subClass != 0;
 }
 
-VirtualItemInfo *CGUnit_C::GetParryingItem(unsigned int ignoreMainHand) {
-  VirtualItemInfo *item = &m_unit->virtualItemInfo[0];
-  if (!ignoreMainHand && item->m_classID == 2) {
-    return item;
-  }
-
-  item = &m_unit->virtualItemInfo[1];
-  if (item->m_classID != 2 && item->m_classID != 4) {
-    return 0;
-  }
-  return item;
-}
-
-VirtualItemInfo *CGUnit_C::GetDefendingItem() {
-  return GetParryingItem(0);
-}
-
-VirtualItemInfo *CGUnit_C::GetAttackingWeapon(COMBATHAND hand) {
-  FATALASSERT(hand < NUMHANDS);
-  VirtualItemInfo *item = &m_unit->virtualItemInfo[hand == COMBAT_OFFHAND];
-  return item->m_classID == 2 ? item : 0;
-}
-
 unsigned int CGUnit_C::GetImpactType() {
   FATALASSERT(m_modelData);
   return m_modelData->m_sizeClass;
-}
-
-void CGUnit_C::PlayParrySound(unsigned int ignoreMainHand, ATTACKROUNDINFO *roundInfo, NTempest::C3Vector &position) {
-  FATALASSERT(roundInfo);
-
-  CGUnit_C        *attacker = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo->attacker, __FILE__, __LINE__));
-  VirtualItemInfo *attackingWeapon = attacker ? attacker->GetAttackingWeapon(static_cast<COMBATHAND>((roundInfo->flags >> 9) & 1)) : 0;
-  VirtualItemInfo *defendingItem = GetParryingItem(ignoreMainHand);
-  if (defendingItem) {
-    SndInterfacePlayParrySound(attackingWeapon, defendingItem, roundInfo->flags & 8, position);
-  }
-}
-
-void CGUnit_C::PlayImpactSound(unsigned __int64 attacker, int criticalHit, COMBATHAND hand) {
-  CGUnit_C *attackerPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__));
-  if (!attackerPtr) {
-    return;
-  }
-
-  NTempest::C3Vector position;
-  GetPosition(position);
-  SndInterfacePlayHitSound(attackerPtr->GetAttackingWeapon(hand), GetImpactType(), criticalHit, position);
-}
-
-void CGUnit_C::PlayCustomAttackSound(int sound, NTempest::C3Vector &position) {
-  SndInterfacePlaySound(sound, position, -1, 1.0f);
-}
-
-void CGUnit_C::SetCustomAttackSound(int sound, const NTempest::C3Vector &position) {
-  m_customAttackSound = sound;
-  m_customAttackPosition = position;
 }

@@ -66,6 +66,15 @@ void __fastcall CollisionDataAddFacets(
   facets->SetCount(existing + numFacets - rejects);
 }
 
+static int CollisionDataVectorIntersect(HCOLLISIONDATA__* hDC, const NTempest::C34Matrix& basis, const NTempest::C3Vector& p0, const NTempest::C3Vector& p1, float& t) {
+    // TODO: implement
+    return 0;
+}
+
+static void ComputeSurfaceNormals(CCollisionData* collide, unsigned int numSurfaces) {
+    // TODO: implement
+}
+
 HCOLLISIONDATA __fastcall CollisionDataCreate(const NTempest::CAaBox &bounds) {
   void           *storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", -2, 0);
   CCollisionData *collision = storage ? new (storage) CCollisionData : 0;
@@ -160,6 +169,24 @@ HCOLLISIONDATA __fastcall CollisionDataCreate(unsigned char *fileData, unsigned 
   return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
 }
 
+void __fastcall ModelAddCollisionFacets(
+    HMODEL                             model,
+    const NTempest::C34Matrix         &toWorld,
+    float                              scale,
+    const NTempest::CAaBox            &worldBox,
+    TSGrowableArray<NTempest::CFacet> *facets
+) {
+  CModelShared *shared;
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared) && shared->collision) {
+    CollisionDataAddFacets(shared->collision, toWorld, scale, worldBox, facets);
+  }
+}
+
+int __fastcall ModelCollisionVectorIntersect(HMODEL__* model, const NTempest::C34Matrix& basis, const NTempest::C3Vector& p0, const NTempest::C3Vector& p1, float& t) {
+    // TODO: implement
+    return 0;
+}
+
 void __fastcall ModelShowCollision(HMODEL model, int show) {
   FATALASSERT(model);
 
@@ -226,18 +253,5 @@ void __fastcall ModelGetCollisionExtents(HMODEL model, NTempest::CAaBox *extents
     *extents = reinterpret_cast<CCollisionData *>(shared->collision)->extents;
   } else {
     *extents = NTempest::CAaBox(0.0f);
-  }
-}
-
-void __fastcall ModelAddCollisionFacets(
-    HMODEL                             model,
-    const NTempest::C34Matrix         &toWorld,
-    float                              scale,
-    const NTempest::CAaBox            &worldBox,
-    TSGrowableArray<NTempest::CFacet> *facets
-) {
-  CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared) && shared->collision) {
-    CollisionDataAddFacets(shared->collision, toWorld, scale, worldBox, facets);
   }
 }

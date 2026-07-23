@@ -60,22 +60,22 @@ VendorItem       CGMerchantInfo::m_items[128];
 int              CGMerchantInfo::m_itemCount;
 unsigned int     CGMerchantInfo::m_callbackCount;
 
+void __fastcall MerchantItemStatsCallback(int, const unsigned __int64 &, void *, bool) {
+  CGMerchantInfo::DecrementCallbackCount();
+}
+
 void __fastcall CGMerchantInfo::EnterWorld() {
   memset(m_items, 0, sizeof(m_items));
   m_merchant = 0;
   m_itemCount = 0;
 }
 
-void __fastcall CGMerchantInfo::LeaveWorld() {
-  CloseMerchant();
-}
-
 unsigned __int64 __fastcall CGMerchantInfo::GetMerchant() {
   return m_merchant;
 }
 
-void __fastcall MerchantItemStatsCallback(int, const unsigned __int64 &, void *, bool) {
-  CGMerchantInfo::DecrementCallbackCount();
+void __fastcall CGMerchantInfo::LeaveWorld() {
+  CloseMerchant();
 }
 
 void __fastcall CGMerchantInfo::SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count) {
@@ -123,16 +123,6 @@ void __fastcall CGMerchantInfo::UpdateItemQuantity(unsigned __int64 vendor, unsi
   }
 }
 
-void __fastcall CGMerchantInfo::DecrementCallbackCount() {
-  if (m_callbackCount) {
-    --m_callbackCount;
-  }
-
-  if (!m_callbackCount) {
-    FrameScript_SignalEvent(294);
-  }
-}
-
 const ItemStats *__fastcall CGMerchantInfo::GetItemStats(unsigned int itemID) {
   if (!itemID) {
     return 0;
@@ -143,6 +133,16 @@ const ItemStats *__fastcall CGMerchantInfo::GetItemStats(unsigned int itemID) {
     ++m_callbackCount;
   }
   return stats;
+}
+
+void __fastcall CGMerchantInfo::DecrementCallbackCount() {
+  if (m_callbackCount) {
+    --m_callbackCount;
+  }
+
+  if (!m_callbackCount) {
+    FrameScript_SignalEvent(294);
+  }
 }
 
 static int __fastcall Script_CloseMerchant(lua_State *__formal) {

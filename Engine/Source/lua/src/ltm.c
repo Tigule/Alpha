@@ -67,4 +67,3 @@ const TObject *luaT_gettmbyobj (lua_State *L, const TObject *o, TMS event) {
       return &luaO_nilobject;
   }
 }
-

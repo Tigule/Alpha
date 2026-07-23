@@ -20,6 +20,13 @@ class CAsyncObject;
 class CParticleEmitter2;
 class CRibbonEmitter;
 
+enum ModelIntersectResult {
+  MODEL_INTERSECT_NO_HIT = 0,
+  MODEL_INTERSECT_HIT_BOUNDING_SPHERE = 1,
+  MODEL_INTERSECT_HIT_COLLISION_VOLUMES = 2,
+  MODEL_INTERSECT_HIT_MODEL = 3
+};
+
 unsigned int __fastcall GetInvalidMatrixId();
 void __fastcall
 GxuLightSelectCallback(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);

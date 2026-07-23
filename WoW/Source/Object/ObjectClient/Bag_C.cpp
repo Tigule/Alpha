@@ -13,6 +13,14 @@ struct FindItemClassData {
   int subclassMask;
 };
 
+static int __fastcall GetItemTypeCountCallback(const CGItem_C *item, void *param) {
+  GetItemTypeCountData *data = static_cast<GetItemTypeCountData *>(param);
+  if (item->GetEntryID() == data->entryID) {
+    data->count += item->GetStackCount();
+  }
+  return 0;
+}
+
 static int __fastcall FindItemIDCallback(const CGItem_C *item, void *param) {
   return item->GetEntryID() == *static_cast<int *>(param);
 }
@@ -25,14 +33,6 @@ CGItem_C *CGBag_C::FindItemOfType(int entryID, unsigned int flags) const {
 
 CGItem_C *CGBag_C::FindItemOfType(int entryID, unsigned __int64 &bagGUID, unsigned int &slot, unsigned int flags) const {
   return const_cast<CGBag_C *>(this)->FindItem(FindItemIDCallback, &entryID, bagGUID, slot, flags);
-}
-
-static int __fastcall GetItemTypeCountCallback(const CGItem_C *item, void *param) {
-  GetItemTypeCountData *data = static_cast<GetItemTypeCountData *>(param);
-  if (item->GetEntryID() == data->entryID) {
-    data->count += item->GetStackCount();
-  }
-  return 0;
 }
 
 int CGBag_C::GetItemTypeCount(int entryID, unsigned int flags) const {

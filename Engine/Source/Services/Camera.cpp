@@ -26,6 +26,14 @@ void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, unsign
   GxXformSetView(mView);
 }
 
+void __fastcall CameraCalcPosFromTarg(HCAMERA__* camera, NTempest::C3Vector* position) {
+    // TODO: implement
+}
+
+void __fastcall CameraCalcTargFromPos(HCAMERA__* camera, NTempest::C3Vector* target) {
+    // TODO: implement
+}
+
 HCAMERA __fastcall CameraCreate() {
   CCamera *camera = NEW(CCamera)();
   return camera ? reinterpret_cast<HCAMERA>(HandleCreate(camera, "HCAMERA")) : 0;
@@ -139,3 +147,7 @@ void __fastcall CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect
 }
 
 #include "Services/DataMgrInt.h"
+
+void __fastcall CameraUpdate(HCAMERA__* camera, float elapsedSec) {
+    // TODO: implement
+}

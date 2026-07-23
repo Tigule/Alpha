@@ -91,8 +91,14 @@ unsigned int __fastcall ClientSetTimer(unsigned int timeout, CLIENTGUIDTIMERHAND
   return EventSetTimer(timeout, handler, guid, param);
 }
 
-void __fastcall ClientKillTimer(unsigned int timerId, CLIENTTIMERHANDLER handler, const char *handlerName) {
-  EventKillTimer(timerId, handler, handlerName);
+static int __fastcall ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+  float facing;
+  float anchorfacing;
+
+  msg->Get(facing);
+  msg->Get(anchorfacing);
+  ConsoleWriteA("facing: %g degrees, anchor: %g degrees", DEFAULT_COLOR, facing * 57.29578f, anchorfacing * 57.29578f);
+  return 1;
 }
 
 void __fastcall    OsIMEInitialize();
@@ -244,16 +250,6 @@ static int __fastcall CCommand_SetColorDepth(const char *command, const char *ar
 static int __fastcall CCommand_SetAPI(const char *command, const char *arguments);
 static int __fastcall CCommand_Bug(const char *command, const char *args);
 
-static int __fastcall ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
-  float facing;
-  float anchorfacing;
-
-  msg->Get(facing);
-  msg->Get(anchorfacing);
-  ConsoleWriteA("facing: %g degrees, anchor: %g degrees", DEFAULT_COLOR, facing * 57.29578f, anchorfacing * 57.29578f);
-  return 1;
-}
-
 static int __fastcall ClientChatHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
   return CGChat::ChatHandler(msg);
 }
@@ -270,6 +266,11 @@ static int __fastcall ClientTextEmoteHandler(void *__formal, NETMESSAGE msgID, u
 static int __fastcall ClientChannelListHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   CGChat::ChannelList(msg);
   return 1;
+}
+
+static int DebugAIStateHandler(void*, NETMESSAGE msgID, unsigned long timestamp, CDataStore* msg) {
+    // TODO: implement
+    return 0;
 }
 
 static int __fastcall MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
@@ -1145,6 +1146,10 @@ static int __fastcall ClientFocus(const void *packetData, void *__formal) {
   return 1;
 }
 
+void __fastcall ClientKillTimer(unsigned int timerId, CLIENTTIMERHANDLER handler, const char *handlerName) {
+  EventKillTimer(timerId, handler, handlerName);
+}
+
 void __fastcall ClientPostClose() {
   EventPostClose();
 }
@@ -1264,7 +1269,25 @@ void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError) {
   }
 }
 
+unsigned int __fastcall Bot_QueryAreaId(float x, float y) {
+    // TODO: implement
+    return 0;
+}
+
+int __fastcall Bot_GetWanderPoint(const NTempest::C3Vector&, float, const NTempest::C3Vector&, const NTempest::C3Vector&, float, NTempest::C3Vector&) {
+    // TODO: implement
+    return 0;
+}
+
 void __fastcall BotClientSetAccount(const char *, const char *) {
+}
+
+void __fastcall BotClientAddKnownSpell(CGPlayer_C*, int) {
+    // TODO: implement
+}
+
+void __fastcall BotClientLoseTarget(const CGUnit_C*) {
+    // TODO: implement
 }
 
 static void __fastcall LogZoneInfo(CGPlayer_C *player, char *log, unsigned long size) {
