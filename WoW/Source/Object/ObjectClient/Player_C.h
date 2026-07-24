@@ -208,20 +208,20 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual unsigned __int64 GetUnitBeingLooted() const {
     return m_lootingUnit;
   }
-  void SetBaseAnimState(unsigned int newState);
+  virtual void SetBaseAnimState(unsigned int newState);
   void SetEmoteState(unsigned int emoteID);
   void PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const;
   void OnDeathAnimate();
-  void SetTorsoAnimState(unsigned int newState);
+  virtual void SetTorsoAnimState(unsigned int newState);
   int  GetSpellCastingTime(int spellID) const;
   unsigned int DetermineWoundSequence() const;
-  const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
-  int  GetVirtualItemDisplayID(unsigned int slot) const;
+  virtual const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
+  virtual int  GetVirtualItemDisplayID(unsigned int slot) const;
   int  ShouldRenderUnitName(unsigned int mode) const;
   void OnDeath();
-  void CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
-  void ReinitializeUnitArtwork();
-  void PostReinitializeArtwork();
+  virtual void CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
+  virtual void ReinitializeUnitArtwork();
+  virtual void PostReinitializeArtwork();
   void SetLastWeaponModeSent(int mode);
   static bool __fastcall IsGiftWrapping();
   static void __fastcall CancelGiftWrap();
@@ -237,6 +237,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void SetActiveMirrorHandlers();
   void UnsetActiveMirrorHandlers();
   virtual void PostReenable();
+  virtual void OnMount();
+  virtual void OnDismount();
   void         KillCombatModeTimer();
   void         ResetCombatModeTimer(int newCombat);
   unsigned int GetCombatModeTimerInterval();

@@ -10,6 +10,19 @@ class WowTime {
   void SetDaysSinceEpoch(int days);
   int  GetHourAndMinutes() const;
   void SetHourAndMinutes(int minutes);
+  int  CompareYear(const WowTime &compareTime) const;
+  int  CompareMonth(const WowTime &compareTime) const;
+  int  CompareDay(const WowTime &compareTime) const;
+  int  CompareWeekday(const WowTime &compareTime) const;
+  int  CompareHour(const WowTime &compareTime) const;
+  int  CompareMinute(const WowTime &compareTime) const;
+  bool InRange(const WowTime &valMin, const WowTime &valMax) const;
+  bool operator<(const WowTime &cmpTime) const;
+  bool operator<=(const WowTime &cmpTime) const;
+  bool operator>(const WowTime &cmpTime) const;
+  bool operator>=(const WowTime &cmpTime) const;
+  bool operator==(const WowTime &cmpTime) const;
+  bool operator!=(const WowTime &cmpTime) const;
 
   static void __fastcall WowEncodeTime(unsigned int &value, const WowTime *time);
   static void __fastcall WowEncodeTime(unsigned int &value, int minute, int hour, int weekday, int monthday, int month, int year, int flags);

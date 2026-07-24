@@ -15,6 +15,9 @@ class CSimpleSlider : public CSimpleFrame {
   CSimpleSlider(CSimpleFrame *parent);
   virtual ~CSimpleSlider();
 
+  virtual void LoadXML(const XMLNode *node, CStatus *status);
+  virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
+
   void SetThumbTexture(CSimpleTexture *texture, int layer);
   void SetOrientation(SLIDER_ORIENTATION orientation);
   void SetMinMaxValues(float min, float max);
@@ -54,6 +57,11 @@ class CSimpleSlider : public CSimpleFrame {
 
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual void OnLayerUpdate(float elapsedSec);
+  virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
+  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
+  virtual int  OnLayerMouseDown(CMouseEvent &evt);
+  virtual int  OnLayerMouseUp(CMouseEvent &evt);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 

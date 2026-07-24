@@ -163,9 +163,7 @@ void __fastcall DetectHardware(Hardware &hardware, bool &changed) {
 
 #if 0
     // tigule: annoying popup disabled for now
-    if (!hardware.videoIdx &&
-        hardware.videoDevice.vendorID &&
-        hardware.videoDevice.deviceID) {
+    if (!hardware.videoIdx && hardware.videoDevice.vendorID && hardware.videoDevice.deviceID) {
       PrintUnknownHardware(hardware);
     }
 #endif

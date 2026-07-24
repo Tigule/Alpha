@@ -203,11 +203,11 @@ void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
     }
   }
 
-  glVertexPointer(3, GL_FLOAT, GxVertexSize(buf->m_vbFormat), buf->vertexPtr[GxVM_Position]);
-  IPrimSetupNormal(GxVertexSize(buf->m_vbFormat), buf->vertexPtr[GxVM_Normal]);
-  IPrimSetupColor(GxVertexSize(buf->m_vbFormat), buf->vertexPtr[GxVM_Color], buf->m_numVertices, 0);
+  glVertexPointer(3, GL_FLOAT, cmd.vertex.stride[GxVM_Position], *cmd.vertex.mem[GxVM_Position]);
+  IPrimSetupNormal(cmd.vertex.stride[GxVM_Normal], *cmd.vertex.mem[GxVM_Normal]);
+  IPrimSetupColor(cmd.vertex.stride[GxVM_Color], *cmd.vertex.mem[GxVM_Color], buf->m_numVertices, 0);
   for (unsigned int tmu = 0; tmu < m_caps.m_numTmus; ++tmu) {
-    IPrimSetupTexCoord(tmu, GxVertexSize(buf->m_vbFormat), buf->vertexPtr[GxVM_Texture0 + tmu]);
+    IPrimSetupTexCoord(tmu, cmd.vertex.stride[GxVM_Texture0 + tmu], *cmd.vertex.mem[GxVM_Texture0 + tmu]);
   }
 
   if (!glNVVertexArrayRange) {

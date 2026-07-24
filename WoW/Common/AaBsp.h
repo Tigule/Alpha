@@ -138,4 +138,52 @@ class CAaBsp_Query_Segment : public CAaBsp_Query<QUERY> {
   }
 };
 
+template <class QUERY>
+class CAaBsp_Query_AaBox : public CAaBsp_Query<QUERY> {
+ public:
+  CAaBsp_Query_AaBox(CAaBsp &bsp, QUERY &query, const NTempest::CAaBox &aaBox) : CAaBsp_Query<QUERY>(bsp, query) {
+    GetFaceIndices(0, aaBox, bsp.aaBox);
+  }
+
+ private:
+  void GetFaceIndices(unsigned int nodeIndex, const NTempest::CAaBox &queryBox, const NTempest::CAaBox &nodeBox) {
+    CAaBspNode *node = &this->bsp.nodes[nodeIndex];
+    if (node->flags & 4) {
+      for (unsigned int i = 0; i < node->nFaces; ++i) {
+        this->query(this->bsp.nodeFaceIndices[node->faceStart + i]);
+      }
+      return;
+    }
+
+    unsigned int axis = node->flags & 3;
+    if (nodeBox.t[axis] < queryBox.b[axis] || nodeBox.b[axis] > queryBox.t[axis]) {
+      return;
+    }
+
+    NTempest::CAaBox posNodeBox(nodeBox);
+    NTempest::CAaBox negNodeBox(nodeBox);
+    posNodeBox.b[axis] = node->planeDist;
+    negNodeBox.t[axis] = node->planeDist;
+
+    if (queryBox.b[axis] <= node->planeDist && queryBox.t[axis] >= node->planeDist) {
+      if (node->posChild != 0xFFFF) {
+        NTempest::CAaBox posQueryBox(queryBox);
+        posQueryBox.b[axis] = node->planeDist;
+        GetFaceIndices(node->posChild, posQueryBox, posNodeBox);
+      }
+      if (node->negChild != 0xFFFF) {
+        NTempest::CAaBox negQueryBox(queryBox);
+        negQueryBox.t[axis] = node->planeDist;
+        GetFaceIndices(node->negChild, negQueryBox, negNodeBox);
+      }
+    } else if (queryBox.b[axis] > node->planeDist) {
+      if (node->posChild != 0xFFFF) {
+        GetFaceIndices(node->posChild, queryBox, posNodeBox);
+      }
+    } else if (node->negChild != 0xFFFF) {
+      GetFaceIndices(node->negChild, queryBox, negNodeBox);
+    }
+  }
+};
+
 #endif

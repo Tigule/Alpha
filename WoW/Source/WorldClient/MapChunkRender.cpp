@@ -256,7 +256,7 @@ void CMapChunk::FillGxBufDynIndex(const CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 void CMapChunk::RenderLayers() {
-  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(pos.x, pos.y)) || !nLayers || camDist >= CWorld::farFog) {
+  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) || !nLayers || camDist >= CWorld::farFog) {
     RenderLayersColor();
     return;
   }
@@ -321,7 +321,7 @@ void CMapChunk::RenderLayers() {
       continue;
     }
 
-    if (layer->props & 0x8000) {
+    if (layer->props & 0x80) {
       GxRsSet(GxRs_Lighting, 0);
     }
     if (layer->props & 0x40) {
@@ -351,7 +351,7 @@ void CMapChunk::RenderLayers() {
 
     GxBufRender(rmGxBatchList[lod], 2);
 
-    if (layer->props & 0x8000) {
+    if (layer->props & 0x80) {
       GxRsSet(GxRs_Lighting, 1);
     }
     if (layer->props & 0x40) {
@@ -386,7 +386,7 @@ void CMapChunk::RenderLayers() {
 }
 
 void CMapChunk::RenderLayersDyn() {
-  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(pos.x, pos.y)) || !nLayers || camDist >= CWorld::farFog) {
+  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) || !nLayers || camDist >= CWorld::farFog) {
     RenderLayersColorDyn();
     return;
   }
@@ -450,7 +450,7 @@ void CMapChunk::RenderLayersDyn() {
     if (!texture) {
       continue;
     }
-    if (layer->props & 0x8000) {
+    if (layer->props & 0x80) {
       GxRsSet(GxRs_Lighting, 0);
     }
     if (layer->props & 0x40) {
@@ -477,7 +477,7 @@ void CMapChunk::RenderLayersDyn() {
       GxRsSet(GxRs_Texture1, static_cast<void *>(0));
     }
     GxBufRender(gxBatch);
-    if (layer->props & 0x8000) {
+    if (layer->props & 0x80) {
       GxRsSet(GxRs_Lighting, 1);
     }
     if (layer->props & 0x40) {

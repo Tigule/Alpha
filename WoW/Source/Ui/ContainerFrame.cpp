@@ -312,10 +312,19 @@ static int __fastcall Script_PickupContainerItem(lua_State *L) {
   unsigned int     cursorSlot;
   CGGameUI::GetCursorItem(cursorItem, cursorContainer, cursorSlot);
   if (cursorItem) {
-    player->SwapItems(cursorItem, cursorContainer, cursorSlot, container, slot, 0);
-    CGGameUI::ClearCursor(0);
+    if (cursorItem == item) {
+      CGGameUI::ClearCursor(1);
+    } else if (CGGameUI::GetCursorStackSplit()) {
+      player->SplitItem(cursorItem, cursorContainer, cursorSlot, container, slot, CGGameUI::GetCursorStackSplit());
+      CGGameUI::ClearCursor(0);
+    } else {
+      CGGameUI::LockItem(item);
+      player->SwapItems(cursorItem, cursorContainer, cursorSlot, container, slot, 0);
+      CGGameUI::ClearCursor(0);
+    }
   } else if (item) {
     CGGameUI::SetCursorItem(item, container, slot, 1, 0);
+    CGGameUI::LockItem(item);
   } else {
     CGGameUI::ClearCursor(1);
   }
@@ -339,6 +348,7 @@ static int __fastcall Script_SplitContainerItem(lua_State *L) {
   if (item && item->IsUnlocked() && split >= 1 && split <= item->GetStackCount()) {
     CGGameUI::ClearCursor(1);
     CGGameUI::SetCursorItem(item->GetGUID(), container, slot, 1, split == item->GetStackCount() ? 0 : split);
+    CGGameUI::LockItem(item->GetGUID());
   }
   return 0;
 }

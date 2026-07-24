@@ -44,9 +44,12 @@ void __fastcall WindowClassDestroy(unsigned short &hwndClass) {
 }
 
 static HWND __fastcall WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
+  unsigned long style =
+      format.window ? WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_POPUP | WS_MAXIMIZE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+
   return CreateWindowExA(
-      WS_EX_APPWINDOW, s_WndClassName, "A game in progress", format.window ? WS_OVERLAPPEDWINDOW : WS_POPUP, format.pos.x, format.pos.y,
-      format.size.x, format.size.y, 0, 0, GetModuleHandle(0), dev
+      WS_EX_APPWINDOW, s_WndClassName, "A game in progress", style, format.pos.x, format.pos.y, format.size.x, format.size.y, 0, 0,
+      GetModuleHandle(0), dev
   );
 }
 
@@ -377,7 +380,7 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, uns
   target.m_apiSpecific = gxTex;
   HDC   hdc = m_hdc;
   HGLRC hglrc = m_hglrc;
-  if (m_textureTarget[GxBuffers_Color].m_texture || m_textureTarget[GxBuffers_Depth].m_texture) {
+  if (m_textureTarget[GxBuffers_Color].m_apiSpecific || m_textureTarget[GxBuffers_Depth].m_apiSpecific) {
     hdc = m_hPbufferDC;
     hglrc = m_hPbufferRC;
   }

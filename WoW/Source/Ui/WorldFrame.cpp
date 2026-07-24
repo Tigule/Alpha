@@ -68,7 +68,7 @@ struct FADEOUTHASHOBJ : public TSHashObject<FADEOUTHASHOBJ, CHashKeyGUID> {
   NTempest::C34Matrix matrix;
   float               renderScale;
   unsigned int        startTime;
-  unsigned int        startAlpha;
+  unsigned char       startAlpha;
 
   FADEOUTHASHOBJ() : model(0), texture(0) {
   }
@@ -241,7 +241,7 @@ int CGWorldFrame::IsUnitLegalSelection(CGUnit_C *unit, unsigned int hitFilter) {
 CGWorldFrame::~CGWorldFrame() {
   ConsoleCommandUnregister("debugobjectpathing");
   ConsoleCommandUnregister("SeeIfWorldFrameSucks");
-  CGUnit_C::UpdateUnitNameplates(0);
+  EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
   s_currentWorldFrame = 0;
 
   for (unsigned int i = 0; i < 2; ++i) {
@@ -1358,7 +1358,7 @@ void CGWorldFrame::SetNamePlateUpdate() {
   m_flags |= 1;
 }
 
-void __fastcall CGWorldFrame::RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT texture, unsigned int startAlpha) {
+void __fastcall CGWorldFrame::RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT texture, unsigned char startAlpha) {
   FATALASSERT(object);
 
   HMODEL model = object->GetObjectModel();

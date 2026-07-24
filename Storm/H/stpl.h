@@ -172,6 +172,16 @@ class TSCArray {
     m_count = count;
   }
 
+  void Set(unsigned int count, const T *data) {
+    if (count > MAXCOUNT) {
+      FatalArrayBounds();
+    }
+    for (unsigned int i = 0; i < count; ++i) {
+      m_data[i] = data[i];
+    }
+    m_count = count;
+  }
+
   unsigned int MaxCount() {
     return MAXCOUNT;
   }

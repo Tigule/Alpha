@@ -98,12 +98,11 @@ void __fastcall CMap::UpdateDoodadDef(CMapDoodadDef *doodadDef, NTempest::C3Vect
 }
 
 void __fastcall CMap::UpdateMapObjDefs() {
-  for (CMapBaseObjLink *link = mapObjDefLinkList.Head(); link; link = mapObjDefLinkList.Next(link)) {
-    CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(link->owner);
-    if ((mapObjDef->flags & CMapBaseObj::Flag_Loaded) && mapObjDef->aaBox.b.x <= CWorld::objectAoi.t.x &&
-        mapObjDef->aaBox.b.y <= CWorld::objectAoi.t.y && mapObjDef->aaBox.b.z <= CWorld::objectAoi.t.z &&
-        mapObjDef->aaBox.t.x >= CWorld::objectAoi.b.x && mapObjDef->aaBox.t.y >= CWorld::objectAoi.b.y &&
-        mapObjDef->aaBox.t.z >= CWorld::objectAoi.b.z)
+  for (CMapObjDef *mapObjDef = mapObjDefHash.Head(); mapObjDef; mapObjDef = mapObjDefHash.Next(mapObjDef)) {
+    if ((mapObjDef->flags & CMapBaseObj::Flag_Loaded) && mapObjDef->aaBox.b.x <= CWorldScene::camFrustumBounds.t.x &&
+        mapObjDef->aaBox.b.y <= CWorldScene::camFrustumBounds.t.y && mapObjDef->aaBox.b.z <= CWorldScene::camFrustumBounds.t.z &&
+        mapObjDef->aaBox.t.x >= CWorldScene::camFrustumBounds.b.x && mapObjDef->aaBox.t.y >= CWorldScene::camFrustumBounds.b.y &&
+        mapObjDef->aaBox.t.z >= CWorldScene::camFrustumBounds.b.z)
     {
       CWorldScene::AddMapObjDef(mapObjDef);
     }

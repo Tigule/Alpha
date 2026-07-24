@@ -79,12 +79,12 @@ void CGCharacterModelBase::SetUnit(unsigned __int64 unitGUID) {
   InitializeModel(model);
   SetModel(model);
   HandleClose(model);
-  SetSequence(1);
+  SetCameraByIndex(1);
   ConfigureCamera();
 
   CGxLight light;
   light.m_enabled = 1;
-  light.m_dir = NTempest::C3Vector(0.0f, -0.70710677f, -0.70710677f);
+  light.m_dir = NTempest::C3Vector(0.0f, -0.707106f, -0.707106f);
   light.m_ambColor.Set(0xFFFFFFFFUL);
   light.m_dirColor.Set(0xFFFFFFCCUL);
   light.m_ambIntensity = 0.7f;
@@ -93,6 +93,7 @@ void CGCharacterModelBase::SetUnit(unsigned __int64 unitGUID) {
 }
 
 CGCharacterModelBase::~CGCharacterModelBase() {
+  SetUnit(0);
 }
 
 CGCharacterModelBase::CGCharacterModelBase(CSimpleFrame *parent) : CSimpleModel(parent), m_unit(0), m_rotationScale(0.0f) {

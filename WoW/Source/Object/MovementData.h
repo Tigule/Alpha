@@ -124,8 +124,15 @@ class CMovementData {
  public:
   CMovementData(const NTempest::C3Vector &position, float facing, const unsigned __int64 &guid);
   ~CMovementData();
+  NTempest::C3Vector GetPosition() const;
   NTempest::C3Vector GetPosition(const NTempest::C3Vector &position) const;
   float              GetFacing(float facing) const;
+  unsigned long      GetMoveStartTime() const {
+    return m_moveStartTime;
+  }
+  unsigned int GetMoveFlags() const {
+    return m_moveFlags;
+  }
   int                ForceSetTransport(unsigned __int64 guid);
   int                SetTransport(unsigned __int64 guid);
   void               RemoveFromMoversList();
@@ -211,6 +218,7 @@ class CMovement : public CMovementData {
   void UpdateTransportStatus(const CMovementStatus &update);
   void UpdateStatus(unsigned long eventTime, const CMovementStatus &update);
   void UpdateStatusLocal(unsigned long eventTime, const CMovementStatus &update);
+  void OnTeleportLocal(unsigned long eventTime, const NTempest::C3Vector &position, float facing);
   int  SetCollisionBox(const NTempest::CAaBox &box, float scale);
 
   float GetCurrentTurnRate() const;
@@ -223,6 +231,7 @@ class CMovement : public CMovementData {
   static int __fastcall  ToggleLogging();
   static int __fastcall  IsLoggingOn();
   static void __cdecl    LogWrite(const char *format, ...);
+  static void __cdecl    BothLogWrite(const char *format, ...);
 
   static void __fastcall StartFallLogging();
   static void __fastcall StopFallLogging();
@@ -251,6 +260,28 @@ class CMovement : public CMovementData {
   void                   OnSetPitchLocal(unsigned long eventTime, float pitch);
   void                   OnSwimStartLocal(unsigned long eventTime);
   void                   OnSwimStopLocal(unsigned long eventTime);
+  void                   OnMoveStart(unsigned long eventTime, int forward);
+  int                    OnMoveStop(unsigned long eventTime);
+  void                   OnStrafeStart(unsigned long eventTime, int left);
+  int                    OnStrafeStop(unsigned long eventTime);
+  void                   OnJump(unsigned long eventTime);
+  void                   OnTurnStart(unsigned long eventTime, int left);
+  void                   OnTurnStop(unsigned long eventTime);
+  void                   OnPitchStart(unsigned long eventTime, int up);
+  void                   OnPitchStop(unsigned long eventTime);
+  void                   OnSetRunMode(unsigned long eventTime, int run);
+  void                   OnTeleport(unsigned long eventTime, const NTempest::C3Vector &position, float facing);
+  void                   OnSetFacing(unsigned long eventTime, float facing);
+  void                   OnSetPitch(unsigned long eventTime, float pitch);
+  void                   OnSwimStart(unsigned long eventTime);
+  void                   OnSwimStop(unsigned long eventTime);
+  void                   EnableCollision(unsigned long eventTime, int enable);
+  void                   OnSpline(
+      unsigned long eventTime, const NTempest::C3Vector *points, unsigned int count, unsigned long duration, unsigned int flags
+  );
+  void                   OnSplineDoneFace(float facing);
+  void                   OnSplineDoneFace(const unsigned __int64 &guid);
+  void                   OnSplineDoneFace(const NTempest::C3Vector &spot);
   int                    OnRunSpeedChange(unsigned long eventTime, float speed);
   int                    OnWalkSpeedChange(unsigned long eventTime, float speed);
   int                    OnSwimSpeedChange(unsigned long eventTime, float speed);
@@ -308,8 +339,12 @@ class CMovement : public CMovementData {
   void  SetRunMode(unsigned long eventTime, int run);
   void  SetFacing(unsigned long eventTime, float facing);
   void  SetPitch(unsigned long eventTime, float pitch);
+  void  Teleport(unsigned long eventTime, const NTempest::C3Vector &position, float facing);
   void  StartSwim(unsigned long eventTime);
   void  StopSwim(unsigned long eventTime);
+  void  OnDisableGravity(unsigned long eventTime);
+  void  OnEnableGravity(unsigned long eventTime);
+  void  CollisionStateChanged();
   void  StartFalling(unsigned long eventTime);
   void  StopFalling();
   void  ProcessFallReset(unsigned long eventTime);

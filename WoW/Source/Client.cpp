@@ -135,12 +135,14 @@ void __fastcall    LootInitialize();
 void __fastcall    LootDestroy();
 void __fastcall    TaxiMapInitialize();
 void __fastcall    TaxiMapShutdown();
+void __fastcall    Trade_C_Initialize();
 void __fastcall    Trade_C_Destroy();
 void __fastcall    SmartScreenRectClearAllGrids();
 void __fastcall    ValidateNameInitialize();
 void __fastcall    ValidateNameDestroy();
 void __fastcall    ViolenceLevelsInitialize();
 void __fastcall    ViolenceLevelsShutdown();
+void __fastcall    InstallGameConsoleCommands();
 void __fastcall    UninstallGameConsoleCommands();
 void __fastcall    WorldTextClearStrings();
 int __fastcall     SCreateProcess(const char *applicationName, char *commandLine, SPROCESSCOMPLETIONPROC completionProc, void *completionParam);
@@ -1163,25 +1165,29 @@ void __fastcall ClientInitializeGame(unsigned int continentID, NTempest::C3Vecto
   ClntObjMgrSetCurrent(mgr);
   ClntObjMgrInitialize();
 
+  SndInterfaceWorldInitialize();
   CGGameUI::InitializeGame();
   PlayerNameInitialize();
   WeaponTrailsInitialize();
   CGObject_C::Initialize();
-  PlayerClientInitialize();
+  SpellTableInitialize();
   CGUnit_C::Initialize();
+  CGGameObject_C::Initialize();
+  PlayerClientInitialize();
   CGPlayer_C::Initialize();
   CGItem_C::Initialize();
   LootInitialize();
-  SpellTableInitialize();
   AreaListInitialize();
   TaxiMapInitialize();
+  FriendList::Initialize();
   SmartScreenRectClearAllGrids();
+  Trade_C_Initialize();
 
   MovementInit();
   EventRegister(EVENT_ID_IDLE, ClientIdle);
   EventRegister(EVENT_ID_FOCUS, ClientFocus);
-  ShadowInit();
   ClientInitializeGameTime();
+  InstallGameConsoleCommands();
 
   ClientServices_SetMessageHandler(SMSG_QUERY_OBJECT_POSITION, ReceiveObjectPosition, 0);
   ClientServices_SetMessageHandler(SMSG_QUERY_OBJECT_ROTATION, ReceiveObjectRotation, 0);
@@ -1213,7 +1219,6 @@ void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError) {
 
   EventUnregister(EVENT_ID_IDLE, ClientIdle);
   EventUnregister(EVENT_ID_FOCUS, ClientFocus);
-  ShadowDestroy();
   ClientServices_ClearMessageHandler(SMSG_QUERY_OBJECT_POSITION);
   ClientServices_ClearMessageHandler(SMSG_QUERY_OBJECT_ROTATION);
   ClientServices_ClearMessageHandler(SMSG_MESSAGECHAT);
@@ -1240,6 +1245,7 @@ void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError) {
   PlayerClientShutdown();
   LootDestroy();
   SpellTableDestroy();
+  CGUnit_C::Shutdown();
   CGGameObject_C::Shutdown();
   CGObject_C::Shutdown();
   MovementDestroy();
@@ -1253,6 +1259,7 @@ void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError) {
   WeaponTrailsShutdown();
   PlayerNameShutdown();
   CGGameUI::ShutdownGame();
+  SndInterfaceWorldDestroy();
 
   ClntObjMgrDestruct(ClntObjMgrGetCurrent());
   ClntObjMgrDestroyShared();

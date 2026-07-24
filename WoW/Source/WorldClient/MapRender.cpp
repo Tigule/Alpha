@@ -17,7 +17,7 @@ void __fastcall CMap::TestQueryRender() {
   GxRsPush();
   GxRsSet(GxRs_TexLodBias0, 1.0f);
   cMat.Translate(-CWorldScene::camPos);
-  GxXformSet(GxXform_World, cMat);
+  GxXformPush(GxXform_World, cMat);
   GxRsSet(GxRs_Blend, GxBlend_Alpha);
   GxRsSet(GxRs_Lighting, 0);
   GxRsSet(GxRs_DepthWrite, 0);
@@ -29,9 +29,8 @@ void __fastcall CMap::TestQueryRender() {
   );
   GxPrimDrawElements(GxPrim_Triangles, testQueryIndices.Count(), &testQueryIndices[0]);
   GxPrimUnlockVertexPtrs();
+  GxXformPop(GxXform_World);
   GxRsPop();
-  testQueryVerts.SetCount(0);
-  testQueryIndices.SetCount(0);
 }
 
 void __fastcall CMap::RenderLow() {
@@ -359,6 +358,6 @@ void DNStars::Render() {
     NTempest::C3Vector  cameraVector;
     ModelAnimate(m_hModel, orientation, 1.0f, cameraPos, cameraVector);
     ModelSetVertexAlpha(m_hModel, m_color.a, 0);
-    ModelAddToScene(m_hModel, 0);
+    ModelRender(m_hModel, 0, 0);
   }
 }

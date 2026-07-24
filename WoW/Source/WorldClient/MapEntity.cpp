@@ -431,16 +431,18 @@ unsigned int __fastcall CMap::LinkIntersectMapObjs(
         NTempest::C3Segment seg(v0, v1);
 
         CMapBaseObjLink *link = mapObjDef->groupLinkList.Head();
-        while (link) {
+        while (reinterpret_cast<long>(link) > 0) {
           CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
-          CMapObjGroup    *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
-          if (mapObjGroup) {
-            CWTriData triData;
-            float     thisT = hitT;
-            if (mapObjGroup->GetTris(triData, seg, thisT, mapObjDef, 0) && thisT < hitT) {
-              hitT = thisT;
-              hitMapObjDef = mapObjDef;
-              hitMapObjDefGroup = mapObjDefGroup;
+          if (mapObj->TestGroupBounds(seg.start, seg.end, mapObjDefGroup->groupNum)) {
+            CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
+            if (mapObjGroup) {
+              CWTriData triData;
+              float     thisT = hitT;
+              if (mapObjGroup->GetTris(triData, seg, thisT, mapObjDef, 0) && thisT < hitT) {
+                hitT = thisT;
+                hitMapObjDef = mapObjDef;
+                hitMapObjDefGroup = mapObjDefGroup;
+              }
             }
           }
           link = mapObjDef->groupLinkList.RawNext(link);

@@ -48,7 +48,7 @@ void __fastcall CMap::Unload() {
   DayNightDestroy();
   DestroyLight(sunLight);
   bActive = 0;
-  bPreload = 0;
+  bDungeon = 0;
 }
 
 void DNGlare::Destroy() {

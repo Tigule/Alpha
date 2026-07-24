@@ -117,8 +117,9 @@ class CGWorldFrame : public CSimpleFrame {
   static CGCamera *__fastcall GetActiveCamera();
   static void __fastcall      GetCameraPosition(NTempest::C3Vector *position);
   static void __fastcall      GetCameraFacing(NTempest::C3Vector *position);
-  static void __fastcall      RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT__ *texture, unsigned int startAlpha);
+  static void __fastcall      RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT__ *texture, unsigned char startAlpha);
   void                        SetNamePlateUpdate();
+  void                        RefreshPlayerAlpha();
 
  protected:
   unsigned __int64 FindClosestModel(NTempest::C3Vector &a, NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist);
@@ -147,7 +148,6 @@ class CGWorldFrame : public CSimpleFrame {
   void                   HideObstructingModels(float maxDist);
   unsigned int           GetHitTestFilterFlags();
   void                   UpdateDayNightInfo(float elapsedSec);
-  void                   RefreshPlayerAlpha();
   void                   UpdatePlayerAlpha(float elapsedSeconds);
   void                   HandleUnitFade(int nowTracking, int immediateFade);
   void                   UnitUpdate();

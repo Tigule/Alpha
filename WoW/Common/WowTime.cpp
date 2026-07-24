@@ -59,6 +59,98 @@ void WowTime::SetHourAndMinutes(int minutes) {
   m_minute = minutes % 60;
 }
 
+int WowTime::CompareYear(const WowTime &compareTime) const {
+  return m_year < compareTime.m_year ? -1 : m_year > compareTime.m_year;
+}
+
+int WowTime::CompareMonth(const WowTime &compareTime) const {
+  return m_month < compareTime.m_month ? -1 : m_month > compareTime.m_month;
+}
+
+int WowTime::CompareDay(const WowTime &compareTime) const {
+  return m_monthDay < compareTime.m_monthDay ? -1 : m_monthDay > compareTime.m_monthDay;
+}
+
+int WowTime::CompareWeekday(const WowTime &compareTime) const {
+  return m_weekday < compareTime.m_weekday ? -1 : m_weekday > compareTime.m_weekday;
+}
+
+int WowTime::CompareHour(const WowTime &compareTime) const {
+  return m_hour < compareTime.m_hour ? -1 : m_hour > compareTime.m_hour;
+}
+
+int WowTime::CompareMinute(const WowTime &compareTime) const {
+  return m_minute < compareTime.m_minute ? -1 : m_minute > compareTime.m_minute;
+}
+
+bool WowTime::InRange(const WowTime &valMin, const WowTime &valMax) const {
+  if (valMin <= valMax) {
+    return *this >= valMin && *this < valMax;
+  }
+  return *this >= valMin || *this < valMax;
+}
+
+bool WowTime::operator<(const WowTime &cmpTime) const {
+  if (&cmpTime == this) {
+    return false;
+  }
+
+  if (cmpTime.m_year >= 0 && m_year >= 0 && CompareYear(cmpTime)) {
+    return CompareYear(cmpTime) < 0;
+  }
+  if (cmpTime.m_month >= 0 && m_month >= 0 && CompareMonth(cmpTime)) {
+    return CompareMonth(cmpTime) < 0;
+  }
+  if (cmpTime.m_monthDay >= 0 && m_monthDay >= 0 && CompareDay(cmpTime)) {
+    return CompareDay(cmpTime) < 0;
+  }
+  if (cmpTime.m_weekday >= 0 && m_weekday >= 0 && CompareWeekday(cmpTime)) {
+    return CompareWeekday(cmpTime) < 0;
+  }
+  if (cmpTime.m_hour >= 0 && m_hour >= 0 && CompareHour(cmpTime)) {
+    return CompareHour(cmpTime) < 0;
+  }
+  return cmpTime.m_minute >= 0 && m_minute >= 0 && CompareMinute(cmpTime) < 0;
+}
+
+bool WowTime::operator<=(const WowTime &cmpTime) const {
+  return *this == cmpTime || *this < cmpTime;
+}
+
+bool WowTime::operator>(const WowTime &cmpTime) const {
+  return cmpTime < *this;
+}
+
+bool WowTime::operator>=(const WowTime &cmpTime) const {
+  return *this == cmpTime || *this > cmpTime;
+}
+
+bool WowTime::operator==(const WowTime &cmpTime) const {
+  if (&cmpTime == this) {
+    return true;
+  }
+  if (cmpTime.m_year >= 0 && m_year >= 0 && CompareYear(cmpTime)) {
+    return false;
+  }
+  if (cmpTime.m_month >= 0 && m_month >= 0 && CompareMonth(cmpTime)) {
+    return false;
+  }
+  if (cmpTime.m_monthDay >= 0 && m_monthDay >= 0 && CompareDay(cmpTime)) {
+    return false;
+  }
+  if (cmpTime.m_weekday >= 0 && m_weekday >= 0 && CompareWeekday(cmpTime)) {
+    return false;
+  }
+  if (cmpTime.m_hour >= 0 && m_hour >= 0 && CompareHour(cmpTime)) {
+    return false;
+  }
+  return cmpTime.m_minute < 0 || m_minute < 0 || !CompareMinute(cmpTime);
+}
+
+bool WowTime::operator!=(const WowTime &cmpTime) const {
+  return !(*this == cmpTime);
+}
+
 void __fastcall WowTime::WowEncodeTime(unsigned int &value, int minute, int hour, int weekday, int monthday, int month, int year, int flags) {
   ASSERT(minute == -1 || (minute >= 0 && minute < 60));
   ASSERT(hour == -1 || (hour >= 0 && hour < 24));

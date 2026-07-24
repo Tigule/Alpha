@@ -141,6 +141,16 @@ struct CPrimitive {
 typedef TSFixedArray_<NTempest::C2Vector, 'IMod', 266> CModelTexCoordArray;
 
 struct CGeosetShared {
+  CGeosetShared()
+      : vertexShader(GxVS_PassThru),
+        materialId(0),
+        centroid(0.0f),
+        radius(0.0f),
+        selectionGroup(0),
+        geosetId(0),
+        flags(0) {
+  }
+
   TSFixedArray_<NTempest::C3Vector, 'IMod', 276>  position;
   TSFixedArray_<unsigned char, 'IMod', 277>       boneWeights;
   TSFixedArray_<NTempest::C3Vector, 'IMod', 278>  normal;

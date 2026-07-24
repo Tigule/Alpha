@@ -41,9 +41,8 @@ void __fastcall CMap::PrepareAreas() {
 }
 
 void __fastcall CMap::PrepareMapObjDefs() {
-  CMapBaseObjLink *mapObjDefLink = mapObjDefLinkList.Head();
-  while (reinterpret_cast<long>(mapObjDefLink) > 0) {
-    CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(mapObjDefLink->owner);
+  CMapObjDef *mapObjDef = mapObjDefHash.Head();
+  while (mapObjDef) {
     CMapObj    *mapObj = mapObjDef->mapObj;
     FATALASSERT(mapObj);
 
@@ -51,7 +50,7 @@ void __fastcall CMap::PrepareMapObjDefs() {
       while (!mapObj->bLoaded) {
         mapObj->WaitLoad();
       }
-      if (!(mapObjDef->flags & CMapBaseObj::Flag_GameObj)) {
+      if (!(mapObjDef->flags & CMapBaseObj::Flag_Loaded)) {
         PrepareMapObjDef(mapObjDef, mapObj);
       }
     }
@@ -87,15 +86,14 @@ void __fastcall CMap::PrepareMapObjDefs() {
       groupLink = mapObjDef->groupLinkList.RawNext(groupLink);
     }
 
-    mapObjDefLink = mapObjDefLinkList.RawNext(mapObjDefLink);
+    mapObjDef = mapObjDefHash.Next(mapObjDef);
   }
 }
 
 void __fastcall CMap::PrepareDoodadDefs() {
   unsigned int     count = 0;
-  CMapBaseObjLink *doodadDefLink = doodadDefLinkList.Head();
-  while (reinterpret_cast<long>(doodadDefLink) > 0) {
-    CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(doodadDefLink->owner);
+  CMapDoodadDef *doodadDef = doodadDefHash.Head();
+  while (doodadDef) {
     if (!(doodadDef->flags & CMapBaseObj::Flag_Loaded)) {
       if (!doodadDef->model) {
         ++count;
@@ -116,7 +114,7 @@ void __fastcall CMap::PrepareDoodadDefs() {
       }
     }
 
-    doodadDefLink = doodadDefLinkList.RawNext(doodadDefLink);
+    doodadDef = doodadDefHash.Next(doodadDef);
   }
 }
 
@@ -176,7 +174,7 @@ void __fastcall CMap::PrepareMapObjDef(CMapObjDef *mapObjDef, CMapObj *mapObj) {
   FATALASSERT(mapObjDef);
   FATALASSERT(mapObj);
 
-  mapObjDef->flags |= CMapBaseObj::Flag_GameObj;
+  mapObjDef->flags |= CMapBaseObj::Flag_Loaded;
   NTempest::CAaBox aaBox;
   mapObj->GetBounds(mapObjDef->aaSphere);
   mapObjDef->aaSphere.c *= mapObjDef->mat;

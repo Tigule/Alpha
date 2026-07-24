@@ -308,5 +308,5 @@ class CGxDeviceD3d : public CGxDevice {
   IDirect3DSurface9   *m_defDepthSurface;
   StateD3dLight        m_d3dStatesLight[8];
   unsigned long        m_deviceState[34];
-  unsigned int         m_texEnable[4];
+  unsigned char        m_texEnable[4];
 };

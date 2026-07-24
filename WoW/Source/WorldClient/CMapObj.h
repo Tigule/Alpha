@@ -191,8 +191,9 @@ class CMapObjGroup {
   bool         QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color);
   unsigned int QueryLiquidStatus(NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);
   void         QueryMinimap(unsigned int groupID, NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
-  bool         GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, unsigned int faceIgnoreFlags);
-  unsigned int GetTris(CWTriData &triData, NTempest::CAaBox &aaBox, CMapObjDef *mapObjDef, unsigned int faceIgnoreFlags);
+  bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, unsigned int queryFlags);
+  bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, unsigned int queryFlags);
+  bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, unsigned int queryFlags);
   unsigned int flags;
   NTempest::CAaBox     aaBox;
   unsigned int         portalStart;
@@ -316,6 +317,8 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
     return header->wmoID;
   }
   CMapObjGroup *GetGroup(unsigned int index, int force);
+  const SMOGroupInfo *GetGroupInfo(unsigned int index);
+  char          *GetGroupName(unsigned int index);
   void          GetBounds(NTempest::CAaBox &aaBox);
   void          GetBounds(NTempest::CAaSphere &aaSphere);
   void          GetGroupBounds(NTempest::CAaBox &aaBox, unsigned int index);
@@ -327,7 +330,22 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
     return fogList[index];
   }
   bool TestBounds(const NTempest::CAaBox &box);
+  bool VectorIntersect(
+      CMapObjDef                  *mapObjDef,
+      const NTempest::C3Vector    *v0,
+      const NTempest::C3Vector    *v1,
+      unsigned int                 queryFlags,
+      unsigned int                 polyIgnoreFlags,
+      unsigned int                 groupIgnoreFlags,
+      float                       *dist,
+      SMOPoly                    **poly
+  );
+  bool VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT, unsigned int *groupIDs);
+  bool TestGroupBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, unsigned int index);
   bool TestGroupBounds(const NTempest::CAaBox &box, unsigned int index);
+  bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, unsigned int queryFlags);
+  bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, unsigned int queryFlags);
+  bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, unsigned int queryFlags);
   bool QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color, float *t);
   unsigned int
   QueryLiquidStatus(unsigned int ignoreGroupFlags, NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);

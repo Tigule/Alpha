@@ -64,6 +64,37 @@ class BspQuery {
   static unsigned int   hitFaceSub;
 };
 
+unsigned char __fastcall QueryCull(const NTempest::CAaBox &aaBox, const NTempest::C3Vector *verts);
+unsigned char __fastcall QueryCull(const CWFrustum &frustum, const NTempest::C3Vector *verts);
+
+template <class VOLUME>
+class BspQuery_Volume : public BspQuery {
+ public:
+  BspQuery_Volume(SMOPoly *faces, NTempest::C3Vector *vertexList, const VOLUME &volume, unsigned short faceIgnoreFlags)
+      : faces(faces), vertexList(vertexList), volume(volume), faceIgnoreFlags(faceIgnoreFlags) {
+  }
+
+  void operator()(unsigned short faceIndex) {
+    if (faces[faceIndex].flags & faceIgnoreFlags) {
+      return;
+    }
+
+    FATALASSERT(testFaceSub < MaxFaces);
+    testFaces[testFaceSub++] = faceIndex;
+    faces[faceIndex].flags |= 0x80;
+
+    if (!QueryCull(volume, &vertexList[3 * faceIndex])) {
+      FATALASSERT(hitFaceSub < MaxFaces);
+      hitFaces[hitFaceSub++] = faceIndex;
+    }
+  }
+
+  SMOPoly             *faces;
+  NTempest::C3Vector  *vertexList;
+  const VOLUME        &volume;
+  unsigned short       faceIgnoreFlags;
+};
+
 unsigned short BspQuery::testFaces[BspQuery::MaxFaces];
 unsigned int   BspQuery::testFaceSub;
 unsigned short BspQuery::hitFaces[BspQuery::MaxFaces];
@@ -267,46 +298,43 @@ bool CMapObjGroup::GetTris(
   return result;
 }
 
-unsigned int CMapObjGroup::GetTris(CWTriData &triData, NTempest::CAaBox &aaBox, CMapObjDef *mapObjDef, unsigned int faceIgnoreFlags) {
-  BspQuery q;
-  q.testFaceSub = 0;
-  q.hitFaceSub = 0;
-
-  for (unsigned int face = 0; face < polyCount; ++face) {
-    if (polyList[face].flags & faceIgnoreFlags) {
-      continue;
-    }
-
-    const NTempest::C3Vector *v = &vertexList[3 * face];
-    float                     minx = v[0].x;
-    float                     miny = v[0].y;
-    float                     minz = v[0].z;
-    float                     maxx = v[0].x;
-    float                     maxy = v[0].y;
-    float                     maxz = v[0].z;
-    for (unsigned int i = 1; i < 3; ++i) {
-      if (v[i].x < minx)
-        minx = v[i].x;
-      if (v[i].y < miny)
-        miny = v[i].y;
-      if (v[i].z < minz)
-        minz = v[i].z;
-      if (v[i].x > maxx)
-        maxx = v[i].x;
-      if (v[i].y > maxy)
-        maxy = v[i].y;
-      if (v[i].z > maxz)
-        maxz = v[i].z;
-    }
-    if (minx <= aaBox.t.x && miny <= aaBox.t.y && minz <= aaBox.t.z && maxx >= aaBox.b.x && maxy >= aaBox.b.y && maxz >= aaBox.b.z) {
-      FATALASSERT(q.hitFaceSub < BspQuery::MaxFaces);
-      q.hitFaces[q.hitFaceSub++] = static_cast<unsigned short>(face);
-    }
-  }
+bool CMapObjGroup::GetTris(
+    CWTriData              &triData,
+    const NTempest::CAaBox &aaBox,
+    const CMapObjDef       *mapObjDef,
+    unsigned int            faceIgnoreFlags
+) {
+  BspQuery_Volume<NTempest::CAaBox> q(polyList, vertexList, aaBox, static_cast<unsigned short>(faceIgnoreFlags | 0x80));
+  CAaBsp_Query_AaBox<BspQuery_Volume<NTempest::CAaBox> >(aaBsp, q, aaBox);
 
   GetTrisFromQuery(triData, q, mapObjDef);
-  unsigned int result = q.hitFaceSub != 0;
-  q.testFaceSub = 0;
+  bool result = q.hitFaceSub != 0;
+
+  while (q.testFaceSub) {
+    --q.testFaceSub;
+    polyList[q.testFaces[q.testFaceSub]].flags &= ~0x80;
+  }
+  q.hitFaceSub = 0;
+  return result;
+}
+
+bool CMapObjGroup::GetTris(
+    CWTriData          &triData,
+    const CWFrustum    &frustum,
+    const CMapObjDef   *mapObjDef,
+    unsigned int        faceIgnoreFlags
+) {
+  BspQuery_Volume<CWFrustum> q(polyList, vertexList, frustum, static_cast<unsigned short>(faceIgnoreFlags | 0x80));
+  NTempest::CAaBox aaBox = NTempest::CAaBox::Bounding(frustum.corners, 8);
+  CAaBsp_Query_AaBox<BspQuery_Volume<CWFrustum> >(aaBsp, q, aaBox);
+
+  GetTrisFromQuery(triData, q, mapObjDef);
+  bool result = q.hitFaceSub != 0;
+
+  while (q.testFaceSub) {
+    --q.testFaceSub;
+    polyList[q.testFaces[q.testFaceSub]].flags &= ~0x80;
+  }
   q.hitFaceSub = 0;
   return result;
 }
@@ -618,11 +646,30 @@ bool CMapObjGroup::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVe
 }
 
 unsigned char __fastcall QueryCull(const NTempest::CAaBox& aaBox, const NTempest::C3Vector* verts) {
-    // TODO: implement
-    return 0;
+  for (unsigned int component = 0; component < 3; ++component) {
+    unsigned int signMax = 0xFFFFFFFF;
+    unsigned int signMin = 0xFFFFFFFF;
+
+    for (unsigned int vertex = 0; vertex < 3; ++vertex) {
+      float dmax = aaBox.t[component] - verts[vertex][component];
+      signMax &= *reinterpret_cast<unsigned int *>(&dmax) & 0x80000000;
+
+      float dmin = verts[vertex][component] - aaBox.b[component];
+      signMin &= *reinterpret_cast<unsigned int *>(&dmin) & 0x80000000;
+    }
+
+    if (signMax || signMin) {
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
 unsigned char __fastcall QueryCull(const CWFrustum& frustum, const NTempest::C3Vector* verts) {
-    // TODO: implement
-    return 0;
+  unsigned int cc[3];
+  const_cast<CWFrustum &>(frustum).Cull(const_cast<NTempest::C3Vector &>(verts[0]), cc[0]);
+  const_cast<CWFrustum &>(frustum).Cull(const_cast<NTempest::C3Vector &>(verts[1]), cc[1]);
+  const_cast<CWFrustum &>(frustum).Cull(const_cast<NTempest::C3Vector &>(verts[2]), cc[2]);
+  return (cc[0] & cc[1] & cc[2]) != 0;
 }

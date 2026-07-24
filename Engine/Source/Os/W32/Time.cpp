@@ -5,6 +5,10 @@
 #include <storm.h>
 #include <time.h>
 
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+#include <intrin.h>
+#endif
+
 static int     s_qpcExists;
 static int     s_qpcExistsTested;
 static float   s_qpcScaleToMs;
@@ -12,11 +16,24 @@ static __int64 s_cpuTicksPerSecond;
 static float   s_cpuTicksDivisor;
 static __int64 s_lastTimeAndTickCount;
 
+#if defined(_MSC_VER) && _MSC_VER < 1400 && defined(_M_IX86)
+__declspec(naked) __int64 __cdecl OsGetAsyncTimeClocks() {
+  __asm {
+    rdtsc
+    ret
+  }
+}
+#else
 __int64 __cdecl OsGetAsyncTimeClocks() {
+#if defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(_M_IX86) || defined(_M_X64))
+  return static_cast<__int64>(__rdtsc());
+#else
   LARGE_INTEGER clocks;
   QueryPerformanceCounter(&clocks);
   return clocks.QuadPart;
+#endif
 }
+#endif
 
 __int64 __fastcall OsGetAsyncClocksPerSecond() {
   LARGE_INTEGER qwTickStart;

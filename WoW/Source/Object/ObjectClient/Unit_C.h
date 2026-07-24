@@ -25,6 +25,8 @@ typedef HCHARGEOSET__ *HCHARGEOSET;
 template <class T>
 class TSStackArray;
 
+void __fastcall UnitUpdateMovementAnim(const unsigned __int64 &unit);
+
 enum UNITEFFECTSPECIALS {
   SPECIALEFFECT_LOOTART = 0,
   SPECIALEFFECT_LEVELUP = 1
@@ -231,7 +233,17 @@ struct ACTIVEATTACHMENTINFO {
 };
 
 enum UNITSOUNDTYPE {
+  UNITSOUND_AGGRO = 9,
+  UNITSOUND_ALERT = 11,
   UNITSOUND_JUMP_END = 15
+};
+
+enum AI_REACTION {
+  AI_REACT_ALERT = 0,
+  AI_REACT_FRIENDLY = 1,
+  AI_REACT_HOSTILE = 2,
+  AI_REACT_AFRAID = 3,
+  NUM_AI_REACTIONS = 4
 };
 
 enum WEAPONMODE {
@@ -402,6 +414,8 @@ class CGUnit_C : public CGObject_C {
   virtual ~CGUnit_C();
   virtual void Disable(int shutdown);
   virtual void Reenable();
+  virtual void PostReenable();
+  virtual void PreRender(int currentTime, float elapsed);
 
   void SetStorage(unsigned long *storage);
   void PostInit(const CClientObjCreate &init);
@@ -413,6 +427,7 @@ class CGUnit_C : public CGObject_C {
   static unsigned __int64        m_activeMover;
   static void __fastcall         Initialize();
   static void __fastcall         PostShutdown();
+  static void __fastcall         Shutdown();
   static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);
   static void __fastcall         SetActiveMover(const unsigned __int64 &guid);
   static void __fastcall         StopMoveHeartbeatTimer();
@@ -431,6 +446,7 @@ class CGUnit_C : public CGObject_C {
   void                       InsertSortedNamePlate(struct NAMEPLATEDESC *desc);
   void                       RemoveUnitNamePlate();
   void                       DestroyFadingMounts();
+  void                       CreateFadeInMount();
   static void __fastcall     ResortAllUnitNameplates(CGWorldFrame *worldFrame);
   virtual NTempest::C3Vector GetPosition() const;
   virtual void               GetPosition(NTempest::C3Vector &vec) const;
@@ -448,6 +464,11 @@ class CGUnit_C : public CGObject_C {
   virtual float              GetRenderFacing() const;
   virtual void               UpdateRenderFacing();
   virtual void               PostAnimate(CGWorldFrame *worldFrame);
+  virtual void               OnSpecialMountAnim();
+  virtual void               OnMount() {
+  }
+  virtual void               OnDismount() {
+  }
   virtual int                ShouldRender(unsigned long worldStatus);
   virtual HMODEL             GetCharacterModel(int *mountedPtr) const;
   virtual const char        *GetModelFileName() const;
@@ -476,6 +497,14 @@ class CGUnit_C : public CGObject_C {
 
  public:
   void               PostSetClientInitData(const CClientMoveUpdate &update);
+  int                OnMoveEvent(NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+  void               OnMonsterMove(unsigned long eventTime, CDataStore *msg);
+  int                OnForceMoveChange(unsigned long eventTime, NETMESSAGE msgID, CDataStore *msg);
+  void               OnMoveStopLocalNoUpdate(unsigned long eventTime);
+  void               OnSetRunModeLocalNoUpdate(unsigned long eventTime, int run);
+  void               OnSetFacingLocalNoUpdate(unsigned long eventTime, float facing);
+  void               OnSetFacingGUIDLocalNoUpdate(unsigned long eventTime, const unsigned __int64 &guid);
+  void               OnTeleportNoUpdate(unsigned long eventTime, const NTempest::C3Vector &position, float facing);
   void               OnPendingMoveStateChange(NETMESSAGE msgId);
   void               OnMoveStartLocal(unsigned long eventTime, int forward);
   void               OnCollideFalling(unsigned long eventTime);
@@ -493,6 +522,8 @@ class CGUnit_C : public CGObject_C {
   void               OnSetFacingLocal(unsigned long eventTime, float facing);
   void               OnSetRawFacingLocal(unsigned long eventTime, float facing);
   void               OnSetPitchLocal(unsigned long eventTime, float pitch);
+  void               OnRunSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID, float speed);
+  void               OnSwimSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID, float speed);
   void               OnAllSpeedChangeLocal(unsigned long eventTime, float speed);
   void               OnTurnRateChangeLocal(unsigned long eventTime, float rate);
   void               OnMovementInitiated(unsigned int facingOnly);
@@ -512,6 +543,7 @@ class CGUnit_C : public CGObject_C {
   }
   void               HandlePrecastStart(unsigned int precast);
   void               HandlePrecastStop(int spellID, unsigned int force);
+  void               CheckDeferredSheathing();
   void               SetSheatheReason(SHEATHEREASONS reason, unsigned int on, unsigned int suppressSound);
   SpellVisualRec    *GetAppropriateSpellVisual(SpellRec *spellRec, SpellVisualRec &filled);
   unsigned int       GetCurrentTorsoAnim() const;
@@ -613,6 +645,17 @@ class CGUnit_C : public CGObject_C {
   unsigned int IsSlotComponented(unsigned int offset, int ignoreUsingRangedWeapon);
   bool         UpdateVisibilitySlots(HMODEL characterModel, int attachmentSlot, ACTIVEATTACHMENTINFO **&found, int displayID, bool deferApply);
   void         ClearWeaponTrailHandles();
+  void         ReinitializeWeaponTrails();
+  void         OnMountCancelled();
+  void         OnEncounter(AI_REACTION reaction);
+  HMODEL       GetMountModel();
+  const CreatureSoundDataRec *GetMountSoundDataRec() const;
+  void         UnitInitializeMountModel(HMODEL model);
+  void         CreateUnitMount();
+  void         DestroyUnitMount(int doNotUpdateAnim);
+  void         UpdateUnitMountInfo(int immediate, unsigned int changedFlags);
+  void         CreateFadeOutMount();
+  void         DisableWeaponTrails();
   ACTIVEATTACHMENTINFO *CreateAttachmentInfo(
       int  invSlot,
       int  displayID,
@@ -626,6 +669,7 @@ class CGUnit_C : public CGObject_C {
   unsigned int  GetDisplaySex() const;
   HTEXCOMPONENT GetTexComponent() const;
   void          CommitTexture(int force);
+  virtual int   UpdateAttachmentLoadStatus();
   virtual int   UpdateTexComponentLoadStatus();
   int           IsModelComponentable() const;
   const char   *GetDisplayTextureName() const;
@@ -690,17 +734,17 @@ class CGUnit_C : public CGObject_C {
   void         SheatheAnimEndHandler();
   bool         SetSheathingSequence();
   virtual void UpdateBaseAnimation(unsigned int flags);
-  void         SetBaseAnimState(unsigned int newState);
+  virtual void SetBaseAnimState(unsigned int newState);
   void         SetEmoteState(unsigned int emoteID);
-  void         SetTorsoAnimState(unsigned int newState);
+  virtual void SetTorsoAnimState(unsigned int newState);
   int          GetSpellCastingTime(int spellID) const;
   unsigned int DetermineWoundSequence() const;
-  const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
-  int          GetVirtualItemDisplayID(unsigned int slot) const;
+  virtual const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
+  virtual int  GetVirtualItemDisplayID(unsigned int slot) const;
   int          ShouldRenderUnitName(unsigned int mode) const;
-  void         CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
-  void         ReinitializeUnitArtwork();
-  void         PostReinitializeArtwork();
+  virtual void CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
+  virtual void ReinitializeUnitArtwork();
+  virtual void PostReinitializeArtwork();
   void         SetLastWeaponModeSent(int mode);
   void         UnitInitializeModel(HMODEL model);
   void         UnitUninitializeModel(HMODEL model);
@@ -711,6 +755,9 @@ class CGUnit_C : public CGObject_C {
   void         KillCreatureLoopSound();
   void         InitializeLoopSound();
   void         InstallSeqEndHandler(HMODEL model, unsigned int animID);
+  void         ClearMountAnimState();
+  void         ClearTempCharModel();
+  void         SetTempCharModel(HMODEL model);
   void         ClearAnimCallbackData();
   void         CheckPendingSpellAnimHits();
   void         SpellAnimHit(int spellID);
@@ -719,8 +766,10 @@ class CGUnit_C : public CGObject_C {
   virtual void UpdateBaseAnimation(unsigned int newState, unsigned int flags);
   void         SetBaseAnim(unsigned int newAnim);
   void         LookAtTarget();
+  void         UpdateLookAtTarget();
   void         SetLocalTarget(unsigned __int64 target);
   bool         BaseAnimLocksHead() const;
+  bool         TorsoAnimLocksHead() const;
   unsigned int GetCurrentBaseAnimState() {
     return m_currentBaseAnimState;
   }
@@ -804,6 +853,30 @@ class CGUnit_C : public CGObject_C {
   void             SetWalkStateAnim(int walkAnim);
   void             EnableWeaponTrail(const NTempest::CImVector &color, int fadeOutRate, unsigned int duration);
 
+ protected:
+  void OnTeleport(unsigned long eventTime, const CMovementStatus &update);
+  void OnMoveStart(unsigned long eventTime, const CMovementStatus &update, int forward);
+  void OnMoveStop(unsigned long eventTime, const CMovementStatus &update);
+  void OnStrafeStart(unsigned long eventTime, const CMovementStatus &update, int left);
+  void OnStrafeStop(unsigned long eventTime, const CMovementStatus &update);
+  void OnJump(unsigned long eventTime, const CMovementStatus &update);
+  void OnTurnStart(unsigned long eventTime, const CMovementStatus &update, int left);
+  void OnTurnStop(unsigned long eventTime, const CMovementStatus &update);
+  void OnPitchStart(unsigned long eventTime, const CMovementStatus &update, int up);
+  void OnPitchStop(unsigned long eventTime, const CMovementStatus &update);
+  void OnSetRunMode(unsigned long eventTime, const CMovementStatus &update, int run);
+  void OnSetFacing(unsigned long eventTime, const CMovementStatus &update);
+  void OnSetPitch(unsigned long eventTime, const CMovementStatus &update);
+  void OnToggleCollision(unsigned long eventTime, const CMovementStatus &update);
+  void OnRunSpeedChange(unsigned long eventTime, const CMovementStatus &update, CDataStore *msg);
+  void OnWalkSpeedChange(unsigned long eventTime, const CMovementStatus &update, CDataStore *msg);
+  void OnSwimSpeedChange(unsigned long eventTime, const CMovementStatus &update, CDataStore *msg);
+  void OnTurnRateChange(unsigned long eventTime, const CMovementStatus &update, CDataStore *msg);
+  void OnTeleportAck(unsigned long eventTime, const CMovementStatus &update);
+  void OnSwimStart(unsigned long eventTime, const CMovementStatus &update);
+  void OnSwimStop(unsigned long eventTime, const CMovementStatus &update);
+  void OnMoveHeartBeat(unsigned long eventTime, const CMovementStatus &update);
+
  private:
   void InternalProcessSpellProcEffects(SPELLPROC_ACTION action, float elapsed);
 
@@ -815,6 +888,7 @@ class CGUnit_C : public CGObject_C {
   void             StandStateChanged(unsigned int oldState);
   void             NPCFlagChanged(unsigned int oldNPCFlags);
   void             RemoveInteractIcon();
+  void             RefreshInteractIcon();
   void             UpdateInteractIcon(QUEST_GIVER_STATUS status);
   void             UpdateInteractIcon(INTERACTICONTYPE which);
   unsigned int     GetPlayerNameAttachmentPoint();
@@ -834,6 +908,7 @@ class CGUnit_C : public CGObject_C {
   void             WeaponModeChanged();
   void             VirtualComponentChanged(int slot, int oldValue);
   void             AttachVirtualComponent(unsigned int slot, bool deferApply);
+  void             DetachVirtualComponent(int slot, bool defer, bool removeRecord);
   void             RemoveObjectComponentByInvSlot(int invSlot, bool deferDeleteFromModel, bool removeRecord);
   void             ClearActiveAttachmentInfo();
   void             OnDynamicFlagsChanged(unsigned int oldValue);

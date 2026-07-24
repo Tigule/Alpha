@@ -392,17 +392,48 @@ int __fastcall CGSpellBook::GetSpell(unsigned int slot, UI_SPELL_TYPE type) {
 }
 
 void __fastcall CGSpellBook::PickupSpell(int slot, UI_SPELL_TYPE type) {
+  ASSERT(slot >= 0);
+  ASSERT(slot < 1024);
+
   int spellID = GetSpell(slot, type);
-  if (!spellID) {
-    CGGameUI::DropCursorSpell();
+  int cursorSpell = CGGameUI::GetCursorSpell();
+  int cursorWasPetSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL;
+  CGGameUI::ClearCursor(1);
+
+  if (spellID == cursorSpell) {
+    PlaySpellDropSound(type);
     return;
   }
-  if (CGGameUI::GetCursorSpell() == spellID) {
-    CGGameUI::DropCursorSpell();
+
+  if (cursorSpell > 0) {
+    SpellRec *spell = g_spellDB.GetRecord(cursorSpell);
+    if (!spell) {
+      return;
+    }
+
+    int isAbility = (spell->m_attributes & 0x10) != 0;
+    if ((type == PET_SPELL && !cursorWasPetSpell) ||
+        (type == PLAYER_ABILITY && !isAbility) ||
+        (type == PLAYER_SPELL && isAbility))
+    {
+      return;
+    }
+
+    for (int cursorSlot = 0; cursorSlot < 1024; ++cursorSlot) {
+      if (GetSpell(cursorSlot, type) == cursorSpell) {
+        SetSpell(cursorSlot, spellID, type);
+        SetSpell(slot, cursorSpell, type);
+        PlaySpellDropSound(type);
+        return;
+      }
+    }
     return;
   }
-  CGGameUI::SetCursorSpell(spellID, type == PET_SPELL);
-  PlaySpellPickupSound(type);
+
+  if (spellID) {
+    CGGameUI::SetCursorSpell(spellID, type == PET_SPELL);
+    PlaySpellPickupSound(type);
+  }
 }
 
 void __fastcall CGSpellBook::CastSpell(int slot, UI_SPELL_TYPE type) {
@@ -552,9 +583,10 @@ static int __fastcall Script_IsSpellPassive(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
-    return luaL_error(L, "Usage: IsPassiveSpell(slot, bookType)");
+    return luaL_error(L, "Invalid spell slot in IsSpellPassive");
   }
-  SpellRec *spell = g_spellDB.GetRecord(CGSpellBook::GetSpell(slot, type));
+  int spellID = CGSpellBook::GetSpell(slot, type);
+  SpellRec *spell = spellID >= 0 ? g_spellDB.GetRecord(spellID) : 0;
   spell && (spell->m_attributes & 0x40) ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
   return 1;
 }
@@ -634,7 +666,7 @@ static FrameScript_Method s_ScriptFunctions[14] = {
     {             "UpdateSpells",              Script_UpdateSpells},
     {          "PlayerHasSpells",           Script_PlayerHasSpells},
     {             "HasPetSpells",              Script_HasPetSpells},
-    {           "IsPassiveSpell",            Script_IsSpellPassive},
+    {           "IsSpellPassive",            Script_IsSpellPassive},
     {    "GetNumShapeshiftForms",     Script_GetNumShapeshiftForms},
     {    "GetShapeshiftFormInfo",     Script_GetShapeshiftFormInfo},
     {       "CastShapeshiftForm",        Script_CastShapeshiftForm},

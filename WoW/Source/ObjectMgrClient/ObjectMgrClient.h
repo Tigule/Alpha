@@ -1,6 +1,8 @@
 #ifndef WOW_SOURCE_OBJECTMGRCLIENT_OBJECTMGRCLIENT_H
 #define WOW_SOURCE_OBJECTMGRCLIENT_OBJECTMGRCLIENT_H
 
+#include "Object/Object.h"
+
 #include <stpl.h>
 
 class CGObject_C;
@@ -182,6 +184,19 @@ void __fastcall ClntObjMgrUnsetObjMirrorHandler(
     unsigned int     offset,
     int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
     void *param
+);
+void __fastcall ClntObjMgrSetTypeMirrorHandler(
+    OBJECT_TYPE hierType,
+    unsigned int offset,
+    unsigned int bytes,
+    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
+    void *param,
+    HANDLER_PRIORITY priority
+);
+void __fastcall ClntObjMgrUnsetTypeMirrorHandler(
+    OBJECT_TYPE hierType,
+    unsigned int offset,
+    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
 );
 
 #endif

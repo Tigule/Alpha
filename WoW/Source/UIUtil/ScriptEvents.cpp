@@ -7,6 +7,7 @@
 #include "DB/DBClient/DBClient.h"
 #include "DB/WowLocale.h"
 #include "Game/GameTime.h"
+#include "Object/ObjectClient/Bag_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/GameUI.h"
@@ -107,9 +108,37 @@ CGUnit_C *__fastcall Script_GetUnitFromName(const char *name) {
   return object && (object->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
 }
 
-CGObject_C* __fastcall Script_GetObjectFromName(const char* name) {
-    // TODO: implement
+CGObject_C *__fastcall Script_GetObjectFromName(const char *name) {
+  unsigned __int64 guid = ClntObjMgrGetActivePlayer();
+  CGObject_C      *playerObject = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  CGUnit_C        *player =
+      playerObject && (playerObject->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(playerObject) : 0;
+  if (!player || !name || !*name) {
     return 0;
+  }
+
+  if (!SStrCmpI(name, "player", 0x7FFFFFFF)) {
+    return playerObject;
+  }
+  if (!SStrCmpI(name, "pet", 0x7FFFFFFF)) {
+    guid = player->GetUnitData()->charm;
+    if (!guid) {
+      guid = player->GetUnitData()->summon;
+    }
+  } else if (!SStrCmpI(name, "target", 0x7FFFFFFF)) {
+    guid = CGGameUI::GetLockedTarget();
+  } else if (!SStrCmpI(name, "party", 5) && name[5] >= '1' && name[5] <= '4') {
+    guid = CGGameUI::GetPartyMember(name[5] - '1');
+  } else if (!SStrCmpI(name, "npc", 0x7FFFFFFF)) {
+    guid = CGGameUI::GetInteractTarget();
+  } else {
+    if (SStrCmpI(name, "mouseover", 0x7FFFFFFF)) {
+      FrameScript_DisplayError("Unknown object name: %s", name);
+    }
+    guid = CGGameUI::GetCurrentObjectTrack();
+  }
+
+  return ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
 }
 
 unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name) {
@@ -246,18 +275,26 @@ static FrameScript_Method s_UnitFunctions[38] = {
 };
 
 static int UnitUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
-    // TODO: implement
-    return 0;
+  Script_SendUnitSignal(guid, offset >> 2);
+  return 1;
 }
 
 static int UnitInventoryUpdate(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
-    // TODO: implement
-    return 0;
+  CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  if (object && guid == ClntObjMgrGetActivePlayer()) {
+    CGBag_C         *bag = object->GetBag();
+    unsigned __int64 item = bag ? bag->GetItem(offset >> 3) : 0;
+    if (*static_cast<const unsigned __int64 *>(prevValue) != item) {
+      CGGameUI::UnlockItem(item);
+    }
+  }
+  Script_SendUnitSignal(guid, 183);
+  return 1;
 }
 
 static int PlayerXPUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
-    // TODO: implement
-    return 0;
+  FrameScript_SignalEvent(185);
+  return 1;
 }
 
 static int __fastcall Script_GetTime(lua_State *L) {
@@ -437,24 +474,28 @@ static int __fastcall Script_UnitName(lua_State *L) {
 }
 
 static int __fastcall Script_UnitXP(lua_State *L) {
-  CGUnit_C *unit;
+  CGUnit_C            *unit;
+  const unsigned long *data;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitXP(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
-  lua_pushnumber(L, unit && (unit->GetType() & TYPE_PLAYER) ? unit->GetStorage()[148] : 0);
+  data = unit && (unit->GetType() & TYPE_PLAYER) ? unit->GetStorage() : 0;
+  lua_pushnumber(L, data ? data[332] : 0);
   return 1;
 }
 
 static int __fastcall Script_UnitXPMax(lua_State *L) {
-  CGUnit_C *unit;
+  CGUnit_C            *unit;
+  const unsigned long *data;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitXPMax(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
-  lua_pushnumber(L, unit && (unit->GetType() & TYPE_PLAYER) ? unit->GetStorage()[149] : 0);
+  data = unit && (unit->GetType() & TYPE_PLAYER) ? unit->GetStorage() : 0;
+  lua_pushnumber(L, data ? data[333] : 0);
   return 1;
 }
 
@@ -1115,9 +1156,74 @@ void __fastcall ScriptEventsUnregisterFunctions() {
 }
 
 void __fastcall ScriptEventsRegisterUnit(CGUnit_C* unit) {
-    // TODO: implement
+  if (!unit) {
+    return;
+  }
+
+  unsigned __int64 guid = unit->GetGUID();
+  unsigned int     unitOffset = CGPlayer_C::OffsetOf(ID_UNIT);
+  for (unsigned int event = 0; event < 178; ++event) {
+    if (!g_scriptEvents[event]) {
+      continue;
+    }
+
+    unsigned int bytes = 4;
+    if (event == 0 || event == 10 || event == 134 || event == 135) {
+      bytes = 8;
+    } else if (event >= 29 && event <= 33) {
+      bytes = 40;
+    } else if ((event >= 114 && event <= 119) || (event >= 136 && event <= 141) || (event >= 148 && event <= 165)) {
+      bytes = 24;
+    }
+
+    ClntObjMgrSetObjMirrorHandler(
+        guid, unitOffset + 4 * event, bytes, UnitUpdateHandler, 0, HANDLER_PRIORITY_NORMAL
+    );
+    Script_SendUnitSignal(guid, event);
+  }
+
+  if (unit->GetType() & TYPE_PLAYER) {
+    unsigned int playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
+    for (unsigned int offset = 0; offset <= 176; offset += 8) {
+      ClntObjMgrSetObjMirrorHandler(
+          guid, playerOffset + offset, 8, UnitInventoryUpdate, 0, HANDLER_PRIORITY_NORMAL
+      );
+    }
+    Script_SendUnitSignal(guid, 183);
+
+    if (guid == ClntObjMgrGetActivePlayer()) {
+      ClntObjMgrSetObjMirrorHandler(
+          guid, playerOffset + 592, 4, PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL
+      );
+      ClntObjMgrSetObjMirrorHandler(
+          guid, playerOffset + 596, 4, PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL
+      );
+      FrameScript_SignalEvent(185);
+    }
+  }
 }
 
 void __fastcall ScriptEventsUnregisterUnit(CGUnit_C* unit) {
-    // TODO: implement
+  if (!unit) {
+    return;
+  }
+
+  unsigned __int64 guid = unit->GetGUID();
+  unsigned int     unitOffset = CGPlayer_C::OffsetOf(ID_UNIT);
+  for (unsigned int event = 0; event < 178; ++event) {
+    if (g_scriptEvents[event]) {
+      ClntObjMgrUnsetObjMirrorHandler(guid, unitOffset + 4 * event, UnitUpdateHandler, 0);
+    }
+  }
+
+  if (unit->GetType() & TYPE_PLAYER) {
+    unsigned int playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
+    for (unsigned int offset = 0; offset <= 176; offset += 8) {
+      ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + offset, UnitInventoryUpdate, 0);
+    }
+    if (guid == ClntObjMgrGetActivePlayer()) {
+      ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + 592, PlayerXPUpdateHandler, 0);
+      ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + 596, PlayerXPUpdateHandler, 0);
+    }
+  }
 }

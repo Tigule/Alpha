@@ -181,7 +181,7 @@ void CMapArea::LoadTextures(char *texNames, unsigned long size) {
 
       FATALASSERT(SStrLen(&texNames[i]) + SStrLen(specExt) < 260);
       SStrCopy(specFileName, &texNames[i], 0x7FFFFFFF);
-      char *extension = SStrChr(specFileName, '.');
+      char *extension = SStrChrR(specFileName, '.');
       FATALASSERT(extension);
       SStrCopy(extension, specExt, 0x7FFFFFFF);
       strcat(specFileName, &texNames[i] + (extension - specFileName));

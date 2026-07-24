@@ -2950,6 +2950,20 @@ void CGPlayer_C::PostReenable() {
   CGPartyInfo::EnableMember(GetGUID(), 1);
 }
 
+void CGPlayer_C::OnMount() {
+  CGObject_C *object = ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__);
+  if (object) {
+    object->UpdatePlayerName();
+  }
+}
+
+void CGPlayer_C::OnDismount() {
+  CGObject_C *object = ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__);
+  if (object) {
+    object->UpdatePlayerName();
+  }
+}
+
 void CGPlayer_C::InspectPlayer(const unsigned __int64 &guid) {
   if (!guid) {
     return;
@@ -3288,6 +3302,35 @@ void CGPlayer_C::SwapItems(
   msg.Finalize();
   ClientServices_Send(&msg);
   CGGameUI::ClearCursor(0);
+}
+
+void CGPlayer_C::SplitItem(
+    unsigned __int64 cursorItem,
+    unsigned __int64 cursorContainer,
+    int              cursorSlot,
+    unsigned __int64 containerB,
+    int              slotB,
+    int              quantity
+) {
+  FATALASSERT(cursorSlot <= 0xFF);
+  FATALASSERT(slotB <= 0xFF);
+  FATALASSERT(quantity <= 0xFF);
+  FATALASSERT(quantity > 0);
+
+  CDataStore msg;
+  if (cursorContainer) {
+    unsigned char cursorItemContainerSlot = static_cast<unsigned char>(FindSlotIndex(cursorContainer));
+    unsigned char newContainerSlot = static_cast<unsigned char>(FindSlotIndex(containerB));
+
+    msg.Put(static_cast<unsigned int>(CMSG_SPLIT_ITEM));
+    msg.Put(cursorItemContainerSlot);
+    msg.Put(static_cast<unsigned char>(cursorSlot));
+    msg.Put(newContainerSlot);
+    msg.Put(static_cast<unsigned char>(slotB));
+    msg.Put(static_cast<unsigned char>(quantity));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  }
 }
 
 void CGPlayer_C::AutoStoreItemInBag(
@@ -4740,7 +4783,7 @@ void CGPlayer_C::UpdateBindStatus(CGUnit_C *unit) {
   if (unit->UnitReaction(this) > UNIT_REACTION_HOSTILE && (unit->GetUnitData()->npcFlags & 0x10)) {
     NTempest::C3Vector position;
     unit->GetPosition(position);
-    unit->UpdateInteractIcon(static_cast<QUEST_GIVER_STATUS>(DeathBindDistanceCompare(position) ? 0 : 5));
+    unit->UpdateInteractIcon(static_cast<INTERACTICONTYPE>(DeathBindDistanceCompare(position) ? INTERACTICON_NONE : INTERACTICON_BINDER));
   }
 }
 
@@ -5049,7 +5092,10 @@ void CGPlayer_C::AttachObjComponent(unsigned __int64 item, unsigned int slot, bo
       showHidden != 0
   );
   itemptr->UpdateEnchantments();
-  CGCharacterInfo::UpdateItem(item);
+  CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+  if (worldFrame && GetGUID() == ClntObjMgrGetActivePlayer()) {
+    worldFrame->RefreshPlayerAlpha();
+  }
 }
 
 const CreatureModelDataRec *__fastcall Player_C_GetModelName(unsigned int race, unsigned int sex) {
@@ -5742,8 +5788,26 @@ bool __fastcall CGPlayer_C::IsGiftWrapping() {
 }
 
 void CGPlayer_C::SheatheWeapon(unsigned int sheathe) {
-  m_unit->weaponMode = static_cast<unsigned char>(sheathe);
-  m_lastWeaponModeSent = static_cast<int>(sheathe);
+  if (!m_inventory.GetItem(15) && !m_inventory.GetItem(16)) {
+    return;
+  }
+
+  if (sheathe && (m_flags & 0x400)) {
+    SetCombatMode(0);
+  }
+
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CDataStore msg;
+    msg.Put(static_cast<unsigned int>(CMSG_SHEATHE));
+    msg.Put(static_cast<unsigned char>(sheathe));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  }
+
+  static const unsigned char s_standStateAllowsSheathing[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  if (s_standStateAllowsSheathing[m_unit->standState]) {
+    MaybeStartSheatheAnim();
+  }
 }
 
 void CGPlayer_C::SetFarSightFocus(CGObject_C *obj) {

@@ -47,7 +47,7 @@ namespace NTempest {
     }
 
     static long __fastcall fint_mi(float x) {
-      return static_cast<long>(floor(x));
+      return static_cast<long>(x - OneHalfOffset);
     }
 
     static float __fastcall fabs_(float x) {

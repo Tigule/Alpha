@@ -56,6 +56,8 @@ extern bool         g_underWater;
 
 void __fastcall SndInterfaceInitialize();
 void __fastcall SndInterfaceDestroy();
+void __fastcall SndInterfaceWorldInitialize();
+void __fastcall SndInterfaceWorldDestroy();
 void __fastcall SoundInterfaceRegisterWorldCVars();
 void __fastcall SoundInterfaceInitializeWorldMIDICVars();
 void __fastcall SndInterfaceMIDISetPaused(unsigned int paused);
@@ -93,6 +95,11 @@ void __fastcall
 SndInterfacePlayParrySound(VirtualItemInfo *attackingWeapon, VirtualItemInfo *defendingItem, int criticalHit, NTempest::C3Vector &position);
 void __fastcall
 SndInterfacePlayHitSound(VirtualItemInfo *attackingWeapon, unsigned int defendingItemType, int criticalHit, NTempest::C3Vector &position);
+void __fastcall SndInterfacePlaySheatheSound(
+    const VirtualItemInfo *info,
+    int sheathing,
+    const NTempest::C3Vector &position
+);
 void __fastcall   SndInterfacePlayDeflectedSound(NTempest::C3Vector &position);
 void __fastcall   SndInterfacePlayImmuneSound(NTempest::C3Vector &pos);
 void __fastcall   SndInterfacePlayAbsorbedSound(NTempest::C3Vector &pos);

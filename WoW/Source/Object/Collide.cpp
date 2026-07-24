@@ -204,7 +204,31 @@ static float DistFromPlaneAlongVector(NTempest::C3Vector &point, NTempest::C4Pla
 }
 
 static void LogHitInfoFlags(unsigned int flags) {
-    // TODO: implement
+  if (!flags) {
+    CMovement::FallLogWrite(" (no hits)");
+    return;
+  }
+  if (flags & 1) {
+    CMovement::FallLogWrite(" (hit box side 1)");
+  }
+  if (flags & 2) {
+    CMovement::FallLogWrite(" (hit box side 2)");
+  }
+  if (flags & 8) {
+    CMovement::FallLogWrite(" (hit box corner 1)");
+  }
+  if (flags & 0x10) {
+    CMovement::FallLogWrite(" (hit box corner 2)");
+  }
+  if (flags & 4) {
+    CMovement::FallLogWrite(" (hit box shared corner)");
+  }
+  if (flags & 0x40) {
+    CMovement::FallLogWrite(" (hit pyramid bottom)");
+  }
+  if (flags & 0x80) {
+    CMovement::FallLogWrite(" (hit multiple surfaces)");
+  }
 }
 
 void CMovement::Redirect(
@@ -421,6 +445,7 @@ void CMovement::StartFalling(unsigned long eventTime) {
 }
 
 void CMovement::StopFalling() {
+  BothLogWrite("0x%016I64X: Landed (%g)\n", m_guid, static_cast<double>(m_position.z));
   m_moveFlags = (m_moveFlags & 0xF6FF2FFF) | 0x08000000;
   m_jumpVelocity = 0.0f;
   CalcDirection();
@@ -1255,13 +1280,21 @@ static void EnqueueFacets(
     int                hitTri = 0;
     for (next = 0; next < numClippedVerts; ++next) {
       intersection = poly[(next + 1) % numClippedVerts] - poly[next];
-      if (NTempest::CMath::fabs_(intersection.Mag()) < 0.00000095367432f) {
+      float length = intersection.Mag();
+      if (NTempest::CMath::fabs_(length) < 0.00000095367432f) {
         continue;
       }
-      if (NTempest::CMath::fabs_(NTempest::C3Vector::Dot(slopeTestPlane.n, intersection)) < 0.00000095367432f) {
+      intersection *= 1.0f / length;
+      NTempest::C3Vector reverse = -intersection;
+      float denominator = NTempest::C3Vector::Dot(reverse, slopeTestPlane.n);
+      if (NTempest::CMath::fabs_(denominator) < 0.00000095367432f) {
         continue;
       }
-      intersection = poly[next] + intersection * (-slopeTestPlane.DistSigned(poly[next]) / NTempest::C3Vector::Dot(slopeTestPlane.n, intersection));
+      float distance = slopeTestPlane.DistSigned(poly[next]) / denominator;
+      if (distance < -0.00000095367432f || distance > length + 0.00000095367432f) {
+        continue;
+      }
+      intersection = poly[next] + intersection * distance;
       intersection.z = facet.plane.SolveForZ(intersection.x, intersection.y);
       hitTri = 1;
       if (unitMove.x * intersection.x + unitMove.y * intersection.y - startPlane.d < closestDist) {
@@ -1281,13 +1314,21 @@ static void EnqueueFacets(
     float highestZ = -FLT_MAX;
     for (next = 0; next < 3; ++next) {
       intersection = facet.vertices[(next + 1) % 3] - facet.vertices[next];
-      if (NTempest::CMath::fabs_(intersection.Mag()) < 0.00000095367432f ||
-          NTempest::CMath::fabs_(NTempest::C3Vector::Dot(slopeTestPlane.n, intersection)) < 0.00000095367432f)
-      {
+      float length = intersection.Mag();
+      if (NTempest::CMath::fabs_(length) < 0.00000095367432f) {
         continue;
       }
-      intersection = facet.vertices[next] +
-                     intersection * (-slopeTestPlane.DistSigned(facet.vertices[next]) / NTempest::C3Vector::Dot(slopeTestPlane.n, intersection));
+      intersection *= 1.0f / length;
+      NTempest::C3Vector reverse = -intersection;
+      float denominator = NTempest::C3Vector::Dot(reverse, slopeTestPlane.n);
+      if (NTempest::CMath::fabs_(denominator) < 0.00000095367432f) {
+        continue;
+      }
+      float distance = slopeTestPlane.DistSigned(facet.vertices[next]) / denominator;
+      if (distance < -0.00000095367432f || distance > length + 0.00000095367432f) {
+        continue;
+      }
+      intersection = facet.vertices[next] + intersection * distance;
       if (intersection.z > highestZ) {
         highestZ = intersection.z;
       }
@@ -1708,14 +1749,19 @@ void CMovement::ClipFacetsWithOneAnother(NTempest::C4Plane &startPlane, TSGrowab
         continue;
       }
 
-      intersection = nextSurface.lastPtOfContact - nextSurface.firstPtOfContact;
-      if (NTempest::CMath::fabs_(intersection.Mag()) >= 0.00000095367432f &&
-          NTempest::CMath::fabs_(NTempest::C3Vector::Dot(surfPlane->n, intersection)) >= 0.00000095367432f)
-      {
-        intersection = nextSurface.firstPtOfContact +
-                       intersection * (-surfPlane->DistSigned(nextSurface.firstPtOfContact) / NTempest::C3Vector::Dot(surfPlane->n, intersection));
-      } else {
-        intersection.Set(0.0f, 0.0f, 0.0f);
+      NTempest::C3Vector direction = nextSurface.lastPtOfContact - nextSurface.firstPtOfContact;
+      intersection.Set(0.0f, 0.0f, 0.0f);
+      float length = direction.Mag();
+      if (NTempest::CMath::fabs_(length) >= 0.00000095367432f) {
+        direction *= 1.0f / length;
+        NTempest::C3Vector reverse = -direction;
+        float denominator = NTempest::C3Vector::Dot(reverse, surfPlane->n);
+        if (NTempest::CMath::fabs_(denominator) >= 0.00000095367432f) {
+          float distance = surfPlane->DistSigned(nextSurface.firstPtOfContact) / denominator;
+          if (distance >= -0.00000095367432f && distance <= length + 0.00000095367432f) {
+            intersection = nextSurface.firstPtOfContact + direction * distance;
+          }
+        }
       }
       firstElev = startPlane.DistSigned(intersection);
 

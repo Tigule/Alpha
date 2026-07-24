@@ -263,7 +263,18 @@ CGxTex *__fastcall CMapChunk::AllocAlphaGxTex(
   } else {
     unsigned int size = CWorld::alphaMipLevel == 1 ? 32 : 64;
     CGxTexFlags  texFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-    GxTexCreate(size, size, GxTex_Argb4444, texFlags, userArg, userFunc, gxTex);
+    GxTexCreate(
+        GxTex_2d,
+        size,
+        size,
+        0,
+        GxTex_Argb4444,
+        GxTex_Argb8888,
+        texFlags,
+        userArg,
+        userFunc,
+        gxTex
+    );
     FATALASSERT(gxTex);
   }
 
@@ -291,7 +302,18 @@ CGxTex *__fastcall CMapChunk::AllocShadowGxTex(
   } else {
     unsigned int size = CWorld::shadowMipLevel == 1 ? 32 : 64;
     CGxTexFlags  texFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-    GxTexCreate(size, size, GxTex_Argb4444, texFlags, userArg, userFunc, gxTex);
+    GxTexCreate(
+        GxTex_2d,
+        size,
+        size,
+        0,
+        GxTex_Argb4444,
+        GxTex_Argb8888,
+        texFlags,
+        userArg,
+        userFunc,
+        gxTex
+    );
     FATALASSERT(gxTex);
   }
 
@@ -557,8 +579,8 @@ void CMapChunk::SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, unsigned int *&shad
   mLayer = reinterpret_cast<SMLayer *>(iffChunk + 1);
 
   iffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(mLayer) + iffChunk->size);
-  alphaTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(iffChunk + 1) + iffChunk->size);
-  shadowTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(alphaTex) + mChunk->sizeAlpha);
+  shadowTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(iffChunk + 1) + iffChunk->size);
+  alphaTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(shadowTex) + mChunk->sizeShadow);
 }
 
 void CMapChunk::Create(unsigned int *data) {
@@ -579,9 +601,9 @@ void CMapChunk::Create(unsigned int *data) {
   iffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(mLayer) + iffChunk->size);
   FATALASSERT(iffChunk->token == 'MCRF');
   unsigned int  *mRef = reinterpret_cast<unsigned int *>(iffChunk + 1);
-  unsigned int  *alphaTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(mRef) + iffChunk->size);
-  unsigned int  *shadowTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(alphaTex) + mChunk->sizeAlpha);
-  unsigned char *liquidData = reinterpret_cast<unsigned char *>(shadowTex) + mChunk->sizeShadow;
+  unsigned int  *shadowTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(mRef) + iffChunk->size);
+  unsigned int  *alphaTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(shadowTex) + mChunk->sizeShadow);
+  unsigned char *liquidData = reinterpret_cast<unsigned char *>(alphaTex) + mChunk->sizeAlpha;
 
   unsigned long mask = 4;
   for (unsigned int i = 0; i < 4; ++i) {

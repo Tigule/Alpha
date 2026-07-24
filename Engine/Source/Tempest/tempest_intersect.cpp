@@ -1,10 +1,72 @@
 #include "Tempest/tempest_intersect.h"
 
+#include "Tempest/c2ivector.h"
 #include "Tempest/c3ray.h"
+#include "Tempest/c4plane.h"
 #include "Tempest/cfacet.h"
 #include "Tempest/c2vector.h"
 
+NTempest::C2iVector projAxisTable[3] = {
+    NTempest::C2iVector(1, 2),
+    NTempest::C2iVector(2, 0),
+    NTempest::C2iVector(0, 1)
+};
+
 namespace NTempest {
+
+  bool __fastcall Intersect(const C3Ray &ray, const C4Plane &plane, float *t, C3Vector *p) {
+    float denom = C3Vector::Dot(plane.n, ray.dir);
+    if (CMath::fabs_(denom) < 0.0001f) {
+      if (CMath::fabs_(C3Vector::Dot(plane.n, ray.origin) + plane.d) >= 0.01f) {
+        return false;
+      }
+
+      if (t) {
+        *t = 0.0f;
+      }
+      if (p) {
+        *p = ray.origin;
+      }
+      return true;
+    }
+
+    if (t || p) {
+      float distance = C3Vector::Dot(plane.n, ray.origin) + plane.d;
+      float thisT = CMath::fabs_(distance) >= 0.01f ? -(distance / denom) : 0.0f;
+      if (t) {
+        *t = thisT;
+      }
+      if (p) {
+        *p = ray.origin + ray.dir * thisT;
+      }
+    }
+    return true;
+  }
+
+  bool __fastcall Intersect(const C3Vector &point, const C3Vector *polygon, unsigned int nPoints, C3Vector::EAxis axis) {
+    FATALASSERT(axis <= C3Vector::C3AXIS_Z);
+
+    unsigned int x = projAxisTable[axis].x;
+    unsigned int y = projAxisTable[axis].y;
+    bool         inside = false;
+    bool         y0 = polygon[nPoints - 1][y] >= point[y];
+    unsigned int previous = nPoints - 1;
+
+    for (unsigned int i = 0; i < nPoints; ++i) {
+      bool y1 = polygon[i][y] >= point[y];
+      if (y0 != y1 &&
+          (((polygon[previous][y] - polygon[i][y]) * (polygon[i][x] - point[x]) <=
+            (polygon[previous][x] - polygon[i][x]) * (polygon[i][y] - point[y])) == y1))
+      {
+        inside = !inside;
+      }
+
+      y0 = y1;
+      previous = i;
+    }
+
+    return inside;
+  }
 
   bool __fastcall Intersect(const C3Ray &ray, const CFacet &facet, float *t, C3Vector *p) {
     float denom = C3Vector::Dot(facet.plane.n, ray.dir);

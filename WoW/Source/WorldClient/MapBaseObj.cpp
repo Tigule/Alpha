@@ -1,6 +1,7 @@
 #include "Map.h"
 
 #include "Base/Base.h"
+#include "WorldCommon/WorldMath.h"
 
 CMapBaseObj::CMapBaseObj() {
   rot.x = 0.0f;
@@ -19,4 +20,8 @@ CMapBaseObj::~CMapBaseObj() {
 
 void CMapBaseObj::SelectLights() {
   SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "1", FALSE);
+}
+
+int CMapBaseObj::TestAABox(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1) {
+  return CWorldMath::VectorIntersectAABox2(aaBox, v0, v1);
 }

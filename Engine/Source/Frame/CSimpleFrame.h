@@ -20,6 +20,8 @@ class CSimpleRegion;
 class CSimpleTexture;
 class CSimpleTop;
 
+static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect);
+
 struct REGIONNODE : public TSLinkedNode<REGIONNODE> {
   CSimpleRegion *region;
 };
@@ -54,6 +56,7 @@ class CSimpleTitleRegion : public CLayoutFrame {
 };
 
 class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
+  friend void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect);
   friend class CSimpleFontString;
   friend class CSimpleTexture;
   friend int __fastcall CSimpleFrame_GetParent(lua_State *L);

@@ -33,6 +33,7 @@ struct HMODEL__;
 struct HTEXTURE__;
 struct CMapEntity;
 struct SMODoodadDef;
+struct SMOPoly;
 
 struct CWFacetData {
   TSGrowableArray<NTempest::CFacet> facets;
@@ -262,6 +263,7 @@ class CWorld {
   static void __fastcall         Destroy();
   static void __fastcall         LoadMap(const char *mapName, NTempest::C3Vector &position, int preLoad);
   static void __fastcall         UnloadMap();
+  static void __fastcall         Preload(const NTempest::C3Vector &position);
   static void __fastcall         PrepareUpdate(NTempest::C3Vector &position, NTempest::C3Vector &target);
   static void __fastcall         SetUpdateTime(float elapsedSec, unsigned long pCurTimeMs);
   static void __fastcall         Update();
@@ -322,6 +324,7 @@ class CWorld {
   Intersect(const NTempest::C3Vector *a, const NTempest::C3Vector *b, float radius, NTempest::C3Vector *ip, float *dist, unsigned int queryFlags);
   static void __fastcall         GetFacets(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
   static void __fastcall         GetFacets(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags);
+  static void __fastcall         TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, unsigned __int64 param64);
   static unsigned int __fastcall GetTris(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
   static int __fastcall NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTempest::C3Vector **&p_outVerts, unsigned int &p_outCount);
   static unsigned int __fastcall NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate);
@@ -528,8 +531,52 @@ class CMap {
   QueryLiquidStatus(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir, int &deep);
   static unsigned int __fastcall
   QueryLiquidStatusMapObjsExt(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir);
-  static unsigned int __fastcall
-                         VectorIntersectTerrain(NTempest::C3Vector *p0, NTempest::C3Vector *p1, float *t, unsigned int queryFlags, CMapChunk **chunk);
+  static bool __fastcall
+  VectorIntersectTerrain(
+      const NTempest::C3Vector *p0,
+      const NTempest::C3Vector *p1,
+      float                    *t,
+      unsigned int              queryFlags,
+      CMapChunk               **chunk
+  );
+  static bool __fastcall VectorIntersect(
+      const NTempest::C3Vector *p0,
+      const NTempest::C3Vector *p1,
+      NTempest::C3Vector       *ip,
+      float                    *dist,
+      unsigned int              queryFlags
+  );
+  static bool __fastcall VectorIntersectMapObjs(
+      const NTempest::C3Vector *p0,
+      const NTempest::C3Vector *p1,
+      unsigned int              queryFlags,
+      unsigned int              polyIgnoreFlags,
+      unsigned int              groupIgnoreFlags,
+      float                    *t,
+      SMOPoly                 **poly,
+      CMapObj                 **qMapObj
+  );
+  static bool __fastcall VectorIntersectDoodadDefLinkList(
+      TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkList,
+      const NTempest::C3Vector           *p0,
+      const NTempest::C3Vector           *p1,
+      float                              *t,
+      unsigned int                        queryFlags
+  );
+  static bool __fastcall VectorIntersectGameObjLinkList(
+      TSExplicitList<CMapBaseObjLink, 8> &gameObjLinkList,
+      const NTempest::C3Vector           *p0,
+      const NTempest::C3Vector           *p1,
+      float                              *t,
+      unsigned int                        queryFlags
+  );
+  static bool __fastcall LocateViewerMapObjs(
+      const NTempest::C3Vector &lCen,
+      const NTempest::C3Vector &lEnd,
+      float                    &maxT,
+      CMapObjDef              *&hitMapObjDef,
+      unsigned int             *hitGroupIDs
+  );
   static void __fastcall SetLightFuncs();
   static void __fastcall GxuLightInitialize();
   static void __fastcall GxuLightShutdown();
@@ -746,6 +793,13 @@ class CMap {
       const NTempest::C3Vector *v1,
       const NTempest::C3Vector *v2,
       const NTempest::C3Vector *n
+  );
+  static bool __fastcall VectorIntersectSubchunks(
+      const NTempest::C3Vector *p0,
+      const NTempest::C3Vector *p1,
+      float                    *t,
+      unsigned int              queryFlags,
+      CMapChunk               **retChunk
   );
   static bool __fastcall GetFacetTerrain(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);
   static bool __fastcall GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);

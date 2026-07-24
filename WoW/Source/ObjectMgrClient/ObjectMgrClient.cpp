@@ -99,7 +99,8 @@ static void __fastcall CallBlockMirrorHandlersIfChanged(
 
   for (CMirrorHandler *mirrorHandler = handlerList->Head(); mirrorHandler; mirrorHandler = handlerList->Next(mirrorHandler)) {
     mirrorHandler->blocksLeft = 1;
-    if (memcmp(obj->GetData(mirrorHandler->offset), mirrorHandler->previous.Ptr(), mirrorHandler->previous.Count()) &&
+    const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
+    if (memcmp(data, mirrorHandler->previous.Ptr(), mirrorHandler->previous.Count()) &&
         !MirrorHandlerRemoveQueued(guid, mirrorHandler))
     {
       FATALASSERT(mirrorHandler->handler);
@@ -125,8 +126,9 @@ static void __fastcall CallBlockMirrorHandlers(
   for (CMirrorHandler *mirrorHandler = handlerList->Head(); mirrorHandler; mirrorHandler = handlerList->Next(mirrorHandler)) {
     if (!MirrorHandlerRemoveQueued(guid, mirrorHandler)) {
       FATALASSERT(mirrorHandler->handler);
+      const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
       if (mirrorHandler->previous.Count() >= sizeof(unsigned long) ||
-          memcmp(mirrorHandler->previous.Ptr(), obj->GetData(mirrorHandler->offset), mirrorHandler->previous.Count()))
+          memcmp(mirrorHandler->previous.Ptr(), data, mirrorHandler->previous.Count()))
       {
         mirrorHandler->handler(
             guid, mirrorHandler->offset - GetDataBaseOffset(objectTypeId), mirrorHandler->previous.Count(), mirrorHandler->previous.Ptr(),
@@ -144,7 +146,8 @@ static void __fastcall CallBlockMirrorHandlers(
 static void __fastcall SavePreviousValue(TSList<CMirrorHandler, TSGetLink<CMirrorHandler> > *handlerList, CGObject_C *obj) {
   FATALASSERT(obj);
   for (CMirrorHandler *mirrorHandler = handlerList->Head(); mirrorHandler; mirrorHandler = handlerList->Next(mirrorHandler)) {
-    memcpy(mirrorHandler->previous.Ptr(), obj->GetData(mirrorHandler->offset), mirrorHandler->previous.Count());
+    const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
+    memcpy(mirrorHandler->previous.Ptr(), data, mirrorHandler->previous.Count());
   }
 }
 
@@ -544,7 +547,6 @@ static void __fastcall PostInitObject(CDataStore *msg) {
       static_cast<CGCorpse_C *>(object)->PostInit(init);
       break;
     default:
-      FATALASSERT(0);
       break;
   }
   SkipPartialObjectUpdate(msg);
@@ -575,18 +577,16 @@ static C_OBJECTHASH *__fastcall GetUpdateObject(unsigned __int64 guid) {
   s_curMgr->m_lazyCleanupFifo.UnlinkNode(foundObj);
   s_curMgr->m_objects.Insert(foundObj, guid, hashKey);
   CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
-  FATALASSERT(object);
-  if (!s_curMgr->m_reenabledObjects.IsLinked(foundObj)) {
-    s_curMgr->m_reenabledObjects.LinkNode(foundObj, LIST_TAIL, 0);
-    object->Reenable();
+  if (!s_curMgr->m_visibleObjects.IsLinked(foundObj)) {
     s_curMgr->m_visibleObjects.LinkNode(foundObj, LIST_TAIL, 0);
+    object->Reenable();
+    s_curMgr->m_reenabledObjects.LinkNode(foundObj, LIST_TAIL, 0);
   }
   return foundObj;
 }
 
 static void __fastcall SetupObjectStorage(OBJECT_TYPE_ID type, unsigned int memHandle) {
   unsigned char *storage = static_cast<unsigned char *>(ObjectPtr(memHandle));
-  FATALASSERT(storage);
 
   static const unsigned int offsets[8] = {
       48, 92, 120, 2528, 6240, 156, 68, 124,
@@ -594,37 +594,44 @@ static void __fastcall SetupObjectStorage(OBJECT_TYPE_ID type, unsigned int memH
   static const unsigned int sizes[8] = {
       24, 144, 312, 736, 2536, 80, 64, 144,
   };
-  FATALASSERT(type < ID_AIGROUP);
 
-  unsigned long *data = reinterpret_cast<unsigned long *>(storage + offsets[type]);
+  unsigned long *data;
   switch (type) {
     case ID_OBJECT:
+      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_OBJECT]);
       static_cast<CGObject_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_ITEM:
+      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_ITEM]);
       static_cast<CGItem_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_CONTAINER:
+      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_CONTAINER]);
       static_cast<CGContainer_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_UNIT:
+      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_UNIT]);
       static_cast<CGUnit_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_PLAYER:
+      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_PLAYER]);
       static_cast<CGPlayer_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_GAMEOBJECT:
+      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_GAMEOBJECT]);
       static_cast<CGGameObject_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_DYNAMICOBJECT:
+      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_DYNAMICOBJECT]);
       static_cast<CGDynamicObject_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_CORPSE:
+      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_CORPSE]);
       static_cast<CGCorpse_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     default:
       FATALASSERT(0);
-      break;
+      return;
   }
   memset(storage + offsets[type], 0, sizes[type]);
 }
@@ -658,7 +665,6 @@ static int __fastcall CreateObject(unsigned long eventTime, CDataStore *msg) {
   s_curMgr->m_legalGuidDeref = guid;
   msg->Get(*reinterpret_cast<unsigned char *>(&btype));
   type = static_cast<OBJECT_TYPE_ID>(btype);
-  FATALASSERT(type < ID_AIGROUP);
 
   C_OBJECTHASH *foundObj = GetUpdateObject(guid);
   if (foundObj) {
@@ -670,12 +676,50 @@ static int __fastcall CreateObject(unsigned long eventTime, CDataStore *msg) {
   if (foundObj) {
     s_curMgr->m_freeObjects.UnlinkNode(foundObj);
   } else {
-    foundObj = AllocNewObj();
-    if (!foundObj) {
-      SkipCreateObject(msg);
-      return 0;
+    foundObj = s_curMgr->m_lazyCleanupFifo.Head();
+    if (foundObj) {
+      s_curMgr->m_lazyCleanupObjects.Unlink(foundObj);
+      s_curMgr->m_lazyCleanupFifo.UnlinkNode(foundObj);
+
+      CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
+      FATALASSERT(object);
+      switch (object->GetType()) {
+        case HIER_TYPE_OBJECT:
+          object->~CGObject_C();
+          break;
+        case HIER_TYPE_ITEM:
+          static_cast<CGItem_C *>(object)->~CGItem_C();
+          break;
+        case HIER_TYPE_CONTAINER:
+          static_cast<CGContainer_C *>(object)->~CGContainer_C();
+          break;
+        case HIER_TYPE_UNIT:
+          static_cast<CGUnit_C *>(object)->~CGUnit_C();
+          break;
+        case HIER_TYPE_PLAYER:
+          static_cast<CGPlayer_C *>(object)->~CGPlayer_C();
+          break;
+        case HIER_TYPE_GAMEOBJECT:
+          static_cast<CGGameObject_C *>(object)->~CGGameObject_C();
+          break;
+        case HIER_TYPE_DYNAMICOBJECT:
+          static_cast<CGDynamicObject_C *>(object)->~CGDynamicObject_C();
+          break;
+        case HIER_TYPE_CORPSE:
+          static_cast<CGCorpse_C *>(object)->~CGCorpse_C();
+          break;
+        default:
+          FATALASSERT(0);
+          break;
+      }
+      ObjectFree(foundObj->memHandle);
+    } else {
+      foundObj = AllocNewObj();
+      if (!foundObj) {
+        return 0;
+      }
+      SysMsgAdd("NOFREEOBJECTSALLOCATING", SYSMSG_INFO, 0x20);
     }
-    SysMsgAdd("NOFREEOBJECTSALLOCATING", SYSMSG_INFO, 0x20);
   }
 
   if (!ObjectAlloc(s_objHeapId[type - 1], &memHandle)) {
@@ -822,15 +866,12 @@ void __fastcall ClntObjMgrObjectOutOfRange(unsigned __int64 guid, int shutdown) 
   FATALASSERT(object);
   object->Disable(shutdown);
   ClearObjectMirrorHandlers(foundObj);
-  if (s_curMgr->m_reenabledObjects.IsLinked(foundObj)) {
-    s_curMgr->m_reenabledObjects.UnlinkNode(foundObj);
-  }
   s_curMgr->m_objects.Unlink(foundObj);
-  CHashKeyGUID hashKey(guid);
-  s_curMgr->m_lazyCleanupObjects.Insert(foundObj, guid, hashKey);
   if (s_curMgr->m_visibleObjects.IsLinked(foundObj)) {
     s_curMgr->m_visibleObjects.UnlinkNode(foundObj);
   }
+  CHashKeyGUID hashKey(guid);
+  s_curMgr->m_lazyCleanupObjects.Insert(foundObj, guid, hashKey);
   s_curMgr->m_lazyCleanupFifo.LinkNode(foundObj, LIST_TAIL, 0);
 }
 
@@ -872,12 +913,16 @@ static int __fastcall ObjectUpdateHandler(void *, NETMESSAGE, unsigned long even
         if (!UpdateObject(msg)) {
           FATALASSERT(0);
           success = 0;
+        } else {
+          SysMsgAdd("Updating unit data", SYSMSG_INFO, 0x20);
         }
         break;
       case 1:
         if (!UpdateObjectMovement(eventTime, msg)) {
           FATALASSERT(0);
           success = 0;
+        } else {
+          SysMsgAdd("Updating unit movement", SYSMSG_INFO, 0x20);
         }
         break;
       case 2:
@@ -926,8 +971,9 @@ static int __fastcall ObjectUpdateHandler(void *, NETMESSAGE, unsigned long even
   while (C_OBJECTHASH *foundObj = s_curMgr->m_reenabledObjects.Head()) {
     s_curMgr->m_reenabledObjects.UnlinkNode(foundObj);
     CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
-    FATALASSERT(object);
-    object->PostReenable();
+    if (object) {
+      object->PostReenable();
+    }
   }
 
   if (oldActive != ClntObjMgrGetActivePlayer()) {
@@ -951,7 +997,7 @@ static int __fastcall ObjectCompressedUpdateHandler(void *, NETMESSAGE, unsigned
   FATALASSERT(destSize == origSize);
   realmsg.PutData(dest, destSize);
   realmsg.Finalize();
-  return ObjectUpdateHandler(0, SMSG_UPDATE_OBJECT, eventTime, &realmsg);
+  return ObjectUpdateHandler(0, MSG_NULL_ACTION, eventTime, &realmsg);
 }
 
 static void __fastcall AssignMirrorHandler(
@@ -1085,9 +1131,9 @@ void __fastcall ClntObjMgrInitialize() {
     s_curMgr->m_freeObjects.LinkNode(hash, LIST_LINK_BEFORE, 0);
   }
 
-  ClientServices_SetMessageHandler(SMSG_UPDATE_OBJECT, ObjectUpdateHandler, 0);
-  ClientServices_SetMessageHandler(SMSG_COMPRESSED_UPDATE_OBJECT, ObjectCompressedUpdateHandler, 0);
-  ClientServices_SetMessageHandler(SMSG_DESTROY_OBJECT, OnObjectDestroy, 0);
+  s_curMgr->m_net->SetMessageHandler(SMSG_UPDATE_OBJECT, ObjectUpdateHandler, 0);
+  s_curMgr->m_net->SetMessageHandler(SMSG_COMPRESSED_UPDATE_OBJECT, ObjectCompressedUpdateHandler, 0);
+  s_curMgr->m_net->SetMessageHandler(SMSG_DESTROY_OBJECT, OnObjectDestroy, 0);
 }
 
 void __fastcall ClntObjMgrSetObjMirrorHandler(
@@ -1182,15 +1228,53 @@ void __fastcall ClntObjMgrUnsetObjMirrorHandler(
   }
 }
 
+void __fastcall ClntObjMgrSetTypeMirrorHandler(
+    OBJECT_TYPE hierType,
+    unsigned int offset,
+    unsigned int bytes,
+    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
+    void *param,
+    HANDLER_PRIORITY priority
+) {
+  ActivityBegin(ACTIVITY_OBJMGR);
+  OBJECT_TYPE_ID section = GetSectionId(hierType);
+  FATALASSERT(section < ID_AIGROUP);
+  AssignMirrorHandler(&s_mirrorHandlers[section][offset >> 2], offset, bytes, handler, param, priority);
+  ActivityEnd(ACTIVITY_OBJMGR);
+}
+
+void __fastcall ClntObjMgrUnsetTypeMirrorHandler(
+    OBJECT_TYPE hierType,
+    unsigned int offset,
+    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
+) {
+  ActivityBegin(ACTIVITY_OBJMGR);
+  OBJECT_TYPE_ID section = GetSectionId(hierType);
+  FATALASSERT(section < ID_AIGROUP);
+  UnassignMirrorHandler(&s_mirrorHandlers[section][offset >> 2], handler, 0);
+  ActivityEnd(ACTIVITY_OBJMGR);
+}
+
 void __fastcall ClntObjMgrHideObject(unsigned __int64 guid) {
   C_OBJECTHASH *foundObj = FindActiveObj(guid);
-  if (foundObj && s_curMgr->m_visibleObjects.IsLinked(foundObj)) {
-    s_curMgr->m_visibleObjects.UnlinkNode(foundObj);
+  if (foundObj) {
+    ActivityBegin(ACTIVITY_OBJMGR);
+    if (s_curMgr->m_visibleObjects.IsLinked(foundObj)) {
+      s_curMgr->m_visibleObjects.UnlinkNode(foundObj);
+    }
+    ActivityEnd(ACTIVITY_OBJMGR);
   }
 }
 
 void __fastcall ClntObjMgrShowObject(unsigned __int64 guid) {
-    // TODO: implement
+  C_OBJECTHASH *foundObj = FindActiveObj(guid);
+  if (foundObj) {
+    ActivityBegin(ACTIVITY_OBJMGR);
+    if (!s_curMgr->m_visibleObjects.IsLinked(foundObj)) {
+      s_curMgr->m_visibleObjects.LinkNode(foundObj, LIST_TAIL, 0);
+    }
+    ActivityEnd(ACTIVITY_OBJMGR);
+  }
 }
 
 int __fastcall ClntObjMgrEnumVisibleObjects(int(__fastcall *handler)(unsigned __int64, void *), void *param) {
@@ -1220,29 +1304,29 @@ void __fastcall ClntObjMgrFreeObject(unsigned __int64 guid) {
 
     CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
     FATALASSERT(object);
-    switch (GetSectionId(object->GetType())) {
-      case ID_OBJECT:
+    switch (object->GetType()) {
+      case HIER_TYPE_OBJECT:
         object->~CGObject_C();
         break;
-      case ID_ITEM:
+      case HIER_TYPE_ITEM:
         static_cast<CGItem_C *>(object)->~CGItem_C();
         break;
-      case ID_CONTAINER:
+      case HIER_TYPE_CONTAINER:
         static_cast<CGContainer_C *>(object)->~CGContainer_C();
         break;
-      case ID_UNIT:
+      case HIER_TYPE_UNIT:
         static_cast<CGUnit_C *>(object)->~CGUnit_C();
         break;
-      case ID_PLAYER:
+      case HIER_TYPE_PLAYER:
         static_cast<CGPlayer_C *>(object)->~CGPlayer_C();
         break;
-      case ID_GAMEOBJECT:
+      case HIER_TYPE_GAMEOBJECT:
         static_cast<CGGameObject_C *>(object)->~CGGameObject_C();
         break;
-      case ID_DYNAMICOBJECT:
+      case HIER_TYPE_DYNAMICOBJECT:
         static_cast<CGDynamicObject_C *>(object)->~CGDynamicObject_C();
         break;
-      case ID_CORPSE:
+      case HIER_TYPE_CORPSE:
         static_cast<CGCorpse_C *>(object)->~CGCorpse_C();
         break;
       default:
@@ -1251,7 +1335,6 @@ void __fastcall ClntObjMgrFreeObject(unsigned __int64 guid) {
     }
 
     ObjectFree(foundObj->memHandle);
-    foundObj->memHandle = 0;
     s_curMgr->m_freeObjects.LinkNode(foundObj, LIST_TAIL, 0);
   }
   ActivityEnd(ACTIVITY_OBJMGR);
@@ -1280,7 +1363,9 @@ void __fastcall ClntObjMgrDestroyShared() {
 
 void __fastcall ClntObjMgrDestroy() {
   while (C_OBJECTHASH *hash = s_curMgr->m_objects.Head()) {
-    ClntObjMgrObjectOutOfRange(hash->m_key.GetGUID(), 1);
+    CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(hash->memHandle));
+    FATALASSERT(object);
+    ClntObjMgrObjectOutOfRange(object->GetGUID(), 1);
   }
 
   while (C_OBJECTHASH *hash = s_curMgr->m_lazyCleanupFifo.Head()) {
@@ -1289,29 +1374,29 @@ void __fastcall ClntObjMgrDestroy() {
 
     CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(hash->memHandle));
     FATALASSERT(object);
-    switch (GetSectionId(object->GetType())) {
-      case ID_OBJECT:
+    switch (object->GetType()) {
+      case HIER_TYPE_OBJECT:
         object->~CGObject_C();
         break;
-      case ID_ITEM:
+      case HIER_TYPE_ITEM:
         static_cast<CGItem_C *>(object)->~CGItem_C();
         break;
-      case ID_CONTAINER:
+      case HIER_TYPE_CONTAINER:
         static_cast<CGContainer_C *>(object)->~CGContainer_C();
         break;
-      case ID_UNIT:
+      case HIER_TYPE_UNIT:
         static_cast<CGUnit_C *>(object)->~CGUnit_C();
         break;
-      case ID_PLAYER:
+      case HIER_TYPE_PLAYER:
         static_cast<CGPlayer_C *>(object)->~CGPlayer_C();
         break;
-      case ID_GAMEOBJECT:
+      case HIER_TYPE_GAMEOBJECT:
         static_cast<CGGameObject_C *>(object)->~CGGameObject_C();
         break;
-      case ID_DYNAMICOBJECT:
+      case HIER_TYPE_DYNAMICOBJECT:
         static_cast<CGDynamicObject_C *>(object)->~CGDynamicObject_C();
         break;
-      case ID_CORPSE:
+      case HIER_TYPE_CORPSE:
         static_cast<CGCorpse_C *>(object)->~CGCorpse_C();
         break;
       default:
@@ -1338,9 +1423,9 @@ void __fastcall ClntObjMgrDestroy() {
     }
   }
 
-  ClientServices_ClearMessageHandler(SMSG_UPDATE_OBJECT);
-  ClientServices_ClearMessageHandler(SMSG_COMPRESSED_UPDATE_OBJECT);
-  ClientServices_ClearMessageHandler(SMSG_DESTROY_OBJECT);
+  s_curMgr->m_net->ClearMessageHandler(SMSG_UPDATE_OBJECT);
+  s_curMgr->m_net->ClearMessageHandler(SMSG_COMPRESSED_UPDATE_OBJECT);
+  s_curMgr->m_net->ClearMessageHandler(SMSG_DESTROY_OBJECT);
 }
 
 unsigned __int64 __fastcall ClntObjMgrGetActivePlayer() {

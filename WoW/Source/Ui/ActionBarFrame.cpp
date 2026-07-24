@@ -12,6 +12,7 @@
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "FrameScript/FrameScript.h"
+#include "SoundInterface/SoundInterface.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <string.h>
@@ -24,6 +25,8 @@ int __fastcall  Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *dur
 int __fastcall  Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
 int __fastcall  Spell_C_GetModalSpell();
 int __fastcall  Spell_C_GetTargettingSpell();
+void __fastcall Spell_C_StopTargeting();
+void __fastcall Spell_C_CancelAura(int spellID);
 
 int          CGActionBar::m_slotActions[120];
 unsigned int CGActionBar::m_bonusPage;
@@ -169,15 +172,29 @@ void __fastcall CGActionBar::ReplaceSpell(int oldSpell, int newSpell) {
 }
 
 void __fastcall CGActionBar::UseAction(int id, int checkCursor) {
-  if (!HasAction(id)) {
-    return;
-  }
-  if (checkCursor && (CGGameUI::GetCursorItem() || CGGameUI::GetCursorSpell() >= 0 || CGGameUI::GetCursorVirtualItem())) {
+  ASSERT(id >= 0);
+  ASSERT(id < 120);
+
+  if (checkCursor &&
+      (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
+       (CGGameUI::GetCursorVirtualItem(UICURSOR_ACTIONBAR) && CGGameUI::GetCursorVirtualItem())))
+  {
     PutActionInSlot(id);
     return;
   }
+  if (!HasAction(id)) {
+    return;
+  }
   if (IsSpell(id)) {
-    Spell_C_CastSpell(GetSpell(id), 0);
+    int spell = GetSpell(id);
+    if (IsToggledAction(id)) {
+      Spell_C_CancelAura(spell);
+    } else if (spell == Spell_C_GetTargettingSpell()) {
+      Spell_C_StopTargeting();
+    } else {
+      Spell_C_CastSpell(spell, 0);
+      SndInterfacePlayInterfaceSound("INTERFACESOUND_ACTIONBUTTONDOWN");
+    }
   } else {
     CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
     CGBag_C    *inventory = player ? player->GetBag() : 0;
@@ -189,41 +206,106 @@ void __fastcall CGActionBar::UseAction(int id, int checkCursor) {
 }
 
 void __fastcall CGActionBar::PickupAction(int id) {
-  if (!HasAction(id)) {
-    CGGameUI::ClearCursor(1);
+  ASSERT(id >= 0);
+  ASSERT(id < 120);
+
+  if (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
+      (CGGameUI::GetCursorVirtualItem(UICURSOR_ACTIONBAR) && CGGameUI::GetCursorVirtualItem()))
+  {
+    PutActionInSlot(id);
     return;
   }
-  if (IsSpell(id)) {
-    CGGameUI::SetCursorSpell(GetSpell(id), 0);
-  } else {
-    CGGameUI::SetCursorVirtualItem(GetItem(id), 0, id, UICURSOR_ACTIONBAR);
+
+  int action = m_slotActions[id];
+  if (!action) {
+    return;
   }
+
+  if (action > 0) {
+    CGGameUI::SetCursorSpell(action, 0);
+    RemoveAction(id);
+    return;
+  }
+
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGItem_C *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(-action, 0) : 0;
+  if (item) {
+    CGGameUI::SetCursorVirtualItem(-action, item->GetDisplayID(), id, UICURSOR_ACTIONBAR);
+  }
+  RemoveAction(id);
 }
 
 void __fastcall CGActionBar::PutActionInSlot(int id) {
-  if (id < 0 || id >= 120) {
-    return;
-  }
-  int          oldAction = m_slotActions[id];
-  int          cursorSpell = CGGameUI::GetCursorSpell();
-  unsigned int cursorAction;
-  unsigned int cursorSlot;
-  CGGameUI::GetCursorVirtualItem(cursorAction, cursorSlot);
-  if (cursorSpell >= 0) {
-    SetAction(id, cursorSpell);
-    CGGameUI::ClearCursor(1);
-  } else if (CGGameUI::GetCursorItem()) {
+  int cursorSpell = CGGameUI::GetCursorSpell();
+  int cursorItem = 0;
+
+  if (CGGameUI::GetCursorVirtualItem(UICURSOR_ACTIONBAR)) {
+    cursorItem = static_cast<int>(CGGameUI::GetCursorVirtualItem());
+  } else {
     CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGGameUI::GetCursorItem(), __FILE__, __LINE__));
     if (item) {
-      SetAction(id, -item->GetEntryID());
+      cursorItem = item->GetEntryID();
+    }
+  }
+
+  int oldAction = m_slotActions[id];
+  if (cursorSpell > 0) {
+    SpellRec *spell = g_spellDB.GetRecord(cursorSpell);
+    if (!spell) {
+      return;
+    }
+    if (spell->m_attributes & 0x40) {
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(139));
+      return;
+    }
+
+    if (oldAction > 0 && oldAction == cursorSpell) {
+      CGGameUI::DropCursorSpell();
+      return;
+    }
+
+    if (oldAction > 0) {
+      CGGameUI::SetCursorSpell(oldAction, 0);
+    } else if (oldAction < 0) {
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      CGItem_C *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(-oldAction, 0) : 0;
+      if (item) {
+        CGGameUI::SetCursorVirtualItem(-oldAction, item->GetDisplayID(), id, UICURSOR_ACTIONBAR);
+      }
+    } else {
       CGGameUI::ClearCursor(1);
     }
-  } else if (cursorAction && cursorSlot < 120) {
-    m_slotActions[id] = static_cast<int>(cursorAction);
-    m_slotActions[cursorSlot] = oldAction;
+
+    m_slotActions[id] = cursorSpell;
     SlotChanged(id);
-    SlotChanged(cursorSlot);
-    CGGameUI::ClearCursor(1);
+    return;
+  }
+
+  if (cursorItem > 0) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    CGItem_C *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(cursorItem, 0) : 0;
+    if (!item || !item->CanBeUsed()) {
+      return;
+    }
+
+    if (oldAction < 0 && -oldAction == cursorItem) {
+      CGGameUI::ClearCursor(1);
+      return;
+    }
+
+    if (oldAction > 0) {
+      CGGameUI::SetCursorSpell(oldAction, 0);
+    } else if (oldAction < 0) {
+      CGItem_C *oldItem = player->GetBag()->FindItemOfType(-oldAction, 0);
+      if (oldItem) {
+        CGGameUI::SetCursorVirtualItem(-oldAction, oldItem->GetDisplayID(), id, UICURSOR_ACTIONBAR);
+      }
+    } else {
+      CGGameUI::ClearCursor(1);
+    }
+
+    m_slotActions[id] = -cursorItem;
+    SlotChanged(id);
   }
 }
 

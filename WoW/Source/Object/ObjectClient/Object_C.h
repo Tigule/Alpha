@@ -38,6 +38,7 @@ class CGObject_C : public CGObject {
 
   static void __fastcall Initialize();
   static void __fastcall Shutdown();
+  static void __fastcall UpdateAllWorldObjects();
 
   virtual void               Disable(int shutdown);
   virtual void               Reenable();

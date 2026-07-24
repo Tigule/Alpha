@@ -6,6 +6,7 @@
 #include "DayNight.h"
 #include "Gx/Gx.h"
 #include "Model/IModel.h"
+#include "Services/SysMessage.h"
 #include "Tempest/c33matrix.h"
 #include "Tempest/c34matrix.h"
 #include "Tempest/cmath.h"
@@ -209,14 +210,17 @@ void __fastcall CWorldScene::Render() {
 
   DayNightRenderSky();
   FrustumSet(camFrustumCorners);
-  LocateViewer();
+  LocateViewer3();
 
   if (viewerMapObjDef) {
+    static TSCArray<NTempest::CRect, 16> s_extViewList;
+
     ClipBufferClear();
     CullMapObjDef(viewerMapObjDef, viewerMapObjGroups);
-    for (unsigned int i = 0; i < CMapObj::extViewList.Count(); ++i) {
+    s_extViewList.Set(CMapObj::extViewList.Count(), CMapObj::extViewList.Ptr());
+    for (unsigned int i = 0; i < s_extViewList.Count(); ++i) {
       ClipBufferClear();
-      CullSortTable(CMapObj::extViewList[i]);
+      CullSortTable(s_extViewList[i]);
     }
   } else {
     ClipBufferClear();
@@ -236,6 +240,8 @@ void __fastcall CWorldScene::Render() {
   RenderDoodads();
   RenderObjects();
   CMap::TestQueryRender();
+  CMap::testQueryVerts.SetCount(0);
+  CMap::testQueryIndices.SetCount(0);
 }
 
 void __fastcall CWorldScene::RenderAlpha() {
@@ -273,7 +279,8 @@ void __fastcall CWorldScene::AddDoodadDef(CMapDoodadDef *doodadDef) {
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
-    FATALERROR(("DOODADDEFTOOFARTOSORT"));
+    SysMsgPrintf(SYSMSG_WARNING, 2, "DOODADDEFTOOFARTOSORT");
+    return;
   }
   sortTable.table[sortIndex].doodadDefList.LinkNode(doodadDef, LIST_TAIL, 0);
 }
@@ -285,7 +292,8 @@ void __fastcall CWorldScene::AddMapObjDef(CMapObjDef *mapObjDef) {
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
-    FATALERROR(("MAPOBJDEFTOOFARTOSORT"));
+    SysMsgPrintf(SYSMSG_WARNING, 2, "MAPOBJDEFTOOFARTOSORT");
+    return;
   }
   sortTable.table[sortIndex].mapObjDefList.LinkNode(mapObjDef, LIST_TAIL, 0);
 }
@@ -297,7 +305,8 @@ void __fastcall CWorldScene::AddMapChunk(CMapChunk *chunk, float sortDist) {
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
-    FATALERROR(("CHUNKDISTTOOFARTOSORT"));
+    SysMsgPrintf(SYSMSG_WARNING, 2, "CHUNKDISTTOOFARTOSORT");
+    return;
   }
 
   sortTable.table[sortIndex].chunkList.LinkNode(chunk, LIST_TAIL, 0);
@@ -310,7 +319,8 @@ void __fastcall CWorldScene::AddChunkLiquid(CChunkLiquid *liquid, unsigned int t
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
-    FATALERROR(("CHUNKDISTTOOFARTOSORT"));
+    SysMsgPrintf(SYSMSG_WARNING, 2, "CHUNKDISTTOOFARTOSORT");
+    return;
   }
   sortTable.table[sortIndex].liquidList[type].LinkNode(liquid, LIST_TAIL, 0);
 }
@@ -322,7 +332,8 @@ void __fastcall CWorldScene::AddMapEntity(CMapEntity *entity) {
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
-    FATALERROR(("ENTITYDISTTOOFARTOSORT"));
+    SysMsgPrintf(SYSMSG_WARNING, 2, "ENTITYDISTTOOFARTOSORT");
+    return;
   }
   sortTable.table[sortIndex].entityList.LinkNode(entity, LIST_TAIL, 0);
 }
@@ -406,7 +417,6 @@ void __fastcall CWorldScene::ClipPortal(NTempest::C4Vector *inList, unsigned int
         NTempest::C4Vector &out = v[to][c[to]++];
         out.x = v0->x + (v1->x - v0->x) * t;
         out.y = v0->y + (v1->y - v0->y) * t;
-        out.z = v0->z + (v1->z - v0->z) * t;
         out.w = v0->w + (v1->w - v0->w) * t;
       }
     }
@@ -443,6 +453,70 @@ void __fastcall CWorldScene::LocateViewer() {
       return;
     }
     mapObjDef = mapObjDefnext_node;
+  }
+}
+
+void __fastcall CWorldScene::AddViewerGroup2(unsigned int groupNum) {
+  for (unsigned int i = 0; i < viewerMapObjGroups.Count(); ++i) {
+    if (viewerMapObjGroups[i] == groupNum) {
+      return;
+    }
+  }
+
+  viewerMapObjGroups.Add(&groupNum);
+}
+
+void __fastcall CWorldScene::LocateViewer3() {
+  viewerMapObjDef = 0;
+  viewerMapObjGroups.SetCount(0);
+  currentChunkName[0] = 0;
+  camMapObj = 0;
+  camMapObjGroup = 0;
+  camMapObjDef = 0;
+
+  if (!(CWorld::enables & CWorld::Enable_MapObjs)) {
+    return;
+  }
+
+  NTempest::C3Vector lCen = camPos;
+  NTempest::C3Vector lEnd = camPos;
+  lEnd.z -= 1760.0f;
+
+  CMapChunk   *chunk;
+  float        chunkT = 1.0f;
+  unsigned int hitChunk = CMap::VectorIntersectTerrain(&lCen, &lEnd, &chunkT, 0, &chunk);
+
+  CMapObjDef  *mapObjDef = 0;
+  unsigned int mapObjDefGroupIDs[2];
+  float        mapObjT = 1.0f;
+  unsigned int hitMapObj = CMap::LocateViewerMapObjs(lCen, lEnd, mapObjT, mapObjDef, mapObjDefGroupIDs);
+
+  if ((!hitChunk || (hitMapObj && chunkT >= mapObjT)) && hitMapObj) {
+    camMapObjDef = mapObjDef;
+    camMapObj = mapObjDef->mapObj;
+    FATALASSERT(camMapObj);
+
+    camMapObjGroup = camMapObj->GetGroup(mapObjDefGroupIDs[0], 0);
+    FATALASSERT(camMapObjGroup);
+
+    SStrCopy(currentChunkName, camMapObj->GetGroupName(mapObjDefGroupIDs[0]), sizeof(currentChunkName));
+
+    CMapObjDef *mapObjDefNode = sortTable.table[0].mapObjDefList.Head();
+    while (mapObjDefNode) {
+      CMapObjDef *mapObjDefNext = sortTable.table[0].mapObjDefList.Next(mapObjDefNode);
+      if (mapObjDefNode == mapObjDef) {
+        viewerMapObjDef = mapObjDefNode;
+        sortTable.table[0].mapObjDefList.UnlinkNode(mapObjDefNode);
+      }
+      mapObjDefNode = mapObjDefNext;
+    }
+
+    FATALASSERT(viewerMapObjDef);
+
+    AddViewerGroup2(mapObjDefGroupIDs[0]);
+    if (mapObjDefGroupIDs[1] != 0xFFFF) {
+      AddViewerGroup2(mapObjDefGroupIDs[1]);
+    }
   }
 }
 
@@ -516,8 +590,10 @@ void __fastcall CWorldScene::FrustumSet(NTempest::C3Vector *corners, NTempest::C
     newCorners[i + 3] = tr + rd * sRect.b;
   }
 
-  n = NTempest::C3Vector::Cross(newCorners[1] - newCorners[0], newCorners[4] - newCorners[0]);
-  FrustumGet().CalcPlanesFromCorners(newCorners);
+  n = NTempest::C3Vector::Cross(newCorners[1] - newCorners[2], newCorners[0] - newCorners[2]);
+  if (n != NTempest::C3Vector(0.0f)) {
+    FrustumGet().CalcPlanesFromCorners(newCorners);
+  }
 }
 
 void __fastcall CWorldScene::FrustumSet(CWFrustum &frustum) {
@@ -624,7 +700,7 @@ void __fastcall CWorldScene::CullEntitys(CSortEntry *sortEntry) {
   CMapEntity *entity = sortEntry->entityList.Head();
   while (entity) {
     CMapEntity *next = sortEntry->entityList.Next(entity);
-    if (entity->camDist <= cullDistance && !FrustumCull(entity->aaSphere.c, entity->aaSphere.r) &&
+    if (entity->camDist <= CWorld::unitDrawDist && !FrustumCull(entity->aaSphere.c, entity->aaSphere.r) &&
         !ClipBufferCull(entity->aaSphere.c, entity->aaSphere.r, 0))
     {
       entity->flagVisible = 1;
@@ -1215,7 +1291,7 @@ void __fastcall CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, con
     CMapEntity *entity = static_cast<CMapEntity *>(link->owner);
     if (!entity->flagVisible) {
       entity->camDist = camPlaneXY.DistSigned(entity->aaSphere.c) - entity->aaSphere.r;
-      if (entity->camDist <= cullDistance && !FrustumCull(entity->aaSphere.c, entity->aaSphere.r)) {
+      if (entity->camDist <= CWorld::unitDrawDist && !FrustumCull(entity->aaSphere.c, entity->aaSphere.r)) {
         entity->flagVisible = 1;
         entity->sceneLink.Unlink();
         sortTable.visEntityList.LinkNode(entity, LIST_TAIL, 0);

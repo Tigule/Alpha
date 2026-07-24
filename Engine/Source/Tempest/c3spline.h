@@ -47,7 +47,10 @@ namespace NTempest {
     void ParametricSegT(float wholeT, unsigned int segCount, unsigned int &segment, float &t) const;
     void ArclengthSegT(float s, const C44Matrix &coeffs, unsigned int segCount, unsigned int &seg, float &t) const;
 
+   public:
     mutable float                  cachedLength;
+
+   protected:
     TSGrowableArray<C3Vector>      points;
     mutable TSGrowableArray<float> cachedSegLength;
   };

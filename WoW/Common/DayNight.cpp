@@ -444,6 +444,7 @@ static void SetPlanets() {
   dir.Normalize();
   s_planets[0].m_pos = s_dnInfo.playerPos + dir * 12.0f;
   s_planets[0].m_scale = InterpTable(sunScaleTable, 4, s_dnInfo.dayProgression) * s_planets[0].m_baseScale * s_dnInfo.sunMoonPath;
+  s_sunGlare.m_pos = s_planets[0].m_pos;
 
   theta = InterpTable(sunThetaTable, 5, s_dnInfo.dayProgression);
   phi = InterpTable(sunPhiTable, 3, s_dnInfo.dayProgression);
@@ -451,6 +452,7 @@ static void SetPlanets() {
   dir.Normalize();
   s_planets[1].m_pos = s_dnInfo.playerPos + dir * 12.0f;
   s_planets[1].m_scale = InterpTable(moonScaleTable, 4, s_dnInfo.dayProgression) * s_planets[1].m_baseScale * s_dnInfo.sunMoonPath;
+  s_moonGlare.m_pos = s_planets[1].m_pos;
   s_moonGlare.m_scaleMin = s_planets[1].m_scale * s_dnInfo.sunMoonPath;
   s_moonGlare.m_scaleMax = s_moonGlare.m_scaleMin;
 

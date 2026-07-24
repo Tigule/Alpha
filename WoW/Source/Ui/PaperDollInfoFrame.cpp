@@ -109,10 +109,21 @@ void __fastcall CGCharacterInfo::PickupItem(int slot) {
   unsigned int     cursorSlot;
   CGGameUI::GetCursorItem(cursorItem, cursorBag, cursorSlot);
   if (cursorItem) {
+    if (cursorItem == item) {
+      CGGameUI::ClearCursor(1);
+      return;
+    }
+
+    CGItem_C *slotItem = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item, __FILE__, __LINE__));
+    if (slotItem && !slotItem->IsUnlocked()) {
+      return;
+    }
+
     player->SwapItems(cursorItem, cursorBag, cursorSlot, player->GetGUID(), slot, 0);
-    CGGameUI::ClearCursor(0);
+    CGGameUI::LockItem(item);
   } else if (item) {
     CGGameUI::SetCursorItem(item, player->GetGUID(), slot, 1, 0);
+    CGGameUI::LockItem(item);
   }
 }
 
@@ -131,16 +142,21 @@ void __fastcall CGCharacterInfo::PickupBag(int slot) {
 
 int __fastcall CGCharacterInfo::PutItemInBag(int slot) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || slot < 0 || slot >= 4) {
+  if (!player || (slot != 255 && (slot < 0 || slot >= 4))) {
     return 0;
   }
   unsigned __int64 item;
   unsigned __int64 bag;
   unsigned int     itemSlot;
   CGGameUI::GetCursorItem(item, bag, itemSlot);
-  unsigned __int64 targetBag = player->GetBag()->GetItem(slot + 19);
+  unsigned __int64 targetBag = slot == 255 ? player->GetGUID() : player->GetBag()->GetItem(slot + 19);
   if (item && targetBag) {
-    player->AutoStoreItemInBag(item, bag, itemSlot, targetBag, 0);
+    unsigned int split = CGGameUI::GetCursorStackSplit();
+    if (split) {
+      player->SplitItem(item, bag, itemSlot, targetBag, 255, split);
+    } else {
+      player->AutoStoreItemInBag(item, bag, itemSlot, targetBag, 0);
+    }
     CGGameUI::ClearCursor(0);
     return 1;
   }
@@ -148,20 +164,7 @@ int __fastcall CGCharacterInfo::PutItemInBag(int slot) {
 }
 
 int __fastcall CGCharacterInfo::PutItemInBackpack() {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return 0;
-  }
-  unsigned __int64 item;
-  unsigned __int64 bag;
-  unsigned int     slot;
-  CGGameUI::GetCursorItem(item, bag, slot);
-  if (item) {
-    player->AutoStoreItemInBag(item, bag, slot, player->GetGUID(), 0);
-    CGGameUI::ClearCursor(0);
-    return 1;
-  }
-  return 0;
+  return PutItemInBag(255);
 }
 
 void __fastcall CGCharacterInfo::UpdateAllSkillLines() {
@@ -552,14 +555,12 @@ static int __fastcall Script_IsInventoryItemLocked(lua_State *L) {
 }
 
 static int __fastcall Script_GetSkillLineInfo(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: GetSkillLineInfo(category)");
-  }
-  int offset;
-  int count = CGCharacterInfo::GetSkillOffsetFromString(lua_tostring(L, 1), offset);
-  lua_pushnumber(L, static_cast<double>(offset));
-  lua_pushnumber(L, static_cast<double>(count));
-  return 2;
+  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumClassSkills()));
+  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumSpecSkills()));
+  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumRacialSkills()));
+  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumSecondarySkills()));
+  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumProficiencies()));
+  return 5;
 }
 
 static int __fastcall Script_GetSkillByIndex(lua_State *L) {

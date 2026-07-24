@@ -267,7 +267,7 @@ int CGObject_C::InitModelFileName(char *modelFileName, unsigned int size) {
   switch (GetType()) {
     case HIER_TYPE_ITEM:
     case HIER_TYPE_CONTAINER:
-      name = static_cast<CGItem_C *>(this)->GetInventoryArt();
+      name = static_cast<CGItem_C *>(this)->GetModelFileName();
       if (name) {
         SStrPrintf(modelFileName, size, "%s\\%s", "Item\\GroundObjects", name);
       }
@@ -1043,7 +1043,14 @@ unsigned int __fastcall Object_C_AnimHasHitEvent(int anim) {
   FATALASSERT(anim < NUM_OBJECTANIMATIONS);
   return g_seqInformation[anim].flags & 1;
 }
-static int UpdateAllWorldObjectsCallback(unsigned __int64 obj, void*) {
-    // TODO: implement
-    return 0;
+static int __fastcall UpdateAllWorldObjectsCallback(unsigned __int64 obj, void *) {
+  CGObject_C *object = ClntObjMgrObjectPtr(obj, __FILE__, __LINE__);
+  if (object) {
+    object->UpdateWorldObject();
+  }
+  return 1;
+}
+
+void __fastcall CGObject_C::UpdateAllWorldObjects() {
+  ClntObjMgrEnumVisibleObjects(UpdateAllWorldObjectsCallback, 0);
 }

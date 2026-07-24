@@ -238,7 +238,7 @@ CMapDoodadDef *__fastcall CMap::AllocDoodadDef() {
   }
 
   doodadDef->lameAssLink.Unlink();
-  doodadDef->renderCBParam = 0;
+  doodadDef->RenderCB = 0;
   doodadDef->model = 0;
 
   ++counts[1];

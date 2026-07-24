@@ -7,6 +7,7 @@ class CSimpleFrame;
 class CSimpleTop;
 class CGTooltip;
 class CGCursor;
+class CGSpellBook;
 class CGObject_C;
 class CinematicSequencesRec;
 class CinematicCameraRec;
@@ -88,6 +89,9 @@ class CGGameUI {
   static unsigned int GetCursorMoney() {
     return m_cursorMoney;
   }
+  static unsigned int GetCursorStackSplit() {
+    return m_stackSplit;
+  }
   static void __fastcall         SetCursorMoney(unsigned int money);
   static void __fastcall         SetCursorSpell(int spellId, int pet);
   static void __fastcall         DropCursorSpell();
@@ -104,6 +108,7 @@ class CGGameUI {
   static void __fastcall         NewZoneFeedback(int areaID, const char *zoneString, const char *subZoneString);
   static void __fastcall         SetMinimapZoneText(const char *areaName);
   static void __fastcall         ClearCursor(int unlock);
+  static void __fastcall         DeleteCursorItem();
   static void __fastcall         PlayerCombatModeChanged(int newState);
   static void __fastcall         StartCinematic(int cinematicID);
   static int __fastcall          StopCinematic(void *__formal);
@@ -165,6 +170,7 @@ class CGGameUI {
   static void __fastcall UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object);
   friend class CGTooltip;
   friend class CGCursor;
+  friend class CGSpellBook;
   friend class CGMinimapFrame;
   friend int __fastcall Script_CursorHasItem(lua_State *L);
   friend int __fastcall Script_CursorHasSpell(lua_State *L);

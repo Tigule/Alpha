@@ -3,6 +3,64 @@
 
 #include "Base/Base.h"
 
+bool __fastcall CMap::LocateViewerMapObjs(
+    const NTempest::C3Vector &lCen,
+    const NTempest::C3Vector &lEnd,
+    float                    &maxT,
+    CMapObjDef              *&hitMapObjDef,
+    unsigned int             *hitGroupIDs
+) {
+  hitMapObjDef = 0;
+  hitGroupIDs[0] = 0xFFFF;
+  hitGroupIDs[1] = 0xFFFF;
+
+  CMapObjDef *mapObjDef = mapObjDefHash.Head();
+  while (mapObjDef) {
+    if (!(mapObjDef->flags & CMapBaseObj::Flag_NoCollision) && mapObjDef->TestAABox(lCen, lEnd)) {
+      CMapObj *mapObj = mapObjDef->mapObj;
+      if (mapObj) {
+        NTempest::C3Vector v0 = lCen * mapObjDef->invMat;
+        NTempest::C3Vector v1 = lEnd * mapObjDef->invMat;
+
+        CMapBaseObjLink *link = mapObjDef->groupLinkList.Head();
+        while (reinterpret_cast<long>(link) > 0) {
+          CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
+          if (mapObj->TestGroupBounds(v0, v1, mapObjDefGroup->groupNum)) {
+            CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
+            if (mapObjGroup) {
+              CWTriData triData;
+              if (mapObjGroup->GetTris(triData, NTempest::C3Segment(v0, v1), maxT, mapObjDef, 0)) {
+                hitMapObjDef = mapObjDef;
+                hitGroupIDs[0] = mapObjDefGroup->groupNum;
+                hitGroupIDs[1] = 0xFFFF;
+              }
+            }
+          }
+          link = mapObjDef->groupLinkList.RawNext(link);
+        }
+
+        float        portalT = 1.0f;
+        unsigned int portalGroups[2];
+        if (mapObj->VectorIntersectPortals(NTempest::C3Segment(v0, v1), portalT, portalGroups) && portalT - maxT < 0.0001f) {
+          maxT = portalT;
+          if (!(mapObj->GetGroupInfo(portalGroups[0])->flags & 8)) {
+            hitMapObjDef = mapObjDef;
+            hitGroupIDs[0] = portalGroups[0];
+            hitGroupIDs[1] = mapObj->GetGroupInfo(portalGroups[1])->flags & 8 ? 0xFFFF : portalGroups[1];
+          }
+        }
+
+        if (hitMapObjDef == mapObjDef && mapObj->GetGroupInfo(hitGroupIDs[0])->flags & 8) {
+          hitMapObjDef = 0;
+        }
+      }
+    }
+    mapObjDef = mapObjDefHash.Next(mapObjDef);
+  }
+
+  return hitMapObjDef != 0;
+}
+
 unsigned int __fastcall CMap::QueryAreaId(float x, float y) {
   float mx = -(y - 17066.666f);
   float my = -(x - 17066.666f);
@@ -58,9 +116,10 @@ unsigned int __fastcall CMap::QueryLiquidStatusMapObjsExt(
   while (mapObjDef) {
     FATALASSERT(mapObjDef->mapObj);
     NTempest::C3Vector p = point * mapObjDef->invMat;
-    NTempest::C3Vector out;
-    if (mapObjDef->mapObj->QueryLiquidStatus(0x2000, p, liquid, surface, out)) {
-      waterDir = out * mapObjDef->mat;
+    if (mapObjDef->mapObj->QueryLiquidStatus(0x2000, p, liquid, surface, waterDir)) {
+      NTempest::C3Vector out(0.0f, 0.0f, surface);
+      out *= mapObjDef->mat;
+      surface = out.z;
       return 1;
     }
     mapObjDef = CMap::mapObjDefHash.Next(mapObjDef);

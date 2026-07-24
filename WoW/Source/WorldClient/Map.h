@@ -238,6 +238,8 @@ class CMapBaseObj {
 
   virtual void SelectLights();
 
+  int TestAABox(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1);
+
   unsigned int GetType() const {
     return type;
   }
@@ -377,6 +379,7 @@ class CMapDoodadDef : public CMapStaticEntity, public TSHashObject<CMapDoodadDef
 
 class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_NONE> {
  public:
+  CMapObjDef();
   ~CMapObjDef();
 
   NTempest::C44Matrix                mat;
@@ -398,6 +401,7 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
 
 class CMapObjDefGroup : public CMapBaseObj {
  public:
+  CMapObjDefGroup();
   ~CMapObjDefGroup();
 
   virtual void SelectLights();

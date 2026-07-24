@@ -11,6 +11,9 @@ class CSimpleScrollFrame : public CSimpleFrame {
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
+  virtual void OnLayerUpdate(float elapsedSec);
+  virtual void OnFrameRender(CRenderBatch *batch, unsigned int layer);
+  virtual void OnFrameSizeChanged(float w, float h);
 
   void SetHorizontalScroll(float offset);
   void SetVerticalScroll(float offset);
@@ -60,7 +63,9 @@ class CSimpleScrollFrame : public CSimpleFrame {
   virtual int LookupScriptMethod(lua_State *L, const char *name);
 
   void SetScrollChild(CSimpleFrame *frame);
+  void UpdateScrollChildRect(float w, float h);
   void UpdateScrollChild();
+  static void __fastcall RenderScrollChild(void *param);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 

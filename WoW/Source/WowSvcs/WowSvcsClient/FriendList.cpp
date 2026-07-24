@@ -36,12 +36,30 @@ static unsigned int s_numWhos;
 static unsigned int s_totalNumWhos;
 static int          s_whoToUI;
 
+enum WHO_SORT_TYPE {
+  WHO_SORT_ZONE = 0,
+  WHO_SORT_LEVEL = 1,
+  WHO_SORT_CLASS = 2,
+  WHO_SORT_GROUP = 3,
+  WHO_SORT_NAME = 4,
+  WHO_SORT_RACE = 5,
+  WHO_SORT_GUILD = 6,
+  NUM_WHO_SORT_TYPES = 7
+};
+
+struct WhoSortType {
+  WHO_SORT_TYPE type;
+  int           reverse;
+};
+
+static WhoSortType s_whoSortCriteria[NUM_WHO_SORT_TYPES];
+
 FriendList::FriendList() : m_friendNamesPending(0), m_selectedFriend(0), m_ignoreNamesPending(0), m_selectedIgnore(0) {
   memset(m_friends, 0, sizeof(m_friends));
   memset(m_ignore, 0, sizeof(m_ignore));
 }
 
-static int FriendListStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int __fastcall FriendListStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
     // TODO: implement
     return 0;
 }
@@ -57,27 +75,27 @@ static void IgnoreListNameCallback(int id, const unsigned __int64& guid, void* a
 FriendList::~FriendList() {
 }
 
-static int FriendListHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int __fastcall FriendListHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
     // TODO: implement
     return 0;
 }
 
-static int CCommand_Friends(const char* command, const char* arguments) {
+static int __fastcall CCommand_Friends(const char* command, const char* arguments) {
     // TODO: implement
     return 0;
 }
 
-static int CCommand_AddFriend(const char* command, const char* arguments) {
+static int __fastcall CCommand_AddFriend(const char* command, const char* arguments) {
     // TODO: implement
     return 0;
 }
 
-static int CCommand_RemoveFriend(const char* command, const char* arguments) {
+static int __fastcall CCommand_RemoveFriend(const char* command, const char* arguments) {
     // TODO: implement
     return 0;
 }
 
-static int WhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int __fastcall WhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
     // TODO: implement
     return 0;
 }
@@ -94,17 +112,17 @@ void FriendList::RemoveFriend(unsigned int index) {
   ClientServices_Send(&msg);
 }
 
-static int ReverseWhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int __fastcall ReverseWhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
     // TODO: implement
     return 0;
 }
 
-static int CCommand_Whois(const char*, const char* args) {
+static int __fastcall CCommand_Whois(const char*, const char* args) {
     // TODO: implement
     return 0;
 }
 
-static int CCommand_RWhois(const char*, const char* args) {
+static int __fastcall CCommand_RWhois(const char*, const char* args) {
     // TODO: implement
     return 0;
 }
@@ -325,14 +343,40 @@ static void PrintWho(const char* name, const char* guild, int level, int classID
     // TODO: implement
 }
 
-static int OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int __fastcall OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
     // TODO: implement
     return 0;
 }
 
-static int OnIgnoreList(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int __fastcall OnIgnoreList(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
     // TODO: implement
     return 0;
+}
+
+void __fastcall FriendList::Initialize() {
+  if (g_friendList) {
+    return;
+  }
+
+  g_friendList = NEW(FriendList);
+
+  ClientServices_SetMessageHandler(SMSG_WHO, OnWhoList, 0);
+  ClientServices_SetMessageHandler(SMSG_WHOIS, WhoisResponseHandler, 0);
+  ClientServices_SetMessageHandler(SMSG_RWHOIS, ReverseWhoisResponseHandler, 0);
+  ClientServices_SetMessageHandler(SMSG_FRIEND_LIST, FriendListHandler, 0);
+  ClientServices_SetMessageHandler(SMSG_FRIEND_STATUS, FriendListStatusHandler, 0);
+  ClientServices_SetMessageHandler(SMSG_IGNORE_LIST, OnIgnoreList, 0);
+
+  ConsoleCommandRegister("friends", CCommand_Friends, GAME, 0);
+  ConsoleCommandRegister("addfriend", CCommand_AddFriend, GAME, 0);
+  ConsoleCommandRegister("removefriend", CCommand_RemoveFriend, GAME, 0);
+  ConsoleCommandRegister("whois", CCommand_Whois, DEBUG, "Ask the server to do an account/real name lookup on a character name");
+  ConsoleCommandRegister("rwhois", CCommand_RWhois, DEBUG, "Ask the server to do an reverse lookup on an account's real name");
+
+  for (int i = WHO_SORT_ZONE; i < NUM_WHO_SORT_TYPES; ++i) {
+    s_whoSortCriteria[i].type = static_cast<WHO_SORT_TYPE>(i);
+    s_whoSortCriteria[i].reverse = 0;
+  }
 }
 
 void __fastcall FriendList::Destroy() {

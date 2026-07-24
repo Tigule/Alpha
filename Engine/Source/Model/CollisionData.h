@@ -14,6 +14,9 @@ HCOLLISIONDATA __fastcall CollisionDataCreate(const NTempest::CAaBox &bounds);
 HMODEL __fastcall         CollisionDataCreateModel(HCOLLISIONDATA collide);
 void __fastcall           CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, void *param);
 void __fastcall           ModelGetCollisionExtents(HMODEL model, NTempest::CAaBox *extents);
+int __fastcall            ModelCollisionVectorIntersect(
+    HMODEL model, const NTempest::C34Matrix &basis, const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, float &t
+);
 void __fastcall           ModelAddCollisionFacets(
     HMODEL                             model,
     const NTempest::C34Matrix         &toWorld,

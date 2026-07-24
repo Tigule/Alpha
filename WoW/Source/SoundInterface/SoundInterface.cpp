@@ -11,7 +11,9 @@
 #include "DB/DBClient/AutoCode/TerrainTypeSoundsRec.h"
 #include "DB/DBClient/AutoCode/VocalUISoundsRec.h"
 #include "DB/DBClient/DBClient.h"
+#include "Event/EvtApi.h"
 #include "FrameScript/FrameScript.h"
+#include "Game/GameTime.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Unit_C.h"
@@ -43,8 +45,29 @@ static bool __fastcall  SoundVolumeHandler(CVar *cvar, const char *oldValue, con
 static bool __fastcall  MasterVolumeHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg);
 static bool __fastcall  EnableMusicHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg);
 static bool __fastcall  EnableSoundHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg);
+void __fastcall InitializeZoneMusic();
+void __fastcall ShutdownZoneMusic();
+void __fastcall SoundInterfaceInitializeWorldMIDI();
+void __fastcall SoundInterfaceShutdownWorldMIDI();
+void __fastcall InitializeWaterAmbiences();
+void __fastcall ShutdownWaterAmbiences();
+void __fastcall SoundInterfaceDoodadInitialize();
+void __fastcall SoundInterfaceDoodadDestroy();
+void __fastcall SndInterfaceZoneIntroInitialize();
+void __fastcall SndInterfaceZoneIntroDestroy();
+void __fastcall SndInterfaceZoneIntroIdler();
+void __fastcall SndInterfaceMIDIAmbienceChanged();
 
 bool g_underWater;
+
+enum AMBIENCE {
+  AMB_DAY,
+  AMB_NIGHT,
+  NUM_AMBIENCES
+};
+
+static int      s_elapsed;
+static AMBIENCE g_currentAmbience;
 
 static int                      MIXRATE = 22050;
 static const FrameScript_Method s_ScriptFunctions[2] = {
@@ -313,17 +336,64 @@ void __fastcall SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, int itemDispl
   }
 }
 
-static int WorldIdle(const void* dataPtr, void* ptr) {
-    // TODO: implement
-    return 0;
+static int WorldIdle(const void *dataPtr, void *) {
+  s_elapsed += static_cast<int>(*static_cast<const float *>(dataPtr) * 1000.0f);
+  if (s_elapsed >= 1000) {
+    s_elapsed -= 1000;
+    SndInterfaceZoneIntroIdler();
+
+    unsigned int encodedTime;
+    WowTime      valMax;
+    WowTime      valMin;
+    WowTime::WowEncodeTime(encodedTime, 0, 20, -1, -1, -1, -1, 0);
+    WowTime::WowDecodeTime(encodedTime, &valMax);
+    WowTime::WowEncodeTime(encodedTime, 30, 5, -1, -1, -1, -1, 0);
+    WowTime::WowDecodeTime(encodedTime, &valMin);
+
+    AMBIENCE ambience = g_clientGameTime.InRange(valMin, valMax) ? AMB_DAY : AMB_NIGHT;
+    if (ambience != g_currentAmbience) {
+      g_currentAmbience = ambience;
+      SndInterfaceMIDIAmbienceChanged();
+    }
+  }
+
+  return 1;
 }
 
 void __fastcall SndInterfaceWorldInitialize() {
-    // TODO: implement
+  SoundInterfaceRegisterWorldCVars();
+  if (!CmdLineGetBool(static_cast<CMDOPT>(26))) {
+    s_elapsed = 1000;
+    InitializeZoneMusic();
+    SoundInterfaceInitializeWorldMIDI();
+    InitializeWaterAmbiences();
+    SoundInterfaceDoodadInitialize();
+    EventRegister(EVENT_ID_IDLE, WorldIdle);
+    SndInterfaceZoneIntroInitialize();
+
+    unsigned int encodedTime;
+    WowTime      valMax;
+    WowTime      valMin;
+    g_currentAmbience = AMB_NIGHT;
+    WowTime::WowEncodeTime(encodedTime, 0, 20, -1, -1, -1, -1, 0);
+    WowTime::WowDecodeTime(encodedTime, &valMax);
+    WowTime::WowEncodeTime(encodedTime, 30, 5, -1, -1, -1, -1, 0);
+    WowTime::WowDecodeTime(encodedTime, &valMin);
+    if (g_clientGameTime.InRange(valMin, valMax)) {
+      g_currentAmbience = AMB_DAY;
+    }
+  }
 }
 
 void __fastcall SndInterfaceWorldDestroy() {
-    // TODO: implement
+  EventUnregister(EVENT_ID_IDLE, WorldIdle);
+  if (!CmdLineGetBool(static_cast<CMDOPT>(26))) {
+    ShutdownZoneMusic();
+    ShutdownWaterAmbiences();
+    SoundInterfaceShutdownWorldMIDI();
+    SoundInterfaceDoodadDestroy();
+    SndInterfaceZoneIntroDestroy();
+  }
 }
 
 void __fastcall

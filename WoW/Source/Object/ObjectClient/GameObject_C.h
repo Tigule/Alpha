@@ -113,8 +113,8 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   HCOLLISIONDATA__   *m_collideData;
   NTempest::CAaBox    m_collideExtents;
   unsigned int        m_serverTimeOffset;
-  int                 m_isSolid;
-  int                 m_isQuestChestForMe;
+  int                 m_isSolid : 1;
+  int                 m_isQuestChestForMe : 1;
 };
 
 #endif

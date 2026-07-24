@@ -9,6 +9,7 @@
 #include <Model/CollisionData.h>
 #include <Base/Status.h>
 #include <Services/AsyncFileRead.h>
+#include <Services/SysMessage.h>
 #include <Services/Texture.h>
 #include <storm.h>
 
@@ -237,19 +238,18 @@ void __fastcall CMap::LoadMapObjNames() {
 }
 
 CMapDoodadDef *__fastcall CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos) {
-  HASHKEY_DWORD  key(smDoodadDef.uniqueId);
+  HASHKEY_DWORD  key;
   CMapDoodadDef *doodadDef = doodadDefHash.Ptr(smDoodadDef.uniqueId, key);
   while (doodadDef) {
-    if (doodadDef->m_key == key && !doodadDef->renderCBParam) {
+    if (doodadDef->m_hashval == smDoodadDef.uniqueId && doodadDef->m_key == key) {
       return doodadDef;
     }
-    doodadDef = doodadDefHash.Next(doodadDef);
+    doodadDef = doodadDef->m_linktoslot.Next();
   }
 
   doodadDef = AllocDoodadDef();
   FATALASSERT(doodadDef);
   doodadDefHash.Insert(doodadDef, smDoodadDef.uniqueId, key);
-  doodadDef->renderCBParam = 0;
 
   doodadDef->pos.Set(-smDoodadDef.pos.z, -smDoodadDef.pos.x, smDoodadDef.pos.y);
   doodadDef->pos += pos;
@@ -289,7 +289,7 @@ CMapDoodadDef *__fastcall CMap::CreateDoodadDef(
     if (doodadDef->m_hashval == doodadRef && doodadDef->m_key == key) {
       return doodadDef;
     }
-    doodadDef = doodadDefHash.Next(doodadDef);
+    doodadDef = doodadDef->m_linktoslot.Next();
   }
 
   doodadDef = AllocDoodadDef();
@@ -333,7 +333,11 @@ CMapObjDef *__fastcall CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest:
   mapObjDef->pos.Set(-smMapObjDef.pos.z, -smMapObjDef.pos.x, smMapObjDef.pos.y);
   mapObjDef->pos += pos;
 
-  NTempest::C3Vector rot(smMapObjDef.rot.x * 0.017453292f, smMapObjDef.rot.y * 0.017453292f, smMapObjDef.rot.z * 0.017453292f + 3.1415927f);
+  NTempest::C3Vector rot(
+      smMapObjDef.rot.z * 0.017453292f,
+      smMapObjDef.rot.x * 0.017453292f,
+      smMapObjDef.rot.y * 0.017453292f + 3.1415927f
+  );
   mapObjDef->flags = 0;
   mapObjDef->nameId = smMapObjDef.nameId;
   mapObjDef->doodadSet = smMapObjDef.doodadSet;
@@ -346,13 +350,14 @@ CMapObjDef *__fastcall CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest:
   mapObjDef->mat.Rotate(rot.z, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
   mapObjDef->mat.Rotate(rot.y, NTempest::C3Vector(0.0f, 1.0f, 0.0f), 1);
   mapObjDef->mat.Rotate(rot.x, NTempest::C3Vector(1.0f, 0.0f, 0.0f), 1);
-  mapObjDef->invMat = mapObjDef->mat.Inverse(1.0f);
+  mapObjDef->invMat = mapObjDef->mat.AffineInverse();
 
   mapObjDef->aaBox.b.Set(-smMapObjDef.extents.t.z + pos.x, -smMapObjDef.extents.t.x + pos.y, smMapObjDef.extents.b.y + pos.z);
   mapObjDef->aaBox.t.Set(-smMapObjDef.extents.b.z + pos.x, -smMapObjDef.extents.b.x + pos.y, smMapObjDef.extents.t.y + pos.z);
   mapObjDef->aaSphere.c = (mapObjDef->aaBox.b + mapObjDef->aaBox.t) * 0.5f;
   mapObjDef->aaSphere.r = (mapObjDef->aaBox.t - mapObjDef->aaSphere.c).Mag();
 
+  mapObjDef->lightList.SetCount(0);
   mapObjDef->mapObj = CMapObj::Create(&mapObjNames[mapObjNamesIndex[smMapObjDef.nameId]]);
   return mapObjDef;
 }
@@ -495,7 +500,7 @@ void __fastcall CMap::CreateMapObjDefGroupDoodads(
 
     SMODoodadDef  &smoDoodadDef = mapObj->doodadDefList[doodadRef];
     CMapDoodadDef *doodadDef =
-        CreateDoodadDef(doodadRef, smoDoodadDef, mapObj->doodadNameList + smoDoodadDef.nameIndex, mapObjDef->nameId + 1, mapObjDef->mat);
+        CreateDoodadDef(doodadRef, smoDoodadDef, mapObj->doodadNameList + smoDoodadDef.nameIndex, mapObjDef->m_hashval + 1, mapObjDef->mat);
     if (doodadDef) {
       CMapBaseObjLink *link = AllocBaseObjLink(doodadDef);
       link->ref = mapObjDefGroup;
@@ -556,6 +561,7 @@ void DNPlanet::Initialize(const char *filename) {
   CStatus     status;
   CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
   m_texid = TextureCreate(filename, flags, &status, 0);
+  SysMsgAdd(status, 2);
 }
 
 void DNStars::Initialize() {
@@ -564,10 +570,12 @@ void DNStars::Initialize() {
   if (m_hModel) {
     ModelSetSequence(m_hModel, 0, 0);
   }
+  SysMsgAdd(status, 16);
 }
 
 void DNGlare::Initialize(const char *filename) {
   CStatus     status;
   CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
   m_texid = TextureCreate(filename, flags, &status, 0);
+  SysMsgAdd(status, 2);
 }

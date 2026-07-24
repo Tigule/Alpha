@@ -24,11 +24,11 @@ All of the original source file paths have been pre-created. You should not need
 
 ## Building
 
-Firstly, you'll need to install CMake no matter what OS you're on: [cmake.org](https://cmake.org/download/)
+Firstly, you'll need to install CMake no matter what OS you're on: [cmake.org](https://cmake.org/download/).
 
-For building you need a VC6 compiler and a DirectX SDK (up to August 2007).
+Then you need a VC6 compiler and a DirectX SDK (up to August 2007). To save time, you can grab my CI artifacts: [VC6.zip](https://tigule.org/files/ci/VC6.zip) [DXSDK.zip](https://tigule.org/files/ci/DXSDK.zip)
 
-Once this reaches parity we will support other build targets and platform targets.
+We are targeting **VC6 + x86 + Windows ONLY** at this stage. Once this reaches parity we will support other platform and architecture targets.
 
 ### Windows
 

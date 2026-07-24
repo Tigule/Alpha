@@ -123,11 +123,15 @@ CModelComplex::~CModelComplex() {
   }
   numElements = m_emitters2.Count();
   for (i = 0; i < numElements; ++i) {
-    ParticleSystemManager::GetInstance()->DeleteEmitter2(m_emitters2[i]);
+    if (m_emitters2[i]) {
+      ParticleSystemManager::GetInstance()->DeleteEmitter2(m_emitters2[i]);
+    }
   }
   numElements = m_ribbons.Count();
   for (i = 0; i < numElements; ++i) {
-    RibbonManager::GetInstance()->DeleteEmitter(m_ribbons[i]);
+    if (m_ribbons[i]) {
+      RibbonManager::GetInstance()->DeleteEmitter(m_ribbons[i]);
+    }
   }
   numElements = m_lights.Count();
   for (i = 0; i < numElements; ++i) {
@@ -1776,7 +1780,7 @@ void __fastcall ModelCustGeosetRemove(HMODEL model, unsigned int custGeosetId) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
     ASSERT(custGeosetId < complex->m_custGeosets.Count());
     memmove(
-        &complex->m_custGeosets[custGeosetId], &complex->m_custGeosets[custGeosetId + 1],
+        &complex->m_custGeosets[custGeosetId], complex->m_custGeosets.Ptr() + custGeosetId + 1,
         (complex->m_custGeosets.Count() - custGeosetId - 1) * sizeof(CCustomGeoset)
     );
     complex->m_custGeosets.SetCount(complex->m_custGeosets.Count() - 1);
@@ -1784,7 +1788,7 @@ void __fastcall ModelCustGeosetRemove(HMODEL model, unsigned int custGeosetId) {
     CModelSimple *simple = static_cast<CModelSimple *>(unique);
     ASSERT(custGeosetId < simple->m_custGeosets.Count());
     memmove(
-        &simple->m_custGeosets[custGeosetId], &simple->m_custGeosets[custGeosetId + 1],
+        &simple->m_custGeosets[custGeosetId], simple->m_custGeosets.Ptr() + custGeosetId + 1,
         (simple->m_custGeosets.Count() - custGeosetId - 1) * sizeof(CCustomGeoset)
     );
     simple->m_custGeosets.SetCount(simple->m_custGeosets.Count() - 1);

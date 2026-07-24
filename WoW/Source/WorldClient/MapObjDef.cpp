@@ -3,6 +3,12 @@
 #include "Base/Base.h"
 #include "Gx/Gx.h"
 
+CMapObjDefGroup::CMapObjDefGroup() {
+  type |= Type_MapObjDefGroup;
+  subzoneName = 0;
+  level = 0;
+}
+
 CMapObjDefGroup::~CMapObjDefGroup() {
   ASSERT(entityLinkList.Head() == 0);
   ASSERT(sceneLink.IsLinked() == 0);
@@ -59,6 +65,14 @@ void CMapObjDefGroup::Update(NTempest::C44Matrix &newMat) {
     link->owner->flags |= CMapBaseObj::Flag_LightUpdate;
     link = entityLinkList.Next(link);
   }
+}
+
+CMapObjDef::CMapObjDef() {
+  type |= Type_MapObjDef;
+  nameId = 0;
+  mapObj = 0;
+  zoneName = 0;
+  param64 = 0;
 }
 
 CMapObjDef::~CMapObjDef() {

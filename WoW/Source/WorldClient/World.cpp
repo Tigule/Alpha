@@ -123,7 +123,18 @@ void __fastcall CWorld::Initialize() {
   shadowModGxTex = 0;
 
   CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  GxTexCreate(8, 8, GxTex_Argb8888, flags, shadowModColor, UpdateShadowGxTex, shadowModGxTex);
+  GxTexCreate(
+      GxTex_2d,
+      8,
+      8,
+      0,
+      GxTex_Argb4444,
+      GxTex_Argb8888,
+      flags,
+      shadowModColor,
+      UpdateShadowGxTex,
+      shadowModGxTex
+  );
 
   detailDoodadAlphaRef = 128;
   detailDoodadTest = 0;
@@ -146,6 +157,25 @@ void __fastcall CWorld::Initialize() {
   ModelSetProject2dCallback(ModelGeoProjectCallback);
   AnimSetBoneProjectCallback(AnimBoneProjectCallback, 20.0f);
   ParticleSystemManager::SetProjectCallback(ParticleProjectCallback, 20.0f);
+
+  ConsoleCommandRegister("showDetailDoodads", ConsoleCommand_ShowDetailDoodads, GRAPHICS, 0);
+  ConsoleCommandRegister("maxLOD", ConsoleCommand_MaxLOD, GRAPHICS, 0);
+  ConsoleCommandRegister("showCull", ConsoleCommand_ShowCull, GRAPHICS, 0);
+  ConsoleCommandRegister("setShadow", ConsoleCommand_SetShadow, GRAPHICS, 0);
+  ConsoleCommandRegister("mapObjLightMode", ConsoleCommand_MapObjLightMode, GRAPHICS, 0);
+  ConsoleCommandRegister("waterShow", ConsoleCommand_WaterShow, GRAPHICS, 0);
+  ConsoleCommandRegister("showWater", ConsoleCommand_WaterShow, GRAPHICS, 0);
+  ConsoleCommandRegister("waterMaxLOD", ConsoleCommand_WaterMaxLOD, GRAPHICS, 0);
+  ConsoleCommandRegister("waterWaves", ConsoleCommand_WaterWaves, GRAPHICS, 0);
+  ConsoleCommandRegister("waterSpecular", ConsoleCommand_WaterSpecular, GRAPHICS, 0);
+  ConsoleCommandRegister("waterRipples", ConsoleCommand_WaterRipples, GRAPHICS, 0);
+  ConsoleCommandRegister("waterParticulates", ConsoleCommand_WaterParticulates, GRAPHICS, 0);
+  ConsoleCommandRegister("showShadow", ConsoleCommand_ShowShadow, GRAPHICS, 0);
+  ConsoleCommandRegister("showLowDetail", ConsoleCommand_ShowLowDetail, GRAPHICS, 0);
+  ConsoleCommandRegister("showSimpleDoodads", ConsoleCommand_ShowSimpleDoodads, GRAPHICS, 0);
+  ConsoleCommandRegister("detailDoodadAlpha", ConsoleCommand_DetailDoodadAlpha, GRAPHICS, 0);
+  ConsoleCommandRegister("enumTextures", ConsoleCommand_EnumTextures, DEBUG, 0);
+  ConsoleCommandRegister("enumTextureGxCache", ConsoleCommand_EnumTextureGxCache, DEBUG, 0);
 }
 
 void __fastcall CWorld::Destroy() {
@@ -170,6 +200,12 @@ void __fastcall CWorld::LoadMap(const char *mapName, NTempest::C3Vector &positio
 
 void __fastcall CWorld::UnloadMap() {
   CMap::Unload();
+}
+
+void __fastcall CWorld::Preload(const NTempest::C3Vector &position) {
+  NTempest::C3Vector areaPosition = position;
+  PrepareAreaOfInterest(areaPosition, areaPosition);
+  CMap::Preload();
 }
 
 void __fastcall CWorld::PrepareUpdate(NTempest::C3Vector &position, NTempest::C3Vector &target) {
@@ -600,7 +636,11 @@ bool __fastcall CWorld::Intersect(
     float                    *dist,
     unsigned int              queryFlags
 ) {
-  return false;
+  FATALASSERT(*dist >= 0.0f && *dist <= 1.0f);
+  ActivityBegin(ACTIVITY_WORLD);
+  bool result = CMap::VectorIntersect(a, b, ip, dist, queryFlags);
+  ActivityEnd(ACTIVITY_WORLD);
+  return result;
 }
 
 bool __fastcall CWorld::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags) {
@@ -658,6 +698,32 @@ void __fastcall CWorld::GetFacets(CWFrustum &frustum, CWFacetData *facetData, un
   ActivityBegin(ACTIVITY_WORLD);
   CMap::GetFacets(frustum, facetData, queryFlags);
   ActivityEnd(ACTIVITY_WORLD);
+}
+
+void __fastcall CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, unsigned __int64 param64) {
+  unsigned int origFacetCount = facetData.facets.Count();
+
+  for (unsigned int batchIndex = 0; batchIndex < triData.GetNumBatches(); ++batchIndex) {
+    const CWTriData::Batch &batch = triData.GetBatch(batchIndex);
+    const unsigned short   *indices = batch.vertexIndices;
+
+    for (unsigned int triIndex = 0; triIndex < batch.triCount; ++triIndex) {
+      NTempest::CFacet *facet = facetData.facets.NewElement();
+      facet->vertices[0] = batch.vertices[indices[0]] * *batch.matrix;
+      facet->vertices[1] = batch.vertices[indices[1]] * *batch.matrix;
+      facet->vertices[2] = batch.vertices[indices[2]] * *batch.matrix;
+      facet->plane.n = NTempest::C3Vector::Cross(facet->vertices[1] - facet->vertices[0], facet->vertices[2] - facet->vertices[0]);
+      facet->plane.n.Normalize();
+      facet->plane.d = -NTempest::C3Vector::Dot(facet->vertices[0], facet->plane.n);
+      indices += 3;
+    }
+  }
+
+  unsigned int facetCount = facetData.facets.Count();
+  facetData.gameObjects.SetCount(facetCount);
+  for (unsigned int index = origFacetCount; index < facetCount; ++index) {
+    facetData.gameObjects[index] = param64;
+  }
 }
 
 const char *__fastcall CWorld::QueryChunkName() {
