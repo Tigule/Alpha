@@ -336,7 +336,7 @@ unsigned int CGWorldFrame::SphereTestModels(NTempest::C3Vector &aVector, NTempes
 
 unsigned int CGWorldFrame::VolumeTestModels(NTempest::C3Vector &aVector, NTempest::C3Vector &bVector) {
   unsigned int numHit = 0;
-  for (CModelRecord *record = m_filteredModels.Head(); record;) {
+  for (CModelRecord *record = m_models.Head(); record;) {
     CModelRecord *next = record->Next();
     if (!ModelHasHitTestVolumes(record->model) || ModelHitTestVolumes(record->model, record->scale, aVector, bVector, 1, &record->distance)) {
       ++numHit;
@@ -350,7 +350,7 @@ unsigned int CGWorldFrame::VolumeTestModels(NTempest::C3Vector &aVector, NTempes
 
 unsigned int CGWorldFrame::GeometryTestModels(NTempest::C3Vector &aVector, NTempest::C3Vector &bVector) {
   unsigned int numHit = 0;
-  for (CModelRecord *record = m_filteredModels.Head(); record;) {
+  for (CModelRecord *record = m_models.Head(); record;) {
     CModelRecord *next = record->Next();
     if (ModelHitTestGeometry(record->model, record->scale, aVector, bVector, 1, &record->distance)) {
       ++numHit;
@@ -388,7 +388,7 @@ CModelRecord *CGWorldFrame::HigherPriorityModel(CModelRecord *a, CModelRecord *b
 }
 
 void CGWorldFrame::ReduceToClosestModel() {
-  CModelRecord *closest = m_filteredModels.Head();
+  CModelRecord *closest = m_models.Head();
   for (CModelRecord *record = closest ? closest->Next() : 0; record;) {
     CModelRecord *next = record->Next();
     closest = HigherPriorityModel(closest, record);
@@ -434,7 +434,7 @@ unsigned __int64 CGWorldFrame::FindClosestModel(NTempest::C3Vector &a, NTempest:
     }
   }
 
-  CModelRecord *picked = m_filteredModels.Head();
+  CModelRecord *picked = m_models.Head();
   FATALASSERT(picked);
   *hitDist = picked->distance;
   return picked->guid;
@@ -513,13 +513,26 @@ unsigned int CGWorldFrame::GetHitTestFilterFlags() {
 }
 
 CGWorldFrame::HIT_TYPE CGWorldFrame::HitTestPoint(float x, float y, HitTestResult *hitTestResult) {
+  NTempest::C44Matrix savedProjection;
+  NTempest::C44Matrix savedView;
+  GxXformProjection(savedProjection);
+  GxXformView(savedView);
+  m_camera->SetupWorldProjection(m_rect);
+
+  HIT_TYPE hitType = HIT_NONE;
+  unsigned int hitFilter = GetHitTestFilterFlags();
   NTempest::C3Vector a;
   NTempest::C3Vector b;
-  if (!GetLineSegment(x, y, &a, &b)) {
-    return HIT_NONE;
+  if (hitFilter && GetLineSegment(x, y, &a, &b)) {
+    hitType = HitTest(a, b, hitFilter, hitTestResult);
+    if (hitType < HIT_SPRITE) {
+      MoveToFreeList(&m_filteredModels);
+    }
   }
 
-  return HitTest(a, b, GetHitTestFilterFlags(), hitTestResult);
+  GxXformSetProjection(savedProjection);
+  GxXformSetView(savedView);
+  return hitType;
 }
 
 int CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b) {
@@ -1069,7 +1082,7 @@ void CGWorldFrame::OnLayerTrackObject(HitTestResult &hitTestResult, float x, flo
     return;
   }
 
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(CGPlayer_C::GetActive(), __FILE__, __LINE__));
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   CGObject_C *object = ClntObjMgrObjectPtr(hitTestResult.object, __FILE__, __LINE__);
   if (!player || !object || !object->CanHighlight()) {
     CursorResetCursor(0);

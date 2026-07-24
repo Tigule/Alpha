@@ -542,7 +542,11 @@ void CGObject_C::ShowHighlightType(HIGHLIGHTTYPE type) {
   FATALASSERT(type < NUM_HIGHLIGHTTYPES);
 
   m_highlightTypes |= 1 << type;
-  ModelSetEmissiveColor(m_model, DayNightGetInfo()->unitSelect, 1);
+  ModelSetEmissiveColor(
+      m_model,
+      *reinterpret_cast<NTempest::CImVector *>(&DayNightGetInfo()->unitSelect),
+      1
+  );
 }
 
 const char *CGObject_C::GetModelFileName() const {

@@ -786,6 +786,10 @@ class CGUnit_C : public CGObject_C {
   virtual void ChangeStandState(unsigned int standState);
   int          GetFactionTemplate() const;
   virtual int  GetSpellRank(int spellID);
+  virtual int  IsSolidSelectable() const;
+  virtual int  IsSolidCollidable() const;
+  virtual int  CanHighlight() const;
+  virtual int  CanBeTargetted() const;
   int          GetSpellLevel(int spellID) {
     return GetSpellRank(spellID) / 5;
   }
@@ -885,6 +889,7 @@ class CGUnit_C : public CGObject_C {
   void             ReinitializePaperdollModel();
   void             CreatePaperdollModel();
   HMODEL           GetPaperDollModel(unsigned int duplicateModel);
+  void             DestroyPaperdollModel();
   void             StandStateChanged(unsigned int oldState);
   void             NPCFlagChanged(unsigned int oldNPCFlags);
   void             RemoveInteractIcon();

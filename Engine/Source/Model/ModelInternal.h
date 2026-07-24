@@ -150,6 +150,7 @@ struct CGeosetShared {
         geosetId(0),
         flags(0) {
   }
+  ~CGeosetShared();
 
   TSFixedArray_<NTempest::C3Vector, 'IMod', 276>  position;
   TSFixedArray_<unsigned char, 'IMod', 277>       boneWeights;

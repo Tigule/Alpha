@@ -368,6 +368,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   TSGrowableArray<int>                 *GetCraftSkills(SPELL_CAST_UI_TYPE type);
   int                                   GetSkillIndex(int skillID);
   int                                   GetSkillRank(int skillID);
+  virtual int                           GetSpellRank(int spellID);
   bool                                  GetPackAndSlot(CGItem_C *item, unsigned char &packSlot, unsigned char &slot);
   virtual CGBag_C                      *GetBag() {
     return &m_inventory;
@@ -388,6 +389,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
  protected:
   friend class CGGameUI;
   friend class CGWorldFrame;
+
+  int GetWeaponSpell(COMBATHAND hand) const;
 
   TSHashTable<TRADESKILLLINE, HASHKEY_NONE> m_tradeSkillLines;
   TSGrowableArray<int>                      m_craftSpells[4];

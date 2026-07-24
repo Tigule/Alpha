@@ -82,6 +82,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   virtual void               GetPosition(NTempest::C3Vector &vec) const;
   virtual float              GetFacing() const;
   virtual const char        *GetModelFileName() const;
+  virtual int                CanHighlight() const;
 
   int           IsTransport() const;
   int           IsPointInside(const NTempest::C3Vector &point) const;

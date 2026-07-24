@@ -2,6 +2,7 @@
 #include "CollisionData.h"
 
 #include "Base/Activity.h"
+#include "Anim/WorldMatrix.h"
 #include "Services/ParticleSystem2.h"
 #include "Services/RibbonEmitter.h"
 #include "Services/Texture.h"
@@ -9,6 +10,7 @@
 
 #include <math.h>
 #include <stddef.h>
+#include <float.h>
 
 enum SORTABLES {
   SORTOBJ_GEOSET = 0,
@@ -87,6 +89,14 @@ static void __fastcall RenderGeosetCheckVis(CModelRenderData *modelptr, CGeoset 
 static void __fastcall GeosetComplexRender(CModel *model, CGeoset *geoUnique, CGeosetShared *geoShared, unsigned int renderFlags, CStatus *status);
 static void __fastcall ModelComplexRender(HMODEL modelHandle, CModel *model, unsigned int renderFlags, CStatus *status);
 static void __fastcall ModelSimpleRender(CModel *model, unsigned int renderFlags, CStatus *status);
+static int IModelTestRay(
+    CModelBase                    *modelptr,
+    CModelShared                  *shared,
+    const NTempest::C3Vector      &rayStart,
+    const NTempest::C3Vector      &rayEnd,
+    float                         *distance,
+    int                            testLinkedModels
+);
 
 struct COpaqueLayer {
   COpaqueLayer() : model(0) {
@@ -973,11 +983,20 @@ static void __fastcall RenderGeosetLayers(CModelRenderData *modelptr, CGeosetSha
 }
 
 static void TransformBounds(const NTempest::C3Vector& position, float rotationAngle, const NTempest::C3Vector& rotationAxis, float scale, NTempest::CAaSphere* bounds) {
-    // TODO: implement
+  ASSERT(bounds);
+  WorldMatrixPush();
+  WorldMatrixTranslate(position);
+  WorldMatrixRotate(rotationAngle, rotationAxis);
+  WorldMatrixScale(scale);
+  WorldMatrixTransform(&bounds->c);
+  WorldMatrixPop();
+  bounds->r *= scale;
 }
 
 static void TransformBounds(const NTempest::C34Matrix& modelToWorld, float scale, NTempest::CAaSphere* bounds) {
-    // TODO: implement
+  ASSERT(bounds);
+  bounds->c *= modelToWorld;
+  bounds->r *= scale;
 }
 
 static void __fastcall RenderGeosetPrep(CModelBase *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared) {
@@ -1222,23 +1241,120 @@ static int __fastcall IModelGetExtents(CModelBase *modelptr, CModelShared *share
 }
 
 static int GeosetTestRay(CGeoset* geoUnique, CGeosetShared* geoShared, CGeosetColor* geosetColor, const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, float* distance) {
-    // TODO: implement
+  if ((geoUnique->flags & 1) || !geosetColor[geoShared->geosetId].animatedColor.a || (geoShared->flags & 1)) {
     return 0;
+  }
+
+  NTempest::C34Matrix *boneMatrices = MatrixDeref(geoUnique->weightedBones);
+  if (!boneMatrices) {
+    return 0;
+  }
+
+  int                   foundHit = 0;
+  unsigned short       *indices = geoShared->primitiveVertices.Ptr();
+  CPrimitive           *primitive = geoShared->primitive.Ptr();
+  for (unsigned int i = 0; i < geoShared->primitive.Count(); ++i, ++primitive) {
+    if (primitive->type >= GxPrim_Triangles) {
+      float        currDistance;
+      unsigned int primIntersected;
+      if (GxuTestRayAndMesh(
+              rayStart,
+              rayDirection,
+              boneMatrices,
+              geoShared->groupMatrixCounts.Count(),
+              geoShared->position.Count(),
+              geoShared->position.Ptr(),
+              sizeof(NTempest::C3Vector),
+              geoShared->boneWeights.Count(),
+              geoShared->boneWeights.Ptr(),
+              geoShared->vertexShader == 1,
+              primitive->type,
+              primitive->vertexCount,
+              indices,
+              currDistance,
+              primIntersected
+          ))
+      {
+        foundHit = 1;
+        if (currDistance < *distance) {
+          *distance = currDistance;
+        }
+      }
+    }
+    indices += primitive->vertexCount;
+  }
+  return foundHit;
 }
 
 static int IModelTestRay(CModelSimple* modelptr, CModelShared* shared, const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayEnd, float* distance) {
-    // TODO: implement
-    return 0;
+  *distance = FLT_MAX;
+  NTempest::C3Vector rayDirection = rayEnd - rayStart;
+  rayDirection.Normalize();
+
+  int foundHit = 0;
+  for (unsigned int i = 0; i < shared->numGeosets; ++i) {
+    foundHit |= GeosetTestRay(
+        &modelptr->m_geosets[i], &shared->geosets[i], modelptr->m_geosetColor.Ptr(), rayStart, rayDirection, distance
+    );
+  }
+  if (!foundHit) {
+    *distance = INFINITY;
+  }
+  return foundHit;
 }
 
 static int IModelTestRay(CModelComplex* modelptr, CModelShared* shared, const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayEnd, float* distance, int testLinkedModels) {
-    // TODO: implement
-    return 0;
+  *distance = FLT_MAX;
+  NTempest::C3Vector rayDirection = rayEnd - rayStart;
+  rayDirection.Normalize();
+
+  int foundHit = 0;
+  unsigned int i;
+  for (i = 0; i < shared->numGeosets; ++i) {
+    foundHit |= GeosetTestRay(
+        &modelptr->m_geosets[i], &shared->geosets[i], modelptr->m_geosetColor.Ptr(), rayStart, rayDirection, distance
+    );
+  }
+  for (i = 0; i < modelptr->m_addlGeosets.Count(); ++i) {
+    foundHit |= GeosetTestRay(
+        &modelptr->m_geosets[i + shared->numGeosets],
+        &modelptr->m_addlGeosets[i],
+        modelptr->m_geosetColor.Ptr(),
+        rayStart,
+        rayDirection,
+        distance
+    );
+  }
+
+  if (testLinkedModels) {
+    for (i = 0; i < modelptr->m_attached.Count(); ++i) {
+      for (LINKUNIQUE *link = modelptr->m_attached[i].Head(); link; link = link->Next()) {
+        CModelBase   *childptr;
+        CModelShared *childShared;
+        if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childptr, &childShared)) {
+          float currDistance;
+          if (IModelTestRay(childptr, childShared, rayStart, rayEnd, &currDistance, 1)) {
+            foundHit = 1;
+            if (currDistance < *distance) {
+              *distance = currDistance;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (!foundHit) {
+    *distance = INFINITY;
+  }
+  return foundHit;
 }
 
 static int IModelTestRay(CModelBase* modelptr, CModelShared* shared, const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayEnd, float* distance, int testLinkedModels) {
-    // TODO: implement
-    return 0;
+  if (modelptr->m_flags & 0x20) {
+    return IModelTestRay(static_cast<CModelComplex *>(modelptr), shared, rayStart, rayEnd, distance, testLinkedModels);
+  }
+  return IModelTestRay(static_cast<CModelSimple *>(modelptr), shared, rayStart, rayEnd, distance);
 }
 
 static void __fastcall CreateBoxGeometry(
@@ -2050,32 +2166,414 @@ void __fastcall ModelSceneSetFrustumPlanes(NTempest::C4Vector *const fp) {
 }
 
 int __fastcall ModelIntersectLineSegment(HMODEL__* model, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float radius, float* linePos, int testLinkedModels) {
-    // TODO: implement
+  CModelBase   *modelptr;
+  CModelShared *shared;
+  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
     return 0;
+  }
+
+  NTempest::CAaSphere bounds;
+  IModelGetBoundingSphere(modelptr, shared, &bounds);
+  TransformBounds(modelptr->m_modelToWorld, scale, &bounds);
+
+  NTempest::C3Vector closest = bounds.c - a;
+  NTempest::C3Vector segment = b - a;
+  float              position = NTempest::C3Vector::Dot(closest, segment);
+  float              divisor = NTempest::C3Vector::Dot(segment, segment);
+  if (position < 0.0f) {
+    position = 0.0f;
+  } else if (position <= divisor) {
+    position /= divisor;
+    closest.x -= segment.x * position;
+    closest.y -= segment.y * position;
+    closest.z -= segment.z * position;
+  } else {
+    position = 1.0f;
+    closest.x -= segment.x;
+    closest.y -= segment.y;
+    closest.z -= segment.z;
+  }
+
+  *linePos = position;
+  if (closest.SquaredMag() <= bounds.r * bounds.r) {
+    return IModelTestRay(modelptr, shared, a, b, linePos, testLinkedModels);
+  }
+  *linePos = INFINITY;
+  return 0;
 }
 
 static int LineSegmentIntersectBox(const NTempest::C34Matrix& boxToWorld, float boxScale, const NTempest::C3Vector& boxMin, const NTempest::C3Vector& boxMax, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float* linePos) {
-    // TODO: implement
+  ASSERT(NTempest::CMath::fnotequal_(boxScale, 0.0f));
+
+  NTempest::C34Matrix worldToBox = boxToWorld.AffineInverse(boxScale);
+  NTempest::C3Vector  boxA = a * worldToBox;
+  NTempest::C3Vector  boxB = b * worldToBox;
+  NTempest::C3Vector  lineSegment = boxB - boxA;
+  ASSERT(NTempest::CMath::fnotequal_(lineSegment.Mag(), 0.0f));
+
+  float t0 = 0.0f;
+  float t1 = 1.0f;
+  float q;
+
+  q = boxMin.x - boxA.x;
+  if (lineSegment.x > 0.0f) {
+    if (q > lineSegment.x * t1) return 0;
+    if (q > lineSegment.x * t0) t0 = q / lineSegment.x;
+  } else if (lineSegment.x < 0.0f) {
+    if (q > lineSegment.x * t0) return 0;
+    if (q > lineSegment.x * t1) t1 = q / lineSegment.x;
+  } else if (q > 0.0f) {
     return 0;
+  }
+
+  q = boxA.x - boxMax.x;
+  if (-lineSegment.x > 0.0f) {
+    if (q > -lineSegment.x * t1) return 0;
+    if (q > -lineSegment.x * t0) t0 = q / -lineSegment.x;
+  } else if (-lineSegment.x < 0.0f) {
+    if (q > -lineSegment.x * t0) return 0;
+    if (q > -lineSegment.x * t1) t1 = q / -lineSegment.x;
+  } else if (q > 0.0f) {
+    return 0;
+  }
+
+  q = boxMin.y - boxA.y;
+  if (lineSegment.y > 0.0f) {
+    if (q > lineSegment.y * t1) return 0;
+    if (q > lineSegment.y * t0) t0 = q / lineSegment.y;
+  } else if (lineSegment.y < 0.0f) {
+    if (q > lineSegment.y * t0) return 0;
+    if (q > lineSegment.y * t1) t1 = q / lineSegment.y;
+  } else if (q > 0.0f) {
+    return 0;
+  }
+
+  q = boxA.y - boxMax.y;
+  if (-lineSegment.y > 0.0f) {
+    if (q > -lineSegment.y * t1) return 0;
+    if (q > -lineSegment.y * t0) t0 = q / -lineSegment.y;
+  } else if (-lineSegment.y < 0.0f) {
+    if (q > -lineSegment.y * t0) return 0;
+    if (q > -lineSegment.y * t1) t1 = q / -lineSegment.y;
+  } else if (q > 0.0f) {
+    return 0;
+  }
+
+  q = boxMin.z - boxA.z;
+  if (lineSegment.z > 0.0f) {
+    if (q > lineSegment.z * t1) return 0;
+    if (q > lineSegment.z * t0) t0 = q / lineSegment.z;
+  } else if (lineSegment.z < 0.0f) {
+    if (q > lineSegment.z * t0) return 0;
+    if (q > lineSegment.z * t1) t1 = q / lineSegment.z;
+  } else if (q > 0.0f) {
+    return 0;
+  }
+
+  q = boxA.z - boxMax.z;
+  if (-lineSegment.z > 0.0f) {
+    if (q > -lineSegment.z * t1) return 0;
+    if (q > -lineSegment.z * t0) t0 = q / -lineSegment.z;
+  } else if (-lineSegment.z < 0.0f) {
+    if (q > -lineSegment.z * t0) return 0;
+    if (q > -lineSegment.z * t1) t1 = q / -lineSegment.z;
+  } else if (q > 0.0f) {
+    return 0;
+  }
+
+  if (linePos) {
+    *linePos = t0;
+  }
+  return 1;
 }
 
 static int LineSegmentIntersectCylinder(const NTempest::C34Matrix& cylToWorld, float cylScale, const NTempest::C3Vector& cylBottom, float cylHeight, float cylRadius, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float* linePos) {
-    // TODO: implement
+  ASSERT(NTempest::CMath::fnotequal_(cylScale, 0.0f));
+
+  NTempest::C34Matrix worldToCyl = cylToWorld.AffineInverse(cylScale);
+  NTempest::C3Vector  cylA = a * worldToCyl;
+  NTempest::C3Vector  cylB = b * worldToCyl;
+  float               cylTop = cylBottom.z + cylHeight;
+  if ((cylA.z < cylBottom.z && cylB.z < cylBottom.z) || (cylA.z > cylTop && cylB.z > cylTop)) {
     return 0;
+  }
+
+  NTempest::C2Vector closest(cylBottom.x - cylA.x, cylBottom.y - cylA.y);
+  NTempest::C2Vector line(cylB.x - cylA.x, cylB.y - cylA.y);
+  float              position = closest.x * line.x + closest.y * line.y;
+  float              divisor = line.x * line.x + line.y * line.y;
+  if (position < 0.0f) {
+    position = 0.0f;
+  } else if (position <= divisor) {
+    position /= divisor;
+    closest.x -= line.x * position;
+    closest.y -= line.y * position;
+  } else {
+    position = 1.0f;
+    closest.x -= line.x;
+    closest.y -= line.y;
+  }
+
+  *linePos = position;
+  return closest.SquaredMag() <= cylRadius * cylRadius;
 }
 
 static int LineSegmentIntersectSphere(const NTempest::C34Matrix& sphToWorld, float sphScale, const NTempest::C3Vector& sphCenter, float sphRadius, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float* linePos) {
-    // TODO: implement
-    return 0;
+  NTempest::C3Vector center = sphCenter * sphToWorld;
+  float              radius = sphScale * sphRadius;
+  NTempest::C3Vector closest = center - a;
+  NTempest::C3Vector line = b - a;
+  float              position = NTempest::C3Vector::Dot(closest, line);
+  float              divisor = NTempest::C3Vector::Dot(line, line);
+  if (position < 0.0f) {
+    position = 0.0f;
+  } else if (position <= divisor) {
+    position /= divisor;
+    closest.x -= line.x * position;
+    closest.y -= line.y * position;
+    closest.z -= line.z * position;
+  } else {
+    position = 1.0f;
+    closest.x -= line.x;
+    closest.y -= line.y;
+    closest.z -= line.z;
+  }
+
+  *linePos = position;
+  return closest.SquaredMag() <= radius * radius;
 }
 
 static int IModelTestCollisionVolumes(CModelComplex* modelptr, CModelShared* shared, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float* linePos) {
-    // TODO: implement
-    return 0;
+  unsigned int count = shared->hitTest.Count();
+  unsigned int pivotOffset = shared->positions.Count() - count;
+  int          hitVolume = 0;
+  float        hitVolumeLinePos = 1.0f;
+  for (unsigned int i = 0; i < count; ++i) {
+    const CHitTest             &hit = shared->hitTest[i];
+    const NTempest::C3Vector   &translation = shared->positions[pivotOffset + i];
+    const NTempest::C34Matrix  &hitToWorld = modelptr->m_hitTestMtx[i];
+    float                       currlinePos = 1.0f;
+    int                         result = 0;
+    switch (hit.type) {
+      case COLLIDE_BOX: {
+        NTempest::C3Vector boxMin = translation + hit.extent[0];
+        NTempest::C3Vector boxMax = translation + hit.extent[1];
+        result = LineSegmentIntersectBox(hitToWorld, scale, boxMin, boxMax, a, b, &currlinePos);
+        break;
+      }
+
+      case COLLIDE_CYLINDER: {
+        NTempest::C3Vector cylBottom = translation + hit.extent[0];
+        result = LineSegmentIntersectCylinder(
+            hitToWorld, scale, cylBottom, hit.extent[1].z - hit.extent[0].z, hit.radius, a, b, &currlinePos
+        );
+        break;
+      }
+
+      case COLLIDE_SPHERE: {
+        NTempest::C3Vector sphCenter = translation + hit.extent[0];
+        result = LineSegmentIntersectSphere(hitToWorld, scale, sphCenter, hit.radius, a, b, &currlinePos);
+        break;
+      }
+
+      default:
+        ASSERT(0);
+        break;
+    }
+
+    if (result) {
+      hitVolume = 1;
+      if (currlinePos < hitVolumeLinePos) {
+        hitVolumeLinePos = currlinePos;
+      }
+    }
+  }
+
+  if (hitVolume) {
+    *linePos = hitVolumeLinePos;
+  }
+  return hitVolume;
 }
 
 static void AddHitTestGeometryGeoset(HMODEL__* modelHandle, HTEXTURE__* tex) {
-    // TODO: implement
+  FATALASSERT(modelHandle);
+  FATALASSERT(tex);
+
+  CModelBase   *unique;
+  CModelShared *shared;
+  if (!IModelDerefHandle(reinterpret_cast<CModel *>(modelHandle), &unique, &shared) || !(unique->m_flags & 0x20)) {
+    return;
+  }
+
+  TSGrowableArray<NTempest::C3Vector> positions;
+  TSGrowableArray<NTempest::C3Vector> normals;
+  TSGrowableArray<NTempest::C2Vector> texCoords;
+  TSGrowableArray<unsigned short>     primVertIndices;
+  TSGrowableArray<unsigned int>       groupVertex;
+  TSGrowableArray<unsigned int>       groupCounts;
+  TSGrowableArray<unsigned int>       matrices;
+  TSGrowableArray<CPrimitive>         primitives;
+
+  unsigned int count = shared->hitTest.Count();
+  unsigned int boneOffset = shared->numBones - count;
+  unsigned int pivotOffset = shared->positions.Count() - count;
+  unsigned int i;
+  for (i = 0; i < count; ++i) {
+    const CHitTest           &hit = shared->hitTest[i];
+    const NTempest::C3Vector &pivot = shared->positions[pivotOffset + i];
+    unsigned int              oldVerts = positions.Count();
+    unsigned int              oldIndices = primVertIndices.Count();
+
+    switch (hit.type) {
+      case COLLIDE_BOX: {
+        CPrimitive *primitive = primitives.New();
+        NTempest::CAaBox bounds;
+        bounds.b = pivot + hit.extent[0];
+        bounds.t = pivot + hit.extent[1];
+        CreateBoxGeometry(bounds, &positions, &normals, &texCoords, &primVertIndices, &primitive->type);
+        primitive->vertexCount = primVertIndices.Count() - oldIndices;
+        break;
+      }
+
+      case COLLIDE_CYLINDER: {
+        const unsigned int segments = 16;
+        NTempest::C3Vector base = pivot + hit.extent[0];
+        NTempest::C3Vector top = pivot + hit.extent[1];
+        unsigned int vertexOffset = positions.Count();
+        positions.SetCount(vertexOffset + 66);
+        normals.SetCount(vertexOffset + 66);
+        texCoords.SetCount(vertexOffset + 66);
+
+        positions[vertexOffset] = base;
+        normals[vertexOffset].Set(0.0f, 0.0f, -1.0f);
+        positions[vertexOffset + 17] = top;
+        normals[vertexOffset + 17].Set(0.0f, 0.0f, 1.0f);
+        unsigned int segment;
+        for (segment = 0; segment < segments; ++segment) {
+          float angle = static_cast<float>(segment) * 2.0f * PI / static_cast<float>(segments);
+          float x = static_cast<float>(cos(angle));
+          float y = static_cast<float>(sin(angle));
+          NTempest::C3Vector bottomVert(base.x + x * hit.radius, base.y + y * hit.radius, base.z);
+          NTempest::C3Vector topVert(top.x + x * hit.radius, top.y + y * hit.radius, top.z);
+          positions[vertexOffset + 1 + segment] = bottomVert;
+          normals[vertexOffset + 1 + segment].Set(0.0f, 0.0f, -1.0f);
+          positions[vertexOffset + 18 + segment] = topVert;
+          normals[vertexOffset + 18 + segment].Set(0.0f, 0.0f, 1.0f);
+          positions[vertexOffset + 34 + segment] = bottomVert;
+          normals[vertexOffset + 34 + segment].Set(x, y, 0.0f);
+          positions[vertexOffset + 50 + segment] = topVert;
+          normals[vertexOffset + 50 + segment].Set(x, y, 0.0f);
+        }
+
+        primVertIndices.SetCount(oldIndices + 192);
+        unsigned short *indices = primVertIndices.Ptr() + oldIndices;
+        for (segment = 0; segment < segments; ++segment) {
+          unsigned int next = (segment + 1) & 0xF;
+          *indices++ = static_cast<unsigned short>(vertexOffset + 1 + next);
+          *indices++ = static_cast<unsigned short>(vertexOffset + 1 + segment);
+          *indices++ = static_cast<unsigned short>(vertexOffset);
+        }
+        for (segment = 0; segment < segments; ++segment) {
+          unsigned int next = (segment + 1) & 0xF;
+          *indices++ = static_cast<unsigned short>(vertexOffset + 17);
+          *indices++ = static_cast<unsigned short>(vertexOffset + 18 + segment);
+          *indices++ = static_cast<unsigned short>(vertexOffset + 18 + next);
+        }
+        for (segment = 0; segment < segments; ++segment) {
+          unsigned int next = (segment + 1) & 0xF;
+          *indices++ = static_cast<unsigned short>(vertexOffset + 50 + next);
+          *indices++ = static_cast<unsigned short>(vertexOffset + 50 + segment);
+          *indices++ = static_cast<unsigned short>(vertexOffset + 34 + segment);
+          *indices++ = static_cast<unsigned short>(vertexOffset + 34 + next);
+          *indices++ = static_cast<unsigned short>(vertexOffset + 50 + next);
+          *indices++ = static_cast<unsigned short>(vertexOffset + 34 + segment);
+        }
+        CPrimitive *primitive = primitives.New();
+        primitive->type = GxPrim_Triangles;
+        primitive->vertexCount = 192;
+        break;
+      }
+
+      case COLLIDE_SPHERE: {
+        NTempest::CAaSphere bounds;
+        bounds.c = pivot + hit.extent[0];
+        bounds.r = hit.radius;
+        CreateSphereGeometry(bounds, &positions, &normals, &texCoords, &primVertIndices, &primitives);
+        break;
+      }
+
+      case COLLIDE_PLANE: {
+        unsigned int vertexOffset = positions.Count();
+        positions.SetCount(vertexOffset + 4);
+        normals.SetCount(vertexOffset + 4);
+        texCoords.SetCount(vertexOffset + 4);
+        positions[vertexOffset].Set(pivot.x, pivot.y, pivot.z);
+        positions[vertexOffset + 1].Set(pivot.x + hit.extent[0].x, pivot.y, pivot.z);
+        positions[vertexOffset + 2].Set(pivot.x, pivot.y + hit.extent[0].y, pivot.z);
+        positions[vertexOffset + 3].Set(pivot.x + hit.extent[0].x, pivot.y + hit.extent[0].y, pivot.z);
+        unsigned int vertex;
+        for (vertex = 0; vertex < 4; ++vertex) {
+          normals[vertexOffset + vertex].Set(0.0f, 0.0f, 1.0f);
+        }
+        primVertIndices.SetCount(oldIndices + 6);
+        unsigned short *indices = primVertIndices.Ptr() + oldIndices;
+        indices[0] = static_cast<unsigned short>(vertexOffset);
+        indices[1] = static_cast<unsigned short>(vertexOffset + 2);
+        indices[2] = static_cast<unsigned short>(vertexOffset + 1);
+        indices[3] = static_cast<unsigned short>(vertexOffset + 1);
+        indices[4] = static_cast<unsigned short>(vertexOffset + 2);
+        indices[5] = static_cast<unsigned short>(vertexOffset + 3);
+        CPrimitive *primitive = primitives.New();
+        primitive->type = GxPrim_Triangles;
+        primitive->vertexCount = 6;
+        break;
+      }
+
+      default:
+        ASSERT(0);
+        break;
+    }
+
+    *groupVertex.New() = positions.Count() - oldVerts;
+    *groupCounts.New() = 1;
+    *matrices.New() = boneOffset + i;
+  }
+
+  for (i = 0; i < texCoords.Count(); ++i) {
+    texCoords[i] = NTempest::C2Vector(0.0f, 0.0f);
+  }
+
+  if (!positions.Count()) {
+    return;
+  }
+
+  CModelComplex *complex = static_cast<CModelComplex *>(unique);
+  if (!ModelGeosetAdd(
+          modelHandle, positions.Count(), positions.Ptr(), normals.Ptr(), texCoords.Ptr(), primitives[0].type, primVertIndices.Ptr(),
+          primVertIndices.Count(), tex, GxBlend_Alpha, 0, NTempest::CImVector(0xFFFFFFFF), 0
+      ))
+  {
+    return;
+  }
+
+  CGeosetShared &geoShared = complex->m_addlGeosets[complex->m_addlGeosets.Count() - 1];
+  geoShared.position.Set(positions.Count(), positions.Ptr());
+  geoShared.normal.Set(normals.Count(), normals.Ptr());
+  geoShared.texCoord.SetCount(1);
+  geoShared.texCoord[0].Set(texCoords.Count(), texCoords.Ptr());
+  geoShared.primitive.Set(primitives.Count(), primitives.Ptr());
+  geoShared.primitiveVertices.Set(primVertIndices.Count(), primVertIndices.Ptr());
+  geoShared.groupMatrixCounts.Set(groupCounts.Count(), groupCounts.Ptr());
+  geoShared.matrices.Set(matrices.Count(), matrices.Ptr());
+  geoShared.vertexShader = groupVertex.Count() > 1 ? GxVS_Skin : GxVS_PassThru;
+  if (groupVertex.Count() > 1) {
+    geoShared.boneWeights.SetCount(positions.Count());
+    unsigned int offset = 0;
+    for (i = 0; i < groupVertex.Count(); ++i) {
+      memset(geoShared.boneWeights.Ptr() + offset, static_cast<unsigned char>(i), groupVertex[i]);
+      offset += groupVertex[i];
+    }
+  }
 }
 
 int __fastcall ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
@@ -2087,9 +2585,7 @@ int __fastcall ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector 
 
   NTempest::CAaSphere bounds;
   IModelGetBoundingSphere(modelptr, shared, &bounds);
-  bounds.c *= scale;
-  bounds.c *= modelptr->m_modelToWorld;
-  bounds.r *= scale;
+  TransformBounds(modelptr->m_modelToWorld, scale, &bounds);
 
   NTempest::C3Vector lineSegment = b - a;
   float              lineLength = lineSegment.Mag();
@@ -2140,46 +2636,25 @@ int __fastcall ModelHitTestVolumes(HMODEL model, float scale, NTempest::C3Vector
     return 0;
   }
 
-  float lineLength = (b - a).Mag();
-  float hitVolumeLinePos = lineLength;
-  int   hitVolume = 0;
-  for (unsigned int i = 0; i < shared->hitTest.Count(); ++i) {
-    const CHitTest    &hit = shared->hitTest[i];
-    NTempest::C3Vector center = (hit.extent[0] + hit.extent[1]) * 0.5f;
-    center *= scale;
-    center *= modelptr->m_modelToWorld;
-    float radius = hit.radius * scale;
-    if (hit.type != COLLIDE_SPHERE) {
-      radius = (hit.extent[1] - hit.extent[0]).Mag() * 0.5f * scale;
-    }
-
-    NTempest::C3Vector segment = b - a;
-    float              divisor = segment.SquaredMag();
-    if (divisor > 0.0f) {
-      float position = NTempest::C3Vector::Dot(center - a, segment);
-      if (position < 0.0f) {
-        position = 0.0f;
-      } else if (position > divisor) {
-        position = divisor;
-      }
-      position /= divisor;
-      if ((a + segment * position - center).SquaredMag() <= radius * radius && position * lineLength < hitVolumeLinePos) {
-        hitVolumeLinePos = position * lineLength;
-        hitVolume = 1;
-      }
-    }
+  if (!(modelptr->m_flags & 0x20)) {
+    return 0;
   }
-  if (hitVolume) {
-    *linePos = hitVolumeLinePos;
+
+  float lineLength = (b - a).Mag();
+  float hitVolumeLinePos = 0.0f;
+  if (IModelTestCollisionVolumes(static_cast<CModelComplex *>(modelptr), shared, scale, a, b, &hitVolumeLinePos)) {
+    *linePos = hitVolumeLinePos * lineLength;
     return 1;
   }
 
-  if (testLinkedModels && (modelptr->m_flags & 0x20)) {
+  if (testLinkedModels) {
     CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
     for (unsigned int i = 0; i < complex->m_attached.Count(); ++i) {
       for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = link->Next()) {
-        if (ModelHasHitTestVolumes(link->child) ? ModelHitTestVolumes(link->child, scale * link->scale, a, b, 1, linePos)
-                                                : ModelHitTestGeometry(link->child, scale * link->scale, a, b, 1, linePos))
+        CModelShared *childShared;
+        if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childShared) &&
+            (childShared->hitTest.Count() ? ModelHitTestVolumes(link->child, scale, a, b, 1, linePos)
+                                          : ModelHitTestGeometry(link->child, scale, a, b, 1, linePos)))
         {
           return 1;
         }
@@ -2196,39 +2671,15 @@ int __fastcall ModelHitTestGeometry(HMODEL model, float scale, NTempest::C3Vecto
     return 0;
   }
 
-  if (shared->collision) {
-    CCollisionData    *collision = reinterpret_cast<CCollisionData *>(shared->collision);
-    NTempest::C3Vector rayDirection = b - a;
-    float              lineLength = rayDirection.Mag();
-    if (lineLength > 0.0f) {
-      rayDirection.Normalize();
-      float closest = lineLength;
-      int   found = 0;
-      for (unsigned int i = 0; i + 2 < collision->indices.Count(); i += 3) {
-        NTempest::C3Vector v0 = collision->vertices[collision->indices[i]] * scale;
-        NTempest::C3Vector v1 = collision->vertices[collision->indices[i + 1]] * scale;
-        NTempest::C3Vector v2 = collision->vertices[collision->indices[i + 2]] * scale;
-        v0 *= modelptr->m_modelToWorld;
-        v1 *= modelptr->m_modelToWorld;
-        v2 *= modelptr->m_modelToWorld;
-        float distance;
-        if (GxuTestRayAndTriangle(a, rayDirection, v0, v1, v2, distance) && distance >= 0.0f && distance <= closest) {
-          closest = distance;
-          found = 1;
-        }
-      }
-      if (found) {
-        *linePos = closest;
-        return 1;
-      }
-    }
+  if (IModelTestRay(modelptr, shared, a, b, linePos, testLinkedModels)) {
+    return 1;
   }
 
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
     CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
     for (unsigned int i = 0; i < complex->m_attached.Count(); ++i) {
       for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = link->Next()) {
-        if (ModelHitTestGeometry(link->child, scale * link->scale, a, b, 1, linePos)) {
+        if (ModelHitTestGeometry(link->child, scale, a, b, 1, linePos)) {
           return 1;
         }
       }
@@ -2238,8 +2689,79 @@ int __fastcall ModelHitTestGeometry(HMODEL model, float scale, NTempest::C3Vecto
 }
 
 ModelIntersectResult __fastcall ModelIntersectLineSegmentEx(HMODEL__* model, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, unsigned int hitTestFlags, float* linePos, float* centerDistSq, int testLinkedModels) {
-    // TODO: implement
-    return ModelIntersectResult();
+  FATALASSERT(linePos);
+  FATALASSERT(centerDistSq);
+
+  CModelBase   *modelptr;
+  CModelShared *shared;
+  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
+    return MODEL_INTERSECT_NO_HIT;
+  }
+
+  NTempest::CAaSphere bounds;
+  IModelGetBoundingSphere(modelptr, shared, &bounds);
+  TransformBounds(modelptr->m_modelToWorld, scale, &bounds);
+
+  *centerDistSq = INFINITY;
+  float lineLength = (b - a).Mag();
+  float hitLinePos = INFINITY;
+  ModelIntersectResult result = MODEL_INTERSECT_NO_HIT;
+
+  if (hitTestFlags & 0x1) {
+    NTempest::C3Vector closest = bounds.c - a;
+    NTempest::C3Vector segment = b - a;
+    float              position = NTempest::C3Vector::Dot(closest, segment);
+    float              divisor = NTempest::C3Vector::Dot(segment, segment);
+    if (position < 0.0f) {
+      position = 0.0f;
+    } else if (position <= divisor) {
+      position /= divisor;
+      closest.x -= segment.x * position;
+      closest.y -= segment.y * position;
+      closest.z -= segment.z * position;
+    } else {
+      position = 1.0f;
+      closest.x -= segment.x;
+      closest.y -= segment.y;
+      closest.z -= segment.z;
+    }
+
+    *centerDistSq = closest.SquaredMag();
+    if (*centerDistSq > bounds.r * bounds.r) {
+      return MODEL_INTERSECT_NO_HIT;
+    }
+    result = MODEL_INTERSECT_HIT_BOUNDING_SPHERE;
+    hitLinePos = position * lineLength;
+  }
+
+  if ((hitTestFlags & 0x2) && (modelptr->m_flags & 0x20)) {
+    float volumeLinePos = 0.0f;
+    if (IModelTestCollisionVolumes(static_cast<CModelComplex *>(modelptr), shared, scale, a, b, &volumeLinePos)) {
+      result = MODEL_INTERSECT_HIT_COLLISION_VOLUMES;
+      hitLinePos = volumeLinePos * lineLength;
+    } else if (!(hitTestFlags & 0x10)) {
+      *linePos = hitLinePos;
+      return result;
+    }
+  }
+
+  if (!(hitTestFlags & 0x4)) {
+    *linePos = hitLinePos;
+    return result;
+  }
+
+  float modelHitLinePos;
+  if (!IModelTestRay(modelptr, shared, a, b, &modelHitLinePos, testLinkedModels)) {
+    *linePos = hitLinePos;
+    return result;
+  }
+
+  if ((hitTestFlags & 0x8) && modelHitLinePos >= hitLinePos) {
+    *linePos = hitLinePos;
+  } else {
+    *linePos = modelHitLinePos;
+  }
+  return MODEL_INTERSECT_HIT_MODEL;
 }
 
 void __fastcall ModelShowBoundingSphere(HMODEL model) {
@@ -2294,11 +2816,27 @@ void __fastcall ModelHideBounds(HMODEL model) {
 }
 
 void __fastcall ModelShowHitTestGeometry(HMODEL__* model) {
-    // TODO: implement
+  CModelBase   *unique;
+  CModelShared *shared;
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared) &&
+      !(unique->m_flags & 8) &&
+      shared->hitTest.Count())
+  {
+    HTEXTURE texture = TextureCreateSolid(NTempest::CImVector(0x7FFF0000), 0);
+    AddHitTestGeometryGeoset(model, texture);
+    unique->m_flags |= 8;
+    HandleClose(texture);
+  }
 }
 
 void __fastcall ModelHideHitTestGeometry(HMODEL__* model) {
-    // TODO: implement
+  CModelBase *unique;
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && (unique->m_flags & 0x28) == 0x28) {
+    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    complex->m_geosets.SetCount(complex->m_geosets.Count() - 1);
+    complex->m_addlGeosets.SetCount(complex->m_addlGeosets.Count() - 1);
+    unique->m_flags &= ~8u;
+  }
 }
 
 int __fastcall ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {

@@ -22,6 +22,7 @@
 #include "DB/DBClient/AutoCode/SpellRec.h"
 #include "DB/DBClient/AutoCode/TaxiNodesRec.h"
 #include "DB/DBClient/DBCacheInstances.h"
+#include "DB/DBClient/DBClient.h"
 #include "DB/WowLocale.h"
 #include "Game/GameClient/TaxiMap.h"
 #include "Game/GameClient/GuildClient.h"
@@ -4586,6 +4587,51 @@ int CGPlayer_C::GetSkillRank(int skillID) {
   }
   int rank = GetMirrorSkillRank(index) + GetMirrorSkillModifier(index);
   return rank < 0 ? 0 : rank;
+}
+
+int CGPlayer_C::GetSpellRank(int spellID) {
+  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  if (!spell) {
+    return 0;
+  }
+
+  const SkillLineAbilityRec *ability = SpellTableLookupAbility(GetUnitData()->race, GetUnitData()->classId, spellID);
+  if (!ability) {
+    return 0;
+  }
+
+  int rank = GetSkillRank(ability->m_skillLine);
+  if (spell->m_attributes & 0x406) {
+    int weaponSpell;
+    if (spell->m_attributes & 2) {
+      const VirtualItemInfo *item = CGUnit_C::GetVirtualItem(2, 0);
+      if (!item) {
+        return 0;
+      }
+      weaponSpell = s_weaponSubclassSpells[item->m_subclassID];
+    } else {
+      weaponSpell = GetWeaponSpell(COMBAT_MAINHAND);
+    }
+    rank = (rank + GetSpellRank(weaponSpell)) / 2;
+  }
+
+  if (spell->m_maxLevel > 0 && rank >= 5 * spell->m_maxLevel) {
+    rank = 5 * spell->m_maxLevel;
+  }
+  return rank < 0 ? 0 : rank;
+}
+
+int CGPlayer_C::GetWeaponSpell(COMBATHAND hand) const {
+  if (hand >= NUMHANDS) {
+    return 0;
+  }
+
+  const VirtualItemInfo *item = CGUnit_C::GetVirtualItem(static_cast<unsigned int>(hand), 0);
+  unsigned int subclass = item ? item->m_subclassID : ClientDBGetUnarmedWeapon();
+  if (item && item->m_classID != 2) {
+    return 0;
+  }
+  return subclass < s_weaponSubclassSpells.Count() ? s_weaponSubclassSpells[subclass] : 0;
 }
 
 unsigned int __fastcall CGPlayer_C::GetNewContinentID() {

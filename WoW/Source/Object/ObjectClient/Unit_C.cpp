@@ -118,6 +118,7 @@ const unsigned __int64 &__fastcall Spell_C_GetCurrentTarget();
 void __fastcall Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
 void __fastcall UnitCombatLogUnitDead(unsigned __int64 unit);
 void            UnitFootprintNewBloodSplat(UnitBloodRec *rec, unsigned int unitSize, NTempest::C3Vector &position);
+static void __fastcall PlayerNameGuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
 
 struct BLOODSPLATNODE : public TSLinkedNode<BLOODSPLATNODE> {
   unsigned int       time;
@@ -127,23 +128,6 @@ struct BLOODSPLATNODE : public TSLinkedNode<BLOODSPLATNODE> {
 int __fastcall OnPickNextStandHandler(void *param, CGUnit_C *ptr) {
   ptr->CGUnit_C::OnPickNextStandHandler();
   return 1;
-}
-
-CGUnit_C::~CGUnit_C() {
-  UnsetAuraMirrorHandlers();
-  RemoveUnitNamePlate();
-  KillSpellLoopedSound();
-  ClearActiveAttachmentInfo();
-  if (m_resEffectModel) {
-    HandleClose(m_resEffectModel);
-    m_resEffectModel = 0;
-  }
-  if (m_interactIconModel) {
-    HandleClose(m_interactIconModel);
-    m_interactIconModel = 0;
-  }
-  ClearWeaponTrailHandles();
-  ClearAnimCallbackData();
 }
 
 void CGUnit_C::Disable(int shutdown) {
@@ -510,6 +494,79 @@ static TInstanceAllocator<AuraDecayNode>                s_auraDecayFreeList(100)
 static TInstanceAllocator<SPELLEFFECTDESC>              s_spellEffectFreeList(100);
 static TInstanceAllocator<ANIMQUEUENODE>                s_animQueueFreeList(100);
 static CVar                                             *s_showBreathCvar;
+
+CGUnit_C::~CGUnit_C() {
+  ClearTempCharModel();
+  ProcessAnimEndCallbacks();
+  m_savedChannelSpellTargets.Clear();
+
+  if (GetType() & TYPE_PLAYER) {
+    unsigned int guildID = static_cast<CGPlayer_C *>(this)->GetGuildID();
+    if (guildID) {
+      g_guildInfoCache.CancelCallback(guildID, PlayerNameGuildCallback, &m_unitNameHandle);
+    }
+  }
+
+  ClearFishingObject();
+  DestroyPaperdollModel();
+  DestroyUnitMount(1);
+  m_emoteQueue.Clear();
+  m_pendingHitAnimVictims.Clear();
+  ClearRangedStandTimer();
+  ClearActiveAttachmentInfo();
+
+  ASSERT(!m_impactEffectsDesc.Head());
+  while (IMPACTEFFECTDESC *impact = m_impactEffectsDesc.Head()) {
+    DEL(impact);
+  }
+
+  SetLocalTarget(0);
+  if (m_model) {
+    ModelSetEventCallback(m_model, 0, 0, 0);
+  }
+
+  unsigned int index;
+  for (index = 0; index < sizeof(m_auraVisual) / sizeof(m_auraVisual[0]); ++index) {
+    m_auraVisual[index].Clear();
+  }
+
+  while (ACTIVEAURAINFO *active = m_activeAuraInfo.Head()) {
+    active->~ACTIVEAURAINFO();
+    s_auraInfoFreeList.PutData(active, 0, 0);
+  }
+
+  UnitUninitializeModel(m_model);
+  ShutdownWorldName();
+  if (m_geosetHandle) {
+    HandleClose(m_geosetHandle);
+    m_geosetHandle = 0;
+  }
+  if (m_texComponent) {
+    HandleClose(m_texComponent);
+    m_texComponent = 0;
+  }
+
+  PurgeAnimNodes(true);
+  ASSERT(!m_currentDamageInfo);
+  m_deathHoldBuffer.Clear();
+  m_deathHoldBufferIndices.Clear();
+  ClearWeaponTrailHandles();
+
+  for (index = 0; index < sizeof(m_spellEffectLists) / sizeof(m_spellEffectLists[0]); ++index) {
+    while (SPELLEFFECTDESC *effect = m_spellEffectLists[index].Head()) {
+      effect->~SPELLEFFECTDESC();
+      s_spellEffectFreeList.PutData(effect, 0, 0);
+    }
+  }
+
+  if (m_channelSpellEffect) {
+    m_channelSpellEffect->~SPELLEFFECTDESC();
+    s_spellEffectFreeList.PutData(m_channelSpellEffect, 0, 0);
+    m_channelSpellEffect = 0;
+  }
+
+  ClearAnimCallbackData();
+}
 
 int __fastcall LootAnimEndHandler(void *param, CGUnit_C *ptr) {
   if (ptr->GetType() & TYPE_PLAYER) {
@@ -2014,9 +2071,9 @@ static int __fastcall ChannelObjectMirrorHandler(unsigned __int64 guid, unsigned
   return 1;
 }
 
-static void __fastcall PlayerNameGuildCallback(int guildID, const unsigned __int64& guid, void* arg, unsigned char granted) {
+static void __fastcall PlayerNameGuildCallback(int guildID, const unsigned __int64& guid, void* arg, bool granted) {
   if (granted) {
-    PlayerNameTriggerNameRegenerate(static_cast<HPLAYERNAME>(arg));
+    PlayerNameTriggerNameRegenerate(*static_cast<HPLAYERNAME *>(arg));
   }
 }
 
@@ -2466,6 +2523,9 @@ CGUnit_C::CGUnit_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
   AddWorldObject();
   RefreshDataPointers();
   if (GetType() == HIER_TYPE_UNIT) {
+    const unsigned __int64 guid = GetGUID();
+    m_stats = const_cast<CreatureStats_C *>(
+        g_creatureDBCache.GetRecord(m_obj->m_entryID, guid, CreatureQueryCallback, 0));
     InitializeExtendedDisplay();
   }
   MarkFootstepAnimations(m_model);
@@ -6519,6 +6579,11 @@ void CGUnit_C::SetMirrorHandlers() {
 }
 
 IMPACTEFFECTDESC::~IMPACTEFFECTDESC() {
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(victim, __FILE__, __LINE__));
+  ASSERT(!unit || unit->IsA(TYPE_UNIT));
+  if (unit) {
+    unit->DDDELLOG(attacker, "~IMPACTEFFECTDESC", __FILE__, __LINE__);
+  }
 }
 
 void CGUnit_C::UnsetMirrorHandlers() {
@@ -8021,6 +8086,22 @@ void CGUnit_C::VirtualComponentChanged(int slot, int oldValue) {
   }
 }
 
+int CGUnit_C::CanHighlight() const {
+  return !m_stats || !(m_stats->m_flags & 0x200);
+}
+
+int CGUnit_C::IsSolidSelectable() const {
+  return 1;
+}
+
+int CGUnit_C::IsSolidCollidable() const {
+  return 0;
+}
+
+int CGUnit_C::CanBeTargetted() const {
+  return 1;
+}
+
 void CGUnit_C::RefreshInteractIcon() {
   RemoveInteractIcon();
   CGPlayer_C *player =
@@ -8385,6 +8466,13 @@ int CGUnit_C::ShouldDelayLevelupAnim() {
 int CGUnit_C::ShouldDelayLevelupAnim(unsigned int state) {
   FATALASSERT(state < 64);
   return s_animInfo[state].flags & 0x200;
+}
+
+void CGUnit_C::DestroyPaperdollModel() {
+  if (m_paperDollModel) {
+    HandleClose(m_paperDollModel);
+    m_paperDollModel = 0;
+  }
 }
 
 HMODEL CGUnit_C::GetPaperDollModel(unsigned int duplicateModel) {

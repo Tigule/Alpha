@@ -218,3 +218,8 @@ int CGGameObject_C::IsTransport() const {
   unsigned int type = *reinterpret_cast<const unsigned int *>(m_stats);
   return type == 11 || type == 15;
 }
+
+int CGGameObject_C::CanHighlight() const {
+  FATALASSERT(m_baseObj);
+  return m_baseObj->CanHighlight();
+}

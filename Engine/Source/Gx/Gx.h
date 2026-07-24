@@ -587,6 +587,23 @@ int __fastcall  GxuTestRayAndTriangle(
     const NTempest::C3Vector &v2,
     float                    &distance
 );
+int __fastcall  GxuTestRayAndMesh(
+    const NTempest::C3Vector  &rayStart,
+    const NTempest::C3Vector  &rayDirection,
+    const NTempest::C34Matrix *modelToWorldMatrices,
+    unsigned int               matrixCount,
+    unsigned int               posCount,
+    const NTempest::C3Vector  *pos,
+    unsigned int               posStride,
+    unsigned int               boneCount,
+    const unsigned char       *bone,
+    unsigned int               boneStride,
+    EGxPrim                    primType,
+    unsigned int               indexCount,
+    const unsigned short      *indices,
+    float                     &distance,
+    unsigned int              &primIntersected
+);
 const CGxCaps &__fastcall GxCaps();
 BlitFormat __fastcall     GxGetBlitFormat(EGxTexFormat texFormat);
 unsigned int __fastcall   GxVertexSize(EGxVertexBufferFormat format);
