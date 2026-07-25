@@ -390,10 +390,10 @@ bool __fastcall CMap::VectorIntersectDoodadDefLinkList(
     float it;
     if (queryFlags & 1) {
       NTempest::C34Matrix basis(
-          doodadDef->lMat.a0, doodadDef->lMat.a1, doodadDef->lMat.a2,
-          doodadDef->lMat.b0, doodadDef->lMat.b1, doodadDef->lMat.b2,
-          doodadDef->lMat.c0, doodadDef->lMat.c1, doodadDef->lMat.c2,
-          doodadDef->lMat.d0, doodadDef->lMat.d1, doodadDef->lMat.d2
+          doodadDef->mat.a0, doodadDef->mat.a1, doodadDef->mat.a2,
+          doodadDef->mat.b0, doodadDef->mat.b1, doodadDef->mat.b2,
+          doodadDef->mat.c0, doodadDef->mat.c1, doodadDef->mat.c2,
+          doodadDef->mat.d0, doodadDef->mat.d1, doodadDef->mat.d2
       );
       if (ModelCollisionVectorIntersect(doodadDef->model, basis, *p0, *p1, it)) {
         if (it < hitT) {
@@ -1011,8 +1011,8 @@ void __fastcall AddDoodadFacets(NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDe
   ModelAddCollisionFacets(
       doodadDef->model,
       NTempest::C34Matrix(
-          doodadDef->lMat.a0, doodadDef->lMat.a1, doodadDef->lMat.a2, doodadDef->lMat.b0, doodadDef->lMat.b1, doodadDef->lMat.b2, doodadDef->lMat.c0,
-          doodadDef->lMat.c1, doodadDef->lMat.c2, doodadDef->lMat.d0, doodadDef->lMat.d1, doodadDef->lMat.d2
+          doodadDef->mat.a0, doodadDef->mat.a1, doodadDef->mat.a2, doodadDef->mat.b0, doodadDef->mat.b1, doodadDef->mat.b2, doodadDef->mat.c0,
+          doodadDef->mat.c1, doodadDef->mat.c2, doodadDef->mat.d0, doodadDef->mat.d1, doodadDef->mat.d2
       ),
       doodadDef->scale, aaBox, &facetData->facets
   );
