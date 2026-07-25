@@ -78,6 +78,41 @@ CMapEntity::CMapEntity() {
   type |= Type_Entity;
 }
 
+void CMapEntity::QueryLiquidSounds(
+    int                *lbool,
+    NTempest::C3Vector *ldelta,
+    float              *ldsquared,
+    unsigned int       &closestExtLevel
+) {
+  if (!flagInside) {
+    return;
+  }
+
+  CMapBaseObjLink *parentLink = parentLinkList.Head();
+  while (reinterpret_cast<long>(parentLink) > 0) {
+    if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
+      CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
+      CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
+      FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
+      CMapObj *mapObj = mapObjDef->mapObj;
+      FATALASSERT(mapObj);
+
+      NTempest::C3Vector localPos = pos * mapObjDef->invMat;
+      mapObj->QueryLiquidSounds(
+          mapObjDefGroup->groupNum,
+          mapObjDefGroup->groupNum,
+          0,
+          closestExtLevel,
+          localPos,
+          lbool,
+          ldelta,
+          ldsquared
+      );
+    }
+    parentLink = parentLinkList.RawNext(parentLink);
+  }
+}
+
 int CMapEntity::QueryMapObjZoneName(const char *&zoneName) {
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup;

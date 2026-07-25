@@ -273,6 +273,7 @@ class CWorld {
   static unsigned int __fastcall QueryAreaId(float x, float y);
   static unsigned int __fastcall SceneCamLiquidStatus();
   static int __fastcall          QueryObjectInside(unsigned long hWorldObject);
+  static int __fastcall          QueryLiquidSounds(unsigned long hWorldObject, float radius, int *lbool, NTempest::C3Vector *ldelta);
   static int __fastcall          QueryMapObjZoneName(unsigned long hWorldObject, const char *&zoneName);
   static int __fastcall          QueryMapObjSubzoneName(unsigned long hWorldObject, const char *&subzoneName, unsigned int &subzoneId);
   static int __fastcall          QueryMapObjFileName(unsigned long hWorldObject, const char *&fileName);
@@ -456,6 +457,13 @@ class CMapArea : public CMapBaseObj {
   void                   PurgeChunks();
   void                   PrepareLocalRect();
   void                   InitWater();
+  void                   QueryLiquidSounds(
+      const NTempest::C3Vector &worldPos,
+      float                      radius,
+      int                       *lbool,
+      NTempest::C3Vector        *ldelta,
+      float                     *ldsquared
+  );
 
   static int ccWaterLOD;
   static int ccWaterMaxLOD;
@@ -529,6 +537,13 @@ class CMap {
   static unsigned int __fastcall QueryShadow(NTempest::C3Vector &pos);
   static unsigned int __fastcall
   QueryLiquidStatus(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir, int &deep);
+  static void __fastcall QueryLiquidSounds(
+      const NTempest::C3Vector &worldPos,
+      float                      radius,
+      int                       *lbool,
+      NTempest::C3Vector        *ldelta,
+      float                     *ldsquared
+  );
   static unsigned int __fastcall
   QueryLiquidStatusMapObjsExt(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir);
   static bool __fastcall

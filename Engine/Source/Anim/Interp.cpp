@@ -1,8 +1,11 @@
 #include "Anim/AnimInternal.h"
 
 static float EvaluateCubicPolynomial(float t, const float* coefficients) {
-    // TODO: implement
-    return 0;
+  float result = coefficients[0];
+  for (unsigned int i = 1; i < 4; ++i) {
+    result = result * t + coefficients[i];
+  }
+  return result;
 }
 
 void CKeyFrameTrackBase::SetNumKeys(unsigned int numKeys, unsigned int keySize) {

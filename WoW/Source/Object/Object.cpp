@@ -8,6 +8,8 @@
 #include <float.h>
 #include <math.h>
 
+static const float TWO_PI = 6.28318530717958647692f;
+
 void __fastcall CClientMoveUpdate::Skip(CDataStore *packet) {
   void *unused;
   packet->GetDataInSitu(unused, 44);
@@ -139,8 +141,24 @@ CDataStore &__fastcall operator>>(CDataStore &packet, CClientMoveUpdate &update)
 }
 
 unsigned char __fastcall IsAngleWithinRange(float a, float b, float fieldofView) {
-    // TODO: implement
-    return 0;
+  fieldofView = static_cast<float>(fabs(fieldofView));
+  while (a < 0.0f) {
+    a += TWO_PI;
+  }
+  while (b < 0.0f) {
+    b += TWO_PI;
+  }
+  a = static_cast<float>(fmod(a, TWO_PI));
+  b = static_cast<float>(fmod(b, TWO_PI));
+  if (fabs(a - b) < fieldofView) {
+    return 1;
+  }
+  if (a >= b) {
+    b += TWO_PI;
+  } else {
+    a += TWO_PI;
+  }
+  return fabs(a - b) < fieldofView;
 }
 
 float __fastcall CalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination) {

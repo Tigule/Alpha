@@ -704,12 +704,11 @@ float __fastcall AnimGetObjectTimeScale(HANIM anim, unsigned int objectId) {
 }
 
 void __fastcall AnimSetGlobalTimeScale(float timeScale) {
-    // TODO: implement
+  s_timeScale = timeScale;
 }
 
 float __fastcall AnimGetGlobalTimeScale() {
-    // TODO: implement
-    return 0;
+  return s_timeScale;
 }
 
 int __fastcall AnimForceCurrentSequenceTime(HANIM anim, int time) {
@@ -963,7 +962,11 @@ void __fastcall AnimPauseTime(HANIM anim, int pause) {
 }
 
 void __fastcall AnimPauseGlobalTime(int pause) {
-    // TODO: implement
+  if (pause) {
+    s_animFlags |= 8;
+  } else {
+    s_animFlags &= ~8;
+  }
 }
 
 int __fastcall AnimGetSequenceTime(HANIM anim, unsigned int seqIndex) {

@@ -183,7 +183,9 @@ class COsEditBox : public COsControl {
   virtual int OnReturn();
   virtual int CanDoClipboardAction(int inAction);
   virtual int DoClipboardAction(int inAction);
+  int         GetSelectionSize();
   int         IsCharacterAllowed(char inChar);
+  void        UpdateSelection();
 
  protected:
   void Initialize();
@@ -208,6 +210,7 @@ class COsTreeView : public COsControl {
   virtual int  OnNotify(int inCode, void *inParam);
   virtual int  IsHandleFromControl(void *inHandle);
   int          IsCharacterAllowed(char inChar);
+  void         SelectItem(void *inItem, int inVal);
 
  protected:
   void *GetEditControl();
@@ -227,6 +230,11 @@ class COsTreeView : public COsControl {
   int                                  mFiltersEnabled;
   unsigned int                         mFilters;
   TSGrowableArray<OsGuiTreeItemParams> mItemParams;
+};
+
+class COsSpinButton : public COsControl {
+ public:
+  void OnSpinMouseUp();
 };
 
 class COsTabControl : public COsControl {

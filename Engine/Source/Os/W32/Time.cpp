@@ -114,7 +114,10 @@ float __fastcall OsGetAsyncTimeSec() {
 }
 
 void __fastcall OsGetTimeStr(char* timebuf, unsigned long len) {
-    // TODO: implement
+  time_t ltime;
+  time(&ltime);
+  SStrCopy(timebuf, ctime(&ltime), len);
+  *SStrChrR(timebuf, '\n') = 0;
 }
 
 void __fastcall OsGetTimeStamp(char *timeStamp, unsigned long len) {
@@ -125,25 +128,32 @@ void __fastcall OsGetTimeStamp(char *timeStamp, unsigned long len) {
 }
 
 void __fastcall OsGetTimeStr(char* timebuf, unsigned long len, const char* format, long timer) {
-    // TODO: implement
+  strftime(timebuf, len, format, localtime(&timer));
 }
 
 void __fastcall OsFileTimeGetCurrent(OSFILETIME* filetime) {
-    // TODO: implement
+  FATALASSERT(filetime);
+  SYSTEMTIME sysTime;
+  GetSystemTime(&sysTime);
+  SystemTimeToFileTime(&sysTime, reinterpret_cast<FILETIME *>(&filetime->m_value));
 }
 
 int __fastcall OsFileTimeCompare(const OSFILETIME* filetime1, const OSFILETIME* filetime2) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(filetime1);
+  FATALASSERT(filetime2);
+  return CompareFileTime(
+      reinterpret_cast<const FILETIME *>(&filetime1->m_value),
+      reinterpret_cast<const FILETIME *>(&filetime2->m_value)
+  );
 }
 
 void __fastcall OsFileTimeAdd(OSFILETIME* filetime, unsigned int seconds) {
-    // TODO: implement
+  FATALASSERT(filetime);
+  filetime->m_value += 10000000ui64 * seconds;
 }
 
 unsigned __int64 __fastcall OsGetAsyncThreadTimeMs() {
-    // TODO: implement
-    return 0;
+  return GetTickCount();
 }
 
 unsigned long __fastcall OsGetTime() {
@@ -264,9 +274,12 @@ void __fastcall OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime) 
 }
 
 void __fastcall OsTimeStartup() {
-    // TODO: implement
+  DWORD len = sizeof(s_cpuTicksPerSecond);
+  if (!SRegLoadData("Internal", "CpuTicksPerSecond", 0, &s_cpuTicksPerSecond, sizeof(s_cpuTicksPerSecond), &len)) {
+    s_cpuTicksPerSecond = 0;
+  }
+  Sleep(0);
 }
 
 void __fastcall OsTimeShutdown() {
-    // TODO: implement
 }

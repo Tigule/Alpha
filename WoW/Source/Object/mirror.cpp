@@ -222,6 +222,33 @@ void __fastcall MirrorInitialize() {
 }
 
 const ObjDataDescriptor* __fastcall MirrorGetObjDataDescriptor(OBJECT_TYPE type, unsigned int blockID) {
-    // TODO: implement
-    return 0;
+  switch (type) {
+    case HIER_TYPE_OBJECT:
+      ASSERT(blockID < sizeof(s_objDescriptors) / sizeof(s_objDescriptors[0]));
+      return &s_objDescriptors[blockID];
+    case HIER_TYPE_ITEM:
+      ASSERT(blockID < sizeof(s_itemDescriptors) / sizeof(s_itemDescriptors[0]));
+      return &s_itemDescriptors[blockID];
+    case HIER_TYPE_CONTAINER:
+      ASSERT(blockID < sizeof(s_containerDescriptors) / sizeof(s_containerDescriptors[0]));
+      return &s_containerDescriptors[blockID];
+    case HIER_TYPE_UNIT:
+      ASSERT(blockID < sizeof(s_unitDescriptors) / sizeof(s_unitDescriptors[0]));
+      return &s_unitDescriptors[blockID];
+    case HIER_TYPE_PLAYER:
+      ASSERT(blockID < sizeof(s_playerDescriptors) / sizeof(s_playerDescriptors[0]));
+      return &s_playerDescriptors[blockID];
+    case HIER_TYPE_GAMEOBJECT:
+      ASSERT(blockID < sizeof(s_gameObjectDescriptors) / sizeof(s_gameObjectDescriptors[0]));
+      return &s_gameObjectDescriptors[blockID];
+    case HIER_TYPE_DYNAMICOBJECT:
+      ASSERT(blockID < sizeof(s_dynamicObjectDescriptors) / sizeof(s_dynamicObjectDescriptors[0]));
+      return &s_dynamicObjectDescriptors[blockID];
+    case HIER_TYPE_CORPSE:
+      ASSERT(blockID < sizeof(s_corpseDescriptors) / sizeof(s_corpseDescriptors[0]));
+      return &s_corpseDescriptors[blockID];
+    default:
+      ASSERT(false);
+      return 0;
+  }
 }

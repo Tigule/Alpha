@@ -48,8 +48,21 @@ int CBLPFile::Open(const char *filename) {
 }
 
 static int IsLegalDimension(unsigned int dimension) {
-    // TODO: implement
-    return 0;
+  switch (dimension) {
+    case 1:
+    case 2:
+    case 4:
+    case 8:
+    case 16:
+    case 32:
+    case 64:
+    case 128:
+    case 256:
+    case 512:
+      return 1;
+    default:
+      return 0;
+  }
 }
 
 int CBLPFile::IsValidMip(unsigned int level) const {

@@ -3,6 +3,28 @@
 
 #include <storm.h>
 
+class CDataStore;
+
+enum FRIEND_RESULT {
+  FRIEND_DB_ERROR,
+  FRIEND_LIST_FULL,
+  FRIEND_ONLINE,
+  FRIEND_OFFLINE,
+  FRIEND_NOT_FOUND,
+  FRIEND_REMOVED,
+  FRIEND_ADDED_ONLINE,
+  FRIEND_ADDED_OFFLINE,
+  FRIEND_ALREADY,
+  FRIEND_SELF,
+  FRIEND_ENEMY,
+  FRIEND_IGNORE_FULL,
+  FRIEND_IGNORE_SELF,
+  FRIEND_IGNORE_NOT_FOUND,
+  FRIEND_IGNORE_ALREADY,
+  FRIEND_IGNORE_ADDED,
+  FRIEND_IGNORE_REMOVED
+};
+
 class FriendList {
  public:
   struct Friend {
@@ -30,6 +52,8 @@ class FriendList {
   void                   SetFriendSelectionIndex(unsigned int index);
   int                    GetFriendSelectionIndex() const;
   void                   AddFriend(const char *name);
+  void                   RemoveFriend(const char *name);
+  void                   RemoveFriend(unsigned __int64 guid);
   void                   RemoveFriend(unsigned int index);
   void                   ShowFriends();
   unsigned int           GetNumIgnores() const;
@@ -39,7 +63,19 @@ class FriendList {
   void                   AddOrDelIgnore(const char *name);
   void                   AddIgnore(const char *name);
   void                   DelIgnore(const char *name);
+  void                   DelIgnore(unsigned __int64 guid);
   void                   SendWho(const char *str);
+  bool                   IsIgnored(unsigned __int64 guid);
+  void                   HandleStatus(FRIEND_RESULT result, unsigned __int64 guid, CDataStore *msg);
+  void                   AddFriends(CDataStore *msg);
+  void                   IgnoreList(CDataStore *msg);
+  void                   SetName(unsigned __int64 guid, const char *name);
+  void                   DecrementPendingFriendName();
+  void                   DecrementPendingIgnoreName();
+  void                   SortFriends();
+  void                   SortIgnore();
+  void                   IgnoreAdded(unsigned __int64 guid, int sort);
+  void                   IgnoreRemoved(unsigned __int64 guid);
 
  private:
   Friend           m_friends[50];

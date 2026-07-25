@@ -6,6 +6,8 @@
 #include "Tempest/cfacet.h"
 #include "Tempest/c2vector.h"
 
+#include <math.h>
+
 NTempest::C2iVector projAxisTable[3] = {
     NTempest::C2iVector(1, 2),
     NTempest::C2iVector(2, 0),
@@ -100,17 +102,64 @@ namespace NTempest {
 
 }  // namespace NTempest
 
+bool __fastcall NTempest::Intersect(
+    const C2Vector &a0, const C2Vector &a1, const C2Vector &b0, const C2Vector &b1
+) {
+  float ax = a1.x - a0.x;
+  float ay = a1.y - a0.y;
+  float bx = b0.x - b1.x;
+  float by = b0.y - b1.y;
+  float cx = a0.x - b0.x;
+  float cy = a0.y - b0.y;
+  float f = bx * ay - by * ax;
+  float d = cx * by - cy * bx;
+  if ((f > 0.0f && d >= 0.0f && d <= f) || (f < 0.0f && d <= 0.0f && d >= f)) {
+    float e = cy * ax - cx * ay;
+    return f > 0.0f ? e >= 0.0f && e <= f : e <= 0.0f && e >= f;
+  }
+  return false;
+}
+
 static int EdgeIntersectTriEdge(NTempest::C2Vector& a0, NTempest::C2Vector& a1, NTempest::C2Vector& b0, NTempest::C2Vector& b1, NTempest::C2Vector& b2) {
-    // TODO: implement
-    return 0;
+  return NTempest::Intersect(a0, a1, b0, b1)
+      || NTempest::Intersect(a0, a1, b1, b2)
+      || NTempest::Intersect(a0, a1, b2, b0);
 }
 
 static int PointInTri(NTempest::C2Vector& p, NTempest::C2Vector& a0, NTempest::C2Vector& a1, NTempest::C2Vector& a2) {
-    // TODO: implement
-    return 0;
+  float ab = (a1.y - a0.y) * (p.x - a0.x) - (a1.x - a0.x) * (p.y - a0.y);
+  float bc = (a2.y - a1.y) * (p.x - a1.x) - (a2.x - a1.x) * (p.y - a1.y);
+  float ca = (a0.y - a2.y) * (p.x - a2.x) - (a0.x - a2.x) * (p.y - a2.y);
+  return ab * bc >= 0.0f && ab * ca >= 0.0f;
 }
 
 static unsigned char CoplanarTriIntersectTri(const NTempest::CFacet& facet0, const NTempest::CFacet& facet1) {
-    // TODO: implement
-    return 0;
+  int i0;
+  int i1;
+  float nx = static_cast<float>(fabs(facet0.plane.n.x));
+  float ny = static_cast<float>(fabs(facet0.plane.n.y));
+  float nz = static_cast<float>(fabs(facet0.plane.n.z));
+  if (nx > ny && nx > nz) {
+    i0 = 1;
+    i1 = 2;
+  } else if (ny > nz) {
+    i0 = 0;
+    i1 = 2;
+  } else {
+    i0 = 0;
+    i1 = 1;
+  }
+
+  NTempest::C2Vector v[3];
+  NTempest::C2Vector u[3];
+  for (int i = 0; i < 3; ++i) {
+    v[i] = NTempest::C2Vector(facet0.vertices[i][i0], facet0.vertices[i][i1]);
+    u[i] = NTempest::C2Vector(facet1.vertices[i][i0], facet1.vertices[i][i1]);
+  }
+  if (EdgeIntersectTriEdge(v[0], v[1], u[0], u[1], u[2])
+      || EdgeIntersectTriEdge(v[1], v[2], u[0], u[1], u[2])
+      || EdgeIntersectTriEdge(v[2], v[0], u[0], u[1], u[2])) {
+    return 1;
+  }
+  return PointInTri(v[0], u[0], u[1], u[2]) || PointInTri(u[0], v[0], v[1], v[2]);
 }

@@ -12,6 +12,7 @@
 #include "Client.h"
 #include "Object/ObjectClient/AnimCompiles.h"
 #include "Object/ObjectClient/Unit_C.h"
+#include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Services/Lightning.h"
 #include "Services/SysMessage.h"
@@ -28,6 +29,7 @@
 #include "WorldClient/World.h"
 
 #include <Base/Status.h>
+#include <Base/CDataAllocator.h>
 #include <stpl.h>
 #include <string.h>
 
@@ -127,6 +129,7 @@ void __fastcall                GetMissileTargetPosition(CGObject_C *target, int 
 TSList<BlizzardObject::Shard, TSGetLink<BlizzardObject::Shard> > BlizzardObject::shardPool;
 
 static TSList<FishingLineObject, TSGetLink<FishingLineObject> > s_fishingLineObjects;
+static TInstanceAllocator<FishingLineObject>                    s_freeFishingObjects(20);
 static TSCArray<unsigned short, 201>                            s_fishingLineIndices;
 static TSCArray<float, 201>                                     s_segmentPoints;
 
@@ -399,6 +402,13 @@ void __fastcall UnitEffectOneShot(
     unsigned int                    isCastEffect,
     unsigned int                    forceEffectOnMount
 );
+void __fastcall UnitEffectOneShot(
+    const SpellVisualEffectNameRec *effect,
+    const NTempest::C3Vector &location,
+    const TSStackArray<unsigned __int64> *objects,
+    float facing,
+    float scale
+);
 void __fastcall SpellVisualsProcedure(
     CGUnit_C                       *caster,
     SpellVisualKitRec              *kitRec,
@@ -406,6 +416,11 @@ void __fastcall SpellVisualsProcedure(
     TSStackArray<unsigned __int64> *targets,
     TSStackArray<MISS_REASON>      *missReasons
 );
+bool __fastcall IsSpellAura(const SpellRec *rec);
+unsigned int __fastcall Object_C_AnimHasHitEvent(int anim);
+void __fastcall UnitCombatLogSpellMissed(
+    unsigned int spellID, unsigned int reason,
+    unsigned __int64 caster, unsigned __int64 target);
 void __fastcall SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
 void __fastcall UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster);
 
@@ -902,7 +917,35 @@ void __fastcall SpellVisualsProcedure(
 }
 
 static void PlayImpactKit(CGUnit_C* target, const SpellVisualKitRec* impactKit) {
-    // TODO: implement
+  UnitEffectOneShot(
+      g_spellVisualEffectNameDB.GetRecord(impactKit->m_headEffect),
+      target,
+      UNITEFFECT_ATTACHHEAD,
+      0,
+      true,
+      false);
+  UnitEffectOneShot(
+      g_spellVisualEffectNameDB.GetRecord(impactKit->m_chestEffect),
+      target,
+      UNITEFFECT_ATTACHCHEST,
+      0,
+      true,
+      false);
+  UnitEffectOneShot(
+      g_spellVisualEffectNameDB.GetRecord(impactKit->m_baseEffect),
+      target,
+      UNITEFFECT_ATTACHBASE,
+      0,
+      true,
+      false);
+
+  NTempest::C3Vector position;
+  target->GetPosition(position);
+  SpellVisualsPlayCameraShakeID(impactKit->m_shakeID, position);
+  target->SetSpellImpactKit(impactKit);
+  if (impactKit->m_soundID) {
+    SndInterfacePlaySpellSound(impactKit->m_soundID, target);
+  }
 }
 
 unsigned int __fastcall SpellGetRangedPrecastHoldAnim(unsigned int loadAnim) {
@@ -981,16 +1024,41 @@ void __fastcall SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard) {
 }
 
 FishingLineObject* __fastcall SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec, const unsigned __int64& gameObj, const unsigned __int64& caster) {
-    // TODO: implement
+  if (!kitRec) {
     return 0;
+  }
+  FishingLineObject *object =
+      static_cast<FishingLineObject *>(
+          s_freeFishingObjects.GetData(
+              0,
+              ".?AUFishingLineObject@@",
+              -2));
+  if (object) {
+    object->m_link.m_prevlink = 0;
+    object->m_link.m_next = 0;
+    object->visible = 0;
+  }
+  object->object = gameObj;
+  object->caster = caster;
+  object->color.Set(
+      static_cast<unsigned int>(kitRec->m_characterParam[3]) |
+      0xFF000000);
+  object->visible = 0;
+  s_fishingLineObjects.LinkNode(object, LIST_TAIL, 0);
+  return object;
 }
 
 void __fastcall SpellVisualsFishingLineDestroy(FishingLineObject* object) {
-    // TODO: implement
+  if (object) {
+    s_fishingLineObjects.UnlinkNode(object);
+    s_freeFishingObjects.PutData(object, 0, 0);
+  }
 }
 
 void __fastcall SpellVisualFishingLineSetVisible(FishingLineObject* obj) {
-    // TODO: implement
+  if (obj) {
+    obj->visible = 1;
+  }
 }
 
 void LightningObject::AddRef() {
@@ -1013,20 +1081,339 @@ bool __fastcall IsShapeshiftSpell(const SpellRec *rec) {
   return false;
 }
 void __fastcall SpellVisualsPlayKit(CGUnit_C* target, unsigned int id) {
-    // TODO: implement
+  const SpellVisualKitRec *kitRec = g_spellVisualKitDB.GetRecord(id);
+  if (kitRec) {
+    PlayImpactKit(target, kitRec);
+  }
 }
 
 static unsigned char GetSpellRecords(CGUnit_C* caster, int spellID, const SpellRec*& srec, SpellVisualRec& visRecData, const SpellVisualRec*& visRec, const SpellVisualKitRec*& kitRec) {
-    // TODO: implement
+  srec = g_spellDB.GetRecord(spellID);
+  if (!srec) {
+    SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", spellID);
     return 0;
+  }
+  visRec = caster->GetAppropriateSpellVisual(
+      const_cast<SpellRec *>(srec),
+      visRecData);
+  if (!visRec) {
+    SysMsgPrintf(
+        SYSMSG_WARNING,
+        2,
+        "SPELLVISUALIDNOTFOUND|%d",
+        spellID);
+    return 0;
+  }
+  kitRec = caster->GetRangedSpellAnim(spellID, 1);
+  return 1;
+}
+
+static void PlayOneShotEffect(
+    const NTempest::C3Vector &location,
+    int effectID,
+    const TSStackArray<unsigned __int64> &objects
+) {
+  UnitEffectOneShot(
+      g_spellVisualEffectNameDB.GetRecord(effectID),
+      location,
+      &objects,
+      0.0f,
+      1.0f);
+}
+
+static void PlayCastAnim(
+    CGUnit_C *caster,
+    const SpellRec *srec,
+    const SpellVisualRec *visRec,
+    const SpellVisualKitRec *kitRec,
+    const TSStackArray<unsigned __int64> &targets,
+    int *torsoAnimSet
+) {
+  FATALASSERT(caster->GetType() & TYPE_UNIT);
+  if (kitRec->m_anim) {
+    ANIMENUMERATION finalAnim;
+    bool animSuccessful = caster->SetSpellCastingAnimation(
+        static_cast<ANIMENUMERATION>(kitRec->m_anim),
+        visRec->m_castKit,
+        kitRec->m_soundID,
+        kitRec->m_shakeID,
+        finalAnim);
+    caster->AddSpellProcOneShotEffect(srec->m_ID, kitRec);
+    NTempest::C3Vector position;
+    caster->GetPosition(position);
+    SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, position);
+    int oldCastingSpell = caster->SetCastingSpell(srec->m_ID, 0, 0);
+    if (animSuccessful) {
+      *torsoAnimSet = caster->SetTorsoAnimation(38, 0, 0);
+    }
+    if (*torsoAnimSet) {
+      caster->HandlePrecastStop(srec->m_ID, true);
+      caster->SetSheatheReason(
+          SHEATHEREASON_PRECAST,
+          (srec->m_attributes & 0x40000) == 0,
+          false);
+    } else {
+      caster->ClearSpellCastAnimInfo();
+    }
+    if (!oldCastingSpell) {
+      caster->SetCastingSpell(0, 1, 0);
+    }
+    if (*torsoAnimSet &&
+        Object_C_AnimHasHitEvent(*torsoAnimSet)) {
+      caster->AddHitAnimHolds(srec->m_ID, targets);
+    }
+    caster->SetCastingSpell(0, 0, 0);
+  } else {
+    SndInterfacePlaySpellSound(kitRec->m_soundID, caster);
+    NTempest::C3Vector position;
+    caster->GetPosition(position);
+    SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, position);
+  }
+  if (!*torsoAnimSet &&
+      caster->GetCurrentTorsoAnim() == 37) {
+    caster->ClearTorsoAnimation(0);
+  }
+}
+
+void __fastcall HandleMissileEffects(
+    CGUnit_C *caster,
+    const SpellRec *srec,
+    const SpellVisualRec *visRec,
+    int ammoDisplayID,
+    int ammoInventoryType,
+    const SpellCast &cast,
+    const TSStackArray<unsigned __int64> &targets,
+    const TSStackArray<MISS_REASON> *missReasons,
+    bool wasProc
+) {
+  if (!caster || !targets.Count() ||
+      (!visRec->m_hasMissile && !ammoDisplayID)) {
+    return;
+  }
+
+  if (cast.targets & 0x802) {
+    unsigned int i;
+    for (i = 0; i < targets.Count(); ++i) {
+      CGObject_C *target =
+          ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+      if (target) {
+        MISS_REASON reason = missReasons
+                                 ? (*missReasons)[i]
+                                 : MISS_PHYSICAL;
+        NTempest::C3Vector destination;
+        target->GetPosition(destination);
+        caster->StoreSpellMissileEffect(
+            targets[i], destination, srec->m_speed,
+            ammoDisplayID, ammoInventoryType, visRec,
+            missReasons == 0, reason, srec->m_ID, wasProc);
+      }
+    }
+  } else if (cast.targets & 0x40) {
+    const unsigned __int64 noTarget = 0;
+    caster->StoreSpellMissileEffect(
+        noTarget, cast.destLocation, srec->m_speed,
+        ammoDisplayID, ammoInventoryType, visRec,
+        missReasons == 0, MISS_PHYSICAL, srec->m_ID, wasProc);
+  }
+}
+
+void __fastcall SpellVisualsHandleSpellStart(
+    int spellID,
+    const SpellCast &cast,
+    CGGameObject_C *caster,
+    const TSStackArray<unsigned __int64> &targets,
+    bool ignoreAreaEffect,
+    bool hits
+) {
+  FATALASSERT(caster);
+  const SpellRec *srec = g_spellDB.GetRecord(spellID);
+  if (!srec) {
+    SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", spellID);
+    return;
+  }
+  const SpellVisualRec *visRec =
+      g_spellVisualDB.GetRecord(srec->m_spellVisualID);
+  if (!visRec) {
+    SysMsgPrintf(
+        SYSMSG_WARNING, 2,
+        "SPELLVISUALIDNOTFOUND|%d", spellID);
+    return;
+  }
+
+  if (targets.Count() && srec->m_speed <= 0.0f && hits) {
+    const SpellVisualKitRec *impactKit =
+        g_spellVisualKitDB.GetRecord(visRec->m_impactKit);
+    if (impactKit) {
+      unsigned int i;
+      for (i = 0; i < targets.Count(); ++i) {
+        CGObject_C *target =
+            ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+        if (target && (target->GetType() & TYPE_UNIT)) {
+          PlayImpactKit(static_cast<CGUnit_C *>(target), impactKit);
+        }
+      }
+    }
+  }
+  if (!ignoreAreaEffect && (cast.targets & 0x40)) {
+    PlayOneShotEffect(cast.destLocation, visRec->m_areaModel, targets);
+  }
+}
+
+void __fastcall SpellVisualsHandleSpellStartHits(
+    int spellID,
+    const SpellCast &cast,
+    CGUnit_C *caster,
+    const TSStackArray<unsigned __int64> &targets,
+    int ammoDisplayID,
+    int ammoInventoryType,
+    int flags
+) {
+  bool wasProc = (flags & 1) != 0;
+  SpellVisualRec visRecData;
+  const SpellRec *srec;
+  const SpellVisualRec *visRec;
+  const SpellVisualKitRec *kitRec;
+  if (!GetSpellRecords(
+          caster, spellID, srec, visRecData, visRec, kitRec)) {
+    return;
+  }
+
+  if (!(flags & 8) && !wasProc && (cast.targets & 0x40)) {
+    PlayOneShotEffect(cast.destLocation, visRec->m_areaModel, targets);
+  }
+  int torsoAnimSet = 0;
+  if (!wasProc && kitRec) {
+    PlayCastAnim(
+        caster, srec, visRec, kitRec, targets, &torsoAnimSet);
+  }
+  if (kitRec && !wasProc) {
+    SpellVisualsProcedure(
+        caster,
+        const_cast<SpellVisualKitRec *>(kitRec),
+        spellID,
+        const_cast<TSStackArray<unsigned __int64> *>(&targets),
+        0);
+  }
+
+  if (srec->m_speed > 0.0f) {
+    HandleMissileEffects(
+        caster, srec, visRec, ammoDisplayID,
+        ammoInventoryType, cast, targets, 0, wasProc);
+  } else {
+    caster->MaybeSaveChannelSpellTargets(spellID, targets);
+    const SpellVisualKitRec *impactKit =
+        g_spellVisualKitDB.GetRecord(visRec->m_impactKit);
+    if (impactKit && !IsSpellAura(srec)) {
+      unsigned int i;
+      for (i = 0; i < targets.Count(); ++i) {
+        CGObject_C *target =
+            ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+        if (target && (target->GetType() & TYPE_UNIT)) {
+          caster->SetImpactKitEffect(
+              spellID,
+              static_cast<CGUnit_C *>(target),
+              impactKit,
+              torsoAnimSet == 0);
+        }
+      }
+    }
+  }
+}
+
+void __fastcall SpellVisualsHandleSpellStartMisses(
+    int spellID,
+    const SpellCast &cast,
+    CGUnit_C *caster,
+    const TSStackArray<unsigned __int64> &targets,
+    TSStackArray<MISS_REASON> &missReasons,
+    int ammoDisplayID,
+    int ammoInventoryType,
+    int flags
+) {
+  if (!targets.Count()) {
+    return;
+  }
+  bool ignoreAreaEffect = (flags & 8) != 0;
+  bool wasProc = (flags & 1) != 0;
+  SpellVisualRec visRecData;
+  const SpellRec *srec;
+  const SpellVisualRec *visRec;
+  const SpellVisualKitRec *kitRec;
+  if (!GetSpellRecords(
+          caster, spellID, srec, visRecData, visRec, kitRec)) {
+    return;
+  }
+
+  if (caster->GetCurrentTorsoAnim() == 37) {
+    caster->ClearTorsoAnimation(0);
+  }
+  if (!ignoreAreaEffect && !wasProc &&
+      (cast.targets & 0x40)) {
+    PlayOneShotEffect(cast.destLocation, visRec->m_areaModel, targets);
+  }
+  int torsoAnimSet = 0;
+  if (!wasProc && kitRec) {
+    PlayCastAnim(
+        caster, srec, visRec, kitRec, targets, &torsoAnimSet);
+  }
+  if (kitRec && !wasProc) {
+    SpellVisualsProcedure(
+        caster,
+        const_cast<SpellVisualKitRec *>(kitRec),
+        spellID,
+        const_cast<TSStackArray<unsigned __int64> *>(&targets),
+        &missReasons);
+  }
+
+  unsigned int i;
+  for (i = 0; i < targets.Count(); ++i) {
+    CGObject_C *target =
+        ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+    if (target && (target->GetType() & TYPE_UNIT)) {
+      missReasons[i] =
+          static_cast<CGUnit_C *>(target)->AdjustVictimState(
+              missReasons[i]);
+    }
+  }
+
+  if (srec->m_speed > 0.0f) {
+    HandleMissileEffects(
+        caster, srec, visRec, ammoDisplayID,
+        ammoInventoryType, cast, targets, &missReasons, wasProc);
+    return;
+  }
+
+  for (i = 0; i < targets.Count(); ++i) {
+    CGObject_C *targetObject =
+        ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+    if (targetObject && (targetObject->GetType() & TYPE_UNIT) &&
+        caster->GetGUID() == ClntObjMgrGetActivePlayer()) {
+      CGUnit_C *target = static_cast<CGUnit_C *>(targetObject);
+      if (srec->m_attributes & 0x404) {
+        CGPlayer_C::AddDeferredSpellMiss(
+            targets[i],
+            target->AdjustVictimState(missReasons[i]),
+            spellID);
+      } else {
+        target->AddWorldText(missReasons[i]);
+        UnitCombatLogSpellMissed(
+            spellID, missReasons[i], caster->GetGUID(),
+            target->GetGUID());
+      }
+    }
+  }
 }
 
 const char* __fastcall GetSpellAuraEffectName(int effectID) {
-    // TODO: implement
-    return 0;
+  if (effectID < static_cast<int>(s_auraNames.Count())) {
+    return s_auraNames[effectID]->m_name_lang[0];
+  }
+  return "INVALID_SPELL_AURA_EFFECT";
 }
 
 const char* __fastcall GetSpellAuraEffectToken(int effectID) {
-    // TODO: implement
-    return 0;
+  if (effectID < static_cast<int>(s_auraNames.Count())) {
+    return s_auraNames[effectID]->m_globalstrings_tag;
+  }
+  return "INVALID_SPELL_AURA_EFFECT";
 }

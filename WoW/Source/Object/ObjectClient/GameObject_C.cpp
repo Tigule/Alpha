@@ -3,9 +3,11 @@
 #include "DB/DBClient/AutoCode/LockRec.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"
 #include "DB/DBClient/AutoCode/GameObjectDisplayInfoRec.h"
+#include "DB/DBClient/DBCacheInstances.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Object/GameObjectStats.h"
 #include "Services/SysMessage.h"
+#include "Ui/ItemTextFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 class CGameObjectDef {
@@ -16,13 +18,28 @@ class CGameObjectDef {
 void __fastcall ClntObjMgrHideObject(unsigned __int64 guid);
 
 static int PageTextHandler(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(msg);
+  unsigned __int64 gameObject;
+  msg->Get(gameObject);
+  CGObject_C *object = ClntObjMgrObjectPtr(gameObject, __FILE__, __LINE__);
+  if (object) {
+    CGItemText::SetItem(object->GetGUID(), 1);
+  }
+  return 1;
 }
 
 static int CustomAnimHandler(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(msg);
+  unsigned __int64 gameObject;
+  unsigned int anim;
+  msg->Get(gameObject);
+  msg->Get(anim);
+  CGGameObject_C *object =
+      static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(gameObject, __FILE__, __LINE__));
+  if (object && anim < 4) {
+    object->ActivateCustomAnim(anim);
+  }
+  return 1;
 }
 
 NTempest::C3Vector CGGameObject_C_TypeBase::GetPosition() const {
@@ -50,22 +67,57 @@ CGGameObject_C::~CGGameObject_C() {
   }
 }
 
+void CGGameObject_C::LoadBaseObject(const GameObjectStats *stats) {
+  FATALASSERT(stats);
+  m_stats = const_cast<GameObjectStats *>(stats);
+}
+
 static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
-    // TODO: implement
+  CGGameObject_C *object =
+      static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  if (object) {
+    unsigned __int64 cacheGuid = 0;
+    const GameObjectStats_C *stats =
+        g_gameObjectDBCache.GetRecord(id, cacheGuid, 0, 0);
+    if (stats) {
+      object->LoadBaseObject(stats);
+    }
+  }
 }
 
 static void AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
-    // TODO: implement
+  FATALASSERT(param);
+  CGGameObject_C *object = static_cast<CGGameObject_C *>(param);
+  FATALASSERT(object->m_baseObj);
+  object->m_baseObj->HandleAnimEvent(eventName, position);
 }
 
 static int AnimFinishedCallback(void* param) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(param);
+  CGGameObject_C *object = static_cast<CGGameObject_C *>(param);
+  FATALASSERT(object->m_baseObj);
+  object->m_baseObj->HandleAnimFinished();
+  return 1;
 }
 
 static int OnUpdateState(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
-    // TODO: implement
-    return 0;
+  CGGameObject_C *object =
+      static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  FATALASSERT(object);
+  FATALASSERT(object->m_baseObj);
+  object->m_baseObj->UpdateState(
+      *static_cast<const int *>(prevValue),
+      object->GetState());
+  return 1;
+}
+
+int CGGameObject::GetState() const {
+  return m_gameObj->m_data[6];
+}
+
+void CGGameObject_C::ActivateCustomAnim(unsigned int anim) {
+  FATALASSERT(m_baseObj);
+  m_baseObj->ActivateCustomAnim(anim);
 }
 
 NTempest::C3Vector CGGameObject_C::GetPosition() const {

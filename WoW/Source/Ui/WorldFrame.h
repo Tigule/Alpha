@@ -120,6 +120,13 @@ class CGWorldFrame : public CSimpleFrame {
   static void __fastcall      RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT__ *texture, unsigned char startAlpha);
   void                        SetNamePlateUpdate();
   void                        RefreshPlayerAlpha();
+  NTempest::C2Vector          GetScreenCoordinates(const NTempest::C3Vector &point);
+  NTempest::C2Vector          GetScreenCoordinates(
+      const NTempest::C3Vector &point,
+      const NTempest::C44Matrix &matrix,
+      int clip,
+      int worldPositionSpecified
+  );
 
  protected:
   unsigned __int64 FindClosestModel(NTempest::C3Vector &a, NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist);

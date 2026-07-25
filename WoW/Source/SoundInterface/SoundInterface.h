@@ -87,6 +87,7 @@ void __fastcall SndInterfaceZoneIntroStop();
 void __fastcall SndDebugDungeonTransition(int indoors, unsigned int continent);
 void __fastcall SndInterfaceRegisterNewZone(unsigned int musicID);
 void __fastcall SndInterfaceSetMIDIArea(int normal, int underwater);
+void __fastcall SndInterfaceClearMIDI();
 void __fastcall SndInterfaceRegisterNewZoneIntro(int soundID, int priority);
 void __fastcall SndInterfacePlayInterfaceSound(const char *name);
 void __fastcall SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj);
@@ -122,5 +123,7 @@ void __fastcall   SndInterfaceSetGlueMusic(const char *musicFile);
 void __fastcall   SndInterfaceStopGlueMusic(float fadeTime);
 void __fastcall   SoundRegisterScriptFunctions();
 void __fastcall   SoundUnregisterScriptFunctions();
+void __fastcall   SndInterfaceSetPositionCallback();
+void __fastcall   SndInterfaceClearPositionCallback();
 
 #endif

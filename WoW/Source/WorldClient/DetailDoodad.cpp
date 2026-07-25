@@ -258,8 +258,17 @@ CDetailDoodadData::~CDetailDoodadData() {
 }
 
 static int IsBinaryModelFile(char* path) {
-    // TODO: implement
-    return 0;
+  int length = SStrLen(path);
+  if (path[length - 1] == 'x' || path[length - 1] == 'X') {
+    if (SFile::FileExists(path)) {
+      return 1;
+    }
+    path[length - 1] = 'l';
+  } else if (!SFile::FileExists(path)) {
+    path[length - 1] = 'x';
+    return 1;
+  }
+  return 0;
 }
 
 int CDetailDoodadData::Load() {

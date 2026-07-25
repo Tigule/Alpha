@@ -49,11 +49,16 @@ class CRibbonEmitter {
   void         SetAbove(float above);
   void         SetBelow(float below);
   void         SetGravity(float gravity);
+  void         SetPos(const NTempest::C44Matrix &orient, const NTempest::C3Vector &cameraPosition);
+  void         SetColor(float r, float g, float b);
+  void         SetAlpha(float a);
   void         SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, int suppressNewEdges);
   int          Render();
   int          IsDead();
   void         Update(float elapsedSec, int suppressNewEdges);
   unsigned int ReplaceTexture(unsigned int replaceableId, HTEXTURE texture);
+  void         MaterialDisableLight(int disable);
+  void         MaterialDisableFog(int disable);
 
  protected:
   void ConvertTexSlotToTexCoords();

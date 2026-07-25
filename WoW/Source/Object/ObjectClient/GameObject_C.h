@@ -32,6 +32,9 @@ struct CGGameObjectData {
 class CGGameObject {
   friend class CGGameObject_C_TypeBase;
 
+ public:
+  int GetState() const;
+
  protected:
   CGGameObjectData *m_gameObj;
 };
@@ -88,6 +91,8 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   int           IsPointInside(const NTempest::C3Vector &point) const;
   int           GetPageTextLanguage() const;
   int           GetPageTextMaterial() const;
+  void          LoadBaseObject(const GameObjectStats *stats);
+  void          ActivateCustomAnim(unsigned int anim);
   int           GetType();
   unsigned int  GetPropertyValue(unsigned int index);
   LockRec      *GetLockRec();

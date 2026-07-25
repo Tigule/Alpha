@@ -64,6 +64,8 @@ struct CGPlayerData {
 };
 
 class CGPlayer {
+  friend int __fastcall Spell_C_GetManaCost(int id, int isPet);
+
  public:
   unsigned short GetMirrorSkillID(int index) const {
     return m_plyr->skillInfo[index].m_skillLineID;
@@ -184,6 +186,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   static unsigned int __fastcall     GetLootItem(unsigned int slot);
   static unsigned int __fastcall     GetLootItemDisplayID(unsigned int slot);
   static unsigned int __fastcall     GetLootItemQuantity(unsigned int slot);
+  void                               OnLootGameObject(const unsigned __int64 &gameObject, bool lootAnim);
   static void __fastcall             TogglePlayerBounds();
   static void __fastcall             AddDeferredDamage(int normal, unsigned int flags, unsigned int damage, unsigned __int64 victim);
   static void __fastcall             AddDeferredSpellMiss(unsigned __int64 victim, MISS_REASON reason, int spellID);

@@ -48,5 +48,24 @@ void __fastcall SpellPutCastTargets(SpellCast *cast, CDataStore *msg) {
 }
 
 void __fastcall SpellGetCastTargets(SpellCast* cast, CDataStore* msg) {
-    // TODO: implement
+  msg->Get(cast->targets);
+  if (cast->targets & 0x802) {
+    msg->Get(cast->unitTarget);
+  }
+  if (cast->targets & 0x1010) {
+    msg->Get(cast->itemTarget);
+  }
+  if (cast->targets & 0x20) {
+    msg->Get(cast->sourceLocation.x);
+    msg->Get(cast->sourceLocation.y);
+    msg->Get(cast->sourceLocation.z);
+  }
+  if (cast->targets & 0x40) {
+    msg->Get(cast->destLocation.x);
+    msg->Get(cast->destLocation.y);
+    msg->Get(cast->destLocation.z);
+  }
+  if (cast->targets & 0x2000) {
+    msg->GetArray(reinterpret_cast<unsigned char *>(cast->targetString), sizeof(cast->targetString));
+  }
 }

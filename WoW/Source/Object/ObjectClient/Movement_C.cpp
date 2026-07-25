@@ -86,7 +86,7 @@ NTempest::C3Vector __fastcall MovementGetTransportVector(unsigned __int64 transp
 }
 
 void __fastcall MovementClearClobals() {
-    // TODO: implement
+  ClntObjMgrSetMovementGlobals(0);
 }
 
 int __fastcall MovementGameObjIsTransport(unsigned __int64 transportGUID) {

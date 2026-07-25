@@ -135,6 +135,19 @@ void __fastcall CGPlayer_C::StartGhosting(unsigned __int64 guid) {
   s_ghostRequestPending = 1;
 }
 
+void __fastcall CGPlayer_C::StopGhosting() {
+  WDataStore msg;
+  msg.Put(static_cast<unsigned int>(CMSG_GHOST));
+  msg.Put(static_cast<unsigned char>(0));
+  msg.Put(static_cast<unsigned __int64>(0));
+  msg.Finalize();
+  ClientServices_Send(&msg);
+
+  s_ghostTarget = 0;
+  s_ghostTargetRequested = 0;
+  s_ghostNameRequested[0] = 0;
+}
+
 static void __fastcall MaybeSendGhostRequest() {
   if (!s_ghostRequestPending) {
     if (s_ghostTargetRequested) {

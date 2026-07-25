@@ -150,6 +150,12 @@ int __fastcall          ModelIsShowingUnselectable(HMODEL model);
 void __fastcall         ModelSetVertexAlpha(HMODEL model, unsigned int alpha, int doLinkedModels);
 unsigned int __fastcall ModelGetVertexAlpha(HMODEL model);
 void __fastcall         ModelCustGeosetMove(HMODEL model, unsigned int custGeosetId, const NTempest::C3Vector &modelSpacePosition);
+void __fastcall         ModelCustGeosetRemove(HMODEL model, unsigned int custGeosetId);
+void __fastcall         ModelCustGeosetAdd(
+    HMODEL model, const NTempest::C3Vector &modelSpacePosition,
+    void(__fastcall *renderCallback)(
+        HMODEL, const NTempest::C34Matrix &, void *),
+    void *renderParam, unsigned int *custGeosetId);
 unsigned int __fastcall ModelGetPrimarySequence(HMODEL model);
 int __fastcall          ModelUsesBlending(HMODEL model);
 void __fastcall         ModelEnumAnimObjects(HMODEL model, int(__fastcall *callbackfcn)(unsigned int, const char *, void *), void *param);

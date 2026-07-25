@@ -102,8 +102,12 @@ CGxString *__fastcall TextBlockGetStringPtr(HTEXTBLOCK text) {
 }
 
 float __fastcall TextBlockGetOneToOneHeight(HTEXTFONT__* fontHandle) {
-    // TODO: implement
-    return 0;
+  ASSERT(fontHandle);
+  FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(fontHandle);
+  ASSERT(fontPtr->font);
+  float height = GxuFontGetOneToOneHeight(fontPtr->font);
+  NDCToDDC(0.0f, height, 0, &height);
+  return height;
 }
 
 void __fastcall TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempest::C2Vector &shadowOffset) {
@@ -214,7 +218,8 @@ void __fastcall TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) 
 }
 
 void __fastcall TextBlockRender(HTEXTBLOCK__* htb) {
-    // TODO: implement
+  FATALASSERT(htb);
+  GxuFontRender(reinterpret_cast<TEXTBLOCK *>(htb)->string);
 }
 
 void __fastcall TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor) {
@@ -224,8 +229,10 @@ void __fastcall TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &
 }
 
 float __fastcall TextBlockGetHeight(HTEXTBLOCK__* htb) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(htb);
+  float height = GxuFontGetStringHeight(reinterpret_cast<TEXTBLOCK *>(htb)->string);
+  NDCToDDC(0.0f, height, 0, &height);
+  return height;
 }
 
 void __fastcall TextBlockGetTextExtent(
@@ -288,7 +295,14 @@ void __fastcall TextBlockGetTextExtent(
 }
 
 void __fastcall TextBlockGetWrapPoint(HTEXTFONT__* font, const char* text, float fontHeight, float blockWidth, unsigned int* numBytes, float* pExtent, const char** pNextText, float spacing, unsigned int flags) {
-    // TODO: implement
+  FATALASSERT(font);
+  FATALASSERT(text);
+  FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  FATALASSERT(fontPtr->font);
+  fontHeight = DDCToNDCHeight(fontHeight);
+  blockWidth = DDCToNDCWidth(blockWidth);
+  GxuFontGetWrapPoint(fontPtr->font, text, fontHeight, blockWidth, numBytes, pExtent, pNextText, spacing, flags);
+  NDCToDDC(*pExtent, 0.0f, pExtent, 0);
 }
 
 float __fastcall
@@ -344,8 +358,27 @@ TextBlockGetWrappedTextHeight(HTEXTFONT font, const char *text, float fontHeight
 }
 
 unsigned int __fastcall TextBlockGetMaxCharsWithinWidth(HTEXTFONT__* font, const char* text, float height, float maxWidth, unsigned int lineBytes, float* extent, float charSpacing, unsigned int flags) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(font);
+  FATALASSERT(text);
+  FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  FATALASSERT(fontPtr->font);
+  height = DDCToNDCHeight(height);
+  maxWidth = DDCToNDCWidth(maxWidth);
+  unsigned int gxFlags = (flags & 0x100) != 0;
+  if (flags & 0x200) gxFlags |= 0x4;
+  if (flags & 0x400) gxFlags |= 0x8;
+  if (flags & 0x800) gxFlags |= 0x10;
+  if (flags & 0x40) gxFlags |= 0x2;
+  if (flags & 0x80) gxFlags |= 0x20;
+  if (flags & 0x1000) gxFlags |= 0x40;
+  if (flags & 0x2000) gxFlags |= 0x100;
+  if (flags & 0x4000) gxFlags |= 0x200;
+  if (flags & 0x8000) gxFlags |= 0x400;
+  if (flags & 0x10000) gxFlags |= 0x800;
+  unsigned int chars =
+      GxuFontGetMaxCharsWithinWidth(fontPtr->font, text, height, maxWidth, lineBytes, extent, charSpacing, gxFlags);
+  NDCToDDC(*extent, 0.0f, extent, 0);
+  return chars;
 }
 
 unsigned int __fastcall TextBlockGetMaxCharsWithinWidthFromEnd(

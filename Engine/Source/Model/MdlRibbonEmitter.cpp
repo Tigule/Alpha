@@ -1,7 +1,6 @@
 #include "Model/ModelInternal.h"
 
-struct MDLDATA;
-
+#include "MDLFile/MDLTypes.h"
 #include "Model/Material.h"
 #include "Services/IParticleMisc.h"
 #include "Services/RibbonEmitter.h"
@@ -72,8 +71,64 @@ static void __fastcall LoadEmitterData(unsigned char *emitterData, CModelComplex
 }
 
 int __fastcall MdlReadLoadRibbonEmitters(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(modelptr);
+  FATALASSERT(shared);
+
+  unsigned int numRibbons = data.ribbonEmitters.Count();
+  modelptr->m_ribbons.SetCount(numRibbons);
+  shared->ribbonOrder.SetCount(numRibbons);
+
+  TSGrowableArray<CRibbonMat> mats;
+  TSGrowableArray<HTEXTURE> textures;
+  TSGrowableArray<unsigned int> replace;
+  const unsigned char *ribbonData =
+      reinterpret_cast<const unsigned char *>(
+          data.ribbonEmitters.Ptr());
+  RibbonManager *manager = RibbonManager::GetInstance();
+  unsigned int i;
+  for (i = 0; i < numRibbons; ++i) {
+    const unsigned char *src = ribbonData + i * 392;
+    shared->ribbonOrder[i] =
+        *reinterpret_cast<const unsigned int *>(src + 0x50);
+
+    unsigned int materialId =
+        *reinterpret_cast<const unsigned int *>(src + 0x184);
+    CMaterial *material = static_cast<CMaterial *>(
+        HandleDereference(
+            reinterpret_cast<HOBJECT>(
+                modelptr->m_materials[materialId])));
+    FATALASSERT(material);
+    LoadRibbonMaterial(
+        *material, modelptr->m_textures,
+        &mats, &textures, &replace);
+
+    const float *color =
+        reinterpret_cast<const float *>(src + 0x110);
+    float alpha = *reinterpret_cast<const float *>(src + 0xF0);
+    NTempest::CImVector diffColor;
+    diffColor.Set(color[0], color[1], color[2], alpha);
+
+    CRibbonEmitter *ribbon = manager->CreateEmitter();
+    modelptr->m_ribbons[i] = ribbon;
+    NTempest::CRect texBox(0.0f, 0.0f, 1.0f, 1.0f);
+    ribbon->Initialize(
+        static_cast<float>(
+            *reinterpret_cast<const unsigned int *>(src + 0x138)),
+        *reinterpret_cast<const float *>(src + 0x13C),
+        diffColor, textures, mats, replace, texBox,
+        *reinterpret_cast<const unsigned int *>(src + 0x144),
+        *reinterpret_cast<const unsigned int *>(src + 0x148));
+    ribbon->SetAbove(
+        *reinterpret_cast<const float *>(src + 0xB0));
+    ribbon->SetBelow(
+        *reinterpret_cast<const float *>(src + 0xD0));
+    ribbon->SetTexSlot(
+        *reinterpret_cast<const unsigned int *>(src + 0x14C));
+    ribbon->SetEnabled(0);
+    ribbon->SetGravity(
+        *reinterpret_cast<const float *>(src + 0x140));
+  }
+  return 1;
 }
 
 void __fastcall MdxReadRibbonEmitters(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr, CModelShared *shared) {

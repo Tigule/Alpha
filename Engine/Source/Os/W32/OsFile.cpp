@@ -4,9 +4,12 @@
 #include <windows.h>
 
 DWORD __fastcall OsPathGetRootChars(const char *path);
+void __fastcall OsPathStripFilename(char *buffer);
 
 static void UTF16ToUTF8(const unsigned short* src, char* dest, unsigned long destLength) {
-    // TODO: implement
+  unsigned long destChars;
+  SUniConvertUTF16to8(dest, destLength, src, 0x7FFFFFFF, &destChars, 0);
+  dest[destChars < destLength - 1 ? destChars : destLength - 1] = 0;
 }
 
 HOSFILE __fastcall OsCreateFile(
@@ -85,8 +88,7 @@ int __fastcall OsWriteFile(HOSFILE fileHandle, const void *buffer, unsigned long
 }
 
 int __fastcall OsFlushFile(HOSFILE__* fileHandle) {
-    // TODO: implement
-    return 0;
+  return FlushFileBuffers(reinterpret_cast<HANDLE>(fileHandle));
 }
 
 unsigned __int64 __fastcall OsSetFilePointer(HOSFILE fileHandle, __int64 distanceToMove, unsigned long moveMethod) {
@@ -103,28 +105,52 @@ unsigned __int64 __fastcall OsSetFilePointer(HOSFILE fileHandle, __int64 distanc
 }
 
 unsigned __int64 __fastcall OsGetFileSize(HOSFILE__* fileHandle) {
-    // TODO: implement
-    return 0;
+  LARGE_INTEGER size;
+  size.LowPart = GetFileSize(reinterpret_cast<HANDLE>(fileHandle), reinterpret_cast<unsigned long *>(&size.HighPart));
+  return size.QuadPart;
 }
 
 int __fastcall OsGetFileTime(HOSFILE__* fileHandle, OSFILETIME* createFileTime, OSFILETIME* accessFileTime, OSFILETIME* writeFileTime) {
-    // TODO: implement
-    return 0;
+  return GetFileTime(
+      reinterpret_cast<HANDLE>(fileHandle),
+      reinterpret_cast<FILETIME *>(createFileTime),
+      reinterpret_cast<FILETIME *>(accessFileTime),
+      reinterpret_cast<FILETIME *>(writeFileTime)
+  );
 }
 
 int __fastcall OsSetFileTime(HOSFILE__* fileHandle, const OSFILETIME* createFileTime, const OSFILETIME* accessFileTime, const OSFILETIME* writeFileTime) {
-    // TODO: implement
-    return 0;
+  return SetFileTime(
+      reinterpret_cast<HANDLE>(fileHandle),
+      reinterpret_cast<const FILETIME *>(createFileTime),
+      reinterpret_cast<const FILETIME *>(accessFileTime),
+      reinterpret_cast<const FILETIME *>(writeFileTime)
+  );
 }
 
 int __fastcall OsGetFileTime(const char* fileName, OSFILETIME* createFileTime, OSFILETIME* accessFileTime, OSFILETIME* writeFileTime) {
-    // TODO: implement
+  if (createFileTime) {
+    createFileTime->m_value = 0;
+  }
+  if (accessFileTime) {
+    accessFileTime->m_value = 0;
+  }
+  if (writeFileTime) {
+    writeFileTime->m_value = 0;
+  }
+
+  HOSFILE file = OsCreateFile(fileName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F);
+  if (file == HOSFILE_INVALID) {
     return 0;
+  }
+
+  int result = OsGetFileTime(file, createFileTime, accessFileTime, writeFileTime);
+  OsCloseFile(file);
+  return result;
 }
 
 int __fastcall OsSetEndOfFile(HOSFILE__* fileHandle) {
-    // TODO: implement
-    return 0;
+  return SetEndOfFile(reinterpret_cast<HANDLE>(fileHandle));
 }
 
 unsigned long __fastcall OsGetFileAttributes(const char *fileName) {
@@ -137,18 +163,28 @@ unsigned long __fastcall OsGetFileAttributes(const char *fileName) {
 }
 
 int __fastcall OsSetFileAttributes(const char* fileName, unsigned long attributes) {
-    // TODO: implement
-    return 0;
+  unsigned short fileName16[MAX_PATH];
+  FATALASSERT(fileName);
+  SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
+  return SetFileAttributesW(reinterpret_cast<LPCWSTR>(fileName16), attributes);
 }
 
 int __fastcall OsMoveFile(const char* existingFileName, const char* newFileName) {
-    // TODO: implement
-    return 0;
+  unsigned short existingFileName16[MAX_PATH];
+  unsigned short newFileName16[MAX_PATH];
+  FATALASSERT(existingFileName);
+  FATALASSERT(newFileName);
+  SUniConvertUTF8to16(existingFileName16, MAX_PATH, existingFileName, 0x7FFFFFFF, 0, 0);
+  SUniConvertUTF8to16(newFileName16, MAX_PATH, newFileName, 0x7FFFFFFF, 0, 0);
+  return MoveFileW(reinterpret_cast<LPCWSTR>(existingFileName16), reinterpret_cast<LPCWSTR>(newFileName16));
 }
 
 int __fastcall OsCopyFile(const char* existingFileName, const char* newFileName, int failIfExists) {
-    // TODO: implement
-    return 0;
+  unsigned short existingFileName16[MAX_PATH];
+  unsigned short newFileName16[MAX_PATH];
+  SUniConvertUTF8to16(existingFileName16, MAX_PATH, existingFileName, 0x7FFFFFFF, 0, 0);
+  SUniConvertUTF8to16(newFileName16, MAX_PATH, newFileName, 0x7FFFFFFF, 0, 0);
+  return CopyFileW(reinterpret_cast<LPCWSTR>(existingFileName16), reinterpret_cast<LPCWSTR>(newFileName16), failIfExists);
 }
 
 int __fastcall OsDeleteFile(const char *fileName) {
@@ -184,18 +220,97 @@ int __fastcall OsCreateDirectory(const char *pathName, int recursive) {
 }
 
 int __fastcall OsRemoveDirectory(const char* pathName) {
-    // TODO: implement
-    return 0;
+  unsigned short pathName16[MAX_PATH];
+  FATALASSERT(pathName);
+  SUniConvertUTF8to16(pathName16, MAX_PATH, pathName, 0x7FFFFFFF, 0, 0);
+  return RemoveDirectoryW(reinterpret_cast<LPCWSTR>(pathName16));
 }
 
-static int EnumRemoveDirectoryRecurse(OS_FILE_DATA& file, void* param) {
-    // TODO: implement
-    return 0;
+struct RemoveDirectoryRecurseData {
+  const char   *path;
+  unsigned long flags;
+};
+
+int __fastcall OsFileList(
+    const char *inDir,
+    const char *inPattern,
+    int (__fastcall *inCallback)(OS_FILE_DATA &, void *),
+    void *inCBParam,
+    int returnHidden
+) {
+  char findPath[MAX_PATH];
+  unsigned short findPath16[MAX_PATH];
+  WIN32_FIND_DATAW findData;
+  OS_FILE_DATA osfData;
+
+  SStrCopy(findPath, inDir, 0x7FFFFFFF);
+  OsPathStripFilename(findPath);
+  SStrPack(findPath, inPattern, 0x7FFFFFFF);
+  SUniConvertUTF8to16(findPath16, MAX_PATH, findPath, 0x7FFFFFFF, 0, 0);
+
+  HANDLE findHandle = FindFirstFileW(reinterpret_cast<LPCWSTR>(findPath16), &findData);
+  int result = 0;
+  if (findHandle != INVALID_HANDLE_VALUE) {
+    for (;;) {
+      UTF16ToUTF8(findData.cFileName, osfData.fileName, sizeof(osfData.fileName));
+      osfData.size = findData.nFileSizeLow;
+      osfData.flags = 0;
+      if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        osfData.flags = FILE_ATTRIBUTE_DIRECTORY;
+      }
+      if (findData.dwFileAttributes & FILE_ATTRIBUTE_READONLY) {
+        osfData.flags |= FILE_ATTRIBUTE_READONLY;
+      }
+      if (findData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) {
+        osfData.flags |= FILE_ATTRIBUTE_HIDDEN;
+      }
+      if ((returnHidden || !(findData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)) && inCallback(osfData, inCBParam)) {
+        result = 1;
+        break;
+      }
+      if (!FindNextFileW(findHandle, &findData)) {
+        break;
+      }
+    }
+    FindClose(findHandle);
+  }
+  return result;
+}
+
+static int __fastcall EnumRemoveDirectoryRecurse(OS_FILE_DATA& file, void* param) {
+  RemoveDirectoryRecurseData *data = static_cast<RemoveDirectoryRecurseData *>(param);
+  char relPath[MAX_PATH];
+
+  if (file.flags & FILE_ATTRIBUTE_DIRECTORY) {
+    if (SStrCmp(file.fileName, "..", 0x7FFFFFFF) && SStrCmp(file.fileName, ".", 0x7FFFFFFF)) {
+      SStrCopy(relPath, data->path, sizeof(relPath));
+      SStrPack(relPath, file.fileName, sizeof(relPath));
+      SStrPack(relPath, "\\", sizeof(relPath));
+      RemoveDirectoryRecurseData recurseData = {relPath, data->flags};
+      OsFileList(relPath, "*", EnumRemoveDirectoryRecurse, &recurseData, 0);
+      if (!OsRemoveDirectory(relPath)) {
+        return 1;
+      }
+    }
+  } else {
+    SStrCopy(relPath, data->path, sizeof(relPath));
+    SStrPack(relPath, file.fileName, sizeof(relPath));
+    if (data->flags & 1) {
+      OsSetFileAttributes(relPath, FILE_ATTRIBUTE_NORMAL);
+    }
+    OsDeleteFile(relPath);
+  }
+  return 0;
 }
 
 int __fastcall OsRemoveDirectoryRecurse(const char* pathName, unsigned long flags) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(pathName);
+  char pathSlash[MAX_PATH];
+  SStrCopy(pathSlash, pathName, sizeof(pathSlash));
+  SStrPack(pathSlash, "\\", 0x7FFFFFFF);
+  RemoveDirectoryRecurseData data = {pathSlash, flags};
+  OsFileList(pathSlash, "*", EnumRemoveDirectoryRecurse, &data, 0);
+  return OsRemoveDirectory(pathName);
 }
 
 int __fastcall OsSetCurrentDirectory(const char *pathName) {
@@ -208,29 +323,95 @@ int __fastcall OsSetCurrentDirectory(const char *pathName) {
 }
 
 int __fastcall OsGetCurrentDirectory(unsigned long pathLen, char* pathName) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(pathName);
+  unsigned short pathName16[MAX_PATH];
+  int result = GetCurrentDirectoryW(MAX_PATH, reinterpret_cast<LPWSTR>(pathName16));
+  if (result) {
+    UTF16ToUTF8(pathName16, pathName, pathLen);
+  }
+  return result;
 }
 
 int __fastcall OsFileAssocGetIdentifier(const char* inFileExt, char* inBuffer, int inBufSize) {
-    // TODO: implement
+  HKEY key;
+  if (RegOpenKeyExA(HKEY_CLASSES_ROOT, inFileExt, 0, KEY_READ, &key)) {
     return 0;
+  }
+  unsigned long type;
+  unsigned long bytesRead = inBufSize;
+  long result = RegQueryValueExA(key, "", 0, &type, reinterpret_cast<unsigned char *>(inBuffer), &bytesRead);
+  RegCloseKey(key);
+  return type == REG_SZ && result == ERROR_SUCCESS;
 }
 
 void __fastcall OsFileAssocSetIdentifier(const char* inFileExt, const char* inIdentifier) {
-    // TODO: implement
+  HKEY key;
+  if (!RegCreateKeyExA(HKEY_CLASSES_ROOT, inFileExt, 0, 0, 0, KEY_WRITE, 0, &key, 0)) {
+    RegSetValueExA(key, "", 0, REG_SZ, reinterpret_cast<const unsigned char *>(inIdentifier), SStrLen(inIdentifier) + 1);
+    RegCloseKey(key);
+  }
 }
 
 int __fastcall OsFileAssocGetValue(const char* inFileExt, int inAssocType, char* inBuffer, int inBufSize) {
-    // TODO: implement
+  static const char *sFileAssocKey[2] = {"", "\\shell\\open\\command"};
+  FATALASSERT(inAssocType >= 0 && inAssocType < 2);
+
+  char ident[MAX_PATH];
+  char keyName[MAX_PATH];
+  if (!OsFileAssocGetIdentifier(inFileExt, ident, sizeof(ident))) {
     return 0;
+  }
+  SStrCopy(keyName, ident, 0x7FFFFFFF);
+  SStrPack(keyName, sFileAssocKey[inAssocType], 0x7FFFFFFF);
+
+  HKEY key;
+  if (RegOpenKeyExA(HKEY_CLASSES_ROOT, keyName, 0, KEY_READ, &key)) {
+    return 0;
+  }
+  unsigned long type;
+  unsigned long bytesRead = inBufSize;
+  long result = RegQueryValueExA(key, "", 0, &type, reinterpret_cast<unsigned char *>(inBuffer), &bytesRead);
+  RegCloseKey(key);
+  return type == REG_SZ && result == ERROR_SUCCESS;
 }
 
 void __fastcall OsFileAssocSetValue(const char* inFileExt, int inAssocType, const char* inValue) {
-    // TODO: implement
+  static const char *sFileAssocKey[2] = {"", "\\shell\\open\\command"};
+  FATALASSERT(inAssocType >= 0 && inAssocType < 2);
+
+  char ident[MAX_PATH];
+  if (OsFileAssocGetIdentifier(inFileExt, ident, sizeof(ident))) {
+    char keyName[MAX_PATH];
+    SStrCopy(keyName, ident, 0x7FFFFFFF);
+    SStrPack(keyName, sFileAssocKey[inAssocType], 0x7FFFFFFF);
+    HKEY key;
+    if (!RegCreateKeyExA(HKEY_CLASSES_ROOT, keyName, 0, 0, 0, KEY_WRITE, 0, &key, 0)) {
+      RegSetValueExA(key, "", 0, REG_SZ, reinterpret_cast<const unsigned char *>(inValue), SStrLen(inValue) + 1);
+      RegCloseKey(key);
+    }
+  }
 }
 
 __int64 __fastcall OsFileFreeSpace(const char* path) {
-    // TODO: implement
+  if (!path) {
     return 0;
+  }
+
+  char pathString[MAX_PATH];
+  SStrCopy(pathString, path, sizeof(pathString));
+  char *slash = SStrChrR(pathString, '\\');
+  if (slash) {
+    *slash = 0;
+  }
+
+  unsigned short path16[MAX_PATH];
+  ULARGE_INTEGER freeSpace;
+  ULARGE_INTEGER totalBytes;
+  freeSpace.QuadPart = 0;
+  totalBytes.QuadPart = 0;
+  SUniConvertUTF8to16(path16, MAX_PATH, pathString, 0x7FFFFFFF, 0, 0);
+  if (!GetDiskFreeSpaceExW(reinterpret_cast<LPCWSTR>(path16), &freeSpace, &totalBytes, 0)) {
+    return 0;
+  }
+  return freeSpace.QuadPart;
 }

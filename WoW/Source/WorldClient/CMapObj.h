@@ -190,6 +190,7 @@ class CMapObjGroup {
   bool         QueryLightmap(const NTempest::C3Vector &point, unsigned short polyIdx, NTempest::CImVector &color);
   bool         QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color);
   unsigned int QueryLiquidStatus(NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);
+  void         QueryLiquidSounds(const NTempest::C3Vector &pos, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared);
   void         QueryMinimap(unsigned int groupID, NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
   bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, unsigned int queryFlags);
   bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, unsigned int queryFlags);
@@ -349,6 +350,16 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   bool QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color, float *t);
   unsigned int
   QueryLiquidStatus(unsigned int ignoreGroupFlags, NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);
+  void QueryLiquidSounds(
+      unsigned int              groupIdx,
+      unsigned int              parentIdx,
+      unsigned int              rlevel,
+      unsigned int             &closestExtLevel,
+      const NTempest::C3Vector &pos,
+      int                      *lbool,
+      NTempest::C3Vector       *ldelta,
+      float                    *ldsquared
+  );
   unsigned int QueryMapObjMinimap(unsigned int groupID, NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
 
   static void __fastcall PrepareUpdate();

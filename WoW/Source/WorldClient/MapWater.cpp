@@ -1,4 +1,5 @@
 #include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
 
 #include "DayNight.h"
 #include "Base/Base.h"
@@ -124,6 +125,188 @@ int CMapArea::ccWaterMaxLOD = 4;
 int CMapArea::ccWaterWaves = 2;
 int CMapArea::ccWaterSpecular = 1;
 int CMapArea::ccWaterRipples = 1;
+
+void __fastcall CMap::QueryLiquidSounds(
+    const NTempest::C3Vector &worldPos,
+    float                      radius,
+    int                       *lbool,
+    NTempest::C3Vector        *ldelta,
+    float                     *ldsquared
+) {
+  float mx = -(worldPos.y - 17066.666f);
+  float my = -(worldPos.x - 17066.666f);
+  FATALASSERT(mx >= 0.0f && my >= 0.0f);
+  FATALASSERT(mx < 34133.332f && my < 34133.332f);
+
+  int areaX = (static_cast<int>(mx * 0.24f - 0.5f) >> 7) & 0x3F;
+  int areaY = (static_cast<int>(my * 0.24f - 0.5f) >> 7) & 0x3F;
+  int minAreaX = areaX > 0 ? areaX - 1 : 0;
+  int minAreaY = areaY > 0 ? areaY - 1 : 0;
+  int maxAreaX = areaX + 1 < 63 ? areaX + 1 : 63;
+  int maxAreaY = areaY + 1 < 63 ? areaY + 1 : 63;
+
+  NTempest::CAaSphere querySphere;
+  querySphere.c.x = worldPos.x;
+  querySphere.c.y = worldPos.y;
+  querySphere.c.z = 0.0f;
+  querySphere.r = radius;
+
+  for (int y = minAreaY; y <= maxAreaY; ++y) {
+    for (int x = minAreaX; x <= maxAreaX; ++x) {
+      CMapArea *area = areaTable[y * 64 + x];
+      if (area) {
+        NTempest::CAaBox areaBox;
+        areaBox.b.x = area->corner.x - 533.33331f;
+        areaBox.b.y = area->corner.y - 533.33331f;
+        areaBox.b.z = 0.0f;
+        areaBox.t.x = area->corner.x;
+        areaBox.t.y = area->corner.y;
+        areaBox.t.z = 0.0f;
+        float distanceSquared = 0.0f;
+        if (querySphere.c.x < areaBox.b.x) {
+          float distance = querySphere.c.x - areaBox.b.x;
+          distanceSquared += distance * distance;
+        } else if (querySphere.c.x > areaBox.t.x) {
+          float distance = querySphere.c.x - areaBox.t.x;
+          distanceSquared += distance * distance;
+        }
+        if (querySphere.c.y < areaBox.b.y) {
+          float distance = querySphere.c.y - areaBox.b.y;
+          distanceSquared += distance * distance;
+        } else if (querySphere.c.y > areaBox.t.y) {
+          float distance = querySphere.c.y - areaBox.t.y;
+          distanceSquared += distance * distance;
+        }
+        if (distanceSquared <= querySphere.r * querySphere.r) {
+          area->QueryLiquidSounds(worldPos, radius, lbool, ldelta, ldsquared);
+        }
+      }
+    }
+  }
+}
+
+void CMapArea::QueryLiquidSounds(
+    const NTempest::C3Vector &worldPos,
+    float                      radius,
+    int                       *lbool,
+    NTempest::C3Vector        *ldelta,
+    float                     *ldsquared
+) {
+  float mx = -(worldPos.y - 17066.666f);
+  float my = -(worldPos.x - 17066.666f);
+  FATALASSERT(mx >= 0.0f && my >= 0.0f);
+  FATALASSERT(mx < 34133.332f && my < 34133.332f);
+
+  int chunkX = static_cast<int>(mx * 0.03f - 0.5f) & 0xF;
+  int chunkY = static_cast<int>(my * 0.03f - 0.5f) & 0xF;
+  FATALASSERT(radius / 4.1666665f < 256.0f);
+  int chunkRadius = static_cast<int>(ceil(radius / 4.1666665f));
+  int minChunkX = chunkX - chunkRadius > 0 ? chunkX - chunkRadius : 0;
+  int minChunkY = chunkY - chunkRadius > 0 ? chunkY - chunkRadius : 0;
+  int maxChunkX = chunkX + chunkRadius < 15 ? chunkX + chunkRadius : 15;
+  int maxChunkY = chunkY + chunkRadius < 15 ? chunkY + chunkRadius : 15;
+
+  for (int y = minChunkY; y <= maxChunkY; ++y) {
+    for (int x = minChunkX; x <= maxChunkX; ++x) {
+      CMapChunk *chunk = chunkTable[y * 16 + x];
+      if (!chunk) {
+        continue;
+      }
+      for (unsigned int liquidIndex = 0; liquidIndex < 4; ++liquidIndex) {
+        CChunkLiquid *liquid = chunk->liquids[liquidIndex];
+        if (!liquid) {
+          continue;
+        }
+        for (unsigned int tileY = 0; tileY < 8; ++tileY) {
+          for (unsigned int tileX = 0; tileX < 8; ++tileX) {
+            unsigned int tile = liquid->tiles.flags[tileY * 8 + tileX] & 0xF;
+            if (tile == 0xF) {
+              continue;
+            }
+
+            lbool[tile] = 1;
+            NTempest::C3Vector delta;
+            delta.x = chunk->corner.x - static_cast<float>(tileY) * 4.1666665f - worldPos.x;
+            delta.y = chunk->corner.y - static_cast<float>(tileX) * 4.1666665f - worldPos.y;
+            delta.z = chunk->corner.z - worldPos.z;
+            float distanceSquared = delta.SquaredMag();
+            if (distanceSquared < ldsquared[tile]) {
+              ldsquared[tile] = distanceSquared;
+              ldelta[tile] = delta;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void CMapObj::QueryLiquidSounds(
+    unsigned int              groupIdx,
+    unsigned int              parentIdx,
+    unsigned int              rlevel,
+    unsigned int             &closestExtLevel,
+    const NTempest::C3Vector &pos,
+    int                      *lbool,
+    NTempest::C3Vector       *ldelta,
+    float                    *ldsquared
+) {
+  if (rlevel > MAX_SOUND_RLEVEL) {
+    return;
+  }
+
+  const NTempest::CAaBox &box = GetGroupInfo(groupIdx)->aaBox;
+  if (pos.x <= box.b.x || pos.y <= box.b.y || pos.z <= box.b.z ||
+      pos.x >= box.t.x || pos.y >= box.t.y || pos.z >= box.t.z) {
+    return;
+  }
+
+  CMapObjGroup *group = GetGroup(groupIdx, 0);
+  if (!group) {
+    return;
+  }
+  if ((group->flags & 8) && rlevel < closestExtLevel) {
+    closestExtLevel = rlevel;
+  }
+  group->QueryLiquidSounds(pos, lbool, ldelta, ldsquared);
+
+  for (unsigned int i = 0; i < group->portalCount; ++i) {
+    unsigned int nextGroup = portalRefList[group->portalStart + i].groupIndex;
+    if (nextGroup != 0xFFFF && nextGroup != parentIdx) {
+      QueryLiquidSounds(nextGroup, groupIdx, rlevel + 1, closestExtLevel, pos, lbool, ldelta, ldsquared);
+    }
+  }
+}
+
+void CMapObjGroup::QueryLiquidSounds(
+    const NTempest::C3Vector &pos,
+    int                      *lbool,
+    NTempest::C3Vector       *ldelta,
+    float                    *ldsquared
+) {
+  for (int y = 0; y < liquidTiles.y; ++y) {
+    for (int x = 0; x < liquidTiles.x; ++x) {
+      unsigned int tile = liquidTileList[y * liquidTiles.x + x].flags & 0xF;
+      if (tile == 0xF) {
+        continue;
+      }
+
+      unsigned int liquidType = tile & 3;
+      ASSERT(liquidType != 1);
+      float height = liquidType == 1 ? 0.0f : liquidVertexList[y * liquidVerts.x + x].height;
+      NTempest::C3Vector delta;
+      delta.x = liquidCorner.x - static_cast<float>(x) * 4.1666665f - pos.x;
+      delta.y = liquidCorner.y + static_cast<float>(y) * 4.1666665f - pos.y;
+      delta.z = height - pos.z;
+      lbool[tile] = 1;
+      float distanceSquared = delta.SquaredMag();
+      if (distanceSquared < ldsquared[tile]) {
+        ldsquared[tile] = distanceSquared;
+        ldelta[tile] = delta;
+      }
+    }
+  }
+}
 
 void LODArrays::GenFixes(unsigned int p_nFixes, unsigned int vertsPerSide, unsigned int tilesPerSide) {
   nFixes = p_nFixes;
@@ -384,7 +567,80 @@ void __fastcall CMap::UpdateLiquidTextures() {
 }
 
 static void fft2(float* data, unsigned long* nn, int ndim, float isign) {
-    // TODO: implement
+  unsigned long ntot = 1;
+  int idim;
+  for (idim = 1; idim <= ndim; ++idim) {
+    ntot *= nn[idim];
+  }
+
+  unsigned long nprev = 1;
+  for (idim = ndim; idim >= 1; --idim) {
+    unsigned long n = nn[idim];
+    unsigned long nrem = ntot / (n * nprev);
+    unsigned long ip1 = nprev << 1;
+    unsigned long ip2 = ip1 * n;
+    unsigned long ip3 = ip2 * nrem;
+    unsigned long i2rev = 1;
+    unsigned long i2;
+    for (i2 = 1; i2 <= ip2; i2 += ip1) {
+      if (i2 < i2rev) {
+        unsigned long i1;
+        for (i1 = i2; i1 <= i2 + ip1 - 2; i1 += 2) {
+          unsigned long i3;
+          for (i3 = i1; i3 <= ip3; i3 += ip2) {
+            unsigned long i3rev = i2rev + i3 - i2;
+            float temp = data[i3];
+            data[i3] = data[i3rev];
+            data[i3rev] = temp;
+            temp = data[i3 + 1];
+            data[i3 + 1] = data[i3rev + 1];
+            data[i3rev + 1] = temp;
+          }
+        }
+      }
+      unsigned long ibit = ip2 >> 1;
+      while (ibit >= ip1 && i2rev > ibit) {
+        i2rev -= ibit;
+        ibit >>= 1;
+      }
+      i2rev += ibit;
+    }
+
+    unsigned long ifp1 = ip1;
+    while (ifp1 < ip2) {
+      unsigned long ifp2 = ifp1 << 1;
+      double theta =
+          isign * 6.28318530717958647692 / (ifp2 / ip1);
+      double wtemp = sin(0.5 * theta);
+      double wpr = -2.0 * wtemp * wtemp;
+      double wpi = sin(theta);
+      double wr = 1.0;
+      double wi = 0.0;
+      unsigned long i3;
+      for (i3 = 1; i3 <= ifp1; i3 += ip1) {
+        unsigned long i1;
+        for (i1 = i3; i1 <= i3 + ip1 - 2; i1 += 2) {
+          unsigned long i2a;
+          for (i2a = i1; i2a <= ip3; i2a += ifp2) {
+            unsigned long k1 = i2a + ifp1;
+            double tempr = wr * data[k1] - wi * data[k1 + 1];
+            double tempi = wr * data[k1 + 1] + wi * data[k1];
+            data[k1] = static_cast<float>(data[i2a] - tempr);
+            data[k1 + 1] =
+                static_cast<float>(data[i2a + 1] - tempi);
+            data[i2a] = static_cast<float>(data[i2a] + tempr);
+            data[i2a + 1] =
+                static_cast<float>(data[i2a + 1] + tempi);
+          }
+        }
+        wtemp = wr;
+        wr = wr * wpr - wi * wpi + wr;
+        wi = wi * wpr + wtemp * wpi + wi;
+      }
+      ifp1 = ifp2;
+    }
+    nprev *= n;
+  }
 }
 
 void __fastcall CMap::WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {

@@ -1,8 +1,7 @@
 #include <math.h>
 
 float __fastcall LinearSmooth(float from, float to, float progress) {
-    // TODO: implement
-    return 0;
+  return (to - from) * progress + from;
 }
 
 float __fastcall OrganicSmooth(float from, float to, float progress) {

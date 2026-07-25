@@ -281,6 +281,42 @@ void CRibbonEmitter::SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vec
   m_updated = 0;
 }
 
+void CRibbonEmitter::SetPos(const NTempest::C44Matrix &orient, const NTempest::C3Vector &cameraPosition) {
+  if (!m_enabled) {
+    return;
+  }
+
+  m_cameraPos = cameraPosition;
+  NTempest::C3Vector pos(orient.d0 + cameraPosition.x, orient.d1 + cameraPosition.y, orient.d2 + cameraPosition.z);
+  if (m_posSet) {
+    m_prevPos = m_currPos;
+    m_prevDir = m_currDir;
+    m_prevVertical = m_currVertical;
+  } else {
+    m_prevPos = pos;
+    m_prevDir = NTempest::C3Vector(orient.c0, orient.c1, orient.c2);
+    m_prevVertical = NTempest::C3Vector(orient.b0, orient.b1, orient.b2);
+    m_startTime = 0.0f;
+    m_posSet = 1;
+  }
+  m_currPos = pos;
+  m_currDir = NTempest::C3Vector(orient.c0, orient.c1, orient.c2);
+  m_currVertical = NTempest::C3Vector(orient.b0, orient.b1, orient.b2);
+}
+
+void CRibbonEmitter::SetColor(float r, float g, float b) {
+  m_diffuseClr.Set(
+      m_diffuseClr.a,
+      NTempest::CMath::fuint_n(r * 255.0f),
+      NTempest::CMath::fuint_n(g * 255.0f),
+      NTempest::CMath::fuint_n(b * 255.0f)
+  );
+}
+
+void CRibbonEmitter::SetAlpha(float a) {
+  m_diffuseClr.a = NTempest::CMath::fuint_n(a * 255.0f);
+}
+
 void CRibbonEmitter::Update(float elapsedSec, int suppressNewEdges) {
   ASSERT(m_initialized);
 
@@ -400,6 +436,18 @@ int CRibbonEmitter::Render() {
 
 int CRibbonEmitter::IsDead() {
   return m_readPos == m_writePos;
+}
+
+void CRibbonEmitter::MaterialDisableLight(int disable) {
+  for (unsigned int i = 0; i < m_materials.Count(); ++i) {
+    m_materials[i].enableLighting = !disable;
+  }
+}
+
+void CRibbonEmitter::MaterialDisableFog(int disable) {
+  for (unsigned int i = 0; i < m_materials.Count(); ++i) {
+    m_materials[i].enableFog = !disable;
+  }
 }
 
 CRibbonEmitter *CRibbonEmitter::AddRef() {

@@ -53,7 +53,7 @@ class CCamera : public CDataMgr {
 
   friend HCAMERA __fastcall CameraDuplicate(HCAMERA source);
 
- private:
+ public:
   TManaged<NTempest::C3Vector> m_position;
   TManaged<NTempest::C3Vector> m_target;
   TManaged<float>              m_distance;

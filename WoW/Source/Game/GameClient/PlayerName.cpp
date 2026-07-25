@@ -2,10 +2,15 @@
 #include "Console/ConsoleVar.h"
 #include "Game/GameClient/PlayerName.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Object/ObjectClient/Unit_C.h"
+#include "Ui/WorldFrame.h"
 
 #include <Base/Handle.h>
 #include <FrameScript/FrameScript.h>
 #include <Gxu/IGxuFont.h>
+#include <Model/IModel.h>
+#include <Os/OsTime.h>
+#include <Tempest/cmath.h>
 #include <storm.h>
 
 class CGUnit_C;
@@ -25,11 +30,16 @@ enum UNIT_UNITNAME_SHOWTYPE {
 };
 
 struct PLAYERNAMEDESC : public CHandleObject {
+  PLAYERNAMEDESC();
   virtual ~PLAYERNAMEDESC();
 
   void CreateWorldText(WORLDTEXTTYPE type, const char *text, const NTempest::CImVector *colorOverride);
   void RenderWorldText();
   void ShowWorldText(int show);
+  void UpdateWorldPos();
+  void UpdateWorldText();
+  void MoveGeoset(const NTempest::C3Vector &pos);
+  void Render(const NTempest::C44Matrix &basis);
 
   TSLink<PLAYERNAMEDESC> m_link;
   CGxString             *m_string;
@@ -63,8 +73,51 @@ static CVar                             *s_showTypeCVars[8];
 static unsigned int                      s_showTypeFlags[2] = {-1, -1};
 static unsigned int                      s_lastRenderFrame;
 
-static void PlayerNameRenderCallback(HMODEL__* model, const NTempest::C34Matrix& basis, void* param) {
-    // TODO: implement
+PLAYERNAMEDESC::PLAYERNAMEDESC()
+    : m_string(0),
+      m_customGeosetID(static_cast<unsigned int>(-1)),
+      m_stringColor(0),
+      m_lastUpdateTime(OsGetAsyncTimeMs()),
+      m_basePos(0.0f),
+      m_unitPtr(0),
+      m_flags(3),
+      m_lastRenderFrame(s_lastRenderFrame),
+      m_heightOffset(0.0f) {
+  memset(m_worldTextHandles, 0, sizeof(m_worldTextHandles));
+}
+
+PLAYERNAMEDESC::~PLAYERNAMEDESC() {
+  if (m_string) {
+    GxuFontDestroyString(m_string);
+  }
+  if (m_unitPtr) {
+    HMODEL model = m_unitPtr->GetCharacterModel(0);
+    if (model) {
+      if (m_customGeosetID != static_cast<unsigned int>(-1)) {
+        ModelCustGeosetRemove(model, m_customGeosetID);
+      }
+      HandleClose(model);
+    }
+  }
+  unsigned int i;
+  for (i = 0; i < 4; ++i) {
+    if (m_worldTextHandles[i]) {
+      HandleClose(reinterpret_cast<HOBJECT>(m_worldTextHandles[i]));
+    }
+  }
+  if (m_link.m_prevlink) {
+    s_playerNames.UnlinkNode(this);
+  }
+}
+
+static void __fastcall PlayerNameRenderCallback(HMODEL__* model, const NTempest::C34Matrix& basis, void* param) {
+  FATALASSERT(param);
+  NTempest::C44Matrix matrix(
+      basis.a0, basis.a1, basis.a2, 0.0f,
+      basis.b0, basis.b1, basis.b2, 0.0f,
+      basis.c0, basis.c1, basis.c2, 0.0f,
+      basis.d0, basis.d1, basis.d2, 1.0f);
+  static_cast<PLAYERNAMEDESC *>(param)->Render(matrix);
 }
 
 static const CVARINFO s_cvarInfo[8] = {
@@ -95,7 +148,31 @@ void __fastcall          PlayerNameShutdown();
 HWORLDTEXT__ *__fastcall WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride);
 
 static void CalculateBillboardRotation(const NTempest::C3Vector& direction, NTempest::C44Matrix& matrix) {
-    // TODO: implement
+  NTempest::C3Vector zprime(direction);
+  zprime.Normalize();
+  matrix.c0 = zprime.x;
+  matrix.c1 = zprime.y;
+  matrix.c2 = zprime.z;
+
+  NTempest::C3Vector xprime(matrix.c1, -matrix.c0, 0.0f);
+  xprime.Normalize();
+  matrix.a0 = xprime.x;
+  matrix.a1 = xprime.y;
+  matrix.a2 = xprime.z;
+
+  matrix.b0 = matrix.a1 * matrix.c2;
+  matrix.b1 = -matrix.a0 * matrix.c2;
+  matrix.b2 = matrix.a0 * matrix.c1 - matrix.a1 * matrix.c0;
+}
+
+void PLAYERNAMEDESC::Render(const NTempest::C44Matrix &basis) {
+  FATALASSERT(m_unitPtr);
+  ShowWorldText(1);
+  m_lastRenderFrame = s_lastRenderFrame;
+  m_basePos.x = basis.d0;
+  m_basePos.y = basis.d1;
+  m_basePos.z = basis.d2;
+  UpdateWorldPos();
 }
 
 void PLAYERNAMEDESC::RenderWorldText() {
@@ -129,6 +206,29 @@ void PLAYERNAMEDESC::CreateWorldText(WORLDTEXTTYPE type, const char *text, const
       return;
     }
   }
+}
+
+void PLAYERNAMEDESC::UpdateWorldPos() {
+  NTempest::C44Matrix cameraMatrix = CGWorldFrame::GetActive()->GetCurrentWorldMatrix();
+  unsigned int currentTime = OsGetAsyncTimeMs();
+  int elapsed = currentTime - m_lastUpdateTime;
+  ASSERT(elapsed >= 0);
+  float elapsedSeconds = elapsed * 0.001f;
+
+  for (unsigned int i = 0; i < 4; ++i) {
+    if (m_worldTextHandles[i]) {
+      WorldTextUpdate(m_worldTextHandles[i], elapsedSeconds, cameraMatrix, &m_basePos);
+      if (WorldTextIsTextDone(m_worldTextHandles[i])) {
+        HandleClose(reinterpret_cast<HOBJECT>(m_worldTextHandles[i]));
+        m_worldTextHandles[i] = 0;
+      }
+    }
+  }
+  m_lastUpdateTime = currentTime;
+}
+
+void PLAYERNAMEDESC::UpdateWorldText() {
+  UpdateWorldPos();
 }
 
 static void __fastcall TriggerNameRegenerate() {
@@ -195,8 +295,25 @@ void __fastcall PlayerNameShow(int show) {
 }
 
 HPLAYERNAME__* __fastcall PlayerNameCreate(CGUnit_C* unitPtr) {
-    // TODO: implement
+  FATALASSERT(unitPtr);
+  void *storage = SMemAlloc(sizeof(PLAYERNAMEDESC), "HPLAYERNAME", -2, 0);
+  PLAYERNAMEDESC *desc = storage ? new (storage) PLAYERNAMEDESC : 0;
+  FATALASSERT(desc);
+
+  desc->m_stringColor = NTempest::CImVector(0xFFE3C436);
+  desc->m_unitPtr = unitPtr;
+  s_playerNames.LinkNode(desc, LIST_TAIL, 0);
+
+  HMODEL model = unitPtr->GetCharacterModel(0);
+  if (!model) {
     return 0;
+  }
+
+  NTempest::C3Vector namePosition(0.0f);
+  ModelGetModelSpacePivot(model, 1, &namePosition);
+  ModelCustGeosetAdd(model, namePosition, PlayerNameRenderCallback, desc, &desc->m_customGeosetID);
+  HandleClose(model);
+  return reinterpret_cast<HPLAYERNAME__ *>(HandleCreate(desc, "HPLAYERNAME"));
 }
 
 void __fastcall PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name) {
@@ -217,7 +334,9 @@ void __fastcall PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, co
 }
 
 void __fastcall PlayerNameUpdateWorldText(HPLAYERNAME__* name) {
-    // TODO: implement
+  if (name) {
+    reinterpret_cast<PLAYERNAMEDESC *>(name)->UpdateWorldText();
+  }
 }
 
 void __fastcall PlayerNameUpdateEarly() {
@@ -239,7 +358,20 @@ void __fastcall PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name) {
 }
 
 void __fastcall PlayerNameChangeLocation(HPLAYERNAME__* name, const NTempest::C3Vector& namePosition) {
-    // TODO: implement
+  if (name) {
+    reinterpret_cast<PLAYERNAMEDESC *>(name)->MoveGeoset(
+        namePosition);
+  }
+}
+
+void PLAYERNAMEDESC::MoveGeoset(const NTempest::C3Vector &pos) {
+  if (m_unitPtr &&
+      m_customGeosetID != static_cast<unsigned int>(-1)) {
+    HMODEL model = m_unitPtr->GetCharacterModel(0);
+    FATALASSERT(model);
+    ModelCustGeosetMove(model, m_customGeosetID, pos);
+    HandleClose(model);
+  }
 }
 
 unsigned int __fastcall PlayerNameGetUnitNameMode() {

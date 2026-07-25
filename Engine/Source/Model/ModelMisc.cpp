@@ -18,6 +18,7 @@ const float OO_TWO_PI = 1.0f / TWO_PI;
 
 void __fastcall   ExecuteQueuedActions(CModel *model);
 HMODEL __fastcall ModelDuplicate(HMODEL sourceModel, unsigned int flags);
+void __fastcall   ModelSetMaterialDisables(HMODEL model, unsigned int setMask, unsigned int unsetMask, int doLinkedModels);
 
 static unsigned int __fastcall UpdateRibbonMaterial(CModelComplex *model, unsigned int replaceableId, HTEXTURE texture);
 static void __fastcall         UpdateParticleEmitters(CModelComplex *unique, unsigned int replaceableId, HTEXTURE texture);
@@ -1940,15 +1941,69 @@ int __fastcall ModelAnimHasObjectId(HMODEL model, unsigned int objectId) {
 }
 
 static void IModelSetMaterialDisables(HMATERIAL__** materials, unsigned int numMaterials, unsigned int setMask, unsigned int unsetMask) {
-    // TODO: implement
+  for (unsigned int i = 0; i < numMaterials; ++i) {
+    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[i]);
+    FATALASSERT(uniqueMtl);
+
+    for (unsigned int layer = 0; layer < uniqueMtl->layers.Count(); ++layer) {
+      unsigned int &disables = uniqueMtl->layers[layer].disables;
+      if (setMask & 0x01) disables |= 0x01;
+      if (setMask & 0x10) disables |= 0x10;
+      if (setMask & 0x20) disables |= 0x02;
+      if (setMask & 0x40) disables |= 0x04;
+      if (setMask & 0x80) disables |= 0x08;
+      if (unsetMask & 0x01) disables &= ~0x01U;
+      if (unsetMask & 0x10) disables &= ~0x10U;
+      if (unsetMask & 0x20) disables &= ~0x02U;
+      if (unsetMask & 0x40) disables &= ~0x04U;
+      if (unsetMask & 0x80) disables &= ~0x08U;
+    }
+  }
 }
 
 static void ComplexModelSetMaterialDisables(CModelComplex* unique, unsigned int setMask, unsigned int unsetMask, int doLinkedModels) {
-    // TODO: implement
+  unsigned int i;
+
+  FATALASSERT(unique);
+  IModelSetMaterialDisables(unique->m_materials.Ptr(), unique->m_materials.Count(), setMask, unsetMask);
+
+  if (!doLinkedModels) {
+    return;
+  }
+
+  for (i = 0; i < unique->m_emitters2.Count(); ++i) {
+    if (setMask & 0x01) unique->m_emitters2[i]->MaterialDisableLight(1);
+    if (setMask & 0x20) unique->m_emitters2[i]->MaterialDisableFog(1);
+    if (unsetMask & 0x01) unique->m_emitters2[i]->MaterialDisableLight(0);
+    if (unsetMask & 0x20) unique->m_emitters2[i]->MaterialDisableFog(0);
+  }
+
+  for (i = 0; i < unique->m_ribbons.Count(); ++i) {
+    if (setMask & 0x01) unique->m_ribbons[i]->MaterialDisableLight(1);
+    if (setMask & 0x20) unique->m_ribbons[i]->MaterialDisableFog(1);
+    if (unsetMask & 0x01) unique->m_ribbons[i]->MaterialDisableLight(0);
+    if (unsetMask & 0x20) unique->m_ribbons[i]->MaterialDisableFog(0);
+  }
+
+  for (i = 0; i < unique->m_attached.Count(); ++i) {
+    for (LINKUNIQUE *link = unique->m_attached[i].Head(); link; link = unique->m_attached[i].Next(link)) {
+      ModelSetMaterialDisables(link->child, setMask, unsetMask, 1);
+    }
+  }
 }
 
 void __fastcall ModelSetMaterialDisables(HMODEL__* model, unsigned int setMask, unsigned int unsetMask, int doLinkedModels) {
-    // TODO: implement
+  CModelBase *unique;
+  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+    return;
+  }
+
+  if (unique->m_flags & 0x20) {
+    ComplexModelSetMaterialDisables(static_cast<CModelComplex *>(unique), setMask, unsetMask, doLinkedModels);
+  } else {
+    CModelSimple *simple = static_cast<CModelSimple *>(unique);
+    IModelSetMaterialDisables(simple->m_materials.Ptr(), simple->m_materials.Count(), setMask, unsetMask);
+  }
 }
 
 unsigned int __fastcall ModelGetNumTextures(HMODEL model) {

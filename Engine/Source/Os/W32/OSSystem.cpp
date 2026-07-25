@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <shellapi.h>
+#include <float.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -154,7 +155,6 @@ void __fastcall OsSetBackgroundSleepMs(DWORD sleepMs) {
 }
 
 void __fastcall OsPause() {
-    // TODO: implement
 }
 
 OsType __fastcall OsGetVersion() {
@@ -317,14 +317,14 @@ int __fastcall OsLaunchURL(const char *url) {
 }
 
 void __fastcall OsClearFP(int errCheck) {
-    // TODO: implement
+  _clearfp();
+  _control87(0x9001F, 0xFFFFF);
 }
 
 int __fastcall OsGetCurrentThreadPriority() {
-    // TODO: implement
-    return 0;
+  return GetThreadPriority(GetCurrentThread());
 }
 
 void __fastcall OsSetCurrentThreadPriority(int priority) {
-    // TODO: implement
+  SetThreadPriority(GetCurrentThread(), priority);
 }

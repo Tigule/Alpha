@@ -328,6 +328,7 @@ class CMapEntity : public CMapStaticEntity {
 
   virtual void QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup);
   void         Tick();
+  void         QueryLiquidSounds(int *lbool, NTempest::C3Vector *ldelta, float *ldsquared, unsigned int &closestExtLevel);
   void         UpdateMapObjLiquid();
   int          QueryMapObjZoneName(const char *&zoneName);
   int          QueryMapObjSubzoneName(const char *&subzoneName, unsigned int &subzoneId);

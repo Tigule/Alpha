@@ -20,6 +20,7 @@
 #include <Tempest/c33matrix.h>
 #include <Tempest/cmath.h>
 
+#include <float.h>
 #include <stdio.h>
 
 NTempest::C44Matrix CWTriData::matrices[CWTriData::MaxBatches];
@@ -342,6 +343,34 @@ int __fastcall CWorld::QueryObjectInside(unsigned long hWorldObject) {
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   return entity->flagInside;
+}
+
+int __fastcall CWorld::QueryLiquidSounds(
+    unsigned long       hWorldObject,
+    float               radius,
+    int                *lbool,
+    NTempest::C3Vector *ldelta
+) {
+  FATALASSERT(lbool);
+  FATALASSERT(ldelta);
+  FATALASSERT(radius > 0.0f && radius < 16.0f);
+
+  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  FATALASSERT(entity);
+  FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
+
+  float ldsquared[9];
+  for (unsigned int i = 0; i < 9; ++i) {
+    ldsquared[i] = FLT_MAX;
+  }
+  memset(lbool, 0, 9 * sizeof(*lbool));
+
+  unsigned int closestExtLevel;
+  if (!entity->flagInside ||
+      (closestExtLevel = 9999, entity->QueryLiquidSounds(lbool, ldelta, ldsquared, closestExtLevel), closestExtLevel < 2)) {
+    CMap::QueryLiquidSounds(entity->pos, radius, lbool, ldelta, ldsquared);
+  }
+  return 1;
 }
 
 int __fastcall CWorld::QueryMapObjZoneName(unsigned long hWorldObject, const char *&zoneName) {

@@ -37,6 +37,14 @@ namespace NTempest {
 }  // namespace NTempest
 
 static unsigned long lattice_(long x) {
-    // TODO: implement
-    return 0;
+  unsigned long value = static_cast<unsigned long>(x);
+  value = ((value << 11) | (value >> 21)) ^ ((value << 21) | (value >> 11)) ^ value;
+
+  unsigned long n1 = NTempest::gnoise32_[(value >> 6) & 0x3F];
+  unsigned long n2 = NTempest::gnoise32_[(value >> 12) & 0x3F];
+  unsigned long n3 = NTempest::gnoise32_[(value >> 18) & 0x3F];
+  return NTempest::gnoise32_[value & 0x3F] ^
+         ((n1 << 1) | (n1 >> 31)) ^
+         ((n2 << 2) | (n2 >> 30)) ^
+         ((n3 << 3) | (n3 >> 29));
 }

@@ -6,9 +6,11 @@
 #include "DB/DBClient/AutoCode/FootstepTerrainLookupRec.h"
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
 #include "DB/DBClient/AutoCode/ItemGroupSoundsRec.h"
+#include "DB/DBClient/AutoCode/MaterialRec.h"
 #include "DB/DBClient/AutoCode/ResistancesRec.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"
 #include "DB/DBClient/AutoCode/TerrainTypeSoundsRec.h"
+#include "DB/DBClient/AutoCode/TerrainTypeRec.h"
 #include "DB/DBClient/AutoCode/VocalUISoundsRec.h"
 #include "DB/DBClient/DBClient.h"
 #include "Event/EvtApi.h"
@@ -17,6 +19,7 @@
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/ISoundInterface.h"
 #include "WorldClient/World.h"
 
@@ -67,7 +70,7 @@ enum AMBIENCE {
 };
 
 static int      s_elapsed;
-static AMBIENCE g_currentAmbience;
+int g_currentAmbience;
 
 static int                      MIXRATE = 22050;
 static const FrameScript_Method s_ScriptFunctions[2] = {
@@ -165,8 +168,20 @@ static void __fastcall FootstepTerrainInitialize() {
 }
 
 static unsigned int GetFootstepTerrain(unsigned int soundID, unsigned int terrainID, int splashing) {
-    // TODO: implement
+  const TerrainTypeRec *terrain = g_terrainTypeDB.GetRecord(terrainID);
+  if (!terrain) {
     return 0;
+  }
+
+  FOOTSTEPSNDCACHE *entry = s_footstepHash.Ptr(soundID, s_nullHashKey);
+  if (!entry) {
+    return 0;
+  }
+
+  unsigned int terrainSoundID = terrain->m_SoundID;
+  TSGrowableArray<unsigned int> &sounds = splashing ? entry->m_splashSoundIDs : entry->m_soundIDs;
+  FATALASSERT(terrainSoundID < sounds.Count());
+  return sounds[terrainSoundID];
 }
 
 static float __fastcall ObstructionCallback(const NTempest::C3Vector &listener, const NTempest::C3Vector &source) {
@@ -549,15 +564,39 @@ void __fastcall SndInterfacePlayVocalUISound(VOCALUISOUNDS soundType) {
 }
 
 void __fastcall SndInterfacePlayFootstepSound(unsigned int footstepID, const NTempest::C3Vector& position, unsigned int terrainID, int splashing) {
-    // TODO: implement
+  ++s_footstepRequest;
+  NTempest::C3Vector listenerPosition;
+  Sound::GetListenerPosition(listenerPosition);
+  if ((position - listenerPosition).SquaredMag() <= 20.0f * 20.0f) {
+    ++s_footstepAccept;
+    unsigned int soundID = GetFootstepTerrain(footstepID, terrainID, splashing);
+    if (soundID) {
+      NTempest::C3Vector soundPosition = position;
+      soundPosition.z += 1.0f / 36.0f;
+      SndInterfacePlaySound(soundID, soundPosition, -1, 1.0f);
+    }
+  }
 }
 
 void __fastcall SndInterfacePlayFoleySound(unsigned int materialID, const NTempest::C3Vector& position) {
-    // TODO: implement
+  const MaterialRec *material = g_materialDB.GetRecord(materialID);
+  if (material && material->m_foleySoundID) {
+    SndInterfacePlaySound(material->m_foleySoundID, position, -1, 1.0f);
+  }
 }
 
 void __fastcall SndInterfacePlaySheatheSound(const VirtualItemInfo* info, int sheathing, const NTempest::C3Vector& position) {
-    // TODO: implement
+  if (!info) {
+    return;
+  }
+  SHEATHSOUNDHASH *entry = g_sheathSoundList.Ptr(info->m_classID, s_nullHashKey);
+  if (!entry) {
+    return;
+  }
+  TSFixedArray<unsigned int> &sounds = sheathing ? entry->materialSheathSound : entry->materialUnsheathSound;
+  if (info->m_material < sounds.Count()) {
+    SndInterfacePlaySound(sounds[info->m_material], position, -1, 1.0f);
+  }
 }
 
 void __fastcall SndInterfacePlayImmuneSound(NTempest::C3Vector &pos) {
@@ -601,8 +640,8 @@ void __fastcall SndInterfacePlayAbsorbedSound(NTempest::C3Vector &pos) {
 }
 
 unsigned int __fastcall SndInterfaceGetSoundVariations(unsigned int soundID) {
-    // TODO: implement
-    return 0;
+  SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
+  return definition ? definition->m_fileNames.Count() : 0;
 }
 
 static int __fastcall Script_PlaySound(lua_State *L) {
@@ -662,8 +701,12 @@ bool __fastcall SndInterfacePlaySound(unsigned int soundID, const NTempest::C3Ve
 }
 
 unsigned char __fastcall SoundInterfaceIsSoundLooping(unsigned int soundID, unsigned char& looping) {
-    // TODO: implement
+  SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
+  if (!definition) {
     return 0;
+  }
+  looping = (definition->m_flags & 0x200) != 0;
+  return 1;
 }
 
 Sound *__fastcall SndInterfacePlayLoopedSound(unsigned int soundID, unsigned int loopCount) {
@@ -797,16 +840,19 @@ Sound *__fastcall SndInterfaceCreateSound(unsigned int soundID, float fadeInRate
 }
 
 static unsigned char SoundPositionCallback(__int64 handle, NTempest::C3Vector& pos) {
-    // TODO: implement
-    return 0;
+  CGObject_C *object = ClntObjMgrObjectPtr(handle, __FILE__, __LINE__);
+  if (object) {
+    pos = object->GetPosition();
+  }
+  return object != 0;
 }
 
 void __fastcall SndInterfaceSetPositionCallback() {
-    // TODO: implement
+  Sound::m_positionUpdateCallback = SoundPositionCallback;
 }
 
 void __fastcall SndInterfaceClearPositionCallback() {
-    // TODO: implement
+  Sound::m_positionUpdateCallback = 0;
 }
 
 float SOUNDDEFINITION::GetVolume(float volumeScale, bool neverVary) const {

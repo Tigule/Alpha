@@ -1244,6 +1244,57 @@ void __fastcall CGWorldFrame::RenderWorld(void *param) {
   GxXformSetProjection(saved_proj);
 }
 
+NTempest::C2Vector CGWorldFrame::GetScreenCoordinates(const NTempest::C3Vector &point) {
+  NTempest::C4Vector position(point.x - m_camera->m_position.x,
+                             point.y - m_camera->m_position.y,
+                             point.z - m_camera->m_position.z,
+                             0.0f);
+  position = position * m_worldMatrix;
+
+  float inverseW = 1.0f / position.w;
+  position.x = (position.x * inverseW + 1.0f) * 0.5f;
+  position.y = (position.y * inverseW + 1.0f) * 0.5f;
+  position.z = (position.z * inverseW + 1.0f) * 0.5f;
+  position.w = (position.w * inverseW + 1.0f) * 0.5f;
+
+  NTempest::C2Vector screen;
+  NDCToDDC(position.x, position.y, &screen.x, &screen.y);
+  screen.x = screen.x > 0.0f ? (screen.x < 0.8f ? screen.x : 0.8f) : 0.0f;
+  screen.y = screen.y > 0.0f ? (screen.y < 0.6f ? screen.y : 0.6f) : 0.0f;
+  return screen;
+}
+
+NTempest::C2Vector CGWorldFrame::GetScreenCoordinates(
+    const NTempest::C3Vector &point,
+    const NTempest::C44Matrix &matrix,
+    int clip,
+    int worldPositionSpecified
+) {
+  NTempest::C4Vector position(point.x, point.y, point.z, 1.0f);
+  if (worldPositionSpecified) {
+    FATALASSERT(m_camera);
+    position.x -= m_camera->m_position.x;
+    position.y -= m_camera->m_position.y;
+    position.z -= m_camera->m_position.z;
+    position.w -= 1.0f;
+  }
+
+  position = position * matrix;
+  float inverseW = 1.0f / position.w;
+  position.x = (position.x * inverseW + 1.0f) * 0.5f;
+  position.y = (position.y * inverseW + 1.0f) * 0.5f;
+  position.z = (position.z * inverseW + 1.0f) * 0.5f;
+  position.w = (position.w * inverseW + 1.0f) * 0.5f;
+
+  NTempest::C2Vector screen(position.x, position.y);
+  if (!clip) {
+    NDCToDDC(position.x, position.y, &screen.x, &screen.y);
+    screen.x = screen.x > 0.0f ? (screen.x < 0.8f ? screen.x : 0.8f) : 0.0f;
+    screen.y = screen.y > 0.0f ? (screen.y < 0.6f ? screen.y : 0.6f) : 0.0f;
+  }
+  return screen;
+}
+
 void CGWorldFrame::OnWorldUpdate() {
   NTempest::C3Vector  facing;
   NTempest::C44Matrix newMatrix;

@@ -53,22 +53,22 @@ struct WORLDTEXTCREATEPARAMS {
 
 struct WORLDTEXTSTRING : public CHandleObject {
   WORLDTEXTSTRING();
-  void Update(float elapsed, NTempest::C44Matrix &matrix, NTempest::C3Vector *basePosition);
+  void Update(float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *basePosition);
   void Reset();
   void CalculateNewColor(unsigned int elapsed);
   void CalculateTextHeight(unsigned int elapsedTime);
   void CalculateNewPosition(
-      NTempest::C4Vector  &worldPosition,
+      const NTempest::C4Vector &worldPosition,
       unsigned int         elapsedTime,
       NTempest::C4Vector  &textPos,
-      NTempest::C44Matrix &matrix,
+      const NTempest::C44Matrix &matrix,
       int                  worldPositionSpecified
   );
-  void UpdatePosition(NTempest::C4Vector &worldPosition, unsigned int elapsedTime, NTempest::C4Vector &textPos);
+  void UpdatePosition(const NTempest::C4Vector &worldPosition, unsigned int elapsedTime, NTempest::C4Vector &textPos);
   void UpdateStringHeight(float height);
   void RecreateString();
   void Hide(int hide);
-  void Render();
+  void Render() const;
   void InitTextFrame(const char *text);
   virtual ~WORLDTEXTSTRING();
 
@@ -93,3 +93,5 @@ void __fastcall          WorldTextClearStrings();
 HWORLDTEXT__ *__fastcall WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride);
 void __fastcall          WorldTextShow(HWORLDTEXT__ *text, int show);
 void __fastcall          WorldTextRender(HWORLDTEXT__ *text);
+void __fastcall          WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position);
+int __fastcall           WorldTextIsTextDone(HWORLDTEXT__ *text);

@@ -121,8 +121,14 @@ static void __fastcall LoadAreaTable() {
 }
 
 static int MIDISetHandler(const char* command, const char* arguments) {
-    // TODO: implement
-    return 0;
+  unsigned int enabled = SStrToUnsigned(arguments);
+  AREAHASHOBJECT *zone = GetZone(s_currentContinent, s_currentZoneID, s_currentSubZoneID);
+  if (enabled && zone) {
+    SndInterfaceSetMIDIArea(zone->midi, zone->midiUnderwater);
+  } else {
+    SndInterfaceClearMIDI();
+  }
+  return 1;
 }
 
 void __fastcall AreaListInitialize() {

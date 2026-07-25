@@ -513,8 +513,15 @@ void CGObject_C::ReportNoAnimation(const char *modelName) {
 }
 
 ANIMENUMERATION __fastcall Object_C_GetAnimIndex(const char* animName) {
-    // TODO: implement
-    return ANIMENUMERATION();
+  if (!animName || !*animName) {
+    return static_cast<ANIMENUMERATION>(-1);
+  }
+  for (unsigned int i = 0; i < FIRST_ITEMANIMATION + NUM_ITEMANIMATIONS; ++i) {
+    if (!SStrCmp(animName, g_animationNames[i], 0x7FFFFFFF)) {
+      return static_cast<ANIMENUMERATION>(i);
+    }
+  }
+  return static_cast<ANIMENUMERATION>(-1);
 }
 
 void CGObject_C::HideHighlightType(HIGHLIGHTTYPE type) {

@@ -10,6 +10,7 @@
 #include <Os/OsTime.h>
 #include <Base/CDataStore.h>
 #include <FrameScript/FrameScript.h>
+#include <Event/EvtApi.h>
 #include <Gx/Gx.h>
 #include <Model/CollisionData.h>
 
@@ -46,6 +47,7 @@
 #include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/DBClient.h"
 #include "Client.h"
+#include "Game/GameTime.h"
 #include "Console/ConsoleVar.h"
 #include "Console/ConsoleClient.h"
 #include "Component/CharacterCustomization.h"
@@ -65,6 +67,7 @@
 #include "Ui/SpellBookFrame.h"
 #include "Ui/WorldFrame.h"
 #include "WorldClient/World.h"
+#include "WorldClient/AreaList.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 enum REPLACEABLE_MATERIAL_IDS {
@@ -1126,11 +1129,64 @@ void CGUnit_C::AddBloodPool() {
 }
 
 static void __fastcall AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
-    // TODO: implement
+  CGUnit_C *unit = static_cast<CGUnit_C *>(param);
+  if (unit) {
+    unit->HandleAnimEvent(eventName, position);
+  }
 }
 
 static void __fastcall MountedAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
-    // TODO: implement
+  CGUnit_C *unit = static_cast<CGUnit_C *>(param);
+  if (unit) {
+    unit->HandleMountedAnimEvent(eventName, position);
+  }
+}
+
+void CGUnit_C::HandleMountedAnimEvent(const char *eventName, const NTempest::C3Vector &position) {
+  unsigned long eventCode = *reinterpret_cast<const unsigned long *>(eventName);
+  if (eventCode == 0x47475724) {
+    PlayUnitSound(UNITSOUNDTYPE_WINGGLIDE, 0);
+  } else if (eventCode == 0x474E5724) {
+    PlayUnitSound(UNITSOUNDTYPE_WINGFLAP, 0);
+  } else if (eventCode == 0x48544224) {
+    BreathHandler(1);
+  } else {
+    HandleAnimEvent(eventName, position);
+  }
+}
+
+UNITEFFECTSPECIALS CGUnit_C::DetermineBreathEffect(unsigned int *duration) {
+  ASSERT(duration);
+
+  if (s_showBreathCvar->m_intValue && (!m_modelData || !(m_modelData->m_flags & 2))) {
+    unsigned int       liquid = 0;
+    float              surface = 0.0f;
+    NTempest::C3Vector flowDir(0.0f);
+    NTempest::C3Vector position = GetPosition();
+    int                deep = 0;
+
+    if (ClntObjMgrGetPlayerType() ||
+        !CWorld::QueryObjectLiquid(GetWorldObject(), liquid, surface, flowDir, deep)) {
+      if (AreaListZoneHasBreathParticles(GetWorldObject(), CGPlayer_C::GetNewContinentID(), GetPosition())) {
+        *duration = 2000;
+        return static_cast<UNITEFFECTSPECIALS>(6);
+      }
+    } else if (GetScale() * GetObjectHeight() + 5.0f < surface - position.z) {
+      *duration = 4000;
+      return static_cast<UNITEFFECTSPECIALS>(7);
+    }
+  }
+
+  *duration = 10000;
+  return static_cast<UNITEFFECTSPECIALS>(-1);
+}
+
+void CGUnit_C::BreathHandler(int forceOnMount) {
+  unsigned int duration;
+  UNITEFFECTSPECIALS effect = DetermineBreathEffect(&duration);
+  if (effect != static_cast<UNITEFFECTSPECIALS>(-1)) {
+    UnitEffectOneShot(effect, GetGUID(), 0, 0.0f, 1.0f, forceOnMount != 0);
+  }
 }
 
 static int __fastcall GenericAnimEndHandler(void *param) {
@@ -5222,6 +5278,15 @@ void CGUnit_C::StopSpellFizzleTimer(int spellID, unsigned char status) {
   }
 }
 
+void CGUnit_C::SpellDelayed(unsigned int delay) {
+  if (m_spellFizzleTimer && delay) {
+    float remaining = EventGetRemainingTime(m_spellFizzleTimer);
+    ClientKillTimer(m_spellFizzleTimer, SpellFizzleTimer, "SpellFizzleTimer");
+    m_spellFizzleTimer =
+        ClientSetTimer(delay + static_cast<unsigned int>(remaining * 1000.0f), SpellFizzleTimer, this);
+  }
+}
+
 void CGUnit_C::EndSpellEffects(unsigned char status) {
   int castingSpell = m_castingSpell;
   m_spellFizzleTimer = 0;
@@ -5830,7 +5895,7 @@ void CGUnit_C::AddWorldXPGainText(int xpGain) {
 
 void CGUnit_C::RemoveInteractIcon() {
   if (m_interactIconModel) {
-    HMODEL charModel = GetCharacterModel(0);
+    HMODEL charModel = CGObject_C::GetCharacterModel(0);
     if (charModel) {
       ModelRemoveLink(charModel, 18, m_interactIconModel);
       ModelRemoveLink(charModel, 29, m_interactIconModel);
@@ -5984,7 +6049,7 @@ bool CGUnit_C::CanInteract(const CGUnit_C *unit) const {
 }
 
 HMODEL CGUnit_C::GetMountedModel() {
-  return (m_flags & 0x10) ? GetCharacterModel(0) : 0;
+  return (m_flags & 0x10) ? static_cast<HMODEL>(HandleDuplicate(m_model)) : 0;
 }
 
 unsigned int CGUnit_C::GetRunSequence() const {
@@ -6224,13 +6289,23 @@ int CGUnit_C::ShouldRender(unsigned long worldStatus) {
 }
 
 static unsigned char IsDayTime() {
-    // TODO: implement
-    return 0;
+  unsigned int encoded;
+  WowTime valMin;
+  WowTime valMax;
+  WowTime::WowEncodeTime(encoded, 0, 20, -1, -1, -1, -1, 0);
+  WowTime::WowDecodeTime(encoded, &valMax);
+  WowTime::WowEncodeTime(encoded, 30, 5, -1, -1, -1, -1, 0);
+  WowTime::WowDecodeTime(encoded, &valMin);
+  return g_clientGameTime.InRange(valMin, valMax);
 }
 
 static unsigned char IsMountSpell(const SpellRec* rec) {
-    // TODO: implement
-    return 0;
+  for (unsigned int i = 0; i < 3; ++i) {
+    if (rec->m_effectAura[i] == 34) {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 void CGUnit_C::PendingPrecastInterrupt(int spellID) {
@@ -6271,7 +6346,7 @@ void CGUnit_C::UpdateInteractIcon(INTERACTICONTYPE which) {
           : CGUnit_C::ShouldRenderUnitName(PlayerNameGetUnitNameMode());
       ModelSetSequence(m_interactIconModel, renderName != 0, 0);
 
-      HMODEL charModel = GetCharacterModel(0);
+      HMODEL charModel = CGObject_C::GetCharacterModel(0);
       if (charModel) {
         ModelAddLink(charModel, GetPlayerNameAttachmentPoint(), m_interactIconModel, 1.0f);
         HandleClose(charModel);
@@ -6788,8 +6863,14 @@ void CGUnit_C::CheckPendingSpellAnimHits() {
 }
 
 static unsigned char NodesSame(const ANIMQUEUENODE* current, const ANIMQUEUENODE* next) {
-    // TODO: implement
+  FATALASSERT(current);
+  if (!next || current->type != next->type) {
     return 0;
+  }
+  if (current->type == ANIMQUEUE_ATTACK) {
+    return ((current->roundInfo.flags ^ ~next->roundInfo.flags) >> 9) & 1;
+  }
+  return 1;
 }
 
 bool CGUnit_C::SetSpellPreCastingAnimation(ANIMENUMERATION anim) {
@@ -6881,6 +6962,80 @@ void CGUnit_C::RegisterScript() {
     ScriptEventsRegisterUnit(this);
   }
   ++m_scriptRegistered;
+}
+
+bool CGUnit_C::SetSpellCastingAnimation(
+    ANIMENUMERATION anim,
+    unsigned int effectKit,
+    unsigned int soundID,
+    int camShakeID,
+    ANIMENUMERATION &finalAnim
+) {
+  if (anim == INVALID_ANIMATION || anim >= NUM_OBJECTANIMATIONS) {
+    return false;
+  }
+
+  HMODEL charModel = GetCharacterModel(0);
+  FATALASSERT(charModel);
+
+  if ((anim >= ANIM_SPELL_SPECIAL1H &&
+       anim <= ANIM_SPELL_SPECIAL2H) ||
+      anim == ANIM_SPECIALUNARMED) {
+    const VirtualItemInfo *item = GetVirtualItem(0, 0);
+    if (!item || m_unit->weaponMode == WEAPONMODE_MELEE) {
+      anim = ANIM_SPECIALUNARMED;
+    } else {
+      unsigned int numLinked = 0;
+      if (ModelGetNumLinkedAtPoint(charModel, 1, &numLinked) &&
+          numLinked) {
+        anim = item->m_inventoryType == 17
+                   ? ANIM_SPELL_SPECIAL2H
+                   : ANIM_SPELL_SPECIAL1H;
+      } else {
+        anim = ANIM_SPECIALUNARMED;
+      }
+    }
+  }
+
+  bool result = true;
+  bool exit = false;
+  while (!ModelHasSequenceId(charModel, anim) && !exit) {
+    switch (anim) {
+      case ANIM_ATTACK2HLOOSE:
+      case ANIM_SPELL_SPECIAL1H:
+      case ANIM_KICK:
+        PrintAttackSeqErrorMsg(anim, ANIM_ATTACK1H);
+        anim = ANIM_ATTACK1H;
+        break;
+      case ANIM_SPELL_CAST_DIRECTED:
+      case ANIM_SPELL_CAST_OMNI:
+      case ANIM_EMOTE_USE_STANDING:
+        PrintAttackSeqErrorMsg(anim, ANIM_SPELLCAST);
+        anim = ANIM_SPELLCAST;
+        break;
+      case ANIM_SPELL_SPECIAL2H:
+        PrintAttackSeqErrorMsg(anim, ANIM_ATTACK2HLOOSE);
+        anim = ANIM_ATTACK2HLOOSE;
+        break;
+      case ANIM_SPECIALUNARMED:
+        PrintAttackSeqErrorMsg(anim, ANIM_ATTACKUNARMED);
+        anim = ANIM_ATTACKUNARMED;
+        break;
+      default:
+        result = false;
+        exit = true;
+        FATALASSERT(anim != INVALID_ANIMATION);
+        break;
+    }
+  }
+
+  HandleClose(charModel);
+  finalAnim = anim;
+  m_spellCastingCameraShakeID = camShakeID;
+  m_spellCastingAnim = anim;
+  m_spellCastingEffectKit = effectKit;
+  m_spellCastingSoundID = soundID;
+  return result;
 }
 
 void CGUnit_C::UnregisterScript() {
@@ -7622,6 +7777,73 @@ void CGUnit_C::ClearRangedStandTimer() {
     ClientKillTimer(timer, RangedStandTimerHandler, "RangedStandTimerHandler");
     timer = 0;
   }
+}
+
+void CGUnit_C::MaybeSaveChannelSpellTargets(
+    int spellID,
+    const TSStackArray<unsigned __int64> &targets
+) {
+  m_savedChannelSpellID = spellID;
+  m_savedChannelSpellTargets.SetCount(targets.Count());
+  unsigned int i;
+  for (i = 0; i < targets.Count(); ++i) {
+    m_savedChannelSpellTargets[i] = targets[i];
+  }
+}
+
+void CGUnit_C::AddHitAnimHolds(
+    int spellID,
+    const TSStackArray<unsigned __int64> &targets
+) {
+  m_pendingHitSpellID = spellID;
+  unsigned int oldCount = m_pendingHitAnimVictims.Count();
+  m_pendingHitAnimVictims.SetCount(oldCount + targets.Count());
+  unsigned int i;
+  for (i = 0; i < targets.Count(); ++i) {
+    m_pendingHitAnimVictims[oldCount + i] = targets[i];
+  }
+}
+
+void CGUnit_C::ClearSpellCastAnimInfo() {
+  m_spellCastingEffectKit = 0;
+  m_spellCastingSoundID = 0;
+}
+
+void CGUnit_C::StoreSpellMissileEffect(
+    const unsigned __int64 &target,
+    const NTempest::C3Vector &destination,
+    float speed,
+    unsigned int ammoDisplayID,
+    int inventoryType,
+    const SpellVisualRec *rec,
+    bool hits,
+    MISS_REASON reason,
+    unsigned int spellID,
+    bool wasProc
+) {
+  FATALASSERT(rec);
+  CheckPendingMissileRelease(0);
+  m_spellMissileStruct.caster = this;
+  m_spellMissileStruct.target = target;
+  m_spellMissileStruct.destination = destination;
+  m_spellMissileStruct.missileEffect = rec->m_missileModel;
+  m_spellMissileStruct.speed = speed;
+  m_spellMissileStruct.missilePathType = rec->m_missilePathType;
+  m_spellMissileStruct.ammoDisplayID = ammoDisplayID;
+  m_spellMissileStruct.missileVictimEffect = rec->m_impactKit;
+  m_spellMissileStruct.spellID = spellID;
+  m_spellMissileStruct.inventoryType = inventoryType;
+  m_spellMissileStruct.hits = hits;
+  m_spellMissileStruct.reason = reason;
+  m_spellMissileStruct.sound = rec->m_missileSound;
+  if (wasProc || !m_currentTorsoAnimState) {
+    CheckPendingMissileRelease(0);
+  }
+}
+
+void CGUnit_C::SetRangedStandTimer() {
+  ClearRangedStandTimer();
+  m_rangedStandTimer = ClientSetTimer(3000, RangedStandTimerHandler, this);
 }
 
 void CGUnit_C::OnRangedStandTimer() {
@@ -8790,6 +9012,17 @@ void CGUnit_C::OnRunSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID, 
 
   CDataStore msg;
   BuildMovementUpdate(msgID, &msg);
+  msg.Put(speed);
+  FATALASSERT(!msg.IsFinal());
+  ClientServices_Send(&msg);
+}
+
+void CGUnit_C::OnWalkSpeedChangeLocal(unsigned long eventTime, float speed) {
+  m_movement.OnWalkSpeedChange(eventTime, speed);
+  UpdateMovementAnimSpeed(1, -1);
+
+  CDataStore msg;
+  BuildMovementUpdate(MSG_MOVE_SET_WALK_SPEED_CHEAT, &msg);
   msg.Put(speed);
   FATALASSERT(!msg.IsFinal());
   ClientServices_Send(&msg);

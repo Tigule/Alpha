@@ -27,11 +27,25 @@ void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, unsign
 }
 
 void __fastcall CameraCalcPosFromTarg(HCAMERA__* camera, NTempest::C3Vector* position) {
-    // TODO: implement
+  CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
+  FATALASSERT(cameraPtr);
+  FATALASSERT(position);
+
+  const float distance = cameraPtr->m_distance.m_data;
+  position->x = cameraPtr->m_target.m_data.x - cameraPtr->m_rotation.m_cos * cameraPtr->m_aoa.m_cos * distance;
+  position->y = cameraPtr->m_target.m_data.y - cameraPtr->m_rotation.m_sin * cameraPtr->m_aoa.m_cos * distance;
+  position->z = cameraPtr->m_target.m_data.z - cameraPtr->m_aoa.m_sin * distance;
 }
 
 void __fastcall CameraCalcTargFromPos(HCAMERA__* camera, NTempest::C3Vector* target) {
-    // TODO: implement
+  CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
+  FATALASSERT(cameraPtr);
+  FATALASSERT(target);
+
+  const float distance = cameraPtr->m_distance.m_data;
+  target->x = cameraPtr->m_position.m_data.x + cameraPtr->m_rotation.m_cos * cameraPtr->m_aoa.m_cos * distance;
+  target->y = cameraPtr->m_position.m_data.y + cameraPtr->m_rotation.m_sin * cameraPtr->m_aoa.m_cos * distance;
+  target->z = cameraPtr->m_position.m_data.z + cameraPtr->m_aoa.m_sin * distance;
 }
 
 HCAMERA __fastcall CameraCreate() {
@@ -149,5 +163,7 @@ void __fastcall CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect
 #include "Services/DataMgrInt.h"
 
 void __fastcall CameraUpdate(HCAMERA__* camera, float elapsedSec) {
-    // TODO: implement
+  CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
+  FATALASSERT(cameraPtr);
+  cameraPtr->Update(elapsedSec);
 }

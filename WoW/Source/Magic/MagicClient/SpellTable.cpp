@@ -88,6 +88,16 @@ const SkillLineAbilityRec *SkillLineTable::Lookup(unsigned int raceID, unsigned 
   return abilities[spellID];
 }
 
+const SkillLineAbilityRec *SkillLineTable::LookupPet(int skillLineID, unsigned int spellID) {
+  for (int i = 0; i < g_skillLineAbilityDB.GetNumRecords(); ++i) {
+    const SkillLineAbilityRec *ability = g_skillLineAbilityDB.GetRecordByIndex(i);
+    if (ability->m_skillLine == skillLineID && ability->m_spell == spellID) {
+      return ability;
+    }
+  }
+  return 0;
+}
+
 void __fastcall SpellTableInitialize() {
   ASSERT(!s_skillLineTable);
 
@@ -111,6 +121,9 @@ const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceI
 }
 
 const SkillLineAbilityRec* __fastcall SpellTableLookupPetAbility(int skillLineID, unsigned int spellID) {
-    // TODO: implement
+  if (!s_skillLineTable) {
     return 0;
+  }
+
+  return s_skillLineTable->LookupPet(skillLineID, spellID);
 }

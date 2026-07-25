@@ -2,6 +2,7 @@
 #define WOW_SOURCE_UI_GAMEUI_H
 
 #include "Object/Object.h"
+#include "Net/NetClient/NetClient.h"
 
 class CSimpleFrame;
 class CSimpleTop;
@@ -11,6 +12,7 @@ class CGSpellBook;
 class CGObject_C;
 class CinematicSequencesRec;
 class CinematicCameraRec;
+class CDataStore;
 struct Sound;
 struct CSpriteClickEvent;
 struct CTerrainClickEvent;
@@ -18,6 +20,8 @@ struct CWorldClickEvent;
 struct CObjectTrackEvent;
 struct HMODEL__;
 struct lua_State;
+
+static int DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
 class CMouseEvent;
 class CSizeEvent;
 enum SYSMSG_TYPE;
@@ -33,8 +37,21 @@ struct CinematicData {
 
 enum GAME_ERROR_TYPE {
   GAME_ERROR_NONE = 0,
+  GERR_SPELL_FAILED_S = 39,
   GERR_PLAYER_DIED_S = 68,
-  GERR_NUM_TYPES = 297
+  GERR_QUEST_ACCEPTED_S = 123,
+  GERR_SPELL_FAILED_TOTEMS = 190,
+  GERR_SPELL_FAILED_REAGENTS = 191,
+  GERR_TAME_FAILED = 214,
+  GERR_FRIEND_ERROR = 241,
+  GERR_OUT_OF_MANA = 260,
+  GERR_OUT_OF_RAGE = 261,
+  GERR_OUT_OF_FOCUS = 262,
+  GERR_OUT_OF_ENERGY = 263,
+  GERR_OUT_OF_HEALTH = 264,
+  GERR_SPELL_OUT_OF_RANGE = 277,
+  GERR_NUM_TYPES = 297,
+  GERR_NONE = 297
 };
 
 enum UICURSORTYPE {
@@ -59,6 +76,9 @@ class CGGameUI {
   static void __fastcall             Reload();
   static void __fastcall             ShutdownGame();
   static void __fastcall             UpdateActivePlayer();
+  static CGTooltip *__fastcall       GetGameTooltip() {
+    return m_gameTooltip;
+  }
   static void __fastcall             UnitNameUpdate(const unsigned __int64 &guid);
   static void __fastcall             UnitPortraitUpdate(const unsigned __int64 &guid);
   static void __fastcall             Target(const unsigned __int64 &target, int usingNearest);
@@ -166,6 +186,8 @@ class CGGameUI {
   }
 
  private:
+  friend int DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
+
   static void __fastcall HandleObjectTrackChange(unsigned __int64 object, unsigned __int64 oldGUID, float x, float y);
   static void __fastcall UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object);
   friend class CGTooltip;

@@ -516,8 +516,16 @@ void __fastcall RandomRollNameQueryCallback(int, const unsigned __int64 &guid, v
 }
 
 static int BankInvHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
-    // TODO: implement
-    return 0;
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  if (player) {
+    unsigned int slot = offset >> 3;
+    unsigned __int64 currGuid = player->GetBag()->GetItem(slot);
+    if (*static_cast<const unsigned __int64 *>(prevValue) != currGuid) {
+      CGGameUI::UnlockItem(currGuid);
+    }
+    FrameScript_SignalEvent(326);
+  }
+  return 1;
 }
 
 int __fastcall OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
@@ -2573,7 +2581,13 @@ static int __fastcall OnUpdateMoney(unsigned __int64, unsigned int, unsigned int
 }
 
 static void QuestAcceptedCallback(int id, const unsigned __int64&, void*, unsigned char granted) {
-    // TODO: implement
+  if (granted) {
+    unsigned __int64 noGuid = 0;
+    const QuestCache *quest = g_questDBCache.GetRecord(id, noGuid, 0, 0);
+    if (quest) {
+      CGGameUI::DisplayError(GERR_QUEST_ACCEPTED_S, quest->m_logTitle);
+    }
+  }
 }
 
 static int __fastcall OnUpdateQuest(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
@@ -2585,8 +2599,10 @@ static int __fastcall OnUpdateQuest(unsigned __int64 guid, unsigned int offset, 
 }
 
 static int OnUpdateShapeshiftForm(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
-    // TODO: implement
-    return 0;
+  CGSpellBook::UpdateSelection();
+  CGActionBar::UpdateSelection();
+  CGActionBar::UpdateBonusBar();
+  return 1;
 }
 
 static int __fastcall OnUpdatePlayerFlags(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
@@ -3261,12 +3277,40 @@ void CGPlayer_C::HandleRepopRequest() {
 }
 
 static void SwapItemsStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
-    // TODO: implement
+  unsigned __int64 noGuid = 0;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(id, noGuid, 0, 0);
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  unsigned int count = s_pendingSwaps.Count();
+  for (unsigned int index = 0; index < count; ++index) {
+    ITEMSWAP &swap = s_pendingSwaps[index];
+    if (swap.pendingID == id) {
+      if (stats && player) {
+        player->SwapItems(0, swap.bagA, swap.slotA, swap.bagB, swap.slotB, 0);
+      }
+      swap.bagA = 0;
+      swap.bagB = 0;
+      swap.slotA = -1;
+      swap.slotB = -1;
+      swap.pendingID = 0;
+    }
+  }
 }
 
 static unsigned int FindEmptySwapIndex() {
-    // TODO: implement
-    return 0;
+  unsigned int index;
+  for (index = 0; index < s_pendingSwaps.Count(); ++index) {
+    if (!s_pendingSwaps[index].bagA) {
+      return index;
+    }
+  }
+
+  s_pendingSwaps.SetCount(index + 1);
+  s_pendingSwaps[index].bagA = 0;
+  s_pendingSwaps[index].bagB = 0;
+  s_pendingSwaps[index].slotA = -1;
+  s_pendingSwaps[index].slotB = -1;
+  s_pendingSwaps[index].pendingID = 0;
+  return index;
 }
 
 void CGPlayer_C::SwapItems(
@@ -3373,7 +3417,19 @@ unsigned int CGPlayer_C::FindSlotIndex(unsigned __int64 obj) {
 }
 
 static void AutoEquipStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
-    // TODO: implement
+  if (granted) {
+    unsigned __int64 noGuid = 0;
+    if (g_itemDBCache.GetRecord(id, noGuid, 0, 0)) {
+      CGObject_C *item = ClntObjMgrObjectPtr(CGGameUI::GetCursorItem(), __FILE__, __LINE__);
+      if (item && item->GetEntryID() == id) {
+        CGPlayer_C *player =
+            static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+        if (player) {
+          player->AutoEquipCursorItem(0);
+        }
+      }
+    }
+  }
 }
 
 void CGPlayer_C::AutoEquipCursorItem(int force) {
@@ -6149,5 +6205,15 @@ void __fastcall CGPlayer_C::ProcessDeferredSpellMiss() {
       SMemFree(deferred, 0, 0, 0);
     }
     deferred = next;
+  }
+}
+
+void CGPlayer_C::OnLootGameObject(
+    const unsigned __int64 &gameObject,
+    bool lootAnim
+) {
+  m_lootingUnitSent = gameObject;
+  if (lootAnim && m_currentTorsoAnimState != 37) {
+    UpdateBaseAnimation(44, 0);
   }
 }

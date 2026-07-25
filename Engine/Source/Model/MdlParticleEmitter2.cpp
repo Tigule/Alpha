@@ -380,8 +380,28 @@ CParticleEmitter2 *__fastcall CreateEmitter(unsigned char *emitterData, const MD
 }
 
 int __fastcall MdlReadLoadEmitters2(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared, unsigned int flags, CStatus* status) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(modelptr);
+  FATALASSERT(shared);
+
+  unsigned int numEmitters = data.particleEmitters2.Count();
+  modelptr->m_emitters2.SetCount(numEmitters);
+  shared->emitter2Order.SetCount(numEmitters);
+
+  const unsigned char *emitterData =
+      reinterpret_cast<const unsigned char *>(
+          data.particleEmitters2.Ptr());
+  unsigned int i;
+  for (i = 0; i < numEmitters; ++i) {
+    const unsigned char *emitter = emitterData + i * 1292;
+    shared->emitter2Order[i] =
+        *reinterpret_cast<const unsigned int *>(emitter + 0x50);
+    modelptr->m_emitters2[i] = CreateEmitter(
+        const_cast<unsigned char *>(emitter),
+        data.textures.Ptr(),
+        flags,
+        status);
+  }
+  return 1;
 }
 
 void __fastcall

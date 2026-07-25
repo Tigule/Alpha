@@ -48,6 +48,16 @@ void __fastcall           MdxReadRibbonEmitters(unsigned char *, unsigned int, C
 void __fastcall           MdxReadEmitters2(unsigned char *, unsigned int, unsigned int, CModelComplex *, CModelShared *, CStatus *);
 void __fastcall           MdxReadLights(unsigned char *, unsigned int, CModelComplex *);
 HCOLLISIONDATA __fastcall CollisionDataCreate(unsigned char *, unsigned int);
+HCOLLISIONDATA __fastcall CollisionDataCreate(const MDLDATA &);
+HANIM __fastcall         AnimCreate(const MDLDATA &, unsigned int, CStatus *);
+unsigned int __fastcall  AnimBuildObjectIdTranslation(const MDLDATA &, unsigned int, TSStackArray<unsigned int> *);
+int __fastcall           MdlReadCameras(const MDLDATA &, TSFixedArray<HCAMERA> *);
+void __fastcall          MdlReadLoadGlobalProperties(const MDLDATA &, CModelShared *, unsigned int *);
+int __fastcall           MdlReadLoadModel(const MDLDATA &, CModelComplex *, CModelShared *, unsigned int, CStatus *);
+int __fastcall           MdlReadLoadModel(const MDLDATA &, CModelSimple *, CModelShared *, unsigned int, CStatus *);
+int __fastcall           MdlReadLoadRibbonEmitters(const MDLDATA &, CModelComplex *, CModelShared *);
+int __fastcall           MdlReadLoadEmitters2(const MDLDATA &, CModelComplex *, CModelShared *, unsigned int, CStatus *);
+int __fastcall           MdlReadLoadLights(const MDLDATA &, CModelComplex *);
 void __fastcall           ExecuteQueuedActions(CModel *model);
 void __fastcall           IModelEnableFullAlpha(CModelBase *unique, int enable);
 
@@ -232,8 +242,19 @@ static void __fastcall HashNewModel(const char *modelFName, HMODEL model, unsign
 }
 
 static int MdlReadLoadNumMatrices(const MDLDATA& data, CModelShared* shared, unsigned int flags) {
-    // TODO: implement
-    return 0;
+  ASSERT(shared);
+  if (flags & 0x100) {
+    shared->numBones = 1;
+    shared->numTexBones = 0;
+    return 1;
+  }
+
+  shared->numBones = data.bones.Count();
+  if (flags & 0x20) {
+    shared->numBones += data.hitTestShapes.Count();
+  }
+  shared->numTexBones = data.textureanims.Count();
+  return 1;
 }
 
 static void __fastcall MdxReadNumMatrices(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelShared *shared) {
@@ -284,8 +305,16 @@ static unsigned int __fastcall ConvertAnimCreateFlags(unsigned int loadFlags) {
 }
 
 static int MdlReadLoadAnim(const MDLDATA& data, CModelBase* modelptr, unsigned int loadFlags, CStatus* status) {
-    // TODO: implement
+  modelptr->m_anim = AnimCreate(data, ConvertAnimCreateFlags(loadFlags), status);
+  if (!modelptr->m_anim) {
     return 0;
+  }
+
+  if (AnimGetFlags(modelptr->m_anim) & 0x4) {
+    HandleClose(modelptr->m_anim);
+    modelptr->m_anim = 0;
+  }
+  return 1;
 }
 
 static int __fastcall MdxReadAnimation(unsigned char *fileData, unsigned int fileBytes, CModelBase *modelptr, unsigned int loadFlags) {
@@ -370,8 +399,43 @@ static void __fastcall MdxReadHitTestData(unsigned char *data, unsigned int file
 }
 
 static int MdlReadLoadHitTestData(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared) {
-    // TODO: implement
-    return 0;
+  ASSERT(modelptr);
+  ASSERT(shared);
+
+  unsigned int numShapes = data.hitTestShapes.Count();
+  shared->hitTest.SetCount(numShapes);
+  modelptr->m_hitTestMtx.SetCount(numShapes);
+  for (unsigned int i = 0; i < numShapes; ++i) {
+    const MDLHITTESTSHAPE &source = data.hitTestShapes[i];
+    CHitTest &dest = shared->hitTest[i];
+    switch (source.type) {
+      case SHAPE_BOX:
+        dest.type = COLLIDE_BOX;
+        dest.extent[0] = NTempest::C3Vector(source.shape.box.minimum.x, source.shape.box.minimum.y, source.shape.box.minimum.z);
+        dest.extent[1] = NTempest::C3Vector(source.shape.box.maximum.x, source.shape.box.maximum.y, source.shape.box.maximum.z);
+        break;
+      case SHAPE_CYLINDER:
+        dest.type = COLLIDE_CYLINDER;
+        dest.extent[0] = NTempest::C3Vector(source.shape.cylinder.base.x, source.shape.cylinder.base.y, source.shape.cylinder.base.z);
+        dest.extent[1] = dest.extent[0];
+        dest.extent[1].z += source.shape.cylinder.height;
+        dest.radius = source.shape.cylinder.radius;
+        break;
+      case SHAPE_SPHERE:
+        dest.type = COLLIDE_SPHERE;
+        dest.extent[0] = NTempest::C3Vector(source.shape.sphere.center.x, source.shape.sphere.center.y, source.shape.sphere.center.z);
+        dest.radius = source.shape.sphere.radius;
+        break;
+      case SHAPE_PLANE:
+        dest.type = COLLIDE_PLANE;
+        dest.extent[0].x = source.shape.plane.length;
+        dest.extent[0].y = source.shape.plane.width;
+        break;
+      default:
+        break;
+    }
+  }
+  return 1;
 }
 
 static void __fastcall ComputeBoundingRadius(const CGeosetShared *geosets, unsigned int numGeosets, const NTempest::C3Vector &center, float *radius) {
@@ -413,8 +477,28 @@ static void __fastcall IModelComputeBounds(CModelShared *shared) {
 }
 
 static int MdlReadLoadExtents(const MDLDATA& data, CModelBase* modelptr, CModelShared* shared) {
-    // TODO: implement
-    return 0;
+  ASSERT(modelptr);
+  ASSERT(shared);
+
+  shared->bounds.extent = data.model.bounds.extent;
+  shared->bounds.sphere.c = (shared->bounds.extent.b + shared->bounds.extent.t) * 0.5f;
+  shared->bounds.sphere.r = data.model.bounds.radius;
+
+  if (modelptr->m_anim && AnimNeedsSequenceBounds(modelptr->m_anim)) {
+    unsigned int count = data.sequences.Count();
+    shared->seqBounds.SetCount(count);
+    for (unsigned int i = 0; i < count; ++i) {
+      shared->seqBounds[i].extent = data.sequences[i].bounds.extent;
+      shared->seqBounds[i].sphere.c =
+          (shared->seqBounds[i].extent.b + shared->seqBounds[i].extent.t) * 0.5f;
+      shared->seqBounds[i].sphere.r = data.sequences[i].bounds.radius;
+    }
+  } else if (fabs(shared->bounds.sphere.r) < 0.00000023841858f && data.sequences.Count()) {
+    shared->bounds.extent = data.sequences[0].bounds.extent;
+    shared->bounds.sphere.c = (shared->bounds.extent.b + shared->bounds.extent.t) * 0.5f;
+    shared->bounds.sphere.r = data.sequences[0].bounds.radius;
+  }
+  return 1;
 }
 
 static unsigned char *__fastcall LoadBoundsData(unsigned char *data, CBoundsData *bounds) {
@@ -464,8 +548,33 @@ static void __fastcall MdxReadExtents(unsigned char *data, unsigned int fileByte
 }
 
 static int MdlReadLoadPositions(const MDLDATA& data, unsigned int flags, CModelShared* shared) {
-    // TODO: implement
-    return 0;
+  ASSERT(shared);
+  unsigned int numPivots = data.pivotPoints.Count();
+  if (!numPivots) {
+    return 1;
+  }
+
+  if ((flags & 0x220) == 0x20 || (!data.hitTestShapes.Count() && !data.lights.Count())) {
+    shared->positions.SetCount(numPivots);
+    for (unsigned int i = 0; i < numPivots; ++i) {
+      shared->positions[i] = data.pivotPoints[i];
+    }
+    return 1;
+  }
+
+  TSStackArray<unsigned int> idConversion(_alloca(numPivots * sizeof(unsigned int)), numPivots, numPivots);
+  unsigned int numEmitters = AnimBuildObjectIdTranslation(data, ConvertAnimCreateFlags(flags), &idConversion);
+  shared->positions.SetCount(numPivots - numEmitters);
+  unsigned int i;
+  for (i = 0; i < numPivots; ++i) {
+    if (idConversion[i] != static_cast<unsigned int>(-1)) {
+      shared->positions[idConversion[i]] = data.pivotPoints[i];
+    }
+  }
+  for (i = 0; i < shared->emitter2Order.Count(); ++i) {
+    shared->emitter2Order[i] = idConversion[shared->emitter2Order[i]];
+  }
+  return 1;
 }
 
 static void __fastcall MdxReadPositions(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelShared *shared) {
@@ -613,13 +722,54 @@ static void __fastcall BuildModelFromMdxData(
 }
 
 static int BuildSimpleModelFromMdlData(const MDLDATA& source, CModelSimple* modelptr, CModelShared* shared, unsigned int flags, CStatus* status) {
-    // TODO: implement
+  if (!MdlReadLoadModel(source, modelptr, shared, flags, status)) {
     return 0;
+  }
+  if (!(flags & 0x100) && !MdlReadLoadAnim(source, modelptr, flags, status)) {
+    return 0;
+  }
+  if (!MdlReadLoadNumMatrices(source, shared, flags)) {
+    return 0;
+  }
+  if (flags & 0x80) {
+    IModelEnableFullAlpha(modelptr, 1);
+  }
+  shared->collision = CollisionDataCreate(source);
+  return MdlReadLoadExtents(source, modelptr, shared) && MdlReadLoadPositions(source, flags, shared);
 }
 
 static int BuildModelFromMdlData(const MDLDATA& source, CModelBase* baseModel, CModelShared* shared, unsigned int flags, CStatus* status) {
-    // TODO: implement
+  MdlReadLoadGlobalProperties(source, shared, &flags);
+  if (!(baseModel->m_flags & 0x20)) {
+    return BuildSimpleModelFromMdlData(source, static_cast<CModelSimple *>(baseModel), shared, flags, status);
+  }
+
+  CModelComplex *modelptr = static_cast<CModelComplex *>(baseModel);
+  if (!MdlReadLoadModel(source, modelptr, shared, flags, status)) {
     return 0;
+  }
+  if (!(flags & 0x100) &&
+      (!MdlReadLoadAnim(source, baseModel, flags, status) ||
+       !MdlReadLoadRibbonEmitters(source, modelptr, shared))) {
+    return 0;
+  }
+  if (!MdlReadLoadEmitters2(source, modelptr, shared, flags, status) ||
+      !MdlReadLoadNumMatrices(source, shared, flags)) {
+    return 0;
+  }
+  if ((flags & 0x20) && !MdlReadLoadHitTestData(source, modelptr, shared)) {
+    return 0;
+  }
+  if (flags & 0x80) {
+    IModelEnableFullAlpha(baseModel, 1);
+  }
+  if (!(flags & 0x200) && !MdlReadLoadLights(source, modelptr)) {
+    return 0;
+  }
+  shared->collision = CollisionDataCreate(source);
+  return MdlReadLoadExtents(source, baseModel, shared) &&
+         MdlReadLoadPositions(source, flags, shared) &&
+         MdlReadCameras(source, &modelptr->m_cameras);
 }
 
 static HMATERIAL __fastcall BuildSimpleMaterial(

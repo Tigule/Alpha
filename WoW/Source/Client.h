@@ -49,5 +49,6 @@ void __fastcall ClientPostClose();
 void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError);
 void __fastcall UninstallGameConsoleCommands();
 void __fastcall UninstallGMCommands();
+void __fastcall InstallGMCommands();
 
 #endif

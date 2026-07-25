@@ -1,5 +1,6 @@
 #include "OsSound.h"
 
+#include "Gx/Gx.h"
 #include "Services/AsyncFileRead.h"
 
 typedef unsigned long DWORD_PTR;
@@ -81,7 +82,8 @@ static IDirectMusicPerformance8 *s_dmusicPerformance;
 static IDirectMusicSegment8     *s_dmusicSegment;
 static IDirectMusicAudioPath    *s_dmusicPath;
 static IDirectMusicCollection   *s_dmusicCollection;
-static unsigned int s_initialized;
+static unsigned char s_comInitialized;
+static unsigned char s_initialized;
 static ASYNCLOADER  s_MID;
 static ASYNCLOADER  s_DLS;
 
@@ -238,6 +240,51 @@ static void __fastcall InitLoader(ASYNCLOADER &loader, const char *fileName) {
       SFile::Close(file);
     }
   }
+}
+
+int __fastcall Sound::MIDI_Initialize() {
+  if (CoInitialize(0) == S_OK) {
+    s_comInitialized = 1;
+  }
+
+  HRESULT result = CoCreateInstance(
+      CLSID_DirectMusicPerformance,
+      0,
+      CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER,
+      IID_IDirectMusicPerformance8,
+      reinterpret_cast<void **>(&s_dmusicPerformance)
+  );
+  if (result == S_OK) {
+    result = s_dmusicPerformance->InitAudio(
+        0,
+        0,
+        reinterpret_cast<HWND>(GxDevWindow()),
+        0,
+        0,
+        63,
+        0
+    );
+    if (result == S_OK) {
+      result = s_dmusicPerformance->CreateStandardAudioPath(8, 16, true, &s_dmusicPath);
+    }
+  }
+  s_initialized = result == S_OK;
+  return s_initialized;
+}
+
+void __fastcall Sound::MIDI_Shutdown() {
+  MIDI_Stop();
+  MIDI_CleanupSegment();
+  if (s_dmusicPerformance) {
+    s_dmusicPerformance->CloseDown();
+    s_dmusicPerformance->Release();
+    s_dmusicPerformance = 0;
+  }
+  if (s_comInitialized) {
+    CoUninitialize();
+  }
+  s_MID.Clear();
+  s_DLS.Clear();
 }
 
 void __fastcall Sound::MIDI_Play(const char *midiFilename, const char *dlsFilename) {

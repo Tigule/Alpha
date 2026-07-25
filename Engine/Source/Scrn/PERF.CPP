@@ -6,6 +6,8 @@
 #include <Gxu/IGxuFont.h>
 #include <Os/OsNet.h>
 #include <Os/OsTime.h>
+#include <Os/W32/OSSystem.h>
+#include <Os/W32/Debugging.h>
 #include <Services/TextBlock.h>
 #include <Tempest/c3vector.h>
 #include <Tempest/cimvector.h>
@@ -103,6 +105,13 @@ static char *s_ProfRingBuf;
 static int s_ProfRingBufHead;
 static int s_ProfRingBufTail;
 static __int64 s_ProfRingFrame;
+static NETADDR s_ProfAddr;
+static SEvent *s_ProfStartupEvent;
+static SEvent *s_ProfShutdownEvent;
+static HNETCONN__ *s_ProfConn;
+static SThread *s_ProfThreadPtr;
+static long s_ProfStartup;
+static char s_hostNameList[64];
 
 void __stdcall HookRenderBegin(void *__formal) {
   ActivityBegin(ACTIVITY_RENDER);
@@ -388,30 +397,147 @@ void __fastcall IPerfResetTimePeaks() {
 }
 
 void __stdcall IPerfHostAddrProc(const NETADDR* addrs, unsigned long addrCount, void* user) {
-    // TODO: implement
+  if (addrCount) {
+    s_ProfAddr = addrs[0];
+    s_ProfStartupEvent->Set();
+  } else {
+    s_ProfShutdownEvent->Set();
+  }
 }
 
 int __stdcall ChatEventProc(HNETCONN__* conn, const NETCONNADDR* conAddr, NETNOTE note, void* user, const void* data, unsigned long bytes, unsigned long* bytesProcessed) {
-    // TODO: implement
-    return 0;
+  if (note == NETNOTE_CONNECT) {
+    s_ProfLock.Enter(1);
+    s_ProfConn = OsNetConnCopyHandle(conn);
+    s_ProfLock.Leave(1);
+    s_ProfStartupEvent->Set();
+    s_HasProfConn = 1;
+    return 1;
+  }
+  if (note == NETNOTE_DISCONNECT) {
+    if (s_ProfShutdownEvent) {
+      s_ProfShutdownEvent->Set();
+    }
+    s_ProfLock.Enter(1);
+    HNETCONN__ *old = static_cast<HNETCONN__ *>(SInterlockedExchangePointer(reinterpret_cast<void **>(&s_ProfConn), 0));
+    s_ProfLock.Leave(1);
+    if (old) {
+      OsNetConnFreeHandle(old);
+    }
+    s_HasProfConn = 0;
+    return 1;
+  }
+  if (note == NETNOTE_CANTCONNECT && s_ProfShutdownEvent) {
+    s_ProfShutdownEvent->Set();
+  }
+  return 0;
 }
 
 int __fastcall IPerfRemoteLoggingIni() {
-    // TODO: implement
+  SSyncObject *waitObjects[2] = {s_ProfStartupEvent, s_ProfShutdownEvent};
+  s_ProfStartupEvent->Reset();
+  if (!OsNetGetHostAddrs(s_hostNameList, 0, IPerfHostAddrProc, 0) ||
+      WaitMultiplePtr(2, waitObjects, 0, INFINITE) != 0) {
     return 0;
+  }
+
+  unsigned short port;
+  unsigned long address = OsNetAddrGetAddress(&s_ProfAddr, &port);
+  unsigned char connByte = 0x8E;
+  s_ProfStartupEvent->Reset();
+  OsTcpConnect(address, port, ChatEventProc, 0, &connByte, 1);
+  if (WaitMultiplePtr(2, waitObjects, 0, INFINITE) != 0) {
+    return 0;
+  }
+
+  s_HasProfServer = 1;
+  char username[16];
+  char computer[32];
+  unsigned long usernameSize = sizeof(username);
+  unsigned long computerSize = sizeof(computer);
+  OsGetUserName(username, &usernameSize);
+  OsGetComputerName(computer, &computerSize);
+  char message[260];
+  unsigned int usernameLength = SStrLen(username);
+  unsigned int computerLength = SStrLen(computer);
+  SStrCopy(message, username, sizeof(message));
+  SStrCopy(message + usernameLength + 1, computer, sizeof(message) - usernameLength - 1);
+  s_ProfLock.Enter(0);
+  if (s_ProfConn) {
+    OsTcpConnSend(s_ProfConn, message, usernameLength + computerLength + 2);
+  }
+  s_ProfLock.Leave(0);
+  IPerfRemoteQueuePerfLabels();
+  return 1;
 }
 
 void __fastcall IPerfGetFromBuffer(char*& buf1, long& len1, char*& buf2, long& len2) {
-    // TODO: implement
+  if (0x10000 - s_ProfRingBufTail < 4) {
+    s_ProfRingBufTail = 0;
+  }
+  char *record = s_ProfRingBuf + s_ProfRingBufTail;
+  unsigned int recordBytes = *reinterpret_cast<unsigned int *>(record);
+  buf1 = record + 4;
+  unsigned int remain = 0x10000 - s_ProfRingBufTail;
+  len1 = recordBytes - 4;
+  if (recordBytes <= remain) {
+    buf2 = 0;
+    len2 = 0;
+  } else if (remain == 4) {
+    buf1 = s_ProfRingBuf;
+    buf2 = 0;
+    len2 = 0;
+  } else {
+    len1 = remain - 4;
+    buf2 = s_ProfRingBuf;
+    len2 = recordBytes - remain;
+  }
 }
 
 void __fastcall IPerfRemoteSendQueued() {
-    // TODO: implement
+  while (s_ProfRingBufHead != s_ProfRingBufTail) {
+    char *buf1;
+    char *buf2;
+    long len1;
+    long len2;
+    IPerfGetFromBuffer(buf1, len1, buf2, len2);
+    s_ProfLock.Enter(0);
+    if (s_ProfConn) {
+      OsTcpConnSend(s_ProfConn, buf1, len1);
+    }
+    s_ProfLock.Leave(0);
+    if (buf2) {
+      ASSERT(len2 > 0);
+      s_ProfLock.Enter(0);
+      if (s_ProfConn) {
+        OsTcpConnSend(s_ProfConn, buf2, len2);
+      }
+      s_ProfLock.Leave(0);
+    }
+    s_ProfRingBufTail = (s_ProfRingBufTail + len1 + len2 + 4) & 0xFFFF;
+  }
 }
 
 unsigned int __stdcall IPerfRemoteLoggingThread(void*) {
-    // TODO: implement
-    return 0;
+  if (IPerfRemoteLoggingIni()) {
+    SSyncObject *waitObjects[2] = {s_ProfShutdownEvent, s_ProfRequestEnqueuedEvent};
+    unsigned long waitResult;
+    while ((waitResult = WaitMultiplePtr(2, waitObjects, 0, INFINITE)) != 0) {
+      if (waitResult != 1) {
+        break;
+      }
+      IPerfRemoteSendQueued();
+      s_ProfRequestEnqueuedEvent->Reset();
+    }
+    s_ProfLock.Enter(1);
+    HNETCONN__ *old = static_cast<HNETCONN__ *>(SInterlockedExchangePointer(reinterpret_cast<void **>(&s_ProfConn), 0));
+    s_ProfLock.Leave(1);
+    if (old) {
+      OsNetConnFreeHandle(old);
+    }
+    OsOutputDebugString("Exiting perf server thread.\n");
+  }
+  return 0;
 }
 
 int __fastcall IPerfRemoteSpaceAvail(unsigned long size) {
@@ -570,13 +696,49 @@ void __fastcall IPerfRemoteQueueLogString(const char *prompt) {
 }
 
 int __fastcall IPerfRemoteLoggingStartup() {
-    // TODO: implement
-    return 0;
+  if (SInterlockedIncrement(&s_ProfStartup) <= 1) {
+    if (!SRegLoadString("Internal", "Engine\\PerfServ", 0, s_hostNameList, sizeof(s_hostNameList))) {
+      s_hostNameList[0] = 0;
+      SRegSaveString("Internal", "Engine\\PerfServ", 0, s_hostNameList);
+    }
+    if (!s_hostNameList[0]) {
+      SInterlockedDecrement(&s_ProfStartup);
+      return 0;
+    }
+    OsNetInitialize(0, 0);
+    s_ProfRingBuf = static_cast<char *>(SMemAlloc(0x10000, __FILE__, __LINE__, 0));
+    s_ProfRingBufHead = s_ProfRingBufTail = 0;
+    s_ProfStartupEvent = NEW(SEvent)(1, 0);
+    s_ProfShutdownEvent = NEW(SEvent)(1, 0);
+    s_ProfRequestEnqueuedEvent = NEW(SEvent)(1, 0);
+    s_ProfThreadPtr = NEW(SThread)();
+    SThread::Create(IPerfRemoteLoggingThread, s_ProfThreadPtr, *s_ProfThreadPtr, "PerfLog");
+  }
+  return 1;
 }
 
 int __fastcall IPerfRemoteLoggingShutdown() {
-    // TODO: implement
-    return 0;
+  if (s_ProfStartup && !SInterlockedDecrement(&s_ProfStartup)) {
+    s_HasProfServer = 0;
+    s_HasProfConn = 0;
+    OsOutputDebugString("Closing perf server.\n");
+    OsNetDestroy(0);
+    ASSERT(s_ProfShutdownEvent);
+    s_ProfShutdownEvent->Set();
+    SSyncObject *thread = s_ProfThreadPtr;
+    WaitMultiplePtr(1, &thread, 1, INFINITE);
+    DEL(s_ProfThreadPtr);
+    s_ProfThreadPtr = 0;
+    SMemFree(s_ProfRingBuf, __FILE__, __LINE__, 0);
+    s_ProfRingBuf = 0;
+    DEL(s_ProfStartupEvent);
+    DEL(s_ProfShutdownEvent);
+    DEL(s_ProfRequestEnqueuedEvent);
+    s_ProfStartupEvent = 0;
+    s_ProfShutdownEvent = 0;
+    s_ProfRequestEnqueuedEvent = 0;
+  }
+  return 1;
 }
 
 void __fastcall ScrnPerfEnable(int enable) {
@@ -588,13 +750,11 @@ int __fastcall ScrnPerfIsEnabled() {
 }
 
 int __fastcall ScrnPerfRemoteShutdown() {
-    // TODO: implement
-    return 0;
+  return IPerfRemoteLoggingShutdown();
 }
 
 int __fastcall ScrnPerfRemoteStartup() {
-    // TODO: implement
-    return 0;
+  return IPerfRemoteLoggingStartup();
 }
 
 void __fastcall ScrnPerfRemoteSetMode(PERF_REMOTE_MODE mode) {

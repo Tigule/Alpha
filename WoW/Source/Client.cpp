@@ -33,6 +33,7 @@
 #include "Object/ObjectClient/Unit_C.h"
 #include "Object/ObjectClient/ZoneDebug.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "UIUtil/Tooltip.h"
 #include "SoundInterface/SoundInterface.h"
 #include "Ui/ChatFrame.h"
 #include "Ui/GameUI.h"
@@ -271,8 +272,28 @@ static int __fastcall ClientChannelListHandler(void *, NETMESSAGE, unsigned long
 }
 
 static int DebugAIStateHandler(void*, NETMESSAGE msgID, unsigned long timestamp, CDataStore* msg) {
-    // TODO: implement
-    return 0;
+  CGTooltip *tooltip = CGGameUI::m_gameTooltip;
+  unsigned __int64 unit;
+  msg->Get(unit);
+  if (tooltip && tooltip->GetDebugUnit() != unit) {
+    tooltip = 0;
+  }
+
+  int count;
+  msg->Get(count);
+  for (int i = 0; i < count; ++i) {
+    char string[128];
+    msg->GetString(string, sizeof(string));
+    if (tooltip) {
+      tooltip->AddLine(string, 0, 0);
+    }
+  }
+
+  if (tooltip) {
+    tooltip->CalculateSize();
+    tooltip->SetDebugUnit(0);
+  }
+  return 1;
 }
 
 static int __fastcall MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
@@ -1276,24 +1297,20 @@ void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError) {
 }
 
 unsigned int __fastcall Bot_QueryAreaId(float x, float y) {
-    // TODO: implement
-    return 0;
+  return CWorld::QueryAreaId(x, y);
 }
 
 int __fastcall Bot_GetWanderPoint(const NTempest::C3Vector&, float, const NTempest::C3Vector&, const NTempest::C3Vector&, float, NTempest::C3Vector&) {
-    // TODO: implement
-    return 0;
+  return 0;
 }
 
 void __fastcall BotClientSetAccount(const char *, const char *) {
 }
 
 void __fastcall BotClientAddKnownSpell(CGPlayer_C*, int) {
-    // TODO: implement
 }
 
 void __fastcall BotClientLoseTarget(const CGUnit_C*) {
-    // TODO: implement
 }
 
 static void __fastcall LogZoneInfo(CGPlayer_C *player, char *log, unsigned long size) {

@@ -40,11 +40,14 @@ void __fastcall SoundInterfaceInitializeWorldMIDICVars() {
 }
 
 void __fastcall SoundInterfaceInitializeWorldMIDI() {
-    // TODO: implement
+  SoundInterfaceInitializeWorldMIDICVars();
+  Sound::MIDI_Initialize();
+  s_ambienceRecNormal = 0;
+  s_ambienceRecUnderwater = 0;
 }
 
 void __fastcall SoundInterfaceShutdownWorldMIDI() {
-    // TODO: implement
+  Sound::MIDI_Shutdown();
 }
 
 static void __fastcall StartAmbience() {
@@ -77,11 +80,13 @@ void __fastcall SndInterfaceSetMIDIArea(int normal, int underwater) {
 }
 
 void __fastcall SndInterfaceClearMIDI() {
-    // TODO: implement
+  s_ambienceRecNormal = 0;
+  s_ambienceRecUnderwater = 0;
+  Sound::MIDI_Stop();
 }
 
 void __fastcall SndInterfaceMIDIAmbienceChanged() {
-    // TODO: implement
+  StartAmbience();
 }
 
 void __fastcall SndInterfaceMIDIUnderwaterChanged() {

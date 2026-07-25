@@ -18,15 +18,49 @@
 
 bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
 void __fastcall ClntObjMgrHideObject(unsigned __int64 guid);
+void __fastcall ClntObjMgrShowObject(unsigned __int64 guid);
+
+class CGContainerInfo {
+ public:
+  static void __fastcall UpdateContents(unsigned __int64 guid);
+  static void __fastcall UpdateItem(unsigned __int64 guid);
+};
+
+class CGActionBar {
+ public:
+  static void __fastcall UpdateItem(int entryID);
+};
 
 static int OnUpdateOwner(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
-    // TODO: implement
-    return 0;
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  FATALASSERT(item);
+  FATALASSERT(prevValue);
+  unsigned __int64 previousOwner = *static_cast<const unsigned __int64 *>(prevValue);
+  unsigned __int64 owner = item->GetOwner();
+  if (previousOwner && !owner) {
+    ClntObjMgrShowObject(guid);
+    item->AddWorldObject();
+  } else if (!previousOwner && owner) {
+    ClntObjMgrHideObject(guid);
+    item->RemoveWorldObject();
+  }
+  if (previousOwner == ClntObjMgrGetActivePlayer() ||
+      owner == ClntObjMgrGetActivePlayer()) {
+    CGActionBar::UpdateItem(item->GetEntryID());
+    CGContainerInfo::UpdateItem(guid);
+  }
+  return 1;
 }
 
 static int OnUpdateStackCount(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
-    // TODO: implement
-    return 0;
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  FATALASSERT(item);
+  if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
+    CGGameUI::UnlockItem(guid);
+    CGActionBar::UpdateItem(item->GetEntryID());
+    CGContainerInfo::UpdateItem(guid);
+  }
+  return 1;
 }
 
 CGItem_C::~CGItem_C() {
@@ -40,17 +74,33 @@ static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryTextures;
 static HASHKEY_NONE                            s_nullInventoryArtKey;
 
 static int OnUpdateEnchantments(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
-    // TODO: implement
-    return 0;
+  CGItem_C *item = static_cast<CGItem_C *>(
+      ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  if (item) {
+    item->UpdateEnchantments();
+  }
+  return 1;
 }
 
-static void ItemIDChangedCacheCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
-    // TODO: implement
+static void __fastcall ItemIDChangedCacheCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  if (item && item->GetOwner() == ClntObjMgrGetActivePlayer()) {
+    CGContainerInfo::UpdateContents(item->GetContainedIn());
+  }
 }
 
 static int OnUpdateItemID(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
-    // TODO: implement
-    return 0;
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  FATALASSERT(item);
+  FATALASSERT(prevValue);
+  if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
+    const ItemStats_C *stats = g_itemDBCache.GetRecord(
+        item->GetEntryID(), guid, ItemIDChangedCacheCallback, 0);
+    if (stats) {
+      CGContainerInfo::UpdateContents(item->GetContainedIn());
+    }
+  }
+  return 1;
 }
 
 static void __fastcall AddInventoryArtHash(unsigned int displayID, const char *fileName) {
@@ -89,8 +139,15 @@ CGItem_C::CGItem_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
   }
 }
 
-static void LoadItemCacheCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
-    // TODO: implement
+static void __fastcall LoadItemCacheCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  if (!item || !granted) {
+    return;
+  }
+  if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
+    CGContainerInfo::UpdateContents(item->GetContainedIn());
+    CGActionBar::UpdateItem(item->GetEntryID());
+  }
 }
 
 const char *__fastcall CGItem_C::GetInventoryArt(int displayID) {

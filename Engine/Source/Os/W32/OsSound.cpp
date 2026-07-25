@@ -161,7 +161,7 @@ struct InitParams {
   int   cacheSizeMB;
 };
 
-bool(__fastcall *Sound::m_positionUpdateCallback)(__int64, NTempest::C3Vector &);
+unsigned char(__fastcall *Sound::m_positionUpdateCallback)(__int64, NTempest::C3Vector &);
 
 static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, void *buff, int len, int param);
 static void *__stdcall       FSoundAllocCallback(unsigned int size);

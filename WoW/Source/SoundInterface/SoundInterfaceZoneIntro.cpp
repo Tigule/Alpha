@@ -1,5 +1,6 @@
 #include "SoundInterface.h"
 
+#include "Console/ConsoleCommand.h"
 #include "SoundInterface/ISoundInterface.h"
 #include <Os/OsTime.h>
 
@@ -10,20 +11,24 @@ static Sound *s_sound;
 static int    s_priority = -1;
 
 void __fastcall SndInterfaceZoneIntroIdler() {
-    // TODO: implement
+  if (s_sound && !s_sound->IsPlaying()) {
+    Sound::KillSound(s_sound);
+  }
 }
 
-static int CCommand_ZoneIntroReset(const char* command, const char* arguments) {
-    // TODO: implement
-    return 0;
+static int __fastcall CCommand_ZoneIntroReset(const char* command, const char* arguments) {
+  s_lastPlayTime = -1;
+  return 1;
 }
 
 void __fastcall SndInterfaceZoneIntroInitialize() {
-    // TODO: implement
+  ConsoleCommandRegister("zoneintroreset", CCommand_ZoneIntroReset, DEBUG, 0);
 }
 
 void __fastcall SndInterfaceZoneIntroDestroy() {
-    // TODO: implement
+  Sound::KillSound(s_sound);
+  s_lastPlayTime = -1;
+  ConsoleCommandUnregister("zoneintroreset");
 }
 
 void __fastcall SndInterfaceRegisterNewZoneIntro(int soundID, int priority) {

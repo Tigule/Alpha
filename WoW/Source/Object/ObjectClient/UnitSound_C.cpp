@@ -1,6 +1,8 @@
 #include "Object/ObjectClient/Unit_C.h"
 
 #include "Client.h"
+#include "Console/ConsoleCommand.h"
+#include "Console/ConsoleVar.h"
 #include "DB/DBClient/AutoCode/CreatureSoundDataRec.h"
 #include "DB/DBClient/AutoCode/CreatureModelDataRec.h"
 #include "DB/DBClient/AutoCode/DeathThudLookupsRec.h"
@@ -24,6 +26,7 @@ static TSFixedArray<DEATTHUDSOUNDINFO> s_deathThudSounds[5];
 static unsigned int s_unitSoundTimeouts[16] = {0, 0, 0, 0, 0, 0, 0, 10000, 0, 0, 0, 0, 0, 0, 0, 0};
 static unsigned int s_unitSoundChances[16] = {70, 100, 60, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 static unsigned int s_unitSoundTimers[16];
+static CVar        *s_footstepSoundCVar;
 static int          soundDataOffsets[16] = {4, 8, 12, 16, 24, 28, 32, 0, 36, 40, 44, 52, 20, 48, 100, 104};
 
 int __fastcall GetSoundID(CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
@@ -34,8 +37,9 @@ int __fastcall GetSoundID(CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundTy
 }
 
 int __fastcall GetFidgetSoundID(const CreatureSoundDataRec* soundData, unsigned int soundType) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(soundData);
+  FATALASSERT(soundType < 4);
+  return soundData->m_soundFidget[soundType];
 }
 
 static int __fastcall CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
@@ -69,11 +73,18 @@ void __fastcall ClearDeathThudSounds() {
 }
 
 void __fastcall UnitSoundShutdown() {
-    // TODO: implement
+  ClearDeathThudSounds();
+  SndInterfaceClearPositionCallback();
 }
 
 void __fastcall UnitSoundInitialize() {
-    // TODO: implement
+  GenerateDeathThudSounds();
+  SndInterfaceSetPositionCallback();
+  unsigned long currentTime = OsGetAsyncTimeMs();
+  for (unsigned int i = 0; i < 16; ++i) {
+    s_unitSoundTimers[i] = currentTime;
+  }
+  s_footstepSoundCVar = CVar::Register("FootstepSounds", 0, 0, "1", 0, DEFAULT, false, 0);
 }
 
 int __fastcall CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {

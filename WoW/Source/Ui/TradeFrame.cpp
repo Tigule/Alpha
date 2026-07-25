@@ -5,6 +5,7 @@
 #include "DB/DBClient/DBClient.h"
 #include "DB/WowLocale.h"
 #include "Object/ItemStats.h"
+#include "Object/ObjectClient/Bag_C.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 
@@ -18,6 +19,7 @@ int __fastcall          Trade_C_UseCursorItem();
 int __fastcall          Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot);
 unsigned int __fastcall Trade_C_GetPlayerTradeGold();
 unsigned int __fastcall Trade_C_GetTargetTradeGold();
+unsigned __int64 __fastcall Trade_C_GetTradeTarget();
 bool __fastcall         Trade_C_AddItem(unsigned __int64 item, unsigned __int64 itemContainer, unsigned int itemSlot, unsigned int tradeSlot);
 void __fastcall         Trade_C_RemoveItem(unsigned int slot);
 void __fastcall         Trade_C_AcceptTrade();
@@ -37,6 +39,25 @@ struct TradeItemData {
   unsigned __int64 creator;
 };
 
+enum TRADE_STATUS {
+  TRADE_STATUS_PLAYER_BUSY = 0,
+  TRADE_STATUS_PROPOSED = 1,
+  TRADE_STATUS_INITIATED = 2,
+  TRADE_STATUS_CANCELLED = 3,
+  TRADE_STATUS_ACCEPTED = 4,
+  TRADE_STATUS_ALREADY_TRADING = 5,
+  TRADE_STATUS_PLAYER_NOT_FOUND = 6,
+  TRADE_STATUS_STATE_CHANGED = 7,
+  TRADE_STATUS_COMPLETE = 8,
+  TRADE_STATUS_UNACCEPTED = 9,
+  TRADE_STATUS_TOO_FAR_AWAY = 10,
+  TRADE_STATUS_WRONG_FACTION = 11,
+  TRADE_STATUS_FAILED = 12,
+  TRADE_STATUS_DEAD = 13,
+  TRADE_STATUS_PETITION = 14,
+  TRADE_STATUS_PLAYER_IGNORED = 15
+};
+
 class CGTradeInfo {
  public:
   static void __fastcall             EnterWorld();
@@ -46,11 +67,10 @@ class CGTradeInfo {
   static void __fastcall             Update(TradeItemData *items);
   static void __fastcall             PlayerAccept(int accept);
   static void __fastcall             TargetAccept(int accept);
+  static void __fastcall             HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
   static int __fastcall              SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned int slot);
   static void __fastcall             GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned int &slot);
-  static int __fastcall              GetTargetTradeItem(int index) {
-    return index >= 0 && index < 8 ? m_targetItems[index] : 0;
-  }
+  static int __fastcall              GetTargetTradeItem(int index);
   static int __fastcall GetTargetTradeItemCount(int index) {
     return index >= 0 && index < 8 ? m_targetItemCount[index] : 0;
   }
@@ -98,6 +118,46 @@ int              CGTradeInfo::m_playerEnchantSlot = -1;
 int              CGTradeInfo::m_targetEnchantSlot = -1;
 unsigned int     CGTradeInfo::m_playerMoney;
 unsigned int     CGTradeInfo::m_targetMoney;
+
+int __fastcall CGTradeInfo::GetTargetTradeItem(int index) {
+  return index >= 0 && index < 8 ? m_targetItems[index] : 0;
+}
+
+void __fastcall CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID) {
+  switch (status) {
+    case TRADE_STATUS_INITIATED:
+      SetTradePartner(Trade_C_GetTradeTarget());
+      break;
+    case TRADE_STATUS_CANCELLED:
+      FrameScript_SignalEvent(267);
+      SetTradePartner(0);
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(172));
+      break;
+    case TRADE_STATUS_ACCEPTED:
+      PlayerAccept(1);
+      TargetAccept(1);
+      break;
+    case TRADE_STATUS_STATE_CHANGED:
+      TargetAccept(1);
+      break;
+    case TRADE_STATUS_COMPLETE:
+      SetTradePartner(0);
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(173));
+      break;
+    case TRADE_STATUS_UNACCEPTED:
+      PlayerAccept(0);
+      TargetAccept(0);
+      break;
+    case TRADE_STATUS_TOO_FAR_AWAY:
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(171));
+      break;
+    case TRADE_STATUS_WRONG_FACTION:
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(229));
+      break;
+    default:
+      break;
+  }
+}
 
 void __fastcall TradeItemStatsCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {

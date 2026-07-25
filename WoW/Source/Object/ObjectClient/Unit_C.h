@@ -233,9 +233,23 @@ struct ACTIVEATTACHMENTINFO {
 };
 
 enum UNITSOUNDTYPE {
+  UNITSOUNDTYPE_EXERTION = 0,
+  UNITSOUNDTYPE_EXERTIONCRITICAL = 1,
+  UNITSOUNDTYPE_INJURY = 2,
+  UNITSOUNDTYPE_INJURYCRITICAL = 3,
+  UNITSOUNDTYPE_DEATH = 4,
+  UNITSOUNDTYPE_STUN = 5,
+  UNITSOUNDTYPE_STAND = 6,
+  UNITSOUNDTYPE_DEATHTHUD = 7,
+  UNITSOUNDTYPE_FOOTFALL = 8,
   UNITSOUND_AGGRO = 9,
+  UNITSOUNDTYPE_WINGFLAP = 10,
   UNITSOUND_ALERT = 11,
-  UNITSOUND_JUMP_END = 15
+  UNITSOUNDTYPE_INJURYCRUSHINGBLOW = 12,
+  UNITSOUNDTYPE_WINGGLIDE = 13,
+  UNITSOUNDTYPE_JUMPSTART = 14,
+  UNITSOUND_JUMP_END = 15,
+  NUM_UNITSOUNDTYPES = 16
 };
 
 enum AI_REACTION {
@@ -523,6 +537,7 @@ class CGUnit_C : public CGObject_C {
   void               OnSetRawFacingLocal(unsigned long eventTime, float facing);
   void               OnSetPitchLocal(unsigned long eventTime, float pitch);
   void               OnRunSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID, float speed);
+  void               OnWalkSpeedChangeLocal(unsigned long eventTime, float speed);
   void               OnSwimSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID, float speed);
   void               OnAllSpeedChangeLocal(unsigned long eventTime, float speed);
   void               OnTurnRateChangeLocal(unsigned long eventTime, float rate);
@@ -536,8 +551,18 @@ class CGUnit_C : public CGObject_C {
   void               BuildMovementUpdate(NETMESSAGE messageId, CDataStore *msg) const;
   void               SendMovementUpdate(NETMESSAGE messageId);
   void               StopSpellFizzleTimer(int spellID, unsigned char status);
+  void               SpellDelayed(unsigned int delay);
   void               EndSpellEffects(unsigned char status);
   int                SetCastingSpell(int spellID, unsigned int force, unsigned int precastAnimSuccessful);
+  bool               SetSpellCastingAnimation(ANIMENUMERATION anim, unsigned int castKit, unsigned int soundID, int shakeID, ANIMENUMERATION &result);
+  void               ClearSpellCastAnimInfo();
+  void               AddHitAnimHolds(int spellID, const TSStackArray<unsigned __int64> &targets);
+  void               MaybeSaveChannelSpellTargets(int spellID, const TSStackArray<unsigned __int64> &targets);
+  void               StoreSpellMissileEffect(
+      const unsigned __int64 &target, const NTempest::C3Vector &destination,
+      float speed, unsigned int ammoDisplayID, int inventoryType,
+      const SpellVisualRec *rec, bool hits, MISS_REASON reason,
+      unsigned int spellID, bool wasProc);
   int                GetCastingSpell() {
     return m_castingSpell;
   }
@@ -554,6 +579,9 @@ class CGUnit_C : public CGObject_C {
   void               HandleCastAnimEvent();
   void               HandleCombatAnimEvent(const char *eventName, unsigned long value, const NTempest::C3Vector &position);
   void               HandleAnimEvent(const char *eventName, const NTempest::C3Vector &pos);
+  void               HandleMountedAnimEvent(const char *eventName, const NTempest::C3Vector &pos);
+  UNITEFFECTSPECIALS DetermineBreathEffect(unsigned int *duration);
+  void               BreathHandler(int forceOnMount);
   void               HandlePlayStandSound(unsigned long code, const char *eventName);
   void               HandleFootfallAnimEvent(const NTempest::C3Vector &position);
   void               PlayFidgetSound(unsigned int fidgetNumber);
@@ -695,6 +723,7 @@ class CGUnit_C : public CGObject_C {
   unsigned __int64 TrackingTargetMoving();
   void             SetWeaponMode(WEAPONMODE mode);
   void             ClearRangedStandTimer();
+  void             SetRangedStandTimer();
   void             DetermineReadySequence(unsigned int forceNormal);
   void             OnCombatModeTimer();
   void             AttackUnit(CGUnit_C *newVictim);

@@ -41,9 +41,9 @@ static int __fastcall  OneShotEndHandler(void *param);
 static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
 static int __fastcall  PurgeTimerHandler(const void *timerData, void *userData);
 void __fastcall        UnitEffectOneShot(
-    SpellVisualEffectNameRec       *effectRec,
-    NTempest::C3Vector             &location,
-    TSStackArray<unsigned __int64> *objects,
+    const SpellVisualEffectNameRec       *effectRec,
+    const NTempest::C3Vector             &location,
+    const TSStackArray<unsigned __int64> *objects,
     float                           facing,
     float                           scale
 );
@@ -93,7 +93,16 @@ void __fastcall PreloadModelsByKit(int record, CStatus *status) {
 }
 
 static void SpellAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
-    // TODO: implement
+  unsigned int event = *reinterpret_cast<const unsigned int *>(eventName);
+  if (event == 0x4B485324) {
+    SpellCameraShakeCallback(eventName + 1, position);
+  } else if (event == 0x444E5324 || event == 0x58444E53) {
+    SpellSoundEffectCallback(eventName + 1, position);
+  } else {
+    SysMsgPrintf(
+        SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|SpellAnimEventCallback|SpellAnimEventCallback", eventName
+    );
+  }
 }
 
 class NODEBASE {
@@ -190,7 +199,7 @@ static TInstanceAllocator<ONESHOTSTANDALONEEFFECTNODE>  s_freeStandaloneEffects(
 static TSList<MISSILENODE, TSGetLink<MISSILENODE> >     s_missiles;
 static TInstanceAllocator<MISSILENODE>                  s_freeMissiles(10);
 static CVar                                            *s_showEffectsStandalone;
-static int                                              s_specialEffects[43];
+unsigned int                                            g_specialSpellIDs[43];
 static unsigned int                                     s_purgeTimer;
 static int                                              s_purgeTime;
 
@@ -296,7 +305,8 @@ static int __fastcall OneShotEndHandler(void *param) {
 
   ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
   if (node->isCastEffect) {
-    delete node;
+    node->ReleaseDeathHolds();
+    DEL(node);
   }
   return 0;
 }
@@ -313,7 +323,26 @@ HMODEL __fastcall InitializeModel(const char *fileName, void(__fastcall *callbac
 }
 
 static void RenderModel(HMODEL__* model, const NTempest::C3Vector& position, const NTempest::C44Matrix& orientation, CGCamera* camera, float scale) {
-    // TODO: implement
+  if (!model || !camera || !ModelAdvanceTime(model)) {
+    return;
+  }
+
+  NTempest::C3Vector cameraPos = camera->Position();
+  NTempest::C3Vector cameraVector = camera->Up();
+  NTempest::C34Matrix basis(
+      orientation.a0, orientation.a1, orientation.a2,
+      orientation.b0, orientation.b1, orientation.b2,
+      orientation.c0, orientation.c1, orientation.c2,
+      position.x, position.y, position.z
+  );
+
+  if (ModelTestSphere(model, basis, scale, 0)) {
+    ModelAnimate(model, basis, scale, cameraPos, cameraVector);
+    ModelProcessEvents(model, basis);
+    ModelAddToScene(model, 0);
+  } else {
+    ModelProcessEvents(model, basis);
+  }
 }
 
 int __fastcall GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID) {
@@ -666,7 +695,14 @@ static int __fastcall PurgeTimerHandler(const void *timerData, void *userData) {
 }
 
 void __fastcall UnitEffectClear(CGObject_C* object) {
-    // TODO: implement
+  if (object) {
+    unsigned __int64 guid = object->GetGUID();
+    CHashKeyGUID key(guid);
+    UNITONESHOTEFFECTDESC *desc = s_oneShotEffects.Ptr(static_cast<unsigned int>(guid), key);
+    if (desc) {
+      s_oneShotEffects.Delete(desc);
+    }
+  }
 }
 
 void __fastcall UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
@@ -691,7 +727,7 @@ void __fastcall UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
 }
 
 int __fastcall UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber) {
-  return s_specialEffects[effectNumber];
+  return g_specialSpellIDs[effectNumber];
 }
 
 static void __fastcall SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position) {
@@ -756,7 +792,7 @@ void __fastcall UnitEffectOneShot(
   char fileName[MAX_PATH];
   DecorateEffectFilename(effect->m_fileName, effect->m_VisualEffectNameFlags & 8, object, fileName, sizeof(fileName));
 
-  ONESHOTEFFECTNODE *newEffectNode = new ONESHOTEFFECTNODE;
+  ONESHOTEFFECTNODE *newEffectNode = NEW(ONESHOTEFFECTNODE);
   unitEffectDesc->m_effects.LinkNode(newEffectNode, LIST_HEAD, 0);
   newEffectNode->spellID = spellID;
   newEffectNode->isCastEffect = isCastEffect;
@@ -775,13 +811,16 @@ void __fastcall UnitEffectOneShot(
       HandleClose(objectModel);
       return;
     }
+    DEL(newEffectNode);
+    HandleClose(objectModel);
+    return;
   }
 
   if (model) {
     HandleClose(model);
   }
   HandleClose(heldObjectModel);
-  unitEffectDesc->m_effects.DeleteNode(newEffectNode);
+  DEL(newEffectNode);
   HandleClose(objectModel);
 }
 
@@ -802,9 +841,9 @@ HMODEL __fastcall UnitEffectCreateAuraModel(unsigned int effectID) {
 }
 
 void __fastcall UnitEffectOneShot(
-    SpellVisualEffectNameRec       *effectRec,
-    NTempest::C3Vector             &location,
-    TSStackArray<unsigned __int64> *objects,
+    const SpellVisualEffectNameRec       *effectRec,
+    const NTempest::C3Vector             &location,
+    const TSStackArray<unsigned __int64> *objects,
     float                           facing,
     float                           scale
 ) {
@@ -974,7 +1013,7 @@ void __fastcall UnitEffectOneShot(
   if (target && effectNumber < 43) {
     CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
     if (object) {
-      int                       effectID = s_specialEffects[effectNumber];
+      int                       effectID = g_specialSpellIDs[effectNumber];
       SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
       if (effectRec) {
         if (effectRec->m_specialAttachPoint == 4) {

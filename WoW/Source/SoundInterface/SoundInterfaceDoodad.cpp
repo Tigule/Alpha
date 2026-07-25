@@ -1,4 +1,7 @@
 #include "SoundInterface.h"
+#include "ISoundInterface.h"
+
+#include <Event/EvtApi.h>
 
 struct LOOPEDDOODADDESC {
   LOOPEDDOODADDESC() : posInUseFlags(0), soundID(-1), sound(0), currentIndex(0) {
@@ -16,6 +19,7 @@ struct LOOPEDDOODADDESC {
 };
 
 static LOOPEDDOODADDESC s_doodadLoopedInfo[8];
+static int              s_elapsed;
 
 static LOOPEDDOODADDESC *__fastcall FindFreeDoodadLoop(int soundID, int &freeSlot, int &soundIndex) {
   LOOPEDDOODADDESC *freeDoodadLoop = 0;
@@ -49,16 +53,90 @@ static LOOPEDDOODADDESC *__fastcall FindFreeDoodadLoop(int soundID, int &freeSlo
 }
 
 int __fastcall DoodadLoopHandler(const void* dataPtr, void* param) {
-    // TODO: implement
-    return 0;
+  s_elapsed += static_cast<int>(*static_cast<const float *>(dataPtr) * 1000.0f);
+  NTempest::C3Vector listener(0.0f);
+  Sound::GetListenerPosition(listener);
+  for (unsigned int i = 0; i < 8; ++i) {
+    s_doodadLoopedInfo[i].Update(listener);
+  }
+  return 1;
 }
 
 void __fastcall SoundInterfaceDoodadInitialize() {
-    // TODO: implement
+  EventRegister(EVENT_ID_IDLE, DoodadLoopHandler);
 }
 
 void __fastcall SoundInterfaceDoodadDestroy() {
-    // TODO: implement
+  EventUnregister(EVENT_ID_IDLE, DoodadLoopHandler);
+  for (unsigned int i = 0; i < 8; ++i) {
+    Sound::KillSound(s_doodadLoopedInfo[i].sound);
+    s_doodadLoopedInfo[i].soundID = -1;
+  }
+}
+
+void LOOPEDDOODADDESC::Update(const NTempest::C3Vector &listener) {
+  if (!posInUseFlags) {
+    soundID = -1;
+  }
+  if (soundID == -1) {
+    Sound::KillSound(sound);
+    return;
+  }
+
+  int closestIndex = GetClosestIndex(listener);
+  ASSERT(closestIndex >= 0 && closestIndex < 8);
+
+  if (sound && (sound->IsOutOfRange() || sound->IsPlaying())) {
+    if (currentIndex != closestIndex) {
+      sound->SetPosition(pos[closestIndex], 0);
+      currentIndex = closestIndex;
+    }
+    return;
+  }
+
+  SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
+  if (!definition) {
+    return;
+  }
+
+  const char *filename = definition->GetRandomFileName(-1);
+  if (filename && *filename) {
+    if (!sound) {
+      sound = Sound::Play3DLooped(
+          SOUNDCATEGORY_NONE,
+          filename,
+          definition->GetOsFlags() | 4,
+          0,
+          true
+      );
+    }
+    if (sound) {
+      definition->SetFrequencyAndVolume(sound, 1.0f, false);
+      definition->Set3DParams(sound, &pos[closestIndex]);
+      if (!sound->SetPaused(false)) {
+        Sound::KillSound(sound);
+      }
+    }
+  }
+  currentIndex = closestIndex;
+}
+
+int LOOPEDDOODADDESC::GetClosestIndex(const NTempest::C3Vector &listener) {
+  int   closestIndex = -1;
+  float closest = 0.0f;
+  for (int i = 0; i < 8; ++i) {
+    if (posInUseFlags & (1 << i)) {
+      float x = listener.x - pos[i].x;
+      float y = listener.y - pos[i].y;
+      float z = listener.z - pos[i].z;
+      float distanceSquared = x * x + y * y + z * z;
+      if (closestIndex == -1 || distanceSquared < closest) {
+        closest = distanceSquared;
+        closestIndex = i;
+      }
+    }
+  }
+  return closestIndex;
 }
 
 int LOOPEDDOODADDESC::FindFreeSlot() const {

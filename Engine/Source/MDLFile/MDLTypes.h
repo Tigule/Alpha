@@ -7,6 +7,9 @@
 
 #include <stpl.h>
 
+#ifndef MDL_COMMON_TYPES_DEFINED
+#define MDL_COMMON_TYPES_DEFINED
+
 template <unsigned int Length>
 struct CMdlString {
   operator char *() {
@@ -33,6 +36,8 @@ struct CMdlBounds {
   NTempest::CAaBox extent;
   float            radius;
 };
+
+#endif
 
 struct MDLTEXTURESECTION {
   unsigned int    replaceableId;
@@ -193,16 +198,101 @@ struct MDLCOLLISION {
   TSGrowableArray<NTempest::C3Vector> facetNormals;
 };
 
-struct MDLSEQUENCESSECTION;
+namespace NTempest {
+#ifndef MDL_CIRANGE_DEFINED
+#define MDL_CIRANGE_DEFINED
+struct CiRange {
+  int l;
+  int h;
+};
+#endif
+}
+
+struct MDLSEQUENCESSECTION {
+  CMdlString<80>    name;
+  NTempest::CiRange time;
+  float             movespeed;
+  unsigned int      flags;
+  CMdlBounds        bounds;
+  float             frequency;
+  NTempest::CiRange replay;
+  unsigned int      blendTime;
+};
 struct MDLGLOBALSEQSECTION;
-struct MDLTEXANIMSECTION;
-struct MDLBONESECTION;
+struct MDLTEXANIMSECTION {
+  MDLKEYTRACK<NTempest::C3Vector>     transkeys;
+  MDLKEYTRACK<NTempest::C4Quaternion> rotkeys;
+  MDLKEYTRACK<NTempest::C3Vector>     scalekeys;
+};
+struct MDLBONESECTION : public MDLGENOBJECT {
+  unsigned int geosetId;
+  unsigned int geosetAnimId;
+};
 struct MDLLIGHTSECTION;
 struct MDLPARTICLEEMITTER;
-struct MDLCAMERASECTION;
+struct MDLTARGETSECTION {
+  NTempest::C3Vector                  pivot;
+  MDLKEYTRACK<NTempest::C3Vector>     transkeys;
+};
+#pragma once
+
+struct MDLCAMERASECTION {
+  CMdlString<80>                      name;
+  NTempest::C3Vector                  pivot;
+  float                               fieldOfView;
+  float                               farClip;
+  float                               nearClip;
+  MDLKEYTRACK<NTempest::C3Vector>     transkeys;
+  MDLKEYTRACK<float>                  rollkeys;
+  MDLTARGETSECTION                    target;
+  MDLKEYTRACK<float>                  visibilityKeys;
+};
 struct MDLEVENTSECTION;
 struct MDLPARTICLEEMITTER2;
-struct MDLHITTESTSHAPE;
+enum GEOM_SHAPE {
+  SHAPE_BOX = 0,
+  SHAPE_CYLINDER = 1,
+  SHAPE_SPHERE = 2,
+  SHAPE_PLANE = 3,
+  NUM_SHAPES = 4
+};
+
+struct MDLVECTOR3 {
+  float x;
+  float y;
+  float z;
+};
+
+struct MDLBOX {
+  MDLVECTOR3 minimum;
+  MDLVECTOR3 maximum;
+};
+
+struct MDLCYLINDER {
+  MDLVECTOR3 base;
+  float      height;
+  float      radius;
+};
+
+struct MDLSPHERE {
+  MDLVECTOR3 center;
+  float      radius;
+};
+
+struct MDLPLANE {
+  float length;
+  float width;
+};
+
+struct MDLHITTESTSHAPE : public MDLGENOBJECT {
+  GEOM_SHAPE type;
+  union {
+    MDLBOX      box;
+    MDLCYLINDER cylinder;
+    MDLSPHERE   sphere;
+    MDLPLANE    plane;
+  } shape;
+};
 struct MDLRIBBONEMITTER;
 
 struct MDLBASE {

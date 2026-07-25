@@ -2,12 +2,11 @@
 
 #include "Gx/CGxDevice.h"
 #include "Gxu/IGxuLight.h"
-
-struct MDLDATA;
+#include "MDLFile/MDLTypes.h"
 
 unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
-static unsigned long __fastcall CreateGxLight(unsigned char *lightData) {
+static unsigned long __fastcall CreateGxLight(const unsigned char *lightData) {
   unsigned long lightId = GxuLightCreate();
   if (!lightId) {
     return 0;
@@ -15,11 +14,11 @@ static unsigned long __fastcall CreateGxLight(unsigned char *lightData) {
 
   CGxLight *light = GxuLightLock(lightId);
   if (light) {
-    unsigned int   staticDataOffset = *reinterpret_cast<unsigned int *>(lightData);
-    unsigned char *staticData = lightData + staticDataOffset;
+    unsigned int   staticDataOffset = *reinterpret_cast<const unsigned int *>(lightData);
+    const unsigned char *staticData = lightData + staticDataOffset;
 
-    unsigned int type = *reinterpret_cast<unsigned int *>(staticData);
-    float       *values = reinterpret_cast<float *>(staticData + 12);
+    unsigned int type = *reinterpret_cast<const unsigned int *>(staticData);
+    const float *values = reinterpret_cast<const float *>(staticData + 12);
 
     light->m_isOmni = type == 0;
     light->m_dirColor.Set(1.0f, values[0], values[1], values[2]);
@@ -35,8 +34,17 @@ static unsigned long __fastcall CreateGxLight(unsigned char *lightData) {
 }
 
 int __fastcall MdlReadLoadLights(const MDLDATA& data, CModelComplex* modelptr) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(modelptr);
+  unsigned int numLights = data.lights.Count();
+  modelptr->m_lights.SetCount(numLights);
+  const unsigned char *lightData =
+      reinterpret_cast<const unsigned char *>(data.lights.Ptr());
+  unsigned int i;
+  for (i = 0; i < numLights; ++i) {
+    modelptr->m_lights[i] =
+        CreateGxLight(lightData + i * 416);
+  }
+  return 1;
 }
 
 void __fastcall MdxReadLights(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr) {

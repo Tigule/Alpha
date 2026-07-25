@@ -520,6 +520,7 @@ if(WIN32)
         "${D3DX9_IMPORT_LIBRARY}"
         "${DXGUID_IMPORT_LIBRARY}"
         glu32
+        comctl32
         imm32
         opengl32
         winmm

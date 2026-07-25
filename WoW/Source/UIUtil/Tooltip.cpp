@@ -208,56 +208,173 @@ static FrameScript_Method CGTooltipMethods[26] = {
 };
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CGTooltip::s_scriptMethods;
+static int s_nameOnly;
+static int s_showComparison;
+static int s_itemsWaiting;
 
 static void FrameScriptGetSpellString(TOOLTIP_DETAIL detail, const char* stringLabel, int points, char* positive, unsigned int positiveSize, char* negative, unsigned int negativeSize) {
-    // TODO: implement
+  char token[64];
+  if (detail == TOOLTIP_DETAIL_NONE) {
+    SStrPrintf(token, sizeof(token), "%s_GEN", stringLabel);
+  } else if (detail == TOOLTIP_DETAIL_BASIC) {
+    SStrPrintf(token, sizeof(token), "%s", stringLabel);
+  } else if (detail == TOOLTIP_DETAIL_EXTENDED) {
+    SStrPrintf(token, sizeof(token), "%s_VERBOSE", stringLabel);
+  }
+
+  if (positive) {
+    const char *text =
+        FrameScript_GetText(token, points, GENDER_NOT_APPLICABLE);
+    SStrCopy(positive, text, positiveSize);
+    if (!*text) {
+      SStrCopy(positive, token, positiveSize);
+    }
+  }
+  if (negative) {
+    SStrPack(token, "_NEG", sizeof(token));
+    const char *text =
+        FrameScript_GetText(token, points, GENDER_NOT_APPLICABLE);
+    SStrCopy(negative, text, negativeSize);
+    if (!*text) {
+      *negative = 0;
+    }
+  }
 }
 
 static void FrameScriptGetEnchantString(TOOLTIP_DETAIL detail, const char* stringLabel, char* buf, unsigned int bufSize) {
-    // TODO: implement
+  char token[64];
+  if (detail == TOOLTIP_DETAIL_NONE) {
+    SStrPrintf(token, sizeof(token), "%s_GEN", stringLabel);
+  } else if (detail == TOOLTIP_DETAIL_BASIC) {
+    SStrPrintf(token, sizeof(token), "%s", stringLabel);
+  } else if (detail == TOOLTIP_DETAIL_EXTENDED) {
+    SStrPrintf(token, sizeof(token), "%s_VERBOSE", stringLabel);
+  }
+  const char *text =
+      FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
+  SStrCopy(buf, text, bufSize);
+  if (!*text) {
+    SStrCopy(buf, token, bufSize);
+  }
 }
 
 static const SpellEffectNamesRec* GetEffectNameRec(int enumID) {
-    // TODO: implement
-    return 0;
+  for (int i = g_spellEffectNamesDB.GetNumRecords() - 1; i >= 0; --i) {
+    const SpellEffectNamesRec *record =
+        g_spellEffectNamesDB.GetRecordByIndex(i);
+    if (record->m_EnumID == enumID) {
+      return record;
+    }
+  }
+  return 0;
 }
 
 static const SpellAuraNamesRec* GetAuraNameRec(int enumID) {
-    // TODO: implement
-    return 0;
+  for (int i = g_spellAuraNamesDB.GetNumRecords() - 1; i >= 0; --i) {
+    const SpellAuraNamesRec *record =
+        g_spellAuraNamesDB.GetRecordByIndex(i);
+    if (record->m_EnumID == enumID) {
+      return record;
+    }
+  }
+  return 0;
 }
 
 static int HealthUpdateHandler(unsigned __int64 guid, unsigned int, unsigned int, const void*, void* param) {
-    // TODO: implement
-    return 0;
+  CSimpleStatusBar *statusBar = static_cast<CSimpleStatusBar *>(param);
+  FATALASSERT(statusBar);
+  CGUnit_C *unit = static_cast<CGUnit_C *>(
+      ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  if (unit) {
+    statusBar->SetMinMaxValues(
+        0.0f,
+        static_cast<float>(unit->GetUnitData()->maxHealth));
+    statusBar->SetValue(static_cast<float>(unit->GetUnitData()->health));
+  }
+  return 1;
 }
 
 static void TooltipObjectLockItemStatsCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
-    // TODO: implement
+  if (granted) {
+    CGTooltip *tooltip = static_cast<CGTooltip *>(arg);
+    FATALASSERT(tooltip);
+    tooltip->SetObject(tooltip->GetObjectGUID());
+  }
 }
 
 static void TooltipItemStatsCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
-    // TODO: implement
+  if (granted) {
+    CGTooltip *tooltip = static_cast<CGTooltip *>(arg);
+    FATALASSERT(tooltip);
+    const unsigned __int64 noGUID = 0;
+    tooltip->SetItem(
+        tooltip->GetItem(),
+        noGUID,
+        tooltip->GetItemGUID(),
+        s_nameOnly,
+        s_showComparison,
+        0);
+  }
 }
 
 static void TooltipItemPetitionCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
-    // TODO: implement
+  if (granted) {
+    CGTooltip *tooltip = static_cast<CGTooltip *>(arg);
+    FATALASSERT(tooltip);
+    const unsigned __int64 noGUID = 0;
+    tooltip->SetItem(
+        tooltip->GetItem(),
+        noGUID,
+        tooltip->GetItemGUID(),
+        s_nameOnly,
+        s_showComparison,
+        0);
+  }
 }
 
 static void TooltipSpellItemStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
-    // TODO: implement
+  if (granted && arg && *static_cast<int *>(arg) == id) {
+    if (!s_itemsWaiting || !--s_itemsWaiting) {
+      CGTooltip *tooltip = CGGameUI::GetGameTooltip();
+      FATALASSERT(tooltip);
+      tooltip->SetSpell(*static_cast<int *>(arg), 0, 0, 0);
+    }
+  }
 }
 
 static void TooltipSpellCreatureStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
-    // TODO: implement
+  if (granted && arg && *static_cast<int *>(arg) == id) {
+    if (!s_itemsWaiting || !--s_itemsWaiting) {
+      CGTooltip *tooltip = CGGameUI::GetGameTooltip();
+      FATALASSERT(tooltip);
+      tooltip->SetSpell(*static_cast<int *>(arg), 0, 0, 0);
+    }
+  }
 }
 
 static void TooltipSpellGameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
-    // TODO: implement
+  if (granted && arg && *static_cast<int *>(arg) == id) {
+    if (!s_itemsWaiting || !--s_itemsWaiting) {
+      CGTooltip *tooltip = CGGameUI::GetGameTooltip();
+      FATALASSERT(tooltip);
+      tooltip->SetSpell(*static_cast<int *>(arg), 0, 0, 0);
+    }
+  }
 }
 
 static void TooltipItemCreatorCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
-    // TODO: implement
+  if (granted && arg) {
+    CGTooltip *tooltip = CGGameUI::GetGameTooltip();
+    FATALASSERT(tooltip);
+    const unsigned __int64 noGUID = 0;
+    tooltip->SetItem(
+        id,
+        noGUID,
+        *static_cast<const unsigned __int64 *>(arg),
+        s_nameOnly,
+        s_showComparison,
+        0);
+  }
 }
 
 CGTooltip::CGTooltip(CSimpleFrame *parent) : CSimpleFrame(parent) {
@@ -353,7 +470,11 @@ const char *__fastcall CGTooltip::GetItemQualityColorString(unsigned int quality
 }
 
 static void TooltipCorpseNameCallback(int id, const unsigned __int64&, void* arg, unsigned char granted) {
-    // TODO: implement
+  if (granted && arg) {
+    CGTooltip *tooltip = CGGameUI::GetGameTooltip();
+    FATALASSERT(tooltip);
+    tooltip->SetCorpse(*static_cast<const unsigned __int64 *>(arg));
+  }
 }
 
 void CGTooltip::SetCorpse(const unsigned __int64 &corpseGUID) {

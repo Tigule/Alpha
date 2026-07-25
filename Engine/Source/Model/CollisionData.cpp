@@ -1,8 +1,10 @@
 #include "Model/CollisionData.h"
 
+#include "Gx/Gx.h"
 #include "Tempest/c33matrix.h"
 #include "Tempest/cfacet.h"
 
+#include <float.h>
 #include <string.h>
 
 unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
@@ -67,12 +69,46 @@ void __fastcall CollisionDataAddFacets(
 }
 
 static int CollisionDataVectorIntersect(HCOLLISIONDATA__* hDC, const NTempest::C34Matrix& basis, const NTempest::C3Vector& p0, const NTempest::C3Vector& p1, float& t) {
-    // TODO: implement
-    return 0;
+  FATALASSERT(hDC);
+
+  CCollisionData *collide = reinterpret_cast<CCollisionData *>(hDC);
+  t = FLT_MAX;
+
+  NTempest::C3Vector direction = p1 - p0;
+  float ooMag = 1.0f / direction.Mag();
+  direction *= ooMag;
+
+  unsigned int numSurfaces = collide->surfaceNormals.Count();
+  for (unsigned int surface = 0; surface < numSurfaces; ++surface) {
+    NTempest::C3Vector v0 = collide->vertices[collide->indices[surface * 3]] * basis;
+    NTempest::C3Vector v1 = collide->vertices[collide->indices[surface * 3 + 1]] * basis;
+    NTempest::C3Vector v2 = collide->vertices[collide->indices[surface * 3 + 2]] * basis;
+    float distance;
+    if (GxuTestRayAndTriangle(p0, direction, v0, v1, v2, distance) && distance >= 0.0f && distance < t) {
+      t = distance;
+    }
+  }
+
+  if (t < FLT_MAX) {
+    t *= ooMag;
+    if (t <= 1.0f) {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 static void ComputeSurfaceNormals(CCollisionData* collide, unsigned int numSurfaces) {
-    // TODO: implement
+  collide->surfaceNormals.SetCount(numSurfaces);
+  for (unsigned int surface = 0; surface < numSurfaces; ++surface) {
+    const NTempest::C3Vector &v0 = collide->vertices[collide->indices[surface * 3]];
+    const NTempest::C3Vector &v1 = collide->vertices[collide->indices[surface * 3 + 1]];
+    const NTempest::C3Vector &v2 = collide->vertices[collide->indices[surface * 3 + 2]];
+    NTempest::C3Vector edge1 = v1 - v0;
+    NTempest::C3Vector edge2 = v2 - v0;
+    collide->surfaceNormals[surface] = NTempest::C3Vector::Cross(edge1, edge2);
+    collide->surfaceNormals[surface].Normalize();
+  }
 }
 
 HCOLLISIONDATA __fastcall CollisionDataCreate(const NTempest::CAaBox &bounds) {
@@ -183,8 +219,12 @@ void __fastcall ModelAddCollisionFacets(
 }
 
 int __fastcall ModelCollisionVectorIntersect(HMODEL__* model, const NTempest::C34Matrix& basis, const NTempest::C3Vector& p0, const NTempest::C3Vector& p1, float& t) {
-    // TODO: implement
-    return 0;
+  t = FLT_MAX;
+  CModelShared *shared;
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared) && shared->collision) {
+    return CollisionDataVectorIntersect(shared->collision, basis, p0, p1, t);
+  }
+  return 0;
 }
 
 void __fastcall ModelShowCollision(HMODEL model, int show) {

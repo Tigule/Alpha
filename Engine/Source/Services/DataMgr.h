@@ -1,12 +1,22 @@
 #pragma once
 
 #include "Base/Handle.h"
+#include "Base/Color.h"
+#include "Tempest/c33matrix.h"
 #include "Tempest/c3vector.h"
+#include "Tempest/cimvector.h"
 
 #include <stddef.h>
+#include <string.h>
 #include <stpl.h>
 
 DECLARE_DERIVED_HANDLE(HDATAMGR, HOBJECT);
+
+struct UpdateInfo {
+  void(__fastcall *updateFcn)(float, void *, void *);
+  void *updateData;
+  float updatePriority;
+};
 
 class CBaseManaged {
  public:
@@ -54,6 +64,30 @@ inline void TManaged<NTempest::C3Vector>::Set_(const NTempest::C3Vector &val) {
   }
 }
 
+template <>
+inline void TManaged<NTempest::CImVector>::Set_(const NTempest::CImVector &val) {
+  if (*m_data.IV_() != *val.IV_()) {
+    m_data = val;
+    m_flags |= 0x8;
+  }
+}
+
+template <>
+inline void TManaged<C3Color>::Set_(const C3Color &val) {
+  if (m_data.r != val.r || m_data.g != val.g || m_data.b != val.b) {
+    m_data = val;
+    m_flags |= 0x8;
+  }
+}
+
+template <>
+inline void TManaged<NTempest::C33Matrix>::Set_(const NTempest::C33Matrix &val) {
+  if (memcmp(&m_data, &val, sizeof(val))) {
+    m_data = val;
+    m_flags |= 0x8;
+  }
+}
+
 class CDataMgr : public CHandleObject {
  public:
   virtual ~CDataMgr() {
@@ -76,6 +110,7 @@ class CDataMgr : public CHandleObject {
 
  public:
   void LinkManaged(CBaseManaged *m);
+  void Update(float elapsedSec);
 };
 
 void __fastcall  DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3Vector *coord);

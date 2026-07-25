@@ -38,17 +38,27 @@ struct ANIMHASH : public TSHashObject<ANIMHASH, HASHKEY_STRI> {
 static TSHashTable<ANIMHASH, HASHKEY_STRI> s_animCache;
 
 static int AnimGetReferenceCount(HANIM__* anim) {
-    // TODO: implement
-    return 0;
+  CAnim *container = reinterpret_cast<CAnim *>(anim);
+  FATALASSERT(container);
+  return container->GetRefCount();
 }
 
 static HANIM__* GetAnim(const char* modelFName) {
-    // TODO: implement
+  FATALASSERT(modelFName);
+  ANIMHASH *entry = s_animCache.Ptr(modelFName);
+  if (!entry) {
     return 0;
+  }
+  if (AnimGetReferenceCount(entry->anim) > 1) {
+    return AnimDuplicate(entry->anim, 0);
+  }
+  return reinterpret_cast<HANIM__ *>(HandleDuplicate(entry->anim));
 }
 
 static void HashNewAnim(const char* modelFName, HANIM__* anim) {
-    // TODO: implement
+  FATALASSERT(modelFName);
+  ANIMHASH *entry = s_animCache.New(modelFName, 0, 0);
+  entry->anim = reinterpret_cast<HANIM>(HandleDuplicate(anim));
 }
 
 static unsigned int __fastcall GetObjectFlags(unsigned int mdlFlags) {

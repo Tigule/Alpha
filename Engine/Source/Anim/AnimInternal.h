@@ -146,24 +146,32 @@ struct CKeySeq {
   unsigned int count;
 };
 
+namespace NTempest {
+#ifndef MDL_CIRANGE_DEFINED
+#define MDL_CIRANGE_DEFINED
+  class CiRange {
+   public:
+    long l;
+    long h;
+  };
+#endif
+}  // namespace NTempest
+
+#ifndef MDL_COMMON_TYPES_DEFINED
+#define MDL_COMMON_TYPES_DEFINED
+
 template <unsigned int Size>
 class CMdlString {
  private:
   char m_string[Size];
 };
 
-namespace NTempest {
-  class CiRange {
-   public:
-    long l;
-    long h;
-  };
-}  // namespace NTempest
-
 struct CMdlBounds {
   NTempest::CAaBox extent;
   float            radius;
 };
+
+#endif
 
 struct CAnimSequence {
   CMdlString<80>    name;

@@ -89,6 +89,8 @@ struct Sound : public TSLinkedNode<Sound> {
   static void __fastcall SetMusicVolume(float volume);
   static void __fastcall SetMasterVolume(float volume);
   static void __fastcall MuteSFX(bool m);
+  static int __fastcall MIDI_Initialize();
+  static void __fastcall MIDI_Shutdown();
   static void __fastcall MIDI_Play(const char *midiFilename, const char *dlsFilename);
   static void __fastcall MIDI_Stop();
   static void __fastcall MIDI_SetVolume(float volume);
@@ -171,8 +173,10 @@ struct Sound : public TSLinkedNode<Sound> {
   void                     Suspend();
   void                     Resume();
 
-  static bool(__fastcall *m_positionUpdateCallback)(__int64 handle, NTempest::C3Vector &position);
+ public:
+  static unsigned char(__fastcall *m_positionUpdateCallback)(__int64 handle, NTempest::C3Vector &position);
 
+ private:
   int                m_channel;
   FSOUND_STREAM     *m_stream;
   unsigned int       m_flags;

@@ -431,7 +431,17 @@ void __fastcall AnimSetObjectOrdering(HANIM anim, const char **boneNames, unsign
 }
 
 void __fastcall AnimResetObjectOrdering(HANIM__* anim) {
-    // TODO: implement
+  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  ASSERT(unique);
+  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  ASSERT(shared);
+
+  delete[] shared->objectOrder.m_data;
+  shared->objectOrder.m_data = shared->obj.Count() ? new unsigned int[shared->obj.Count()] : 0;
+  shared->objectOrder.m_count = shared->obj.Count();
+  for (unsigned int i = 0; i < shared->obj.Count(); ++i) {
+    shared->objectOrder[i] = i;
+  }
 }
 
 void __fastcall AnimSetSequenceOrderingDefault(HANIM anim) {
@@ -586,8 +596,12 @@ unsigned int __fastcall AnimGetTotalKeys(HANIM anim) {
 }
 
 unsigned int __fastcall AnimGetAttachmentObjId(HANIM__* anim, unsigned int index) {
-    // TODO: implement
-    return 0;
+  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  ASSERT(unique);
+  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  ASSERT(shared);
+  ASSERT(index < shared->modelObjs.Count());
+  return index < shared->modelObjs.Count() ? shared->modelObjs[index].animObjId : 0;
 }
 
 BOOL __fastcall AnimIsAttachmentEnabled(HANIM anim, unsigned int index) {
