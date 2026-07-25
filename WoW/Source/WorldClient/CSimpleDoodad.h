@@ -12,6 +12,7 @@
 #include <stpl.h>
 
 class CMapDoodadDef;
+struct MDLDATA;
 
 class CSimpleDoodadMat {
  public:
@@ -39,6 +40,12 @@ struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
   static void __fastcall Initialize();
   static void __fastcall Destroy();
   static void __fastcall ClearCache();
+
+  static CSimpleDoodad *__fastcall Create(const char *fileName);
+  static void __fastcall  Delete(CSimpleDoodad *simpleDoodad);
+  static void __fastcall  PrepareUpdate();
+  static void __fastcall  AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef);
+  static void __fastcall  RenderScene();
 
   ~CSimpleDoodad() {
     for (unsigned int index = 0; index < nTextures; ++index) {
@@ -74,6 +81,10 @@ struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
   static TSHashTable<CSimpleDoodad, HASHKEY_NONE> simpleDoodadHash;
   static HASHKEY_NONE                             nullHashKey;
   static CGxBuf                                  *gxBufDyn;
+
+  static int __fastcall  Read(const char *fileName, CSimpleDoodad *simpleDoodad);
+  static int __fastcall  MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad);
+  static void __fastcall MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CSimpleDoodad *simpleDoodad);
 
   static void __fastcall GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf);
   static void __fastcall CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf);

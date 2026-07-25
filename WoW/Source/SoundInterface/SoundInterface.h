@@ -91,6 +91,7 @@ void __fastcall SndInterfaceClearMIDI();
 void __fastcall SndInterfaceRegisterNewZoneIntro(int soundID, int priority);
 void __fastcall SndInterfacePlayInterfaceSound(const char *name);
 void __fastcall SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj);
+unsigned int __fastcall SndInterfaceGetSoundVariations(unsigned int soundID);
 void __fastcall SndInterfacePlaySpellFizzleSound(unsigned int spellID, const CGUnit_C *caster);
 void __fastcall
 SndInterfacePlayParrySound(VirtualItemInfo *attackingWeapon, VirtualItemInfo *defendingItem, int criticalHit, NTempest::C3Vector &position);

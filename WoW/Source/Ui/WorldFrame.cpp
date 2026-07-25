@@ -751,7 +751,7 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
 
   SetSpriteClickButtons(5);
   WorldTextInitialize();
-  CGUnit_C::UpdateUnitNameplates(0);
+  CGUnit_C::NamePlateShow(0);
 
   CStatus     status;
   CGxTexFlags textureFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1);
@@ -764,7 +764,7 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
   SmartScreenRectInitialize();
   s_spellShadowStyle = SPELL_GOOD;
   s_fadeOutModelTable.Clear();
-  ConsoleCommandRegister("SeeIfWorldFrameSucks", CheckFadeOutModels, DEFAULT, 0);
+  ConsoleCommandRegister("SeeIfWorldFrameSucks", CheckFadeOutModels, DEBUG, 0);
   GxMasterEnableSet(GxMasterEnable_ClearOnPresent, 0);
 }
 

@@ -5,6 +5,7 @@
 #include "Tempest/cimvector.h"
 
 class CStatus;
+class CGNamePlateFrame;
 class CSimpleFrame;
 class CSimpleTexture;
 class XMLNode;
@@ -41,6 +42,8 @@ class CBackdropGenerator {
   void GetBorderVertexColor(NTempest::CImVector &color) const;
 
  private:
+  friend class CGNamePlateFrame;
+
   CSimpleTexture     *m_backgroundTexture;
   CSimpleTexture     *m_leftTexture;
   CSimpleTexture     *m_rightTexture;

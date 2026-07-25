@@ -11,7 +11,7 @@ CSimpleStatusBar::CSimpleStatusBar(CSimpleFrame *parent)
 }
 
 CSimpleStatusBar::~CSimpleStatusBar() {
-  SetBarTexture(0, 2);
+  SetBarTexture(static_cast<CSimpleTexture *>(0), 2);
 
   char description[1024];
   SStrPrintf(description, sizeof(description), "%s:OnValueChanged", GetName());
@@ -79,6 +79,23 @@ void CSimpleStatusBar::SetBarTexture(CSimpleTexture *texture, int layer) {
 
   m_barTexture = texture;
   m_changed = 1;
+}
+
+int CSimpleStatusBar::SetBarTexture(const char *texFile, int layer) {
+  if (m_barTexture) {
+    m_barTexture->SetTexture(texFile, 0);
+    return 1;
+  }
+
+  CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
+  if (texture->SetTexture(texFile, 0)) {
+    texture->SetAllPoints(this, 1);
+    SetBarTexture(texture, layer);
+    return 1;
+  }
+
+  DEL(texture);
+  return 0;
 }
 
 void CSimpleStatusBar::SetMinMaxValues(float min, float max) {

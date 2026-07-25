@@ -30,6 +30,7 @@
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
 #include "DB/DBClient/AutoCode/CreatureModelDataRec.h"
 #include "DB/DBClient/AutoCode/CreatureSoundDataRec.h"
+#include "DB/DBClient/AutoCode/NPCSoundsRec.h"
 #include "DB/DBClient/AutoCode/UnitBloodLevelsRec.h"
 #include "DB/DBClient/AutoCode/UnitBloodRec.h"
 #include "DB/DBClient/AutoCode/EmotesRec.h"
@@ -2184,6 +2185,10 @@ const CreatureSoundDataRec *CGUnit_C::GetMountSoundDataRec() const {
   return soundData;
 }
 
+const CreatureSoundDataRec *CGUnit_C::GetSoundData() const {
+  return m_mountedSoundData ? m_mountedSoundData : m_soundData;
+}
+
 void CGUnit_C::CreateUnitMount() {
   if (m_flags & 0x10) {
     return;
@@ -2468,8 +2473,8 @@ CGUnit_C::CGUnit_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
       m_questCountNeeded(-1),
       m_resEffectModel(0),
       m_meleeTargetDeathHold(0),
-      m_precastSheatheHoldTimer(0),
-      m_customAttackSound(0),
+      m_precastSheatheHoldTimer(-1),
+      m_customAttackSound(-1),
       m_customAttackPosition(0.0f),
       m_splashSoundID(0),
       m_disengageLookAtTimer(0),
@@ -2497,16 +2502,16 @@ CGUnit_C::CGUnit_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
       m_terrain(0),
       m_footprintSize(0.2777778f),
       m_footprintParticleScale(1.0f),
-      m_spellPrecastingAnim(ANIM_STAND),
+      m_spellPrecastingAnim(RESET_ANIMATION_INDICES0),
       m_spellCastingAnim(ANIM_STAND),
-      m_deferredPrecastAnim(static_cast<ANIMENUMERATION>(-1)),
+      m_deferredPrecastAnim(RESET_ANIMATION_INDICES0),
       m_animatingAura(0),
       m_emoteID(-1),
       m_spellCastingEffectKit(-1),
       m_spellCastingSoundID(0),
       m_spellCastingCameraShakeID(0),
-      m_lastSentFacing(0.0f),
-      m_lastSentPitch(0.0f),
+      m_lastSentFacing(-10.0f),
+      m_lastSentPitch(FLT_MAX),
       m_unitNameHandle(0),
       m_accumulatedXPDrop(0),
       m_castingSpell(0),
@@ -2565,27 +2570,33 @@ CGUnit_C::CGUnit_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
       m_channelSpellEffect(0),
       m_shapeShiftPoof(0),
       m_fishingLineObject(0) {
-  memset(m_callbackList, 0, sizeof(m_callbackList));
   memset(&m_combat, 0, sizeof(m_combat));
-  memset(m_savedFacingDeltas, 0, sizeof(m_savedFacingDeltas));
-  memset(m_preferredGeosets, 0, sizeof(m_preferredGeosets));
-  memset(m_auraFlags, 0, sizeof(m_auraFlags));
+  m_handAnim[0] = RESET_ANIMATION_INDICES0;
+  m_handAnim[1] = RESET_ANIMATION_INDICES0;
+  SetClientInitData(eventTime, *init, 0);
+  memset(m_auraVisual, 0, sizeof(m_auraVisual));
   memset(m_attachments, 0, sizeof(m_attachments));
   memset(m_deferredAttachments, 0, sizeof(m_deferredAttachments));
-  memset(m_weaponTrails, 0, sizeof(m_weaponTrails));
-  m_handAnim[0] = static_cast<ANIMENUMERATION>(-1);
-  m_handAnim[1] = static_cast<ANIMENUMERATION>(-1);
-  SetClientInitData(eventTime, *init, 0);
   AddWorldObject();
   RefreshDataPointers();
   if (GetType() == HIER_TYPE_UNIT) {
     const unsigned __int64 guid = GetGUID();
     m_stats = const_cast<CreatureStats_C *>(
         g_creatureDBCache.GetRecord(m_obj->m_entryID, guid, CreatureQueryCallback, 0));
+    m_NPCSoundsRec = g_nPCSoundsDB.GetRecord(GetSoundData()->m_NPCSoundID);
+    m_numNPCPissedSounds = m_NPCSoundsRec ? SndInterfaceGetSoundVariations(m_NPCSoundsRec->m_SoundID[2]) : 0;
     InitializeExtendedDisplay();
+  }
+  if (static_cast<float>(m_unit->health) / static_cast<float>(m_unit->maxHealth) < 0.2f && m_unit->health > 0) {
+    AddBloodPool();
   }
   MarkFootstepAnimations(m_model);
   InitializeTextureVariations(m_displayInfo, m_model, m_modelData);
+  m_displayHealth = m_unit->health;
+  memset(m_auraFlags, 0, sizeof(m_auraFlags));
+  m_animatingAura = -1;
+  memset(m_weaponTrails, 0, sizeof(m_weaponTrails));
+  memset(m_callbackList, 0, sizeof(m_callbackList));
 }
 
 void CGUnit_C::InitializeExtendedDisplay() {
@@ -3199,8 +3210,8 @@ void CGUnit_C::SheatheAnimEndHandler() {
   ModelMatchSequence(theModel, 2, 4, 6);
   HandleClose(theModel);
 
-  m_handAnim[0] = static_cast<ANIMENUMERATION>(-1);
-  m_handAnim[1] = static_cast<ANIMENUMERATION>(-1);
+  m_handAnim[0] = RESET_ANIMATION_INDICES0;
+  m_handAnim[1] = RESET_ANIMATION_INDICES0;
   if (!(m_animFlags & 0x10000)) {
     UpdateSheatheRangedReasons(1);
   }
@@ -3444,7 +3455,7 @@ void CGUnit_C::SetTorsoAnimState(unsigned int newState) {
     }
     if (m_currentTorsoAnimState == 38) {
       CheckPendingSpellAnimHits();
-      m_deferredPrecastAnim = static_cast<ANIMENUMERATION>(-1);
+      m_deferredPrecastAnim = RESET_ANIMATION_INDICES0;
       SetSheatheReason(SHEATHEREASON_PRECAST, 0, 0);
     } else if (m_currentTorsoAnimState == 46) {
       SetSheatheReason(SHEATHEREASON_7, 0, 1);
@@ -3460,7 +3471,7 @@ void CGPlayer_C::SetTorsoAnimState(unsigned int newState) {
   unsigned int oldState = m_currentTorsoAnimState;
   CGUnit_C::SetTorsoAnimState(newState);
   if (oldState != newState &&
-      (m_handAnim[0] != static_cast<ANIMENUMERATION>(-1) || m_handAnim[1] != static_cast<ANIMENUMERATION>(-1))) {
+      (m_handAnim[0] != RESET_ANIMATION_INDICES0 || m_handAnim[1] != RESET_ANIMATION_INDICES0)) {
     HandleSheatheAnimEvent(1, 1);
   }
 }

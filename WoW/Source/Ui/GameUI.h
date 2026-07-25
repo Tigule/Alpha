@@ -21,7 +21,7 @@ struct CObjectTrackEvent;
 struct HMODEL__;
 struct lua_State;
 
-static int DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
+static int __fastcall DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
 class CMouseEvent;
 class CSizeEvent;
 enum SYSMSG_TYPE;
@@ -186,7 +186,7 @@ class CGGameUI {
   }
 
  private:
-  friend int DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
+  friend int __fastcall DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
 
   static void __fastcall HandleObjectTrackChange(unsigned __int64 object, unsigned __int64 oldGUID, float x, float y);
   static void __fastcall UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object);

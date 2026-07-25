@@ -218,7 +218,9 @@ struct MDLSEQUENCESSECTION {
   NTempest::CiRange replay;
   unsigned int      blendTime;
 };
-struct MDLGLOBALSEQSECTION;
+struct MDLGLOBALSEQSECTION {
+  unsigned int length;
+};
 struct MDLTEXANIMSECTION {
   MDLKEYTRACK<NTempest::C3Vector>     transkeys;
   MDLKEYTRACK<NTempest::C4Quaternion> rotkeys;
@@ -228,8 +230,50 @@ struct MDLBONESECTION : public MDLGENOBJECT {
   unsigned int geosetId;
   unsigned int geosetAnimId;
 };
-struct MDLLIGHTSECTION;
-struct MDLPARTICLEEMITTER;
+enum LIGHT_TYPE {
+  LIGHTTYPE_OMNI = 0,
+  LIGHTTYPE_DIRECT = 1,
+  LIGHTTYPE_AMBIENT = 2,
+  NUM_MDL_LIGHT_TYPES = 3
+};
+
+struct MDLLIGHTSECTION : public MDLGENOBJECT {
+  LIGHT_TYPE           type;
+  MDLKEYTRACK<float>   attenstartkeys;
+  float                staticAttenStart;
+  MDLKEYTRACK<float>   attenendkeys;
+  float                staticAttenEnd;
+  MDLKEYTRACK<C3Color> colorkeys;
+  C3Color              staticColor;
+  MDLKEYTRACK<float>   intensitykeys;
+  float                staticIntensity;
+  MDLKEYTRACK<C3Color> ambcolorkeys;
+  C3Color              staticAmbColor;
+  MDLKEYTRACK<float>   ambintensitykeys;
+  float                staticAmbIntensity;
+  MDLKEYTRACK<float>   visibilityKeys;
+};
+
+struct MDLPARTICLE {
+  CMdlString<260>    path;
+  MDLKEYTRACK<float> life;
+  float              staticLife;
+  MDLKEYTRACK<float> speed;
+  float              staticSpeed;
+};
+
+struct MDLPARTICLEEMITTER : public MDLGENOBJECT {
+  MDLKEYTRACK<float> emissionRate;
+  float              staticEmissionRate;
+  MDLKEYTRACK<float> gravity;
+  float              staticGravity;
+  MDLKEYTRACK<float> longitude;
+  float              staticLongitude;
+  MDLKEYTRACK<float> latitude;
+  float              staticLatitude;
+  MDLPARTICLE        particle;
+  MDLKEYTRACK<float> visibilityKeys;
+};
 struct MDLTARGETSECTION {
   NTempest::C3Vector                  pivot;
   MDLKEYTRACK<NTempest::C3Vector>     transkeys;
@@ -247,8 +291,112 @@ struct MDLCAMERASECTION {
   MDLTARGETSECTION                    target;
   MDLKEYTRACK<float>                  visibilityKeys;
 };
-struct MDLEVENTSECTION;
-struct MDLPARTICLEEMITTER2;
+struct MDLEVENTKEY {
+  int time;
+};
+
+struct MDLEVENTSECTION : public MDLGENOBJECT {
+  MDLSIMPLEKEYTRACK<MDLEVENTKEY> eventKeys;
+};
+struct MDLPARTICLEEMITTER2 : public MDLGENOBJECT {
+  enum PARTICLE_EMITTER_TYPE {
+    PET_BASE = 0,
+    PET_PLANE = 1,
+    PET_SPHERE = 2,
+    PET_SPLINE = 3,
+    NUM_PARTICLE_EMITTER_TYPES = 4
+  };
+  enum PARTICLE_BLEND_MODE {
+    PBM_BLEND = 0,
+    PBM_ADD = 1,
+    PBM_MODULATE = 2,
+    PBM_MODULATE_2X = 3,
+    PBM_ALPHA_KEY = 4,
+    NUM_PARTICLE_BLEND_MODES = 5
+  };
+  enum PARTICLE_TYPE {
+    PT_HEAD = 0,
+    PT_TAIL = 1,
+    PT_BOTH = 2,
+    NUM_PARTICLE_TYPES = 3
+  };
+
+  PARTICLE_EMITTER_TYPE            emitterType;
+  float                            staticSpeed;
+  MDLKEYTRACK<float>               speed;
+  float                            staticVariation;
+  MDLKEYTRACK<float>               variation;
+  float                            staticLatitude;
+  MDLKEYTRACK<float>               latitude;
+  float                            staticLongitude;
+  MDLKEYTRACK<float>               longitude;
+  float                            staticGravity;
+  MDLKEYTRACK<float>               gravity;
+  float                            staticLife;
+  MDLKEYTRACK<float>               life;
+  float                            staticEmissionRate;
+  MDLKEYTRACK<float>               emissionRate;
+  float                            staticWidth;
+  MDLKEYTRACK<float>               width;
+  float                            staticLength;
+  MDLKEYTRACK<float>               length;
+  float                            staticZsource;
+  MDLKEYTRACK<float>               zsource;
+  PARTICLE_BLEND_MODE              blendMode;
+  unsigned int                     rows;
+  unsigned int                     cols;
+  PARTICLE_TYPE                    type;
+  float                            tailLength;
+  float                            middleTime;
+  C3Color                          startColor;
+  C3Color                          middleColor;
+  C3Color                          endColor;
+  unsigned char                    startAlpha;
+  unsigned char                    middleAlpha;
+  unsigned char                    endAlpha;
+  float                            startScale;
+  float                            middleScale;
+  float                            endScale;
+  unsigned int                     lifespanUVAnimStart;
+  unsigned int                     lifespanUVAnimEnd;
+  unsigned int                     lifespanUVAnimRepeat;
+  unsigned int                     decayUVAnimStart;
+  unsigned int                     decayUVAnimEnd;
+  unsigned int                     decayUVAnimRepeat;
+  unsigned int                     tailUVAnimStart;
+  unsigned int                     tailUVAnimEnd;
+  unsigned int                     tailUVAnimRepeat;
+  unsigned int                     tailDecayUVAnimStart;
+  unsigned int                     tailDecayUVAnimEnd;
+  unsigned int                     tailDecayUVAnimRepeat;
+  MDLKEYTRACK<float>               visibilityKeys;
+  unsigned int                     squirts;
+  unsigned int                     textureId;
+  int                              priorityPlane;
+  unsigned int                     replaceableId;
+  CMdlString<260>                  geometryMdl;
+  CMdlString<260>                  recursionMdl;
+  float                            twinkleFPS;
+  float                            twinkleOnOff;
+  float                            twinkleScaleMin;
+  float                            twinkleScaleMax;
+  float                            ivelScale;
+  float                            tumblexMin;
+  float                            tumblexMax;
+  float                            tumbleyMin;
+  float                            tumbleyMax;
+  float                            tumblezMin;
+  float                            tumblezMax;
+  float                            drag;
+  float                            spin;
+  NTempest::C3Vector               windVector;
+  float                            windTime;
+  float                            followSpeed1;
+  float                            followScale1;
+  float                            followSpeed2;
+  float                            followScale2;
+  TSGrowableArray<NTempest::C3Vector> spline;
+};
 enum GEOM_SHAPE {
   SHAPE_BOX = 0,
   SHAPE_CYLINDER = 1,
@@ -293,7 +441,25 @@ struct MDLHITTESTSHAPE : public MDLGENOBJECT {
     MDLPLANE    plane;
   } shape;
 };
-struct MDLRIBBONEMITTER;
+struct MDLRIBBONEMITTER : public MDLGENOBJECT {
+  float                        staticHeightAbove;
+  MDLKEYTRACK<float>           heightAbove;
+  float                        staticHeightBelow;
+  MDLKEYTRACK<float>           heightBelow;
+  float                        staticAlpha;
+  MDLKEYTRACK<float>           alphaKeys;
+  C3Color                      staticColor;
+  MDLKEYTRACK<C3Color>         colorKeys;
+  unsigned int                 edgesPerSecond;
+  float                        edgeLifetime;
+  float                        gravity;
+  unsigned int                 textureRows;
+  unsigned int                 textureCols;
+  unsigned int                 staticTextureSlot;
+  MDLSIMPLEKEYTRACK<MDLINTKEY> textureSlot;
+  MDLKEYTRACK<float>           visibilityKeys;
+  unsigned int                 materialId;
+};
 
 struct MDLBASE {
   MDLHEADERSECTION                      header;

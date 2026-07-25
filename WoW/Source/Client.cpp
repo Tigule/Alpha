@@ -271,7 +271,7 @@ static int __fastcall ClientChannelListHandler(void *, NETMESSAGE, unsigned long
   return 1;
 }
 
-static int DebugAIStateHandler(void*, NETMESSAGE msgID, unsigned long timestamp, CDataStore* msg) {
+static int __fastcall DebugAIStateHandler(void *, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
   CGTooltip *tooltip = CGGameUI::m_gameTooltip;
   unsigned __int64 unit;
   msg->Get(unit);
@@ -1214,6 +1214,7 @@ void __fastcall ClientInitializeGame(unsigned int continentID, NTempest::C3Vecto
   ClientServices_SetMessageHandler(SMSG_QUERY_OBJECT_ROTATION, ReceiveObjectRotation, 0);
   ClientServices_SetMessageHandler(SMSG_MESSAGECHAT, ClientChatHandler, 0);
   ClientServices_SetMessageHandler(SMSG_TEXT_EMOTE, ClientTextEmoteHandler, 0);
+  ClientServices_SetMessageHandler(SMSG_DEBUG_AISTATE, DebugAIStateHandler, 0);
   ClientServices_SetMessageHandler(SMSG_DBLOOKUP, LookupResultsHandler, 0);
   ClientServices_SetMessageHandler(MSG_MOVE_TOGGLE_LOGGING, MovementLoggingHandler, 0);
   ClientServices_SetMessageHandler(MSG_MOVE_TOGGLE_FALL_LOGGING, MovementFallLoggingHandler, 0);
@@ -1244,6 +1245,7 @@ void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError) {
   ClientServices_ClearMessageHandler(SMSG_QUERY_OBJECT_ROTATION);
   ClientServices_ClearMessageHandler(SMSG_MESSAGECHAT);
   ClientServices_ClearMessageHandler(SMSG_TEXT_EMOTE);
+  ClientServices_ClearMessageHandler(SMSG_DEBUG_AISTATE);
   ClientServices_ClearMessageHandler(SMSG_DBLOOKUP);
   ClientServices_ClearMessageHandler(MSG_MOVE_TOGGLE_LOGGING);
   ClientServices_ClearMessageHandler(MSG_MOVE_TOGGLE_FALL_LOGGING);

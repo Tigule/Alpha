@@ -333,6 +333,7 @@ class CMapEntity : public CMapStaticEntity {
   int          QueryMapObjZoneName(const char *&zoneName);
   int          QueryMapObjSubzoneName(const char *&subzoneName, unsigned int &subzoneId);
   int          QueryMapObjFileName(const char *&fileName);
+  int          QueryMapObjListenerId(unsigned int &listenerId);
   int          QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct);
   static int   QueryCameraFog(SMOFog::Fogs &oFog, float &oPct);
   unsigned int QueryMapObjMinimap(NTempest::CAaBox &aaBox, TSStackArray<CWorldMinimapQuad> &quads);

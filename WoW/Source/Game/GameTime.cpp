@@ -2,6 +2,8 @@
 
 #include "Os/OsTime.h"
 
+#include <time.h>
+
 CGameTime::CGameTime()
     : m_timeBias(0),
       m_dateBias(0),
@@ -136,6 +138,62 @@ void CGameTime::GameTimeSync(const WowTime &time, bool reset) {
     m_timeDifferential += delta;
     SetHourAndMinutes(static_cast<unsigned int>(GetHourAndMinutes() + delta) % 1440);
   }
+}
+
+float CGameTime::GameTimeGetMinutesPerSecond() {
+  return m_gameMinutesPerRealSecond;
+}
+
+void CGameTime::GameTimeSync(bool reset) {
+  time_t seconds;
+
+  time(&seconds);
+
+  struct tm *localTime = localtime(&seconds);
+
+  WowTime time;
+
+  time.m_minute = localTime->tm_min;
+  time.m_hour = localTime->tm_hour;
+  time.m_weekday = localTime->tm_wday;
+  time.m_monthDay = localTime->tm_mday - 1;
+  time.m_month = localTime->tm_mon;
+  time.m_year = localTime->tm_year - 100;
+
+  if (reset) {
+    GameTimeSetTime(time);
+  } else {
+    GameTimeSync(time, false);
+  }
+}
+
+HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, void *), void *user) {
+  FATALASSERT(callback);
+
+  if (time.m_hour < 0 || time.m_minute < 0) {
+    return 0;
+  }
+
+  GAMETIMECBSTRUCT *newCallback = new (SMemAlloc(sizeof(GAMETIMECBSTRUCT), "HGAMETIMECALLBACK", -2, 0)) GAMETIMECBSTRUCT;
+
+  newCallback->userData = user;
+  newCallback->callback = callback;
+
+  int            hourAndMinutes = time.GetHourAndMinutes();
+  HASHKEY_NONE   key;
+  TIMESTAMPSTRUCT *timestamp = m_callbackLists.Ptr(hourAndMinutes, key);
+
+  if (!timestamp) {
+    timestamp = m_callbackLists.New(hourAndMinutes, key, 0, 0);
+  }
+
+  timestamp->callbackList.LinkNode(newCallback, LIST_HEAD, 0);
+
+  return static_cast<HGAMETIMECALLBACK>(HandleCreate(newCallback, "HGAMETIMECALLBACK"));
+}
+
+void CGameTime::GameTimeUnregisterCallback(HGAMETIMECALLBACK callbackHandle) {
+  HandleClose(callbackHandle);
 }
 
 float CGameTime::GameTimeSetMinutesPerSecond(float minutesPerSecond) {

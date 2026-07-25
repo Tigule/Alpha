@@ -2702,11 +2702,13 @@ CGPlayer_C::CGPlayer_C(unsigned long *storage, unsigned long eventTime, CClientO
   memset(&m_lootingUnit, 0, sizeof(m_lootingUnit) + sizeof(m_lootingUnitSent));
   memset(&m_lastKillerGUID, 0, sizeof(m_lastKillerGUID) + sizeof(m_pendingItemStats));
 
-  FATALASSERT(m_unit->displayID);
+  if (!m_unit->displayID) {
+    FATALERROR(("Error, player %s has displayID 0!", GetUnitName()));
+  }
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
 
-  ConsolePrintf("Creating player guid (0x%016I64X)\n", GetGUID());
+  CMovement::LogWrite("Creating player guid (0x%016I64X)\n", GetGUID());
   InitComponents();
   ModelSetEventCallback(charModel, AnimEventCallback, this, 0);
   HandleClose(charModel);

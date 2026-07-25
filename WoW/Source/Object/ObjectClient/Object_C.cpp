@@ -343,9 +343,13 @@ CGObject_C::CGObject_C(unsigned long *storage, unsigned long, CClientObjCreate *
     return;
   }
 
-  unsigned int createFlags = 0x200;
-  if (GetType() == HIER_TYPE_PLAYER || GetType() == HIER_TYPE_GAMEOBJECT) {
+  unsigned int createFlags = 0;
+  if (GetType() == HIER_TYPE_UNIT) {
+    createFlags = 0x200;
+  } else if (GetType() == HIER_TYPE_PLAYER) {
     createFlags = 0x100800;
+  } else if (GetType() != HIER_TYPE_GAMEOBJECT) {
+    createFlags = 0x200;
   }
 
   m_model = ObjectModelCreate(modelFileName, GetType(), createFlags);

@@ -4,26 +4,43 @@
 #include "UIUtil/HealthBar.h"
 #include "Ui/GameUI.h"
 
+#include <Frame/CBackdropGenerator.h>
 #include <Frame/CSimpleRender.h>
+#include <FrameScript/FrameScript.h>
 #include <storm.h>
 
 CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame *parent) : CSimpleButton(parent), m_unit(0), m_highlight(0), m_nameFrame(0), m_healthBar(0) {
+  CBackdropGenerator *backdrop = NEW(CBackdropGenerator);
+  backdrop->m_background = "Interface\\Tooltips\\UI-Tooltip-Background";
+  backdrop->m_pieces = 255;
+  backdrop->m_tileBackground = 1;
+  backdrop->m_border = "Interface\\Tooltips\\UI-Tooltip-Border";
+  backdrop->m_cornerSize = 0.01f;
+  backdrop->m_leftInset = 0.0025f;
+  backdrop->m_rightInset = 0.0025f;
+  backdrop->m_topInset = 0.0025f;
+  backdrop->m_bottomInset = 0.0025f;
+  backdrop->SetVertexColor(NTempest::CImVector(0xFF161616));
+  backdrop->SetBorderVertexColor(NTempest::CImVector(0xFFFFFFFF));
+  SetBackdrop(backdrop);
+
   m_highlight = NEW(CSimpleTexture)(this, 2, 1);
-  m_highlight->SetTexture("Interface\\Tooltips\\Nameplate-Border", 0);
-  m_highlight->SetPoint(FRAMEPOINT_TOPLEFT, this, FRAMEPOINT_TOPLEFT, 0.0f, 0.0f, 1);
-  m_highlight->SetPoint(FRAMEPOINT_BOTTOMRIGHT, this, FRAMEPOINT_BOTTOMRIGHT, 0.0f, 0.0f, 1);
+  m_highlight->SetAllPoints(this, 1);
+  m_highlight->SetTexture(NTempest::CImVector(0x80808080));
   m_highlight->Hide();
 
   m_nameFrame = NEW(CSimpleFontString)(this, 2, 1);
-  m_nameFrame->SetPoint(FRAMEPOINT_BOTTOM, this, FRAMEPOINT_TOP, 0.0f, 0.005f, 1);
-  m_nameFrame->SetFont("Fonts\\FRIZQT__.TTF", 0.011f, 0);
+  m_nameFrame->SetPoint(FRAMEPOINT_TOP, this, FRAMEPOINT_TOP, 0.0f, -0.005f, 1);
+  m_nameFrame->SetFont(FrameScript_GetText("NAMEPLATE_FONT", -1, GENDER_NOT_APPLICABLE), 0.0235f, 0);
+  m_nameFrame->SetVertexColor(NTempest::CImVector(0xFFFFFFFF));
+  m_nameFrame->AddShadow(NTempest::CImVector(0xFF0000FF), NTempest::C2Vector(0.001f, -0.001f));
 
   m_healthBar = NEW(CGSimpleHealthBar)(this);
-  m_healthBar->SetPoint(FRAMEPOINT_TOPLEFT, this, FRAMEPOINT_TOPLEFT, 0.006f, -0.006f, 1);
-  m_healthBar->SetPoint(FRAMEPOINT_BOTTOMRIGHT, this, FRAMEPOINT_BOTTOMRIGHT, -0.006f, 0.006f, 1);
-  SetWidth(0.11f);
-  SetHeight(0.025f);
-  SetClickAction(MOUSE_BUTTON_LEFT);
+  m_healthBar->SetWidth(0.08f);
+  m_healthBar->SetHeight(0.005f);
+  m_healthBar->SetPoint(FRAMEPOINT_TOP, m_nameFrame, FRAMEPOINT_BOTTOM, 0.0f, -0.001f, 1);
+  m_healthBar->SetBarTexture("Interface\\TargetingFrame\\UI-TargetingFrame-BarFill", 2);
+  SetClickAction(0x500);
 }
 
 CGNamePlateFrame::~CGNamePlateFrame() {

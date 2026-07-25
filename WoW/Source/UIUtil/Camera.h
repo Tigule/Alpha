@@ -47,6 +47,12 @@ class CGCamera : public CSimpleCamera {
     return m_target;
   }
   void SetTarget(CGObject_C *target);
+  void SetPositionAndTarget(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
+  void SetPositionAndFacing(const NTempest::C3Vector &position, const NTempest::C3Vector &facing);
+  int  SetModelCamera(
+      const char *modelFile, const NTempest::C3Vector &origin, float facing, int(__fastcall *ModelCameraFinished)(void *), void *param
+  );
+  void ResetModelCamera();
   void SetupWorldProjection(const NTempest::CRect &projectionRect);
   void AddShake(int shake, const NTempest::C3Vector &position);
   void AddShake(CGCameraShakeType shakeType, CGCameraDir direction, float amplitude, float frequency, float duration, float phase, float coefficient);
@@ -61,6 +67,7 @@ class CGCamera : public CSimpleCamera {
   void                       CreateViewFromParams(int view, float dist, float pitch, float yaw);
   void                       CreateViewFromCamera(int view);
   void                       SetView(int newView);
+  void                       CycleView();
   void                       NextView();
   void                       PreviousView();
   void                       ResetView(int view);
@@ -87,6 +94,15 @@ class CGCamera : public CSimpleCamera {
   void                  CalcFirstPerson(CGObject_C *target, unsigned long timestamp);
   void                  ClampAngles();
   float                 GetSmoothedYawAngle(float yaw, int moving);
+  float                 GetSmoothedHeight(float z, int moving);
+  void                  PerformTerrainTilt(unsigned long timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly);
+  void                  SetDesiredDistance(float desiredDistance, unsigned long timestamp);
+  void                  SetDesiredDistanceOverTime(float desiredDistance, float motionTime, unsigned long timestamp);
+  void                  SetDesiredPitchAngle(float desiredAngle, float delay, unsigned long timestamp);
+  void                  SetDesiredPitchAngleOverTime(float desiredAngle, float motionTime, unsigned long timestamp);
+  void                  SetDesiredYawAngle(float desiredAngle, float delay, unsigned long timestamp);
+  void                  SetDesiredYawAngleOverTime(float desiredAngle, float motionTime, unsigned long timestamp);
+  void                  SetSmoothingAngle(float smoothingAngle, unsigned long timestamp, int quickly);
   float                 GetCameraDistance(float cameraDist, const NTempest::C3Vector &targetPosition);
   float                 CollideCameraWithWorld(const NTempest::C3Vector &targetPosition);
   void                  UpdateMotion(unsigned long timestamp);

@@ -678,6 +678,7 @@ class CGUnit_C : public CGObject_C {
   void         OnEncounter(AI_REACTION reaction);
   HMODEL       GetMountModel();
   const CreatureSoundDataRec *GetMountSoundDataRec() const;
+  const CreatureSoundDataRec *GetSoundData() const;
   void         UnitInitializeMountModel(HMODEL model);
   void         CreateUnitMount();
   void         DestroyUnitMount(int doNotUpdateAnim);

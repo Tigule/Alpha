@@ -1,12 +1,21 @@
 #include "CSimpleDoodad.h"
+#include "WorldClient/World.h"
+
+#include "MDLFile/MDLTypes.h"
 
 #include <storm.h>
 
 #include <string.h>
 
+class CStatus;
+
+int __fastcall MDLFileRead(const char *path, MDLDATA *mdldata, CStatus *status);
+
 TSHashTable<CSimpleDoodad, HASHKEY_NONE> CSimpleDoodad::simpleDoodadHash;
 CGxBuf                                  *CSimpleDoodad::gxBufDyn;
 HASHKEY_NONE                             CSimpleDoodad::nullHashKey;
+
+static TSExplicitList<CSimpleDoodad, 200> simpleDoodadScene;
 
 void __fastcall CSimpleDoodad::Initialize() {
   gxBufDyn = GxBufCreate(GxBWF_Dynamic, GxVBF_PNT0, 0x2000, 0x2000, GxBufDynCallback, 0);
@@ -24,6 +33,175 @@ void __fastcall CSimpleDoodad::Destroy() {
 
 void __fastcall CSimpleDoodad::ClearCache() {
   simpleDoodadHash.Clear();
+}
+
+CSimpleDoodad *__fastcall CSimpleDoodad::Create(const char *fileName) {
+  unsigned int   hashval = SStrHashHT(fileName);
+  CSimpleDoodad *simpleDoodad = simpleDoodadHash.Ptr(hashval, nullHashKey);
+  if (simpleDoodad) {
+    ++simpleDoodad->refCount;
+    return simpleDoodad;
+  }
+
+  simpleDoodad = simpleDoodadHash.New(hashval, nullHashKey, 0, 0);
+  if (Read(fileName, simpleDoodad)) {
+    simpleDoodad->refCount = 1;
+    return simpleDoodad;
+  }
+
+  simpleDoodadHash.Delete(simpleDoodad);
+  return 0;
+}
+
+void __fastcall CSimpleDoodad::Delete(CSimpleDoodad *simpleDoodad) {
+  ASSERT(simpleDoodad);
+
+  if (--simpleDoodad->refCount <= 0) {
+    simpleDoodad->flushTime = 120.0f;
+  }
+}
+
+void __fastcall CSimpleDoodad::PrepareUpdate() {
+}
+
+void __fastcall CSimpleDoodad::AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef) {
+  simpleDoodad->matrixList.Add(&mat);
+  simpleDoodad->doodadDefList.Add(&doodadDef);
+
+  if (!simpleDoodad->sceneLink.IsLinked()) {
+    simpleDoodadScene.LinkNode(simpleDoodad, LIST_TAIL, 0);
+  }
+}
+
+void __fastcall CSimpleDoodad::RenderScene() {
+  GxRsPush();
+  GxRsSet(GxRs_DepthWrite, 1);
+  GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
+  GxVertexShaderSelect(GxVS_PassThru);
+  GxXformPush(GxXform_World);
+
+  CSimpleDoodad *simpleDoodad = simpleDoodadScene.Head();
+  while (simpleDoodad) {
+    CSimpleDoodad *nextNode = simpleDoodadScene.Next(simpleDoodad);
+
+    for (unsigned int n = 0; n < simpleDoodad->nGeosets; ++n) {
+      CSimpleDoodadGeoset *geoset = &simpleDoodad->geosets[n];
+      CSimpleDoodadMat    *material = &simpleDoodad->materials[geoset->material];
+      CGxTex              *gxTex = TextureGetGxTex(simpleDoodad->textures[material->texture[0]], 0, 0);
+      if (gxTex) {
+        GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
+        GxRsSet(GxRs_Texture0, gxTex);
+        GxRsSet(GxRs_Culling, (material->props & CSimpleDoodadMat::PROP_TWOSIDED) == 0);
+        GxRsSet(GxRs_Blend, (material->props & CSimpleDoodadMat::PROP_TRANSPARENT) != 0);
+
+        gxBufDyn->UserArgSet(geoset);
+        GxBufLock(gxBufDyn);
+        CGxBatch gxBatch(GxPrim_Triangles, geoset->indexList.Count(), 0, geoset->vertexList.Count(), -1);
+        for (unsigned int index = 0; index < simpleDoodad->matrixList.Count(); ++index) {
+          CMap::SelectLight(simpleDoodad->doodadDefList[index]);
+          GxXformSet(GxXform_World, simpleDoodad->matrixList[index]);
+          GxBufRender(gxBatch);
+        }
+        GxBufUnlock();
+      }
+    }
+
+    simpleDoodad->sceneLink.Unlink();
+    simpleDoodad->matrixList.SetCount(0);
+    simpleDoodad->doodadDefList.SetCount(0);
+    simpleDoodad = nextNode;
+  }
+
+  GxXformPop(GxXform_World);
+  GxRsPop();
+}
+
+int __fastcall CSimpleDoodad::Read(const char *fileName, CSimpleDoodad *simpleDoodad) {
+  ASSERT(fileName);
+
+  MDLDATA mdlData;
+  if (!MDLFileRead(fileName, &mdlData, 0)) {
+    return 0;
+  }
+
+  return MdlReadCallback(mdlData, simpleDoodad);
+}
+
+int __fastcall CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad) {
+  ASSERT(simpleDoodad);
+
+  if (data.materials.Count() > 4) {
+    return 0;
+  }
+  if (data.textures.Count() > 4) {
+    return 0;
+  }
+  if (data.geosets.Count() > 4) {
+    return 0;
+  }
+
+  unsigned int i;
+  for (i = 0; i < data.materials.Count(); ++i) {
+    if (data.materials[i].texLayers.Count() != 1) {
+      return 0;
+    }
+  }
+
+  simpleDoodad->nTextures = data.textures.Count();
+  for (i = 0; i < data.textures.Count(); ++i) {
+    simpleDoodad->textures[i] = CMap::LoadTexture(data.textures[i].image);
+  }
+
+  simpleDoodad->nMaterials = data.materials.Count();
+  for (i = 0; i < data.materials.Count(); ++i) {
+    CSimpleDoodadMat *material = &simpleDoodad->materials[i];
+    material->nTextures = data.materials[i].texLayers.Count();
+    for (unsigned int j = 0; j < data.materials[i].texLayers.Count(); ++j) {
+      material->texture[j] = data.materials[i].texLayers[j].textureId;
+      if (data.materials[i].texLayers[j].blendMode == TEXOP_TRANSPARENT) {
+        material->props |= CSimpleDoodadMat::PROP_TRANSPARENT;
+      }
+      if (data.materials[i].texLayers[j].flags & 0x10) {
+        material->props |= CSimpleDoodadMat::PROP_TWOSIDED;
+      }
+    }
+  }
+
+  simpleDoodad->nGeosets = data.geosets.Count();
+  for (i = 0; i < data.geosets.Count(); ++i) {
+    CSimpleDoodadGeoset *geoset = &simpleDoodad->geosets[i];
+    unsigned int         nVertices = data.geosets[i].vertices.Count();
+
+    geoset->vertexList.SetCount(nVertices);
+    geoset->normalList.SetCount(nVertices);
+    geoset->tVertexList.SetCount(nVertices);
+    for (unsigned int v = 0; v < nVertices; ++v) {
+      geoset->vertexList[v] = data.geosets[i].vertices[v];
+      geoset->normalList[v] = data.geosets[i].normals[v];
+      geoset->tVertexList[v] = data.geosets[i].texCoords[0][v];
+    }
+
+    unsigned int nIndices = data.geosets[i].primitives.vertices.Count();
+    geoset->indexList.SetCount(nIndices);
+    for (unsigned int p = 0; p < nIndices; ++p) {
+      geoset->indexList[p] = data.geosets[i].primitives.vertices[p];
+    }
+
+    geoset->material = data.geosets[i].materialId;
+  }
+
+  simpleDoodad->extents = data.model.bounds.extent;
+  simpleDoodad->bounds.c.Set(
+      (data.model.bounds.extent.b.x + data.model.bounds.extent.t.x) * 0.5f,
+      (data.model.bounds.extent.b.y + data.model.bounds.extent.t.y) * 0.5f,
+      (data.model.bounds.extent.b.z + data.model.bounds.extent.t.z) * 0.5f
+  );
+  simpleDoodad->bounds.r = data.model.bounds.radius;
+
+  return 1;
+}
+
+void __fastcall CSimpleDoodad::MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CSimpleDoodad *simpleDoodad) {
 }
 
 void __fastcall CSimpleDoodad::GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf) {

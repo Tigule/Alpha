@@ -6,6 +6,8 @@
 #include "Base/Handle.h"
 #include "WowTime.h"
 
+DECLARE_DERIVED_HANDLE(HGAMETIMECALLBACK, HOBJECT);
+
 struct GAMETIMECBSTRUCT : public TSLinkedNode<GAMETIMECBSTRUCT>, public CHandleObject {
   void *userData;
   void(__stdcall *callback)(const WowTime &, void *);
@@ -24,8 +26,12 @@ class CGameTime : public WowTime {
   void  GameTimeSetTime(const WowTime &time);
   void  GameTimeUpdate(float elapsedSeconds);
   void  GameTimeSync(const WowTime &time, bool reset);
+  void  GameTimeSync(bool reset);
   float GameTimeSetMinutesPerSecond(float minutesPerSecond);
+  float GameTimeGetMinutesPerSecond();
   float GameTimeGetDayProgression();
+  HGAMETIMECALLBACK GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, void *), void *user);
+  void  GameTimeUnregisterCallback(HGAMETIMECALLBACK callbackHandle);
 
   unsigned long m_lastTick;
 

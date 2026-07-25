@@ -18,6 +18,7 @@ class CSimpleStatusBar : public CSimpleFrame {
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
 
   void         SetBarTexture(CSimpleTexture *texture, int layer);
+  int          SetBarTexture(const char *texFile, int layer);
   void         SetMinMaxValues(float min, float max);
   virtual void SetValue(float value);
 

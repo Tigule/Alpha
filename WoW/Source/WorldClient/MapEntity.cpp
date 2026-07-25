@@ -177,6 +177,19 @@ int CMapEntity::QueryMapObjFileName(const char *&fileName) {
   return 1;
 }
 
+int CMapEntity::QueryMapObjListenerId(unsigned int &listenerId) {
+  CMapObjGroup    *mapObjGroup;
+  CMapObjDefGroup *mapObjDefGroup;
+  CMapObj         *mapObj;
+  CMapObjDef      *mapObjDef;
+  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    return 0;
+  }
+
+  listenerId = 0;
+  return 1;
+}
+
 unsigned int CMapEntity::QueryMapObjMinimap(NTempest::CAaBox &aaBox, TSStackArray<CWorldMinimapQuad> &quads) {
   NTempest::CAaBox localBox;
   CMapObjGroup    *mapObjGroup;
