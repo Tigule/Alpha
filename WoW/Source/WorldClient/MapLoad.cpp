@@ -264,7 +264,7 @@ CMapDoodadDef *__fastcall CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempe
   doodadDef->modelName = &doodadNames[doodadNamesIndex[smDoodadDef.nameId]];
   doodadDef->model = 0;
 
-  NTempest::C3Vector rot(smDoodadDef.rot.x * 0.017453292f, smDoodadDef.rot.y * 0.017453292f, smDoodadDef.rot.z * 0.017453292f + 3.1415927f);
+  NTempest::C3Vector rot(smDoodadDef.rot.z * 0.017453292f, smDoodadDef.rot.x * 0.017453292f, smDoodadDef.rot.y * 0.017453292f + 3.1415927f);
   doodadDef->mat = NTempest::C44Matrix();
   doodadDef->mat.Translate(doodadDef->pos);
   doodadDef->mat.Rotate(rot.z, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
