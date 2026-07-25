@@ -544,12 +544,12 @@ void __fastcall CWorldScene::FrustumSet(NTempest::CRect &sRect) {
     bd = camFrustumCorners[i + 3] - camFrustumCorners[i];
     bl = camFrustumCorners[i] + bd * sRect.l;
     br = camFrustumCorners[i] + bd * sRect.r;
-    ld = bl - tl;
-    rd = br - tr;
-    newCorners[i] = tl + ld * sRect.b;
-    newCorners[i + 1] = tl + ld * sRect.t;
-    newCorners[i + 2] = tr + rd * sRect.t;
-    newCorners[i + 3] = tr + rd * sRect.b;
+    ld = tl - bl;
+    rd = tr - br;
+    newCorners[i] = bl + ld * sRect.t;
+    newCorners[i + 1] = bl + ld * sRect.b;
+    newCorners[i + 2] = br + rd * sRect.b;
+    newCorners[i + 3] = br + rd * sRect.t;
   }
 
   FrustumGet().CalcPlanesFromCorners(newCorners);
@@ -580,14 +580,14 @@ void __fastcall CWorldScene::FrustumSet(NTempest::C3Vector *corners, NTempest::C
     bd = corners[i + 3] - corners[i];
     bl = corners[i] + bd * sRect.l;
     br = corners[i] + bd * sRect.r;
-    ld = bl - tl;
-    rd = br - tr;
-    a = tl + ld * sRect.t;
-    b = tr + rd * sRect.t;
-    newCorners[i] = tl + ld * sRect.b;
+    ld = tl - bl;
+    rd = tr - br;
+    a = bl + ld * sRect.b;
+    b = br + rd * sRect.b;
+    newCorners[i] = bl + ld * sRect.t;
     newCorners[i + 1] = a;
     newCorners[i + 2] = b;
-    newCorners[i + 3] = tr + rd * sRect.b;
+    newCorners[i + 3] = br + rd * sRect.t;
   }
 
   n = NTempest::C3Vector::Cross(newCorners[1] - newCorners[2], newCorners[0] - newCorners[2]);
