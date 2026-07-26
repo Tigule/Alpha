@@ -51,8 +51,15 @@ enum ITEMSOUNDTYPE {
   NUM_ITEMSOUNDS = 4
 };
 
+enum AMBIENCE {
+  AMB_DAY = 0,
+  AMB_NIGHT = 1,
+  NUM_AMBIENCES = 2
+};
+
 extern unsigned int g_sndInterfaceFlags;
 extern bool         g_underWater;
+extern AMBIENCE     g_currentAmbience;
 
 void __fastcall SndInterfaceInitialize();
 void __fastcall SndInterfaceDestroy();
@@ -60,8 +67,8 @@ void __fastcall SndInterfaceWorldInitialize();
 void __fastcall SndInterfaceWorldDestroy();
 void __fastcall SoundInterfaceRegisterWorldCVars();
 void __fastcall SoundInterfaceInitializeWorldMIDICVars();
-void __fastcall SndInterfaceMIDISetPaused(unsigned int paused);
-void __fastcall SndInterfaceWaterSetPaused(unsigned int p);
+void __fastcall SndInterfaceMIDISetPaused(bool paused);
+void __fastcall SndInterfaceWaterSetPaused(bool p);
 void __fastcall SndInterfaceWaterUpdateVolume(float volume);
 void __fastcall SndInterfaceSetUnderwater(bool underwater);
 void __fastcall SndInterfaceMIDIUnderwaterChanged();

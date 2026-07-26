@@ -6,19 +6,28 @@
 
 static AreaMIDIAmbiencesRec *s_ambienceRecNormal;
 static AreaMIDIAmbiencesRec *s_ambienceRecUnderwater;
-static unsigned int          s_paused;
+static bool                  s_paused;
 static float                 s_volume = 1.0f;
 
 static bool __fastcall AmbienceVolumeHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
   s_volume = SStrToFloat(newValue);
-  Sound::MIDI_SetVolume(s_volume);
   SndInterfaceWaterUpdateVolume(s_volume);
+  Sound::MIDI_SetVolume(s_volume);
 
   CVar *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
   CVar *enableAmbience = CVar::Lookup("EnableAmbience");
-  bool  paused = !masterSoundEffects || !masterSoundEffects->m_intValue || !enableAmbience || !enableAmbience->m_intValue || s_volume == 0.0f;
-  SndInterfaceWaterSetPaused(paused);
-  SndInterfaceMIDISetPaused(paused);
+  bool  enabled = true;
+  if (!masterSoundEffects || !masterSoundEffects->m_intValue) {
+    enabled = false;
+  }
+  if (!enableAmbience || !enableAmbience->m_intValue) {
+    enabled = false;
+  }
+  if (s_volume == 0.0f) {
+    enabled = false;
+  }
+  SndInterfaceWaterSetPaused(!enabled);
+  SndInterfaceMIDISetPaused(!enabled);
   return true;
 }
 
@@ -56,7 +65,7 @@ static void __fastcall StartAmbience() {
   AreaMIDIAmbiencesRec *ambienceRec = g_underWater ? s_ambienceRecUnderwater : s_ambienceRecNormal;
   CVar                 *enableAmbience = CVar::Lookup("EnableAmbience");
   if (ambienceRec && enableAmbience && enableAmbience->m_intValue) {
-    const char *sequence = s_paused ? ambienceRec->m_NightSequence : ambienceRec->m_DaySequence;
+    const char *sequence = g_currentAmbience == AMB_DAY ? ambienceRec->m_DaySequence : ambienceRec->m_NightSequence;
     Sound::MIDI_Play(sequence, ambienceRec->m_DLSFile);
     Sound::MIDI_SetVolume(s_volume);
   }
@@ -66,11 +75,15 @@ void __fastcall SndInterfaceSetMIDIArea(int normal, int underwater) {
   AreaMIDIAmbiencesRec *normalRec = g_areaMIDIAmbiencesDB.GetRecord(normal);
   AreaMIDIAmbiencesRec *underwaterRec = g_areaMIDIAmbiencesDB.GetRecord(underwater);
 
-  if (s_paused) {
-    if (s_paused != 1 || underwaterRec == s_ambienceRecUnderwater) {
+  if (g_currentAmbience == AMB_DAY) {
+    if (normalRec == s_ambienceRecNormal) {
       return;
     }
-  } else if (normalRec == s_ambienceRecNormal) {
+  } else if (g_currentAmbience == AMB_NIGHT) {
+    if (underwaterRec == s_ambienceRecUnderwater) {
+      return;
+    }
+  } else {
     return;
   }
 
@@ -93,7 +106,7 @@ void __fastcall SndInterfaceMIDIUnderwaterChanged() {
   StartAmbience();
 }
 
-void __fastcall SndInterfaceMIDISetPaused(unsigned int paused) {
+void __fastcall SndInterfaceMIDISetPaused(bool paused) {
   s_paused = paused;
   if (paused) {
     Sound::MIDI_Stop();

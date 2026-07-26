@@ -24,6 +24,9 @@ struct LIQUIDINFO {
   SoundEntriesRec   *m_currentRecord;
   unsigned int       m_currentPlayingSound;
 
+  void InitSoundID(unsigned int sType, unsigned int soundID);
+  void ClearSubTypes();
+  void RegisterSubType(unsigned int subType, const NTempest::C3Vector &pos);
   void StopSound(int immediate);
   int  Update(const NTempest::C3Vector &listenerPos);
   void UpdateVolume();
@@ -38,6 +41,24 @@ static int        s_paused;
 static int        s_elapsed;
 static CVar      *s_cvar;
 static const float PANNING_DIST_SQUARED = 81.0f;
+
+void LIQUIDINFO::InitSoundID(unsigned int sType, unsigned int soundID) {
+  FATALASSERT(sType < (sizeof(m_soundRecords) / sizeof(m_soundRecords[0])));
+  m_soundRecords[sType] = g_soundEntriesDB.GetRecord(soundID);
+}
+
+void LIQUIDINFO::ClearSubTypes() {
+  for (unsigned int i = 0; i < 3; ++i) {
+    m_subTypes[i] = 0;
+  }
+}
+
+void LIQUIDINFO::RegisterSubType(unsigned int subType, const NTempest::C3Vector &pos) {
+  FATALASSERT(subType < (sizeof(m_subTypes) / sizeof(m_subTypes[0])));
+  ++m_subTypes[subType];
+  m_positionOffset[subType] = pos;
+  m_positionOffset[subType].z = 0.0f;
+}
 
 void LIQUIDINFO::StopSound(int immediate) {
   if (m_sound) {
@@ -60,7 +81,7 @@ static bool __fastcall ToggleCallback(CVar* h, const char* oldValue, const char*
 }
 
 static void HandleWaterAmbiences() {
-  if (!(s_flags & 1) || !s_cvar || !s_cvar->GetInt() || g_underWater) {
+  if (!(s_flags & 1) || !s_cvar->m_intValue || g_underWater) {
     return;
   }
 
@@ -76,15 +97,11 @@ static void HandleWaterAmbiences() {
   CWorld::QueryLiquidSounds(player->GetWorldObject(), 9.0f, liquidResults, distanceResults);
 
   for (unsigned int liquidType = 0; liquidType < 4; ++liquidType) {
-    memset(s_liquidInfo[liquidType].m_subTypes, 0, sizeof(s_liquidInfo[liquidType].m_subTypes));
+    s_liquidInfo[liquidType].ClearSubTypes();
   }
   for (unsigned int i = 0; i < 9; ++i) {
     if (liquidResults[i]) {
-      unsigned int subType = (i >> 2) & 3;
-      FATALASSERT(subType < 3);
-      ++s_liquidInfo[i & 3].m_subTypes[subType];
-      s_liquidInfo[i & 3].m_positionOffset[subType] = distanceResults[i];
-      s_liquidInfo[i & 3].m_positionOffset[subType].z = 0.0f;
+      s_liquidInfo[i & 3].RegisterSubType((i >> 2) & 3, distanceResults[i]);
     }
   }
 
@@ -107,11 +124,11 @@ static int __fastcall WaterHandler(const void* dataPtr, void* param) {
 }
 
 void LIQUIDINFO::StartSound(unsigned int subType, const NTempest::C3Vector &listenerPos) {
-  FATALASSERT(subType < 3);
-  NTempest::C3Vector position = listenerPos + m_positionOffset[subType];
+  FATALASSERT(subType < (sizeof(m_subTypes) / sizeof(m_subTypes[0])));
   if (m_sound) {
+    NTempest::C3Vector worldPosition = m_positionOffset[subType] + listenerPos;
     if (m_sound->IsPlaying()) {
-      m_sound->SetPosition(position, 0);
+      m_sound->SetPosition(worldPosition, 0);
     }
     return;
   }
@@ -132,11 +149,12 @@ void LIQUIDINFO::StartSound(unsigned int subType, const NTempest::C3Vector &list
     return;
   }
 
+  NTempest::C3Vector pos = m_positionOffset[subType] + listenerPos;
   bool startPaused = !(s_flags & 2);
-  m_sound = Sound::Play3DLooped(static_cast<SOUNDCATEGORIES>(4), filename, 0, 0, startPaused);
+  m_sound = Sound::Play3DLooped(SOUNDCATEGORY_NONE, filename, 4, 0, startPaused);
   if (m_sound) {
     definition->SetFrequencyAndVolume(m_sound, 1.0f, false);
-    definition->Set3DParams(m_sound, &position);
+    definition->Set3DParams(m_sound, &pos);
     if (startPaused) {
       m_sound->SetFadeIn(5.0f, 1.0f);
       if (!m_sound->SetPaused(false)) {
@@ -175,7 +193,7 @@ void LIQUIDINFO::UpdateVolume() {
 
 void LIQUIDINFO::Tick() {
   if (m_sound && m_currentRecord) {
-    FATALASSERT(m_currentPlayingSound < 3);
+    FATALASSERT(m_currentPlayingSound < (sizeof(m_positionOffset) / sizeof(m_positionOffset[0])));
     float distanceSquared = m_positionOffset[m_currentPlayingSound].SquaredMag();
     m_sound->SetPanning(1.0f - distanceSquared / PANNING_DIST_SQUARED);
   }
@@ -185,10 +203,7 @@ void __fastcall InitializeWaterAmbiences() {
   for (int i = g_soundWaterTypeDB.GetNumRecords() - 1; i >= 0; --i) {
     SoundWaterTypeRec *record = g_soundWaterTypeDB.GetRecordByIndex(i);
     if (record && record->m_soundType < 4) {
-      unsigned int soundSubtype = (record->m_soundSubtype >> 2) & 3;
-      FATALASSERT(soundSubtype < 3);
-      s_liquidInfo[record->m_soundType].m_soundRecords[soundSubtype] =
-          g_soundEntriesDB.GetRecord(record->m_SoundID);
+      s_liquidInfo[record->m_soundType].InitSoundID((record->m_soundSubtype >> 2) & 3, record->m_SoundID);
     }
   }
   s_flags |= 1;
@@ -212,16 +227,16 @@ void __fastcall WaterAmbiencesUnderwaterChanged() {
   }
 }
 
-void __fastcall SndInterfaceWaterSetPaused(unsigned int p) {
-  if (p && p != static_cast<unsigned int>(s_paused)) {
+void __fastcall SndInterfaceWaterSetPaused(bool p) {
+  if (p && p != s_paused) {
     for (unsigned int i = 0; i < 4; ++i) {
       if (s_liquidInfo[i].m_sound) {
         Sound::KillSound(s_liquidInfo[i].m_sound);
-        s_liquidInfo[i].m_sound = 0;
       }
+      s_liquidInfo[i].m_sound = 0;
     }
   }
-  s_paused = p != 0;
+  s_paused = p;
 }
 
 void __fastcall SndInterfaceWaterUpdateVolume(float volume) {

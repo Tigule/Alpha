@@ -42,7 +42,7 @@ void __fastcall SndInterfaceRegisterNewZoneIntro(int soundID, int priority) {
         if (definition) {
           const char *filename = definition->GetRandomFileName(-1);
           if (filename && *filename) {
-            s_sound = Sound::Play2D(static_cast<SOUNDCATEGORIES>(6), filename, 1, true);
+            s_sound = Sound::Play2D(SOUNDCATEGORY_NONE, filename, 6, true);
             if (s_sound) {
               s_priority = priority;
               s_lastPlayTime = OsGetAsyncTimeMs();

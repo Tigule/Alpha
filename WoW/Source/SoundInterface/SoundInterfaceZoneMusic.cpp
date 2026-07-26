@@ -13,7 +13,6 @@ static Sound        *s_sound;
 static int           s_elapsed;
 static int           s_nextPlay;
 static NTempest::CRndSeed s_rndSeed;
-extern int g_currentAmbience;
 
 static int GetNextPlayTime() {
   if (s_flags & 4) {
@@ -46,7 +45,7 @@ static void PlayMusic() {
   Sound::KillSound(s_sound);
   const char *filename = definition->GetRandomFileName(-1);
   if (filename && *filename) {
-    s_sound = Sound::Play2D(static_cast<SOUNDCATEGORIES>(6), filename, 1, true);
+    s_sound = Sound::Play2D(SOUNDCATEGORY_NONE, filename, 6, true);
   }
   if (s_sound) {
     if (s_sound->SetPaused(false)) {
@@ -58,14 +57,14 @@ static void PlayMusic() {
 }
 
 static int __fastcall ZoneMusicIdle(const void* dataPtr, void* ptr) {
-  s_elapsed += static_cast<int>(*static_cast<const float *>(dataPtr) * 1000.0f);
+  const EVENT_DATA_IDLE* data = static_cast<const EVENT_DATA_IDLE*>(dataPtr);
   if (!(s_flags & 1) && s_currentMusic
       && (s_currentMusic->m_Sounds[0] || s_currentMusic->m_Sounds[1])) {
     if (s_sound && !s_sound->IsPlaying()) {
       s_nextPlay = GetNextPlayTime();
       Sound::KillSound(s_sound);
     }
-    if (!s_sound && (s_nextPlay == -1 || static_cast<int>(OsGetAsyncTimeMs()) > s_nextPlay)) {
+    if (!s_sound && (s_nextPlay == -1 || data->time > static_cast<unsigned int>(s_nextPlay))) {
       PlayMusic();
     }
   }

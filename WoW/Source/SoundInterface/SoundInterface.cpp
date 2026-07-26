@@ -63,14 +63,8 @@ void __fastcall SndInterfaceMIDIAmbienceChanged();
 
 bool g_underWater;
 
-enum AMBIENCE {
-  AMB_DAY,
-  AMB_NIGHT,
-  NUM_AMBIENCES
-};
-
-static int      s_elapsed;
-int g_currentAmbience;
+static int s_elapsed;
+AMBIENCE g_currentAmbience;
 
 static int                      MIXRATE = 22050;
 static const FrameScript_Method s_ScriptFunctions[2] = {
