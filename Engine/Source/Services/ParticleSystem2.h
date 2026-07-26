@@ -49,6 +49,13 @@ class CParticleKey {
   void SetTailCells(int start, int end);
   void SetScales(float start, float end);
   void SetColors(NTempest::CImVector start, NTempest::CImVector end);
+  void Segment(float &startTime, float &endTime);
+  void Repeat(float &repeat);
+  void LifeSpan(float &lifeSpan);
+  void Colors(NTempest::CImVector &start, NTempest::CImVector &end);
+  void HeadCells(int &start, int &end);
+  void TailCells(int &start, int &end);
+  void Scales(float &start, float &end);
 
   NTempest::CImVector m_startColor;
   int                 m_deltaColor[4];
@@ -149,7 +156,15 @@ class CParticleEmitter2 {
   static void __fastcall BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf);
   void                   RenderParticles();
   int                    RenderParticle(CParticle2_Model &p);
+  int                    RenderParticle(CParticle2 &p, const NTempest::C34Matrix &basis, unsigned int headCell, unsigned int tailCell);
   void                   RenderParticleModels();
+  CParticle2            *GetParticle(unsigned int index) {
+    return m_particleType == PT_MODEL ? static_cast<CParticle2 *>(&m_modelParticles[index]) : &m_particles[index];
+  }
+  void                   SetTumble(NTempest::C2Vector &dst, const NTempest::C2Vector &src) {
+    dst.x = src.x;
+    dst.y = src.y - src.x;
+  }
 
  public:
   virtual ~CParticleEmitter2();
@@ -167,6 +182,9 @@ class CParticleEmitter2 {
   void                SetVelocity(float velocity);
   void                SetAcceleration(float acceleration);
   void                SetVelocityVariation(float variation);
+  void                SetAngularVelocity(float angularVelocity) {
+    m_particleAngularVelocity = angularVelocity;
+  }
   void                SetZsource(float zsource);
   void                SetMaterial(const CParticleMat &material, HTEXTURE hTex);
   void                MaterialDisableLight(int disable);
@@ -181,6 +199,18 @@ class CParticleEmitter2 {
   float               Velocity();
   float               Acceleration();
   float               VelocityVariation();
+  float               AngularVelocity() {
+    return m_particleAngularVelocity;
+  }
+  CParticleMat        Material() {
+    return m_particleMaterial;
+  }
+  HTEXTURE            Texture() {
+    return m_hTex;
+  }
+  CParticleEmitter2  *ChildEmitter(unsigned int index) {
+    return m_childEmitter[index];
+  }
   const CParticleKey &Key(unsigned int keyNdx);
   void                TextureDimensions(unsigned int &rows, unsigned int &columns);
   void                ParticleStyle(int &hasHead, int &hasTail, float &tailLength);
@@ -188,13 +218,84 @@ class CParticleEmitter2 {
   void                SetTextureDimensions(unsigned int rows, unsigned int columns);
   void                SetParticleStyle(int hasHead, int hasTail, float tailLength, bool tailGrows);
   void                SetSortZ(int sortZ);
-  void                SetFollowParams(float speed1, float scale1, float speed2, float scale2);
-  void                SetPriorityPlane(int priorityPlane);
+  void                SetPriorityPlane(int priorityPlane) {
+    m_priorityPlane = priorityPlane;
+  }
+  void                SetUseModelSpace(int useModelSpace) {
+    m_useModelSpace = useModelSpace;
+  }
+  void                SetInstantVel(int instantVel) {
+    m_instantVelLin = instantVel;
+  }
+  void                SetInstantVelScale(float scale) {
+    m_ivelScale = scale;
+  }
+  void                Set0XKill(int kill) {
+    m_0XKill = kill;
+  }
+  void                SetInheritScale(int inheritScale) {
+    m_inheritScale = inheritScale;
+  }
+  void                SetExtrude(int extrude) {
+    m_extrude = extrude;
+  }
+  void                SetXYQuads(int xyQuads) {
+    m_xyQuads = xyQuads;
+  }
+  void                SetProject(int project) {
+    m_project = project;
+  }
   void                AddChildEmitter(CParticleEmitter2 *child);
   void                SetModel(HMODEL model);
+  void                SetTwinkleFPS(float fps) {
+    m_twinkleFPS = fps;
+  }
+  void                SetTwinkleOnOff(float onOff) {
+    m_twinkleOnOff = onOff;
+  }
+  void                SetTwinkleScale(float minScale, float maxScale) {
+    m_twinkleScaleMin = minScale;
+    m_twinkleScaleMax = maxScale;
+    m_twinkleScaleRange = maxScale - minScale;
+  }
+  void                SetZVelOnly(int zVelOnly) {
+    m_zvelOnly = zVelOnly;
+  }
+  void                SetTumbleReverse(int reverse) {
+    m_tumbler = reverse;
+  }
+  void                SetTumbleX(const NTempest::C2Vector &tumble) {
+    SetTumble(m_tumblex, tumble);
+  }
+  void                SetTumbleY(const NTempest::C2Vector &tumble) {
+    SetTumble(m_tumbley, tumble);
+  }
+  void                SetTumbleZ(const NTempest::C2Vector &tumble) {
+    SetTumble(m_tumblez, tumble);
+  }
+  void                SetDrag(float drag) {
+    m_drag = drag;
+  }
+  void                SetWind(const NTempest::C3Vector &wind, float time) {
+    m_windVector = wind;
+    m_windTime = time;
+  }
+  void                SetFollowParams(float speed1, float scale1, float speed2, float scale2);
+  void                SetFollow(int follow) {
+    m_follow = follow;
+  }
+  PARTICLE_EMITTER_TYPE EmitterType() {
+    return m_emitterType;
+  }
   void                Squirt();
   void                Flush();
   int                 SortZ();
+  int                 PriorityPlane() {
+    return m_priorityPlane;
+  }
+  int                 UseModelSpace() {
+    return m_useModelSpace;
+  }
   void                Render();
   void                Update(float elapsedTime, const NTempest::C34Matrix &modelToWorld, const NTempest::C3Vector &cameraWorldPos);
 
@@ -203,7 +304,22 @@ class CParticleEmitter2 {
 
   void SyncReserve(unsigned int arraySize, unsigned int oldSize, unsigned int oldReserve);
   void SyncAllocation(unsigned int arraySize);
+  int  IsEnabled() {
+    return m_enabled && m_enabled2;
+  }
   void EmitNewParticles(float elapsedTime, const NTempest::C34Matrix &basis);
+  void EmitParticle(float elapsedTime, const NTempest::C34Matrix &basis) {
+    unsigned int particle = m_dead.Pop();
+    m_alive.Push(particle);
+
+    CParticle2 *p = GetParticle(particle);
+    p->m_flags = 1;
+    if (m_particleType == PT_MODEL) {
+      CreateParticle(*static_cast<CParticle2_Model *>(p), elapsedTime, basis);
+    } else {
+      CreateParticle(*p, elapsedTime, basis);
+    }
+  }
 
   unsigned int m_refCount;
   float        m_numNew;

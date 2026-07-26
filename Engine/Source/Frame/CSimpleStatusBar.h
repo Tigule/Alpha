@@ -16,6 +16,8 @@ class CSimpleStatusBar : public CSimpleFrame {
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
+  virtual float GetAnimValue() const;
+  virtual void  OnLayerUpdate(float elapsedSec);
 
   void         SetBarTexture(CSimpleTexture *texture, int layer);
   int          SetBarTexture(const char *texFile, int layer);
@@ -38,6 +40,18 @@ class CSimpleStatusBar : public CSimpleFrame {
 
   static void __fastcall RegisterScriptMethods();
   static void __fastcall UnregisterScriptMethods();
+
+  void SetOnValueChangedScript(const char *source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnValueChanged", GetName());
+    SetEventScript(m_onValueChanged, source, description);
+  }
+
+  void RunOnValueChangedScript() {
+    if (m_onValueChanged) {
+      FrameScript_Execute(m_onValueChanged, this, "%f", m_value);
+    }
+  }
 
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);

@@ -220,7 +220,7 @@ void CSimpleTop::UnregisterFrame(CSimpleFrame *frame) {
 void CSimpleTop::NotifyFrameMovedOrResized(CSimpleFrame *frame) {
   CFrameStrata *strata;
 
-  m_strata[frame->GetFrameStrata()]->levelsDirty = 1;
+  m_strata[frame->GetFrameStrata()]->OnFrameMovedOrResized(frame);
 
   if (!m_layout.frame) {
     m_checkFocus = 1;
@@ -238,14 +238,7 @@ void CSimpleTop::NotifyFrameMovedOrResized(CSimpleFrame *frame) {
   }
 
   if (strata->batchDirty) {
-    unsigned int level;
-
-    strata->batchDirty = 0;
-    for (level = 0; level < strata->topLevel; ++level) {
-      if (strata->levels[level]->BuildBatches()) {
-        strata->batchDirty = 1;
-      }
-    }
+    strata->BuildBatches();
   }
 
   RaiseFrame(m_layout.frame, 0);
@@ -397,9 +390,7 @@ int CSimpleTop::RaiseFrame(CSimpleFrame *frame, int checkOcclusion) {
     topframe->SetOccluded(occluded);
   }
 
-  if (topframe->IsOccluded()) {
-    topframe->SetFrameLevel(m_strata[topframe->GetFrameStrata()]->topLevel, 1);
-  }
+  m_strata[topframe->GetFrameStrata()]->RaiseFrame(topframe);
 
   return 1;
 }
@@ -508,7 +499,7 @@ void CSimpleTop::MoveOrResizeFrame(const CMouseEvent &evt) {
   NTempest::C2Vector delta(evt.x - m_layout.last.x, evt.y - m_layout.last.y);
 
   if (delta.x != 0.0f || delta.y != 0.0f) {
-    m_layout.frame->DragBy(m_layout.frame->GetTop(), delta.x, delta.y, m_layout.anchor, &m_layout.final);
+    m_layout.frame->DragBy(delta.x, delta.y, m_layout.anchor, &m_layout.final);
   }
 
   m_layout.last.x += delta.x;
@@ -566,14 +557,7 @@ void CSimpleTop::OnLayerRender() {
     }
 
     if (strata->batchDirty) {
-      unsigned int level;
-
-      strata->batchDirty = 0;
-      for (level = 0; level < strata->topLevel; ++level) {
-        if (strata->levels[level]->BuildBatches()) {
-          strata->batchDirty = 1;
-        }
-      }
+      strata->BuildBatches();
     }
 
     strata->RenderBatches();

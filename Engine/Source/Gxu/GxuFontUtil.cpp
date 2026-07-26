@@ -23,7 +23,7 @@ static float                                        topPixelAdjustment;
 static int                                          adjustmentsInitialized;
 static int                                          pixelCenterOnEdge;
 static int                                          initialized;
-static const unsigned int                           pixelsLitLevels[10] = {0x00, 0x1F, 0x1F, 0x3F, 0x5F, 0x7F, 0x9F, 0xBF, 0xDF, 0xFF};
+static const unsigned char                          pixelsLitLevels[10] = {0x00, 0x1F, 0x1F, 0x3F, 0x5F, 0x7F, 0x9F, 0xBF, 0xDF, 0xFF};
 static TSHashTable<STRINGVIEWMATRICES, HASHKEY_PTR> s_stringViewMatrices;
 static TSExplicitList<STRINGVIEWMATRICES, 24>       s_freeStringMatrices;
 static HASHKEY_NONE                                 s_nullHashKey;
@@ -580,7 +580,7 @@ void CGxString::InitializeTextLine(
   float        step = 0.0f;
 
   while (*currentText && numBytes) {
-    NTempest::CImVector color(0);
+    NTempest::CImVector color(0ul);
     QUOTEDCODE          quotedCode = GxuDetermineQuotedCode(currentText, advance, &color, m_flags, wide, numBytes);
     currentText += advance;
     numBytes -= advance;

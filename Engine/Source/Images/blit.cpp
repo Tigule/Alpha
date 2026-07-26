@@ -18,7 +18,7 @@ typedef void(__fastcall *BlitFunc)(const C2iVector &size, const void *in, unsign
 static int          initBlit;
 static unsigned int BYTES_PER_BLOCK[BlitFormats_Last] = {0, 4, 2, 2, 2, 8, 16, 16};
 static unsigned int PIXELS_PER_BLOCK_SHIFT[BlitFormats_Last] = {0, 0, 0, 0, 0, 2, 2, 2};
-static BlitFunc     s_blits[BlitAlphas_Last][BlitFormats_Last][BlitFormats_Last];
+static BlitFunc     s_blits[BlitFormats_Last][BlitFormats_Last][BlitAlphas_Last];
 
 static void __fastcall Blit_Argb8888_Argb4444(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   const CImVector *src = static_cast<const CImVector *>(in);
@@ -299,23 +299,23 @@ static void __fastcall Blit_Dxt3_Argb8888(const C2iVector &size, const void *in,
 }
 
 static void __fastcall InitBlit() {
-  s_blits[BlitAlpha_0][BlitFormat_Rgb565][BlitFormat_Rgb565] = Blit_uint16_uint16;
-  s_blits[BlitAlpha_0][BlitFormat_Argb4444][BlitFormat_Argb4444] = Blit_uint16_uint16;
-  s_blits[BlitAlpha_0][BlitFormat_Argb1555][BlitFormat_Argb1555] = Blit_uint16_uint16;
-  s_blits[BlitAlpha_0][BlitFormat_Argb8888][BlitFormat_Argb8888] = Blit_Argb8888_Argb8888;
-  s_blits[BlitAlpha_1][BlitFormat_Argb8888][BlitFormat_Argb8888] = Blit_Argb8888_Argb8888_A1;
-  s_blits[BlitAlpha_8][BlitFormat_Argb8888][BlitFormat_Argb8888] = Blit_Argb8888_Argb8888_A8;
-  s_blits[BlitAlpha_0][BlitFormat_Argb8888][BlitFormat_Argb4444] = Blit_Argb8888_Argb4444;
-  s_blits[BlitAlpha_0][BlitFormat_Argb8888][BlitFormat_Argb1555] = Blit_Argb8888_Argb1555;
-  s_blits[BlitAlpha_0][BlitFormat_Argb8888][BlitFormat_Rgb565] = Blit_Argb8888_Rgb565;
-  s_blits[BlitAlpha_0][BlitFormat_Dxt1][BlitFormat_Dxt1] = Blit_Dxt1_Dxt1;
-  s_blits[BlitAlpha_0][BlitFormat_Dxt3][BlitFormat_Dxt3] = Blit_Dxt35_Dxt35;
-  s_blits[BlitAlpha_0][BlitFormat_Dxt5][BlitFormat_Dxt5] = Blit_Dxt35_Dxt35;
-  s_blits[BlitAlpha_0][BlitFormat_Dxt1][BlitFormat_Rgb565] = Blit_Dxt1_Rgb565;
-  s_blits[BlitAlpha_0][BlitFormat_Dxt1][BlitFormat_Argb1555] = Blit_Dxt1_Argb1555;
-  s_blits[BlitAlpha_0][BlitFormat_Dxt1][BlitFormat_Argb8888] = Blit_Dxt1_Argb8888;
-  s_blits[BlitAlpha_0][BlitFormat_Dxt3][BlitFormat_Argb4444] = Blit_Dxt3_Argb4444;
-  s_blits[BlitAlpha_0][BlitFormat_Dxt3][BlitFormat_Argb8888] = Blit_Dxt3_Argb8888;
+  s_blits[BlitFormat_Rgb565][BlitFormat_Rgb565][BlitAlpha_0] = Blit_uint16_uint16;
+  s_blits[BlitFormat_Argb4444][BlitFormat_Argb4444][BlitAlpha_0] = Blit_uint16_uint16;
+  s_blits[BlitFormat_Argb1555][BlitFormat_Argb1555][BlitAlpha_0] = Blit_uint16_uint16;
+  s_blits[BlitFormat_Argb8888][BlitFormat_Argb8888][BlitAlpha_0] = Blit_Argb8888_Argb8888;
+  s_blits[BlitFormat_Argb8888][BlitFormat_Argb8888][BlitAlpha_1] = Blit_Argb8888_Argb8888_A1;
+  s_blits[BlitFormat_Argb8888][BlitFormat_Argb8888][BlitAlpha_8] = Blit_Argb8888_Argb8888_A8;
+  s_blits[BlitFormat_Argb8888][BlitFormat_Argb4444][BlitAlpha_0] = Blit_Argb8888_Argb4444;
+  s_blits[BlitFormat_Argb8888][BlitFormat_Argb1555][BlitAlpha_0] = Blit_Argb8888_Argb1555;
+  s_blits[BlitFormat_Argb8888][BlitFormat_Rgb565][BlitAlpha_0] = Blit_Argb8888_Rgb565;
+  s_blits[BlitFormat_Dxt1][BlitFormat_Dxt1][BlitAlpha_0] = Blit_Dxt1_Dxt1;
+  s_blits[BlitFormat_Dxt3][BlitFormat_Dxt3][BlitAlpha_0] = Blit_Dxt35_Dxt35;
+  s_blits[BlitFormat_Dxt5][BlitFormat_Dxt5][BlitAlpha_0] = Blit_Dxt35_Dxt35;
+  s_blits[BlitFormat_Dxt1][BlitFormat_Rgb565][BlitAlpha_0] = Blit_Dxt1_Rgb565;
+  s_blits[BlitFormat_Dxt1][BlitFormat_Argb1555][BlitAlpha_0] = Blit_Dxt1_Argb1555;
+  s_blits[BlitFormat_Dxt1][BlitFormat_Argb8888][BlitAlpha_0] = Blit_Dxt1_Argb8888;
+  s_blits[BlitFormat_Dxt3][BlitFormat_Argb4444][BlitAlpha_0] = Blit_Dxt3_Argb4444;
+  s_blits[BlitFormat_Dxt3][BlitFormat_Argb8888][BlitAlpha_0] = Blit_Dxt3_Argb8888;
 }
 
 void __fastcall Blit(
@@ -339,7 +339,7 @@ void __fastcall Blit(
     initBlit = 1;
   }
 
-  BlitFunc blit = s_blits[alpha][srcFmt][dstFmt];
+  BlitFunc blit = s_blits[srcFmt][dstFmt][alpha];
   ASSERT(blit);
   blit(size, src, srcStride, dst, dstStride);
 }

@@ -4,6 +4,7 @@
 #include "Base/Color.h"
 #include "Anim/Interp.h"
 #include "Tempest/c4quaternion.h"
+#include "Tempest/c4quaternioncompressed.h"
 #include "Tempest/cmath.h"
 
 #include "Tempest/caabox.h"
@@ -38,7 +39,6 @@ class CKeyFrameTrack;
 namespace NTempest {
   class CImVector;
   class C4Quaternion;
-  class C4QuaternionCompressed;
 }  // namespace NTempest
 
 static void SetGeosetColor(
@@ -162,6 +162,23 @@ namespace NTempest {
 
 template <unsigned int Size>
 class CMdlString {
+ public:
+  operator char *() {
+    return m_string;
+  }
+
+  operator const char *() const {
+    return m_string;
+  }
+
+  char &operator[](unsigned int index) {
+    return m_string[index];
+  }
+
+  char operator[](unsigned int index) const {
+    return m_string[index];
+  }
+
  private:
   char m_string[Size];
 };
@@ -223,8 +240,12 @@ class CKeyFrameTrackBase {
   CArray<CKeySeq> m_indices;
   unsigned int    m_globalSeqId;
 
-  unsigned int TotalKeys() {
+  unsigned int TotalKeys() const {
     return m_numKeyFrames;
+  }
+
+  void SetGlobalSequenceId(unsigned int globalSeqId) {
+    m_globalSeqId = globalSeqId;
   }
 
   unsigned int NumKeysThisSeq(unsigned int sequence) const {
@@ -251,15 +272,36 @@ class CKeyFrameTrackBase {
     return m_globalSeqId != -1;
   }
 
+  unsigned int Bytes() const {
+    return m_numKeyFrames * m_keyFrameSize;
+  }
+
   unsigned int FirstKeyId(unsigned int sequence) const {
     ASSERT(sequence < m_indices.Count());
     return m_indices[sequence].start;
   }
 
+  unsigned int NextKeyId(unsigned int keyId, unsigned int sequence) const {
+    if (SequenceNeverChanges()) {
+      return keyId == TotalKeys() - 1 ? 0 : keyId + 1;
+    }
+    return keyId == LastKeyId(sequence) ? FirstKeyId(sequence) : keyId + 1;
+  }
+
   CKeyFrame   *NextKey(CKeyFrame *key);
   unsigned int SetAnimTime(const CBaseStatus &sequence, CKeyTrackStatus *keyStat, const InterpInfo &interpData);
   void         SetNumKeys(unsigned int numKeys, unsigned int keySize);
+  void         AddKey(int time);
   void         SetSequenceIndices(const CArray<CAnimSequence> &seq);
+  int          JustPastKey(
+               int elapsedTime,
+               const CAnimSequence &seqShared,
+               int seqElapsed,
+               unsigned char sequenceId,
+               int seqIsNew,
+               const CKeyTrackStatus &prev,
+               const CKeyTrackStatus &curr
+             ) const;
 
  protected:
   unsigned int LastKeyId(unsigned int sequence) const {
@@ -271,6 +313,25 @@ class CKeyFrameTrackBase {
   const CKeyFrame *GetKeyFrame(unsigned int keyId) const;
   CKeyFrame       *GetKeyFrame(unsigned int keyId);
   unsigned int     TimeDiff(const CKeyFrame &curr, const CKeyFrame &next, unsigned int seqTime);
+  unsigned int     KeyFrameSize() const {
+    return m_keyFrameSize;
+  }
+  int              JustPastKeyForward(
+                     int elapsedTime,
+                     const CAnimSequence &seqShared,
+                     int seqElapsed,
+                     int seqIsNew,
+                     const CKeyTrackStatus &prev,
+                     const CKeyTrackStatus &curr
+                   ) const;
+  int              JustPastKeyBackward(
+                     int elapsedTime,
+                     const CAnimSequence &seqShared,
+                     int seqElapsed,
+                     int seqIsNew,
+                     const CKeyTrackStatus &prev,
+                     const CKeyTrackStatus &curr
+                   ) const;
 
  private:
   void         ISetAnimTime(unsigned char sequenceId, int seqIsNew, int milliseconds, int endtime, CKeyTrackStatus *keyStat);
@@ -288,11 +349,81 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
   friend void AnimateAllMaterialLayers(AnimInfo *, unsigned int *);
 
  public:
-  CKeyFrameTrack() : m_trackType(TRACK_LINEAR) {
+  CKeyFrameTrack() : m_trackType(KEY_LINEAR) {
+  }
+
+  void SetTrackType(KEYTYPE trackType) {
+    m_trackType = trackType;
+  }
+
+  using CKeyFrameTrackBase::SetNumKeys;
+
+  void SetNumKeys(unsigned int numKeys) {
+    switch (m_trackType) {
+      case KEY_DONT_INTERP:
+      case KEY_LINEAR:
+        CKeyFrameTrackBase::SetNumKeys(numKeys, sizeof(CLinearKeyFrame<T>));
+        break;
+      case KEY_HERMITE:
+      case KEY_BEZIER:
+        CKeyFrameTrackBase::SetNumKeys(numKeys, sizeof(CSplineKeyFrame<T>));
+        break;
+    }
+  }
+
+  void AddKey(int time, const U &keyData) {
+    CKeyFrameTrackBase::AddKey(time);
+    GetLinearKey(m_numKeyFrames - 1)->transform = keyData;
+  }
+
+  void AddKey(int time, const U &keyData, const U &inTan, const U &outTan) {
+    CKeyFrameTrackBase::AddKey(time);
+    CSplineKeyFrame<T> *key = GetSplineKey(m_numKeyFrames - 1);
+    key->transform = keyData;
+    key->inTan = inTan;
+    key->outTan = outTan;
   }
 
   int InterpolateVolatile(const InterpInfo &info, const CBaseStatus &base, CKeyTrackStatus *keyStatus, const U &fallback, U *transform);
   int InterpolateRetained(const InterpInfo &info, const CBaseStatus &base, CKeyTrackStatus *keyStatus, const U &fallback, U *transform);
+
+  unsigned int Bytes() {
+    return CKeyFrameTrackBase::Bytes();
+  }
+
+  KEYTYPE GetTrackType() {
+    return m_trackType;
+  }
+
+  CLinearKeyFrame<T> *GetLinearKey(unsigned int index) {
+    ASSERT(KeyFrameSize() == sizeof(CLinearKeyFrame<T>));
+    return reinterpret_cast<CLinearKeyFrame<T> *>(GetKeyFrame(index));
+  }
+
+  CSplineKeyFrame<T> *GetSplineKey(unsigned int index) {
+    ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
+    return reinterpret_cast<CSplineKeyFrame<T> *>(GetKeyFrame(index));
+  }
+
+  const CLinearKeyFrame<T> *ToLinearKey(const CKeyFrame *key) const {
+    ASSERT(KeyFrameSize() == sizeof(CLinearKeyFrame<T>));
+    return reinterpret_cast<const CLinearKeyFrame<T> *>(key);
+  }
+
+  CLinearKeyFrame<T> *ToLinearKey(CKeyFrame *key) {
+    ASSERT(KeyFrameSize() == sizeof(CLinearKeyFrame<T>));
+    return reinterpret_cast<CLinearKeyFrame<T> *>(key);
+  }
+
+  const CSplineKeyFrame<T> *ToSplineKey(const CKeyFrame *key) const {
+    ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
+    return reinterpret_cast<const CSplineKeyFrame<T> *>(key);
+  }
+
+  CSplineKeyFrame<T> *ToSplineKey(CKeyFrame *key) {
+    ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
+    return reinterpret_cast<CSplineKeyFrame<T> *>(key);
+  }
 
  private:
   int  InterpolateVolatileFewKeys(const CKeyTrackStatus &keyStatus, U *transform);
@@ -302,19 +433,9 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
   void InterpolateBezier(const CSplineKeyFrame<T> &currkey, const CSplineKeyFrame<T> &nextkey, float ratio, U *transform);
   void InterpolateLinear(const CLinearKeyFrame<T> &currkey, const CLinearKeyFrame<T> &nextkey, float ratio, U *transform);
 
- public:
-  unsigned int m_trackType;
+ private:
+  KEYTYPE m_trackType;
 };
-
-namespace NTempest {
-  class C4Quaternion;
-  class C4QuaternionCompressed {
-   public:
-    operator C4Quaternion() const;
-
-    __int64 m_data;
-  };
-}  // namespace NTempest
 
 template <>
 int CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::InterpolateVolatileFewKeys(

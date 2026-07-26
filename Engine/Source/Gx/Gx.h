@@ -17,6 +17,7 @@ class TSGrowableArray;
 namespace NTempest {
   class C34Matrix;
   class C4Vector;
+  class CAaBox;
 }  // namespace NTempest
 
 typedef unsigned long CArgb;
@@ -573,12 +574,41 @@ void __fastcall GxuUpdateSingleColorTexture(
     const void  *&texels
 );
 void __fastcall GxuXformCreateOrtho(float minX, float maxX, float minY, float maxY, float minZ, float maxZ, NTempest::C44Matrix &dst);
+void __fastcall GxuXformCreateOrtho(const NTempest::CAaBox &bounds, NTempest::C44Matrix &dst);
 void __fastcall GxuXformCreateProjection(float fovyInRadians, float aspect, float minZ, float maxZ, NTempest::C44Matrix &dst);
 void __fastcall
 GxuXformCreateLookAtSgCompat(const NTempest::C3Vector &eye, const NTempest::C3Vector &center, const NTempest::C3Vector &up, NTempest::C44Matrix &dst);
-void __fastcall GxuXformCalcFrustumCorners(NTempest::C44Matrix &view, NTempest::C44Matrix &proj, NTempest::C3Vector *corners);
-void __fastcall GxuXformCalcFrustumPlanes(NTempest::C44Matrix &viewProj, NTempest::C4Vector *planes);
-int __fastcall  GxuTestSphereAndFrustumPlanes(NTempest::C3Vector &center, float radius, NTempest::C4Vector *planes, unsigned int numPlanes);
+void __fastcall
+GxuXformCreateLookAtXXX(const NTempest::C3Vector &eye, const NTempest::C3Vector &center, const NTempest::C3Vector &up, NTempest::C44Matrix &dst);
+void __fastcall GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest::C44Matrix &proj, NTempest::C3Vector *corners);
+void __fastcall GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector *planes);
+void __fastcall GxuXformCalcFrustumBounds(
+    const NTempest::C44Matrix &view,
+    const NTempest::C44Matrix &proj,
+    NTempest::C3Vector        &minBound,
+    NTempest::C3Vector        &maxBound
+);
+void __fastcall GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C3Vector *src, NTempest::C3Vector *dst);
+void __fastcall GxuTexScale(
+    const void    *srcPixels,
+    EGxTexFormat   srcFormat,
+    unsigned int   srcW,
+    unsigned int   srcH,
+    unsigned int   srcStrideInBytes,
+    const void    *dstPixels,
+    EGxTexFormat   dstFormat,
+    unsigned int   dstW,
+    unsigned int   dstH,
+    unsigned int   dstStrideInBytes
+);
+int __fastcall GxuTestRayAndSphere(
+    const NTempest::C3Vector &rayStart,
+    const NTempest::C3Vector &rayDirection,
+    const NTempest::C3Vector &sphereCenter,
+    float                     sphereRadius,
+    float                    &distance
+);
+int __fastcall  GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector *planes);
 int __fastcall  GxuTestRayAndTriangle(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
@@ -603,6 +633,24 @@ int __fastcall  GxuTestRayAndMesh(
     const unsigned short      *indices,
     float                     &distance,
     unsigned int              &primIntersected
+);
+int __fastcall GxuTestRayAndRigidMeshInModelSpace(
+    const NTempest::C3Vector &rayStart,
+    const NTempest::C3Vector &rayDirection,
+    unsigned int              posCount,
+    const NTempest::C3Vector *pos,
+    EGxPrim                   primType,
+    unsigned int              indexCount,
+    const unsigned short     *indices,
+    float                    &distance,
+    unsigned int             &primIntersected
+);
+unsigned int __fastcall GxuClipCalcCode(const NTempest::C44Matrix &viewProj, const NTempest::C3Vector &pos);
+void __fastcall GxuSnapTexelsToPixels(
+    const NTempest::C3Vector *pos,
+    NTempest::C2Vector       *tex,
+    unsigned int              texW,
+    unsigned int              texH
 );
 const CGxCaps &__fastcall GxCaps();
 BlitFormat __fastcall     GxGetBlitFormat(EGxTexFormat texFormat);

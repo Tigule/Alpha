@@ -256,7 +256,7 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
     int id = SStrToInt(attribute);
 
     if (id >= 0) {
-      m_id = id;
+      SetId(id);
     }
   }
 
@@ -280,7 +280,7 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
       titleRegion->m_parent = this;
       titleRegion->LoadXML(child, status);
-      m_titleRegion = titleRegion;
+      SetTitleRegion(titleRegion);
     } else if (!SStrCmpI(childName, "Backdrop", 0x7FFFFFFF)) {
       CBackdropGenerator *backdrop = NEW(CBackdropGenerator);
 
@@ -1322,8 +1322,6 @@ int CSimpleFrame::OnLayerKeyUp(CKeyEvent &evt) {
 }
 
 int CSimpleFrame::OnLayerMouseDown(CMouseEvent &evt) {
-  const char *buttonName;
-
   if (m_lookForDrag & evt.button) {
     m_mouseDown = 1;
     m_dragging = 0;
@@ -1332,34 +1330,11 @@ int CSimpleFrame::OnLayerMouseDown(CMouseEvent &evt) {
     m_clickPoint.y = evt.y;
   }
 
-  switch (evt.button) {
-    case MOUSE_BUTTON_LEFT:
-      buttonName = "LeftButton";
-      break;
-    case MOUSE_BUTTON_MIDDLE:
-      buttonName = "MiddleButton";
-      break;
-    case MOUSE_BUTTON_RIGHT:
-      buttonName = "RightButton";
-      break;
-    case MOUSE_BUTTON_XBUTTON1:
-      buttonName = "Button4";
-      break;
-    case MOUSE_BUTTON_XBUTTON2:
-      buttonName = "Button5";
-      break;
-    default:
-      buttonName = "UNKNOWN";
-      break;
-  }
-
-  RunOnMouseDownScript(buttonName);
+  RunOnMouseDownScript(evt.button);
   return 0;
 }
 
 int CSimpleFrame::OnLayerMouseUp(CMouseEvent &evt) {
-  const char *buttonName;
-
   if (m_lookForDrag & evt.button) {
     int dragging = m_dragging;
 
@@ -1374,28 +1349,7 @@ int CSimpleFrame::OnLayerMouseUp(CMouseEvent &evt) {
     }
   }
 
-  switch (evt.button) {
-    case MOUSE_BUTTON_LEFT:
-      buttonName = "LeftButton";
-      break;
-    case MOUSE_BUTTON_MIDDLE:
-      buttonName = "MiddleButton";
-      break;
-    case MOUSE_BUTTON_RIGHT:
-      buttonName = "RightButton";
-      break;
-    case MOUSE_BUTTON_XBUTTON1:
-      buttonName = "Button4";
-      break;
-    case MOUSE_BUTTON_XBUTTON2:
-      buttonName = "Button5";
-      break;
-    default:
-      buttonName = "UNKNOWN";
-      break;
-  }
-
-  RunOnMouseUpScript(buttonName);
+  RunOnMouseUpScript(evt.button);
   return 0;
 }
 
@@ -1409,30 +1363,7 @@ int CSimpleFrame::OnLayerMouseWheel(CMouseEvent &evt) {
 }
 
 void CSimpleFrame::OnDragStart(CMouseEvent &evt) {
-  const char *buttonName;
-
-  switch (evt.button) {
-    case MOUSE_BUTTON_LEFT:
-      buttonName = "LeftButton";
-      break;
-    case MOUSE_BUTTON_MIDDLE:
-      buttonName = "MiddleButton";
-      break;
-    case MOUSE_BUTTON_RIGHT:
-      buttonName = "RightButton";
-      break;
-    case MOUSE_BUTTON_XBUTTON1:
-      buttonName = "Button4";
-      break;
-    case MOUSE_BUTTON_XBUTTON2:
-      buttonName = "Button5";
-      break;
-    default:
-      buttonName = "UNKNOWN";
-      break;
-  }
-
-  RunOnDragStartScript(buttonName);
+  RunOnDragStartScript(evt.button);
 }
 
 void CSimpleFrame::OnDragStop(CMouseEvent &evt) {

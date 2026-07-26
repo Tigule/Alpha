@@ -483,7 +483,7 @@ void CMapObj::RenderGroupLightTex(CMapObjGroup *group, unsigned int frustumCount
         GxRsSet(GxRs_Lighting, !(material.flags & 0x1));
         GxRsSet(GxRs_Fog, !(material.flags & 0x2));
         GxRsSet(GxRs_Culling, !(material.flags & 0x4));
-        GxRsSet(GxRs_MatEmissive, material.flags & 0x10 ? material.frameSidnColor : NTempest::CImVector(0));
+        GxRsSet(GxRs_MatEmissive, material.flags & 0x10 ? material.frameSidnColor : NTempest::CImVector(0ul));
         GxRsSet(GxRs_Blend, static_cast<int>(material.blendMode));
 
         CGxTex *texture = TextureGetGxTex(material.hMaps[0], 1, 0);

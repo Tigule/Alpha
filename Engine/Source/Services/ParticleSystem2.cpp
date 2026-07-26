@@ -420,17 +420,6 @@ int CParticleEmitter2::MoveParticle(CParticle2_Model &p, float elapsedTime) {
   return MoveParticle(static_cast<CParticle2 &>(p), elapsedTime);
 }
 
-namespace NTempest {
-
-  C4Quaternion __fastcall operator*(const C4Quaternion &l, const C4Quaternion &r) {
-    return C4Quaternion(
-        l.w * r.w - l.x * r.x - r.y * l.y - l.z * r.z, l.w * r.x + l.y * r.z + r.w * l.x - l.z * r.y, l.w * r.y + l.z * r.x + l.y * r.w - l.x * r.z,
-        l.w * r.z + r.w * l.z + r.y * l.x - l.y * r.x
-    );
-  }
-
-}  // namespace NTempest
-
 int CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
   unsigned int randomIndex = 0;
   if (m_twinkleOnOff < 1.0f || m_twinkleScaleRange != 0.0f) {
@@ -571,7 +560,7 @@ void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
     unsigned int index;
     for (index = 0; index < m_alive.m_stackPointer; ++index) {
       unsigned int particleIndex = m_alive.m_stack[index];
-      CParticle2  *particle = m_particleType == PT_MODEL ? static_cast<CParticle2 *>(&m_modelParticles[particleIndex]) : &m_particles[particleIndex];
+      CParticle2  *particle = GetParticle(particleIndex);
       NTempest::C3Vector      viewPosition = particle->m_position * s_particleToView;
       CSortableParticleRecord record;
       record.dist = viewPosition.z;
@@ -592,7 +581,7 @@ void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
   } else {
     for (unsigned int index = 0; index < s_maxParticles; ++index) {
       unsigned int particleIndex = m_alive.m_stack[index];
-      CParticle2  *particle = m_particleType == PT_MODEL ? static_cast<CParticle2 *>(&m_modelParticles[particleIndex]) : &m_particles[particleIndex];
+      CParticle2  *particle = GetParticle(particleIndex);
       if (IRenderParticle(*particle, vertices)) {
         vertices += m_verticesPerParticle;
       }
@@ -1054,23 +1043,13 @@ void CParticleEmitter2::EmitNewParticles(float elapsedTime, const NTempest::C34M
 
     while (numToEmit && m_dead.m_stackPointer) {
       --numToEmit;
-
-      unsigned int particle = m_dead.Pop();
-      m_alive.Push(particle);
-
-      if (m_particleType) {
-        m_modelParticles[particle].m_flags = 1;
-        CreateParticle(m_modelParticles[particle], 0.0f, basis);
-      } else {
-        m_particles[particle].m_flags = 1;
-        CreateParticle(m_particles[particle], 0.0f, basis);
-      }
+      EmitParticle(0.0f, basis);
     }
 
     m_needSquirt = 0;
   }
 
-  if (m_enabled && m_enabled2) {
+  if (IsEnabled()) {
     unsigned int numEmitted = 0;
     m_numNew += ParticleSystemManager::GetScaler() * m_particleEmissionRate * elapsedTime;
 
@@ -1091,17 +1070,7 @@ void CParticleEmitter2::EmitNewParticles(float elapsedTime, const NTempest::C34M
         mutableBasis.d1 = m_prevModelToWorldTrans.y + random * extrude.y;
         mutableBasis.d2 = m_prevModelToWorldTrans.z + random * extrude.z;
 
-        unsigned int particle = m_dead.Pop();
-        m_alive.Push(particle);
-
-        if (m_particleType) {
-          m_modelParticles[particle].m_flags = 1;
-          CreateParticle(m_modelParticles[particle], elapsedTime, basis);
-        } else {
-          m_particles[particle].m_flags = 1;
-          CreateParticle(m_particles[particle], elapsedTime, basis);
-        }
-
+        EmitParticle(elapsedTime, basis);
         ++numEmitted;
       }
 
@@ -1114,17 +1083,7 @@ void CParticleEmitter2::EmitNewParticles(float elapsedTime, const NTempest::C34M
       while (numNew && m_dead.m_stackPointer) {
         --numNew;
 
-        unsigned int particle = m_dead.Pop();
-        m_alive.Push(particle);
-
-        if (m_particleType) {
-          m_modelParticles[particle].m_flags = 1;
-          CreateParticle(m_modelParticles[particle], elapsedTime, basis);
-        } else {
-          m_particles[particle].m_flags = 1;
-          CreateParticle(m_particles[particle], elapsedTime, basis);
-        }
-
+        EmitParticle(elapsedTime, basis);
         ++numEmitted;
       }
     }
@@ -1167,7 +1126,7 @@ void CParticleEmitter2::InternalUpdate(float elapsedTime, int suppressNewParticl
 }
 
 void CParticleEmitter2::StepUpdate(float elapsedTime, int suppressNewParticles) {
-  if ((m_enabled && m_enabled2) || m_needSquirt) {
+  if (IsEnabled() || m_needSquirt) {
     Sync();
   }
 
@@ -1177,13 +1136,7 @@ void CParticleEmitter2::StepUpdate(float elapsedTime, int suppressNewParticles) 
 
   for (unsigned int loop = 0; loop < m_alive.m_stackPointer; ++loop) {
     unsigned int particleIndex = m_alive.m_stack[loop];
-    CParticle2  *p;
-
-    if (m_particleType) {
-      p = &m_modelParticles[particleIndex];
-    } else {
-      p = &m_particles[particleIndex];
-    }
+    CParticle2  *p = GetParticle(particleIndex);
 
     p->m_age += elapsedTime;
     if (p->m_age < m_particleLifeSpan) {
@@ -1251,11 +1204,7 @@ void CParticleEmitter2::Squirt() {
 
 void CParticleEmitter2::Flush() {
   while (m_alive.m_stackPointer) {
-    if (m_particleType) {
-      DestroyParticle(m_modelParticles[m_alive.m_stack[0]]);
-    } else {
-      DestroyParticle(m_particles[m_alive.m_stack[0]]);
-    }
+    DestroyParticle(*GetParticle(m_alive.m_stack[0]));
 
     m_dead.Push(m_alive.m_stack[0]);
     m_alive.Remove(0);

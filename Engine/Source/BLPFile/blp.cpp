@@ -1,5 +1,6 @@
 #include "blp.h"
 
+#include "Base/Status.h"
 #include "Images/blit.h"
 #include "Tempest/c2ivector.h"
 
@@ -18,6 +19,9 @@ static BlitFormat blitFmt[NUM_PIXEL_FORMATS] = {BlitFormat_Dxt1,   BlitFormat_Dx
                                                 BlitFormat_Rgb565, BlitFormat_Unknown, BlitFormat_Dxt5,     BlitFormat_Unknown};
 
 static TSGrowableArray_<unsigned char, 'BLPB', 85> s_blpFileLoadBuffer;
+static CNullStatus                                  s_nullStatus;
+
+static int IsLegalDimension(unsigned int dimension);
 
 void CBLPFile::Close() {
   m_inMemoryImage = 0;
@@ -25,6 +29,16 @@ void CBLPFile::Close() {
   FREEIFUSED(m_images);
 
   m_images = 0;
+}
+
+int CBLPFile::CreateMipLevels(unsigned int width, unsigned int height) {
+  m_images = MippedImgAllocA(PIXEL_ARGB8888, width, height, __FILE__, __LINE__);
+  if (!m_images) {
+    return 0;
+  }
+
+  m_numLevels = HasMips() ? CalcLevelCount(width, height) : 1;
+  return 1;
 }
 
 int CBLPFile::Open(const char *filename) {
@@ -47,6 +61,93 @@ int CBLPFile::Open(const char *filename) {
   return Source(s_blpFileLoadBuffer.Ptr());
 }
 
+unsigned char *CBLPFile::Image(unsigned int level) {
+  return m_images && IsValidMip(level) ? reinterpret_cast<unsigned char *>(m_images->mip[level]) : 0;
+}
+
+int CBLPFile::SetImage(CBLPFile &source, unsigned int mipLevel, CStatus *status) {
+  if (!source.Image(mipLevel)) {
+    if (status) {
+      status->Add(STATUS_FATAL, "Tried to copy MIP %u from source image, but no such MIP exists.\n", mipLevel);
+    }
+    return 0;
+  }
+
+  return SetImage(
+      source.Image(mipLevel),
+      source.m_header.width,
+      source.m_header.height,
+      source.m_header.alphaSize,
+      mipLevel,
+      status
+  );
+}
+
+int CBLPFile::SetImage(
+    const void *pImg,
+    unsigned int width,
+    unsigned int height,
+    unsigned int alphaBits,
+    unsigned int mipLevel,
+    CStatus *status
+) {
+  FATALASSERT(pImg);
+
+  if (!status) {
+    status = &s_nullStatus;
+  }
+
+  if (!IsLegalDimension(width) || !IsLegalDimension(height)) {
+    status->Add(STATUS_FATAL, "Illegal source dimensions (%u,%u)\n", width, height);
+    return 0;
+  }
+
+  if (!mipLevel) {
+    m_header.width = width;
+    m_header.height = height;
+    m_header.alphaSize = static_cast<unsigned char>(alphaBits);
+  }
+
+  if (!m_images) {
+    if (!CreateMipLevels(width, height)) {
+      status->Add(STATUS_FATAL, "Failed to allocate MIP buffers\n");
+      return 0;
+    }
+    FATALASSERT(m_images);
+  }
+
+  if (mipLevel >= m_numLevels) {
+    status->Add(STATUS_FATAL, "Illegal MIP level %u specified\n", mipLevel);
+    return 0;
+  }
+
+  unsigned int expectedWidth = m_header.width >> mipLevel;
+  unsigned int expectedHeight = m_header.height >> mipLevel;
+  if (expectedWidth < 1) {
+    expectedWidth = 1;
+  }
+  if (expectedHeight < 1) {
+    expectedHeight = 1;
+  }
+
+  if (width != expectedWidth || height != expectedHeight) {
+    status->Add(
+        STATUS_FATAL,
+        "Expected (%u,%u) size for MIP %u, but got (%u,%u)\n",
+        expectedWidth,
+        expectedHeight,
+        mipLevel,
+        width,
+        height
+    );
+    return 0;
+  }
+
+  FATALASSERT(m_images->mip[mipLevel]);
+  memcpy(m_images->mip[mipLevel], pImg, 4 * width * height);
+  return 1;
+}
+
 static int IsLegalDimension(unsigned int dimension) {
   switch (dimension) {
     case 1:
@@ -63,6 +164,15 @@ static int IsLegalDimension(unsigned int dimension) {
     default:
       return 0;
   }
+}
+
+int CBLPFile::SetAlphaBits(unsigned int alpha) {
+  if (alpha > 8) {
+    return 0;
+  }
+
+  m_header.alphaSize = static_cast<unsigned char>(alpha);
+  return 1;
 }
 
 int CBLPFile::IsValidMip(unsigned int level) const {
@@ -177,6 +287,10 @@ int CBLPFile::GetFormatSize(PIXEL_FORMAT format, unsigned int mipLevel, unsigned
 
 MIPS_TYPE CBLPFile::HasMips() const {
   return static_cast<MIPS_TYPE>(m_header.hasMips);
+}
+
+void CBLPFile::SetHasMips(MIPS_TYPE hasMips) {
+  m_header.hasMips = static_cast<unsigned char>(hasMips);
 }
 
 int CBLPFile::LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, unsigned int mipLevel) {
@@ -511,4 +625,26 @@ int CBLPFile::Lock2(PIXEL_FORMAT format, unsigned int mipLevel, unsigned char *d
 
 int CBLPFile::Unlock2(unsigned int mipLevel) {
   return IsValidMip(mipLevel);
+}
+
+unsigned int CBLPFile::Bytes() const {
+  if (m_header.colorEncoding == COLOR_DXT) {
+    return m_header.mipSizes[0];
+  }
+
+  unsigned int size;
+  unsigned int stride;
+  GetFormatSize(PIXEL_ARGB8888, 0, &size, &stride);
+  return size;
+}
+
+unsigned int CBLPFile::Bytes(unsigned int mipLevel) const {
+  if (m_header.colorEncoding == COLOR_DXT) {
+    return m_header.mipSizes[mipLevel];
+  }
+
+  unsigned int size;
+  unsigned int stride;
+  GetFormatSize(PIXEL_ARGB8888, mipLevel, &size, &stride);
+  return size;
 }

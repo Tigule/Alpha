@@ -11,8 +11,10 @@ class CObserver : public TRefCnt {
  public:
   typedef int(__fastcall *EVENTCALLBACK)(const CEvent &, void *);
 
-  CObserver();
-  CObserver(const CObserver &);
+  CObserver() : m_pEventRegistry(0) {
+  }
+  CObserver(const CObserver &) : TRefCnt(), m_pEventRegistry(0) {
+  }
   virtual ~CObserver();
 
   virtual void RegisterCallback(unsigned int eventId, EVENTCALLBACK callback, void *param);
@@ -28,7 +30,9 @@ class CObserver : public TRefCnt {
   void      ClearRegistry();
   EventReg *GetEventReg(unsigned int eventId, int create);
 
-  CObserver &operator=(const CObserver &);
+  CObserver &operator=(const CObserver &) {
+    return *this;
+  }
 
  protected:
   EventRegistry *GetRegistry(int create);

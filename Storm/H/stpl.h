@@ -345,6 +345,10 @@ class TSGrowableArray : public TSFixedArray<T> {
     m_chunk = chunk;
   }
 
+  void TrimUnusedSpace() {
+    this->ReallocData(this->m_count);
+  }
+
   void GrowToFit(unsigned int index, int zero);
 
   unsigned int Add(const T *data) {

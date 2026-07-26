@@ -9,6 +9,8 @@
 class CStatus;
 class CTexture;
 struct HCOLORMAP__;
+struct HCOLORLIST__;
+struct tagPALETTEENTRY;
 
 enum PIXEL_FORMAT {
   PIXEL_DXT1 = 0,
@@ -37,7 +39,7 @@ enum MipMapAlgorithm {
   MMA_LINEARLIGHTKAISER = 4
 };
 
-enum {
+enum COLOR_FILE_FORMAT {
   COLOR_JPEG = 0,
   COLOR_PAL = 1,
   COLOR_DXT = 2
@@ -109,21 +111,79 @@ class CBLPFile {
   int       Unlock(unsigned int mipLevel);
   int       LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, unsigned int mipLevel);
   int       LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, unsigned int mipLevel);
+  int       SetImage(CBLPFile &source, unsigned int mipLevel, CStatus *status);
+  int       SetImage(
+            const void *pImg,
+            unsigned int width,
+            unsigned int height,
+            unsigned int alphaBits,
+            unsigned int mipLevel,
+            CStatus *status
+  );
+  int       SetAlphaBits(unsigned int alpha);
   MIPS_TYPE HasMips() const;
+  void      SetHasMips(MIPS_TYPE hasMips);
+  unsigned int Bytes() const;
+  unsigned int Bytes(unsigned int mipLevel) const;
 
   unsigned int Width() const {
     return m_header.width;
   }
+  unsigned int Width(unsigned int mipLevel) const {
+    unsigned int width = m_header.width >> mipLevel;
+    return width ? width : 1;
+  }
 
   unsigned int Height() const {
     return m_header.height;
+  }
+  unsigned int Height(unsigned int mipLevel) const {
+    unsigned int height = m_header.height >> mipLevel;
+    return height ? height : 1;
+  }
+
+  unsigned int Pixels() const {
+    return m_header.width * m_header.height;
+  }
+  unsigned int Pixels(unsigned int mipLevel) const {
+    return Width(mipLevel) * Height(mipLevel);
+  }
+  unsigned int Quality() const {
+    return m_quality;
+  }
+  COLOR_FILE_FORMAT GetColorEncoding() const {
+    return static_cast<COLOR_FILE_FORMAT>(m_header.colorEncoding);
+  }
+  PIXEL_FORMAT GetPreferredFormat() const {
+    return static_cast<PIXEL_FORMAT>(m_header.preferredFormat);
+  }
+  unsigned int GetNumLevels() const {
+    return m_numLevels;
+  }
+  void SetQuality(unsigned int quality) {
+    m_quality = quality;
+  }
+  void SetPreferredFormat(PIXEL_FORMAT format) {
+    m_header.preferredFormat = static_cast<unsigned char>(format);
+  }
+  void SetMipMapAlgorithm(MipMapAlgorithm algorithm) {
+    m_mipMapAlgorithm = algorithm;
   }
 
   unsigned int AlphaBits() const {
     return m_header.alphaSize;
   }
 
+  int GenerateMipLevel(unsigned int sourceLevel, unsigned int destinationLevel);
+  int GenerateMipLevels(const char *name, CStatus *status);
+  int GenerateMipLevels(CStatus *status);
+  void FlushFromReadCache(const char *name);
+  int SetImages(CBLPFile &source);
+  int Write(const char *name, COLOR_FILE_FORMAT format);
+
  protected:
+  unsigned char *Image(unsigned int level);
+  int  CreateMipLevels(unsigned int width, unsigned int height);
   int  IsValidMip(unsigned int level) const;
   int  GetFormatSize(PIXEL_FORMAT format, unsigned int mipLevel, unsigned int *size, unsigned int *stride) const;
   void DecompPalFastPath(unsigned char *data, const void *tempBuffer, unsigned int colorSize);
@@ -132,6 +192,28 @@ class CBLPFile {
   void DecompPalARGB1555(unsigned char *data, const void *tempBuffer, unsigned int colorSize);
   void DecompPalARGB565(unsigned char *data, const void *tempBuffer, unsigned int colorSize);
   int  DecompPal(PIXEL_FORMAT format, unsigned int mipLevel, unsigned char *data, const void *tempBuffer);
+  int  DecompJPEG(
+      PIXEL_FORMAT format,
+      unsigned int mipLevel,
+      unsigned char *&data,
+      unsigned int dataSize,
+      const void *source,
+      unsigned int &stride
+  );
+  int GetOctreePal(tagPALETTEENTRY *palette, unsigned int count);
+  int AddSourceImages(HCOLORLIST__ *colors);
+  int ComputePalette(HCOLORLIST__ *colors);
+  int Palettize(void *output);
+  int MakeAlpha(unsigned char **alpha, unsigned int mipLevel);
+  int MakeJPEGS(void *output);
+  int MakeDXT(void *output);
+  int WriteOutputFile(void *file, unsigned char *header, unsigned char *data, unsigned int size);
+  int WriteJPEGOutputFile(void *file, unsigned char *header, unsigned int headerSize, unsigned int dataSize);
+  int WriteHeader(void *file);
+  int PalettizeSourceImage(unsigned char **image, unsigned int mipLevel);
+  int BuildPalettedImages(void *output);
+  tagPALETTEENTRY *GetBackgroundColor(int alpha, tagPALETTEENTRY *color);
+  void PaletteConvert(const tagPALETTEENTRY *source, BlpPalPixel *destination);
 
   static unsigned char  s_eightBitAlphaLookup[16];
   static unsigned char  s_oneBitAlphaLookup[2];
@@ -150,6 +232,7 @@ class CBLPFile {
   int Lock2(PIXEL_FORMAT format, unsigned int mipLevel, unsigned char *data, unsigned int &stride);
   int Unlock2(unsigned int mipLevel);
 
+ protected:
   MipBits        *m_images;
   BLPHeader       m_header;
   void           *m_inMemoryImage;

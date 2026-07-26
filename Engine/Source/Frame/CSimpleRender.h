@@ -22,6 +22,11 @@ struct CGxStringBatch;
 struct HTEXTBLOCK__;
 struct HTEXTFONT__;
 struct HTEXTURE__;
+struct CGxString;
+
+const char *__fastcall TextBlockGetFontName(HTEXTFONT__ *font);
+unsigned int __fastcall TextBlockGetFontFlags(HTEXTFONT__ *font);
+CGxString *__fastcall TextBlockGetStringPtr(HTEXTBLOCK__ *text);
 
 class CRenderBatch;
 class CSimpleMessageScrollFrame;
@@ -68,6 +73,7 @@ class CRenderBatch {
 };
 
 class CSimpleFontStringAttributes {
+  friend class CSimpleEditBox;
   friend class CSimpleHTML;
 
  public:
@@ -81,7 +87,7 @@ class CSimpleFontStringAttributes {
   };
 
   CSimpleFontStringAttributes(const CSimpleFontStringAttributes *attrib = 0)
-      : m_font(0), m_fontHeight(0.0f), m_fontFlags(0), m_styleFlags(0x292), m_shadowColor(0), m_shadowOffset(0.0f) {
+      : m_font(0), m_fontHeight(0.0f), m_fontFlags(0), m_styleFlags(0x292), m_shadowColor(0ul), m_shadowOffset(0.0f) {
     m_color.Set(1.0f, 1.0f, 1.0f, 1.0f);
 
     if (attrib) {
@@ -93,8 +99,36 @@ class CSimpleFontStringAttributes {
 
   const CSimpleFontStringAttributes &operator=(const CSimpleFontStringAttributes &rhs);
   const CSimpleFontStringAttributes &operator=(const CSimpleFontString &rhs);
+  void SetFont(const char *font, float fontHeight, unsigned int fontFlags) {
+    m_font = font;
+    m_fontHeight = fontHeight;
+    m_fontFlags = fontFlags;
+    m_flags |= FLAG_FONT;
+  }
+  unsigned char HasFont() const {
+    const char *font = m_font;
+    return font && *font;
+  }
+  const char *GetFontName() const {
+    return m_font;
+  }
   float                              GetFontHeight() const {
     return m_fontHeight;
+  }
+  unsigned int GetFontFlags() const {
+    return m_fontFlags;
+  }
+  void SetHorizontalAlignment(unsigned int alignment) {
+    m_styleFlags = (m_styleFlags & ~0x7U) | alignment;
+    m_flags |= FLAG_STYLE;
+  }
+  void SetVerticalAlignment(unsigned int alignment) {
+    m_styleFlags = (m_styleFlags & ~0x38U) | alignment;
+    m_flags |= FLAG_STYLE;
+  }
+  void SetStyleFlags(unsigned int flags) {
+    m_styleFlags = flags;
+    m_flags |= FLAG_STYLE;
   }
   float GetSpacing() const {
     return m_spacing;
@@ -109,6 +143,15 @@ class CSimpleFontStringAttributes {
   }
   const NTempest::CImVector &GetColor() const {
     return m_color;
+  }
+  void AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
+    m_shadowColor = color;
+    m_shadowOffset = offset;
+    m_flags |= FLAG_SHADOW;
+  }
+  void SetSpacing(float spacing) {
+    m_spacing = spacing;
+    m_flags |= FLAG_SPACING;
   }
   void CopyFlags(const CSimpleFontStringAttributes &rhs);
   void UpdateString(CSimpleFontString *string, int force);
@@ -137,10 +180,16 @@ class CSimpleRegion : public CLayoutFrame {
 
   void SetVertexColor(const NTempest::CImVector &color);
   void GetVertexColor(NTempest::CImVector &color) const;
+  const NTempest::CImVector *GetGxColor() const {
+    return m_GxColor;
+  }
   void Show();
   void Hide();
   int  IsVisible() {
     return m_visible;
+  }
+  CSimpleFrame *GetParentFrame() {
+    return m_frame;
   }
   void SetFrame(CSimpleFrame *frame, unsigned int drawlayer, int show);
   void OnRegionChanged();
@@ -180,11 +229,17 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   void                  PreLoadXML(const XMLNode *node, CStatus *status);
   void                  PostLoadXML(const XMLNode *node, CStatus *status);
   int                   AddToRegistry(const char *name, unsigned int context);
+  void                  SetAttributes(CSimpleFontStringAttributes &attrib) {
+    attrib.UpdateString(this, 0);
+  }
   int                   SetFont(const char *font, float fontHeight, unsigned int fontFlags);
   void                  SetTextLength(int size);
   void                  SetText(const char *text);
   const char           *GetText() const {
     return m_text;
+  }
+  int GetTextLength() const {
+    return m_text ? SStrLen(m_text) : 0;
   }
   float GetFontHeight() const {
     return m_fontHeight;
@@ -203,17 +258,66 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   void         SetSpacing(float spacing);
   void         AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset);
   void         RemoveShadow();
+  int          HasShadow() const {
+    return (m_styleFlags & 0x100) != 0;
+  }
+  const char *GetFontName() const {
+    return m_font ? TextBlockGetFontName(m_font) : 0;
+  }
+  unsigned int GetFontFlags() const {
+    return m_font ? TextBlockGetFontFlags(m_font) : 0;
+  }
+  void GetShadowColor(NTempest::CImVector &color) const {
+    color = m_shadowColor;
+  }
+  void GetShadowOffset(NTempest::C2Vector &offset) const {
+    offset = m_shadowOffset;
+  }
+  CGxString *GetString() const {
+    return m_string ? TextBlockGetStringPtr(m_string) : 0;
+  }
   void         SetJustificationOffset(float x, float y);
   void         SetHorizontalAlignment(unsigned int alignment) {
     ChangeStyleFlags(0x7, alignment);
+  }
+  unsigned int GetHorizontalAlignment() const {
+    return m_styleFlags & 0x7;
   }
 
   void SetVerticalAlignment(unsigned int alignment) {
     ChangeStyleFlags(0x38, alignment);
   }
+  unsigned int GetVerticalAlignment() const {
+    return m_styleFlags & 0x38;
+  }
+
+  void SetTextColor(const NTempest::CImVector &color) {
+    SetVertexColor(color);
+  }
+  void GetTextColor(NTempest::CImVector &color) const {
+    GetVertexColor(color);
+  }
+  void SetStyleFlags(unsigned int flags) {
+    ChangeStyleFlags(0xFFFFFFFF, flags);
+  }
+  unsigned int GetStyleFlags() const {
+    return m_styleFlags;
+  }
+  void SetCanWrapOnSpace(int canWrap) {
+    ChangeStyleFlags(0x1000, canWrap ? 0x1000 : 0);
+  }
+  void SetFixedColor(int fixed) {
+    ChangeStyleFlags(0x400, fixed ? 0x400 : 0);
+  }
+  void SetIgnoreColorCodes(int ignore) {
+    ChangeStyleFlags(0x2000, ignore ? 0x2000 : 0);
+  }
 
   void SetIgnoreNewlines(int ignore) {
     ChangeStyleFlags(0x4000, ignore ? 0x4000 : 0);
+  }
+  void SetIgnoreHyperlinks(int ignore) {
+    ChangeStyleFlags(0x8000, ignore ? 0x8000 : 0);
   }
 
   void         UpdateString(const NTempest::CRect *rect);
@@ -283,12 +387,30 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
   void                  SetBlendMode(EGxBlend mode);
   void                  SetTexCoord(const NTempest::CRect &rect);
   void                  SetTexCoord(const NTempest::C2Vector *texCoord);
+  void                  SetTexCoordModifiesPosition(int modifies) {
+    m_TexCoordModifiesPosition = modifies;
+  }
   void                  TexCorrectRect(NTempest::CRect &rect);
   void                  SetPosition(const NTempest::CRect &rect);
   virtual float         GetWidth();
   virtual float         GetHeight();
   virtual void          OnFrameSizeChanged(const NTempest::CRect &rect);
   CGxTex               *GetTexture();
+  HTEXTURE__            *GetHTEXTURE() {
+    return m_texture;
+  }
+  EGxBlend GetAlphaMode() const {
+    return m_alphamode;
+  }
+  const NTempest::C3Vector *GetPosition() const {
+    return m_position;
+  }
+  const NTempest::C2Vector *GetTexCoord() const {
+    return m_texCoord;
+  }
+  static void SetTextureFilterMode(EGxTexFilter mode) {
+    s_textureFilterMode = mode;
+  }
   virtual void          Draw(CRenderBatch *batch);
   virtual void          ClearFromSimpleRegistry();
 

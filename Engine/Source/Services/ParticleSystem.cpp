@@ -7,6 +7,15 @@
 
 static NTempest::CRndSeed s_particleRandomSeed;
 
+void CParticle::Copy(const CParticle &rhs) {
+  m_timeToLive = rhs.m_timeToLive;
+  m_elapsed = rhs.m_elapsed;
+  m_position = rhs.m_position;
+  m_velocity = rhs.m_velocity;
+  m_scale = rhs.m_scale;
+  m_hmodel = rhs.m_hmodel ? ModelDuplicate(rhs.m_hmodel, 0) : 0;
+}
+
 void CParticle::Destroy() {
   m_timeToLive = 0.0f;
   if (m_hmodel) {
@@ -14,10 +23,52 @@ void CParticle::Destroy() {
   }
 }
 
+void CParticleEmitter::Init() {
+  m_numNew = 0.0f;
+  m_enabled = 1;
+  m_enabled2 = 1;
+  m_particleEmissionRate = 0.0f;
+  m_particleLifeSpan = 0.0f;
+  m_velocity = 0.0f;
+  m_acceleration = 0.0f;
+  m_scale = 1.0f;
+  m_latitude = 3.1415927f * 0.25f;
+  m_longitude = 3.1415927f * 0.25f;
+  m_hmodel = 0;
+}
+
+void CParticleEmitter::Copy(const CParticleEmitter &rhs) {
+  m_numNew = rhs.m_numNew;
+  m_enabled = rhs.m_enabled;
+  m_enabled2 = rhs.m_enabled2;
+  m_particleEmissionRate = rhs.m_particleEmissionRate;
+  m_particleLifeSpan = rhs.m_particleLifeSpan;
+  m_velocity = rhs.m_velocity;
+  m_acceleration = rhs.m_acceleration;
+  m_scale = rhs.m_scale;
+  m_latitude = rhs.m_latitude;
+  m_longitude = rhs.m_longitude;
+  m_hmodel = rhs.m_hmodel ? ModelDuplicate(rhs.m_hmodel, 0) : 0;
+}
+
 void CParticleEmitter::Destroy() {
   if (m_hmodel) {
     HandleClose(m_hmodel);
   }
+}
+
+CParticleEmitter::CParticleEmitter() : m_refCount(1) {
+  Init();
+}
+
+CParticleEmitter::CParticleEmitter(const CParticleEmitter &rhs) : m_refCount(1) {
+  Copy(rhs);
+}
+
+CParticleEmitter &CParticleEmitter::operator=(const CParticleEmitter &rhs) {
+  Destroy();
+  Copy(rhs);
+  return *this;
 }
 
 void CParticleEmitter::SyncAllocation() {
@@ -78,6 +129,42 @@ CParticleEmitter::~CParticleEmitter() {
   Destroy();
 }
 
+float CParticleEmitter::Velocity() {
+  return m_velocity;
+}
+
+float CParticleEmitter::Acceleration() {
+  return m_acceleration;
+}
+
+float CParticleEmitter::Scale() {
+  return m_scale;
+}
+
+float CParticleEmitter::Latitude() {
+  return m_latitude;
+}
+
+float CParticleEmitter::Longitude() {
+  return m_longitude;
+}
+
+float CParticleEmitter::ParticleEmissionRate() {
+  return m_particleEmissionRate;
+}
+
+float CParticleEmitter::ParticleLifeSpan() {
+  return m_particleLifeSpan;
+}
+
+void CParticleEmitter::Enabled(int enable) {
+  m_enabled = enable;
+}
+
+void CParticleEmitter::Enabled2(int enable2) {
+  m_enabled2 = enable2;
+}
+
 void CParticleEmitter::Update(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector) {
   ActivityBegin(ACTIVITY_PARTICLE);
   if (elapsedTime <= 0.0f) {
@@ -118,6 +205,83 @@ void CParticleEmitter::Update(float elapsedTime, const NTempest::C3Vector &camer
     }
   }
   ActivityEnd(ACTIVITY_PARTICLE);
+}
+
+void CParticleEmitter::AddToModelScene() {
+  ActivityBegin(ACTIVITY_PARTICLE);
+  unsigned int numAlive = m_alive.m_stackPointer;
+  for (unsigned int loop = 0; loop < numAlive; ++loop) {
+    CParticle &particle = m_particles[m_alive.m_stack[loop]];
+    ASSERT(particle.m_timeToLive >= 0.0f);
+    if (particle.m_timeToLive != 0.0f) {
+      ModelAddToScene(particle.m_hmodel, 0);
+    }
+  }
+  ActivityEnd(ACTIVITY_PARTICLE);
+}
+
+void CParticleEmitter::Render() {
+  ActivityBegin(ACTIVITY_PARTICLE);
+  unsigned int numAlive = m_alive.m_stackPointer;
+  for (unsigned int loop = 0; loop < numAlive; ++loop) {
+    CParticle &particle = m_particles[m_alive.m_stack[loop]];
+    ASSERT(particle.m_timeToLive >= 0.0f);
+    if (particle.m_timeToLive != 0.0f) {
+      ModelRender(particle.m_hmodel, 0, 0);
+    }
+  }
+  ActivityEnd(ACTIVITY_PARTICLE);
+}
+
+void CParticleEmitter::Flush() {
+  unsigned int count = m_particles.Count();
+  while (count) {
+    CParticle &particle = m_particles[--count];
+    ASSERT(particle.m_timeToLive >= 0.0f);
+    if (particle.m_timeToLive != 0.0f) {
+      DestroyParticle(particle);
+    }
+  }
+}
+
+void CParticleEmitter::SetVelocity(float vel) {
+  m_velocity = vel;
+}
+
+void CParticleEmitter::SetAcceleration(float accel) {
+  m_acceleration = accel;
+}
+
+void CParticleEmitter::SetScale(float scale) {
+  m_scale = scale;
+}
+
+void CParticleEmitter::SetLatitude(float latInDegrees) {
+  m_latitude = latInDegrees;
+}
+
+void CParticleEmitter::SetLongitude(float longitudeInDegrees) {
+  m_longitude = longitudeInDegrees;
+}
+
+void CParticleEmitter::SetParticleEmissionRate(float particlesPerSec) {
+  m_particleEmissionRate = particlesPerSec;
+}
+
+void CParticleEmitter::SetParticleLifeSpan(float lifeInSec) {
+  m_particleLifeSpan = lifeInSec;
+}
+
+void CParticleEmitter::SetModel(HMODEL hmodel) {
+  if (m_hmodel) {
+    HandleClose(m_hmodel);
+  }
+  m_hmodel = hmodel ? ModelDuplicate(hmodel, 0) : 0;
+}
+
+CParticleEmitter *CParticleEmitter::AddRef() {
+  ++m_refCount;
+  return this;
 }
 
 void CParticleEmitter::DecRef() {

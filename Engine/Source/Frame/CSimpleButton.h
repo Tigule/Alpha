@@ -72,6 +72,11 @@ class CSimpleButton : public CSimpleFrame {
     return text && *text ? text : 0;
   }
 
+  const char *GetDisabledTextString();
+  const char *GetHighlightTextString();
+  void SetOnClickScript(const char *source);
+  void RunOnClickScript(MOUSEBUTTON button);
+
   CSimpleTexture *GetStateTexture(CSimpleButtonState state) {
     return m_textures[state];
   }

@@ -16,6 +16,9 @@ class CGxVertexBuffer_D3d : public CGxVertexBuffer {
   virtual void Unlock();
 
   void Discard();
+  IDirect3DVertexBuffer9 *GetD3dBuffer() {
+    return m_d3dvb;
+  }
 
  private:
   friend class CGxDeviceD3d;
@@ -32,6 +35,10 @@ class CGxIndexBuffer_D3d : public CGxIndexBuffer {
   virtual void Lock(void *&mem, unsigned int numIndices, unsigned int base);
   virtual void Unlock();
 
+  IDirect3DIndexBuffer9 *GetD3dBuffer() {
+    return m_d3dib;
+  }
+
  private:
   friend class CGxDeviceD3d;
 
@@ -44,6 +51,9 @@ class CVertexBufferList {
   void                 Create(EGxVertexBufferFormat format, unsigned int numVerts);
   CGxVertexBuffer_D3d *Lock(void *&mem, unsigned int numVertices, unsigned int base);
   unsigned int         GetBase();
+  unsigned int         MaxContiguousVertices() {
+    return m_maxContiguousVertices;
+  }
   void                 Release();
 
  private:

@@ -14,7 +14,8 @@ namespace NTempest {
       eRootIndex = 1
     };
 
-    CPriorityQ(const CPriorityQ &other);
+    CPriorityQ(const CPriorityQ &other) : CDynTable<T>(other) {
+    }
     CPriorityQ(const CDynParms &dp = CDynParms()) : CDynTable<T>(dp, 0, 0, 0) {
       if (!this->IsValid()) {
         SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "\"CPriorityQ<T, B>: construction of base class failed.\"", FALSE);
@@ -26,7 +27,10 @@ namespace NTempest {
     virtual ~CPriorityQ() {
     }
 
-    CPriorityQ &operator=(const CPriorityQ &other);
+    CPriorityQ &operator=(const CPriorityQ &other) {
+      CDynTable<T>::operator=(other);
+      return *this;
+    }
 
     void Validate();
 
@@ -35,8 +39,14 @@ namespace NTempest {
       return Used() > eRootIndex;
     }
 
-    unsigned long EntriesInQueue() const;
-    T             Root() const;
+    unsigned long EntriesInQueue() const {
+      ASSERT(Used() > 0);
+      return Used() - eRootIndex;
+    }
+    T Root() const {
+      ASSERT(HasEntries());
+      return CDynTable<T>::operator[](eRootIndex);
+    }
 
     void Enqueue(T value) {
       Grow();
@@ -86,7 +96,11 @@ namespace NTempest {
       return root;
     }
 
-    void DiscardAll();
+    void DiscardAll() {
+      if (Used() > eRootIndex) {
+        CDynTable<T>::Remove(eRootIndex, Used() - eRootIndex);
+      }
+    }
   };
 
 }  // namespace NTempest

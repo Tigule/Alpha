@@ -5,6 +5,8 @@
 namespace NTempest {
 
   class CRgb565;
+  class CArgb1555;
+  class CArgb4444;
   class C3Vector;
 
   class CImVector {
@@ -19,6 +21,14 @@ namespace NTempest {
 
     CImVector(unsigned long n) {
       *reinterpret_cast<unsigned long *>(this) = n;
+    }
+
+    CImVector(unsigned char red, unsigned char green, unsigned char blue) {
+      Set(0, red, green, blue);
+    }
+
+    CImVector(const CImVector *value) {
+      *reinterpret_cast<unsigned long *>(this) = *reinterpret_cast<const unsigned long *>(value);
     }
 
     CImVector(const CImVector &value) {
@@ -60,10 +70,33 @@ namespace NTempest {
     void From565(unsigned char r5, unsigned char g6, unsigned char b5);
 
     CImVector &operator=(const CRgb565 &c);
+    CImVector &operator=(const CArgb1555 &c);
+    CImVector &operator=(const CArgb4444 &c);
+    CImVector &operator=(const CImVector &c) {
+      *IV_() = *c.IV_();
+      return *this;
+    }
     CImVector &operator=(const C3Vector &c);
                operator C3Vector() const;
 
    protected:
+    unsigned long SetC_(unsigned long value, unsigned long mask, unsigned long shift);
+    void Scale_(unsigned long scale);
+    void ScaleRGB_(unsigned long scale);
+    void Scale255RGB_(unsigned long scale);
+    void Multiply_(const CImVector *source);
+    void Blend_(unsigned long alpha, const CImVector *source);
+    void BlendARGB_(unsigned long alpha, const CImVector *source);
+
+    void Scale255_(unsigned long scale) {
+      Set(
+          0,
+          static_cast<unsigned char>((scale * r + 255) >> 8),
+          static_cast<unsigned char>((scale * g + 255) >> 8),
+          static_cast<unsigned char>((scale * b + 255) >> 8)
+      );
+    }
+
     void MultiplyRGB_(const CImVector *s) {
       CImVector d(*this);
       CImVector sa(*s);
@@ -72,9 +105,107 @@ namespace NTempest {
           static_cast<unsigned char>((sa.b * d.b + 255) >> 8));
     }
 
+    void BlendRGB_(unsigned long alpha, const CImVector *source) {
+      CImVector destination(*this);
+      Set(
+          destination.a,
+          static_cast<unsigned char>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
+          static_cast<unsigned char>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
+          static_cast<unsigned char>(destination.b + ((alpha * (source->b - destination.b)) >> 8))
+      );
+    }
+
+    void Blend255_(unsigned long alpha, const CImVector *source) {
+      if (alpha == 255) {
+        *IV_() = *source->IV_();
+        return;
+      }
+
+      CImVector destination(*this);
+      Set(
+          0,
+          static_cast<unsigned char>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
+          static_cast<unsigned char>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
+          static_cast<unsigned char>(destination.b + ((alpha * (source->b - destination.b)) >> 8))
+      );
+    }
+
+    void BlendRGB255_(unsigned long alpha, const CImVector *source) {
+      if (alpha == 255) {
+        SetRGB(source);
+        return;
+      }
+
+      CImVector destination(*this);
+      Set(
+          destination.a,
+          static_cast<unsigned char>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
+          static_cast<unsigned char>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
+          static_cast<unsigned char>(destination.b + ((alpha * (source->b - destination.b)) >> 8))
+      );
+    }
+
    public:
+    void Get(float &alpha, float &red, float &green, float &blue) const;
+    void Get(unsigned long &alpha, unsigned long &red, unsigned long &green, unsigned long &blue) const;
+    void Get(unsigned long &red, unsigned long &green, unsigned long &blue) const;
+    unsigned long Get() const;
+    unsigned long GetRGB() const;
+    void SetA(unsigned char alpha);
+    void SetR(unsigned char red);
+    void SetG(unsigned char green);
+    void SetB(unsigned char blue);
+    void Set(const CImVector *value);
+    void Set(const CImVector &value);
+    void Set(unsigned char red, unsigned char green, unsigned char blue);
+    void SetRGB(unsigned long value);
+    void SetRGB(const CImVector &value);
+    void SetRGB(unsigned char red, unsigned char green, unsigned char blue);
+    void From1555(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
+    void From4444(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
+    void FromARGB(unsigned char alpha, const CImVector &rgb);
+
+    unsigned long operator~() const;
+    operator unsigned long() const;
+
+    void Scale(unsigned long scale);
+    void ScaleRGB(unsigned long scale);
+    void Scale255(unsigned long scale);
+    void Scale255RGB(unsigned long scale);
+    void ScaleA(unsigned long scale);
+    void ScaleA255(unsigned long scale);
+    void Multiply(const CImVector *source);
     void MultiplyRGB(const CImVector *s) {
       MultiplyRGB_(s);
+    }
+
+    void Blend(unsigned long alpha, unsigned long source);
+    void Blend(unsigned long alpha, const CImVector *source);
+    void Blend(unsigned long source);
+    void Blend(const CImVector *source);
+    void BlendRGB(unsigned long alpha, unsigned long source);
+    void BlendRGB(unsigned long alpha, const CImVector *source);
+    void BlendRGB(unsigned long source);
+    void BlendRGB(const CImVector *source);
+    void BlendARGB(unsigned long alpha, unsigned long source);
+    void BlendARGB(unsigned long alpha, const CImVector *source);
+    void Blend255(unsigned long alpha, unsigned long source);
+    void Blend255(unsigned long alpha, const CImVector *source);
+    void Blend255RGB(unsigned long alpha, unsigned long source);
+    void Blend255RGB(unsigned long alpha, const CImVector *source);
+
+    void SetRGB(const CImVector *source) {
+      *IV_() ^= (*IV_() ^ *source->IV_()) & 0x00FFFFFF;
+    }
+
+    unsigned char &operator[](unsigned long index) {
+      ASSERT(index < 4);
+      return (&b)[index];
+    }
+
+    const unsigned char &operator[](unsigned long index) const {
+      ASSERT(index < 4);
+      return (&b)[index];
     }
 
     unsigned char b;

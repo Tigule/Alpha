@@ -52,18 +52,60 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   void                               SetMaxLines(int maxLines);
   void                               SetMessageFrameInsets(float right, float left, float top, float bottom);
   void                               SetTextLength(int size);
+  void SetFont(const char *font, float fontHeight, int fontFlags) {
+    m_attrib.SetFont(font, fontHeight, fontFlags);
+  }
+  unsigned char HasFont() const {
+    return m_attrib.HasFont();
+  }
+  const char *GetFontName() const {
+    return m_attrib.GetFontName();
+  }
+  unsigned int GetFontFlags() const {
+    return m_attrib.GetFontFlags();
+  }
+  void SetHorizontalAlignment(unsigned int alignment) {
+    m_attrib.SetHorizontalAlignment(alignment);
+  }
+  void SetColor(const NTempest::CImVector &color) {
+    m_attrib.SetColor(color);
+  }
+  void AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
+    m_attrib.AddShadow(color, offset);
+  }
+  void SetSpacing(float spacing) {
+    m_attrib.SetSpacing(spacing);
+  }
+  void SetStyleFlags(unsigned int flags) {
+    m_attrib.SetStyleFlags(flags);
+  }
   const CSimpleFontStringAttributes *GetTextAttributes() const {
     return &m_attrib;
+  }
+  void SetFade(int fading) {
+    m_fading = fading;
+  }
+  void SetTimeVisible(float timeVisible) {
+    m_timeVisible = timeVisible;
+  }
+  void SetFadeDuration(float fadeDuration) {
+    m_fadeDuration = fadeDuration;
   }
   void         AddMessage(const char *text, const CSimpleFontStringAttributes *attrib);
   unsigned int AddMultiLine(char *text, const CSimpleFontStringAttributes *attrib);
   void         Clear();
   int          ScrollUp();
   int          ScrollDown();
+  int          CanScroll() const {
+    return m_numMessages > m_numDisplayed;
+  }
   void         PageUp();
   void         PageDown();
   void         ScrollToTop();
   void         ScrollToBottom();
+  int          GetNumDisplayLines() const {
+    return m_numDisplayed;
+  }
   int          AtBottom() const {
     return m_atBottom;
   }

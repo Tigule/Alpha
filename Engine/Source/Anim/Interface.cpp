@@ -529,6 +529,20 @@ void __fastcall AnimSetCameraOrdering(HANIM anim, const char **cameraNames, unsi
   SetCameraIndexOrdering(objNameHashTable, cameraOrder->Ptr(), shared->cameraObjs.m_data, shared->cameraObjs.m_count);
 }
 
+void __fastcall AnimResetCameraOrdering(HANIM anim, TSFixedArray<unsigned int> *cameraOrder) {
+  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  ASSERT(unique);
+
+  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  ASSERT(shared);
+
+  unsigned int numCameras = shared->cameraObjs.Count();
+  cameraOrder->SetCount(numCameras);
+  for (unsigned int i = 0; i < numCameras; ++i) {
+    (*cameraOrder)[i] = i;
+  }
+}
+
 unsigned int __fastcall AnimGetFlags(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);

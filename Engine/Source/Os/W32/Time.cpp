@@ -16,6 +16,38 @@ static __int64 s_cpuTicksPerSecond;
 static float   s_cpuTicksDivisor;
 static __int64 s_lastTimeAndTickCount;
 
+class OsTimeManager {
+  public:
+    OsTimeManager();
+    ~OsTimeManager();
+
+    void Shutdown();
+
+  private:
+    struct TimeSnapshot {
+      __int64       rdtsc;
+      unsigned long tickCount;
+      unsigned long pad;
+      LARGE_INTEGER qperfCount;
+    };
+
+    void Snapshot(TimeSnapshot* time);
+    static unsigned int __stdcall TimeKeeper(void*);
+    void Calibrate();
+
+  public:
+    __int64 cpuTicksPerSecond_qp;
+    __int64 cpuTicksPerSecond_ti;
+
+  private:
+    SThread       timeMgrThread;
+    SEvent        shutdownEvt;
+    unsigned long sleepVal;
+    int           hasQPF;
+};
+
+static OsTimeManager* s_OsTimeMgr;
+
 #if defined(_MSC_VER) && _MSC_VER < 1400 && defined(_M_IX86)
 __declspec(naked) __int64 __cdecl OsGetAsyncTimeClocks() {
   __asm {
@@ -129,6 +161,10 @@ void __fastcall OsGetTimeStamp(char *timeStamp, unsigned long len) {
 
 void __fastcall OsGetTimeStr(char* timebuf, unsigned long len, const char* format, long timer) {
   strftime(timebuf, len, format, localtime(&timer));
+}
+
+long __fastcall OsGetTime(long* timer) {
+  return time(timer);
 }
 
 void __fastcall OsFileTimeGetCurrent(OSFILETIME* filetime) {
@@ -273,7 +309,103 @@ void __fastcall OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime) 
   OsFileTimeToSystemTime(&localFileTime, localSysTime);
 }
 
+OsTimeManager::OsTimeManager()
+  : shutdownEvt(1, 0) {
+  s_OsTimeMgr = this;
+  sleepVal = 50;
+  shutdownEvt.Reset();
+  SThread::Create(TimeKeeper, 0, timeMgrThread, const_cast<char*>("OsTime"));
+}
+
+OsTimeManager::~OsTimeManager() {
+}
+
+void OsTimeManager::Shutdown() {
+  shutdownEvt.Set();
+}
+
+void OsTimeManager::Snapshot(TimeSnapshot* time) {
+  HANDLE thread = GetCurrentThread();
+  int priority = GetThreadPriority(thread);
+
+  if (priority != THREAD_PRIORITY_ERROR_RETURN) {
+    SetThreadPriority(GetCurrentThread(), priority);
+  }
+
+  time->rdtsc = OsGetAsyncTimeClocks();
+  time->tickCount = GetTickCount();
+
+  if (hasQPF) {
+    QueryPerformanceCounter(&time->qperfCount);
+  }
+}
+
+unsigned int __stdcall OsTimeManager::TimeKeeper(void*) {
+  s_OsTimeMgr->Calibrate();
+
+  OsTimeManager* timeMgr;
+  do {
+    timeMgr = reinterpret_cast<OsTimeManager*>(
+        SInterlockedExchange(reinterpret_cast<long*>(&s_OsTimeMgr), 0)
+    );
+  } while (!timeMgr);
+
+  delete timeMgr;
+  SRegSaveData("Internal", "CpuTicksPerSecond", 0, &s_cpuTicksPerSecond, sizeof(s_cpuTicksPerSecond));
+  return 0;
+}
+
+void OsTimeManager::Calibrate() {
+  LARGE_INTEGER qPerfFreq;
+  TimeSnapshot baseTime;
+  TimeSnapshot interval;
+  SSyncObject* waitObjectPtrs[1];
+
+  if (QueryPerformanceFrequency(&qPerfFreq) && qPerfFreq.QuadPart) {
+    hasQPF = 1;
+  }
+
+  Snapshot(&baseTime);
+  waitObjectPtrs[0] = &shutdownEvt;
+
+  while (WaitMultiplePtr(1, waitObjectPtrs, TRUE, sleepVal)) {
+    Snapshot(&interval);
+
+    unsigned long deltaTick = interval.tickCount - baseTime.tickCount;
+    if (deltaTick >= 30000) {
+      break;
+    }
+
+    __int64 deltaCpu = interval.rdtsc - baseTime.rdtsc;
+
+    if (hasQPF) {
+      __int64 deltaQP = interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart;
+      if (deltaQP) {
+        cpuTicksPerSecond_qp =
+            static_cast<__int64>((double)qPerfFreq.QuadPart / (double)deltaQP * (double)deltaCpu);
+      }
+    }
+
+    if (deltaTick) {
+      cpuTicksPerSecond_ti = 1000 * deltaCpu / deltaTick;
+    }
+
+    if (hasQPF && cpuTicksPerSecond_qp) {
+      SInterlockedExchange(&s_cpuTicksPerSecond, cpuTicksPerSecond_qp);
+    } else if (cpuTicksPerSecond_ti) {
+      SInterlockedExchange(&s_cpuTicksPerSecond, cpuTicksPerSecond_ti);
+    }
+
+    sleepVal = (3 * sleepVal) >> 1;
+    if (sleepVal > 1000) {
+      sleepVal = 1000;
+    }
+  }
+}
+
 void __fastcall OsTimeStartup() {
+  new OsTimeManager;
+
   DWORD len = sizeof(s_cpuTicksPerSecond);
   if (!SRegLoadData("Internal", "CpuTicksPerSecond", 0, &s_cpuTicksPerSecond, sizeof(s_cpuTicksPerSecond), &len)) {
     s_cpuTicksPerSecond = 0;
@@ -282,4 +414,15 @@ void __fastcall OsTimeStartup() {
 }
 
 void __fastcall OsTimeShutdown() {
+  OsTimeManager* timeMgr = reinterpret_cast<OsTimeManager*>(
+      SInterlockedExchange(reinterpret_cast<long*>(&s_OsTimeMgr), 0)
+  );
+
+  if (timeMgr) {
+    timeMgr->Shutdown();
+    SInterlockedExchange(
+        reinterpret_cast<long*>(&s_OsTimeMgr),
+        reinterpret_cast<long>(timeMgr)
+    );
+  }
 }

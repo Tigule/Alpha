@@ -346,7 +346,6 @@ int __cdecl OsCallEnter(unsigned long funcAddr, unsigned long retAddr) {
   ThreadStack &stack = threadData->m_funcStack[stackIndex];
   stack.m_retAddr = retAddr;
   stack.m_funcAddr = funcAddr;
-  stack.m_logExit = 0;
 
   ContextData *contextData = threadData->m_contextData;
   if (contextData) {

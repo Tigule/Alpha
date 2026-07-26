@@ -3,13 +3,20 @@
 #include "Base/ConvertUTF.h"
 #include "Event/CMouseEvent.h"
 #include "Event/CObserver.h"
+#include "Frame/CSimpleMessageFrame.h"
 #include "Frame/CSimpleRender.h"
 #include "FrameXML/LoadXML.h"
 #include "FrameXML/XMLTree.h"
 #include "Gxu/IGxuFont.h"
+#include "Os/W32/OsClipboard.h"
+#include "Os/W32/OsIME.h"
+#include "Services/TextBlock.h"
 
 #include <limits.h>
+#include <malloc.h>
+#include <math.h>
 #include <string.h>
+#include <wctype.h>
 
 CSimpleEditBox *CSimpleEditBox::s_currentFocus;
 
@@ -138,6 +145,10 @@ void CSimpleEditBox::LoadXML(const XMLNode *node, CStatus *status) {
       if (m_string->m_textMaxSize) {
         m_textLengthMax = m_string->m_textMaxSize - 1;
       }
+
+      NTempest::CImVector color;
+      m_string->GetVertexColor(color);
+      m_cursor->SetTexture(color);
     } else if (!SStrCmpI(name, "HighlightColor", INT_MAX)) {
       NTempest::CImVector color;
       if (LoadXML_Color(child, color, status)) {
@@ -226,18 +237,20 @@ void CSimpleEditBox::OnLayerUpdate(float elapsedSec) {
   int textChanged = m_dirtyFlags & DIRTY_TEXT;
 
   if (m_dirtyFlags & DIRTY_CURSOR) {
-    if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen) {
+    if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen
+        || (m_imeInputMode && m_clauseRight > m_visiblePos + m_visibleLen)) {
       m_dirtyFlags |= DIRTY_TEXT;
     }
   }
 
   if (m_dirtyFlags & DIRTY_TEXT) {
-    m_string->SetText(m_text);
-    m_visiblePos = 0;
-    m_visibleLen = m_textLength;
-    m_visibleLines[0] = 0;
-    m_visibleLines[1] = m_textLength;
+    UpdateVisibleText();
     m_dirtyFlags &= ~DIRTY_TEXT;
+  }
+
+  if (m_dirtyFlags & DIRTY_HIGHLIGHT) {
+    UpdateVisibleHighlight();
+    m_dirtyFlags &= ~DIRTY_HIGHLIGHT;
   }
 
   if (m_dirtyFlags & DIRTY_CURSOR) {
@@ -262,6 +275,32 @@ void CSimpleEditBox::OnLayerUpdate(float elapsedSec) {
   if (textChanged && m_onTextChanged) {
     FrameScript_Execute(m_onTextChanged, this);
   }
+
+  if (textChanged) {
+    DispatchAction(EVENT_CHANGED);
+  }
+}
+
+int CSimpleEditBox::OnLayerTrackUpdate(const CMouseEvent &evt) {
+  if (!CSimpleFrame::OnLayerTrackUpdate(evt)) {
+    return 0;
+  }
+
+  int position;
+  if (m_highlightDrag && ConvertCoordinateToIndex(evt.x, evt.y, position)) {
+    ExtendHighlight(position - m_cursorPos);
+
+    if (position < 0) {
+      position = 0;
+    } else if (position > m_textLength) {
+      position = m_textLength;
+    }
+
+    m_cursorPos = position;
+    m_dirtyFlags |= DIRTY_CURSOR;
+  }
+
+  return 1;
 }
 
 void CSimpleEditBox::OnFrameSizeChanged(const NTempest::CRect &rect) {
@@ -290,6 +329,69 @@ int CSimpleEditBox::OnLayerChar(CCharEvent &evt) {
     FrameScript_Execute(m_onSpacePressed, this);
   }
 
+  if (evt.ch == ' ') {
+    DispatchAction(EVENT_SPACE);
+  }
+
+  return 1;
+}
+
+int CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
+  if (!m_visible) {
+    return 0;
+  }
+
+  if (!s_currentFocus && m_autoFocus) {
+    SetKeyboardFocus(this);
+  } else if (s_currentFocus != this) {
+    return 0;
+  }
+
+  if (m_password) {
+    return 1;
+  }
+
+  char string[512];
+
+  switch (evt.message) {
+    case 1:
+      m_imeInputMode = 1;
+      m_highlightDrag = 0;
+      break;
+
+    case 2:
+      if (evt.lParam & 4) {
+        OsIMEGetCompositionResult(string, sizeof(string));
+        Insert(string, 0);
+      }
+      if (evt.lParam & 2) {
+        OsIMEGetCompositionString(string, sizeof(string));
+        Insert(string, 1);
+      }
+      if (evt.lParam & 1) {
+        UpdateClauseInfo();
+      }
+      break;
+
+    case 3:
+    case 4:
+      if (PopulateCandidates(evt.lParam)) {
+        ShowCandidates();
+      } else {
+        HideCandidates();
+      }
+      break;
+
+    case 5:
+      HideCandidates();
+      break;
+
+    case 6:
+      HideCandidates();
+      m_imeInputMode = 0;
+      break;
+  }
+
   return 1;
 }
 
@@ -304,22 +406,188 @@ int CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
     return 0;
   }
 
+  int control = EventIsKeyDown(KEY_CONTROL);
+  int shift = EventIsKeyDown(KEY_SHIFT);
+
   switch (evt.key) {
-    case KEY_BACKSPACE:
-      if (m_cursorPos > 0) {
-        Delete(-1);
+    case KEY_A:
+    case static_cast<KEY>(KEY_A + 32):
+      if (control) {
+        HighlightText();
       }
       break;
-    case KEY_ENTER:
-      if (m_onEnterPressed) {
-        FrameScript_Execute(m_onEnterPressed, this);
+
+    case KEY_B:
+    case static_cast<KEY>(KEY_B + 32):
+      if (control) {
+        MoveBackward(shift);
       }
       break;
+
+    case KEY_C:
+    case static_cast<KEY>(KEY_C + 32):
+    case KEY_X:
+    case static_cast<KEY>(KEY_X + 32):
+      if (control && m_highlightLeft != m_highlightRight) {
+        CopyToClipboard();
+        if (evt.key == KEY_X || evt.key == static_cast<KEY>(KEY_X + 32)) {
+          DeleteHighlight();
+        }
+      }
+      break;
+
+    case KEY_D:
+    case static_cast<KEY>(KEY_D + 32):
+      if (control) {
+        DeleteForward();
+      }
+      break;
+
+    case KEY_F:
+    case static_cast<KEY>(KEY_F + 32):
+      if (control) {
+        MoveForward(shift);
+      }
+      break;
+
+    case KEY_K:
+    case static_cast<KEY>(KEY_K + 32):
+      if (control) {
+        DeleteToEnd();
+      }
+      break;
+
+    case KEY_N:
+    case static_cast<KEY>(KEY_N + 32):
+      if (control) {
+        ForwardHistory();
+      }
+      break;
+
+    case KEY_P:
+    case static_cast<KEY>(KEY_P + 32):
+      if (control) {
+        BackwardHistory();
+      }
+      break;
+
+    case KEY_U:
+    case static_cast<KEY>(KEY_U + 32):
+      if (control) {
+        DeleteToStart();
+      }
+      break;
+
+    case KEY_V:
+    case static_cast<KEY>(KEY_V + 32):
+      if (control) {
+        PasteFromClipboard();
+      }
+      break;
+
+    case KEY_W:
+    case static_cast<KEY>(KEY_W + 32):
+      if (control) {
+        DeleteBackwardWord();
+      }
+      break;
+
     case KEY_ESCAPE:
       if (m_onEscapePressed) {
         FrameScript_Execute(m_onEscapePressed, this);
       }
+      DispatchAction(EVENT_ESCAPE);
       break;
+
+    case KEY_ENTER:
+      if (m_multiline) {
+        Insert("\n", 0);
+      } else {
+        if (m_onEnterPressed) {
+          FrameScript_Execute(m_onEnterPressed, this);
+        }
+        DispatchAction(EVENT_ENTER);
+      }
+      break;
+
+    case KEY_BACKSPACE:
+      if (control) {
+        DeleteBackwardWord();
+      } else {
+        DeleteBackward();
+      }
+      break;
+
+    case KEY_TAB:
+      if (m_onTabPressed) {
+        FrameScript_Execute(m_onTabPressed, this);
+      }
+      DispatchAction(EVENT_TAB);
+      break;
+
+    case KEY_LEFT:
+      if (control) {
+        MoveBackwardWord(shift);
+      } else {
+        MoveBackward(shift);
+      }
+      break;
+
+    case KEY_UP:
+      if (m_multiline) {
+        MoveBackwardLine(shift);
+      } else {
+        BackwardHistory();
+      }
+      break;
+
+    case KEY_RIGHT:
+      if (control) {
+        MoveForwardWord(shift);
+      } else {
+        MoveForward(shift);
+      }
+      break;
+
+    case KEY_DOWN:
+      if (m_multiline) {
+        MoveForwardLine(shift);
+      } else {
+        ForwardHistory();
+      }
+      break;
+
+    case KEY_INSERT:
+      if (control) {
+        if (m_highlightLeft != m_highlightRight) {
+          CopyToClipboard();
+        }
+      } else if (shift) {
+        PasteFromClipboard();
+      }
+      break;
+
+    case KEY_DELETE:
+      if (shift) {
+        if (m_highlightLeft != m_highlightRight) {
+          CopyToClipboard();
+          DeleteHighlight();
+        }
+      } else if (control) {
+        DeleteForwardWord();
+      } else {
+        DeleteForward();
+      }
+      break;
+
+    case KEY_HOME:
+      MoveToStart(shift);
+      break;
+
+    case KEY_END:
+      MoveToEnd(shift);
+      break;
+
     default:
       break;
   }
@@ -327,11 +595,72 @@ int CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
   return 1;
 }
 
+int CSimpleEditBox::OnLayerKeyDownRepeat(CKeyEvent &evt) {
+  if (!m_visible) {
+    return 0;
+  }
+
+  if (!s_currentFocus && m_autoFocus) {
+    SetKeyboardFocus(this);
+  } else if (s_currentFocus != this) {
+    return 0;
+  }
+
+  return OnLayerKeyDown(evt);
+}
+
+int CSimpleEditBox::OnLayerKeyUp(CKeyEvent &evt) {
+  if (!m_visible) {
+    return 0;
+  }
+
+  if (!s_currentFocus && m_autoFocus) {
+    SetKeyboardFocus(this);
+  }
+
+  return s_currentFocus == this;
+}
+
 int CSimpleEditBox::OnLayerMouseDown(CMouseEvent &evt) {
   int handled = CSimpleFrame::OnLayerMouseDown(evt);
 
   if (!handled) {
+    if (!m_imeInputMode) {
+      int position;
+
+      if (ConvertCoordinateToIndex(evt.x, evt.y, position)) {
+        if (m_highlightLeft != m_highlightRight) {
+          m_highlightLeft = 0;
+          m_highlightRight = 0;
+          m_dirtyFlags |= DIRTY_HIGHLIGHT;
+        }
+
+        if (position < 0) {
+          position = 0;
+        } else if (position > m_textLength) {
+          position = m_textLength;
+        }
+
+        m_cursorPos = position;
+        m_dirtyFlags |= DIRTY_CURSOR;
+        StartHighlight();
+        m_highlightDrag = 1;
+        handled = 1;
+      }
+    }
+
     SetKeyboardFocus(this);
+  }
+
+  return handled;
+}
+
+int CSimpleEditBox::OnLayerMouseUp(CMouseEvent &evt) {
+  int handled = CSimpleFrame::OnLayerMouseUp(evt);
+
+  if (!handled && m_highlightDrag) {
+    m_highlightDrag = 0;
+    return 1;
   }
 
   return handled;
@@ -532,6 +861,17 @@ int CSimpleEditBox::PrevCharOffset(int offset) {
   return offset;
 }
 
+int CSimpleEditBox::GetOffsetToLine(int offset) {
+  int line = 0;
+  int maxLine = m_visibleLines.Count() - 2;
+
+  while (offset >= static_cast<int>(m_visibleLines[line + 1]) && line < maxLine) {
+    ++line;
+  }
+
+  return line;
+}
+
 void CSimpleEditBox::GrowText(int size) {
   if (size + 1 > m_textSize) {
     m_textSize = (size + 32) & ~31;
@@ -571,6 +911,70 @@ void CSimpleEditBox::Delete(int amount) {
   } else {
     DeleteSubstring(m_cursorPos, m_cursorPos + length);
   }
+}
+
+void CSimpleEditBox::DeleteForward() {
+  if (m_highlightLeft != m_highlightRight) {
+    DeleteHighlight();
+  } else if (m_cursorPos < m_textLength) {
+    Delete(1);
+  }
+}
+
+void CSimpleEditBox::DeleteForwardWord() {
+  if (m_highlightLeft != m_highlightRight) {
+    DeleteHighlight();
+    return;
+  }
+
+  int advance;
+  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+    Delete(1);
+  }
+  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+    Delete(1);
+  }
+}
+
+void CSimpleEditBox::DeleteBackward() {
+  if (m_highlightLeft != m_highlightRight) {
+    DeleteHighlight();
+  } else if (m_cursorPos > 0) {
+    Delete(-1);
+  }
+}
+
+void CSimpleEditBox::DeleteBackwardWord() {
+  if (m_highlightLeft != m_highlightRight) {
+    DeleteHighlight();
+    return;
+  }
+
+  int advance;
+  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
+    Delete(-1);
+  }
+  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
+    Delete(-1);
+  }
+}
+
+void CSimpleEditBox::DeleteToStart() {
+  int amount = GetLenToNum(0, m_cursorPos);
+  if (amount) {
+    Delete(-amount);
+  }
+}
+
+void CSimpleEditBox::DeleteToEnd() {
+  int amount = GetLenToNum(m_cursorPos, m_textLength - m_cursorPos);
+  if (amount) {
+    Delete(amount);
+  }
+}
+
+void CSimpleEditBox::DeleteText() {
+  DeleteSubstring(0, m_textLength);
 }
 
 void CSimpleEditBox::Insert(const char *utf8string, int isIME) {
@@ -716,6 +1120,148 @@ void CSimpleEditBox::DeleteHighlight() {
   DeleteSubstring(m_highlightLeft, m_highlightRight);
 }
 
+void CSimpleEditBox::Move(int distance, int highlight) {
+  FATALASSERT(distance);
+
+  int length = GetNumToLen(m_cursorPos, distance, 1);
+  if (distance < 0) {
+    length = -length;
+  }
+
+  if (highlight) {
+    if (m_highlightLeft == m_highlightRight) {
+      StartHighlight();
+    }
+    ExtendHighlight(length);
+  } else if (m_highlightLeft != m_highlightRight) {
+    m_highlightLeft = 0;
+    m_highlightRight = 0;
+    m_dirtyFlags |= DIRTY_HIGHLIGHT;
+  }
+
+  m_cursorPos += length;
+  m_dirtyFlags |= DIRTY_CURSOR;
+}
+
+void CSimpleEditBox::MoveForward(int highlight) {
+  if (m_cursorPos < m_textLength) {
+    Move(1, highlight);
+  }
+}
+
+void CSimpleEditBox::MoveForwardWord(int highlight) {
+  int advance;
+  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+    Move(1, highlight);
+  }
+  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+    Move(1, highlight);
+  }
+}
+
+void CSimpleEditBox::MoveBackward(int highlight) {
+  if (m_cursorPos > 0) {
+    Move(-1, highlight);
+  }
+}
+
+void CSimpleEditBox::MoveBackwardWord(int highlight) {
+  int advance;
+  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+    Move(-1, highlight);
+  }
+  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+    Move(-1, highlight);
+  }
+}
+
+void CSimpleEditBox::MoveToStart(int highlight) {
+  int amount = GetLenToNum(m_cursorPos, -m_cursorPos);
+  if (amount) {
+    Move(-amount, highlight);
+  }
+}
+
+void CSimpleEditBox::MoveToEnd(int highlight) {
+  int amount = GetLenToNum(m_cursorPos, m_textLength - m_cursorPos);
+  if (amount) {
+    Move(amount, highlight);
+  }
+}
+
+void CSimpleEditBox::MoveLine(int distance, int highlight) {
+  int oldLine = GetOffsetToLine(m_cursorPos);
+  int newLine = oldLine + distance;
+  int lastLine = m_visibleLines.Count() - 2;
+
+  if (newLine < 0) {
+    newLine = 0;
+  } else if (newLine > lastLine) {
+    newLine = lastLine;
+  }
+
+  if (newLine == oldLine) {
+    return;
+  }
+
+  int column = GetLenToNum(m_visibleLines[oldLine], m_cursorPos - m_visibleLines[oldLine]);
+  int newOffset = m_visibleLines[newLine] + GetNumToLen(m_visibleLines[newLine], column, false);
+
+  if (m_visibleLines[newLine + 1] > m_visibleLines[newLine] && newOffset >= static_cast<int>(m_visibleLines[newLine + 1])) {
+    newOffset = m_visibleLines[newLine + 1] - GetNumToLen(m_visibleLines[newLine + 1], -1, false);
+  }
+
+  int movement = newOffset - m_cursorPos;
+  if (highlight) {
+    if (m_highlightLeft == m_highlightRight) {
+      StartHighlight();
+    }
+    ExtendHighlight(movement);
+  } else if (m_highlightLeft != m_highlightRight) {
+    m_highlightLeft = 0;
+    m_highlightRight = 0;
+    m_dirtyFlags |= DIRTY_HIGHLIGHT;
+  }
+
+  m_cursorPos += movement;
+  m_dirtyFlags |= DIRTY_CURSOR;
+}
+
+void CSimpleEditBox::MoveForwardLine(int highlight) {
+  MoveLine(1, highlight);
+}
+
+void CSimpleEditBox::MoveBackwardLine(int highlight) {
+  MoveLine(-1, highlight);
+}
+
+void CSimpleEditBox::HighlightText() {
+  m_highlightRight = m_textLength;
+  m_highlightLeft = 0;
+  m_dirtyFlags |= DIRTY_HIGHLIGHT;
+}
+
+void CSimpleEditBox::StartHighlight() {
+  m_highlightLeft = m_cursorPos;
+  m_highlightRight = m_cursorPos;
+}
+
+void CSimpleEditBox::ExtendHighlight(int distance) {
+  if (!distance) {
+    return;
+  }
+
+  int position = m_cursorPos + distance;
+  if (distance >= 0 && position > m_highlightRight) {
+    m_highlightRight = position;
+  } else if (distance < 0 && position >= m_highlightLeft) {
+    m_highlightRight = position;
+  } else {
+    m_highlightLeft = position;
+  }
+  m_dirtyFlags |= DIRTY_HIGHLIGHT;
+}
+
 void CSimpleEditBox::SetHistoryLines(int numLines) {
   int i;
 
@@ -752,25 +1298,467 @@ void CSimpleEditBox::AddHistoryLine(const char *line) {
   m_curHistory = (m_curHistory + 1) % m_numHistory;
 }
 
+void CSimpleEditBox::ForwardHistory() {
+  for (int i = 1; i <= m_numHistory; ++i) {
+    int index = (m_curHistory + i) % m_numHistory;
+
+    if (m_history[index]) {
+      m_curHistory = index;
+      SetText(m_history[index]);
+      return;
+    }
+  }
+}
+
+void CSimpleEditBox::BackwardHistory() {
+  for (int i = 1; i <= m_numHistory; ++i) {
+    int index = m_curHistory - i;
+
+    if (index < 0) {
+      index += m_numHistory;
+    }
+
+    if (m_history[index]) {
+      m_curHistory = index;
+      SetText(m_history[index]);
+      return;
+    }
+  }
+}
+
+int CSimpleEditBox::ConvertCoordinateToIndex(float x, float y, int &position) {
+  NTempest::CRect stringRect;
+  if (!m_string->GetRect(&stringRect)) {
+    return 0;
+  }
+
+  unsigned int line = 0;
+  unsigned int lastLine = m_visibleLines.Count() - 2;
+  float fontHeight = (m_string->m_fontHeight + m_string->m_spacing) * m_layoutScale;
+
+  if (m_multiline) {
+    float distance = stringRect.b - y;
+    while (distance > fontHeight && line < lastLine) {
+      distance -= fontHeight;
+      ++line;
+    }
+  }
+
+  float offset = x - stringRect.l;
+  if (offset < 0.0f) {
+    position = 0;
+    return 1;
+  }
+  if (offset > stringRect.r) {
+    offset = stringRect.r;
+  }
+
+  const char *text = m_password ? m_textHidden : m_text;
+  unsigned int linePosition = m_visibleLines[line];
+  unsigned int amount = m_string->GetNumCharsWithinWidth(
+      text + linePosition,
+      m_visibleLines[line + 1] - linePosition,
+      offset / m_string->m_layoutScale);
+
+  if (text == m_text) {
+    amount = GetNumToLen(linePosition, amount, false);
+  }
+
+  position = linePosition + amount;
+  return 1;
+}
+
+void CSimpleEditBox::MakeTextVisible(int position, float offset, float stringWidth) {
+  ASSERT(!m_password);
+
+  if (m_multiline) {
+    ASSERT(!"FIXME: Not yet implemented");
+    return;
+  }
+
+  unsigned int amount = m_string->GetNumCharsWithinWidthFromEnd(m_text, position, offset);
+  m_visiblePos = position - GetNumToLen(position, -static_cast<int>(amount), false);
+  if (m_visiblePos < 0) {
+    m_visiblePos = 0;
+  }
+
+  amount = m_string->GetNumCharsWithinWidth(m_text + m_visiblePos, 0, stringWidth);
+  m_visibleLen = GetNumToLen(m_visiblePos, amount, false);
+  m_visibleLines[0] = m_visiblePos;
+  m_visibleLines[1] = m_visiblePos + m_visibleLen;
+}
+
+void CSimpleEditBox::UpdateVisibleText() {
+  ASSERT(m_cursorPos >= 0 && m_cursorPos <= m_textLength);
+
+  float stringWidth = m_string->GetWidth();
+  ASSERT(stringWidth > 0.0f);
+
+  char *text;
+  if (m_password) {
+    unsigned int length = SStrLen(m_text);
+    m_textHidden = static_cast<char *>(SMemReAlloc(m_textHidden, length + 1, __FILE__, __LINE__, 0));
+    memset(m_textHidden, '*', length);
+    m_textHidden[length] = 0;
+    text = m_textHidden;
+  } else {
+    text = m_text;
+  }
+
+  if (m_multiline) {
+    unsigned int lines = m_string->WrapText(
+        text + m_visiblePos,
+        stringWidth,
+        m_visibleLines.Ptr(),
+        m_visibleLines.Count());
+
+    if (lines >= m_visibleLines.Count()) {
+      m_visibleLines.SetCount(lines + 1);
+      m_string->WrapText(text + m_visiblePos, stringWidth, m_visibleLines.Ptr(), m_visibleLines.Count());
+    }
+
+    if (!lines) {
+      lines = 1;
+      m_visibleLines[0] = 0;
+    }
+
+    if (m_visiblePos > 0) {
+      for (unsigned int i = 0; i < lines; ++i) {
+        m_visibleLines[i] += m_visiblePos;
+      }
+    }
+
+    m_visibleLines[lines] = SStrLen(text);
+    m_visibleLen = m_visibleLines[lines];
+    m_visibleLines.SetCount(lines + 1);
+  } else {
+    unsigned int amount = m_string->GetNumCharsWithinWidth(text + m_visiblePos, 0, stringWidth);
+    m_visibleLen = amount;
+    if (text == m_text) {
+      m_visibleLen = GetNumToLen(m_visiblePos, amount, false);
+    }
+
+    m_visibleLines[0] = m_visiblePos;
+    m_visibleLines[1] = m_visiblePos + m_visibleLen;
+  }
+
+  if (!m_password) {
+    if (m_imeInputMode && m_clauseRight > m_visiblePos + m_visibleLen) {
+      MakeTextVisible(m_clauseRight, stringWidth, stringWidth);
+    }
+
+    if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen) {
+      float offset = m_cursorPos >= m_visiblePos ? stringWidth * 0.75f : stringWidth * 0.25f;
+      MakeTextVisible(m_cursorPos, offset, stringWidth);
+      ASSERT(m_cursorPos >= m_visiblePos && m_cursorPos <= m_visiblePos + m_visibleLen);
+    }
+  }
+
+  int end = m_visiblePos + m_visibleLen;
+  char saved = text[end];
+  text[end] = 0;
+  m_string->SetText(text + m_visiblePos);
+  text[end] = saved;
+
+  if (m_multiline) {
+    SetHeight(m_string->GetStringHeight() + m_editTextInset.b + m_editTextInset.t);
+  }
+}
+
+void CSimpleEditBox::CopyToClipboard() {
+  if (m_highlightLeft == m_highlightRight) {
+    return;
+  }
+
+  if (m_password) {
+    OsClipboardPutString("");
+    return;
+  }
+
+  unsigned int length = m_highlightRight - m_highlightLeft;
+  char *buffer = static_cast<char *>(_alloca(length + 1));
+  GxuFontStripEscapeCodes(m_text + m_highlightLeft, length, 0x500, buffer, length + 1);
+  OsClipboardPutString(buffer);
+}
+
+void CSimpleEditBox::PasteFromClipboard() {
+  char *string = OsClipboardGetString();
+  if (!string) {
+    return;
+  }
+
+  const char *position = string;
+  while (*position) {
+    int advance;
+    Insert(sgetu8(reinterpret_cast<const unsigned char *>(position), &advance));
+    position += advance;
+  }
+
+  OsClipboardFreeString(string);
+}
+
+void CSimpleEditBox::SetFont(const char *fontName, float fontHeight, unsigned int fontFlags) {
+  m_string->SetFont(fontName, fontHeight, fontFlags);
+
+  if (m_candidatesFrame) {
+    m_candidatesFrame->m_attrib.m_font = fontName;
+    m_candidatesFrame->m_attrib.m_fontHeight = fontHeight;
+    m_candidatesFrame->m_attrib.m_fontFlags = fontFlags;
+    m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT;
+  }
+
+  UpdateSizes(m_rect);
+}
+
+void CSimpleEditBox::CreateClauseHighlight() {
+  if (m_clauseHighlight) {
+    return;
+  }
+
+  m_clauseHighlight = NEW(CSimpleTexture)(this, 3, 1);
+  m_clauseHighlight->SetTexture(NTempest::CImVector(0xFF202010));
+  m_clauseHighlight->SetBlendMode(GxBlend_Add);
+  m_clauseHighlight->SetHeight(m_string->m_fontHeight);
+}
+
+void CSimpleEditBox::CreateCandidatesFrame() {
+  if (m_candidatesFrame) {
+    return;
+  }
+
+  CreateClauseHighlight();
+
+  float fontHeight = m_string->m_fontHeight;
+  m_candidatesFrame = NEW(CSimpleMessageFrame)(this);
+
+  const char *fontName = m_string->m_font ? TextBlockGetFontName(m_string->m_font) : 0;
+  unsigned int fontFlags = m_string->m_font ? TextBlockGetFontFlags(m_string->m_font) : 0;
+  m_candidatesFrame->m_attrib.m_font = fontName;
+  m_candidatesFrame->m_attrib.m_fontHeight = fontHeight;
+  m_candidatesFrame->m_attrib.m_fontFlags = fontFlags;
+  m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT;
+  m_candidatesFrame->SetWidth(fontHeight * 10.0f);
+  m_candidatesFrame->SetPoint(
+      FRAMEPOINT_BOTTOMLEFT,
+      m_clauseHighlight,
+      FRAMEPOINT_TOPLEFT,
+      0.0f,
+      0.0f,
+      1);
+  m_candidatesFrame->SetInsertMode(CSimpleMessageFrame::INSERT_AT_TOP);
+
+  CSimpleTexture *background = NEW(CSimpleTexture)(m_candidatesFrame, 0, 1);
+  background->SetTexture(NTempest::CImVector(0xFF606060));
+  background->SetAllPoints(m_candidatesFrame, 1);
+
+  m_candidatesHighlight = NEW(CSimpleTexture)(m_candidatesFrame, 2, 1);
+  m_candidatesHighlight->SetTexture(NTempest::CImVector(0xFF808080));
+}
+
+void CSimpleEditBox::ShowCandidates() {
+  if (m_candidatesFrame) {
+    m_candidatesFrame->Show();
+  }
+}
+
+void CSimpleEditBox::HideCandidates() {
+  if (m_candidatesFrame) {
+    m_candidatesFrame->Hide();
+  }
+}
+
+void CSimpleEditBox::UpdateLanguageIndicator() {
+}
+
+void CSimpleEditBox::UpdateClauseInfo() {
+  unsigned int clauseLeft;
+  unsigned int clauseRight;
+  unsigned int cursorPosition;
+
+  if (OsIMEGetClauseInfo(clauseLeft, clauseRight, cursorPosition)) {
+    CreateClauseHighlight();
+    m_clauseLeft = m_highlightLeft + GetNumToLen(m_highlightLeft, clauseLeft, false);
+    m_clauseRight = m_highlightLeft + GetNumToLen(m_highlightLeft, clauseRight, false);
+    m_cursorPos = m_highlightLeft + GetNumToLen(m_highlightLeft, cursorPosition, false);
+    m_dirtyFlags |= DIRTY_HIGHLIGHT | DIRTY_CURSOR;
+  }
+}
+
+int CSimpleEditBox::PopulateCandidates(unsigned long which) {
+  unsigned int pageSize;
+  unsigned int count;
+  unsigned int selection;
+  TSGrowableArray<OsIMECandidate> candidates;
+
+  if (!OsIMEGetCandidates(which, pageSize, count, selection, candidates)) {
+    return 0;
+  }
+
+  CreateCandidatesFrame();
+
+  float fontHeight = m_string->m_fontHeight;
+  m_candidatesFrame->Clear();
+  m_candidatesFrame->SetHeight((pageSize + 1) * fontHeight + fontHeight * 0.1f);
+
+  m_candidatesHighlight->ClearAllPoints(1);
+  unsigned int row = selection % pageSize;
+  m_candidatesHighlight->SetPoint(
+      FRAMEPOINT_TOPLEFT,
+      m_candidatesFrame,
+      FRAMEPOINT_TOPLEFT,
+      0.0f,
+      -row * fontHeight,
+      1);
+  m_candidatesHighlight->SetPoint(
+      FRAMEPOINT_BOTTOMRIGHT,
+      m_candidatesFrame,
+      FRAMEPOINT_TOPRIGHT,
+      0.0f,
+      -(row + 1) * fontHeight,
+      1);
+
+  NTempest::CImVector white(0xFFFFFFFF);
+  char candidate[1024];
+  SStrPrintf(candidate, sizeof(candidate), "> %d/%d", selection + 1, count);
+  m_candidatesFrame->AddMessage(candidate, white, 0.0f, 0);
+
+  for (unsigned int index = pageSize; index-- > 0;) {
+    if (candidates[index].candidate[0]) {
+      SStrPrintf(candidate, sizeof(candidate), "%d: %s", index + 1, candidates[index].candidate);
+    } else {
+      SStrCopy(candidate, " ", sizeof(candidate));
+    }
+    m_candidatesFrame->AddMessage(candidate, white, 0.0f, 0);
+  }
+
+  m_candidatesFrame->Resize(1);
+  return 1;
+}
+
+void CSimpleEditBox::DispatchAction(int action) {
+  if (m_actions[action].obj) {
+    CEvent event(m_actions[action].id, this);
+    m_actions[action].obj->OnEvent(event);
+  }
+}
+
+void CSimpleEditBox::UpdateVisibleHighlight() {
+  if (m_clauseHighlight) {
+    if (m_imeInputMode) {
+      UpdateHighlightArea(m_clauseHighlight, m_clauseLeft, m_clauseRight);
+    } else {
+      m_clauseHighlight->Hide();
+    }
+  }
+
+  int firstLine = GetOffsetToLine(m_highlightLeft);
+  int lastLine = GetOffsetToLine(m_highlightRight);
+  int numLines = lastLine - firstLine + 1;
+
+  if (firstLine == lastLine) {
+    UpdateHighlightArea(m_highlight[0], m_highlightLeft, m_highlightRight);
+    m_highlight[1]->Hide();
+    m_highlight[2]->Hide();
+  } else {
+    UpdateHighlightArea(m_highlight[0], m_highlightLeft, m_visibleLines[firstLine + 1]);
+
+    if (numLines == 2) {
+      m_highlight[1]->Hide();
+    } else {
+      m_highlight[1]->Show();
+    }
+
+    UpdateHighlightArea(m_highlight[2], m_visibleLines[lastLine], m_highlightRight);
+  }
+}
+
 void CSimpleEditBox::UpdateVisibleCursor() {
   if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen) {
     m_cursor->Hide();
     return;
   }
 
-  char *text = m_password && m_textHidden ? m_textHidden : m_text;
-  float offset_x = 0.0f;
+  unsigned int line = 0;
+  unsigned int lastLine = m_visibleLines.Count() - 2;
+  float fontHeight = m_string->m_spacing + m_string->m_fontHeight;
+  float offsetY = 0.0f;
 
-  if (m_cursorPos != m_visiblePos) {
-    offset_x = m_string->GetTextWidth(text + m_visiblePos, m_cursorPos - m_visiblePos);
+  while (m_cursorPos >= static_cast<int>(m_visibleLines[line + 1]) && line < lastLine) {
+    ++line;
+    offsetY -= fontHeight;
   }
 
-  m_cursor->SetPoint(FRAMEPOINT_LEFT, m_string, FRAMEPOINT_LEFT, offset_x, 0.0f, 0);
+  float offsetX;
+  if (m_cursorPos == static_cast<int>(m_visibleLines[line])) {
+    offsetX = 0.0f;
+  } else {
+    const char *text = m_password ? m_textHidden : m_text;
+    offsetX = m_string->GetTextWidth(
+        text + m_visibleLines[line],
+        m_cursorPos - m_visibleLines[line]);
+  }
+
+  FRAMEPOINT point = m_multiline ? FRAMEPOINT_TOPLEFT : FRAMEPOINT_LEFT;
+  m_cursor->SetPoint(point, m_string, point, offsetX, offsetY, 0);
   m_cursor->Resize(1);
   m_blinkElapsedTime = 0.0f;
 
   if (s_currentFocus == this) {
     m_cursor->Show();
+  }
+}
+
+void CSimpleEditBox::UpdateHighlightArea(CSimpleRegion *area, int left, int right) {
+  if (m_multiline) {
+    ASSERT(!m_password);
+  }
+
+  const char *text = m_password ? m_textHidden : m_text;
+  unsigned int line = 0;
+  unsigned int lastLine = m_visibleLines.Count() - 2;
+  float fontHeight = m_string->m_spacing + m_string->m_fontHeight;
+  float offsetY = 0.0f;
+
+  while (left >= static_cast<int>(m_visibleLines[line + 1]) && line < lastLine) {
+    ++line;
+    offsetY -= fontHeight;
+  }
+
+  int minPosition = left;
+  if (minPosition < static_cast<int>(m_visibleLines[line])) {
+    minPosition = m_visibleLines[line];
+  }
+
+  int maxPosition = right;
+  if (maxPosition >= static_cast<int>(m_visibleLines[line + 1])) {
+    maxPosition = m_visibleLines[line + 1];
+  }
+
+  float offsetX;
+  if (minPosition == static_cast<int>(m_visibleLines[line])) {
+    offsetX = 0.0f;
+  } else {
+    offsetX = m_string->GetTextWidth(
+        text + m_visibleLines[line],
+        minPosition - m_visibleLines[line]);
+  }
+
+  float width;
+  if (maxPosition == static_cast<int>(m_visibleLines[line + 1])) {
+    width = m_string->GetStringWidth() - offsetX;
+  } else {
+    width = m_string->GetTextWidth(text + minPosition, maxPosition - minPosition);
+  }
+
+  FRAMEPOINT point = m_multiline ? FRAMEPOINT_TOPLEFT : FRAMEPOINT_LEFT;
+  area->SetPoint(point, m_string, point, offsetX, offsetY, 0);
+  area->SetWidth(width);
+  area->Resize(1);
+
+  if (minPosition < maxPosition && fabs(width) >= 0.00000023841858f) {
+    area->Show();
+  } else {
+    area->Hide();
   }
 }
 

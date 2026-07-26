@@ -324,7 +324,7 @@ void __fastcall FrameXML_StoreHashNode(const XMLNode *node, const char *name, CS
   }
 
   if (s_hashedNodes.Ptr(name)) {
-    status->Add(STATUS_WARNING, "Virtual object named %s already exists", name);
+    status->Add(STATUS_WARNING, "Virtual object named %s already exists");
     return;
   }
 

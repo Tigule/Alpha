@@ -537,7 +537,7 @@ void CGObject_C::HideHighlightType(HIGHLIGHTTYPE type) {
 
   m_highlightTypes &= ~(1 << type);
   if (!m_highlightTypes) {
-    ModelSetEmissiveColor(m_model, NTempest::CImVector(0), 1);
+    ModelSetEmissiveColor(m_model, NTempest::CImVector(0ul), 1);
   }
 }
 

@@ -16,10 +16,18 @@ class CStatus {
 
   CStatus() {
   }
-  CStatus(const CStatus &source);
+  CStatus(const CStatus &source) {
+    Add(source);
+  }
   virtual ~CStatus();
 
-  CStatus &operator=(const CStatus &source);
+  CStatus &operator=(const CStatus &source) {
+    if (this != &source) {
+      Clear();
+      Add(source);
+    }
+    return *this;
+  }
 
   virtual void Display() const;
   virtual void Add(STATUS_TYPE severity, const char *format, ...);

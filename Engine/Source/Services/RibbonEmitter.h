@@ -30,6 +30,10 @@ class CRibbonEmitter {
   CRibbonEmitter();
   CRibbonEmitter(const CRibbonEmitter &rhs);
   ~CRibbonEmitter();
+  const CRibbonEmitter &operator=(const CRibbonEmitter &rhs);
+  CRibbonEmitter       *Clone() {
+    return NEW(CRibbonEmitter)(*this);
+  }
 
   CRibbonEmitter *AddRef();
   void            DecRef();
@@ -50,6 +54,11 @@ class CRibbonEmitter {
   void         SetBelow(float below);
   void         SetGravity(float gravity);
   void         SetPos(const NTempest::C44Matrix &orient, const NTempest::C3Vector &cameraPosition);
+  void         SetMats(
+      const TSGrowableArray<CRibbonMat>   &materials,
+      const TSGrowableArray<HTEXTURE>     &textures,
+      const TSGrowableArray<unsigned int> &replaces
+  );
   void         SetColor(float r, float g, float b);
   void         SetAlpha(float a);
   void         SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, int suppressNewEdges);
@@ -66,6 +75,7 @@ class CRibbonEmitter {
   void InterpEdge(float age, float t, unsigned int advance);
   void Advance(unsigned int &pos, unsigned int amount);
   void CloseTextureHandles();
+  void BuildMaterialStack();
 
  private:
   void PrivCopy(const CRibbonEmitter &rhs);

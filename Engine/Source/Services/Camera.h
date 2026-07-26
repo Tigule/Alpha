@@ -12,7 +12,14 @@ DECLARE_DERIVED_HANDLE(HCAMERA, HDATAMGR);
 
 class CAngle : public TManaged<float> {
  public:
+  CAngle();
   CAngle(float angle);
+  float Cos() const {
+    return m_cos;
+  }
+  float Sin() const {
+    return m_sin;
+  }
 
   friend HCAMERA __fastcall CameraDuplicate(HCAMERA source);
 
@@ -23,6 +30,7 @@ class CAngle : public TManaged<float> {
   virtual void Set_(const float &angle);
 
  private:
+  void Calc();
   float ClampTo2Pi(float angle);
 };
 

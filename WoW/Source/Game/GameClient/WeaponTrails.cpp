@@ -244,7 +244,7 @@ static int __fastcall DiscontinueTimerHandler(const void *data, void *userArg) {
 }
 
 WTOBJECT::WTOBJECT()
-    : m_model(0), m_geosetID(-1), m_bottomCoord(0.0f), m_topCoord(0.0f), m_color(0), m_fadeOutRate(-1), m_flags(0), m_timer(0), m_currentAlpha(0) {
+    : m_model(0), m_geosetID(-1), m_bottomCoord(0.0f), m_topCoord(0.0f), m_color(0ul), m_fadeOutRate(-1), m_flags(0), m_timer(0), m_currentAlpha(0) {
 }
 
 void WTOBJECT::RenderVerts(const NTempest::C3Vector &cameraPos) {

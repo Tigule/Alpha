@@ -1,8 +1,34 @@
 #include "Model/ModelInternal.h"
 
+#include "MDLFile/MDLTypes.h"
 #include "Services/Camera.h"
 
+#include <string.h>
+
 unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+
+int __fastcall MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
+  ASSERT(cameras);
+
+  cameras->SetCount(data.cameras.Count());
+  memset(cameras->Ptr(), 0, cameras->Count() * sizeof(HCAMERA));
+
+  for (unsigned int i = 0; i < data.cameras.Count(); ++i) {
+    const MDLCAMERASECTION &source = data.cameras[i];
+    HCAMERA                 camera = CameraCreate();
+
+    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 4, source.fieldOfView);
+    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 2, source.farClip);
+    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 3, source.nearClip);
+    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 5, 0.0f);
+    DataMgrSetCoord(reinterpret_cast<HDATAMGR>(camera), 7, source.pivot, 0);
+    DataMgrSetCoord(reinterpret_cast<HDATAMGR>(camera), 8, source.target.pivot, 0);
+
+    (*cameras)[i] = camera;
+  }
+
+  return 1;
+}
 
 void __fastcall MdxReadCameras(unsigned char *data, unsigned int fileBytes, TSFixedArray<HCAMERA> *cameras) {
   ASSERT(data);

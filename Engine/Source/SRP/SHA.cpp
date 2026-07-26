@@ -2,14 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "SHA.h"
+
 typedef unsigned char BYTE;
 typedef unsigned int  DWORD;
-
-typedef struct SHA1_CONTEXT {
-  unsigned int  state[5];
-  unsigned int  count[2];
-  unsigned char buffer[64];
-} SHA1_CONTEXT;
 
 static const BYTE s_sha1Padding = 0x80;
 static BYTE       s_sha1Zero;

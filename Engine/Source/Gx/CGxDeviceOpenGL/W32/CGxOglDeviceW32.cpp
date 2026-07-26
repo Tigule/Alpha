@@ -399,7 +399,7 @@ unsigned long CGxDeviceOpenGl::DeviceWindow() {
 }
 
 static int __fastcall IsGlDisplayModeGood(const DEVMODEA &dm) {
-  return dm.dmPelsWidth >= 640 && dm.dmPelsHeight >= 480 && dm.dmBitsPerPel >= 16 && dm.dmDisplayFrequency >= 60;
+  return (dm.dmBitsPerPel == 16 || dm.dmBitsPerPel == 32) && dm.dmPelsWidth >= 640 && dm.dmPelsHeight >= 480;
 }
 
 int __fastcall CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {

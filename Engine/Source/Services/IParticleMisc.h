@@ -49,8 +49,10 @@ class ParticleSystemManager {
   CPlaneParticleEmitter  *CreateQuadEmitter();
   CSphereParticleEmitter *CreateSphereEmitter();
   CSplineParticleEmitter *CreateSplineEmitter();
+  CParticleEmitter       *CreateModelEmitter();
   CParticleEmitter2      *DuplicateEmitter(const CParticleEmitter2 *emitter, int deep);
   void                    UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  void                    DeleteModelEmitter(CParticleEmitter *emitter);
   void                    DeleteEmitter2(CParticleEmitter2 *emitter);
   void                    RenderEmitters();
 
@@ -72,6 +74,7 @@ class ParticleSystemManager {
  private:
   friend class CWorld;
 
+  static void __fastcall RenderParticleEmitter(void *param1, int param2);
   static void __fastcall RenderParticleEmitter2(void *param1, int param2);
 
   static ParticleSystemManager *manager;

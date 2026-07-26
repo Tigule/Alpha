@@ -29,6 +29,14 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
   static void __fastcall UnregisterScriptMethods();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
+  void SetTextAttributes(const CSimpleFontStringAttributes &attrib, HTML_TEXT_TYPE textType) {
+    ASSERT(textType >= HTML_TEXT_NORMAL && textType < NUM_HTML_TEXT_TYPES);
+    m_attrib[textType] = attrib;
+  }
+  const CSimpleFontStringAttributes &GetTextAttributes(HTML_TEXT_TYPE textType) const {
+    ASSERT(textType >= HTML_TEXT_NORMAL && textType < NUM_HTML_TEXT_TYPES);
+    return m_attrib[textType];
+  }
   bool         SetText(const char *text, CStatus *status);
 
  protected:

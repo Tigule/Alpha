@@ -25,14 +25,29 @@ class CSimpleEditBox : public CSimpleFrame {
   virtual void OnLayerShow();
   virtual void OnLayerHide();
   virtual void OnLayerUpdate(float elapsedSec);
+  virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
   virtual int  OnLayerChar(CCharEvent &evt);
+  virtual int  OnLayerIme(CImeEvent &evt);
   virtual int  OnLayerKeyDown(CKeyEvent &evt);
+  virtual int  OnLayerKeyDownRepeat(CKeyEvent &evt);
+  virtual int  OnLayerKeyUp(CKeyEvent &evt);
   virtual int  OnLayerMouseDown(CMouseEvent &evt);
+  virtual int  OnLayerMouseUp(CMouseEvent &evt);
 
   void        SetMultiLine(int enabled);
   void        SetAutoFocus(int enabled);
   void        SetEditTextInsets(float right, float left, float top, float bottom);
+  void SetPassword(int enabled) {
+    m_password = enabled;
+    m_dirtyFlags |= DIRTY_TEXT | DIRTY_HIGHLIGHT | DIRTY_CURSOR;
+  }
+  void SetTextSizeLimit(int size) {
+    m_textLengthMax = size;
+  }
+  void SetTextLetterLimit(int letters) {
+    m_textLettersMax = letters;
+  }
   void        SetText(const char *text);
   const char *GetText() {
     return m_text;
@@ -41,6 +56,8 @@ class CSimpleEditBox : public CSimpleFrame {
   void Insert(unsigned int utf16);
   void SetHistoryLines(int numLines);
   void AddHistoryLine(const char *line);
+  void HighlightText();
+  void SetFont(const char *fontName, float fontHeight, unsigned int fontFlags);
 
   void SetTextColor(const NTempest::CImVector &color) {
     m_string->SetVertexColor(color);
@@ -50,10 +67,68 @@ class CSimpleEditBox : public CSimpleFrame {
     m_cursor->SetTexture(color);
   }
 
+  void SetHighlightColor(const NTempest::CImVector &color) {
+    for (unsigned int i = 0; i < 3; ++i) {
+      m_highlight[i]->SetTexture(color);
+    }
+  }
+
+  void AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
+    m_string->AddShadow(color, offset);
+  }
+
+  void SetCursorPosition(int position) {
+    if (position < 0) {
+      position = 0;
+    } else if (position > m_textLength) {
+      position = m_textLength;
+    }
+    m_cursorPos = position;
+    m_dirtyFlags |= DIRTY_CURSOR;
+  }
+
+  void SetCursorBlinkSpeed(float speed) {
+    m_cursorBlinkSpeed = speed;
+  }
+
+  void HideCursor() {
+    m_cursor->Hide();
+  }
+
+  void RegisterEnter(unsigned int id, CObserver *observer) {
+    RegisterAction(EVENT_ENTER, id, observer);
+  }
+
+  void RegisterEscape(unsigned int id, CObserver *observer) {
+    RegisterAction(EVENT_ESCAPE, id, observer);
+  }
+
+  void RegisterSpace(unsigned int id, CObserver *observer) {
+    RegisterAction(EVENT_SPACE, id, observer);
+  }
+
+  void RegisterTab(unsigned int id, CObserver *observer) {
+    RegisterAction(EVENT_TAB, id, observer);
+  }
+
+  void RegisterTextChanged(unsigned int id, CObserver *observer) {
+    RegisterAction(EVENT_CHANGED, id, observer);
+  }
+
+  void RegisterTextSet(unsigned int id, CObserver *observer) {
+    RegisterAction(EVENT_SET, id, observer);
+  }
+
   void SetOnEnterPressedScript(const char *source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnEnterPressed", GetName());
     SetEventScript(m_onEnterPressed, source, description);
+  }
+
+  void RunOnEnterPressedScript() {
+    if (m_onEnterPressed) {
+      FrameScript_Execute(m_onEnterPressed, this);
+    }
   }
 
   void SetOnEscapePressedScript(const char *source) {
@@ -62,10 +137,22 @@ class CSimpleEditBox : public CSimpleFrame {
     SetEventScript(m_onEscapePressed, source, description);
   }
 
+  void RunOnEscapePressedScript() {
+    if (m_onEscapePressed) {
+      FrameScript_Execute(m_onEscapePressed, this);
+    }
+  }
+
   void SetOnSpacePressedScript(const char *source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnSpacePressed", GetName());
     SetEventScript(m_onSpacePressed, source, description);
+  }
+
+  void RunOnSpacePressedScript() {
+    if (m_onSpacePressed) {
+      FrameScript_Execute(m_onSpacePressed, this);
+    }
   }
 
   void SetOnTabPressedScript(const char *source) {
@@ -74,16 +161,34 @@ class CSimpleEditBox : public CSimpleFrame {
     SetEventScript(m_onTabPressed, source, description);
   }
 
+  void RunOnTabPressedScript() {
+    if (m_onTabPressed) {
+      FrameScript_Execute(m_onTabPressed, this);
+    }
+  }
+
   void SetOnTextChangedScript(const char *source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnTextChanged", GetName());
     SetEventScript(m_onTextChanged, source, description);
   }
 
+  void RunOnTextChangedScript() {
+    if (m_onTextChanged) {
+      FrameScript_Execute(m_onTextChanged, this);
+    }
+  }
+
   void SetOnTextSetScript(const char *source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnTextSet", GetName());
     SetEventScript(m_onTextSet, source, description);
+  }
+
+  void RunOnTextSetScript() {
+    if (m_onTextSet) {
+      FrameScript_Execute(m_onTextSet, this);
+    }
   }
 
  protected:
@@ -96,10 +201,61 @@ class CSimpleEditBox : public CSimpleFrame {
   int  GetLenToNum(int offset, int amount);
   int  NextCharOffset(int offset);
   int  PrevCharOffset(int offset);
+  int  GetOffsetToLine(int offset);
   void GrowText(int size);
   void Delete(int amount);
+  void DeleteForward();
+  void DeleteForwardWord();
+  void DeleteBackward();
+  void DeleteBackwardWord();
+  void DeleteToStart();
+  void DeleteToEnd();
+  void DeleteText();
   void DeleteSubstring(int left, int right);
+  void Move(int distance, int highlight);
+  void MoveForward(int highlight);
+  void MoveForwardWord(int highlight);
+  void MoveBackward(int highlight);
+  void MoveBackwardWord(int highlight);
+  void MoveToStart(int highlight);
+  void MoveToEnd(int highlight);
+  void MoveLine(int distance, int highlight);
+  void MoveForwardLine(int highlight);
+  void MoveBackwardLine(int highlight);
+  int IsHighlighted() {
+    return m_highlightLeft != m_highlightRight;
+  }
+  void StartHighlight();
+  void ExtendHighlight(int distance);
+  void ClearHighlight() {
+    if (m_highlightLeft != m_highlightRight) {
+      m_highlightLeft = 0;
+      m_highlightRight = 0;
+      m_dirtyFlags |= DIRTY_HIGHLIGHT;
+    }
+  }
   void DeleteHighlight();
+  void ForwardHistory();
+  void BackwardHistory();
+  int  ConvertCoordinateToIndex(float x, float y, int &index);
+  void MakeTextVisible(int position, float extentLeft, float extentRight);
+  void UpdateVisibleText();
+  void UpdateVisibleHighlight();
+  void UpdateHighlightArea(CSimpleRegion *region, int left, int right);
+  void CopyToClipboard();
+  void PasteFromClipboard();
+  void ShowCandidates();
+  void HideCandidates();
+  void CreateClauseHighlight();
+  void CreateCandidatesFrame();
+  void UpdateLanguageIndicator();
+  void UpdateClauseInfo();
+  int  PopulateCandidates(unsigned long selection);
+  void DispatchAction(int action);
+  void RegisterAction(int action, unsigned int id, CObserver *observer) {
+    m_actions[action].id = id;
+    m_actions[action].obj = observer;
+  }
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
   static CSimpleEditBox                                      *s_currentFocus;

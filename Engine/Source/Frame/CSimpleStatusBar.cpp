@@ -129,9 +129,28 @@ void CSimpleStatusBar::SetValue(float value) {
     m_changed = 1;
     m_valueSet = 1;
 
-    if (m_onValueChanged) {
-      FrameScript_Execute(m_onValueChanged, this, "%f", value);
-    }
+    RunOnValueChangedScript();
+  }
+}
+
+float CSimpleStatusBar::GetAnimValue() const {
+  float range = m_maxValue - m_minValue;
+  if (range <= 0.0f) {
+    return 0.0f;
+  }
+  return (m_value - m_minValue) / range;
+}
+
+void CSimpleStatusBar::OnLayerUpdate(float elapsedSec) {
+  CSimpleFrame::OnLayerUpdate(elapsedSec);
+
+  if (m_changed && m_barTexture && m_rangeSet && m_valueSet) {
+    NTempest::CRect texRect;
+    memset(&texRect, 0, sizeof(texRect));
+    texRect.r = GetAnimValue();
+    texRect.b = 1.0f;
+    m_barTexture->SetTexCoord(texRect);
+    m_changed = 0;
   }
 }
 

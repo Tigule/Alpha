@@ -122,3 +122,4 @@ void __fastcall AnimSetObjectOrdering(HANIM anim, const char **boneNames, unsign
 void __fastcall AnimSetSequenceOrderingDefault(HANIM anim);
 void __fastcall AnimSetSequenceOrdering(HANIM anim, const char **sequenceNames, unsigned int numSequences);
 void __fastcall AnimSetCameraOrdering(HANIM anim, const char **cameraNames, unsigned int numCameras, TSFixedArray<unsigned int> *cameraOrder);
+void __fastcall AnimResetCameraOrdering(HANIM anim, TSFixedArray<unsigned int> *cameraOrder);

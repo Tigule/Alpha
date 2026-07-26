@@ -105,6 +105,7 @@ void __fastcall GxuFontShutdown() {
   s_unusedBatches.Clear();
   g_freeStrings.Clear();
   g_freeTextLineTextures.Clear();
+  g_freeTextLines.Clear();
 
   if (s_FTLibrary) {
     FT_Done_Library(s_FTLibrary);

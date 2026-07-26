@@ -55,6 +55,18 @@ class CSimpleSlider : public CSimpleFrame {
   static void __fastcall RegisterScriptMethods();
   static void __fastcall UnregisterScriptMethods();
 
+  void SetOnValueChangedScript(const char *source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnValueChanged", GetName());
+    SetEventScript(m_onValueChanged, source, description);
+  }
+
+  void RunOnValueChangedScript() {
+    if (m_onValueChanged) {
+      FrameScript_Execute(m_onValueChanged, this, "%f", m_value);
+    }
+  }
+
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);
   virtual void OnLayerUpdate(float elapsedSec);
@@ -62,6 +74,23 @@ class CSimpleSlider : public CSimpleFrame {
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
   virtual int  OnLayerMouseDown(CMouseEvent &evt);
   virtual int  OnLayerMouseUp(CMouseEvent &evt);
+  float StepValue(float value) {
+    if (m_valueStep != 0.0f) {
+      float delta = value - m_baseValue;
+      float halfStep = m_valueStep * 0.5f;
+      int steps;
+
+      if (delta > 0.0f) {
+        steps = static_cast<int>((delta + halfStep) / m_valueStep);
+      } else {
+        steps = static_cast<int>((delta - halfStep) / m_valueStep);
+      }
+
+      value = steps * m_valueStep + m_baseValue;
+    }
+
+    return value;
+  }
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 

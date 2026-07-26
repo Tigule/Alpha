@@ -86,7 +86,7 @@ CGxLight::CGxLight() {
   m_dir = NTempest::C3Vector(0.0f, 0.0f, 1.0f);
   m_ambColor = NTempest::CImVector(0xFF000000);
   m_dirColor = NTempest::CImVector(0xFFFFFFFF);
-  m_specColor = NTempest::CImVector(0x00000000);
+  m_specColor = NTempest::CImVector(0x00000000ul);
   m_ambIntensity = 1.0f;
   m_dirIntensity = 1.0f;
   m_specIntensity = 0.0f;
@@ -1129,7 +1129,7 @@ void CGxDevice::RsInit() {
   RsSet(GxRs_MatEmissive, 0.0f);
   RsSet(GxRs_MatSpecular, 0.0f);
   RsSet(GxRs_NormalizeNormals, 0);
-  RsSet(GxRs_SceneAmbient, NTempest::CImVector(0));
+  RsSet(GxRs_SceneAmbient, NTempest::CImVector(0ul));
   RsSet(GxRs_Blend, 0);
   RsSet(GxRs_FogStyle, 0);
   RsSet(GxRs_FogStart, 0.0f);

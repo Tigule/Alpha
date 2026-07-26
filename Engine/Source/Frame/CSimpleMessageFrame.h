@@ -44,6 +44,8 @@ class CSimpleMessageFrameLine {
 };
 
 class CSimpleMessageFrame : public CSimpleFrame {
+  friend class CSimpleEditBox;
+
  public:
   enum SimpleMessageFrameInsertMode {
     INSERT_AT_TOP = 0,
@@ -64,6 +66,9 @@ class CSimpleMessageFrame : public CSimpleFrame {
   void SetMessageFrameInsets(float right, float left, float top, float bottom);
   void SetTextLength(int size);
   void SetInsertMode(SimpleMessageFrameInsertMode mode);
+  void SetFadeDuration(float duration) {
+    m_fadeDuration = duration;
+  }
   void Clear();
   void ClearPending();
 

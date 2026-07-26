@@ -361,7 +361,7 @@ void CMapChunk::RenderLayers() {
 
   if (CMap::EnableSpecularTerrain()) {
     GxRsSet(GxRs_PixelShader, static_cast<void *>(0));
-    GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0));
+    GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0ul));
     GxRsSet(GxRs_MatSpecularExp, 0.0f);
   } else if (CMap::EnableTerrainShader()) {
     GxRsSet(GxRs_PixelShader, static_cast<void *>(0));
@@ -487,7 +487,7 @@ void CMapChunk::RenderLayersDyn() {
 
   if (CMap::EnableSpecularTerrain()) {
     GxRsSet(GxRs_PixelShader, static_cast<void *>(0));
-    GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0));
+    GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0ul));
     GxRsSet(GxRs_MatSpecularExp, 0.0f);
   } else if (CMap::EnableTerrainShader()) {
     GxRsSet(GxRs_PixelShader, static_cast<void *>(0));

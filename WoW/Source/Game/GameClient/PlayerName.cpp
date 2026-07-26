@@ -76,7 +76,7 @@ static unsigned int                      s_lastRenderFrame;
 PLAYERNAMEDESC::PLAYERNAMEDESC()
     : m_string(0),
       m_customGeosetID(static_cast<unsigned int>(-1)),
-      m_stringColor(0),
+      m_stringColor(0ul),
       m_lastUpdateTime(OsGetAsyncTimeMs()),
       m_basePos(0.0f),
       m_unitPtr(0),

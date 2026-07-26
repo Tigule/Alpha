@@ -7,6 +7,7 @@
 #include "Services/RibbonEmitter.h"
 #include "Services/Texture.h"
 #include "Tempest/cpriorityq.h"
+#include "Tempest/c4quaternion.h"
 
 #include <math.h>
 #include <stddef.h>
@@ -96,6 +97,79 @@ static int IModelTestRay(
     const NTempest::C3Vector      &rayEnd,
     float                         *distance,
     int                            testLinkedModels
+);
+static void __fastcall SetVertexMatrixIndices(CGeosetShared *geoShared, const TSGrowableArray<unsigned int> &groupVertexCounts);
+static void __fastcall BuildComplexGeoset(
+    const TSGrowableArray<NTempest::C3Vector> &position,
+    const TSGrowableArray<NTempest::C3Vector> &normal,
+    const TSGrowableArray<NTempest::C2Vector> &texCoord,
+    const TSGrowableArray<unsigned short> &primitiveVertices,
+    const TSGrowableArray<unsigned int> &groupVertex,
+    const TSGrowableArray<unsigned int> &groupCounts,
+    const TSGrowableArray<unsigned int> &matrices,
+    const TSGrowableArray<CPrimitive> &primitives,
+    unsigned int materialId,
+    unsigned int geosetId,
+    CGeosetShared *geoShared
+);
+static void __fastcall IModelGeosetAdd(
+    CModelComplex *modelptr,
+    CModelShared *shared,
+    const TSGrowableArray<NTempest::C3Vector> &position,
+    const TSGrowableArray<NTempest::C3Vector> &normal,
+    const TSGrowableArray<NTempest::C2Vector> &texCoord,
+    const TSGrowableArray<unsigned short> &primitiveVertices,
+    const TSGrowableArray<unsigned int> &groupVertex,
+    const TSGrowableArray<unsigned int> &groupCounts,
+    const TSGrowableArray<unsigned int> &matrices,
+    const TSGrowableArray<CPrimitive> &primitives,
+    HTEXTURE texture,
+    EGxBlend blendMode,
+    unsigned int disables,
+    NTempest::CImVector color
+);
+static void __fastcall IModelHandleGeosetAdd(
+    CModel *model,
+    const TSGrowableArray<NTempest::C3Vector> &position,
+    const TSGrowableArray<NTempest::C3Vector> &normal,
+    const TSGrowableArray<NTempest::C2Vector> &texCoord,
+    const TSGrowableArray<unsigned short> &primitiveVertices,
+    const TSGrowableArray<unsigned int> &groupVertex,
+    const TSGrowableArray<unsigned int> &groupCounts,
+    const TSGrowableArray<unsigned int> &matrices,
+    const TSGrowableArray<CPrimitive> &primitives,
+    HTEXTURE texture,
+    EGxBlend blendMode,
+    unsigned int disables,
+    NTempest::CImVector color
+);
+static void CreatePlanarQuadGeometry(
+    const NTempest::C3Vector &base,
+    float length,
+    float width,
+    TSGrowableArray<NTempest::C3Vector> *positions,
+    TSGrowableArray<NTempest::C3Vector> *normals,
+    TSGrowableArray<NTempest::C2Vector> *texCoords,
+    TSGrowableArray<unsigned short> *vertIndices,
+    TSGrowableArray<CPrimitive> *primitives
+);
+static int CreateCylinderGeometry(
+    const NTempest::C3Vector &base,
+    const NTempest::C3Vector &height,
+    float radius,
+    TSGrowableArray<NTempest::C3Vector> *vertices,
+    TSGrowableArray<NTempest::C3Vector> *normals,
+    TSGrowableArray<NTempest::C2Vector> *texCoords,
+    TSGrowableArray<unsigned short> *vertIndices,
+    TSGrowableArray<CPrimitive> *primitives
+);
+static void GenerateCylinderVerts(
+    const NTempest::C3Vector &base,
+    const NTempest::C3Vector &height,
+    float radius,
+    unsigned int segments,
+    TSGrowableArray<NTempest::C3Vector> *vertices,
+    TSGrowableArray<NTempest::C3Vector> *normals
 );
 
 struct COpaqueLayer {
@@ -476,7 +550,7 @@ static void __fastcall AddEmitters2ToScene(CModel *modelptr, CModelShared *share
     center = shared->positions[shared->emitter2Order[index]] * modelptr->data->m_modelToWorld;
     EnqueueSimpleObject(
         modelptr, static_cast<CModelComplex *>(modelptr->data)->m_emitters2[index], SORTOBJ_EMITTER2, center,
-        static_cast<CModelComplex *>(modelptr->data)->m_emitters2[index]->m_priorityPlane
+        static_cast<CModelComplex *>(modelptr->data)->m_emitters2[index]->PriorityPlane()
     );
   }
 }
@@ -2134,7 +2208,7 @@ int __fastcall ModelTestSphere(HMODEL model, NTempest::C34Matrix &orientation, f
   bounds.c *= scale;
   bounds.c *= orientation;
   bounds.r *= scale;
-  if (GxuTestSphereAndFrustumPlanes(bounds.c, bounds.r, s_frustumPlanes, 6)) {
+  if (GxuTestSphereAndFrustumPlanes(bounds.c, bounds.r, s_frustumPlanes)) {
     return 1;
   }
 
@@ -2395,6 +2469,296 @@ static int IModelTestCollisionVolumes(CModelComplex* modelptr, CModelShared* sha
   return hitVolume;
 }
 
+static void CreatePlanarQuadGeometry(
+    const NTempest::C3Vector &base,
+    float length,
+    float width,
+    TSGrowableArray<NTempest::C3Vector> *positions,
+    TSGrowableArray<NTempest::C3Vector> *normals,
+    TSGrowableArray<NTempest::C2Vector> *texCoords,
+    TSGrowableArray<unsigned short> *vertIndices,
+    TSGrowableArray<CPrimitive> *primitives
+) {
+  unsigned int vertexOffset = positions->Count();
+  unsigned int indexOffset = vertIndices->Count();
+
+  texCoords->SetCount(texCoords->Count() + 4);
+  vertIndices->SetCount(indexOffset + 6);
+  (*vertIndices)[indexOffset + 0] = static_cast<unsigned short>(vertexOffset);
+  (*vertIndices)[indexOffset + 1] = static_cast<unsigned short>(vertexOffset + 2);
+  (*vertIndices)[indexOffset + 2] = static_cast<unsigned short>(vertexOffset + 1);
+  (*vertIndices)[indexOffset + 3] = static_cast<unsigned short>(vertexOffset + 1);
+  (*vertIndices)[indexOffset + 4] = static_cast<unsigned short>(vertexOffset + 2);
+  (*vertIndices)[indexOffset + 5] = static_cast<unsigned short>(vertexOffset + 3);
+
+  positions->SetCount(vertexOffset + 4);
+  float halfLength = length * 0.5f;
+  float halfWidth = width * 0.5f;
+  (*positions)[vertexOffset + 0].Set(base.x - halfLength, base.y - halfWidth, base.z);
+  (*positions)[vertexOffset + 1].Set(base.x - halfLength, base.y + halfWidth, base.z);
+  (*positions)[vertexOffset + 2].Set(base.x + halfLength, base.y - halfWidth, base.z);
+  (*positions)[vertexOffset + 3].Set(base.x + halfLength, base.y + halfWidth, base.z);
+
+  unsigned int normalOffset = normals->Count();
+  normals->SetCount(normalOffset + 4);
+  for (unsigned int i = normalOffset; i < normals->Count(); ++i) {
+    (*normals)[i].Set(0.0f, 0.0f, 1.0f);
+  }
+
+  CPrimitive *primitive = primitives->New();
+  primitive->type = GxPrim_Triangles;
+  primitive->vertexCount = 6;
+}
+
+static void GenerateCylinderVerts(
+    const NTempest::C3Vector &base,
+    const NTempest::C3Vector &height,
+    float radius,
+    unsigned int segments,
+    TSGrowableArray<NTempest::C3Vector> *vertices,
+    TSGrowableArray<NTempest::C3Vector> *normals
+) {
+  unsigned int offset = vertices->Count();
+  unsigned int count = offset + 4 * segments + 2;
+  vertices->SetCount(count);
+  normals->SetCount(count);
+
+  NTempest::C3Vector topNormal = height - base;
+  topNormal.Normalize();
+  NTempest::C3Vector bottomNormal = -topNormal;
+  NTempest::C3Vector perp(
+      topNormal.y - topNormal.z,
+      topNormal.z - topNormal.x,
+      topNormal.x - topNormal.y
+  );
+  perp.Normalize();
+  perp *= radius;
+
+  unsigned int vertex = offset;
+  (*vertices)[vertex] = height;
+  (*normals)[vertex++] = topNormal;
+
+  unsigned int i;
+  for (i = 0; i < segments; ++i) {
+    float angle = static_cast<float>(i) * TWO_PI / static_cast<float>(segments);
+    NTempest::C4Quaternion rotation(angle, topNormal);
+    NTempest::C3Vector rot = rotation * perp;
+    (*vertices)[vertex] = rot + height;
+    (*normals)[vertex++] = topNormal;
+  }
+
+  (*vertices)[vertex] = base;
+  (*normals)[vertex++] = bottomNormal;
+
+  for (i = 0; i < segments; ++i) {
+    float angle = static_cast<float>(i) * TWO_PI / static_cast<float>(segments);
+    NTempest::C4Quaternion rotation(angle, topNormal);
+    NTempest::C3Vector rot = rotation * perp;
+    (*vertices)[vertex] = rot + base;
+    (*normals)[vertex++] = bottomNormal;
+  }
+
+  for (i = 0; i < segments; ++i) {
+    float angle = static_cast<float>(i) * TWO_PI / static_cast<float>(segments);
+    NTempest::C4Quaternion rotation(angle, topNormal);
+    NTempest::C3Vector rot = rotation * perp;
+    NTempest::C3Vector normal = rot;
+    normal.Normalize();
+    (*vertices)[vertex] = rot + height;
+    (*normals)[vertex++] = normal;
+  }
+
+  for (i = 0; i < segments; ++i) {
+    float angle = static_cast<float>(i) * TWO_PI / static_cast<float>(segments);
+    NTempest::C4Quaternion rotation(angle, topNormal);
+    NTempest::C3Vector rot = rotation * perp;
+    NTempest::C3Vector normal = rot;
+    normal.Normalize();
+    (*vertices)[vertex] = rot + base;
+    (*normals)[vertex++] = normal;
+  }
+}
+
+static int CreateCylinderGeometry(
+    const NTempest::C3Vector &base,
+    const NTempest::C3Vector &height,
+    float radius,
+    TSGrowableArray<NTempest::C3Vector> *vertices,
+    TSGrowableArray<NTempest::C3Vector> *normals,
+    TSGrowableArray<NTempest::C2Vector> *texCoords,
+    TSGrowableArray<unsigned short> *vertIndices,
+    TSGrowableArray<CPrimitive> *primitives
+) {
+  const unsigned int segments = 16;
+  unsigned int vertexOffset = vertices->Count();
+  unsigned int indexOffset = vertIndices->Count();
+
+  GenerateCylinderVerts(base, height, radius, segments, vertices, normals);
+  texCoords->SetCount(vertices->Count());
+  vertIndices->SetCount(indexOffset + 192);
+
+  unsigned short *indices = vertIndices->Ptr() + indexOffset;
+  unsigned int segment;
+  for (segment = 0; segment < segments; ++segment) {
+    unsigned int next = (segment + 1) & 0xF;
+    *indices++ = static_cast<unsigned short>(vertexOffset + 1 + next);
+    *indices++ = static_cast<unsigned short>(vertexOffset + 1 + segment);
+    *indices++ = static_cast<unsigned short>(vertexOffset);
+  }
+  for (segment = 0; segment < segments; ++segment) {
+    unsigned int next = (segment + 1) & 0xF;
+    *indices++ = static_cast<unsigned short>(vertexOffset + 17);
+    *indices++ = static_cast<unsigned short>(vertexOffset + 18 + segment);
+    *indices++ = static_cast<unsigned short>(vertexOffset + 18 + next);
+  }
+  for (segment = 0; segment < segments; ++segment) {
+    unsigned int next = (segment + 1) & 0xF;
+    *indices++ = static_cast<unsigned short>(vertexOffset + 50 + next);
+    *indices++ = static_cast<unsigned short>(vertexOffset + 50 + segment);
+    *indices++ = static_cast<unsigned short>(vertexOffset + 34 + segment);
+    *indices++ = static_cast<unsigned short>(vertexOffset + 34 + next);
+    *indices++ = static_cast<unsigned short>(vertexOffset + 50 + next);
+    *indices++ = static_cast<unsigned short>(vertexOffset + 34 + segment);
+  }
+
+  CPrimitive *primitive = primitives->New();
+  primitive->type = GxPrim_Triangles;
+  primitive->vertexCount = 192;
+  return 1;
+}
+
+static void __fastcall SetVertexMatrixIndices(CGeosetShared *geoShared, const TSGrowableArray<unsigned int> &groupVertexCounts) {
+  unsigned int numGroups = groupVertexCounts.Count();
+  if (numGroups < 2) {
+    return;
+  }
+
+  geoShared->boneWeights.SetCount(geoShared->position.Count());
+  unsigned char *primBone = geoShared->boneWeights.Ptr();
+
+  for (unsigned int i = 0; i < numGroups; ++i) {
+    unsigned int vertCount = groupVertexCounts[i];
+    if (vertCount) {
+      memset(primBone, static_cast<unsigned char>(i), vertCount);
+      primBone += vertCount;
+    }
+  }
+
+  geoShared->vertexShader = GxVS_Skin;
+}
+
+static void __fastcall BuildComplexGeoset(
+    const TSGrowableArray<NTempest::C3Vector> &position,
+    const TSGrowableArray<NTempest::C3Vector> &normal,
+    const TSGrowableArray<NTempest::C2Vector> &texCoord,
+    const TSGrowableArray<unsigned short> &primitiveVertices,
+    const TSGrowableArray<unsigned int> &groupVertex,
+    const TSGrowableArray<unsigned int> &groupCounts,
+    const TSGrowableArray<unsigned int> &matrices,
+    const TSGrowableArray<CPrimitive> &primitives,
+    unsigned int materialId,
+    unsigned int geosetId,
+    CGeosetShared *geoShared
+) {
+  ASSERT(geoShared);
+
+  geoShared->materialId = materialId;
+  geoShared->position.Set(position.Count(), position.Ptr());
+  geoShared->normal.Set(normal.Count(), normal.Ptr());
+  geoShared->primitive.Set(primitives.Count(), primitives.Ptr());
+  geoShared->texCoord.SetCount(1);
+  geoShared->texCoord[0].Set(texCoord.Count(), texCoord.Ptr());
+  geoShared->groupMatrixCounts.Set(groupCounts.Count(), groupCounts.Ptr());
+  geoShared->matrices.Set(matrices.Count(), matrices.Ptr());
+  geoShared->geosetId = geosetId;
+  geoShared->primitiveVertices.Set(primitiveVertices.Count(), primitiveVertices.Ptr());
+  SetVertexMatrixIndices(geoShared, groupVertex);
+}
+
+static void __fastcall IModelGeosetAdd(
+    CModelComplex *modelptr,
+    CModelShared *shared,
+    const TSGrowableArray<NTempest::C3Vector> &position,
+    const TSGrowableArray<NTempest::C3Vector> &normal,
+    const TSGrowableArray<NTempest::C2Vector> &texCoord,
+    const TSGrowableArray<unsigned short> &primitiveVertices,
+    const TSGrowableArray<unsigned int> &groupVertex,
+    const TSGrowableArray<unsigned int> &groupCounts,
+    const TSGrowableArray<unsigned int> &matrices,
+    const TSGrowableArray<CPrimitive> &primitives,
+    HTEXTURE texture,
+    EGxBlend blendMode,
+    unsigned int disables,
+    NTempest::CImVector color
+) {
+  ASSERT(modelptr);
+  ASSERT(shared);
+
+  unsigned int materialId = modelptr->m_materials.Count();
+  unsigned int textureId = modelptr->m_textures.Count();
+  unsigned int geosetId = modelptr->m_geosets.Count();
+
+  modelptr->m_textures.New();
+  modelptr->m_materials.New();
+  modelptr->m_geosets.New();
+  modelptr->m_addlGeosets.SetCount(geosetId - shared->numGeosets + 1);
+  modelptr->m_geosetColor.SetCount(geosetId + 1);
+
+  HMATERIAL material = BuildSimpleMaterial(&modelptr->m_textures[textureId], textureId, texture, blendMode, disables, 0);
+  ASSERT(material);
+  modelptr->m_materials[materialId] = material;
+  modelptr->m_geosetColor[geosetId].animatedColor = color;
+
+  BuildComplexGeoset(
+      position,
+      normal,
+      texCoord,
+      primitiveVertices,
+      groupVertex,
+      groupCounts,
+      matrices,
+      primitives,
+      materialId,
+      geosetId,
+      &modelptr->m_addlGeosets[geosetId - shared->numGeosets]
+  );
+}
+
+static void __fastcall IModelHandleGeosetAdd(
+    CModel *model,
+    const TSGrowableArray<NTempest::C3Vector> &position,
+    const TSGrowableArray<NTempest::C3Vector> &normal,
+    const TSGrowableArray<NTempest::C2Vector> &texCoord,
+    const TSGrowableArray<unsigned short> &primitiveVertices,
+    const TSGrowableArray<unsigned int> &groupVertex,
+    const TSGrowableArray<unsigned int> &groupCounts,
+    const TSGrowableArray<unsigned int> &matrices,
+    const TSGrowableArray<CPrimitive> &primitives,
+    HTEXTURE texture,
+    EGxBlend blendMode,
+    unsigned int disables,
+    NTempest::CImVector color
+) {
+  if (model->data && (model->data->m_flags & 0x20)) {
+    IModelGeosetAdd(
+        static_cast<CModelComplex *>(model->data),
+        reinterpret_cast<CModelShared *>(model->shared),
+        position,
+        normal,
+        texCoord,
+        primitiveVertices,
+        groupVertex,
+        groupCounts,
+        matrices,
+        primitives,
+        texture,
+        blendMode,
+        disables,
+        color
+    );
+  }
+}
+
 static void AddHitTestGeometryGeoset(HMODEL__* modelHandle, HTEXTURE__* tex) {
   FATALASSERT(modelHandle);
   FATALASSERT(tex);
@@ -2436,101 +2800,42 @@ static void AddHitTestGeometryGeoset(HMODEL__* modelHandle, HTEXTURE__* tex) {
       }
 
       case COLLIDE_CYLINDER: {
-        const unsigned int segments = 16;
-        NTempest::C3Vector base = pivot + hit.extent[0];
-        NTempest::C3Vector top = pivot + hit.extent[1];
-        unsigned int vertexOffset = positions.Count();
-        positions.SetCount(vertexOffset + 66);
-        normals.SetCount(vertexOffset + 66);
-        texCoords.SetCount(vertexOffset + 66);
-
-        positions[vertexOffset] = base;
-        normals[vertexOffset].Set(0.0f, 0.0f, -1.0f);
-        positions[vertexOffset + 17] = top;
-        normals[vertexOffset + 17].Set(0.0f, 0.0f, 1.0f);
-        unsigned int segment;
-        for (segment = 0; segment < segments; ++segment) {
-          float angle = static_cast<float>(segment) * 2.0f * PI / static_cast<float>(segments);
-          float x = static_cast<float>(cos(angle));
-          float y = static_cast<float>(sin(angle));
-          NTempest::C3Vector bottomVert(base.x + x * hit.radius, base.y + y * hit.radius, base.z);
-          NTempest::C3Vector topVert(top.x + x * hit.radius, top.y + y * hit.radius, top.z);
-          positions[vertexOffset + 1 + segment] = bottomVert;
-          normals[vertexOffset + 1 + segment].Set(0.0f, 0.0f, -1.0f);
-          positions[vertexOffset + 18 + segment] = topVert;
-          normals[vertexOffset + 18 + segment].Set(0.0f, 0.0f, 1.0f);
-          positions[vertexOffset + 34 + segment] = bottomVert;
-          normals[vertexOffset + 34 + segment].Set(x, y, 0.0f);
-          positions[vertexOffset + 50 + segment] = topVert;
-          normals[vertexOffset + 50 + segment].Set(x, y, 0.0f);
-        }
-
-        primVertIndices.SetCount(oldIndices + 192);
-        unsigned short *indices = primVertIndices.Ptr() + oldIndices;
-        for (segment = 0; segment < segments; ++segment) {
-          unsigned int next = (segment + 1) & 0xF;
-          *indices++ = static_cast<unsigned short>(vertexOffset + 1 + next);
-          *indices++ = static_cast<unsigned short>(vertexOffset + 1 + segment);
-          *indices++ = static_cast<unsigned short>(vertexOffset);
-        }
-        for (segment = 0; segment < segments; ++segment) {
-          unsigned int next = (segment + 1) & 0xF;
-          *indices++ = static_cast<unsigned short>(vertexOffset + 17);
-          *indices++ = static_cast<unsigned short>(vertexOffset + 18 + segment);
-          *indices++ = static_cast<unsigned short>(vertexOffset + 18 + next);
-        }
-        for (segment = 0; segment < segments; ++segment) {
-          unsigned int next = (segment + 1) & 0xF;
-          *indices++ = static_cast<unsigned short>(vertexOffset + 50 + next);
-          *indices++ = static_cast<unsigned short>(vertexOffset + 50 + segment);
-          *indices++ = static_cast<unsigned short>(vertexOffset + 34 + segment);
-          *indices++ = static_cast<unsigned short>(vertexOffset + 34 + next);
-          *indices++ = static_cast<unsigned short>(vertexOffset + 50 + next);
-          *indices++ = static_cast<unsigned short>(vertexOffset + 34 + segment);
-        }
-        CPrimitive *primitive = primitives.New();
-        primitive->type = GxPrim_Triangles;
-        primitive->vertexCount = 192;
+        CreateCylinderGeometry(
+            hit.extent[0],
+            hit.extent[1],
+            hit.radius,
+            &positions,
+            &normals,
+            &texCoords,
+            &primVertIndices,
+            &primitives
+        );
         break;
       }
 
       case COLLIDE_SPHERE: {
         NTempest::CAaSphere bounds;
-        bounds.c = pivot + hit.extent[0];
+        bounds.c = hit.extent[0];
         bounds.r = hit.radius;
         CreateSphereGeometry(bounds, &positions, &normals, &texCoords, &primVertIndices, &primitives);
         break;
       }
 
       case COLLIDE_PLANE: {
-        unsigned int vertexOffset = positions.Count();
-        positions.SetCount(vertexOffset + 4);
-        normals.SetCount(vertexOffset + 4);
-        texCoords.SetCount(vertexOffset + 4);
-        positions[vertexOffset].Set(pivot.x, pivot.y, pivot.z);
-        positions[vertexOffset + 1].Set(pivot.x + hit.extent[0].x, pivot.y, pivot.z);
-        positions[vertexOffset + 2].Set(pivot.x, pivot.y + hit.extent[0].y, pivot.z);
-        positions[vertexOffset + 3].Set(pivot.x + hit.extent[0].x, pivot.y + hit.extent[0].y, pivot.z);
-        unsigned int vertex;
-        for (vertex = 0; vertex < 4; ++vertex) {
-          normals[vertexOffset + vertex].Set(0.0f, 0.0f, 1.0f);
-        }
-        primVertIndices.SetCount(oldIndices + 6);
-        unsigned short *indices = primVertIndices.Ptr() + oldIndices;
-        indices[0] = static_cast<unsigned short>(vertexOffset);
-        indices[1] = static_cast<unsigned short>(vertexOffset + 2);
-        indices[2] = static_cast<unsigned short>(vertexOffset + 1);
-        indices[3] = static_cast<unsigned short>(vertexOffset + 1);
-        indices[4] = static_cast<unsigned short>(vertexOffset + 2);
-        indices[5] = static_cast<unsigned short>(vertexOffset + 3);
-        CPrimitive *primitive = primitives.New();
-        primitive->type = GxPrim_Triangles;
-        primitive->vertexCount = 6;
+        CreatePlanarQuadGeometry(
+            pivot,
+            hit.extent[0].x,
+            hit.extent[0].y,
+            &positions,
+            &normals,
+            &texCoords,
+            &primVertIndices,
+            &primitives
+        );
         break;
       }
 
       default:
-        ASSERT(0);
         break;
     }
 
@@ -2543,37 +2848,21 @@ static void AddHitTestGeometryGeoset(HMODEL__* modelHandle, HTEXTURE__* tex) {
     texCoords[i] = NTempest::C2Vector(0.0f, 0.0f);
   }
 
-  if (!positions.Count()) {
-    return;
-  }
-
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
-  if (!ModelGeosetAdd(
-          modelHandle, positions.Count(), positions.Ptr(), normals.Ptr(), texCoords.Ptr(), primitives[0].type, primVertIndices.Ptr(),
-          primVertIndices.Count(), tex, GxBlend_Alpha, 0, NTempest::CImVector(0xFFFFFFFF), 0
-      ))
-  {
-    return;
-  }
-
-  CGeosetShared &geoShared = complex->m_addlGeosets[complex->m_addlGeosets.Count() - 1];
-  geoShared.position.Set(positions.Count(), positions.Ptr());
-  geoShared.normal.Set(normals.Count(), normals.Ptr());
-  geoShared.texCoord.SetCount(1);
-  geoShared.texCoord[0].Set(texCoords.Count(), texCoords.Ptr());
-  geoShared.primitive.Set(primitives.Count(), primitives.Ptr());
-  geoShared.primitiveVertices.Set(primVertIndices.Count(), primVertIndices.Ptr());
-  geoShared.groupMatrixCounts.Set(groupCounts.Count(), groupCounts.Ptr());
-  geoShared.matrices.Set(matrices.Count(), matrices.Ptr());
-  geoShared.vertexShader = groupVertex.Count() > 1 ? GxVS_Skin : GxVS_PassThru;
-  if (groupVertex.Count() > 1) {
-    geoShared.boneWeights.SetCount(positions.Count());
-    unsigned int offset = 0;
-    for (i = 0; i < groupVertex.Count(); ++i) {
-      memset(geoShared.boneWeights.Ptr() + offset, static_cast<unsigned char>(i), groupVertex[i]);
-      offset += groupVertex[i];
-    }
-  }
+  IModelHandleGeosetAdd(
+      reinterpret_cast<CModel *>(modelHandle),
+      positions,
+      normals,
+      texCoords,
+      primVertIndices,
+      groupVertex,
+      groupCounts,
+      matrices,
+      primitives,
+      tex,
+      GxBlend_Alpha,
+      0,
+      NTempest::CImVector(0xFFFFFFFF)
+  );
 }
 
 int __fastcall ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {

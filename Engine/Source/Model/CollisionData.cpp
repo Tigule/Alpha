@@ -1,6 +1,7 @@
 #include "Model/CollisionData.h"
 
 #include "Gx/Gx.h"
+#include "MDLFile/MDLTypes.h"
 #include "Tempest/c33matrix.h"
 #include "Tempest/cfacet.h"
 
@@ -142,6 +143,25 @@ HCOLLISIONDATA __fastcall CollisionDataCreate(const NTempest::CAaBox &bounds) {
     collision->surfaceNormals[surface].Normalize();
   }
   collision->extents = bounds;
+
+  return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
+}
+
+HCOLLISIONDATA __fastcall CollisionDataCreate(const MDLDATA &data) {
+  if (!data.collision.vertices.Count()) {
+    return 0;
+  }
+
+  void *storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", -2, 0);
+  if (!storage) {
+    return 0;
+  }
+
+  CCollisionData *collision = new (storage) CCollisionData;
+  collision->vertices = data.collision.vertices;
+  collision->indices = data.collision.triIndices;
+  collision->surfaceNormals = data.collision.facetNormals;
+  collision->extents = NTempest::CAaBox::Bounding(collision->vertices.Ptr(), collision->vertices.Count());
 
   return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
 }

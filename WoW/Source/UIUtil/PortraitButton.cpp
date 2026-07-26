@@ -431,7 +431,7 @@ void __fastcall SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit) {
   }
 
   ClearSpecialEffects(model);
-  ModelSetEmissiveColor(model, NTempest::CImVector(0), 1);
+  ModelSetEmissiveColor(model, NTempest::CImVector(0ul), 1);
 
   GxXformProjection(saved_proj);
   GxXformView(saved_view);

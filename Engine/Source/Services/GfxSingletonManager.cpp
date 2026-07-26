@@ -77,6 +77,13 @@ void ParticleSystemManager::Flush() {
   deletedEmitter2s.SetCount(0);
 }
 
+CParticleEmitter *ParticleSystemManager::CreateModelEmitter() {
+  CParticleEmitter *res = (NEW(CParticleEmitter))->AddRef();
+  modelEmitters.SetCount(modelEmitters.Count() + 1);
+  modelEmitters[modelEmitters.Count() - 1] = res;
+  return res;
+}
+
 CPlaneParticleEmitter *ParticleSystemManager::CreateQuadEmitter() {
   CPlaneParticleEmitter *res = NEW(CPlaneParticleEmitter);
   res->AddRef();
@@ -102,7 +109,7 @@ CSplineParticleEmitter *ParticleSystemManager::CreateSplineEmitter() {
 }
 
 CParticleEmitter2 *ParticleSystemManager::DuplicateEmitter(const CParticleEmitter2 *emitter, int deep) {
-  ASSERT(emitter);
+  FATALASSERT(emitter);
   CParticleEmitter2 *newEmitter = emitter->Clone(deep);
   newEmitter->AddRef();
   emitter2s.SetCount(emitter2s.Count() + 1);
@@ -148,6 +155,10 @@ void __fastcall ParticleSystemManager::RenderParticleEmitter2(void *param1, int 
   static_cast<CParticleEmitter2 *>(param1)->Render();
 }
 
+void __fastcall ParticleSystemManager::RenderParticleEmitter(void *param1, int param2) {
+  static_cast<CParticleEmitter *>(param1)->Render();
+}
+
 void ParticleSystemManager::RenderEmitters() {
   unsigned int index = deletedEmitter2s.Count();
   while (index) {
@@ -157,7 +168,7 @@ void ParticleSystemManager::RenderEmitters() {
 }
 
 void ParticleSystemManager::DeleteEmitter2(CParticleEmitter2 *emitter) {
-  ASSERT(emitter);
+  FATALASSERT(emitter);
   emitter->DecRef();
   unsigned int index = emitter2s.Count();
   while (index) {
@@ -167,6 +178,21 @@ void ParticleSystemManager::DeleteEmitter2(CParticleEmitter2 *emitter) {
       deletedEmitter2s[deletedEmitter2s.Count() - 1] = emitter2s[index];
       emitter2s[index] = emitter2s[emitter2s.Count() - 1];
       emitter2s.SetCount(emitter2s.Count() - 1);
+    }
+  }
+}
+
+void ParticleSystemManager::DeleteModelEmitter(CParticleEmitter *emitter) {
+  FATALASSERT(emitter);
+  emitter->DecRef();
+  unsigned int index = modelEmitters.Count();
+  while (index) {
+    --index;
+    if (modelEmitters[index] == emitter) {
+      deletedModelEmitters.SetCount(deletedModelEmitters.Count() + 1);
+      deletedModelEmitters[deletedModelEmitters.Count() - 1] = modelEmitters[index];
+      modelEmitters[index] = modelEmitters[modelEmitters.Count() - 1];
+      modelEmitters.SetCount(modelEmitters.Count() - 1);
     }
   }
 }
@@ -211,7 +237,7 @@ CRibbonEmitter *RibbonManager::CreateEmitter() {
 }
 
 CRibbonEmitter *RibbonManager::DuplicateEmitter(const CRibbonEmitter *emitter) {
-  ASSERT(emitter);
+  FATALASSERT(emitter);
   CRibbonEmitter *newEmitter = (NEW(CRibbonEmitter)(*emitter))->AddRef();
   emitters.SetCount(emitters.Count() + 1);
   emitters[emitters.Count() - 1] = newEmitter;
@@ -249,7 +275,7 @@ void RibbonManager::RenderEmitters() {
 }
 
 void RibbonManager::DeleteEmitter(CRibbonEmitter *emitter) {
-  ASSERT(emitter);
+  FATALASSERT(emitter);
   emitter->DecRef();
 
   unsigned int index = emitters.Count();

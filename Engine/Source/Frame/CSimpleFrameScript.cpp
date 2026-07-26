@@ -371,7 +371,7 @@ int __fastcall CSimpleFrame_RegisterForDrag(lua_State *L) {
     ++index;
   }
 
-  frame->m_lookForDrag = buttons;
+  frame->RegisterForDrag(buttons);
   return 0;
 }
 

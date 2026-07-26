@@ -486,9 +486,9 @@ int CGCamera::FinishLoadingTarget(CGObject_C *target) {
 
   m_flags |= 0x40;
   if (target->GetType() & TYPE_UNIT) {
-    m_targetOffsetZ = target->GetObjectHeight() * 0.99f;
+    m_targetOffsetZ = static_cast<CGUnit_C *>(target)->m_movement.GetCollisionBoxHeight() * 0.99f;
     NTempest::C3Vector position(0.0f);
-    if (ModelGetModelSpacePivot(model, 1, &position) && position.z + 0.1388889f < m_targetOffsetZ) {
+    if (ModelGetModelSpacePivot(model, 0x15, &position) && position.z + 0.1388889f < m_targetOffsetZ) {
       m_targetOffsetZ = position.z + 0.1388889f;
     }
   } else if (target->GetType() & TYPE_DYNAMICOBJECT) {

@@ -2,6 +2,7 @@
 
 #include <storm.h>
 
+#include <string.h>
 #include <typeinfo>
 
 namespace NTempest {
@@ -28,6 +29,54 @@ namespace NTempest {
 
     bool IsValid() const {
       return mem_ != 0;
+    }
+    char *Get() {
+      return mem;
+    }
+    unsigned long Size() {
+      return size;
+    }
+    void Set(char *dst, unsigned char value, unsigned long bytes) {
+      SetM_(dst, value, bytes);
+    }
+    void Set(unsigned char value) {
+      SetM_(mem, value, size);
+    }
+    void Set32(unsigned long *dst, unsigned long value, unsigned long bytes) {
+      SetM_(dst, value, bytes);
+    }
+    void Set32(unsigned long value) {
+      SetM_(reinterpret_cast<unsigned long *>(mem), value, size);
+    }
+    void Zero(char *dst, unsigned long bytes) {
+      SetM_(dst, 0, bytes);
+    }
+    void Zero() {
+      SetM_(mem, 0, size);
+    }
+    void Copy(char *dst, char *src, unsigned long bytes) {
+      memmove(dst, src, bytes);
+    }
+    long Compare(char *a, char *b, unsigned long bytes) {
+      return memcmp(a, b, bytes);
+    }
+    char *Get_() {
+      return mem_;
+    }
+    unsigned long Size_() {
+      return size_;
+    }
+    unsigned long Prologue_() {
+      return size_ - size;
+    }
+    void Set_(unsigned char value) {
+      SetM_(mem_, value, size_);
+    }
+    void Set32_(unsigned long value) {
+      SetM_(reinterpret_cast<unsigned long *>(mem_), value, size_);
+    }
+    void Zero_() {
+      SetM_(mem_, 0, size_);
     }
 
     bool Resize(unsigned long newsize, bool preserve);
@@ -61,11 +110,29 @@ namespace NTempest {
   template <class T>
   class CMemBlockT : public CMemBlock {
    public:
-    CMemBlockT(unsigned long count, unsigned long prologue = 0, const char *filen = 0, long linen = 0)
+    CMemBlockT(unsigned long count = 0, unsigned long prologue = 0, const char *filen = 0, long linen = 0)
         : CMemBlock(count * sizeof(T), prologue, filen ? filen : typeid(T).raw_name(), filen ? linen : SERR_LINECODE_OBJECT) {
     }
 
     virtual ~CMemBlockT() {
+    }
+
+    T *Get() {
+      return reinterpret_cast<T *>(CMemBlock::Get());
+    }
+
+    T &operator[](unsigned long index) {
+      ASSERT(index < CMemBlock::Size() / sizeof(T));
+      return Get()[index];
+    }
+
+    bool Resize(unsigned long count, bool preserve) {
+      return CMemBlock::Resize(count * sizeof(T), preserve);
+    }
+
+    CMemBlockT &operator=(const CMemBlockT &other) {
+      CMemBlock::operator=(other);
+      return *this;
     }
   };
 

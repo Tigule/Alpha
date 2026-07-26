@@ -30,8 +30,6 @@ enum ACTIVITY {
 
 void __fastcall  ActivityBegin(ACTIVITY activity);
 void __fastcall  ActivityEnd(ACTIVITY activity);
-void __fastcall  ActivitySuspend();
-void __fastcall  ActivityResume();
 float __fastcall ActivityGetTimePercent(ACTIVITY activity);
 float __fastcall ActivityGetCalls(ACTIVITY activity);
 float __fastcall ActivityGetTime(ACTIVITY activity);

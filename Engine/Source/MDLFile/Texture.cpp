@@ -1,32 +1,11 @@
 #include "MDLTypes.h"
+#include "MDLStatus.h"
+#include "Parser.h"
+#include "TSet.h"
+#include "Base/MsgBuffer.h"
 
 #include <storm.h>
 #include <stpl.h>
-
-class CMDLStatus;
-union UTokenData;
-
-class Parser {
- public:
-  void Expect(unsigned int what);
-  void Expect(unsigned int what, unsigned int cachedToken, const char *tokenText);
-  long ExpectInt();
-  const char *ExpectString();
-  unsigned int Token(const char **tokenText, UTokenData *data);
-  void FatalDuplicate(const char *found);
-  void FatalUnexpected(const char *found);
-};
-
-class TSet {
- public:
-  TSet();
-  void Add(unsigned int token, int needed, int allowDuplicates);
-  int Check(unsigned int token);
-  void Complete(CMDLStatus *status);
-
- private:
-  char m_data[1028];
-};
 
 namespace MDL {
 
@@ -103,4 +82,97 @@ static void IReadBitmap(Parser& parse, MDLTEXTURESECTION* bitmap, CMDLStatus* st
 
   parse.Expect('}', token, tokenText);
   errors.Complete(status);
+}
+
+static void IWriteTexture(const MDLTEXTURESECTION &texture, TSGrowableArray<char> &buffer) {
+  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x12D));
+  MDL::WriteLine(buffer, "\t\t%s \"%s\",\n", MDL::TokenText(0x15C), static_cast<const char *>(texture.image));
+  if (texture.replaceableId) {
+    MDL::WriteLine(buffer, "\t\t%s %d,\n", MDL::TokenText(0x1AA), texture.replaceableId);
+  }
+  IWriteTextureFlags(texture.flags, buffer);
+  MDL::WriteLine(buffer, "\t},\n");
+}
+
+namespace MDL {
+
+int __fastcall ReadTextures(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  unsigned int savedToken;
+  const char *tokenText;
+  long count = parse.GetOptionalInt(&savedToken, &tokenText, 0);
+  parse.Expect('{', savedToken, tokenText);
+  if (count > 0) {
+    data.textures.Reserve(count);
+  }
+
+  long actual = 0;
+  savedToken = parse.Token(&tokenText, 0);
+  while (savedToken == 0x12D) {
+    MDLTEXTURESECTION *texture = data.textures.New();
+    texture->replaceableId = 0;
+    static_cast<char *>(texture->image)[0] = 0;
+    texture->flags = 0;
+    IReadBitmap(parse, texture, status);
+    ++actual;
+    savedToken = parse.Token(&tokenText, 0);
+  }
+  parse.Expect('}', savedToken, tokenText);
+  if (count >= 0 && actual != count) {
+    parse.WarningCount("textures", count, actual);
+  }
+  return !parse.FoundError();
+}
+
+int __fastcall WriteTextures(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  unsigned int count = data.textures.Count();
+  FATALASSERT(count > 0 || data.bones.Count() == 0);
+  if (count) {
+    WriteLine(buffer, "%s %d {\n", TokenText(0x108), count);
+    for (unsigned int i = 0; i < count; ++i) {
+      IWriteTexture(data.textures[i], buffer);
+    }
+    WriteLine(buffer, "}\n");
+  }
+  return 1;
+}
+
+int __fastcall ReadBinTextures(
+    CMsgBuffer &buffer,
+    unsigned int length,
+    MDLDATA &data,
+    CMDLStatus *status
+) {
+  FATALASSERT(status);
+  if (length % 268) {
+    status->Add(STATUS_ERROR, "Invalid TEXS section detected in model.\n");
+    return 0;
+  }
+
+  unsigned int count = length / 268;
+  data.textures.SetCount(count);
+  for (unsigned int i = 0; i < count; ++i) {
+    MDLTEXTURESECTION &texture = data.textures[i];
+    texture.replaceableId = buffer.GetUint();
+    buffer.GetTcharArray(texture.image, 260);
+    texture.flags = buffer.GetUint();
+  }
+  return 1;
+}
+
+int __fastcall WriteBinTextures(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+  unsigned int count = data.textures.Count();
+  FATALASSERT(count > 0 || data.bones.Count() == 0);
+  if (count) {
+    buffer.AddDword('SXET');
+    buffer.AddUint(268 * count);
+    for (unsigned int i = 0; i < count; ++i) {
+      const MDLTEXTURESECTION &texture = data.textures[i];
+      buffer.AddUint(texture.replaceableId);
+      buffer.AddTcharArray(texture.image, 260, 1);
+      buffer.AddUint(texture.flags);
+    }
+  }
+  return 1;
+}
+
 }

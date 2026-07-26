@@ -1,5 +1,7 @@
 #include "cmemblock.h"
 
+#include <string.h>
+
 namespace NTempest {
 
   void __fastcall CMemBlock::Set32b_(char *c, unsigned char value, unsigned long size) {
@@ -100,6 +102,11 @@ namespace NTempest {
     }
   }
 
+  void __fastcall CMemBlock::SetM_(unsigned long *d, unsigned long c, unsigned long size) {
+    ASSERT((size & 0x3) == 0);
+    Set32b_(d, c, size);
+  }
+
   void CMemBlock::Constructor_(unsigned long bsize, unsigned long prologue, const char *filen, long linen) {
     SetFileN_(filen);
     SetLineN_(linen);
@@ -133,8 +140,81 @@ namespace NTempest {
     Constructor_(bsize, prologue, filen, linen);
   }
 
+  CMemBlock::CMemBlock(const CMemBlock &m) : mem_(0) {
+    ASSERT(!IsValid());
+    ASSERT(m.IsValid());
+    ASSERT(m.mem_ <= m.mem && m.size_ >= m.size);
+    Constructor_(m.size, m.size_ - m.size, m.FileN_(), m.LineN_());
+    if ( mem_ ) {
+      ASSERT(Copy_(m) == size_);
+    }
+  }
+
+  CMemBlock &CMemBlock::operator=(const CMemBlock &m) {
+    ASSERT(m.IsValid());
+    ASSERT(m.mem_ <= m.mem && m.size_ >= m.size);
+    ASSERT(mem_ <= mem && size_ >= size);
+    Destructor_();
+    Constructor_(m.size, m.size_ - m.size, m.FileN_(), m.LineN_());
+    if ( mem_ ) {
+      ASSERT(Copy_(m) == size_);
+    }
+    return *this;
+  }
+
   CMemBlock::~CMemBlock() {
     Destructor_();
+  }
+
+  unsigned long CMemBlock::Copy(const CMemBlock &from) {
+    ASSERT(IsValid());
+    ASSERT(from.IsValid());
+    unsigned long copySize = size < from.size ? size : from.size;
+    memmove(mem, from.mem, copySize);
+    return copySize;
+  }
+
+  long CMemBlock::Compare(const CMemBlock &to) const {
+    ASSERT(IsValid());
+    ASSERT(to.IsValid());
+    unsigned long compareSize = size < to.size ? size : to.size;
+    return memcmp(mem, to.mem, compareSize);
+  }
+
+  unsigned long CMemBlock::Copy_(const CMemBlock &from) {
+    ASSERT(IsValid());
+    ASSERT(from.IsValid());
+    unsigned long copySize = size_ < from.size_ ? size_ : from.size_;
+    memmove(mem_, from.mem_, copySize);
+    return copySize;
+  }
+
+  long CMemBlock::Compare_(const CMemBlock &to) const {
+    ASSERT(IsValid());
+    ASSERT(to.IsValid());
+    unsigned long compareSize = size_ < to.size_ ? size_ : to.size_;
+    return memcmp(mem_, to.mem_, compareSize);
+  }
+
+  bool CMemBlock::Swap(CMemBlock &with) {
+    ASSERT(IsValid());
+    ASSERT(with.IsValid());
+    ASSERT(size_ >= size && with.size_ >= with.size);
+    ASSERT(mem_ <= mem && with.mem_ <= with.mem);
+
+    char *oldMem_ = mem_;
+    char *oldMem = mem;
+    unsigned long oldSize_ = size_;
+    unsigned long oldSize = size;
+    mem_ = with.mem_;
+    mem = with.mem;
+    size_ = with.size_;
+    size = with.size;
+    with.mem_ = oldMem_;
+    with.mem = oldMem;
+    with.size_ = oldSize_;
+    with.size = oldSize;
+    return true;
   }
 
   bool CMemBlock::Resize(unsigned long newsize, bool preserve) {
@@ -161,6 +241,46 @@ namespace NTempest {
     }
 
     return true;
+  }
+
+  void CMemBlock::Detach(char *&detachedMem, unsigned long &detachedSize) {
+    ASSERT(size_ == size);
+    detachedMem = mem_;
+    detachedSize = size_;
+    mem_ = 0;
+    mem = 0;
+    size_ = 0;
+    size = 0;
+  }
+
+  void CMemBlock::Attach(char *attachedMem, unsigned long attachedSize) {
+    ASSERT(!IsValid());
+    ASSERT(attachedMem != 0);
+    mem_ = attachedMem;
+    mem = attachedMem;
+    size_ = attachedSize;
+    size = attachedSize;
+  }
+
+  void CMemBlock::Detach_(char *&detachedMem, unsigned long &detachedSize, char *&detachedMem_, unsigned long &detachedSize_) {
+    detachedMem_ = mem_;
+    detachedMem = mem;
+    detachedSize_ = size_;
+    detachedSize = size;
+    mem_ = 0;
+    mem = 0;
+    size_ = 0;
+    size = 0;
+  }
+
+  void CMemBlock::Attach_(char *attachedMem, unsigned long attachedSize, char *attachedMem_, unsigned long attachedSize_) {
+    ASSERT(!IsValid());
+    ASSERT(attachedSize_ >= attachedSize);
+    ASSERT(attachedMem == attachedMem_ + (attachedSize_ - attachedSize));
+    mem_ = attachedMem_;
+    mem = attachedMem;
+    size_ = attachedSize_;
+    size = attachedSize;
   }
 
   const char *CMemBlock::FileN_() const {

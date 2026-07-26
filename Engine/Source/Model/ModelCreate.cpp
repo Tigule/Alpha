@@ -25,6 +25,9 @@ void __fastcall           AnimInitialize();
 void __fastcall           AnimDestroy();
 void __fastcall           MDLFileInitialize();
 void __fastcall           MDLFileDestroy();
+int __fastcall            MDLFileRead(const char *path, MDLDATA *mdldata, CStatus *status);
+int __fastcall            MdlReadValidate(const MDLDATA &data, CStatus *status);
+HMODEL __fastcall         ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status);
 void __fastcall           ModelAnimateInitialize();
 void __fastcall           ModelAnimateDestroy();
 void __fastcall           ModelRenderInitialize();
@@ -772,7 +775,7 @@ static int BuildModelFromMdlData(const MDLDATA& source, CModelBase* baseModel, C
          MdlReadCameras(source, &modelptr->m_cameras);
 }
 
-static HMATERIAL __fastcall BuildSimpleMaterial(
+HMATERIAL __fastcall BuildSimpleMaterial(
     CModelTexture *texData,
     unsigned int   textureId,
     HTEXTURE       texture,
@@ -1163,8 +1166,63 @@ HMODEL __fastcall ModelCreate(const char *sourcefile, CModelCreate *data, CStatu
     return IModelCreate(sourcefile, actualPath, data, useStatus);
   }
 
-  // todo: full model parser
+  MDLDATA mdlData;
+  if (MDLFileRead(actualPath, &mdlData, useStatus)) {
+    return ModelCreate(mdlData, data, useStatus);
+  }
+
+  if (data && (data->flags & 0x2000)) {
+    return CreateDefaultModel(sourcefile, data->flags, useStatus);
+  }
+
   return 0;
+}
+
+HMODEL __fastcall ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status) {
+  ASSERT(status);
+  ASSERT(static_cast<const char *>(source.header.sourceFilename)[0]);
+
+  OsOutputDebugString("Model: (INFO) : Loading \"%s\"\n", static_cast<const char *>(source.header.sourceFilename));
+
+  unsigned int createFlags = data ? data->flags : 0;
+  if (!MdlReadValidate(source, status)) {
+    return (createFlags & 0x2000)
+               ? CreateDefaultModel(source.header.sourceFilename, createFlags, status)
+               : 0;
+  }
+
+  CModelBase *modelptr;
+  if (IsSimpleModel(source)) {
+    modelptr = NEW(CModelSimple);
+  } else {
+    modelptr = NEW(CModelComplex);
+  }
+  ASSERT(modelptr);
+
+  CModelShared *shared = CreateSharedModelData(source.header.sourceFilename);
+  if (!BuildModelFromMdlData(source, modelptr, shared, createFlags, status)) {
+    DEL(modelptr);
+    DEL(shared);
+    return (createFlags & 0x2000)
+               ? CreateDefaultModel(source.header.sourceFilename, createFlags, status)
+               : 0;
+  }
+
+  if (modelptr->m_anim) {
+    ProcessAnimReorders(modelptr, data);
+  }
+
+  CModel *model = NEW(CModel);
+  ASSERT(model);
+  model->data = modelptr;
+  model->shared = static_cast<HMODELSHARED>(HandleCreate(shared, "HMODELSHARED"));
+  ASSERT(model->shared);
+
+  HMODEL modelHandle = static_cast<HMODEL>(HandleCreate(model, "HMODEL"));
+  ASSERT(modelHandle);
+  model->state = CMODEL_LOADED;
+  HashNewModel(source.header.sourceFilename, modelHandle, createFlags, status);
+  return modelHandle;
 }
 
 static CModel *__fastcall IModelCreateSimpleEmpty(const char *name) {

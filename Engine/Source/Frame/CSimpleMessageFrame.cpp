@@ -262,7 +262,7 @@ void CSimpleMessageFrame::ShowLineNode(CSimpleMessageFrameLineNode *node, float 
 }
 
 CSimpleMessageFrameLineNode::CSimpleMessageFrameLineNode()
-    : color(0), string(NEW(CSimpleFontString)(0, 2, 1)), timeLeft(0.0f), fadeLeft(0.0f), permanent(0), isVisible(0) {
+    : color(0ul), string(NEW(CSimpleFontString)(0, 2, 1)), timeLeft(0.0f), fadeLeft(0.0f), permanent(0), isVisible(0) {
   string->SetIgnoreNewlines(1);
 }
 

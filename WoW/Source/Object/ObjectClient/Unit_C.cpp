@@ -9577,7 +9577,7 @@ void SPELLEFFECTDESC::ClearLightningObjects() {
   }
 }
 
-SPELLEFFECTDESC::SPELLEFFECTDESC() : color(0) {
+SPELLEFFECTDESC::SPELLEFFECTDESC() : color(0ul) {
   lightningObjs[0] = 0;
   lightningObjs[1] = 0;
   lightningObjs[2] = 0;

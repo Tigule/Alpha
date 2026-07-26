@@ -339,8 +339,8 @@ CMapDoodadDef *__fastcall CMap::CreateDoodadDef(
   doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
   doodadDef->model = 0;
   doodadDef->modelName = fileName;
-  doodadDef->ambient = NTempest::CImVector(0);
-  doodadDef->interiorDirColor = NTempest::CImVector(0);
+  doodadDef->ambient = NTempest::CImVector(0ul);
+  doodadDef->interiorDirColor = NTempest::CImVector(0ul);
   doodadDef->dirLightScale = 1.0f;
 
   doodadDef->mat = NTempest::C44Matrix();

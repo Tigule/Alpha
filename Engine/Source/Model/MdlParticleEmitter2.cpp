@@ -13,8 +13,15 @@ static const char WOW_DATA_PATH[35] = "\\\\Guldan\\Drive2\\Projects\\WoW\\Data\\
 
 unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 unsigned char *__fastcall MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status);
+int __fastcall            MDLFileRead(const char *path, MDLDATA *data, CStatus *status);
 
 CParticleEmitter2 *__fastcall CreateEmitter(unsigned char *emitterData, const MDLTEXTURESECTION *textures, unsigned int flags, CStatus *status);
+static CParticleEmitter2 *__fastcall CreateEmitter(
+    const MDLPARTICLEEMITTER2 &emitterData,
+    const TSGrowableArray<MDLTEXTURESECTION> &textures,
+    unsigned int flags,
+    CStatus *status
+);
 HTEXTURE __fastcall           LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
 
 static CParticleEmitter2 *__fastcall CreateEmitterObject(unsigned int type) {
@@ -54,6 +61,55 @@ static void __fastcall SetMaterialBlendMode(unsigned int blendMode, CParticleMat
   }
 }
 
+static void __fastcall SetParticleStyle(const MDLPARTICLEEMITTER2 &emitterData, CParticleEmitter2 *emitter) {
+  unsigned int flags = emitterData.flags;
+  if (flags & 0x00080000) {
+    emitter->SetUseModelSpace(1);
+  }
+  if (flags & 0x00200000) {
+    emitter->SetInstantVel(1);
+  }
+  if (flags & 0x00100000) {
+    emitter->SetInheritScale(1);
+  }
+  if (flags & 0x04000000) {
+    emitter->SetExtrude(1);
+  }
+  if (flags & 0x08000000) {
+    emitter->SetXYQuads(1);
+  }
+  if (emitterData.emitterType == MDLPARTICLEEMITTER2::PET_SPHERE) {
+    if (flags & 0x00400000) {
+      emitter->Set0XKill(1);
+    }
+    if (flags & 0x00800000) {
+      emitter->SetZVelOnly(1);
+    }
+  }
+  if (flags & 0x01000000) {
+    emitter->SetTumbleReverse(1);
+  }
+  if (flags & 0x10000000) {
+    emitter->SetProject(1);
+  }
+  if (flags & 0x20000000) {
+    emitter->SetFollow(1);
+  }
+
+  unsigned int tailGrows = (flags & 0x02000000) != 0;
+  switch (emitterData.type) {
+    case MDLPARTICLEEMITTER2::PT_HEAD:
+      emitter->SetParticleStyle(1, 0, emitterData.tailLength, tailGrows);
+      break;
+    case MDLPARTICLEEMITTER2::PT_TAIL:
+      emitter->SetParticleStyle(0, 1, emitterData.tailLength, tailGrows);
+      break;
+    case MDLPARTICLEEMITTER2::PT_BOTH:
+      emitter->SetParticleStyle(1, 1, emitterData.tailLength, tailGrows);
+      break;
+  }
+}
+
 static unsigned int __fastcall GetEmitterFlags(const unsigned char *emitterData) {
   return *reinterpret_cast<const unsigned int *>(emitterData + 0x5C);
 }
@@ -63,36 +119,36 @@ unsigned int __fastcall SetParticleStyle(const unsigned char *emitterData, unsig
   const float        tailLength = *reinterpret_cast<const float *>(emitterData + 4);
 
   if (flags & 0x00080000) {
-    emitter->m_useModelSpace = 1;
+    emitter->SetUseModelSpace(1);
   }
   if (flags & 0x00200000) {
-    emitter->m_instantVelLin = 1;
+    emitter->SetInstantVel(1);
   }
   if (flags & 0x00100000) {
-    emitter->m_inheritScale = 1;
+    emitter->SetInheritScale(1);
   }
   if (flags & 0x04000000) {
-    emitter->m_extrude = 1;
+    emitter->SetExtrude(1);
   }
   if (flags & 0x08000000) {
-    emitter->m_xyQuads = 1;
+    emitter->SetXYQuads(1);
   }
-  if (emitter->m_emitterType == CParticleEmitter2::PET_SPHERE_EMITTER) {
+  if (emitter->EmitterType() == CParticleEmitter2::PET_SPHERE_EMITTER) {
     if (flags & 0x00400000) {
-      emitter->m_0XKill = 1;
+      emitter->Set0XKill(1);
     }
     if (flags & 0x00800000) {
-      emitter->m_zvelOnly = 1;
+      emitter->SetZVelOnly(1);
     }
   }
   if (flags & 0x01000000) {
-    emitter->m_tumbler = 1;
+    emitter->SetTumbleReverse(1);
   }
   if (flags & 0x10000000) {
-    emitter->m_project = 1;
+    emitter->SetProject(1);
   }
   if (flags & 0x20000000) {
-    emitter->m_follow = 1;
+    emitter->SetFollow(1);
   }
 
   const unsigned int tailGrows = (flags & 0x02000000) != 0;
@@ -181,6 +237,47 @@ unsigned char *__fastcall SetParticleKeys(unsigned char *emitterData, float life
   return reinterpret_cast<unsigned char *>(const_cast<int *>(cells));
 }
 
+static void __fastcall SetParticleKeys(const MDLPARTICLEEMITTER2 &emitterData, CParticleEmitter2 *emitter) {
+  CParticleKey key1;
+  CParticleKey key2;
+
+  key1.SetSegment(0.0f, emitterData.middleTime);
+  key1.SetRepeat(static_cast<float>(emitterData.lifespanUVAnimRepeat));
+  key1.SetLifeSpan(emitterData.staticLife);
+  key2.SetSegment(emitterData.middleTime, 1.0f);
+  key2.SetRepeat(static_cast<float>(emitterData.decayUVAnimRepeat));
+  key2.SetLifeSpan(emitterData.staticLife);
+
+  NTempest::CImVector startColor;
+  startColor.r = NTempest::CMath::ftol_0_256_(emitterData.startColor.r * 255.0f);
+  startColor.g = NTempest::CMath::ftol_0_256_(emitterData.startColor.g * 255.0f);
+  startColor.b = NTempest::CMath::ftol_0_256_(emitterData.startColor.b * 255.0f);
+  startColor.a = emitterData.startAlpha;
+
+  NTempest::CImVector middleColor;
+  middleColor.r = NTempest::CMath::ftol_0_256_(emitterData.middleColor.r * 255.0f);
+  middleColor.g = NTempest::CMath::ftol_0_256_(emitterData.middleColor.g * 255.0f);
+  middleColor.b = NTempest::CMath::ftol_0_256_(emitterData.middleColor.b * 255.0f);
+  middleColor.a = emitterData.middleAlpha;
+
+  NTempest::CImVector endColor;
+  endColor.r = NTempest::CMath::ftol_0_256_(emitterData.endColor.r * 255.0f);
+  endColor.g = NTempest::CMath::ftol_0_256_(emitterData.endColor.g * 255.0f);
+  endColor.b = NTempest::CMath::ftol_0_256_(emitterData.endColor.b * 255.0f);
+  endColor.a = emitterData.endAlpha;
+
+  key1.SetColors(startColor, middleColor);
+  key2.SetColors(middleColor, endColor);
+  key1.SetHeadCells(emitterData.lifespanUVAnimStart, emitterData.lifespanUVAnimEnd);
+  key2.SetHeadCells(emitterData.decayUVAnimStart, emitterData.decayUVAnimEnd);
+  key1.SetTailCells(emitterData.tailUVAnimStart, emitterData.tailUVAnimEnd);
+  key2.SetTailCells(emitterData.tailDecayUVAnimStart, emitterData.tailDecayUVAnimEnd);
+  key1.SetScales(emitterData.startScale, emitterData.middleScale);
+  key2.SetScales(emitterData.middleScale, emitterData.endScale);
+  emitter->SetKey(0, key1);
+  emitter->SetKey(1, key2);
+}
+
 HTEXTURE __fastcall LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status) {
   if (!(modelLoadFlags & 0x4000) || texturePath[1] == ':' || texturePath[0] == '\\') {
     return TextureCreate(texturePath, texLoadFlags, status, 0);
@@ -229,6 +326,36 @@ static unsigned char *__fastcall CreateParticleMaterial(
   return emitterData;
 }
 
+static void __fastcall CreateParticleMaterial(
+    const MDLPARTICLEEMITTER2 &emitterData,
+    const TSGrowableArray<MDLTEXTURESECTION> &textures,
+    unsigned int flags,
+    CStatus *status,
+    CParticleEmitter2 *emitter
+) {
+  CParticleMat newMat;
+  newMat.alpha = GxBlend_Opaque;
+  newMat.enableLighting = 1;
+  newMat.enableFog = 1;
+  newMat.enableDepthWrites = 1;
+
+  SetMaterialBlendMode(emitterData.blendMode, &newMat);
+  const MDLTEXTURESECTION &texture = textures[emitterData.textureId];
+  CGxTexFlags textureFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
+  HTEXTURE hTexture = LoadModelTexture(texture.image, flags, textureFlags, status);
+  if (emitterData.flags & 0x00008000) {
+    newMat.enableLighting = 0;
+  }
+  if (emitterData.flags & 0x00040000) {
+    newMat.enableFog = 0;
+  }
+  if (emitterData.flags & 0x00010000) {
+    emitter->SetSortZ(1);
+  }
+  emitter->SetMaterial(newMat, hTexture);
+  HandleClose(hTexture);
+}
+
 static unsigned char *__fastcall CreateChildEmitter(unsigned char *emitterData, unsigned int flags, CStatus *status, CParticleEmitter2 *parent) {
   char *childPath = reinterpret_cast<char *>(emitterData);
   emitterData += 260;
@@ -264,18 +391,37 @@ static unsigned char *__fastcall CreateChildEmitter(unsigned char *emitterData, 
   return emitterData;
 }
 
+static void __fastcall CreateChildEmitter(
+    const MDLPARTICLEEMITTER2 &emitterData,
+    unsigned int flags,
+    CStatus *status,
+    CParticleEmitter2 *parent
+) {
+  if (!static_cast<const char *>(emitterData.recursionMdl)[0]) {
+    return;
+  }
+
+  MDLDATA data;
+  if (!MDLFileRead(emitterData.recursionMdl, &data, status) || !data.particleEmitters2.Count()) {
+    return;
+  }
+
+  unsigned int numEmitters = data.particleEmitters2.Count();
+  if (numEmitters > 4) {
+    numEmitters = 4;
+  }
+  for (unsigned int i = 0; i < numEmitters; ++i) {
+    CParticleEmitter2 *child = CreateEmitter(data.particleEmitters2[i], data.textures, flags, status);
+    parent->AddChildEmitter(child);
+    child->SetEnabled(1, 1);
+  }
+}
+
 unsigned char *__fastcall SetParticleTumble(unsigned char *emitterData, CParticleEmitter2 *emitter) {
   const float *tumble = reinterpret_cast<const float *>(emitterData);
-  float        tumbleyMin = tumble[2];
-  float        tumbleyMax = tumble[3];
-  float        tumblezMin = tumble[4];
-  float        tumblezMax = tumble[5];
-  emitter->m_tumblex.x = tumble[0];
-  emitter->m_tumblex.y = tumble[1] - tumble[0];
-  emitter->m_tumbley.x = tumbleyMin;
-  emitter->m_tumbley.y = tumbleyMax - tumbleyMin;
-  emitter->m_tumblez.x = tumblezMin;
-  emitter->m_tumblez.y = tumblezMax - tumblezMin;
+  emitter->SetTumbleX(NTempest::C2Vector(tumble[0], tumble[1]));
+  emitter->SetTumbleY(NTempest::C2Vector(tumble[2], tumble[3]));
+  emitter->SetTumbleZ(NTempest::C2Vector(tumble[4], tumble[5]));
   return emitterData + 6 * sizeof(float);
 }
 
@@ -285,6 +431,65 @@ static unsigned char *__fastcall LoadC3Vector(unsigned char *emitterData, NTempe
   vector->y = values[1];
   vector->z = values[2];
   return emitterData + 3 * sizeof(float);
+}
+
+static CParticleEmitter2 *__fastcall CreateEmitter(
+    const MDLPARTICLEEMITTER2 &emitterData,
+    const TSGrowableArray<MDLTEXTURESECTION> &textures,
+    unsigned int flags,
+    CStatus *status
+) {
+  CParticleEmitter2 *emitter = CreateEmitterObject(emitterData.emitterType);
+  emitter->SetEnabled(0, 1);
+  emitter->SetVelocity(emitterData.staticSpeed);
+  emitter->SetVelocityVariation(emitterData.staticVariation);
+  emitter->SetLatitude(emitterData.staticLatitude);
+  emitter->SetLongitude(emitterData.staticLongitude);
+  emitter->SetAcceleration(emitterData.staticGravity);
+  emitter->SetZsource(emitterData.staticZsource);
+  emitter->SetLifeSpan(emitterData.staticLife);
+  emitter->SetEmissionRate(emitterData.staticEmissionRate);
+  emitter->SetHeight(emitterData.staticLength);
+  emitter->SetWidth(emitterData.staticWidth);
+  emitter->SetTextureDimensions(emitterData.rows, emitterData.cols);
+
+  SetParticleStyle(emitterData, emitter);
+  SetParticleKeys(emitterData, emitter);
+  CreateParticleMaterial(emitterData, textures, flags, status, emitter);
+  emitter->SetInstantVelScale(emitterData.ivelScale);
+  emitter->SetPriorityPlane(emitterData.priorityPlane);
+  emitter->SetReplaceableId(emitterData.replaceableId);
+  CreateChildEmitter(emitterData, flags, status, emitter);
+
+  if (static_cast<const char *>(emitterData.geometryMdl)[0]) {
+    CModelCreate modelCreate;
+    modelCreate.flags = flags & 0xFFFFFFB9;
+    memset(&modelCreate.sequenceNames, 0, sizeof(modelCreate) - sizeof(modelCreate.flags));
+    emitter->SetModel(ModelCreate(emitterData.geometryMdl, &modelCreate, status));
+  }
+
+  emitter->SetTumbleX(NTempest::C2Vector(emitterData.tumblexMin, emitterData.tumblexMax));
+  emitter->SetTumbleY(NTempest::C2Vector(emitterData.tumbleyMin, emitterData.tumbleyMax));
+  emitter->SetTumbleZ(NTempest::C2Vector(emitterData.tumblezMin, emitterData.tumblezMax));
+  emitter->SetTwinkleFPS(emitterData.twinkleFPS);
+  emitter->SetTwinkleOnOff(emitterData.twinkleOnOff);
+  if (emitterData.twinkleOnOff == 0.0f) {
+    status->Add(STATUS_WARNING, "Particle system with 0 twinkle\n");
+  }
+  emitter->SetTwinkleScale(emitterData.twinkleScaleMin, emitterData.twinkleScaleMax);
+  emitter->SetDrag(emitterData.drag);
+  emitter->SetAngularVelocity(emitterData.spin);
+  emitter->SetWind(emitterData.windVector, emitterData.windTime);
+  emitter->SetFollowParams(
+      emitterData.followSpeed1,
+      emitterData.followScale1,
+      emitterData.followSpeed2,
+      emitterData.followScale2
+  );
+  if (emitterData.spline.Count()) {
+    static_cast<CSplineParticleEmitter *>(emitter)->SetSpline(emitterData.spline.Ptr(), emitterData.spline.Count());
+  }
+  return emitter;
 }
 
 CParticleEmitter2 *__fastcall CreateEmitter(unsigned char *emitterData, const MDLTEXTURESECTION *textures, unsigned int flags, CStatus *status) {
@@ -328,7 +533,7 @@ CParticleEmitter2 *__fastcall CreateEmitter(unsigned char *emitterData, const MD
   cursor = SetParticleKeys(cursor, lifeSpan, emitter);
   cursor = CreateParticleMaterial(cursor, textures, emitterFlags, flags, status, emitter);
 
-  emitter->m_priorityPlane = *reinterpret_cast<int *>(cursor);
+  emitter->SetPriorityPlane(*reinterpret_cast<int *>(cursor));
   cursor += 4;
   emitter->SetReplaceableId(*reinterpret_cast<unsigned int *>(cursor));
   cursor += 4;
@@ -345,26 +550,23 @@ CParticleEmitter2 *__fastcall CreateEmitter(unsigned char *emitterData, const MD
   cursor = CreateChildEmitter(cursor, flags, status, emitter);
 
   const float *twinkle = reinterpret_cast<const float *>(cursor);
-  emitter->m_twinkleFPS = twinkle[0];
-  emitter->m_twinkleOnOff = twinkle[1];
-  if (emitter->m_twinkleOnOff == 0.0f) {
+  emitter->SetTwinkleFPS(twinkle[0]);
+  emitter->SetTwinkleOnOff(twinkle[1]);
+  if (twinkle[1] == 0.0f) {
     status->Add(STATUS_WARNING, "Particle system with 0 twinkle\n");
   }
-  emitter->m_twinkleScaleMin = twinkle[2];
-  emitter->m_twinkleScaleMax = twinkle[3];
-  emitter->m_twinkleScaleRange = twinkle[3] - twinkle[2];
-  emitter->m_ivelScale = twinkle[4];
+  emitter->SetTwinkleScale(twinkle[2], twinkle[3]);
+  emitter->SetInstantVelScale(twinkle[4]);
   cursor += 5 * sizeof(float);
 
   cursor = SetParticleTumble(cursor, emitter);
-  emitter->m_drag = *reinterpret_cast<float *>(cursor);
+  emitter->SetDrag(*reinterpret_cast<float *>(cursor));
   cursor += 4;
-  emitter->m_particleAngularVelocity = *reinterpret_cast<float *>(cursor);
+  emitter->SetAngularVelocity(*reinterpret_cast<float *>(cursor));
   cursor += 4;
   NTempest::C3Vector windVector;
   cursor = LoadC3Vector(cursor, &windVector);
-  emitter->m_windVector = windVector;
-  emitter->m_windTime = *reinterpret_cast<float *>(cursor);
+  emitter->SetWind(windVector, *reinterpret_cast<float *>(cursor));
   cursor += 4;
 
   const float *follow = reinterpret_cast<const float *>(cursor);
@@ -387,19 +589,10 @@ int __fastcall MdlReadLoadEmitters2(const MDLDATA& data, CModelComplex* modelptr
   modelptr->m_emitters2.SetCount(numEmitters);
   shared->emitter2Order.SetCount(numEmitters);
 
-  const unsigned char *emitterData =
-      reinterpret_cast<const unsigned char *>(
-          data.particleEmitters2.Ptr());
-  unsigned int i;
-  for (i = 0; i < numEmitters; ++i) {
-    const unsigned char *emitter = emitterData + i * 1292;
-    shared->emitter2Order[i] =
-        *reinterpret_cast<const unsigned int *>(emitter + 0x50);
-    modelptr->m_emitters2[i] = CreateEmitter(
-        const_cast<unsigned char *>(emitter),
-        data.textures.Ptr(),
-        flags,
-        status);
+  for (unsigned int i = 0; i < numEmitters; ++i) {
+    const MDLPARTICLEEMITTER2 &emitterData = data.particleEmitters2[i];
+    shared->emitter2Order[i] = emitterData.objectId;
+    modelptr->m_emitters2[i] = CreateEmitter(emitterData, data.textures, flags, status);
   }
   return 1;
 }

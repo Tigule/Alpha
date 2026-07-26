@@ -14,6 +14,19 @@
 
 namespace NTempest {
 
+  void C4QuaternionCompressed::Set(const C4Quaternion &source) {
+    int sign = source.w >= 0.0f ? 1 : -1;
+    int x = sign * static_cast<int>(source.x * 2097152.0f);
+    int y = sign * static_cast<int>(source.y * 1048576.0f);
+    int z = sign * static_cast<int>(source.z * 1048576.0f);
+
+    unsigned __int64 packed =
+        (static_cast<unsigned __int64>(x & 0x3FFFFF) << 42) |
+        (static_cast<unsigned __int64>(y & 0x1FFFFF) << 21) |
+        static_cast<unsigned __int64>(z & 0x1FFFFF);
+    m_data = static_cast<__int64>(packed);
+  }
+
   C4QuaternionCompressed::operator C4Quaternion() const {
     const unsigned __int64 data = static_cast<unsigned __int64>(m_data);
     const int              xBits = static_cast<int>(data >> 32) >> 10;

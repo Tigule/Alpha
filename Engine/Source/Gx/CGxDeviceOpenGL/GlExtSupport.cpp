@@ -305,7 +305,7 @@ void __fastcall UnbindGlExtensions() {
 static bool __fastcall ScanString(const char *string, const char *ext) {
   unsigned int length = strlen(ext);
   while (*string) {
-    if (!strncmp(string, ext, length)) {
+    if (!SStrCmpI(string, ext, length)) {
       return true;
     }
     while (*string && *string != ' ') {

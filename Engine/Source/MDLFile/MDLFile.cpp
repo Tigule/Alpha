@@ -1,93 +1,59 @@
 #include "MDLStatus.h"
 #include "MDLTypes.h"
+#include "lex.h"
+#include "Base/MsgBuffer.h"
 
 #include <storm.h>
 #include <stdio.h>
-
-class CMsgBuffer {
- public:
-  CMsgBuffer(unsigned int count)
-      : m_alloc(count), m_freeData(count != 0), m_read(0), m_write(0),
-        m_data(count ? static_cast<unsigned char *>(SMemAlloc(count, __FILE__, __LINE__, 0)) : 0) {
-  }
-  ~CMsgBuffer() {
-    if (m_freeData && m_data) {
-      SMemFree(m_data, __FILE__, __LINE__, 0);
-    }
-  }
-  int Bytes() {
-    return m_write - m_read;
-  }
-  unsigned int GetReadPosition() {
-    return m_read;
-  }
-  void SetData(unsigned char *data, unsigned int count, int freeData) {
-    if (m_freeData && m_data) {
-      SMemFree(m_data, __FILE__, __LINE__, 0);
-    }
-    m_alloc = count;
-    m_freeData = freeData;
-    m_read = 0;
-    m_write = count;
-    m_data = data;
-  }
-  void AddDword(unsigned long value) {
-    if (m_write + sizeof(value) > m_alloc) {
-      unsigned int newAlloc = m_alloc ? m_alloc * 2 : 256;
-      while (newAlloc < m_write + sizeof(value)) {
-        newAlloc *= 2;
-      }
-      unsigned char *newData = static_cast<unsigned char *>(SMemAlloc(newAlloc, __FILE__, __LINE__, 0));
-      if (m_write) {
-        memcpy(newData, m_data, m_write);
-      }
-      if (m_freeData && m_data) {
-        SMemFree(m_data, __FILE__, __LINE__, 0);
-      }
-      m_data = newData;
-      m_alloc = newAlloc;
-      m_freeData = 1;
-    }
-    *reinterpret_cast<unsigned long *>(m_data + m_write) = value;
-    m_write += sizeof(value);
-  }
-  unsigned long GetDword() {
-    FATALASSERT(m_read + sizeof(unsigned long) <= m_write);
-    unsigned long value = *reinterpret_cast<unsigned long *>(m_data + m_read);
-    m_read += sizeof(value);
-    return value;
-  }
-  unsigned int GetUint() {
-    return GetDword();
-  }
-  const void *GetData(int count) {
-    FATALASSERT(count >= 0 && m_read + static_cast<unsigned int>(count) <= m_write);
-    const void *data = m_data + m_read;
-    m_read += count;
-    return data;
-  }
-
- private:
-  unsigned int   m_alloc;
-  int            m_freeData;
-  unsigned int   m_read;
-  unsigned int   m_write;
-  unsigned char *m_data;
-};
+#include <stdarg.h>
 
 namespace MDL {
 
   void __fastcall InitializeTokenText();
   void __fastcall DestroyTokenText();
+  int __fastcall CallTextWriteHandlers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  int __fastcall CallBinWriteHandlers(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  int __fastcall CallBinReadHandler(unsigned long, CMsgBuffer &, unsigned int, MDLDATA &, CMDLStatus *);
+  int __fastcall CallTextReadHandler(unsigned int, mdl_scan &, MDLDATA &, CMDLStatus *);
 
 }  // namespace MDL
+
+int __fastcall ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
+
+class CMdlScanner : public mdl_scan {
+ public:
+  CMdlScanner(CMDLStatus *status, const char *input, int size)
+      : mdl_scan(input, size), m_status(status) {
+  }
+
+  virtual void __cdecl mdlerror(char *format, ...);
+
+ private:
+  CMDLStatus *m_status;
+};
+
+void __cdecl CMdlScanner::mdlerror(char *format, ...) {
+  static char buffer[256];
+  va_list args;
+  va_start(args, format);
+  SStrVPrintf(buffer, sizeof(buffer), format, args);
+  va_end(args);
+  m_status->Add(STATUS_FATAL, "Error (line %d): %s\n", mdllineno, buffer);
+}
 
 static CNullStatus s_nullStatus;
 static unsigned int s_defaultWriteFormat;
 
 static int TextToModelData(const void* buffer, MDLDATA& data, CMDLStatus* status) {
-  status->Add(STATUS_FATAL, "Text model parsing is unavailable.\n");
-  return 0;
+  CMdlScanner scanner(status, static_cast<const char *>(buffer), 255);
+  unsigned int token = scanner.mdllex();
+  while (token) {
+    if (!MDL::CallTextReadHandler(token, scanner, data, status)) {
+      return 0;
+    }
+    token = scanner.mdllex();
+  }
+  return ReadObjectPtrs(&data, status);
 }
 
 static int BinToModelData(CMsgBuffer& buf, unsigned int size, MDLDATA& data, CMDLStatus* status) {
@@ -106,9 +72,9 @@ static int BinToModelData(CMsgBuffer& buf, unsigned int size, MDLDATA& data, CMD
     totalLength += 8;
     if (sectionLength) {
       if (sectionLength > static_cast<unsigned int>(buf.Bytes())) {
-        status->Add(STATUS_FATAL, "Section length was greater than remaining file size.\n");
+        status->Add(STATUS_FATAL, "Section length was greater than bytes remaining in file.\n");
         status->Add(
-            STATUS_FATAL, "Section failed after %c%c%c%c at offset 0x%08X.\n",
+            STATUS_FATAL, "Section failed after section '%c%c%c%c' starting at offset %u\n",
             lastSectionTag ? static_cast<char>(lastSectionTag) : ' ',
             lastSectionTag >> 8 ? static_cast<char>(lastSectionTag >> 8) : ' ',
             lastSectionTag >> 16 ? static_cast<char>(lastSectionTag >> 16) : ' ',
@@ -117,24 +83,28 @@ static int BinToModelData(CMsgBuffer& buf, unsigned int size, MDLDATA& data, CMD
         );
         return 0;
       }
-      buf.GetData(sectionLength);
+      if (!MDL::CallBinReadHandler(sectionTag, buf, sectionLength, data, status)) {
+        return 0;
+      }
       totalLength += sectionLength;
     }
     lastSectionTag = sectionTag;
     lastOffset = buf.GetReadPosition();
   }
   if (totalLength <= size) {
-    status->Add(STATUS_FATAL, "Binary model conversion is unavailable.\n");
-    return 0;
+    return ReadObjectPtrs(&data, status);
   }
-  status->Add(STATUS_FATAL, "Mdlfile overran end of file.\n");
+  status->Add(STATUS_FATAL, "MDLFile overran total file size.\n");
   return 0;
+}
+
+static int ModelDataToText(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *status) {
+  return MDL::CallTextWriteHandlers(data, buffer, status);
 }
 
 static int ModelDataToBin(const MDLDATA& data, CMsgBuffer& buffer, CMDLStatus* status) {
   buffer.AddDword(0x584C444D);
-  status->Add(STATUS_FATAL, "Binary model conversion is unavailable.\n");
-  return 0;
+  return MDL::CallBinWriteHandlers(data, buffer, status);
 }
 
 static int IWriteFile(const char* path, const char* mode, const void* data, unsigned int bytes) {
@@ -209,8 +179,15 @@ static int IWriteMdlFile(const char* path, const MDLDATA& mdldata, CMDLStatus* s
       return 1;
     }
   } else {
-    status->Add(STATUS_FATAL, "Text model writing is unavailable.\n");
-    return 0;
+    TSGrowableArray<char> buffer;
+    buffer.SetChunkSize(0x100000);
+    buffer.Reserve(0x400000);
+    if (!ModelDataToText(mdldata, buffer, status)) {
+      return 0;
+    }
+    if (IWriteFile(path, "wt", buffer.Ptr(), buffer.Count())) {
+      return 1;
+    }
   }
   FileWriteError(path, status);
   return 0;

@@ -311,7 +311,7 @@ static void SetFogColors() {
   s_dnInfo.fogInfo.start = s_dnInfo.light.FogStartScalar * s_dnInfo.fogInfo.end;
   s_dnInfo.fogInfo.color = s_dnInfo.light.SkyArray[5];
   s_dnInfo.intFog = 0;
-  s_dnInfo.intFogInfo.color = NTempest::CImVector(0);
+  s_dnInfo.intFogInfo.color = NTempest::CImVector(0ul);
   s_dnInfo.intFogInfo.start = 0.0f;
   s_dnInfo.intFogInfo.end = 0.0f;
 

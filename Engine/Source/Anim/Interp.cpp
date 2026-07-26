@@ -13,6 +13,10 @@ void CKeyFrameTrackBase::SetNumKeys(unsigned int numKeys, unsigned int keySize) 
   m_keyFrames = static_cast<CKeyFrame *>(SMemAlloc(numKeys * keySize, __FILE__, __LINE__, 0));
 }
 
+void CKeyFrameTrackBase::AddKey(int time) {
+  GetKeyFrame(m_numKeyFrames++)->time = time;
+}
+
 void CKeyFrameTrackBase::SetSequenceIndices(const CArray<CAnimSequence> &seq) {
   if (!SequenceChanges()) {
     return;
@@ -83,6 +87,77 @@ unsigned int CKeyFrameTrackBase::SetAnimTime(const CBaseStatus &sequence, CKeyTr
   }
 
   return numKeys;
+}
+
+int CKeyFrameTrackBase::JustPastKeyForward(
+    int elapsedTime,
+    const CAnimSequence &seqShared,
+    int seqElapsed,
+    int seqIsNew,
+    const CKeyTrackStatus &prev,
+    const CKeyTrackStatus &curr
+) const {
+  const CKeyFrame *key = GetKeyFrame(curr.currKey);
+  if (seqIsNew) {
+    return seqElapsed >= key->time;
+  }
+  if (elapsedTime >= seqShared.time.h - seqShared.time.l) {
+    return 1;
+  }
+  if (curr.currKey != prev.currKey) {
+    return 1;
+  }
+
+  int timePastKey = prev.timepastkey + elapsedTime;
+  if (prev.timepastkey < 0) {
+    return timePastKey >= 0;
+  }
+  return timePastKey + seqShared.time.l - seqShared.time.h >= 0;
+}
+
+int CKeyFrameTrackBase::JustPastKeyBackward(
+    int elapsedTime,
+    const CAnimSequence &seqShared,
+    int seqElapsed,
+    int seqIsNew,
+    const CKeyTrackStatus &prev,
+    const CKeyTrackStatus &curr
+) const {
+  const CKeyFrame *key = GetKeyFrame(curr.currKey);
+  if (seqIsNew) {
+    return seqElapsed <= key->time;
+  }
+  if (-elapsedTime >= seqShared.time.h - seqShared.time.l) {
+    return 1;
+  }
+  if (curr.currKey != prev.currKey) {
+    return 1;
+  }
+
+  int timePastKey = prev.timepastkey + elapsedTime;
+  if (prev.timepastkey > 0) {
+    return timePastKey <= 0;
+  }
+  return timePastKey + seqShared.time.h - seqShared.time.l <= 0;
+}
+
+int CKeyFrameTrackBase::JustPastKey(
+    int elapsedTime,
+    const CAnimSequence &seqShared,
+    int seqElapsed,
+    unsigned char sequenceId,
+    int seqIsNew,
+    const CKeyTrackStatus &prev,
+    const CKeyTrackStatus &curr
+) const {
+  unsigned int numKeys = SequenceNeverChanges() ? TotalKeys() : NumKeysThisSeq(sequenceId);
+  if (!numKeys) {
+    return 0;
+  }
+  if (elapsedTime < 0) {
+    return JustPastKeyBackward(elapsedTime, seqShared, seqElapsed, seqIsNew, prev, curr);
+  }
+  return JustPastKeyForward(elapsedTime, seqShared, seqElapsed, seqIsNew, prev, curr);
 }
 
 const CKeyFrame *CKeyFrameTrackBase::NextKey(const CKeyFrame *key) const {

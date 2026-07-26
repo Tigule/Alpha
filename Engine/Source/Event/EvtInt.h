@@ -43,6 +43,10 @@ class EvtIdTable {
     }
   }
 
+  unsigned int NumAllocated() const {
+    return m_allocArray.Count() - m_freeArray.Count();
+  }
+
   T &operator[](unsigned int id) {
     return m_allocArray[id];
   }
@@ -121,7 +125,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   TSExplicitList<EvtKeyDown, 0> m_queueSyncKeyDownList;
   EvtIdTable<EvtTimer *>        m_timerIdTable;
   EvtTimerQueue                 m_timerQueue;
-  void                         *m_propContext;
+  HPROPCONTEXT                  m_propContext;
   void                         *m_callContext;
   unsigned int                  m_startWatchdog;
 
@@ -142,11 +146,11 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
         DEL(timer);
       }
     }
-    PropDeleteContext(static_cast<HPROPCONTEXT>(m_propContext));
+    PropDeleteContext(m_propContext);
     OsCallDestroyContext(m_callContext);
   }
 
-  int IsCurrentContext() const {
+  int IsCurrentContext() {
     return !Id() || reinterpret_cast<void *>(Id()) == PropGet(PROP_EVENTCONTEXT);
   }
 
@@ -165,7 +169,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   }
 
   void SchedSelect() {
-    PropSelectContext(static_cast<HPROPCONTEXT>(m_propContext));
+    PropSelectContext(m_propContext);
     PropSet(PROP_EVENTCONTEXT, reinterpret_cast<void *>(Id()));
     OsCallSetContext(m_callContext);
   }

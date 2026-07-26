@@ -42,6 +42,10 @@ class CGxShaderParam {
     return name;
   }
 
+  Type GetType() {
+    return type;
+  }
+
   CGxShaderParam() : dirty(0) {
     for (unsigned int i = 0; i < 16; ++i) {
       f[i] = 0.0f;
@@ -230,6 +234,22 @@ class CGxMemBuffer {
   void Discard();
   void RemoveBuf(CGxBuf *buf);
 
+  unsigned int GetBase() {
+    return m_base;
+  }
+
+  unsigned int GetCount() {
+    return m_count;
+  }
+
+  unsigned int GetNext() {
+    return m_next;
+  }
+
+  int GetDiscard() {
+    return m_discard;
+  }
+
  protected:
   void InvalidateBufs(CGxBuf::Status vertexStatus, CGxBuf::Status indexStatus);
 
@@ -362,6 +382,9 @@ class CGxMatrixStack {
   void                       Push();
   void                       Pop();
   NTempest::C44Matrix       &Top();
+  const NTempest::C44Matrix &TopConst() {
+    return m_mtx[m_level];
+  }
   const NTempest::C44Matrix &Get() const;
 
   unsigned int        m_level;
@@ -551,6 +574,9 @@ class CGxDevice {
   const CGxCaps            &Caps() const;
   void                      DeviceClearScreenShot();
   unsigned int              PerfCounter(EGxPerfCounter counter);
+  void                      PerfAcc(EGxPerfCounter counter, unsigned int value) {
+    m_perfCountersAcc[counter] += value;
+  }
   static float __fastcall   CpuFrequency();
   static __int64 __fastcall CpuTicks();
   void                      XformProjection(NTempest::C44Matrix &matrix);

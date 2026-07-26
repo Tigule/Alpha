@@ -514,7 +514,7 @@ void CMapEntity::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup)
   end.z -= 4.0f / 3.0f;
   end = end * mapObjDef->invMat;
 
-  NTempest::CImVector lmColor(0);
+  NTempest::CImVector lmColor(0ul);
   if (mapObjGroup->QueryLightmap(NTempest::C3Segment(start, end), lmColor)) {
     AdjustLightmap(lmColor, interiorDirColor, 168, ambientTarget, 96);
   }

@@ -26,7 +26,9 @@ class XMLNode {
   const char *GetBody() const {
     return m_body;
   }
-  int         GetNumAttributes() const;
+  int GetNumAttributes() const {
+    return m_num_attributes;
+  }
   const char *GetAttributeNameByIndex(int index) const;
   const char *GetAttributeValueByIndex(int index) const;
   const char *GetAttributeByName(const char *name) const;

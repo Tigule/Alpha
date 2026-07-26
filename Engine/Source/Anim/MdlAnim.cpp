@@ -1,16 +1,16 @@
 #include "Anim/AnimInternal.h"
+#include "MDLFile/MDLTypes.h"
+#include "Base/Status.h"
 
 #include <stddef.h>
 #include <malloc.h>
 #include <stpl.h>
 
-struct MDLMATERIALSECTION;
-struct MDLGEOSETANIMSECTION;
-struct MDLCAMERASECTION;
-
 unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+int __fastcall MDLFileRead(const char *path, MDLDATA *data, CStatus *status);
 
 CAnim *__fastcall AnimCreate(unsigned int *const objectCounts, unsigned int numGeosets, unsigned int numCameras, unsigned int numMaterialLayers);
+HANIM __fastcall AnimCreate(const char *sourcefile, unsigned int flags, CStatus *status);
 int __fastcall    AnimBuild(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, unsigned int flags);
 
 void __fastcall AnimAddSequences(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, CAnimData *shared);
@@ -30,6 +30,46 @@ unsigned char *__fastcall CreateEventObject(unsigned char *, CAnimData *, const 
 
 void __fastcall BuildHierarchy(CAnimData *shared, const unsigned int *parentIds, const unsigned int *idConversion, unsigned int numObjects);
 void __fastcall AnimInit(CAnim *unique, CAnimData *shared);
+void __fastcall AnimAddSequences(
+    CAnim *unique,
+    CAnimData *shared,
+    const TSGrowableArray<MDLSEQUENCESSECTION> &sequences,
+    const TSGrowableArray<MDLGLOBALSEQSECTION> &globalSeqs
+);
+void __fastcall AnimAddTextureAnim(
+    CAnim *unique,
+    CAnimData *shared,
+    const TSGrowableArray<MDLTEXANIMSECTION> &textureAnims,
+    MDLTRACKTYPE forceType
+);
+void __fastcall AnimAddMaterialLayer(CAnimData *, const MDLTEXLAYER &, unsigned int, MDLTRACKTYPE);
+void __fastcall AnimAddGeoset(CAnimData *, const MDLGEOSETANIMSECTION &, MDLTRACKTYPE);
+void __fastcall AnimAddCamera(CAnimData *, const MDLCAMERASECTION &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetTranslation(CAnimData *, CAnimObj *, const MDLKEYTRACK<NTempest::C3Vector> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetRotation(CAnimData *, CAnimObj *, const MDLKEYTRACK<NTempest::C4Quaternion> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetScaling(CAnimData *, CAnimObj *, const MDLKEYTRACK<NTempest::C3Vector> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetAttenuation(CAnimData *, CAnimLightObj *, const MDLKEYTRACK<float> &, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetColor(CAnimData *, CAnimLightObj *, const MDLKEYTRACK<C3Color> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetIntensity(CAnimData *, CAnimLightObj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetAmbColor(CAnimData *, CAnimLightObj *, const MDLKEYTRACK<C3Color> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetAmbIntensity(CAnimData *, CAnimLightObj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetVisibilityTrack(CAnimData *, CAnimVisibleObj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetParticleEmissionRate2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetParticleGravity2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetParticleVariation2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetEmitterLongitude2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetEmitterLatitude2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetParticleSpeed2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetParticleLength2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetParticleWidth2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetParticleZsource2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetParticleLifeSpan2(CAnimData *, CAnimEmitter2Obj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetRibbonHeightAbove(CAnimData *, CAnimRibbonObj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetRibbonHeightBelow(CAnimData *, CAnimRibbonObj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetRibbonColor(CAnimData *, CAnimRibbonObj *, const MDLKEYTRACK<C3Color> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetRibbonAlpha(CAnimData *, CAnimRibbonObj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
+void __fastcall AnimObjectSetRibbonSlot(CAnimData *, CAnimRibbonObj *, const MDLSIMPLEKEYTRACK<MDLINTKEY> &);
+void __fastcall AnimObjectSetEventTrack(CAnimData *, CAnimEventObj *, const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &);
 
 struct ANIMHASH : public TSHashObject<ANIMHASH, HASHKEY_STRI> {
   HANIM anim;
@@ -264,6 +304,49 @@ unsigned int __fastcall GetGenObjectCount(unsigned char *fileData, unsigned int 
 }
 
 unsigned int __fastcall AnimBuildObjectIdTranslation(
+    const MDLDATA &data,
+    unsigned int flags,
+    TSStackArray<unsigned int> *idConversion
+) {
+  ASSERT(idConversion);
+
+  unsigned int numObjects = data.objects.Count();
+  unsigned int index;
+  for (index = 0; index < numObjects; ++index) {
+    (*idConversion)[index] = index;
+  }
+
+  unsigned int numRemoved = 0;
+  if (!(flags & 1) && data.hitTestShapes.Count()) {
+    unsigned int count = data.hitTestShapes.Count();
+    unsigned int firstObject = data.hitTestShapes[0].objectId;
+    for (index = firstObject; index < firstObject + count; ++index) {
+      (*idConversion)[index] = static_cast<unsigned int>(-1);
+    }
+    for (index = firstObject + count; index < numObjects; ++index) {
+      (*idConversion)[index] = index - count;
+    }
+    numRemoved = count;
+  }
+
+  if ((flags & 2) && data.lights.Count()) {
+    unsigned int count = data.lights.Count();
+    unsigned int firstObject = data.lights[0].objectId;
+    for (index = firstObject; index < firstObject + count; ++index) {
+      (*idConversion)[index] = static_cast<unsigned int>(-1);
+    }
+    for (index = firstObject + count; index < numObjects; ++index) {
+      if ((*idConversion)[index] != static_cast<unsigned int>(-1)) {
+        (*idConversion)[index] = index - count;
+      }
+    }
+    numRemoved += count;
+  }
+
+  return numRemoved;
+}
+
+unsigned int __fastcall AnimBuildObjectIdTranslation(
     unsigned char *fileData,
     unsigned int   fileBytes,
     unsigned int   flags,
@@ -313,6 +396,250 @@ unsigned int __fastcall AnimBuildObjectIdTranslation(
     }
   }
   return numRemoved + count;
+}
+
+static void __fastcall MaterialHandlerAnim(
+    CAnimData *shared,
+    const TSGrowableArray<MDLMATERIALSECTION> &materials,
+    MDLTRACKTYPE forceType
+) {
+  unsigned int layerId = 0;
+  for (unsigned int material = 0; material < materials.Count(); ++material) {
+    for (unsigned int layer = 0; layer < materials[material].texLayers.Count(); ++layer, ++layerId) {
+      AnimAddMaterialLayer(shared, materials[material].texLayers[layer], layerId, forceType);
+    }
+  }
+}
+
+static void __fastcall GeosetHandlerAnim(
+    CAnimData *shared,
+    const TSGrowableArray<MDLGEOSETANIMSECTION> &geosets,
+    MDLTRACKTYPE forceType
+) {
+  shared->geo.ReserveSpace(geosets.Count());
+  shared->geo.m_count = 0;
+  for (unsigned int i = 0; i < geosets.Count(); ++i) {
+    AnimAddGeoset(shared, geosets[i], forceType);
+  }
+}
+
+static void __fastcall CameraHandlerAnim(
+    CAnimData *shared,
+    const TSGrowableArray<MDLCAMERASECTION> &cameras,
+    MDLTRACKTYPE forceType
+) {
+  shared->cameraObjs.ReserveSpace(cameras.Count());
+  shared->cameraObjs.m_count = 0;
+  for (unsigned int i = 0; i < cameras.Count(); ++i) {
+    AnimAddCamera(shared, cameras[i], forceType);
+  }
+}
+
+static void __fastcall GenericHandlerAnim(
+    CAnimData *shared,
+    CAnimObj *currobj,
+    const MDLGENOBJECT &obj,
+    const TSStackArray<unsigned int> &idConversion,
+    MDLTRACKTYPE forceType
+) {
+  SStrCopy(currobj->name, obj.name, sizeof(currobj->name));
+  AnimObjectSetIndex(shared, currobj, idConversion[obj.objectId]);
+  currobj->flags = GetObjectFlags(obj.flags);
+
+  if (shared->seq.Count()) {
+    AnimObjectSetTranslation(shared, currobj, obj.transkeys, forceType);
+    AnimObjectSetRotation(shared, currobj, obj.rotkeys, forceType);
+    AnimObjectSetScaling(shared, currobj, obj.scalekeys, forceType);
+  }
+}
+
+static void __fastcall CreateBone(
+    CAnimData *shared,
+    const MDLBONESECTION &bonedata,
+    const TSStackArray<unsigned int> &idConversion,
+    MDLTRACKTYPE forceType
+) {
+  CAnimBoneObj *currobj = AnimObjectCreateBone(shared);
+  ASSERT(currobj);
+  GenericHandlerAnim(shared, currobj, bonedata, idConversion, forceType);
+  currobj->geosetId = bonedata.geosetId == static_cast<unsigned int>(-1) ? 0xFF : bonedata.geosetAnimId;
+}
+
+static void __fastcall CreateHitTestShape(
+    CAnimData *shared,
+    const MDLHITTESTSHAPE &hitTest,
+    const TSStackArray<unsigned int> &idConversion,
+    MDLTRACKTYPE forceType
+) {
+  CAnimBoneObj *currobj = AnimObjectCreateBone(shared);
+  ASSERT(currobj);
+  GenericHandlerAnim(shared, currobj, hitTest, idConversion, forceType);
+  currobj->geosetId = 0xFF;
+}
+
+static void __fastcall CreateLight(
+    CAnimData *shared,
+    const MDLLIGHTSECTION &lightdata,
+    const TSStackArray<unsigned int> &idConversion,
+    MDLTRACKTYPE forceType
+) {
+  CAnimLightObj *currobj = AnimObjectCreateLight(shared);
+  ASSERT(currobj);
+  GenericHandlerAnim(shared, currobj, lightdata, idConversion, forceType);
+  AnimObjectSetAttenuation(shared, currobj, lightdata.attenstartkeys, lightdata.attenendkeys, forceType);
+  AnimObjectSetColor(shared, currobj, lightdata.colorkeys, forceType);
+  AnimObjectSetIntensity(shared, currobj, lightdata.intensitykeys, forceType);
+  AnimObjectSetAmbColor(shared, currobj, lightdata.ambcolorkeys, forceType);
+  AnimObjectSetAmbIntensity(shared, currobj, lightdata.ambintensitykeys, forceType);
+  AnimObjectSetVisibilityTrack(shared, currobj, lightdata.visibilityKeys, forceType);
+}
+
+static void __fastcall CreateParticleEmitter2(
+    CAnimData *shared,
+    const MDLPARTICLEEMITTER2 &emitterdata,
+    const TSStackArray<unsigned int> &idConversion,
+    MDLTRACKTYPE forceType
+) {
+  CAnimEmitter2Obj *currobj = AnimObjectCreateEmitter2(shared);
+  ASSERT(currobj);
+  GenericHandlerAnim(shared, currobj, emitterdata, idConversion, forceType);
+  currobj->squirts = emitterdata.squirts;
+  AnimObjectSetParticleEmissionRate2(shared, currobj, emitterdata.emissionRate, forceType);
+  AnimObjectSetParticleGravity2(shared, currobj, emitterdata.gravity, forceType);
+  AnimObjectSetEmitterLongitude2(shared, currobj, emitterdata.longitude, forceType);
+  AnimObjectSetEmitterLatitude2(shared, currobj, emitterdata.latitude, forceType);
+  AnimObjectSetParticleSpeed2(shared, currobj, emitterdata.speed, forceType);
+  AnimObjectSetParticleVariation2(shared, currobj, emitterdata.variation, forceType);
+  AnimObjectSetParticleLength2(shared, currobj, emitterdata.length, forceType);
+  AnimObjectSetParticleWidth2(shared, currobj, emitterdata.width, forceType);
+  AnimObjectSetParticleZsource2(shared, currobj, emitterdata.zsource, forceType);
+  AnimObjectSetVisibilityTrack(shared, currobj, emitterdata.visibilityKeys, forceType);
+  AnimObjectSetParticleLifeSpan2(shared, currobj, emitterdata.life, forceType);
+}
+
+static void __fastcall CreateRibbonEmitter(
+    CAnimData *shared,
+    const MDLRIBBONEMITTER &ribbondata,
+    const TSStackArray<unsigned int> &idConversion,
+    MDLTRACKTYPE forceType
+) {
+  CAnimRibbonObj *currobj = AnimObjectCreateRibbon(shared);
+  ASSERT(currobj);
+  GenericHandlerAnim(shared, currobj, ribbondata, idConversion, forceType);
+  AnimObjectSetRibbonHeightAbove(shared, currobj, ribbondata.heightAbove, forceType);
+  AnimObjectSetRibbonHeightBelow(shared, currobj, ribbondata.heightBelow, forceType);
+  AnimObjectSetRibbonAlpha(shared, currobj, ribbondata.alphaKeys, forceType);
+  AnimObjectSetRibbonColor(shared, currobj, ribbondata.colorKeys, forceType);
+  AnimObjectSetRibbonSlot(shared, currobj, ribbondata.textureSlot);
+  AnimObjectSetVisibilityTrack(shared, currobj, ribbondata.visibilityKeys, forceType);
+}
+
+static void __fastcall CreateEventObject(
+    CAnimData *shared,
+    const MDLEVENTSECTION &eventData,
+    const TSStackArray<unsigned int> &idConversion,
+    MDLTRACKTYPE forceType
+) {
+  CAnimEventObj *currobj = AnimObjectCreateEvent(shared);
+  ASSERT(currobj);
+  GenericHandlerAnim(shared, currobj, eventData, idConversion, forceType);
+  AnimObjectSetEventTrack(shared, currobj, eventData.eventKeys);
+}
+
+static void __fastcall CreateHelper(
+    CAnimData *shared,
+    const MDLGENOBJECT &helperdata,
+    const TSStackArray<unsigned int> &idConversion,
+    MDLTRACKTYPE forceType
+) {
+  CAnimObj *currobj = AnimObjectCreateHelper(shared);
+  ASSERT(currobj);
+  GenericHandlerAnim(shared, currobj, helperdata, idConversion, forceType);
+}
+
+static void __fastcall CreateAttachmentPoint(
+    CAnimData *shared,
+    const MDLDATA &data,
+    unsigned int attachId,
+    const TSStackArray<unsigned int> &idConversion,
+    MDLTRACKTYPE forceType
+) {
+  ASSERT(shared);
+  const MDLATTACHMENTSECTION &attachment = data.attachments[attachId];
+  CAnimModelObj *currobj = AnimObjectCreateAttachment(shared);
+  ASSERT(currobj);
+  GenericHandlerAnim(shared, currobj, attachment, idConversion, forceType);
+  AnimObjectSetVisibilityTrack(shared, currobj, attachment.visibilityKeys, forceType);
+
+  const MDLGENOBJECT *object = &attachment;
+  while (object->parentId != static_cast<unsigned int>(-1)) {
+    object = data.objects[object->parentId];
+    if (object >= data.bones.Ptr() && object < data.bones.Ptr() + data.bones.Count()) {
+      const MDLBONESECTION *bone = static_cast<const MDLBONESECTION *>(object);
+      currobj->geosetId = bone->geosetId == static_cast<unsigned int>(-1) ? 0xFF : bone->geosetAnimId;
+      return;
+    }
+  }
+}
+
+static void __fastcall BuildHierarchy(
+    CAnimData *shared,
+    const MDLDATA &data,
+    const TSStackArray<unsigned int> &idConversion
+) {
+  for (unsigned int i = 0; i < data.objects.Count(); ++i) {
+    const MDLGENOBJECT *object = data.objects[i];
+    unsigned int objectId = idConversion[object->objectId];
+    if (objectId == static_cast<unsigned int>(-1)) {
+      continue;
+    }
+
+    unsigned int parentId = object->parentId;
+    if (parentId != static_cast<unsigned int>(-1)) {
+      parentId = idConversion[parentId];
+      FATALASSERT(parentId != static_cast<unsigned int>(-1));
+    }
+    SetObjectParent(shared, objectId, parentId);
+  }
+}
+
+static void __fastcall IAnimCreateObjects(
+    CAnimData *shared,
+    const MDLDATA &data,
+    unsigned int flags,
+    const TSStackArray<unsigned int> &idConversion
+) {
+  MDLTRACKTYPE forceType = (flags & 4) ? TRACK_LINEAR : NUM_TRACK_TYPES;
+  unsigned int i;
+
+  for (i = 0; i < data.bones.Count(); ++i) {
+    CreateBone(shared, data.bones[i], idConversion, forceType);
+  }
+  if (flags & 1) {
+    for (i = 0; i < data.hitTestShapes.Count(); ++i) {
+      CreateHitTestShape(shared, data.hitTestShapes[i], idConversion, forceType);
+    }
+  }
+  if (!(flags & 2)) {
+    for (i = 0; i < data.lights.Count(); ++i) {
+      CreateLight(shared, data.lights[i], idConversion, forceType);
+    }
+  }
+  for (i = 0; i < data.helpers.Count(); ++i) {
+    CreateHelper(shared, data.helpers[i], idConversion, forceType);
+  }
+  for (i = 0; i < data.attachments.Count(); ++i) {
+    CreateAttachmentPoint(shared, data, i, idConversion, forceType);
+  }
+  for (i = 0; i < data.particleEmitters2.Count(); ++i) {
+    CreateParticleEmitter2(shared, data.particleEmitters2[i], idConversion, forceType);
+  }
+  for (i = 0; i < data.ribbonEmitters.Count(); ++i) {
+    CreateRibbonEmitter(shared, data.ribbonEmitters[i], idConversion, forceType);
+  }
+  for (i = 0; i < data.events.Count(); ++i) {
+    CreateEventObject(shared, data.events[i], idConversion, forceType);
+  }
 }
 
 void __fastcall IAnimCreateObjects(
@@ -487,6 +814,104 @@ HANIM __fastcall AnimCreate(unsigned char *fileData, unsigned int fileBytes, uns
   if (!anim) {
     delete unique;
   }
+  return anim;
+}
+
+static int __fastcall AnimBuild(const MDLDATA &data, CAnim *unique, unsigned int flags) {
+  if (!unique) {
+    return 0;
+  }
+  if (flags & 8) {
+    AnimEnableBlending(reinterpret_cast<HANIM>(unique), 1);
+  }
+
+  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  ASSERT(shared);
+  MDLTRACKTYPE forceType = (flags & 4) ? TRACK_LINEAR : NUM_TRACK_TYPES;
+
+  AnimAddSequences(unique, shared, data.sequences, data.globalSeqs);
+  CameraHandlerAnim(shared, data.cameras, forceType);
+  GeosetHandlerAnim(shared, data.geosetAnims, forceType);
+  AnimAddTextureAnim(unique, shared, data.textureanims, forceType);
+  MaterialHandlerAnim(shared, data.materials, forceType);
+
+  unsigned int numObjects = data.objects.Count();
+  TSStackArray<unsigned int> idConversion(
+      static_cast<unsigned int *>(_alloca(numObjects * sizeof(unsigned int))),
+      numObjects,
+      numObjects
+  );
+  AnimBuildObjectIdTranslation(data, flags, &idConversion);
+  IAnimCreateObjects(shared, data, flags, idConversion);
+  BuildHierarchy(shared, data, idConversion);
+  AnimInit(unique, shared);
+  return 1;
+}
+
+HANIM __fastcall AnimCreate(const MDLDATA &data, unsigned int flags, CStatus *status) {
+  const char *animationFile = data.model.animationFile;
+  if (animationFile[0]) {
+    return AnimCreate(animationFile, flags, status);
+  }
+
+  unsigned int animatedLayers = 0;
+  for (unsigned int material = 0; material < data.materials.Count(); ++material) {
+    for (unsigned int layer = 0; layer < data.materials[material].texLayers.Count(); ++layer) {
+      const MDLTEXLAYER &layerData = data.materials[material].texLayers[layer];
+      if (layerData.alphaKeys.keys.Count() || layerData.flipKeys.keys.Count()) {
+        ++animatedLayers;
+      }
+    }
+  }
+
+  unsigned int objectCounts[NUM_OBJ_TYPES];
+  objectCounts[OBJ_TYPE_HELPER] = data.helpers.Count();
+  objectCounts[OBJ_TYPE_LIGHT] = (flags & 2) ? 0 : data.lights.Count();
+  objectCounts[OBJ_TYPE_MODEL] = data.attachments.Count();
+  objectCounts[OBJ_TYPE_BONE] = data.bones.Count() + ((flags & 1) ? data.hitTestShapes.Count() : 0);
+  objectCounts[OBJ_TYPE_EMITTER2] = data.particleEmitters2.Count();
+  objectCounts[OBJ_TYPE_RIBBON] = data.ribbonEmitters.Count();
+  objectCounts[OBJ_TYPE_EVENT] = data.events.Count();
+
+  CAnim *unique = AnimCreate(
+      objectCounts,
+      data.geosetAnims.Count(),
+      data.cameras.Count(),
+      animatedLayers
+  );
+  if (!AnimBuild(data, unique, flags)) {
+    return 0;
+  }
+
+  HANIM anim = static_cast<HANIM>(HandleCreate(unique, "HANIM"));
+  if (!anim) {
+    DEL(unique);
+  }
+  return anim;
+}
+
+HANIM __fastcall AnimCreate(const char *sourcefile, unsigned int flags, CStatus *status) {
+  FATALASSERT(sourcefile);
+
+  HANIM anim = reinterpret_cast<HANIM>(GetAnim(sourcefile));
+  if (anim) {
+    return anim;
+  }
+
+  MDLDATA data;
+  if (!MDLFileRead(sourcefile, &data, status)) {
+    return 0;
+  }
+
+  anim = AnimCreate(data, flags, status);
+  if (!anim) {
+    return 0;
+  }
+  if (AnimGetFlags(anim) & 4) {
+    HandleClose(anim);
+    anim = 0;
+  }
+  HashNewAnim(sourcefile, reinterpret_cast<HANIM__ *>(anim));
   return anim;
 }
 

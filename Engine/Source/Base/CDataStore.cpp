@@ -35,6 +35,21 @@ int CDataStore::InternalFetchWrite(
   return 1;
 }
 
+void CDataStore::SetSize(unsigned int size) {
+  ASSERT(!IsFinal());
+  if (size > m_size) {
+    AssertFetchWrite(m_size, size - m_size, 0, 0);
+  }
+  m_size = size;
+}
+
+void CDataStore::Reserve(unsigned int bytes, const char *fileName, int lineNumber) {
+  ASSERT(!IsFinal());
+  if (bytes > m_alloc) {
+    AssertFetchWrite(0, bytes, fileName, lineNumber);
+  }
+}
+
 #define DATASTORE_SET(type)                                 \
   CDataStore &CDataStore::Set(unsigned int pos, type val) { \
     ASSERT(!IsFinal());                                     \
@@ -81,6 +96,13 @@ DATASTORE_PUT(float)
 
 #undef DATASTORE_PUT
 
+CDataStore &CDataStore::Put(CDataStore &store) {
+  const void  *data;
+  unsigned int size;
+  store.GetBufferParams(&data, &size, 0);
+  return PutData(data, size);
+}
+
 CDataStore &CDataStore::PutString(const char *pval) {
   ASSERT(!IsFinal());
 
@@ -93,6 +115,7 @@ CDataStore &CDataStore::PutString(const unsigned short *pval) {
   unsigned int dstChars;
   unsigned int srcChars;
   unsigned int bytes;
+  unsigned int minBytes;
   int          result;
 
   ASSERT(!IsFinal());
@@ -100,7 +123,8 @@ CDataStore &CDataStore::PutString(const unsigned short *pval) {
 
   bytes = ConvertUTF16toUTF8Length(pval, 0x7FFFFFFF, 0);
   ASSERT(static_cast<int>(bytes) > 0);
-  AssertFetchWrite(m_size, bytes, 0, 0);
+  FetchWrite(m_size, bytes, 0, 0);
+  minBytes = 1;
 
   do {
     unsigned int copyBytes = bytes;
@@ -109,8 +133,8 @@ CDataStore &CDataStore::PutString(const unsigned short *pval) {
       copyBytes = m_alloc;
     }
 
-    if (copyBytes <= 1) {
-      copyBytes = 1;
+    if (copyBytes <= minBytes) {
+      copyBytes = minBytes;
     }
 
     AssertFetchWrite(m_size, copyBytes, 0, 0);
@@ -124,6 +148,7 @@ CDataStore &CDataStore::PutString(const unsigned short *pval) {
     pval += srcChars;
     m_size += dstChars;
     bytes -= dstChars;
+    minBytes = result;
   } while (bytes);
 
   return *this;
@@ -138,7 +163,7 @@ CDataStore &CDataStore::PutArray(const unsigned char *pval, unsigned int count) 
   FATALASSERT(pval || !count);
 
   bytes = count;
-  AssertFetchWrite(m_size, bytes, 0, 0);
+  FetchWrite(m_size, bytes, 0, 0);
 
   while (bytes) {
     copyBytes = bytes;
@@ -165,13 +190,17 @@ CDataStore &CDataStore::PutArray(const unsigned char *pval, unsigned int count) 
   return *this;
 }
 
+CDataStore &CDataStore::PutArray(const char *pval, unsigned int count) {
+  return PutArray(reinterpret_cast<const unsigned char *>(pval), count);
+}
+
 #define DATASTORE_PUT_ARRAY(type, elementSize)                                                      \
   CDataStore &CDataStore::PutArray(const type *pval, unsigned int count) {                          \
     unsigned int bytes;                                                                             \
     ASSERT(!IsFinal());                                                                             \
     FATALASSERT(pval || !count);                                                                    \
     bytes = count * elementSize;                                                                    \
-    AssertFetchWrite(m_size, bytes, 0, 0);                                                          \
+    FetchWrite(m_size, bytes, 0, 0);                                                                \
     while (bytes) {                                                                                 \
       count = bytes;                                                                                \
       if (count >= m_alloc) {                                                                       \
@@ -193,7 +222,9 @@ CDataStore &CDataStore::PutArray(const unsigned char *pval, unsigned int count) 
   }
 
 DATASTORE_PUT_ARRAY(unsigned short, 2)
+DATASTORE_PUT_ARRAY(short, 2)
 DATASTORE_PUT_ARRAY(unsigned long, 4)
+DATASTORE_PUT_ARRAY(long, 4)
 DATASTORE_PUT_ARRAY(unsigned __int64, 8)
 DATASTORE_PUT_ARRAY(float, 4)
 DATASTORE_PUT_ARRAY(unreal, 4)
@@ -309,12 +340,12 @@ CDataStore &CDataStore::GetString(unsigned short *pval, unsigned int maxChars) {
         result = ConvertUTF8toUTF16(
             pval + length, maxChars - length, reinterpret_cast<const char *>(m_data + m_read - m_base), bytes, &dstChars, &srcChars
         );
-        m_read += srcChars;
-
         if (result > 0) {
           Seek(m_size + 1);
           break;
         }
+
+        m_read += srcChars;
 
         if (!result) {
           break;
@@ -377,6 +408,10 @@ CDataStore &CDataStore::GetArray(unsigned char *pval, unsigned int count) {
   return *this;
 }
 
+CDataStore &CDataStore::GetArray(char *pval, unsigned int count) {
+  return GetArray(reinterpret_cast<unsigned char *>(pval), count);
+}
+
 #define DATASTORE_GET_ARRAY(type, elementSize)                                          \
   CDataStore &CDataStore::GetArray(type *pval, unsigned int count) {                    \
     unsigned int bytes;                                                                 \
@@ -412,7 +447,9 @@ CDataStore &CDataStore::GetArray(unsigned char *pval, unsigned int count) {
   }
 
 DATASTORE_GET_ARRAY(unsigned short, 2)
+DATASTORE_GET_ARRAY(short, 2)
 DATASTORE_GET_ARRAY(unsigned long, 4)
+DATASTORE_GET_ARRAY(long, 4)
 DATASTORE_GET_ARRAY(unsigned __int64, 8)
 DATASTORE_GET_ARRAY(float, 4)
 DATASTORE_GET_ARRAY(unreal, 4)

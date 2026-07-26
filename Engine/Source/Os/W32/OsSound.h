@@ -94,6 +94,7 @@ struct Sound : public TSLinkedNode<Sound> {
   static void __fastcall MIDI_Play(const char *midiFilename, const char *dlsFilename);
   static void __fastcall MIDI_Stop();
   static void __fastcall MIDI_SetVolume(float volume);
+  static bool __fastcall MIDI_Playing();
   static void __fastcall Update();
   static void __fastcall GetListenerPosition(NTempest::C3Vector &position);
   static void __fastcall SetListenerAttributes(
@@ -135,6 +136,11 @@ struct Sound : public TSLinkedNode<Sound> {
   static int __fastcall         GetNumMixers();
   static const char *__fastcall GetMixerName(int index);
   static int __fastcall         GetMixRate();
+  static void SetPositionUpdateCallback(
+      unsigned char(__fastcall *callback)(__int64 handle, NTempest::C3Vector &position)
+  ) {
+    m_positionUpdateCallback = callback;
+  }
 
   TSLink<Sound> link;
   TSLink<Sound> fadeLink;

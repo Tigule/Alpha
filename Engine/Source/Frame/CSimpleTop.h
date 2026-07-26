@@ -1,6 +1,7 @@
 #ifndef ENGINE_SOURCE_FRAME_CSIMPLETOP_H
 #define ENGINE_SOURCE_FRAME_CSIMPLETOP_H
 
+#include "Base/Coordinate.h"
 #include "Event/EvtApi.h"
 #include "Frame/CLayoutFrame.h"
 #include "Frame/CSimpleFrame.h"
@@ -169,6 +170,31 @@ class CFrameStrata {
     }
   }
 
+  void OnFrameMovedOrResized(CSimpleFrame *frame) {
+    levelsDirty = 1;
+  }
+
+  void RaiseFrame(CSimpleFrame *frame) {
+    if (frame->IsOccluded()) {
+      frame->SetFrameLevel(topLevel, 1);
+    }
+  }
+
+  int BuildBatches() {
+    unsigned int level;
+
+    batchDirty = 0;
+    for (level = 0; level < topLevel; ++level) {
+      if (levels[level]->BuildBatches()) {
+        batchDirty = 1;
+      }
+    }
+
+    return batchDirty;
+  }
+
+  void OnLayerWindowSizeChanged();
+
   CSimpleFrame *GetToplevelFrame(const NTempest::C2Vector &point) {
     unsigned int level = topLevel;
 
@@ -284,15 +310,55 @@ class CSimpleTop : public CLayoutFrame {
   int  RaiseFrame(const NTempest::C2Vector &pt);
   int  RaiseFrame(CSimpleFrame *frame, int checkOcclusion);
   void RegisterForDelete(CSimpleFrame *frame);
+  void RegisterForMouseButton(int(__fastcall *callback)(const CMouseEvent &)) {
+    ASSERT(!m_mouseButtonCallback);
+    m_mouseButtonCallback = callback;
+  }
+  void UnregisterForMouseButton(int(__fastcall *callback)(const CMouseEvent &)) {
+    ASSERT(m_mouseButtonCallback == callback);
+    m_mouseButtonCallback = 0;
+  }
+  void RegisterForDisplaySize(int(__fastcall *callback)(const CSizeEvent &)) {
+    ASSERT(!m_displaySizeCallback);
+    m_displaySizeCallback = callback;
+  }
+  void UnregisterForDisplaySize(int(__fastcall *callback)(const CSizeEvent &)) {
+    ASSERT(m_displaySizeCallback == callback);
+    m_displaySizeCallback = 0;
+  }
   void RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, unsigned int priority);
   void RegisterFrame(CSimpleFrame *frame);
   void SetLayoutMode(int enabled) {
     m_layout.enabled = enabled;
   }
+  int IsLayoutEnabled() const {
+    return m_layout.enabled;
+  }
+  int IsMovingOrResizing() const {
+    return m_layout.frame != 0;
+  }
   void SetCursor(HMODEL cursor);
+  void HideCursor() {
+    m_cursorVisible = 0;
+  }
+  void ShowCursor() {
+    m_cursorVisible = 1;
+  }
+  void GetMousePosition(NTempest::C2Vector &position) {
+    NDCToDDC(m_mousePosition.x, m_mousePosition.y, &position.x, &position.y);
+  }
+  CSimpleFrame *GetLayerUnderCursor() {
+    return m_mouseFocus;
+  }
   int  StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &start, int resize);
   int  StartMoveOrResizeFrame(const CMouseEvent &start, int resize);
   void StopMoveOrResizeFrame();
+  unsigned long GetLastEventTime() const {
+    return m_eventTime;
+  }
+  void UpdateEventTime(unsigned long time) {
+    m_eventTime = time;
+  }
   void UnregisterForEvent(CSimpleFrame *frame, CSimpleEventType event);
   void UnregisterFrame(CSimpleFrame *frame);
   void ValidateDeletedFrame(CSimpleFrame *frame);

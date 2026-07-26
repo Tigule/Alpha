@@ -125,7 +125,6 @@ void __fastcall BaseFileDestroy() {
   s_critSect.Enter();
   s_activeFiles.Clear();
   s_uncachableFiles.Clear();
-  s_numActiveFiles = 0;
   s_critSect.Leave();
 }
 

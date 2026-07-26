@@ -102,6 +102,10 @@ class CLayoutFrame {
     return (m_flags & 0x1) != 0;
   }
 
+  int HasPoints() const {
+    return m_points.Count() != 0;
+  }
+
  protected:
   void                   DestroyLayout();
   static void __fastcall RemoveFromResizeList(CLayoutFrame *pFrame);

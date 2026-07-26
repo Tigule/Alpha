@@ -137,28 +137,14 @@ void CSimpleSlider::SetValue(float value) {
     value = max;
   }
 
-  if (m_valueStep != 0.0f) {
-    float delta = value - m_baseValue;
-    float halfStep = m_valueStep * 0.5f;
-    int   steps;
-
-    if (delta > 0.0f) {
-      steps = static_cast<int>((delta + halfStep) / m_valueStep);
-    } else {
-      steps = static_cast<int>((delta - halfStep) / m_valueStep);
-    }
-
-    value = steps * m_valueStep + m_baseValue;
-  }
+  value = StepValue(value);
 
   if (!m_valueSet || value != m_value) {
     m_value = value;
     m_changed = 1;
     m_valueSet = 1;
 
-    if (m_onValueChanged) {
-      FrameScript_Execute(m_onValueChanged, this, "%f", value);
-    }
+    RunOnValueChangedScript();
   }
 }
 

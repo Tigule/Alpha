@@ -271,7 +271,7 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
   if (mapObj) {
     for (tries = 0; tries < 2; ++tries) {
       closestT = FLT_MAX;
-      closestC = NTempest::CImVector(0);
+      closestC = NTempest::CImVector(0ul);
       for (unsigned int i = 0; i < 6; ++i) {
         localRadVec.x = dirs[i].x * lMat.a0 + dirs[i].y * lMat.b0 + dirs[i].z * lMat.c0;
         localRadVec.y = dirs[i].x * lMat.a1 + dirs[i].y * lMat.b1 + dirs[i].z * lMat.c1;
@@ -281,7 +281,7 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
         lmQuerySeg.end.y = localPos.y + localRadVec.y * (tries ? 50.0f : (aaSphere.r >= 3.0f ? aaSphere.r : 3.0f)) * invScale;
         lmQuerySeg.end.z = localPos.z + localRadVec.z * (tries ? 50.0f : (aaSphere.r >= 3.0f ? aaSphere.r : 3.0f)) * invScale;
 
-        lmColor = NTempest::CImVector(0);
+        lmColor = NTempest::CImVector(0ul);
         if (mapObj->QueryLightmap(lmQuerySeg, lmColor, &dirDist) && dirDist < closestT) {
           closestT = dirDist;
           closestC = lmColor;

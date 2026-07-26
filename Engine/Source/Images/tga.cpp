@@ -366,6 +366,15 @@ unsigned char *CTgaFile::Image() {
   return m_image;
 }
 
+const unsigned char *CTgaFile::Image() const {
+  if (!m_image) {
+    SErrSetLastError(0xF720007F);
+    return 0;
+  }
+
+  return m_image;
+}
+
 TGA32Pixel *CTgaFile::ImageTGA32Pixel() {
   if (!m_image) {
     SErrSetLastError(0xF720007F);
@@ -378,6 +387,20 @@ TGA32Pixel *CTgaFile::ImageTGA32Pixel() {
   }
 
   return reinterpret_cast<TGA32Pixel *>(m_image);
+}
+
+const TGA32Pixel *CTgaFile::ImageTGA32Pixel() const {
+  if (!m_image) {
+    SErrSetLastError(0xF720007F);
+    return 0;
+  }
+
+  if (m_header.bPixelDepth != 32) {
+    SErrSetLastError(0xF720007D);
+    return 0;
+  }
+
+  return reinterpret_cast<const TGA32Pixel *>(m_image);
 }
 
 int CTgaFile::RemoveAlphaChannels() {
@@ -423,6 +446,22 @@ void CTgaFile::RemoveHeaderTrailer() {
   m_header.bIDLength = 0;
 }
 
+int CTgaFile::SetImage(const CTgaFile &source) {
+  if (!source.Image()) {
+    return 0;
+  }
+
+  return SetImage(
+      source.Image(),
+      source.m_header.wWidth,
+      source.m_header.wHeight,
+      source.m_header.bPixelDepth,
+      source.m_header.Desc.bAlphaChannelBits,
+      source.m_header.Desc.bTopBottomOrder,
+      source.m_header.Desc.bLeftRightOrder
+  );
+}
+
 int CTgaFile::SetImage(
     const void   *pImg,
     unsigned int  width,
@@ -459,6 +498,121 @@ int CTgaFile::SetImage(
   m_footer.dwExtensionOffset = 0;
   m_footer.dwDeveloperOffset = 0;
   SStrCopy(m_footer.szSigniture, "TRUEVISION-XFILE.", sizeof(m_footer.szSigniture));
+  return 1;
+}
+
+int CTgaFile::CountRun(unsigned char *pImage, int nMax) {
+  ASSERT(pImage != 0);
+
+  unsigned int pixelBytes = (m_header.bPixelDepth + 7) / 8;
+  unsigned int check = 0;
+  memcpy(&check, pImage, pixelBytes);
+
+  if (nMax > 128) {
+    nMax = 128;
+  }
+
+  int count = 0;
+  while (nMax) {
+    --nMax;
+    if (memcmp(pImage, &check, pixelBytes)) {
+      break;
+    }
+
+    pImage += pixelBytes;
+    ++count;
+  }
+
+  return count;
+}
+
+int CTgaFile::RleCompressLine(unsigned char **uncompressed, unsigned char **compressed) {
+  ASSERT(uncompressed != 0);
+  ASSERT(*uncompressed != 0);
+  ASSERT(compressed != 0);
+  ASSERT(*compressed != 0);
+
+  unsigned char *pRawImage = *uncompressed;
+  unsigned char *pRLEData = *compressed;
+  unsigned char *copyLength = 0;
+  unsigned int   pixelBytes = (m_header.bPixelDepth + 7) / 8;
+  unsigned int   rawBytes = m_header.wWidth * m_header.wHeight * pixelBytes;
+  int            lineWidth = m_header.wWidth;
+
+  while (lineWidth) {
+    int runLength = CountRun(pRawImage, lineWidth);
+    if (runLength >= 2) {
+      m_imageBytes += pixelBytes + 1;
+      copyLength = 0;
+      if (m_imageBytes >= rawBytes) {
+        return 0;
+      }
+
+      *pRLEData = static_cast<unsigned char>((runLength - 1) | 0x80);
+      memcpy(pRLEData + 1, pRawImage, pixelBytes);
+      pRLEData += pixelBytes + 1;
+      pRawImage += runLength * pixelBytes;
+      lineWidth -= runLength;
+      continue;
+    }
+
+    if (!copyLength || *copyLength == 127) {
+      *pRLEData = 0;
+      copyLength = pRLEData++;
+      ++m_imageBytes;
+    } else {
+      ++*copyLength;
+    }
+
+    m_imageBytes += pixelBytes;
+    if (m_imageBytes >= rawBytes) {
+      return 0;
+    }
+
+    memcpy(pRLEData, pRawImage, pixelBytes);
+    pRLEData += pixelBytes;
+    pRawImage += pixelBytes;
+    --lineWidth;
+  }
+
+  *uncompressed = pRawImage;
+  *compressed = pRLEData;
+  return 1;
+}
+
+int CTgaFile::Compress() {
+  if (!m_image) {
+    SErrSetLastError(0xF7200081);
+    return 0;
+  }
+
+  if (m_header.bImageType >= 9) {
+    SErrSetLastError(0xF7200083);
+    return 0;
+  }
+
+  unsigned char *rawImage = m_image;
+  unsigned char *compressedImage = static_cast<unsigned char *>(ALLOC(m_imageBytes));
+  if (!compressedImage) {
+    return 0;
+  }
+
+  unsigned char *rawCursor = rawImage;
+  unsigned char *compressedCursor = compressedImage;
+  int            rows = m_header.wHeight;
+  m_imageBytes = 0;
+
+  while (rows--) {
+    if (!RleCompressLine(&rawCursor, &compressedCursor)) {
+      FREE(compressedImage);
+      m_imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
+      return 1;
+    }
+  }
+
+  m_header.bImageType += 8;
+  FREE(m_image);
+  m_image = compressedImage;
   return 1;
 }
 

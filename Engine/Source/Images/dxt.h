@@ -109,7 +109,7 @@ inline void __fastcall DxtMakeTableAlpha(const DxtColorBlock &block, Pixel *tabl
         static_cast<unsigned char>((block.color0.r + block.color1.r) / 2), static_cast<unsigned char>((block.color0.g + block.color1.g) / 2),
         static_cast<unsigned char>((block.color0.b + block.color1.b) / 2)
     );
-    table[3] = Pixel(0);
+    table[3] = Pixel(0ul);
   }
 }
 

@@ -66,6 +66,11 @@ struct MDLKEYFRAME {
 
 template <class T>
 struct MDLKEYTRACK {
+  MDLKEYTRACK(MDLTRACKTYPE trackType = TRACK_HERMITE)
+      : type(trackType),
+        globalSeqId(static_cast<unsigned int>(-1)) {
+  }
+
   TSGrowableArray<MDLKEYFRAME<T> > keys;
   MDLTRACKTYPE                     type;
   unsigned int                     globalSeqId;
@@ -78,6 +83,10 @@ struct MDLINTKEY {
 
 template <class T>
 struct MDLSIMPLEKEYTRACK {
+  MDLSIMPLEKEYTRACK()
+      : globalSeqId(static_cast<unsigned int>(-1)) {
+  }
+
   TSGrowableArray<T> keys;
   unsigned int       globalSeqId;
 };
@@ -94,6 +103,15 @@ enum MDLTEXOP {
 };
 
 struct MDLTEXLAYER {
+  MDLTEXLAYER()
+      : blendMode(TEXOP_LOAD),
+        flags(0),
+        textureId(0),
+        transformId(static_cast<unsigned int>(-1)),
+        coordId(0),
+        staticAlpha(1.0f) {
+  }
+
   MDLTEXOP                     blendMode;
   unsigned int                 flags;
   unsigned int                 textureId;
@@ -105,6 +123,10 @@ struct MDLTEXLAYER {
 };
 
 struct MDLMATERIALSECTION {
+  MDLMATERIALSECTION()
+      : priorityPlane(0) {
+  }
+
   TSGrowableArray<MDLTEXLAYER> texLayers;
   int                          priorityPlane;
 };
@@ -128,6 +150,14 @@ struct MDLPRIMITIVES {
 };
 
 struct MDLGEOSETSECTION {
+  MDLGEOSETSECTION()
+      : materialId(0),
+        bounds(),
+        selectionGroup(0),
+        flags(0) {
+    bounds.radius = 0.0f;
+  }
+
   TSGrowableArray<NTempest::C3Vector>                   vertices;
   TSGrowableArray<NTempest::C3Vector>                   normals;
   TSGrowableArray<TSGrowableArray<NTempest::C2Vector> > texCoords;
@@ -145,6 +175,13 @@ struct MDLGEOSETSECTION {
 };
 
 struct MDLGEOSETANIMSECTION {
+  MDLGEOSETANIMSECTION()
+      : staticAlpha(1.0f),
+        flags(0),
+        staticColor(1.0f, 1.0f, 1.0f),
+        geosetId(0) {
+  }
+
   MDLKEYTRACK<float>   alphaKeys;
   float                staticAlpha;
   unsigned int         flags;
@@ -154,6 +191,19 @@ struct MDLGEOSETANIMSECTION {
 };
 
 struct MDLGENOBJECT {
+  MDLGENOBJECT(unsigned int objectFlags = 0)
+      : objectId(0),
+        parentId(static_cast<unsigned int>(-1)),
+        flags(objectFlags) {
+    static_cast<char *>(name)[0] = 0;
+    transkeys.type = TRACK_HERMITE;
+    transkeys.globalSeqId = static_cast<unsigned int>(-1);
+    rotkeys.type = TRACK_HERMITE;
+    rotkeys.globalSeqId = static_cast<unsigned int>(-1);
+    scalekeys.type = TRACK_HERMITE;
+    scalekeys.globalSeqId = static_cast<unsigned int>(-1);
+  }
+
   CMdlString<80>                      name;
   unsigned int                        objectId;
   unsigned int                        parentId;
@@ -164,6 +214,14 @@ struct MDLGENOBJECT {
 };
 
 struct MDLATTACHMENTSECTION : public MDLGENOBJECT {
+  MDLATTACHMENTSECTION()
+      : MDLGENOBJECT(0x400),
+        attachmentId(0) {
+    static_cast<char *>(path)[0] = 0;
+    visibilityKeys.type = TRACK_HERMITE;
+    visibilityKeys.globalSeqId = static_cast<unsigned int>(-1);
+  }
+
   CMdlString<260>    path;
   MDLKEYTRACK<float> visibilityKeys;
   unsigned int       attachmentId;
@@ -238,6 +296,17 @@ enum LIGHT_TYPE {
 };
 
 struct MDLLIGHTSECTION : public MDLGENOBJECT {
+  MDLLIGHTSECTION()
+      : MDLGENOBJECT(0x100),
+        type(LIGHTTYPE_OMNI),
+        staticAttenStart(0.0f),
+        staticAttenEnd(0.0f),
+        staticColor(1.0f, 1.0f, 1.0f),
+        staticIntensity(0.0f),
+        staticAmbColor(1.0f, 1.0f, 1.0f),
+        staticAmbIntensity(0.0f) {
+  }
+
   LIGHT_TYPE           type;
   MDLKEYTRACK<float>   attenstartkeys;
   float                staticAttenStart;
@@ -255,6 +324,12 @@ struct MDLLIGHTSECTION : public MDLGENOBJECT {
 };
 
 struct MDLPARTICLE {
+  MDLPARTICLE()
+      : staticLife(0.0f),
+        staticSpeed(0.0f) {
+    static_cast<char *>(path)[0] = 0;
+  }
+
   CMdlString<260>    path;
   MDLKEYTRACK<float> life;
   float              staticLife;
@@ -263,6 +338,14 @@ struct MDLPARTICLE {
 };
 
 struct MDLPARTICLEEMITTER : public MDLGENOBJECT {
+  MDLPARTICLEEMITTER()
+      : MDLGENOBJECT(0x800),
+        staticEmissionRate(0.0f),
+        staticGravity(0.0f),
+        staticLongitude(0.0f),
+        staticLatitude(0.0f) {
+  }
+
   MDLKEYTRACK<float> emissionRate;
   float              staticEmissionRate;
   MDLKEYTRACK<float> gravity;
@@ -275,12 +358,24 @@ struct MDLPARTICLEEMITTER : public MDLGENOBJECT {
   MDLKEYTRACK<float> visibilityKeys;
 };
 struct MDLTARGETSECTION {
+  MDLTARGETSECTION()
+      : pivot(0.0f) {
+  }
+
   NTempest::C3Vector                  pivot;
   MDLKEYTRACK<NTempest::C3Vector>     transkeys;
 };
 #pragma once
 
 struct MDLCAMERASECTION {
+  MDLCAMERASECTION()
+      : pivot(0.0f),
+        fieldOfView(0.0f),
+        farClip(1000.0f),
+        nearClip(8.0f) {
+    static_cast<char *>(name)[0] = 0;
+  }
+
   CMdlString<80>                      name;
   NTempest::C3Vector                  pivot;
   float                               fieldOfView;
@@ -320,6 +415,73 @@ struct MDLPARTICLEEMITTER2 : public MDLGENOBJECT {
     PT_BOTH = 2,
     NUM_PARTICLE_TYPES = 3
   };
+
+  MDLPARTICLEEMITTER2()
+      : MDLGENOBJECT(0x800),
+        emitterType(PET_BASE),
+        staticSpeed(0.0f),
+        staticVariation(0.0f),
+        staticLatitude(0.0f),
+        staticLongitude(0.0f),
+        staticGravity(0.0f),
+        staticLife(0.0f),
+        staticEmissionRate(0.0f),
+        staticWidth(0.0f),
+        staticLength(0.0f),
+        staticZsource(0.0f),
+        blendMode(PBM_BLEND),
+        rows(1),
+        cols(1),
+        type(PT_HEAD),
+        tailLength(0.0f),
+        middleTime(0.5f),
+        startColor(255.0f, 255.0f, 255.0f),
+        middleColor(255.0f, 255.0f, 255.0f),
+        endColor(255.0f, 255.0f, 255.0f),
+        startAlpha(0),
+        middleAlpha(0),
+        endAlpha(0),
+        startScale(1.0f),
+        middleScale(1.0f),
+        endScale(1.0f),
+        lifespanUVAnimStart(0),
+        lifespanUVAnimEnd(0),
+        lifespanUVAnimRepeat(0),
+        decayUVAnimStart(0),
+        decayUVAnimEnd(0),
+        decayUVAnimRepeat(0),
+        tailUVAnimStart(0),
+        tailUVAnimEnd(0),
+        tailUVAnimRepeat(0),
+        tailDecayUVAnimStart(0),
+        tailDecayUVAnimEnd(0),
+        tailDecayUVAnimRepeat(0),
+        squirts(0),
+        textureId(0),
+        priorityPlane(0),
+        replaceableId(0),
+        twinkleFPS(10.0f),
+        twinkleOnOff(1.0f),
+        twinkleScaleMin(1.0f),
+        twinkleScaleMax(1.0f),
+        ivelScale(1.0f),
+        tumblexMin(0.0f),
+        tumblexMax(0.0f),
+        tumbleyMin(0.0f),
+        tumbleyMax(0.0f),
+        tumblezMin(0.0f),
+        tumblezMax(0.0f),
+        drag(0.0f),
+        spin(0.0f),
+        windVector(0.0f),
+        windTime(0.0f),
+        followSpeed1(0.0f),
+        followScale1(0.0f),
+        followSpeed2(0.0f),
+        followScale2(0.0f) {
+    static_cast<char *>(geometryMdl)[0] = 0;
+    static_cast<char *>(recursionMdl)[0] = 0;
+  }
 
   PARTICLE_EMITTER_TYPE            emitterType;
   float                            staticSpeed;
@@ -442,6 +604,21 @@ struct MDLHITTESTSHAPE : public MDLGENOBJECT {
   } shape;
 };
 struct MDLRIBBONEMITTER : public MDLGENOBJECT {
+  MDLRIBBONEMITTER()
+      : MDLGENOBJECT(0x2000),
+        staticHeightAbove(0.0f),
+        staticHeightBelow(0.0f),
+        staticAlpha(1.0f),
+        staticColor(1.0f, 1.0f, 1.0f),
+        edgesPerSecond(0),
+        edgeLifetime(0.0f),
+        gravity(0.0f),
+        textureRows(0),
+        textureCols(0),
+        staticTextureSlot(0),
+        materialId(0) {
+  }
+
   float                        staticHeightAbove;
   MDLKEYTRACK<float>           heightAbove;
   float                        staticHeightBelow;
@@ -462,6 +639,8 @@ struct MDLRIBBONEMITTER : public MDLGENOBJECT {
 };
 
 struct MDLBASE {
+  void RebuildObjectPtrs();
+
   MDLHEADERSECTION                      header;
   MDLMODELSECTION                       model;
   unsigned int                          version;

@@ -46,6 +46,12 @@ class CDataRecycler {
   virtual void  FreeData(void *data, const char *fileName, int lineNumber);
 
   void GetData(void *&data, unsigned long &bytes, const char *fileName, int lineNumber);
+  void GetAndResizeData(unsigned long allocBytes, void *&data, unsigned long &bytes, const char *fileName, int lineNumber) {
+    GetData(data, bytes, fileName, lineNumber);
+    if (bytes < allocBytes) {
+      data = ReallocData(data, allocBytes, &bytes, fileName, lineNumber);
+    }
+  }
   void PutData(void *data, unsigned long bytes, const char *fileName, int lineNumber);
 
  private:

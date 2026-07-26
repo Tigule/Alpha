@@ -416,6 +416,14 @@ struct CModelRenderData {
 };
 
 void                            EnqueueModelCommand(CModel *model, EModelModQ command, ...);
+HMATERIAL __fastcall            BuildSimpleMaterial(
+    CModelTexture *modelTexture,
+    unsigned int textureId,
+    HTEXTURE texture,
+    EGxBlend blendMode,
+    unsigned int disables,
+    unsigned int replaceableId
+);
 unsigned int __fastcall         MatrixAlloc(unsigned int numMatrices);
 NTempest::C34Matrix *__fastcall MatrixDeref(unsigned int handle);
 int __fastcall                  IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared);

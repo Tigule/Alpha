@@ -17,10 +17,22 @@ namespace NTempest {
     return *this;
   }
 
-  void C3Spline::SetPoints(const C3Vector *pts, unsigned int count) {
-    ISetPoints(pts, count);
+  void C3Spline::ValidateCache() const {
     IValidateCache();
     cachedLength = ILength();
+  }
+
+  void C3Spline::SetPoint(
+      unsigned int pointSub,
+      const C3Vector &point
+  ) {
+    points[pointSub] = point;
+    ValidateCache();
+  }
+
+  void C3Spline::SetPoints(const C3Vector *pts, unsigned int count) {
+    ISetPoints(pts, count);
+    ValidateCache();
   }
 
   void C3Spline::Pos(float t, C3Vector &pos, EvalType ptype) const {
@@ -77,9 +89,8 @@ namespace NTempest {
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
-    const float *coefficient = &coeffs.a0;
-    for (unsigned int i = 0; i < 4; ++i, coefficient += 4) {
-      float           weight = EvaluatePolynomial(3, t, coefficient);
+    for (unsigned int i = 0; i < 4; ++i) {
+      float           weight = EvaluatePolynomial(3, t, coeffs[i]);
       const C3Vector &point = points[segment + i];
       pos.x += weight * point.x;
       pos.y += weight * point.y;
@@ -91,14 +102,58 @@ namespace NTempest {
     der.x = 0.0f;
     der.y = 0.0f;
     der.z = 0.0f;
-    const float *coefficient = &coeffs.a0;
-    for (unsigned int i = 0; i < 4; ++i, coefficient += 3) {
-      float           weight = EvaluatePolynomial(2, t, coefficient);
+    for (unsigned int i = 0; i < 4; ++i) {
+      float           weight = EvaluatePolynomial(2, t, coeffs[i]);
       const C3Vector &point = points[segment + i];
       der.x += weight * point.x;
       der.y += weight * point.y;
       der.z += weight * point.z;
     }
+  }
+
+  void C3Spline::EvaluateDer2(
+      unsigned int segment,
+      float t,
+      const C24Matrix &coeffs,
+      C3Vector &der
+  ) const {
+    der.x = 0.0f;
+    der.y = 0.0f;
+    der.z = 0.0f;
+    for (unsigned int i = 0; i < 4; ++i) {
+      float weight = EvaluatePolynomial(1, t, coeffs[i]);
+      const C3Vector &point = points[segment + i];
+      der.x += weight * point.x;
+      der.y += weight * point.y;
+      der.z += weight * point.z;
+    }
+  }
+
+  void C3Spline::Curvature(
+      unsigned int segment,
+      float t,
+      const C34Matrix &der1coeffs,
+      const C24Matrix &der2coeffs,
+      C3Vector &centerOfCurvature
+  ) const {
+    C3Vector velocity(0.0f);
+    C3Vector acceleration(0.0f);
+    EvaluateDer1(segment, t, der1coeffs, velocity);
+    EvaluateDer2(segment, t, der2coeffs, acceleration);
+    float speed = velocity.Mag();
+    float speedCubed = speed * speed * speed;
+    centerOfCurvature.x =
+        speedCubed
+        / (acceleration.z * velocity.y
+           - velocity.z * acceleration.y);
+    centerOfCurvature.y =
+        speedCubed
+        / (velocity.z * acceleration.x
+           - acceleration.z * velocity.x);
+    centerOfCurvature.z =
+        speedCubed
+        / (acceleration.y * velocity.x
+           - velocity.y * acceleration.x);
   }
 
   float C3Spline::SegLength(unsigned int segment, const C44Matrix &coeffs) const {
@@ -115,6 +170,14 @@ namespace NTempest {
       float z = nextPos.z - curPos.z;
       length += CMath::sqrt_(x * x + y * y + z * z);
       curPos = nextPos;
+    }
+    return length;
+  }
+
+  float C3Spline::ILength(unsigned int segmentCount) const {
+    float length = 0.0f;
+    for (unsigned int i = 0; i < segmentCount; ++i) {
+      length += cachedSegLength[i];
     }
     return length;
   }
@@ -223,11 +286,7 @@ namespace NTempest {
   }
 
   float C3Spline_Bezier3::ILength() const {
-    float length = 0.0f;
-    for (unsigned int i = 0; i < cachedSegLength.Count(); ++i) {
-      length += cachedSegLength[i];
-    }
-    return length;
+    return C3Spline::ILength(points.Count() / 3);
   }
 
   void C3Spline_Bezier3::IValidateCache() const {
@@ -247,6 +306,12 @@ namespace NTempest {
   }
 
   static C44Matrix s_catmullRomCoeffs(-0.5f, 1.5f, -1.5f, 0.5f, 1.0f, -2.5f, 2.0f, -0.5f, -0.5f, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+  static C24Matrix s_catmullRomDer2Coeffs(
+      -3.0f, 3.0f,
+      6.0f, -5.0f,
+      -3.0f, 0.0f,
+      0.0f, 0.0f
+  );
 
   void C3Spline_CatmullRom::Evaluate(unsigned int segment, float t, C3Vector &pos) const {
     if (splineMode == MODE_CATMULLROM) {
@@ -265,6 +330,37 @@ namespace NTempest {
     C3Spline::EvaluateDer1(segment, t, s_catmullRomDer1Coeffs, der);
   }
 
+  void C3Spline_CatmullRom::EvaluateDer2(
+      unsigned int segment,
+      float t,
+      C3Vector &der
+  ) const {
+    C3Spline::EvaluateDer2(
+        segment, t, s_catmullRomDer2Coeffs, der
+    );
+  }
+
+  void C3Spline_CatmullRom::Curvature(
+      float t,
+      C3Vector &centerOfCurvature
+  ) const {
+    static C34Matrix s_catmullRomDer1Coeffs(
+        -1.5f, 3.0f, -1.5f,
+        3.0f, -5.0f, 2.0f,
+        -1.5f, 0.0f, 0.5f,
+        0.0f, 0.0f, 0.0f
+    );
+    unsigned int segment;
+    ArclengthSegT(t, segment, t);
+    C3Spline::Curvature(
+        segment,
+        t,
+        s_catmullRomDer1Coeffs,
+        s_catmullRomDer2Coeffs,
+        centerOfCurvature
+    );
+  }
+
   float C3Spline_CatmullRom::SegLength(unsigned int segment) const {
     return C3Spline::SegLength(segment, s_catmullRomCoeffs);
   }
@@ -278,11 +374,7 @@ namespace NTempest {
   }
 
   float C3Spline_CatmullRom::ILength() const {
-    float length = 0.0f;
-    for (unsigned int i = 0; i < cachedSegLength.Count(); ++i) {
-      length += cachedSegLength[i];
-    }
-    return length;
+    return C3Spline::ILength(points.Count() - 3);
   }
 
   void C3Spline_CatmullRom::IValidateCache() const {

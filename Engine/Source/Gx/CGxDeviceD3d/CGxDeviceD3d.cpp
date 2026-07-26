@@ -138,33 +138,18 @@ int __fastcall CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
     return 0;
   }
 
-  fmt.hwTnL = true;
-  fmt.fixLag = false;
-  fmt.window = false;
-  fmt.vsync = true;
-  fmt.pos.x = 0;
-  fmt.pos.y = 0;
-
-  for (fmt.colorFormat = CGxFormat::Fmt_Rgb565; fmt.colorFormat <= CGxFormat::Fmt_Argb2101010;
-       fmt.colorFormat = static_cast<CGxFormat::Format>(fmt.colorFormat + 1))
-  {
-    format = s_colorFormat[fmt.colorFormat];
-    fmt.depthFormat = static_cast<CGxFormat::Format>(CGxFormat::Fmt_Ds160 + fmt.colorFormat);
-    if (d3d->CheckDeviceType(0, D3DDEVTYPE_HAL, format, format, 0) < 0 ||
-        d3d->CheckDeviceFormat(0, D3DDEVTYPE_HAL, format, 2, D3DRTYPE_SURFACE, s_depthFormat[fmt.colorFormat]) < 0 ||
-        d3d->CheckDepthStencilMatch(0, D3DDEVTYPE_HAL, format, format, s_depthFormat[fmt.colorFormat]) < 0)
-    {
-      continue;
-    }
-
+  for (unsigned int i = 0; i < 4; ++i) {
+    format = s_colorFormat[i];
     nModes = d3d->GetAdapterModeCount(0, format);
     for (mode = 0; mode < nModes; ++mode) {
-      if (d3d->EnumAdapterModes(0, format, mode, &dm) < 0 || dm.Width < 640 || dm.Height < 480 || dm.RefreshRate < 60) {
+      if (d3d->EnumAdapterModes(0, format, mode, &dm) < 0 || dm.Width < 640 || dm.Height < 480) {
         continue;
       }
 
+      memset(&fmt, 0, sizeof(fmt));
       fmt.size.x = dm.Width;
       fmt.size.y = dm.Height;
+      fmt.apiSpecificModeID = mode;
       fmt.refreshRate = dm.RefreshRate;
       formats.Add(1, &fmt);
     }

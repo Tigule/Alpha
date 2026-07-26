@@ -108,6 +108,10 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
     return bitmapData->m_textureValid;
   }
 
+  unsigned int GetCellWidth() {
+    return glyphEndPixel - glyphStartPixel + 1;
+  }
+
   TSLink<CHARCODEDESC> textureRowLink;
   TSLink<CHARCODEDESC> fontGlyphLink;
   int                  dataValid;
@@ -234,6 +238,9 @@ struct CGxFont : public TSLinkedNode<CGxFont> {
   float               ComputeStep(unsigned int currentCode, unsigned int nextCode);
   float               ComputeStepFixedWidth(unsigned int currentCode, unsigned int nextCode);
   float               GetCharAdvance(unsigned int code);
+  unsigned int        GetFlags() {
+    return m_flags;
+  }
 
   TSExplicitList<CGxString, 8>               m_strings;
   TSLink<CGxFont>                            m_batchedRenderLink;
@@ -364,6 +371,27 @@ struct CGxString : public TSLinkedNode<CGxString> {
   int  SetGradient(int startCharacter, int length, const TSGrowableArray<NTempest::CImVector *> &array, unsigned char alpha);
   void SetColor(const NTempest::CImVector &color);
   void SetStringPosition(const NTempest::C3Vector &position);
+  int IsBillboarded() {
+    return (m_flags & 0x80) != 0;
+  }
+  float GetStringHeight() {
+    return m_stringHeight;
+  }
+  unsigned int Flags() {
+    return m_flags;
+  }
+  void AddFlag(unsigned int flag) {
+    m_flags |= flag;
+  }
+  CGxFont *GetCurrentFace() {
+    return m_currentFace;
+  }
+  float GetSavedWidth() {
+    return m_savedWidth;
+  }
+  float GetSavedHeight() {
+    return m_stringHeight;
+  }
   void BuildProjection(NTempest::C44Matrix *projPtr, float minx, float maxx, float miny, float maxy, float pixWidth, float pixHeight);
   void BuildView(NTempest::C44Matrix *viewPtr, float width, float height);
   void ClearInstanceData();

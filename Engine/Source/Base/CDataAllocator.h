@@ -18,6 +18,15 @@ class CDataAllocator {
   void  Clear(const char *fileName, int lineNumber);
   void *GetData(int zero, const char *fileName, int lineNumber);
   void  PutData(void *data, const char *fileName, int lineNumber);
+  unsigned long BytesPerData() {
+    return m_bytesPerData;
+  }
+  unsigned long DataPerBlock() {
+    return m_dataPerBlock;
+  }
+  unsigned long DataUsed() {
+    return m_dataUsed;
+  }
 
   unsigned int m_bytesPerData;
   unsigned int m_dataPerBlock;

@@ -84,18 +84,14 @@ void CSimpleScrollFrame::SetHorizontalScroll(float offset) {
   m_scrollOffset.x = offset;
   UpdateScrollChild();
 
-  if (m_onHorizontalScroll) {
-    FrameScript_Execute(m_onHorizontalScroll, this, "%f", m_scrollOffset.x * 1024.0f * 1.25f);
-  }
+  RunOnHorizontalScrollScript();
 }
 
 void CSimpleScrollFrame::SetVerticalScroll(float offset) {
   m_scrollOffset.y = offset;
   UpdateScrollChild();
 
-  if (m_onVerticalScroll) {
-    FrameScript_Execute(m_onVerticalScroll, this, "%f", m_scrollOffset.y * 1024.0f * 1.25f);
-  }
+  RunOnVerticalScrollScript();
 }
 
 static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect) {
@@ -149,15 +145,9 @@ void CSimpleScrollFrame::UpdateScrollChildRect(float w, float h) {
     m_scrollRange.x = inverseScale * (horizontalRange > 0.0f ? horizontalRange : 0.0f);
     m_scrollRange.y = inverseScale * (verticalRange > 0.0f ? verticalRange : 0.0f);
 
-    if ((fabs(m_scrollRange.x - lastRange.x) >= EPSILON ||
-         fabs(m_scrollRange.y - lastRange.y) >= EPSILON) &&
-        m_onScrollRangeChanged) {
-      FrameScript_Execute(
-          m_onScrollRangeChanged,
-          this,
-          "%f%f",
-          m_scrollRange.x * 1024.0f * 1.25f,
-          m_scrollRange.y * 1024.0f * 1.25f);
+    if (fabs(m_scrollRange.x - lastRange.x) >= EPSILON ||
+        fabs(m_scrollRange.y - lastRange.y) >= EPSILON) {
+      RunOnScrollRangeChangedScript();
     }
   }
 }

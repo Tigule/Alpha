@@ -133,6 +133,9 @@ class CMovementData {
   unsigned int GetMoveFlags() const {
     return m_moveFlags;
   }
+  float              GetCollisionBoxHeight() {
+    return m_collisionBoxHeight;
+  }
   int                ForceSetTransport(unsigned __int64 guid);
   int                SetTransport(unsigned __int64 guid);
   void               RemoveFromMoversList();

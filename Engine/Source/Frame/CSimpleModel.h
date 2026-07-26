@@ -106,8 +106,37 @@ class CSimpleModel : public CSimpleFrame {
     return m_model;
   }
 
+  HCAMERA GetCamera() {
+    return (m_flags & 0x4) ? 0 : m_camera;
+  }
+
+  int HasFog() {
+    return (m_flags & 0x2) != 0;
+  }
+
+  int IsModelLoaded();
+  int IsUserFlagSet(unsigned int flag);
+  void SetUserFlag(unsigned int flag, int set);
+  void SetModelLoaded(int loaded);
+  int IsWaitingForCamera();
+  void SetWaitingForCamera(int waiting);
+
   const NTempest::CImVector &GetFogColor() {
     return m_fogColor;
+  }
+
+  float GetFogNear() {
+    return m_fogNear;
+  }
+
+  float GetFogFar() {
+    return m_fogFar;
+  }
+
+  void RunOnUpdateModelScript() {
+    if (m_onUpdateModel) {
+      FrameScript_Execute(m_onUpdateModel, this);
+    }
   }
 
  protected:

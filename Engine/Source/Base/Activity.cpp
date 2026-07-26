@@ -18,7 +18,7 @@ static unsigned int              s_totalCalls[ACTIVITIES];
 static double                    s_timeScale;
 static int                       s_timeScaleComputed;
 
-void __fastcall ActivitySuspend() {
+static void ActivitySuspend() {
   __int64 currTime = OsGetAsyncTimeClocks();
 
   if (s_activityStack.Count()) {
@@ -28,7 +28,7 @@ void __fastcall ActivitySuspend() {
   }
 }
 
-void __fastcall ActivityResume() {
+static void ActivityResume() {
   s_lastTime = OsGetAsyncTimeClocks();
 }
 

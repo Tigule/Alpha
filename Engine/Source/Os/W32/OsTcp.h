@@ -210,6 +210,9 @@ namespace OsNet {
     TCPNET         *m_net;
 
    protected:
+    CONNLIST ConnList() {
+      return static_cast<CONNLIST>(m_list);
+    }
     void Disconnect(int notify);
 
     friend struct TCPNET;
@@ -636,6 +639,9 @@ namespace OsNet {
 
   struct TCPHOSTADDRINFO : public TSLinkedNode<TCPHOSTADDRINFO> {
     ~TCPHOSTADDRINFO();
+    void Fail() {
+      m_hostAddrProc(0, 0, m_user);
+    }
     void Complete();
 
     char                    *m_hostNameList;
@@ -710,6 +716,24 @@ namespace OsNet {
     void IncRef();
     void DecRef();
     void WakePumpThread();
+    int  PostIo(unsigned long bytes, unsigned long key, OVERLAPPED *overlap) {
+      return PostQueuedCompletionStatus(m_port, bytes, key, overlap);
+    }
+    void BaseWakeThread() {
+      SetEvent(m_baseEvent);
+    }
+    void LoopLock() {
+      m_loopLock.Enter();
+    }
+    void LoopUnlock() {
+      m_loopLock.Leave();
+    }
+    void LoopLinkInput(LOOPCONN::INPUT *input) {
+      m_loopInputList.LinkNode(input, LIST_TAIL, 0);
+    }
+    void LoopLinkDisconnectConn(LOOPCONN *conn) {
+      m_loopDisconnectList.LinkNode(conn, LIST_TAIL, 0);
+    }
     int  PumpThreadsInitialize();
     void PumpThreadsDestroy();
 

@@ -40,6 +40,11 @@ class CBackdropGenerator {
   void GetVertexColor(NTempest::CImVector &color) const;
   void SetBorderVertexColor(const NTempest::CImVector &color);
   void GetBorderVertexColor(NTempest::CImVector &color) const;
+  void SetBackdropTextures(const RCStaticString &background, const RCStaticString &border, unsigned int pieces, int tileBackground);
+  void SetBackdropTextures(const char *background, const char *border, unsigned int pieces, int tileBackground);
+  void SetBackgroundInsets(float right, float left, float top, float bottom);
+  void SetBackgroundSize(float size);
+  void SetCornerSize(float size);
 
  private:
   friend class CGNamePlateFrame;

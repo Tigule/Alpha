@@ -55,9 +55,12 @@ class CTgaFile {
   int            AddAlphaChannel(const void *pImg);
   int            SetTopDown(int set);
   unsigned char *Image();
+  const unsigned char *Image() const;
   TGA32Pixel    *ImageTGA32Pixel();
+  const TGA32Pixel *ImageTGA32Pixel() const;
   int            RemoveAlphaChannels();
   void           RemoveHeaderTrailer();
+  int            SetImage(const CTgaFile &source);
   int            SetImage(
       const void   *pImg,
       unsigned int  width,
@@ -67,7 +70,52 @@ class CTgaFile {
       int           bTopDown,
       int           bRightToLeft
   );
+  int Compress();
   int Write(const char *path);
+
+  unsigned int Width() const {
+    return m_header.wWidth;
+  }
+
+  unsigned int Height() const {
+    return m_header.wHeight;
+  }
+
+  unsigned int Size() const {
+    return Width() * Height();
+  }
+
+  unsigned int BytesPerPixel() const {
+    return (m_header.bPixelDepth + 7) / 8;
+  }
+
+  unsigned int Bytes() const {
+    return Size() * BytesPerPixel();
+  }
+
+  unsigned char AlphaBits() const {
+    return m_header.Desc.bAlphaChannelBits;
+  }
+
+  unsigned char PixelDepth() const {
+    return m_header.bPixelDepth;
+  }
+
+  int IsRightToLeft() const {
+    return m_header.Desc.bLeftRightOrder;
+  }
+
+  int IsTopDown() const {
+    return m_header.Desc.bTopBottomOrder;
+  }
+
+  int IsColorMapped() const {
+    return m_header.bColorMapType != 0;
+  }
+
+  unsigned int ColorMapEntries() const {
+    return m_header.wColorMapEntries;
+  }
 
   unsigned int ColorMapEntryBytes() {
     int componentBits = m_header.bColorMapEntrySize / 3;
@@ -83,6 +131,18 @@ class CTgaFile {
     return m_header.wColorMapEntries * ColorMapEntryBytes();
   }
 
+  unsigned char *ColorMap() {
+    return m_colorMap;
+  }
+
+  const unsigned char *ColorMap() const {
+    return m_colorMap;
+  }
+
+  int IsCompressed() const {
+    return m_header.bImageType >= 9 && m_header.bImageType <= 11;
+  }
+
  private:
   int           ValidateColorDepth();
   void          ConvertColorMapped(unsigned int flags);
@@ -92,6 +152,8 @@ class CTgaFile {
   int           ReadRawImage(unsigned int flags);
   int           ReadRleImage(unsigned int flags);
   int           RLEDecompressImage(unsigned char *pRLEData, unsigned char *pData);
+  int           CountRun(unsigned char *pImage, int nMax);
+  int           RleCompressLine(unsigned char **uncompressed, unsigned char **compressed);
 
  public:
   SFile         *m_file;

@@ -25,6 +25,66 @@ class CLightning {
   void Update(float elapsed);
   void Render(unsigned int boltId, const NTempest::C3Vector &cameraPos);
   void SetTexture(HTEXTURE texture);
+  void SetSrcPos(const NTempest::C3Vector &position) {
+    mSrcPos = position;
+    mRebuildPoints = 1;
+  }
+  void SetDstPos(const NTempest::C3Vector &position) {
+    mDstPos = position;
+    mRebuildPoints = 1;
+  }
+  void SetAvgSegLen(float length) {
+    mAvgSegLen = length;
+    mRebuildPoints = 1;
+  }
+  void SetWidth(float width) {
+    mWidth = width;
+  }
+  void SetColor(NTempest::CImVector color) {
+    mColor = color;
+  }
+  void SetNoiseScale(float scale) {
+    mNoiseScale = scale;
+  }
+  void SetTexCoordScale(float scale) {
+    mTexCoordScale = scale;
+  }
+  void SetCoordUpdateData(LightningCoordUpdateData &data) {
+    mCoordUpdateData = data;
+  }
+  void SetDuration(float duration) {
+    mDuration = duration;
+  }
+  void GetSrcPos(NTempest::C3Vector &position) const {
+    position = mSrcPos;
+  }
+  void GetDstPos(NTempest::C3Vector &position) const {
+    position = mDstPos;
+  }
+  void GetAvgSegLen(float &length) const {
+    length = mAvgSegLen;
+  }
+  void GetWidth(float &width) const {
+    width = mWidth;
+  }
+  void GetColor(NTempest::CImVector &color) const {
+    color = mColor;
+  }
+  void GetNoiseScale(float &scale) const {
+    scale = mNoiseScale;
+  }
+  void GetTexCoordScale(float &scale) const {
+    scale = mTexCoordScale;
+  }
+  void GetTexture(HTEXTURE &texture) const {
+    texture = mTexture;
+  }
+  void GetCoordUpdateData(LightningCoordUpdateData &data) const {
+    data = mCoordUpdateData;
+  }
+  void GetDuration(float &duration) const {
+    duration = mDuration;
+  }
 
  private:
   void BuildStroke(TSFixedArray<NTempest::C3Vector> &points);
@@ -55,8 +115,8 @@ class CLightningManager {
   ~CLightningManager();
 
   BoltID Add(
-      NTempest::C3Vector &source,
-      NTempest::C3Vector &dest,
+      const NTempest::C3Vector &source,
+      const NTempest::C3Vector &dest,
       float               avgSegLen,
       float               width,
       NTempest::CImVector color,
@@ -68,6 +128,14 @@ class CLightningManager {
       void *context
   );
   void Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C3Vector *dst);
+  void SetCoordUpdate(
+      BoltID boltId,
+      void(__fastcall *updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
+      void *context
+  );
+  void  SetColor(BoltID boltId, NTempest::CImVector color);
+  void  GetColor(BoltID boltId, NTempest::CImVector &color);
+  float GetDuration(BoltID boltId);
   void Update(float elapsed);
   void Render(const NTempest::C3Vector &cameraPos);
   void Remove(BoltID boltId);

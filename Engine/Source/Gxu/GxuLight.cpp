@@ -53,7 +53,7 @@ static unsigned long                                s_lastLightsHash;
 static CLightList                                   s_dirLightList;
 static unsigned int                                 s_updateDirLights;
 static unsigned int                                 s_dirLightSet;
-static unsigned int                                 s_forceSettingLights = 1;
+static unsigned char                                s_forceSettingLights = 1;
 static unsigned int                                 s_maxLightsToUse = 8;
 static unsigned long                                s_selectionCount;
 TSHashTableReuse<CLightList, HASHKEY_DWORD, 1>      CLightList::s_lightHashTable;

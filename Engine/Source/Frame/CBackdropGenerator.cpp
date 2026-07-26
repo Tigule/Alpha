@@ -30,8 +30,8 @@ CBackdropGenerator::CBackdropGenerator()
       m_bottomInset(0.0f),
       m_leftInset(0.0f),
       m_rightInset(0.0f),
-      m_color(0),
-      m_borderColor(0) {
+      m_color(0ul),
+      m_borderColor(0ul) {
   m_color.Set(0xFFFFFFFF);
   m_borderColor.Set(0xFFFFFFFF);
 }
@@ -279,6 +279,10 @@ void CBackdropGenerator::SetVertexColor(const NTempest::CImVector &color) {
   }
 }
 
+void CBackdropGenerator::GetVertexColor(NTempest::CImVector &color) const {
+  color = m_color;
+}
+
 void CBackdropGenerator::SetBorderVertexColor(const NTempest::CImVector &color) {
   m_borderColor.a = color.a;
   m_borderColor.r = color.r;
@@ -316,4 +320,8 @@ void CBackdropGenerator::SetBorderVertexColor(const NTempest::CImVector &color) 
   if (m_bottomRightTexture) {
     m_bottomRightTexture->SetVertexColor(color);
   }
+}
+
+void CBackdropGenerator::GetBorderVertexColor(NTempest::CImVector &color) const {
+  color = m_borderColor;
 }

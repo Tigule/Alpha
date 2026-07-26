@@ -4,6 +4,15 @@
 
 #include <math.h>
 
+static void DuplicateTextureArray(const TSGrowableArray<HTEXTURE> &src, TSGrowableArray<HTEXTURE> *dst) {
+  unsigned int numTextures = src.Count();
+  dst->SetCount(numTextures);
+
+  for (unsigned int i = 0; i < numTextures; ++i) {
+    (*dst)[i] = static_cast<HTEXTURE>(HandleDuplicate(reinterpret_cast<HOBJECT>(src[i])));
+  }
+}
+
 void CRibbonEmitter::PrivCopy(const CRibbonEmitter &rhs) {
   m_edges = rhs.m_edges;
   m_writePos = rhs.m_writePos;
@@ -33,10 +42,7 @@ void CRibbonEmitter::PrivCopy(const CRibbonEmitter &rhs) {
   m_edgesPerSec = rhs.m_edgesPerSec;
   m_edgeLifeSpan = rhs.m_edgeLifeSpan;
   m_materials = rhs.m_materials;
-  m_textures.SetCount(rhs.m_textures.Count());
-  for (unsigned int i = 0; i < rhs.m_textures.Count(); ++i) {
-    m_textures[i] = static_cast<HTEXTURE>(HandleDuplicate(reinterpret_cast<HOBJECT>(rhs.m_textures[i])));
-  }
+  DuplicateTextureArray(rhs.m_textures, &m_textures);
   m_replaces = rhs.m_replaces;
   m_diffuseClr = rhs.m_diffuseClr;
   m_texBox = rhs.m_texBox;
@@ -123,7 +129,7 @@ CRibbonEmitter::CRibbonEmitter()
       m_below1(0.0f),
       m_above0(0.0f),
       m_above1(0.0f),
-      m_diffuseClr(0),
+      m_diffuseClr(0ul),
       m_texBox(0.0f),
       m_initialized(0),
       m_updated(0),
@@ -145,12 +151,18 @@ CRibbonEmitter::CRibbonEmitter(const CRibbonEmitter &rhs)
       m_below1(0.0f),
       m_above0(0.0f),
       m_above1(0.0f),
-      m_diffuseClr(0),
+      m_diffuseClr(0ul),
       m_texBox(0.0f),
       m_initialized(0),
       m_updated(0),
       m_currPos(0.0f) {
   PrivCopy(rhs);
+}
+
+const CRibbonEmitter &CRibbonEmitter::operator=(const CRibbonEmitter &rhs) {
+  CloseTextureHandles();
+  PrivCopy(rhs);
+  return *this;
 }
 
 void CRibbonEmitter::Initialize(
@@ -302,6 +314,20 @@ void CRibbonEmitter::SetPos(const NTempest::C44Matrix &orient, const NTempest::C
   m_currPos = pos;
   m_currDir = NTempest::C3Vector(orient.c0, orient.c1, orient.c2);
   m_currVertical = NTempest::C3Vector(orient.b0, orient.b1, orient.b2);
+}
+
+void CRibbonEmitter::SetMats(
+    const TSGrowableArray<CRibbonMat>   &materials,
+    const TSGrowableArray<HTEXTURE>     &textures,
+    const TSGrowableArray<unsigned int> &replaces
+) {
+  ASSERT(materials.Count() == textures.Count());
+  ASSERT(textures.Count() == replaces.Count());
+
+  m_materials = materials;
+  m_replaces = replaces;
+  CloseTextureHandles();
+  DuplicateTextureArray(textures, &m_textures);
 }
 
 void CRibbonEmitter::SetColor(float r, float g, float b) {

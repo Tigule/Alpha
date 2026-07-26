@@ -309,6 +309,10 @@ void __fastcall Sound::MIDI_SetVolume(float volume) {
   }
 }
 
+bool __fastcall Sound::MIDI_Playing() {
+  return s_dmusicPerformance && s_dmusicPerformance->IsPlaying(0, 0);
+}
+
 CMyLoader::CMyLoader() : m_cRef(1) {
   wcscpy(m_wzSearchPath, L"");
 }

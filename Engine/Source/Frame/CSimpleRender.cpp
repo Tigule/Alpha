@@ -546,7 +546,7 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
   unsigned int        fontFlags = rhs.m_font ? TextBlockGetFontFlags(rhs.m_font) : 0;
   float               fontHeight = rhs.m_fontHeight;
   const char         *fontName = rhs.m_font ? TextBlockGetFontName(rhs.m_font) : 0;
-  NTempest::CImVector color(0);
+  NTempest::CImVector color(0ul);
   NTempest::CImVector shadowColor;
   NTempest::C2Vector  shadowOffset(0.0f);
 

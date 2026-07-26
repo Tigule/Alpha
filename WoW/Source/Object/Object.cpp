@@ -36,22 +36,6 @@ void __fastcall CClientMoveUpdate::Skip(CDataStore *packet) {
   }
 }
 
-inline CDataStore &operator<<(CDataStore &packet, unsigned int value) {
-  return packet.Put(value);
-}
-
-inline CDataStore &operator<<(CDataStore &packet, unsigned long value) {
-  return packet.Put(value);
-}
-
-inline CDataStore &operator<<(CDataStore &packet, unsigned __int64 value) {
-  return packet.Put(value);
-}
-
-inline CDataStore &operator<<(CDataStore &packet, float value) {
-  return packet.Put(value);
-}
-
 namespace NTempest {
 
   CDataStore &__fastcall operator<<(CDataStore &s_, const C3Vector &d_) {

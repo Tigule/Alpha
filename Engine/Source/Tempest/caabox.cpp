@@ -2,6 +2,11 @@
 
 namespace NTempest {
 
+  void CAaBox::Enclose(const C3Vector &value) {
+    b = C3Vector::Min(b, value);
+    t = C3Vector::Max(t, value);
+  }
+
   CAaBox __fastcall CAaBox::Bounding(const C3Vector *vectors, unsigned long count) {
     ASSERT(vectors != 0);
 

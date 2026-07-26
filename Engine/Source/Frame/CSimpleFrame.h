@@ -133,8 +133,20 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return m_level;
   }
 
+  void SetId(int id) {
+    m_id = id;
+  }
+
+  int GetId() {
+    return m_id;
+  }
+
   CSimpleTop *GetTop() {
     return m_top;
+  }
+
+  CSimpleFrame *GetParent() {
+    return m_parent;
   }
 
   CSimpleFrame *GetToplevelFrame() {
@@ -156,6 +168,14 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
 
   int GetFrameStrata() {
     return m_strata;
+  }
+
+  int IsDialog() {
+    return m_strata == 4;
+  }
+
+  int IsTooltip() {
+    return m_strata == 5;
   }
 
   CSimpleTitleRegion *GetTitleRegion() {
@@ -206,6 +226,22 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
 
   int IsVisible() {
     return m_visible;
+  }
+
+  int IsShown() {
+    return m_shown;
+  }
+
+  void RegisterForDrag(unsigned int buttons) {
+    m_lookForDrag = buttons;
+  }
+
+  int ScaleBy(float scaleX, float scaleY, FRAMEPOINT anchor, NTempest::CRect *rect) {
+    return CLayoutFrame::ScaleBy(reinterpret_cast<CLayoutFrame *>(m_top), scaleX, scaleY, anchor, rect);
+  }
+
+  int DragBy(float deltaX, float deltaY, FRAMEPOINT anchor, NTempest::CRect *rect) {
+    return CLayoutFrame::DragBy(reinterpret_cast<CLayoutFrame *>(m_top), deltaX, deltaY, anchor, rect);
   }
 
   void AddFrameRegion(CSimpleRegion *region, unsigned int drawlayer);
@@ -344,10 +380,33 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     }
   }
 
-  void RunOnDragStartScript(const char *button) {
+  void RunOnDragStartScript(MOUSEBUTTON button) {
+    const char *buttonName;
+
+    switch (button) {
+      case MOUSE_BUTTON_LEFT:
+        buttonName = "LeftButton";
+        break;
+      case MOUSE_BUTTON_MIDDLE:
+        buttonName = "MiddleButton";
+        break;
+      case MOUSE_BUTTON_RIGHT:
+        buttonName = "RightButton";
+        break;
+      case MOUSE_BUTTON_XBUTTON1:
+        buttonName = "Button4";
+        break;
+      case MOUSE_BUTTON_XBUTTON2:
+        buttonName = "Button5";
+        break;
+      default:
+        buttonName = "UNKNOWN";
+        break;
+    }
+
     ASSERT(!m_loading);
     if (m_onDragStart) {
-      FrameScript_Execute(m_onDragStart, this, "%s", button);
+      FrameScript_Execute(m_onDragStart, this, "%s", buttonName);
     }
   }
 
@@ -398,17 +457,63 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     }
   }
 
-  void RunOnMouseDownScript(const char *button) {
+  void RunOnMouseDownScript(MOUSEBUTTON button) {
+    const char *buttonName;
+
+    switch (button) {
+      case MOUSE_BUTTON_LEFT:
+        buttonName = "LeftButton";
+        break;
+      case MOUSE_BUTTON_MIDDLE:
+        buttonName = "MiddleButton";
+        break;
+      case MOUSE_BUTTON_RIGHT:
+        buttonName = "RightButton";
+        break;
+      case MOUSE_BUTTON_XBUTTON1:
+        buttonName = "Button4";
+        break;
+      case MOUSE_BUTTON_XBUTTON2:
+        buttonName = "Button5";
+        break;
+      default:
+        buttonName = "UNKNOWN";
+        break;
+    }
+
     ASSERT(!m_loading);
     if (m_onMouseDown) {
-      FrameScript_Execute(m_onMouseDown, this, "%s", button);
+      FrameScript_Execute(m_onMouseDown, this, "%s", buttonName);
     }
   }
 
-  void RunOnMouseUpScript(const char *button) {
+  void RunOnMouseUpScript(MOUSEBUTTON button) {
+    const char *buttonName;
+
+    switch (button) {
+      case MOUSE_BUTTON_LEFT:
+        buttonName = "LeftButton";
+        break;
+      case MOUSE_BUTTON_MIDDLE:
+        buttonName = "MiddleButton";
+        break;
+      case MOUSE_BUTTON_RIGHT:
+        buttonName = "RightButton";
+        break;
+      case MOUSE_BUTTON_XBUTTON1:
+        buttonName = "Button4";
+        break;
+      case MOUSE_BUTTON_XBUTTON2:
+        buttonName = "Button5";
+        break;
+      default:
+        buttonName = "UNKNOWN";
+        break;
+    }
+
     ASSERT(!m_loading);
     if (m_onMouseUp) {
-      FrameScript_Execute(m_onMouseUp, this, "%s", button);
+      FrameScript_Execute(m_onMouseUp, this, "%s", buttonName);
     }
   }
 
@@ -448,6 +553,15 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void EnableEvent(CSimpleEventType event, unsigned int priority);
   void SetBeingScrolled(int on);
   void SetBackdrop(CBackdropGenerator *backdrop);
+  CBackdropGenerator *GetBackdrop() {
+    return m_backdrop;
+  }
+  TSList<REGIONNODE, TSGetLink<REGIONNODE> > &GetRegions() {
+    return m_regions;
+  }
+  TSList<SIMPLEFRAMENODE, TSGetLink<SIMPLEFRAMENODE> > &GetChildren() {
+    return m_children;
+  }
   int  SetHighlight(const char *texFile, EGxBlend blendMode);
   int  SetHighlight(CSimpleTexture *texture, EGxBlend blendMode);
   void SetFrameFlag(int flag, int on);
@@ -456,9 +570,24 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void SetOccluded(int occluded) {
     SetFrameFlag(0x10, occluded);
   }
+  void SetMovable(int movable) {
+    SetFrameFlag(0x100, movable);
+  }
+  void SetResizable(int resizable) {
+    SetFrameFlag(0x200, resizable);
+  }
+  void SetToplevel(int toplevel) {
+    SetFrameFlag(0x1, toplevel);
+  }
   void SetHitRect(const NTempest::CRect &rect);
   void SetHitRectInsets(float left, float right, float top, float bottom);
   void SetParent(CSimpleFrame *parent);
+  void SetTooltip(CSimpleFrame *tooltip) {
+    m_tooltip = tooltip;
+  }
+  void SetTitleRegion(CSimpleTitleRegion *titleRegion) {
+    m_titleRegion = titleRegion;
+  }
   void SetUserPlaced(int userPlaced) {
     SetFrameFlag(0x1000, userPlaced);
   }
@@ -476,6 +605,8 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
+  void AnchorDrawRegion(CSimpleRegion *region, unsigned int drawlayer);
+  void UnanchorDrawRegion(CSimpleRegion *region);
   void ParentFrame(CSimpleFrame *frame);
   void UnparentFrame(CSimpleFrame *frame);
 

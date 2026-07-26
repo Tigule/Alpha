@@ -6,31 +6,31 @@
 
 class CEvent : public TRefCnt {
  public:
-  CEvent(unsigned int id = static_cast<unsigned int>(-1), void *param = 0) : m_id(id), m_param(param) {
+  CEvent(unsigned int id = static_cast<unsigned int>(-1), void *param = 0) : id(id), param(param) {
   }
 
   virtual ~CEvent() {
   }
 
   unsigned int Id() const {
-    return m_id;
+    return id;
   }
 
-  void SetId(unsigned int id) {
-    m_id = id;
+  void SetId(unsigned int value) {
+    id = value;
   }
 
   void *GetParam() const {
-    return m_param;
+    return param;
   }
 
-  void SetParam(void *param) {
-    m_param = param;
+  void SetParam(void *value) {
+    param = value;
   }
 
  private:
-  unsigned int m_id;
-  void        *m_param;
+  unsigned int id;
+  void        *param;
 };
 
 class CCharEvent : public CEvent, public EVENT_DATA_CHAR {
@@ -45,6 +45,18 @@ class CCharEvent : public CEvent, public EVENT_DATA_CHAR {
   CCharEvent &operator=(const EVENT_DATA_CHAR &data) {
     static_cast<EVENT_DATA_CHAR &>(*this) = data;
     return *this;
+  }
+
+  int IsShiftDown() {
+    return metaKeyState & (1 << KEY_SHIFT);
+  }
+
+  int IsControlDown() {
+    return metaKeyState & (1 << KEY_CONTROL);
+  }
+
+  int IsAltDown() {
+    return metaKeyState & (1 << KEY_ALT);
   }
 
   virtual ~CCharEvent() {
@@ -69,6 +81,24 @@ class CImeEvent : public CEvent, public EVENT_DATA_IME {
   }
 };
 
+class CFocusEvent : public CEvent, public EVENT_DATA_FOCUS {
+ public:
+  CFocusEvent() {
+  }
+
+  CFocusEvent(const EVENT_DATA_FOCUS &data) {
+    static_cast<EVENT_DATA_FOCUS &>(*this) = data;
+  }
+
+  CFocusEvent &operator=(const EVENT_DATA_FOCUS &data) {
+    static_cast<EVENT_DATA_FOCUS &>(*this) = data;
+    return *this;
+  }
+
+  virtual ~CFocusEvent() {
+  }
+};
+
 class CKeyEvent : public CEvent, public EVENT_DATA_KEY {
  public:
   CKeyEvent() {
@@ -81,6 +111,18 @@ class CKeyEvent : public CEvent, public EVENT_DATA_KEY {
   CKeyEvent &operator=(const EVENT_DATA_KEY &data) {
     static_cast<EVENT_DATA_KEY &>(*this) = data;
     return *this;
+  }
+
+  int IsShiftDown() {
+    return metaKeyState & (1 << KEY_SHIFT);
+  }
+
+  int IsControlDown() {
+    return metaKeyState & (1 << KEY_CONTROL);
+  }
+
+  int IsAltDown() {
+    return metaKeyState & (1 << KEY_ALT);
   }
 
   virtual ~CKeyEvent() {

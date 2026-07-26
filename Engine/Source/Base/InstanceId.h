@@ -19,7 +19,7 @@ class TInstanceId : public TSLinkedNode<T> {
     m_id = id;
   }
 
-  unsigned long Id() const {
+  unsigned long Id() {
     return m_id;
   }
 

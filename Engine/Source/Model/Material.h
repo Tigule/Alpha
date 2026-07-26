@@ -67,7 +67,7 @@ struct CMaterialShared : public CHandleObject {
 
 struct CMaterial : public CHandleObject {
  public:
-  CMaterial() : data(0), emissiveColor(0) {
+  CMaterial() : data(0), emissiveColor(0ul) {
   }
 
   CMaterial(const CMaterial &source)

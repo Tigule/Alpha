@@ -108,3 +108,36 @@ void CParticleKey::SetScales(float start, float end) {
   m_endScale = end;
   m_deltaScale = end - start;
 }
+
+void CParticleKey::Segment(float &startTime, float &endTime) {
+  startTime = m_normStartTime;
+  endTime = m_normEndTime;
+}
+
+void CParticleKey::Repeat(float &repeat) {
+  repeat = m_repeat;
+}
+
+void CParticleKey::LifeSpan(float &lifeSpan) {
+  lifeSpan = m_lifeSpan;
+}
+
+void CParticleKey::Colors(NTempest::CImVector &start, NTempest::CImVector &end) {
+  start = m_startColor;
+  end = m_endColor;
+}
+
+void CParticleKey::HeadCells(int &start, int &end) {
+  start = m_headStart;
+  end = m_headEnd;
+}
+
+void CParticleKey::TailCells(int &start, int &end) {
+  start = m_tailStart;
+  end = m_tailEnd;
+}
+
+void CParticleKey::Scales(float &start, float &end) {
+  start = m_startScale;
+  end = m_endScale;
+}
