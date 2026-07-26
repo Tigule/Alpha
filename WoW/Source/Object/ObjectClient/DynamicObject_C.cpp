@@ -153,6 +153,24 @@ void CGDynamicObject_C::Reenable() {
   AddWorldObject();
 }
 
+int CGDynamicObject_C::SetBlock(unsigned int, unsigned long) {
+  FATALASSERT(0);
+  return 1;
+}
+
+void CGDynamicObject_C::SetData(const void *data, unsigned int bytes) {
+  FATALASSERT(bytes <= sizeof(*m_dynamicObj));
+  memcpy(m_dynamicObj, data, bytes);
+}
+
+unsigned int __fastcall CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
+  if (type == ID_OBJECT) {
+    return 0;
+  }
+  FATALASSERT(type == ID_DYNAMICOBJECT);
+  return 24;
+}
+
 SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() {
   SpellRec *spellRec = g_spellDB.GetRecord(m_dynamicObj->m_spellID);
   if (!spellRec) {

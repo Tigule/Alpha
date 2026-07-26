@@ -40,6 +40,8 @@ class CGBag_C : public CGBag {
   }
 
   int                               GetItemTypeCount(int entryID, unsigned int flags) const;
+  int                               GetWidth(unsigned int offset) const;
+  int                               GetHeight(unsigned int offset) const;
   static GAME_ERROR_TYPE __fastcall GetGameError(BAG_RESULT result);
   CGItem_C                         *FindItem(int(__fastcall *func)(const CGItem_C *, void *), void *param, unsigned int flags) const;
   CGItem_C                         *FindItemOfType(int entryID, unsigned int flags) const;

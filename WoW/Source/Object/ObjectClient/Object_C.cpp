@@ -501,6 +501,10 @@ void CGObject_C::ReportMissingAttachment(unsigned int objectID, const char *mode
   ReportMissingAnimObj("MODELMISSINGATTACHMENT", objectID, modelName);
 }
 
+void CGObject_C::ReportMissingEventObject(unsigned int objectID, const char *modelName) const {
+  ReportMissingAnimObj("MODELMISSINGEVENTOBJ", objectID, modelName);
+}
+
 void CGObject_C::ReportMissingBone(unsigned int objectID, const char *modelName) const {
   ReportMissingAnimObj("MODELMISSINGBONE", objectID, modelName);
 }
@@ -815,6 +819,10 @@ int CGObject_C::IsObjectModelLoaded() {
   return m_flags & 0x20;
 }
 
+int CGObject_C::AreAttachmentsLoaded() const {
+  return m_flags & 0x40;
+}
+
 int CGObject_C::UpdateAttachmentLoadStatus() {
   if ((m_flags & 0x40) || !m_model || !ModelIsLoaded(m_model, 1)) {
     return 0;
@@ -822,6 +830,19 @@ int CGObject_C::UpdateAttachmentLoadStatus() {
 
   m_flags |= 0x40;
   return 1;
+}
+
+void CGObject_C::SetCircleRenderStates() const {
+  if (!s_selectionTexture || !s_fadeTex) {
+    return;
+  }
+
+  GxRsSet(GxRs_Blend, 3);
+  GxRsSet(GxRs_Culling, 0);
+  GxRsSet(GxRs_Lighting, 0);
+  GxRsSet(GxRs_DepthWrite, 0);
+  GxRsSet(GxRs_Texture0, TextureGetGxTex(s_selectionTexture, 1, 0));
+  GxRsSet(GxRs_Texture1, s_fadeTex);
 }
 
 float CGObject_C::GetRenderFacing() const {

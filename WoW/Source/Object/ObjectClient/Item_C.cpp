@@ -4,17 +4,24 @@
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/GameUI.h"
 #include "Ui/ItemTextFrame.h"
+#include "Net/NetClient/NetClient.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
 
+#include <Base/CDataStore.h>
 #include <Base/Status.h>
 #include <DB/DBClient/DBClient.h>
 #include <DB/DBClient/DBCacheInstances.h>
 #include <DB/DBClient/AutoCode/ItemDisplayInfoRec.h>
+#include <DB/DBClient/AutoCode/ItemGroupSoundsRec.h>
 #include <DB/DBClient/AutoCode/MaterialRec.h>
 #include <Services/SysMessage.h>
 #include <Services/Texture.h>
 #include <Object/ItemStats.h>
 #include <Os/OsTime.h>
 #include <stpl.h>
+#include <Tempest/cimvector.h>
+
+extern const int *const g_ITEMTYPEARRAY;
 
 bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
 void __fastcall ClntObjMgrHideObject(unsigned __int64 guid);
@@ -31,7 +38,14 @@ class CGActionBar {
   static void __fastcall UpdateItem(int entryID);
 };
 
-static int OnUpdateOwner(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int __fastcall OnUpdateEnchantments(
+    unsigned __int64, unsigned int, unsigned int, const void *, void *
+);
+static int __fastcall OnUpdateItemID(
+    unsigned __int64, unsigned int, unsigned int, const void *, void *
+);
+
+static int __fastcall OnUpdateOwner(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   FATALASSERT(prevValue);
@@ -52,7 +66,7 @@ static int OnUpdateOwner(unsigned __int64 guid, unsigned int offset, unsigned in
   return 1;
 }
 
-static int OnUpdateStackCount(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int __fastcall OnUpdateStackCount(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
@@ -66,6 +80,31 @@ static int OnUpdateStackCount(unsigned __int64 guid, unsigned int offset, unsign
 CGItem_C::~CGItem_C() {
 }
 
+void CGItem_C::InstallObjMirrorHandlers() {
+  unsigned int offset = OffsetOf(ID_ITEM);
+  ClntObjMgrSetObjMirrorHandler(
+      GetGUID(), offset, 8, OnUpdateOwner, 0, HANDLER_PRIORITY_NORMAL
+  );
+  ClntObjMgrSetObjMirrorHandler(
+      GetGUID(), offset + 24, 4, OnUpdateStackCount, 0, HANDLER_PRIORITY_NORMAL
+  );
+  ClntObjMgrSetObjMirrorHandler(
+      GetGUID(), offset + 56, 60, OnUpdateEnchantments, 0, HANDLER_PRIORITY_NORMAL
+  );
+}
+
+void CGItem_C::InstallItemIDMirrorHandler() {
+  ClntObjMgrSetObjMirrorHandler(
+      GetGUID(), OffsetOf(ID_OBJECT) + 12, 4, OnUpdateItemID, 0, HANDLER_PRIORITY_NORMAL
+  );
+}
+
+void CGItem_C::UninstallItemIDMirrorHandler() {
+  ClntObjMgrUnsetObjMirrorHandler(
+      GetGUID(), OffsetOf(ID_OBJECT) + 12, OnUpdateItemID, 0
+  );
+}
+
 struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
   char *textureName;
 };
@@ -73,7 +112,7 @@ struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
 static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryTextures;
 static HASHKEY_NONE                            s_nullInventoryArtKey;
 
-static int OnUpdateEnchantments(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
+static int __fastcall OnUpdateEnchantments(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
   CGItem_C *item = static_cast<CGItem_C *>(
       ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (item) {
@@ -89,7 +128,7 @@ static void __fastcall ItemIDChangedCacheCallback(int id, const unsigned __int64
   }
 }
 
-static int OnUpdateItemID(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int __fastcall OnUpdateItemID(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   FATALASSERT(prevValue);
@@ -141,12 +180,79 @@ CGItem_C::CGItem_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
 
 static void __fastcall LoadItemCacheCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  if (!item || !granted) {
+  if (!item) {
     return;
   }
-  if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
+
+  if (granted) {
     CGContainerInfo::UpdateContents(item->GetContainedIn());
-    CGActionBar::UpdateItem(item->GetEntryID());
+    item->PostInitWithStats();
+  }
+}
+
+void CGItem_C::PostInit(const CClientObjCreate &init) {
+  CGObject_C::PostInit(init);
+
+  unsigned __int64 guid = GetGUID();
+  if (g_itemDBCache.GetRecord(GetEntryID(), guid, LoadItemCacheCallback, 0)) {
+    PostInitWithStats();
+  }
+}
+
+void CGItem_C::PostInitWithStats() {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  FATALASSERT(stats);
+
+  InstallObjMirrorHandlers();
+  InstallItemIDMirrorHandler();
+
+  const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(GetDisplayID());
+  m_soundsRec =
+      displayInfo ? g_itemGroupSoundsDB.GetRecord(displayInfo->m_groupSoundIndex) : 0;
+
+  if (m_item->m_owner == ClntObjMgrGetActivePlayer()) {
+    CGActionBar::UpdateItem(GetEntryID());
+    CGContainerInfo::UpdateItem(GetGUID());
+  }
+
+  m_itemInfo.m_classID = static_cast<unsigned char>(GetClassID());
+  m_itemInfo.m_subclassID = static_cast<unsigned char>(GetSubtypeID());
+  m_itemInfo.m_material = static_cast<unsigned char>(GetMaterial());
+  m_itemInfo.m_inventoryType = static_cast<unsigned char>(GetInventoryType());
+  m_itemInfo.m_sheatheType = static_cast<unsigned char>(GetSheatheType());
+}
+
+void CGItem_C::Disable(int shutdown) {
+  UninstallItemIDMirrorHandler();
+  RemoveWorldObject();
+
+  unsigned int offset = OffsetOf(ID_ITEM);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset, OnUpdateOwner, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset + 24, OnUpdateStackCount, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset + 56, OnUpdateEnchantments, 0);
+
+  if (CGGameUI::GetCursorItem() == GetGUID()) {
+    CGGameUI::ClearCursor(0);
+  }
+  if (CGItemText::GetItem() == GetGUID()) {
+    const unsigned __int64 noGuid = 0;
+    CGItemText::SetItem(noGuid, 0);
+  }
+
+  bool updateUI = !shutdown && m_item->m_owner == ClntObjMgrGetActivePlayer();
+  CGObject_C::Disable(shutdown);
+  if (updateUI) {
+    CGActionBar::UpdateItem(GetEntryID());
+  }
+}
+
+void CGItem_C::Reenable() {
+  CGObject_C::Reenable();
+  if (!m_item->m_owner) {
+    AddWorldObject();
+    InstallObjMirrorHandlers();
+    InstallItemIDMirrorHandler();
   }
 }
 
@@ -314,6 +420,17 @@ int CGItem_C::GetExpirationTimeLeft() {
   return 0;
 }
 
+int CGItem_C::GetEnchantmentTimeLeft(int slot) {
+  FATALASSERT((slot >= 0) && (slot < 5));
+  if (m_enchantmentExpiration[slot]) {
+    unsigned long now = OsGetAsyncTimeMs();
+    if (static_cast<long>(now - m_enchantmentExpiration[slot]) < 0) {
+      return m_enchantmentExpiration[slot] - now;
+    }
+  }
+  return 0;
+}
+
 void CGItem_C::UpdateEnchantmentTime(int slot, int timeLeft) {
   FATALASSERT((slot >= 0) && (slot < 5));
   if (timeLeft <= 0) {
@@ -363,11 +480,13 @@ int CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
   return stats && (stats->m_flags & flags) == flags;
 }
 
-int CGItem_C::GetMaterial() {
-  return m_itemInfo.m_material;
+int CGItem_C::GetMaterial() const {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  return stats ? stats->m_material : 0;
 }
 
-int CGItem_C::IsMetal() {
+int CGItem_C::IsMetal() const {
   return IsMetal(GetMaterial());
 }
 
@@ -376,12 +495,90 @@ int __fastcall CGItem_C::IsMetal(unsigned int material) {
   return rec && (rec->m_flags & 1);
 }
 
-int CGItem_C::GetSheatheType() {
-  ItemStats *stats = GetStats();
-  return stats ? stats->m_sheatheType : 0;
-}
-
 ItemStats *CGItem_C::GetStats() {
   const unsigned __int64 noGuid = 0;
   return const_cast<ItemStats_C *>(g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0));
+}
+
+int CGItem_C::SetBlock(unsigned int i, unsigned long data) {
+  if (i < OffsetOf(ID_ITEM)) {
+    return CGObject_C::SetBlock(i, data);
+  }
+
+  i -= OffsetOf(ID_ITEM);
+  FATALASSERT(i < sizeof(*m_item) / sizeof(unsigned long));
+  reinterpret_cast<unsigned long *>(m_item)[i] = data;
+  return 1;
+}
+
+void CGItem_C::SetData(const void *data, unsigned int bytes) {
+  FATALASSERT(bytes <= sizeof(*m_item));
+  memcpy(m_item, data, bytes);
+}
+
+unsigned int __fastcall CGItem_C::OffsetOf(OBJECT_TYPE_ID type) {
+  if (type == ID_OBJECT) {
+    return 0;
+  }
+  FATALASSERT(type == ID_ITEM);
+  return 24;
+}
+
+int CGItem_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
+  FATALASSERT(outPtr);
+  *outPtr = NTempest::CImVector(0xFFFFFFFF);
+  return 1;
+}
+
+void CGItem_C::OnRightClick() {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(
+      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)
+  );
+  if (!player || player->GetUnitData()->health <= 0) {
+    return;
+  }
+
+  CDataStore msg;
+  msg.Put(static_cast<int>(CMSG_AUTOSTORE_GROUND_ITEM));
+  msg.Put(GetGUID());
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
+
+int CGItem_C::GetPageTextID(
+    void(__fastcall *func)(int, const unsigned __int64 &, void *, bool)
+) const {
+  unsigned __int64 guid = GetGUID();
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), guid, func, 0);
+  return stats ? stats->m_pageText : 0;
+}
+
+const char *CGItem_C::GetObjectName() const {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  return stats ? stats->m_displayName[0] : 0;
+}
+
+int CGItem_C::GetMaxCount() const {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  return stats ? stats->m_maxCount : 1;
+}
+
+bool CGItem_C::IsExotic() const {
+  return GetItemStaticFlag(ITEM_FLAG_EXOTIC) != 0;
+}
+
+int CGItem_C::CanGoInSlot(unsigned int slot) const {
+  return slot >= 23 || (g_ITEMTYPEARRAY[GetInventoryType()] & (1 << slot)) != 0;
+}
+
+int CGItem_C::GetSheatheInvisible() const {
+  return GetSheatheType() > 4;
+}
+
+bool CGItem_C::IsWrapper() const {
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  return stats && (stats->m_flags & ITEM_FLAG_IS_WRAPPER) != 0;
 }

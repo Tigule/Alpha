@@ -28,12 +28,12 @@ class CGContainer_C : public CGItem_C, public CGContainer {
   }
   virtual void                   Disable(int shutdown);
   virtual void                   Reenable();
-  float                          GetCloseXOffset();
-  float                          GetCloseYOffset();
-  float                          GetSlotXOffset();
-  float                          GetSlotYOffset();
-  int                            GetWidth();
-  int                            GetHeight();
+  float                          GetCloseXOffset() const;
+  float                          GetCloseYOffset() const;
+  float                          GetSlotXOffset() const;
+  float                          GetSlotYOffset() const;
+  int                            GetWidth() const;
+  int                            GetHeight() const;
   int                            SetBlock(unsigned int i, unsigned long data);
   void                           SetData(const void *data, unsigned int bytes);
   static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);

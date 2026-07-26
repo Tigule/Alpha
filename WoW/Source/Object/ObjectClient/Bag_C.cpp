@@ -25,6 +25,15 @@ static int __fastcall FindItemIDCallback(const CGItem_C *item, void *param) {
   return item->GetEntryID() == *static_cast<int *>(param);
 }
 
+int CGBag_C::GetWidth(unsigned int offset) const {
+  unsigned int width = NumSlots() - offset;
+  return width > 4 ? 4 : width;
+}
+
+int CGBag_C::GetHeight(unsigned int offset) const {
+  return (NumSlots() - offset + 3) / 4;
+}
+
 CGItem_C *CGBag_C::FindItemOfType(int entryID, unsigned int flags) const {
   unsigned __int64 bagGUID;
   unsigned int     slot;

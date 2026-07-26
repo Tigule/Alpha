@@ -4,6 +4,8 @@
 #include "Component/Component.h"
 #include "DB/DBClient/AutoCode/CreatureDisplayInfoRec.h"
 #include "DB/DBClient/AutoCode/CreatureModelDataRec.h"
+#include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
+#include "Game/GameClient/GuildClient.h"
 #include "Net/NetClient/NetClient.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
@@ -19,6 +21,8 @@
 struct CORPSEANIMDATA {
   unsigned __int64 guid;
 };
+
+void __fastcall ClntObjMgrShowObject(unsigned __int64 guid);
 
 static TInstanceAllocator<CORPSEANIMDATA> s_freeAnimData(20);
 
@@ -40,7 +44,7 @@ CGCorpse_C::CGCorpse_C(unsigned long *storage, unsigned long eventTime, CClientO
     : CGObject_C(storage, eventTime, init), CGCorpse(storage), m_animData(0) {
   m_corpse->m_position = init->move.status.worldPosition;
   m_corpse->m_facing = init->move.status.worldFacing;
-  InitPreferredGeosets();
+  InitComponents();
 }
 
 CGCorpse_C::~CGCorpse_C() {
@@ -61,11 +65,12 @@ CGCorpse_C::~CGCorpse_C() {
 
 void CGCorpse_C::PostInit(const CClientObjCreate &init) {
   CGObject_C::PostInit(init);
-  ClntObjMgrHideObject(GetGUID());
+  ClntObjMgrShowObject(GetGUID());
 
+  AddComponents();
   if (m_geosetHandle) {
     CharCustomizationCommitItemGeosets(m_geosetHandle, 0);
-    UpdateWorldObject();
+    Animate();
   }
 
   HMODEL model = GetObjectModel();
@@ -94,6 +99,30 @@ void CGCorpse_C::Reenable() {
   CGObject_C::Reenable();
   AddWorldObject();
   DoFade(255, 0);
+}
+
+int CGCorpse_C::SetBlock(unsigned int i, unsigned long data) {
+  if (i < OffsetOf(ID_CORPSE)) {
+    return CGObject_C::SetBlock(i, data);
+  }
+
+  i -= OffsetOf(ID_CORPSE);
+  FATALASSERT(i < sizeof(*m_corpse) / sizeof(unsigned long));
+  reinterpret_cast<unsigned long *>(m_corpse)[i] = data;
+  return 1;
+}
+
+void CGCorpse_C::SetData(const void *data, unsigned int bytes) {
+  FATALASSERT(bytes < sizeof(*m_corpse));
+  memcpy(m_corpse, data, bytes);
+}
+
+unsigned int __fastcall CGCorpse_C::OffsetOf(OBJECT_TYPE_ID type) {
+  if (type == ID_OBJECT) {
+    return 0;
+  }
+  FATALASSERT(type == ID_CORPSE);
+  return 24;
 }
 
 const char *CGCorpse_C::GetModelFileName() const {
@@ -146,6 +175,126 @@ void CGCorpse_C::InitPreferredGeosets() {
     m_preferredGeosets[CGS_FACIAL_SIDEBURN] = beardStyleData.sideBurnGeoset;
     m_preferredGeosets[CGS_FACIAL_MOUSTACHE] = beardStyleData.moustacheGeoset;
   }
+}
+
+void CGCorpse_C::InitComponents() {
+  CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_corpse->m_displayID);
+  if (!displayInfo || !g_creatureModelDataDB.GetRecord(displayInfo->m_modelID)) {
+    return;
+  }
+
+  HMODEL model = GetObjectModel();
+  FATALASSERT(model);
+
+  HTEXTURE skinTexture =
+      CharCustomizationSetSkin(model, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_skinID, 0);
+  if (!skinTexture) {
+    FATALERROR(
+        ("Error, skinID %d on corpse (race/sex is %d/%d) cannot be loaded, is it a missing file?",
+         m_corpse->m_skinID, m_corpse->m_raceID, m_corpse->m_sex)
+    );
+  }
+
+  unsigned int textureLayerHolds[4];
+  CharCustomizationGetTextureLayerHolds(
+      m_corpse->m_raceID, m_corpse->m_sex, textureLayerHolds, 4
+  );
+
+  m_texComponent =
+      TexComponentCreate(skinTexture, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_skinID, 0, 0);
+  FATALASSERT(m_texComponent);
+  HandleClose(skinTexture);
+
+  CharCustomizationSetFaceTexture(
+      model, m_texComponent, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_faceID,
+      m_corpse->m_skinID, 0
+  );
+  CharCustomizationSetHairTexture(
+      model, m_texComponent, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_hairStyleID,
+      m_corpse->m_hairColorID
+  );
+  CharCustomizationSetFacialTexture(
+      model, m_texComponent, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID,
+      m_corpse->m_hairColorID
+  );
+
+  BEARDSTYLEDATA facialData = {1, 1, 1};
+  int hasFacialData = CharCustomizationGetBeardStyle(
+      m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, &facialData
+  );
+
+  m_geosetHandle = CharCustomizationCreateGeosetHandle(model);
+  FATALASSERT(m_geosetHandle);
+  InitPreferredGeosets();
+  CharCustomizationInitBaseCharacter(
+      m_geosetHandle, hasFacialData ? facialData.beardGeoset : 1,
+      hasFacialData ? facialData.sideBurnGeoset : 1,
+      hasFacialData ? facialData.moustacheGeoset : 1, 2
+  );
+  CharCustomizationResetHairGeoset(
+      m_geosetHandle, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_hairStyleID
+  );
+}
+
+void CGCorpse_C::AddComponents() {
+  for (int slot = 0; slot < 19; ++slot) {
+    unsigned int item = m_corpse->m_items[slot];
+    if (item) {
+      AddComponent(item & 0xFFFFFF, item >> 24, slot, 0);
+    }
+  }
+}
+
+void CGCorpse_C::AddComponent(int displayID, unsigned int inventoryType, int slot, int commit) {
+  FATALASSERT(inventoryType < 27);
+  if (slot == 17) {
+    return;
+  }
+
+  const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
+  if (m_texComponent) {
+    if ((1 << slot) & 0x403F8) {
+      CStatus status;
+      TexComponentAdd(&status, m_corpse->m_sex, m_texComponent, displayInfo, inventoryType, 1);
+    }
+
+    if (displayInfo && (displayInfo->m_flags & 1) && slot == 18 && inventoryType == 19 &&
+        m_corpse->m_guildID) {
+      int eStyle;
+      int eColor;
+      int bStyle;
+      int bColor;
+      int background;
+      if (GuildGetGuildTabard(
+              m_corpse->m_guildID, 0, eStyle, eColor, bStyle, bColor, background
+          )) {
+        ComponentApplyTabardTexture(
+            m_texComponent, eStyle, eColor, bStyle, bColor, background
+        );
+      }
+    }
+
+    CharCustomizationAddItemGeosets(
+        m_geosetHandle, displayInfo, inventoryType, m_texComponent, m_corpse->m_raceID,
+        commit == 0
+    );
+  }
+
+  if (commit) {
+    CharCustomizationCommitItemGeosets(m_geosetHandle, 0);
+    Animate();
+  }
+
+  if (!slot) {
+    HeadGeosetHideCharGeosets(
+        m_geosetHandle, displayInfo, m_corpse->m_raceID, m_preferredGeosets, 15
+    );
+  }
+
+  ObjComponentAdd(
+      m_corpse->m_raceID, m_corpse->m_sex, 1, GetObjectModel(), displayInfo, inventoryType, 0, 0,
+      0, 0, slot
+  );
 }
 
 void CGCorpse_C::OnLeftClick() {

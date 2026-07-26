@@ -21,7 +21,7 @@ struct CGItemData {
   ItemEnchantment  m_enchantment[5];
   int              pad;
 };
-struct ItemGroupSoundsRec;
+class ItemGroupSoundsRec;
 class CGItemText;
 class ItemStats;
 struct SpellCast;
@@ -62,6 +62,10 @@ class CGItem_C : public CGObject_C, public CGItem {
   CGItem_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
   virtual ~CGItem_C();
 
+  void         PostInit(const CClientObjCreate &init);
+  void         PostInitWithStats();
+  virtual void Disable(int shutdown);
+  virtual void Reenable();
   static void __fastcall        Initialize();
   static void __fastcall        Shutdown();
   static const char *__fastcall GetInventoryArt(int displayID);
@@ -73,11 +77,10 @@ class CGItem_C : public CGObject_C, public CGItem {
   int                           GetClassID() const;
   int                           GetSubtypeID() const;
   int                           GetSheatheType() const;
-  int                           IsMetal();
+  int                           IsMetal() const;
   static int __fastcall         IsMetal(unsigned int material);
   int                           GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const;
-  int                           GetMaterial();
-  int                           GetSheatheType();
+  int                           GetMaterial() const;
   ItemStats                    *GetStats();
   int                           GetStackCount() const {
     return m_item->m_stackCount;
@@ -102,10 +105,25 @@ class CGItem_C : public CGObject_C, public CGItem {
   void         UpdateExpirationTime(int timeLeft);
   int          GetExpirationTimeLeft();
   void         UpdateEnchantmentTime(int slot, int timeLeft);
+  int          GetEnchantmentTimeLeft(int slot);
   unsigned int GetInventoryType() const;
+  int          GetMaxCount() const;
+  bool         IsExotic() const;
+  int          CanGoInSlot(unsigned int slot) const;
+  int          GetSheatheInvisible() const;
+  bool         IsWrapper() const;
   bool         Use();
 
   void SetStorage(unsigned long *storage);
+  int  SetBlock(unsigned int i, unsigned long data);
+  void SetData(const void *data, unsigned int bytes);
+  static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);
+  virtual int         GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
+  virtual void        OnRightClick();
+  virtual int GetPageTextID(
+      void(__fastcall *func)(int, const unsigned __int64 &, void *, bool)
+  ) const;
+  virtual const char *GetObjectName() const;
 
   ItemGroupSoundsRec *GetGroupSoundRec() const {
     return m_soundsRec;
@@ -116,6 +134,10 @@ class CGItem_C : public CGObject_C, public CGItem {
   }
 
  private:
+  void InstallObjMirrorHandlers();
+  void InstallItemIDMirrorHandler();
+  void UninstallItemIDMirrorHandler();
+
   unsigned int        m_flags;
   VirtualItemInfo     m_itemInfo;
   unsigned long       m_expirationTime;

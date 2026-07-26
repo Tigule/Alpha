@@ -64,6 +64,7 @@ class CGObject_C : public CGObject {
   }
   void SetObjectModel(HMODEL__ *model);
   int  IsObjectModelLoaded();
+  int  AreAttachmentsLoaded() const;
   int  ObjectModelSetSequence(HMODEL__ *model, unsigned int sequence, unsigned int flags, const char *modelName);
   int  ObjectModelSetBoneSequence(HMODEL__ *model, unsigned int sequence, unsigned int objectID, unsigned int flags);
   int  AddAttachment(HMODEL__ *parent, unsigned int parentIndex, HMODEL__ *child, float scale);
@@ -135,6 +136,7 @@ class CGObject_C : public CGObject {
   virtual void                OnLeftClick();
   virtual void                OnRightClick();
   virtual NTempest::C34Matrix GetMatrix() const;
+  void                        SetCircleRenderStates() const;
 
   void HideHighlightType(HIGHLIGHTTYPE type);
   void ShowHighlightType(HIGHLIGHTTYPE type);
@@ -145,6 +147,7 @@ class CGObject_C : public CGObject {
 
  public:
   virtual const char *GetObjectName() const;
+  void                ReportMissingEventObject(unsigned int objectID, const char *modelName) const;
   virtual int         GetPageTextID(void(__fastcall *func)(int, const unsigned __int64 &, void *, bool)) const;
   void                DoFade(unsigned char alpha, unsigned int fadeTimeMs);
   unsigned int        GetAlpha() const {
