@@ -148,9 +148,9 @@ void __fastcall RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVecto
   NTempest::C3Vector yprime;
 
   WorldMatrixGetRow(2, &zprime);
-  xprime = NTempest::C3Vector::Cross(zprime, NTempest::C3Vector(-cameraVector.x, -cameraVector.y, -cameraVector.z));
-  xprime.Normalize();
-  yprime = NTempest::C3Vector::Cross(zprime, xprime);
+  yprime = NTempest::C3Vector::Cross(zprime, NTempest::C3Vector(-cameraVector.x, -cameraVector.y, -cameraVector.z));
+  yprime.Normalize();
+  xprime = NTempest::C3Vector::Cross(yprime, zprime);
   WorldMatrixRemove(4);
   WorldMatrixBasis(xprime, yprime, zprime);
 }
@@ -178,7 +178,7 @@ void __fastcall RotateViewXAxisBillboarded(const NTempest::C3Vector &cameraVecto
   WorldMatrixGetRow(0, &xprime);
   zprime = NTempest::C3Vector::Cross(NTempest::C3Vector(-cameraVector.x, -cameraVector.y, -cameraVector.z), xprime);
   zprime.Normalize();
-  yprime = NTempest::C3Vector::Cross(zprime, xprime);
+  yprime = NTempest::C3Vector::Cross(xprime, zprime);
   WorldMatrixRemove(4);
   WorldMatrixBasis(xprime, yprime, zprime);
 }
