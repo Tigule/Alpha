@@ -767,8 +767,8 @@ void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
   NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
   float              temp;
 
-  fx = static_cast<float>(chunk->aIndex.x + 1) * 33.333332f;
-  temp = static_cast<float>(chunk->aIndex.y + 1) * 33.333332f;
+  fx = static_cast<float>(chunk->cOffset.x + 1) * 33.333332f;
+  temp = static_cast<float>(chunk->cOffset.y + 1) * 33.333332f;
   farCorner = NTempest::C2Vector(fx, temp);
   temp = 17066.666f - farCorner.x;
   farCorner.x = 17066.666f - farCorner.y;
@@ -846,8 +846,8 @@ void CChunkLiquid::RenderRiver0V(CGxVertexPNT0 *vtx) {
   float              temp;
   const float        OO_MAX_RIVER_COLOR_DSQ = 1.0f / 225.0f;
 
-  fx = static_cast<float>(chunk->aIndex.x + 1) * 33.333332f;
-  temp = static_cast<float>(chunk->aIndex.y + 1) * 33.333332f;
+  fx = static_cast<float>(chunk->cOffset.x + 1) * 33.333332f;
+  temp = static_cast<float>(chunk->cOffset.y + 1) * 33.333332f;
   farCorner = NTempest::C2Vector(fx, temp);
   temp = 17066.666f - farCorner.x;
   farCorner.x = 17066.666f - farCorner.y;
@@ -894,8 +894,8 @@ void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
 
   cycles = CWorld::GetCurTimeSec() * MAGMA_SCROLL_RATE;
   scrollx = cycles - static_cast<float>(static_cast<int>(cycles));
-  fx = static_cast<float>(chunk->aIndex.x + 1) * 33.333332f;
-  temp = static_cast<float>(chunk->aIndex.y + 1) * 33.333332f;
+  fx = static_cast<float>(chunk->cOffset.x + 1) * 33.333332f;
+  temp = static_cast<float>(chunk->cOffset.y + 1) * 33.333332f;
   farCorner = NTempest::C2Vector(fx, temp);
   temp = 17066.666f - farCorner.x;
   farCorner.x = 17066.666f - farCorner.y;
