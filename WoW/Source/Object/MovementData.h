@@ -141,6 +141,8 @@ class CMovementData {
   friend class CGUnit_C;
   friend class CGPlayer_C;
   friend class CGInputControl;
+  friend class CGGameObject_C_Type_MapObjTransport;
+  friend class CGGameObject_C_Type_Transport;
 
   TSLink<CMovementData> moveLink;
   TSLink<CMovementData> transportLink;
@@ -265,6 +267,7 @@ class CMovement : public CMovementData {
   void                   OnStrafeStart(unsigned long eventTime, int left);
   int                    OnStrafeStop(unsigned long eventTime);
   void                   OnJump(unsigned long eventTime);
+  void                   OnFall(unsigned long eventTime);
   void                   OnTurnStart(unsigned long eventTime, int left);
   void                   OnTurnStop(unsigned long eventTime);
   void                   OnPitchStart(unsigned long eventTime, int up);

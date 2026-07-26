@@ -10,6 +10,8 @@ enum UI_SPELL_TYPE {
 };
 
 class CGSpellBook {
+  friend class CGGameObject_C;
+
  public:
   static void __fastcall         InitializeGame();
   static void __fastcall         ShutdownGame();

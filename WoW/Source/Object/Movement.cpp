@@ -952,6 +952,11 @@ void CMovement::OnFallLocal(unsigned long eventTime) {
   AddPlayerMoveEvent(eventTime, PMOVE_FALL, 0.0f);
 }
 
+void CMovement::OnFall(unsigned long eventTime) {
+  StartFalling(eventTime);
+  AddToMoversList();
+}
+
 void CMovement::Halt(unsigned long eventTime) {
   if (m_moveFlags & 0x4000) {
     if (!(m_moveFlags & 0x10000)) {

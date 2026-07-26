@@ -237,6 +237,39 @@ void __fastcall CMap::LoadMapObjNames() {
   }
 }
 
+CMapDoodadDef *__fastcall CMap::CreateDoodadDef(
+    const char *fileName, NTempest::C3Vector &pos, float angle, int bWait
+) {
+  FATALASSERT(fileName);
+
+  unsigned int id = uniqueId--;
+  HASHKEY_DWORD key;
+  FATALASSERT(!doodadDefHash.Ptr(id, key));
+
+  CMapDoodadDef *doodadDef = AllocDoodadDef();
+  FATALASSERT(doodadDef);
+  doodadDefHash.Insert(doodadDef, id, key);
+
+  doodadDef->pos = pos;
+  doodadDef->aaSphere.c = pos;
+  doodadDef->aaSphere.r = 0.0f;
+  doodadDef->aaBox.b = pos;
+  doodadDef->aaBox.t = pos;
+  doodadDef->scale = 1.0f;
+
+  doodadDef->mat = NTempest::C44Matrix();
+  doodadDef->mat.Translate(pos);
+  doodadDef->mat.Rotate(angle, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
+  doodadDef->lMat = NTempest::C44Matrix();
+
+  doodadDef->modelName = fileName;
+  doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
+  doodadDef->model = 0;
+  LoadDoodadModel(doodadDef, bWait);
+  doodadDef->modelName = 0;
+  return doodadDef;
+}
+
 CMapDoodadDef *__fastcall CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos) {
   HASHKEY_DWORD  key;
   CMapDoodadDef *doodadDef = doodadDefHash.Ptr(smDoodadDef.uniqueId, key);
@@ -318,6 +351,53 @@ CMapDoodadDef *__fastcall CMap::CreateDoodadDef(
   doodadDef->mat *= mapObjDefMat;
   doodadDef->AdjustLightmap(smoDoodadDef.color, doodadDef->interiorDirColor, 112, doodadDef->ambient, 96);
   return doodadDef;
+}
+
+CMapObjDef *__fastcall CMap::CreateMapObjDef(
+    const char *fileName, NTempest::C3Vector &pos, float angle, int bWait
+) {
+  FATALASSERT(fileName);
+
+  unsigned int id = uniqueId--;
+  FATALASSERT(!mapObjDefHash.Ptr(id, nullHashKey));
+
+  CMapObjDef *mapObjDef = AllocMapObjDef();
+  FATALASSERT(mapObjDef);
+  mapObjDefHash.Insert(mapObjDef, id, nullHashKey);
+
+  CMapObj *mapObj = CMapObj::Create(fileName);
+  FATALASSERT(mapObj);
+  mapObjDef->mapObj = mapObj;
+  if (bWait && !mapObj->bLoaded) {
+    mapObj->WaitLoad();
+  }
+
+  mapObjDef->flags = 0;
+  mapObjDef->nameId = 0;
+  mapObjDef->doodadSet = 0;
+  mapObjDef->nameSet = 0;
+  mapObjDef->pos = pos;
+  mapObjDef->param64 = 0;
+
+  mapObjDef->mat = NTempest::C44Matrix();
+  mapObjDef->mat.Translate(pos);
+  mapObjDef->mat.Rotate(angle, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
+  mapObjDef->invMat = mapObjDef->mat.AffineInverse();
+
+  if (mapObj->bLoaded) {
+    NTempest::CAaBox bounds;
+    mapObj->GetBounds(mapObjDef->aaSphere);
+    mapObjDef->aaSphere.c = mapObjDef->aaSphere.c * mapObjDef->mat;
+    mapObj->GetBounds(bounds);
+    CWorldMath::TransformAABox(mapObjDef->mat, bounds, mapObjDef->aaBox);
+  } else {
+    mapObjDef->aaSphere.c = pos;
+    mapObjDef->aaSphere.r = 0.0f;
+    mapObjDef->aaBox.b = pos;
+    mapObjDef->aaBox.t = pos;
+  }
+  mapObjDef->lightList.SetCount(0);
+  return mapObjDef;
 }
 
 CMapObjDef *__fastcall CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &pos) {

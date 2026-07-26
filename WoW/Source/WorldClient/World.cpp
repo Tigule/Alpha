@@ -22,6 +22,7 @@
 
 #include <float.h>
 #include <stdio.h>
+#include <storm.h>
 
 NTempest::C44Matrix CWTriData::matrices[CWTriData::MaxBatches];
 unsigned short      CWTriData::vertexIndices[CWTriData::MaxVertexIndices];
@@ -455,6 +456,46 @@ int __fastcall CWorld::QueryObjectLiquid(unsigned long hWorldObject, unsigned in
   return 1;
 }
 
+unsigned int __fastcall CWorld::ObjectCreate(
+    const char *name,
+    NTempest::C3Vector &pos,
+    float angle,
+    int bWait,
+    int bSnap,
+    unsigned __int64 param64
+) {
+  CMapBaseObj *baseObj;
+  CMapBaseObjLink *link;
+
+  if (SStrStr(name, ".wmo")) {
+    CMapObjDef *mapObjDef = CMap::CreateMapObjDef(name, pos, angle, bWait);
+    FATALASSERT(mapObjDef);
+    mapObjDef->param64 = param64;
+    baseObj = mapObjDef;
+    link = CMap::AllocBaseObjLink(baseObj);
+    link->ref = 0;
+    CMap::mapObjDefLinkList.LinkNode(link, LIST_TAIL, 0);
+    if (bSnap) {
+      CMap::SnapBaseObjToSubChunk(baseObj, pos, angle);
+      CMap::UpdateMapObjDef(mapObjDef, pos, angle);
+    }
+  } else {
+    CMapDoodadDef *doodadDef = CMap::CreateDoodadDef(name, pos, angle, bWait);
+    FATALASSERT(doodadDef);
+    baseObj = doodadDef;
+    link = CMap::AllocBaseObjLink(baseObj);
+    link->ref = 0;
+    CMap::doodadDefLinkList.LinkNode(link, LIST_TAIL, 0);
+    if (bSnap) {
+      CMap::SnapBaseObjToSubChunk(baseObj, pos, angle);
+      CMap::UpdateDoodadDef(doodadDef, pos, angle);
+    }
+  }
+
+  ++baseObj->refCount;
+  return reinterpret_cast<unsigned int>(baseObj);
+}
+
 void __fastcall CWorld::ObjectUpdate(unsigned int id, NTempest::C3Vector &pos, float angle, int bSnap) {
   FATALASSERT(reinterpret_cast<CMapBaseObj *>(id));
   if (bSnap) {
@@ -478,6 +519,19 @@ void __fastcall CWorld::ObjectGetExtents(unsigned int id, NTempest::CAaBox &exte
   } else {
     ModelGetExtents(static_cast<CMapStaticEntity *>(baseObj)->model, &extents);
   }
+}
+
+bool __fastcall CWorld::ObjectTestConvexVolume(
+    unsigned int id, const NTempest::C3Vector &pos) {
+  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
+  FATALASSERT(baseObj);
+  if (!(baseObj->GetType() & CMapBaseObj::Type_MapObjDef)) {
+    return false;
+  }
+
+  CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(baseObj);
+  FATALASSERT(mapObjDef->mapObj);
+  return mapObjDef->mapObj->TestConvexVolume(pos);
 }
 
 void __fastcall CWorld::ObjectDelete(unsigned int id) {

@@ -331,6 +331,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
     return fogList[index];
   }
   bool TestBounds(const NTempest::CAaBox &box);
+  bool TestConvexVolume(const NTempest::C3Vector &point);
   bool VectorIntersect(
       CMapObjDef                  *mapObjDef,
       const NTempest::C3Vector    *v0,

@@ -1,0 +1,20 @@
+#include "GameObject.h"
+
+#include "Tempest/c3vector.h"
+
+void __fastcall GenerateChairPoints(
+    const NTempest::C44Matrix &matrix,
+    unsigned int slots,
+    NTempest::C3Vector *out) {
+  FATALASSERT(out);
+  FATALASSERT(slots);
+  FATALASSERT(slots <= 5);
+
+  NTempest::C3Vector currentSitPoint(
+      0.0f, -(static_cast<float>(slots) - 1.0f) * 0.5f, 0.0f);
+  const float sitPointOffset = 1.0f;
+  for (unsigned int i = 0; i < slots; ++i) {
+    out[i] = currentSitPoint * matrix;
+    currentSitPoint.y += sitPointOffset;
+  }
+}

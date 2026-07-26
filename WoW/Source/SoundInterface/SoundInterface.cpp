@@ -700,7 +700,7 @@ bool __fastcall SndInterfacePlaySound(unsigned int soundID, const NTempest::C3Ve
   return InternalPlaySound(SOUNDCATEGORY_NONE, soundID, position, forceIndex, volumeScaler);
 }
 
-unsigned char __fastcall SoundInterfaceIsSoundLooping(unsigned int soundID, unsigned char& looping) {
+bool __fastcall SoundInterfaceIsSoundLooping(unsigned int soundID, bool& looping) {
   SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
   if (!definition) {
     return 0;

@@ -278,6 +278,21 @@ char *CMapObj::GetGroupName(unsigned int index) {
   return group->dbgName;
 }
 
+bool CMapObj::TestConvexVolume(const NTempest::C3Vector &point) {
+  if (!bLoaded) {
+    return false;
+  }
+
+  for (unsigned int i = 0; i < volumePlaneCount; ++i) {
+    if (NTempest::C3Vector::Dot(convexVolumePlanes[i].n, point) +
+            convexVolumePlanes[i].d >
+        0.0f) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool CMapObj::VectorIntersect(
     CMapObjDef               *mapObjDef,
     const NTempest::C3Vector *v0,

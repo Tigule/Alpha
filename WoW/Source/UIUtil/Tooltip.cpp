@@ -453,14 +453,17 @@ int CGTooltip::SetUnit(const unsigned __int64 &unit) {
 }
 
 void CGTooltip::SetObject(const unsigned __int64 &object) {
-  if (!ClntObjMgrObjectPtr(object, __FILE__, __LINE__)) {
+  CGGameObject_C *gameObject =
+      static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(object, __FILE__, __LINE__));
+  if (!gameObject) {
     return;
   }
-  ClearLines();
+
   m_objectGUID = object;
-  char text[64];
-  SStrPrintf(text, sizeof(text), "Object %08X", static_cast<unsigned int>(object));
-  AddLine(text, 0, 0);
+  ClearLines();
+  static const NTempest::CImVector color(0xFFFFFFFFUL);
+  AddLine(gameObject->GetName(), color, 0);
+  Show();
 }
 
 const char *__fastcall CGTooltip::GetItemQualityColorString(unsigned int quality) {

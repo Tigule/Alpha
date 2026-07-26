@@ -2,6 +2,7 @@
 
 class CGameObjectDef {
  public:
+  static const char *__fastcall NameFromTypeId(int typeId);
   static int __fastcall GetPropNum(int typeId, int propId);
 };
 
@@ -29,26 +30,31 @@ static const int s_mapObjTransPropertiesList[] = {35, 36, 37};
 static const int s_ritualPropertiesList[] = {34, 10};
 
 static ObjectInfo s_objectInfo[19] = {
-    { 3,        s_doorPropertiesList, 0, 0, 0},
-    { 3,      s_buttonPropertiesList, 0, 0, 0},
-    { 3,  s_questGiverPropertiesList, 0, 0, 0},
-    { 8,       s_chestPropertiesList, 0, 0, 0},
-    { 0,                           0, 0, 0, 0},
-    { 2,     s_genericPropertiesList, 0, 0, 0},
-    { 8,        s_trapPropertiesList, 0, 0, 0},
-    { 2,       s_chairPropertiesList, 0, 0, 0},
-    { 3,  s_spellFocusPropertiesList, 0, 0, 0},
-    { 3,        s_textPropertiesList, 0, 0, 0},
-    {10,      s_gooberPropertiesList, 0, 0, 0},
-    { 0,                           0, 0, 0, 0},
-    { 6,  s_areaDamagePropertiesList, 0, 0, 0},
-    { 3,      s_cameraPropertiesList, 0, 0, 0},
-    { 0,                           0, 0, 0, 0},
-    { 3, s_mapObjTransPropertiesList, 0, 0, 0},
-    { 0,                           0, 0, 0, 0},
-    { 0,                           0, 0, 0, 0},
-    { 2,      s_ritualPropertiesList, 0, 0, 0}
+    { 3,        s_doorPropertiesList, 0,        "door", 0},
+    { 3,      s_buttonPropertiesList, 0,      "button", 0},
+    { 3,  s_questGiverPropertiesList, 0,  "questgiver", 0},
+    { 8,       s_chestPropertiesList, 0,       "chest", 0},
+    { 0,                           0, 0,      "binder", 0},
+    { 2,     s_genericPropertiesList, 0,     "generic", 0},
+    { 8,        s_trapPropertiesList, 0,        "trap", 0},
+    { 2,       s_chairPropertiesList, 0,       "chair", 0},
+    { 3,  s_spellFocusPropertiesList, 0,  "spellFocus", 0},
+    { 3,        s_textPropertiesList, 0,        "text", 0},
+    {10,      s_gooberPropertiesList, 0,      "goober", 0},
+    { 0,                           0, 0,   "transport", 0},
+    { 6,  s_areaDamagePropertiesList, 0,  "areaDamage", 0},
+    { 3,      s_cameraPropertiesList, 0,      "camera", 0},
+    { 0,                           0, 0,   "mapobject", 0},
+    { 3, s_mapObjTransPropertiesList, 0, "moTransport", 0},
+    { 0,                           0, 0,    "duelFlag", 0},
+    { 0,                           0, 0, "fishingNode", 0},
+    { 2,      s_ritualPropertiesList, 0,      "ritual", 0}
 };
+
+const char *__fastcall CGameObjectDef::NameFromTypeId(int typeId) {
+  FATALASSERT(typeId >= 0 && typeId < 19);
+  return typeId >= 0 && typeId < 19 ? s_objectInfo[typeId].name : 0;
+}
 
 int __fastcall CGameObjectDef::GetPropNum(int typeId, int propId) {
   if (typeId >= 19 || propId >= 38) {

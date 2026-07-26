@@ -21,6 +21,7 @@ namespace NTempest {
 }  // namespace NTempest
 
 class CWorldParam;
+class CGGameObject_C;
 class CDetailDoodadInst;
 class DNSky;
 class CWFrustum;
@@ -268,6 +269,7 @@ class CWorld {
   static void __fastcall         SetUpdateTime(float elapsedSec, unsigned long pCurTimeMs);
   static void __fastcall         Update();
   static void __fastcall         ObjectGetExtents(unsigned int id, NTempest::CAaBox &extents);
+  static bool __fastcall         ObjectTestConvexVolume(unsigned int id, const NTempest::C3Vector &pos);
   static void __fastcall         ObjectDelete(unsigned int id);
   static void __fastcall         SetHidden(unsigned long hWorldObject, int hidden);
   static unsigned int __fastcall QueryAreaId(float x, float y);
@@ -287,6 +289,8 @@ class CWorld {
   static int __fastcall   QueryLiquidStatus(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir);
   static void __fastcall  UpdateObject(unsigned long hWorldObject, NTempest::C44Matrix &mat, NTempest::CAaBox &aaBox);
   static void __fastcall  ObjectUpdate(unsigned int id, NTempest::C3Vector &pos, float angle, int bSnap);
+  static unsigned int __fastcall ObjectCreate(
+      const char *name, NTempest::C3Vector &pos, float angle, int bWait, int bSnap, unsigned __int64 param64);
   static void __fastcall  TickObject(unsigned long hWorldObject);
   static void __fastcall  WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq);
   static float __fastcall GetCurTimeSec() {
@@ -338,6 +342,7 @@ class CWorld {
   friend class CMapChunk;
   friend class CMapObj;
   friend class CGUnit_C;
+  friend class CGGameObject_C;
   friend class CMap;
   friend class CMapArea;
   friend class CMapObjGroup;
@@ -510,6 +515,8 @@ class CMap {
   static void __fastcall           LoadMapObjNames();
   static CMapDoodadDef *__fastcall CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos);
   static CMapDoodadDef *__fastcall CreateDoodadDef(
+      const char *fileName, NTempest::C3Vector &pos, float angle, int bWait);
+  static CMapDoodadDef *__fastcall CreateDoodadDef(
       unsigned int         doodadRef,
       SMODoodadDef        &smoDoodadDef,
       const char          *fileName,
@@ -517,6 +524,8 @@ class CMap {
       NTempest::C44Matrix &mapObjDefMat
   );
   static CMapObjDef *__fastcall CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &pos);
+  static CMapObjDef *__fastcall CreateMapObjDef(
+      const char *fileName, NTempest::C3Vector &pos, float angle, int bWait);
   static void __fastcall        CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef);
   static void __fastcall
   CreateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);

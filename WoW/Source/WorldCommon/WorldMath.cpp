@@ -35,6 +35,16 @@ void __fastcall CWorldMath::TransformAABox(const NTempest::C33Matrix &m, const N
   ::TransformAABox(&row0, &row1, &row2, box, nBox);
 }
 
+void __fastcall CWorldMath::TransformAABox(const NTempest::C34Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox) {
+  nBox.b = NTempest::C3Vector(m.d0, m.d1, m.d2);
+  nBox.t = nBox.b;
+
+  const NTempest::C3Vector &row0 = *reinterpret_cast<const NTempest::C3Vector *>(&m.a0);
+  const NTempest::C3Vector &row1 = *reinterpret_cast<const NTempest::C3Vector *>(&m.b0);
+  const NTempest::C3Vector &row2 = *reinterpret_cast<const NTempest::C3Vector *>(&m.c0);
+  ::TransformAABox(&row0, &row1, &row2, box, nBox);
+}
+
 void __fastcall CWorldMath::TransformAABox(const NTempest::C44Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox) {
   nBox.b = NTempest::C3Vector(m.d0, m.d1, m.d2);
   nBox.t = nBox.b;
