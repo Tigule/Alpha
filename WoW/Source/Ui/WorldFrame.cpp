@@ -583,7 +583,7 @@ int __fastcall ObjectCollisionProc(unsigned __int64 param64, unsigned long param
   CGGameObject_C *gameObject = static_cast<CGGameObject_C *>(object);
   data->model = object->GetObjectModel();
   data->collideExt = gameObject->m_collideExtents;
-  data->scale = object->GetScale();
+  data->scale = object->GetScale() * object->GetRenderScale();
 
   NTempest::C34Matrix matrix = object->GetMatrix();
   data->matrix = NTempest::C44Matrix(
