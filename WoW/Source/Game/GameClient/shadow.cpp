@@ -246,8 +246,7 @@ void __fastcall ShadowRender_LOD1(HMODEL hModel, NTempest::C44Matrix &basis, voi
   srWorldBox.t.z = position.z + BLOB_ABOVE * height;
 
   NTempest::C33Matrix undoScaleMat;
-  scaleVect = srWorldBox.t - srWorldBox.b;
-  undoScaleMat.Scale(scaleVect);
+  undoScaleMat.Scale(srWorldBox.t.y - srWorldBox.b.y, srWorldBox.t.x - srWorldBox.b.x, 1.0f);
 
   NTempest::C33Matrix shadowScaleMat;
   shadowScaleMat.Scale(1.0f / fabs(extents.t.y - extents.b.y), 1.0f / fabs(extents.t.x - extents.b.x), 1.0f);
@@ -271,9 +270,9 @@ void __fastcall ShadowRender_LOD1(HMODEL hModel, NTempest::C44Matrix &basis, voi
 
   GxRsPush();
   GxRsSet(GxRs_Blend, GxBlend_Alpha);
-  GxRsSet(GxRs_Culling, 0);
-  GxRsSet(GxRs_TexGen0, GxTexGen_Disable);
   GxRsSet(GxRs_Lighting, 0);
+  GxRsSet(GxRs_Culling, 0);
+  GxRsSet(GxRs_DepthWrite, 0);
   GxRsSet(GxRs_Texture0, TextureGetGxTex(s_hTexture, 1, 0));
   ProjectTex2d(srWorldBox, shadowColor, &sunTexMat, 0.5f);
   GxRsPop();

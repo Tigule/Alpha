@@ -117,7 +117,13 @@ void __fastcall WeaponTrailDisableDrawing(int trail);
 void __fastcall BotClientLoseTarget(const CGUnit_C *unit);
 void __fastcall ScriptEventsRegisterUnit(CGUnit_C *unit);
 void __fastcall ScriptEventsUnregisterUnit(CGUnit_C *unit);
+FishingLineObject *__fastcall SpellVisualsFishingLineCreate(
+    const SpellVisualKitRec *kitRec,
+    const unsigned __int64  &gameObj,
+    const unsigned __int64  &caster
+);
 void __fastcall SpellVisualsFishingLineDestroy(FishingLineObject *object);
+void __fastcall SpellVisualFishingLineSetVisible(FishingLineObject *object);
 void __fastcall SpellVisualClearLightning(LightningObject *lightning);
 void __fastcall SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects);
 int __fastcall SpellFizzleTimer(const void *data, void *userData);
@@ -191,18 +197,6 @@ void CGUnit_C::Disable(int shutdown) {
   m_flags &= ~4U;
 }
 
-void CGUnit_C::PreRender(int currentTime, float elapsed) {
-  m_animFlags |= 0x20000U;
-  UpdateSpellProcEffects(elapsed);
-  ProcessAnimEndCallbacks();
-  CheckDeferredSheathing();
-
-  if (m_precastSheatheHoldTimer != -1 && currentTime >= m_precastSheatheHoldTimer) {
-    SetSheatheReason(SHEATHEREASON_PRECAST, 0, 1);
-    m_precastSheatheHoldTimer = -1;
-  }
-}
-
 void CGUnit_C::Reenable() {
   CGObject_C::Reenable();
   SetMirrorHandlers();
@@ -254,6 +248,27 @@ void CGUnit_C::ClearFishingObject() {
     SpellVisualsFishingLineDestroy(m_fishingLineObject);
   }
   m_fishingLineObject = 0;
+}
+
+void CGUnit_C::ProcessChannelObject() {
+  CGObject_C *gameObj = ClntObjMgrObjectPtr(m_unit->channelObject, __FILE__, __LINE__);
+  int         spellID = m_unit->channelSpell;
+  if (gameObj && spellID) {
+    if (m_fishingLineObject) {
+      if (m_currentTorsoAnimState == 62) {
+        SpellVisualFishingLineSetVisible(m_fishingLineObject);
+      }
+    } else {
+      SpellRec          *spell = g_spellDB.GetRecord(spellID);
+      SpellVisualRec    *visual = spell ? g_spellVisualDB.GetRecord(spell->m_spellVisualID) : 0;
+      SpellVisualKitRec *kit = visual ? g_spellVisualKitDB.GetRecord(visual->m_channelKit) : 0;
+      if (kit && kit->m_characterProcedure == 10) {
+        m_fishingLineObject = SpellVisualsFishingLineCreate(kit, m_unit->channelObject, GetGUID());
+      }
+    }
+  } else {
+    ClearFishingObject();
+  }
 }
 
 int __fastcall DeathAnimEndHandler(void *param, CGUnit_C *ptr) {
@@ -904,9 +919,17 @@ static unsigned long                       s_trackLastCheckTime;
 static TSGrowableArray<NTempest::C3Vector> s_bowStringVerts;
 static TSGrowableArray<unsigned short>     s_bowStringIndices;
 static EmotesRec                          *s_talkEmotes[TALKANIM_NUMTALKANIMS];
-static const unsigned char                 s_standStateStartsSheathe[9] = {0, 1, 1, 1, 1, 1, 1, 1, 1};
-static const unsigned int                  s_standStateEndEmote[9] = {0, 4, 8, 6, 8, 8, 8, 0, 14};
-static const unsigned int                  s_standStateStartEmote[9] = {0, 3, 7, 5, 9, 10, 11, 12, 13};
+static const unsigned char                 s_mustSheathe[9] = {0, 1, 1, 1, 1, 1, 1, 1, 1};
+static const ANIMQUEUETYPE                  s_animStandUpTransitions[9] = {
+    ANIMQUEUE_NONE,      ANIMQUEUE_SITUP,       ANIMQUEUE_SITCHAIRUP,
+    ANIMQUEUE_SLEEPUP,   ANIMQUEUE_SITCHAIRUP,  ANIMQUEUE_SITCHAIRUP,
+    ANIMQUEUE_SITCHAIRUP, ANIMQUEUE_NONE,        ANIMQUEUE_KNEELUP
+};
+static const ANIMQUEUETYPE                  s_animStandDownTransitions[9] = {
+    ANIMQUEUE_NONE,          ANIMQUEUE_SITDOWN,        ANIMQUEUE_SITCHAIR,
+    ANIMQUEUE_SLEEPDOWN,     ANIMQUEUE_SITCHAIRLOW,    ANIMQUEUE_SITCHAIRMEDIUM,
+    ANIMQUEUE_SITCHAIRHIGH,  ANIMQUEUE_DEAD,           ANIMQUEUE_KNEELDOWN
+};
 
 void __fastcall SpellProcWeaponTrailHandler(
     SPELLPROC_ACTION action,
@@ -1016,6 +1039,29 @@ static UnitAnimationInfo s_animInfo[64] = {
     UnitAnimationInfo(62, "ANIM_STATE_CHANNELSPELL", 33313, 29, 0),
     UnitAnimationInfo(63, "ANIM_STATE_SPELLAURA", 33, 29, 0),
 };
+
+void CGUnit_C::PreRender(int currentTime, float elapsed) {
+  m_animFlags |= 0x20000U;
+  UpdateSpellProcEffects(elapsed);
+  ProcessEmoteQueue();
+  ProcessAnimEndCallbacks();
+  ProcessBreathParticles(currentTime);
+  CheckDeferredSheathing();
+  HandleFollowTarget();
+  ProcessChannelObject();
+
+  if (m_precastSheatheHoldTimer != -1 && currentTime >= m_precastSheatheHoldTimer) {
+    SetSheatheReason(SHEATHEREASON_PRECAST, 0, 1);
+    m_precastSheatheHoldTimer = -1;
+  }
+
+  if ((s_animInfo[m_currentBaseAnimState].flags & 0x20000) || (s_animInfo[m_currentTorsoAnimState].flags & 0x20000)) {
+    ANIMQUEUENODE *node = ProcessAnimQueue();
+    if (node) {
+      ProcessAnim(node);
+    }
+  }
+}
 
 static NTempest::CImVector COLOR_GOLD(0xFFFFDE00);
 
@@ -1196,6 +1242,35 @@ void CGUnit_C::BreathHandler(int forceOnMount) {
   UNITEFFECTSPECIALS effect = DetermineBreathEffect(&duration);
   if (effect != static_cast<UNITEFFECTSPECIALS>(-1)) {
     UnitEffectOneShot(effect, GetGUID(), 0, 0.0f, 1.0f, forceOnMount != 0);
+  }
+}
+
+void CGUnit_C::ProcessBreathParticles(int currentTime) {
+  if (m_unit->health <= 0) {
+    return;
+  }
+
+  if ((m_nextBreath == -1 || m_nextBreath <= currentTime) &&
+      (m_currentBaseAnimState == 3 || !(m_flags & 0x2000))) {
+    unsigned int       duration;
+    UNITEFFECTSPECIALS effect = DetermineBreathEffect(&duration);
+    m_nextBreath = currentTime + duration;
+    if (effect != static_cast<UNITEFFECTSPECIALS>(-1)) {
+      UnitEffectOneShot(effect, GetGUID(), 0, 0.0f, 1.0f, false);
+    }
+  }
+
+  if ((m_nextMountBreath == -1 || m_nextMountBreath <= currentTime) &&
+      (((m_unit->flags & 0x2000) && m_currentMountAnimState == 3) || !(m_flags & 0x4000))) {
+    unsigned int       duration;
+    UNITEFFECTSPECIALS effect = DetermineBreathEffect(&duration);
+    if (effect != static_cast<UNITEFFECTSPECIALS>(-1)) {
+      UnitEffectOneShot(effect, GetGUID(), 0, 0.0f, 1.0f, true);
+    }
+    m_nextMountBreath = currentTime + duration;
+    if (m_nextMountBreath == m_nextBreath) {
+      m_nextMountBreath += duration >> 1;
+    }
   }
 }
 
@@ -1445,8 +1520,8 @@ SEQFINISHINFO g_seqInformation[NUM_OBJECTANIMATIONS] = {
 };
 
 struct TRACKTYPEINFO {
-  unsigned int snapOnClear;
-  float        maxDistance;
+  bool  hasMovement;
+  float disengageDistance;
 };
 
 static const TRACKTYPEINFO s_trackTypeInfo[3] = {
@@ -1454,6 +1529,9 @@ static const TRACKTYPEINFO s_trackTypeInfo[3] = {
     {0, 100000.0f},
     {1,     30.0f}
 };
+
+static const float TRACKMOVETHRESHOLDSQ = 4.0f;
+static const float TRACKRUNTHRESHOLDSQ = 16.0f;
 
 int __fastcall NPCFlagsHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
@@ -7115,15 +7193,15 @@ void CGUnit_C::StandStateChanged(unsigned int oldState) {
 
   unsigned int newState = m_unit->standState;
   OnStandStateChanged(oldState, newState);
-  SetSheatheReason(SHEATHEREASON_2, s_standStateStartsSheathe[newState], 0);
+  SetSheatheReason(SHEATHEREASON_2, s_mustSheathe[newState], 0);
   FATALASSERT(newState < 9);
   FATALASSERT(oldState < 9);
 
   if ((IsInStandSitTransition() || IsInSitSleepPosition()) && (!newState || oldState)) {
-    PlayEmoteAnimation(s_standStateEndEmote[oldState], 0);
+    QueueAnim(s_animStandUpTransitions[oldState], 0);
   }
   if (newState || !(m_movement.m_moveFlags & 0x40FF)) {
-    PlayEmoteAnimation(s_standStateStartEmote[newState], 0);
+    QueueAnim(s_animStandDownTransitions[newState], 0);
   }
   if (m_currentTorsoAnimState == 46) {
     ClearTorsoAnimation(64);
@@ -7355,6 +7433,54 @@ static unsigned char NodesSame(const ANIMQUEUENODE* current, const ANIMQUEUENODE
   return 1;
 }
 
+ANIMQUEUENODE *CGUnit_C::ProcessAnimQueue() {
+  ANIMQUEUENODE *node = m_animQueue.Head();
+  while (node) {
+    ANIMQUEUENODE *next = m_animQueue.Next(node);
+    switch (node->type) {
+      case ANIMQUEUE_SITDOWN:
+      case ANIMQUEUE_SITUP:
+      case ANIMQUEUE_SLEEPDOWN:
+      case ANIMQUEUE_SLEEPUP:
+      case ANIMQUEUE_SITCHAIR:
+      case ANIMQUEUE_SITCHAIRUP:
+      case ANIMQUEUE_SITCHAIRLOW:
+      case ANIMQUEUE_SITCHAIRMEDIUM:
+      case ANIMQUEUE_SITCHAIRHIGH:
+      case ANIMQUEUE_KNEELDOWN:
+      case ANIMQUEUE_KNEELUP:
+        if (IsPlayingSittingOrStandingAnim()) {
+          return 0;
+        }
+        m_animQueue.UnlinkNode(node);
+        return node;
+
+      default:
+        if (NodesSame(node, next)) {
+          ProcessDiscardedAnim(node, false);
+          node = next;
+          continue;
+        }
+        m_animQueue.UnlinkNode(node);
+        return node;
+    }
+  }
+  return 0;
+}
+
+int CGUnit_C::IsPlayingSittingOrStandingAnim() const {
+  switch (m_currentBaseAnimState) {
+    case 50:
+    case 52:
+    case 53:
+    case 55:
+      return 1;
+
+    default:
+      return 0;
+  }
+}
+
 bool CGUnit_C::SetSpellPreCastingAnimation(ANIMENUMERATION anim) {
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
@@ -7559,6 +7685,20 @@ void CGUnit_C::SetEmoteQueue(const QUESTGIVEREMOTENODE *list, unsigned int num) 
 
   if (queue.Count()) {
     queue[queue.Count() - 1].delay += OsGetAsyncTimeMs();
+  }
+}
+
+void CGUnit_C::ProcessEmoteQueue() {
+  if (m_emoteQueue.Count() && m_currentTorsoAnimState != 46) {
+    unsigned int index = m_emoteQueue.Count() - 1;
+    int currentTime = OsGetAsyncTimeMs();
+    if (currentTime >= static_cast<int>(m_emoteQueue[index].delay)) {
+      unsigned int emoteID = m_emoteQueue[index].emoteID;
+      m_emoteQueue.SetCount(index);
+      if (!PlayEmoteAnimation(emoteID, 0) && m_emoteQueue.Count()) {
+        m_emoteQueue[m_emoteQueue.Count() - 1].delay += currentTime;
+      }
+    }
   }
 }
 
@@ -9600,7 +9740,7 @@ void AuraVisual::SetWorldObject(unsigned long object) {
   }
 }
 
-void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, unsigned int snapToTargetOnClear) {
+void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, bool snapToTargetOnClear) {
   FATALASSERT(!target || type <= TRACKTYPE_NUMTRACKTYPES);
   if (GetGUID() != ClntObjMgrGetActivePlayer() || ((!target && !s_trackingTarget) || target == GetGUID())) {
     return;
@@ -9624,8 +9764,8 @@ void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, unsig
       float dx = targetPosition.x - position.x;
       float dy = targetPosition.y - position.y;
       float dz = targetPosition.z - position.z;
-      float maxDistance = s_trackTypeInfo[type].maxDistance;
-      if (dx * dx + dy * dy + dz * dz > maxDistance * maxDistance) {
+      float disengageDistance = s_trackTypeInfo[type].disengageDistance;
+      if (dx * dx + dy * dy + dz * dz > disengageDistance * disengageDistance) {
         CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(267));
         target = 0;
       } else if (!s_trackingTarget) {
@@ -9644,7 +9784,7 @@ void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, unsig
       OnSetRunModeLocal(currentTime, (s_trackingFlags >> 2) & 1);
     }
 
-    if (snapToTargetOnClear || s_trackTypeInfo[s_trackingType].snapOnClear) {
+    if (snapToTargetOnClear || s_trackTypeInfo[s_trackingType].hasMovement) {
       CGObject_C *object = ClntObjMgrObjectPtr(s_trackingTarget, __FILE__, __LINE__);
       if (object) {
         NTempest::C3Vector position;
@@ -9658,7 +9798,7 @@ void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, unsig
       }
     }
 
-    if (s_trackTypeInfo[s_trackingType].snapOnClear && m_movement.m_moveFlags) {
+    if (s_trackTypeInfo[s_trackingType].hasMovement && (m_movement.m_moveFlags & 0xFF)) {
       s_trackingFlags |= 2;
       OnMoveStopLocal(currentTime);
       OnTurnStopLocal(currentTime);
@@ -9675,14 +9815,93 @@ void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, unsig
   s_trackingType = type;
 }
 
-void CGUnit_C::ClearTrackingTarget(unsigned int snapToTargetOnClear) {
+void CGUnit_C::ClearTrackingTarget(bool snapToTargetOnClear) {
   if (s_trackingTarget && GetGUID() == ClntObjMgrGetActivePlayer()) {
     SaveTrackingTarget(0, s_trackingType, snapToTargetOnClear);
   }
 }
 
-unsigned __int64 CGUnit_C::GetTrackingTarget() {
+unsigned __int64 CGUnit_C::GetTrackingTarget() const {
   return GetGUID() == ClntObjMgrGetActivePlayer() ? s_trackingTarget : 0;
+}
+
+void CGUnit_C::HandleFollowTarget() {
+  if (!GetTrackingTarget()) {
+    return;
+  }
+
+  FATALASSERT(s_trackingType <= TRACKTYPE_NUMTRACKTYPES);
+
+  CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_trackingTarget, __FILE__, __LINE__));
+  if (!target || target->m_unit->health <= 0 || target->m_unit->flags & 0x100000) {
+    ClearTrackingTarget(0);
+    return;
+  }
+
+  NTempest::C3Vector position;
+  NTempest::C3Vector targetPosition;
+  GetPosition(position);
+  target->GetPosition(targetPosition);
+
+  float dx = targetPosition.x - position.x;
+  float dy = targetPosition.y - position.y;
+  float dz = targetPosition.z - position.z;
+  float distanceSq = dx * dx + dy * dy + dz * dz;
+  float disengageDistance = s_trackTypeInfo[s_trackingType].disengageDistance;
+  if (distanceSq > disengageDistance * disengageDistance) {
+    ClearTrackingTarget(0);
+    return;
+  }
+
+  unsigned long currentTime = OsGetAsyncTimeMs();
+  target->GetPosition(targetPosition);
+  GetPosition(position);
+  float facingToTarget = CalculateFacingTo(position, targetPosition);
+  float facing = GetFacing();
+  float facingDiff = facingToTarget - facing;
+  if (fabs(facingDiff) >= 0.001f) {
+    s_trackingFlags |= 1;
+    if (facingDiff < 0.0f) {
+      facingDiff = fmod(facingDiff, 6.2831855f) + 6.2831855f;
+    } else if (facingDiff > 6.2831855f) {
+      facingDiff = fmod(facingDiff, 6.2831855f);
+    }
+
+    float maxChange =
+        fmod(fabs((currentTime - s_trackLastCheckTime) * 0.001f * 3.1415927f), 6.2831855f);
+    s_trackLastCheckTime = currentTime;
+    float change = facingDiff <= 3.1415927f ? facingDiff : 6.2831855f - facingDiff;
+    if (change >= maxChange) {
+      change = maxChange;
+    }
+
+    float newFacing = facingDiff <= 3.1415927f ? facing + change : facing - change;
+    s_trackingFlags |= 2;
+    OnSetFacingLocal(currentTime, fmod(newFacing, 6.2831855f));
+    s_trackingFlags &= ~2u;
+  } else {
+    s_trackingFlags &= ~1u;
+  }
+
+  if (s_trackTypeInfo[s_trackingType].hasMovement) {
+    unsigned int moveFlags = m_movement.m_moveFlags;
+    if (moveFlags & 3) {
+      if (distanceSq <= TRACKMOVETHRESHOLDSQ) {
+        s_trackingFlags |= 2;
+        OnMoveStopLocal(currentTime);
+        s_trackingFlags &= ~2u;
+      } else {
+        int run = distanceSq > TRACKRUNTHRESHOLDSQ;
+        if (run != ((~moveFlags >> 8) & 1)) {
+          OnSetRunModeLocal(currentTime, run);
+        }
+      }
+    } else if (distanceSq > TRACKMOVETHRESHOLDSQ) {
+      s_trackingFlags |= 2;
+      OnMoveStartLocal(currentTime, 1);
+      s_trackingFlags &= ~2u;
+    }
+  }
 }
 
 NAMEPLATEDESC::~NAMEPLATEDESC() {
@@ -9690,20 +9909,17 @@ NAMEPLATEDESC::~NAMEPLATEDESC() {
   namePlate = 0;
 }
 
-void CGUnit_C::OnMovementInitiated(unsigned int facingOnly) {
-  if (TrackingTargetMoving() && !(s_trackingFlags & 2)) {
-    SaveTrackingTarget(0, s_trackingType, 0);
+void CGUnit_C::OnMovementInitiated(bool facingOnly) {
+  if (GetTrackingTarget() && !(s_trackingFlags & 2)) {
+    ClearTrackingTarget(false);
   }
   if ((m_unit->flags & 0x400) && !facingOnly && GetGUID() == ClntObjMgrGetActivePlayer()) {
     CGGameUI::CloseLoot(1, 1);
   }
 }
 
-unsigned __int64 CGUnit_C::TrackingTargetMoving() {
-  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
-    return s_trackingTarget;
-  }
-  return 0;
+bool CGUnit_C::TrackingTargetMoving() const {
+  return (s_trackingFlags & 1) != 0;
 }
 
 int __fastcall GetObjAnimFlags(int unitAnimFlags) {

@@ -625,7 +625,7 @@ class CGUnit_C : public CGObject_C {
   void               OnSwimSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID, float speed);
   void               OnAllSpeedChangeLocal(unsigned long eventTime, float speed);
   void               OnTurnRateChangeLocal(unsigned long eventTime, float rate);
-  void               OnMovementInitiated(unsigned int facingOnly);
+  void               OnMovementInitiated(bool facingOnly);
   void               OnTeleportLocalNoUpdate(unsigned long eventTime, const NTempest::C3Vector &position, float facing);
   void               UpdateSwimmingStatus(unsigned long eventTime, int inWater, float depth);
   void               SendRedirectionMessage();
@@ -665,6 +665,7 @@ class CGUnit_C : public CGObject_C {
   void               HandleMountedAnimEvent(const char *eventName, const NTempest::C3Vector &pos);
   UNITEFFECTSPECIALS DetermineBreathEffect(unsigned int *duration);
   void               BreathHandler(int forceOnMount);
+  void               ProcessBreathParticles(int currentTime);
   void               HandlePlayStandSound(unsigned long code, const char *eventName);
   void               HandleFootfallAnimEvent(const NTempest::C3Vector &position);
   void               PlayFidgetSound(unsigned int fidgetNumber);
@@ -788,10 +789,11 @@ class CGUnit_C : public CGObject_C {
   HMODEL        GetRangedWeaponModel();
   HMODEL        GetMountedModel();
   void             PendingPrecastInterrupt(int spellID);
-  void             SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, unsigned int snapToTargetOnClear);
-  void             ClearTrackingTarget(unsigned int snapToTargetOnClear);
-  unsigned __int64 GetTrackingTarget();
-  unsigned __int64 TrackingTargetMoving();
+  void             SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, bool snapToTargetOnClear);
+  void             ClearTrackingTarget(bool snapToTargetOnClear);
+  unsigned __int64 GetTrackingTarget() const;
+  bool             TrackingTargetMoving() const;
+  void             HandleFollowTarget();
   void             SetWeaponMode(WEAPONMODE mode);
   void             ClearRangedStandTimer();
   void             SetRangedStandTimer();
@@ -855,6 +857,7 @@ class CGUnit_C : public CGObject_C {
   }
   int          IsInStandSitTransition();
   int          IsInSitSleepPosition();
+  int          IsPlayingSittingOrStandingAnim() const;
   int          GetFactionTemplate() const;
   virtual int  IsSolidSelectable() const;
   virtual int  IsSolidCollidable() const;
@@ -880,6 +883,7 @@ class CGUnit_C : public CGObject_C {
   void                            SetMirrorHandlers();
   void                            UnsetMirrorHandlers();
   void                            ClearFishingObject();
+  void                            ProcessChannelObject();
   void                            SetAuraMirrorHandlers();
   void                            UnsetAuraMirrorHandlers();
   void SetAuraMirrorHandler(unsigned int slot, int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));
@@ -1150,10 +1154,12 @@ class CGUnit_C : public CGObject_C {
   FishingLineObject                                     *m_fishingLineObject;
 
  protected:
+  void           ProcessEmoteQueue();
   void           ApplyStrafeRotation(unsigned int newState);
   void           SetStrafeRotation();
   int            PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget, bool &checkImpacts);
   float          DetermineWalkRunTimeScale(int currentState);
+  ANIMQUEUENODE *ProcessAnimQueue();
   ANIMQUEUENODE *GetNewAnimNode(int leaveUnlinked);
   void           RecycleAnimNode(ANIMQUEUENODE *node);
   void           PurgeAnimNodes(bool doNotProcess);

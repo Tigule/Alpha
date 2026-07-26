@@ -1142,6 +1142,7 @@ unsigned int __fastcall CMap::GetTrisChunk(
         if (!batch) {
           batch = triData.AllocBatch();
           NTempest::C44Matrix *matrix = triData.AllocMatrix();
+          *matrix = NTempest::C44Matrix();
           matrix->Translate(chunk->corner);
           batch->matrix = matrix;
           batch->vertices = chunk->vertexList;

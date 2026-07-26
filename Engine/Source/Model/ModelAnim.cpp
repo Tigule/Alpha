@@ -175,7 +175,7 @@ static void __fastcall BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix
 }
 
 static void __fastcall SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared, NTempest::C34Matrix *boneMatrices) {
-  if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].proceduralColor.a) {
+  if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].animatedColor.a) {
     unsigned int numGroups = geoShared->groupMatrixCounts.Count();
     ASSERT(numGroups > 0);
 
@@ -185,7 +185,7 @@ static void __fastcall SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetC
 }
 
 static void __fastcall SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared) {
-  if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].proceduralColor.a) {
+  if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].animatedColor.a) {
     ASSERT(geoShared->groupMatrixCounts.Count() <= 1);
 
     geoUnique->weightedBones = MatrixAlloc(1);
