@@ -68,7 +68,8 @@ class CGTradeInfo {
   static void __fastcall             PlayerAccept(int accept);
   static void __fastcall             TargetAccept(int accept);
   static void __fastcall             HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
-  static int __fastcall              SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned int slot);
+  static int __fastcall              SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot);
+  static void __fastcall             UpdatePlayerItem(unsigned __int64 guid);
   static void __fastcall             GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned int &slot);
   static int __fastcall              GetTargetTradeItem(int index);
   static int __fastcall GetTargetTradeItemCount(int index) {
@@ -93,7 +94,7 @@ class CGTradeInfo {
   static int              m_targetAccepted;
   static unsigned __int64 m_playerItems[8];
   static unsigned __int64 m_playerItemBag[8];
-  static unsigned int     m_playerItemSlot[8];
+  static unsigned char    m_playerItemSlot[8];
   static int              m_targetItems[8];
   static int              m_targetItemCount[8];
   static int              m_targetItemEnchantment[8];
@@ -109,7 +110,7 @@ int              CGTradeInfo::m_playerAccepted;
 int              CGTradeInfo::m_targetAccepted;
 unsigned __int64 CGTradeInfo::m_playerItems[8];
 unsigned __int64 CGTradeInfo::m_playerItemBag[8];
-unsigned int     CGTradeInfo::m_playerItemSlot[8];
+unsigned char    CGTradeInfo::m_playerItemSlot[8];
 int              CGTradeInfo::m_targetItems[8];
 int              CGTradeInfo::m_targetItemCount[8];
 int              CGTradeInfo::m_targetItemEnchantment[8];
@@ -289,7 +290,7 @@ void __fastcall CGTradeInfo::SetTradePartner(unsigned __int64 partner) {
   FrameScript_SignalEvent(296);
 }
 
-int __fastcall CGTradeInfo::SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned int slot) {
+int __fastcall CGTradeInfo::SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot) {
   if (index < 0 || index >= 8) {
     return 0;
   }
@@ -301,6 +302,19 @@ int __fastcall CGTradeInfo::SetPlayerItem(int index, unsigned __int64 guid, unsi
   m_playerItemSlot[index] = slot;
   FrameScript_SignalEvent(301, "%d", index + 1);
   return 1;
+}
+
+void __fastcall CGTradeInfo::UpdatePlayerItem(unsigned __int64 guid) {
+  if (!guid) {
+    return;
+  }
+
+  for (int index = 0; index < 8; ++index) {
+    if (m_playerItems[index] == guid) {
+      SetPlayerItem(index, m_playerItems[index], m_playerItemBag[index], m_playerItemSlot[index]);
+      return;
+    }
+  }
 }
 
 void __fastcall CGTradeInfo::GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned int &slot) {

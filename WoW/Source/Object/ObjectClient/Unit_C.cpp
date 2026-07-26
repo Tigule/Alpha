@@ -22,6 +22,7 @@
 #include <Tempest/c34matrix.h>
 #include <Tempest/c3spline.h>
 #include <Tempest/c4plane.h>
+#include <Tempest/caasphere.h>
 #include <Tempest/caabox.h>
 #include <Tempest/cimvector.h>
 
@@ -55,15 +56,19 @@
 #include "Component/Component.h"
 #include "Game/GameClient/PlayerName.h"
 #include "Object/CreatureStats.h"
+#include "Object/GuildStats.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/NPC_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/Camera.h"
 #include "UIUtil/InputControl.h"
+#include "UIUtil/Tooltip.h"
 #include "Ui/GameUI.h"
 #include "Ui/NamePlateFrame.h"
 #include "Ui/PartyFrame.h"
+#include "Ui/PetInfo.h"
 #include "Ui/ReputationInfo.h"
 #include "Ui/SpellBookFrame.h"
 #include "Ui/WorldFrame.h"
@@ -333,7 +338,7 @@ struct FREENAMEPLATE : public TSLinkedNode<FREENAMEPLATE> {
 
 static int                                              s_drawNameplates = 1;
 static TSExplicitList<NAMEPLATEDESC, 32>                s_namePlateList;
-static const float                                      MAX_NAMEPLATE_DIST = 30.0f;
+static const float                                      MAX_NAMEPLATE_DIST = 20.0f;
 static const float                                      MAX_NAMEPLATE_DIST_SQ = MAX_NAMEPLATE_DIST * MAX_NAMEPLATE_DIST;
 static TSList<FREENAMEPLATE, TSGetLink<FREENAMEPLATE> > s_freeNamePlateList;
 static TSHashTable<NAMEPLATEDESC, CHashKeyGUID>         s_monsterNamePlateList;
@@ -498,6 +503,10 @@ static TInstanceAllocator<AuraDecayNode>                s_auraDecayFreeList(100)
 static TInstanceAllocator<SPELLEFFECTDESC>              s_spellEffectFreeList(100);
 static TInstanceAllocator<ANIMQUEUENODE>                s_animQueueFreeList(100);
 static CVar                                             *s_showBreathCvar;
+static unsigned int                                      s_currentGlobalClickCount;
+static NTempest::CImVector                               s_targetFlashColor;
+static unsigned int                                      s_lastTargetFlashTime;
+static int                                               s_targetPulseDirection;
 
 CGUnit_C::~CGUnit_C() {
   ClearTempCharModel();
@@ -611,7 +620,7 @@ int __fastcall DodgeAnimEndHandler(void *param, CGUnit_C *ptr) {
   return 1;
 }
 
-int InvSlotToObjAttachSlot(int invSlot) {
+int __fastcall InvSlotToObjAttachSlot(int invSlot) {
   return invSlot <= 18 ? s_invSlotToObjAttachSlot[invSlot] : -1;
 }
 
@@ -5289,6 +5298,12 @@ void CGUnit_C::StopSpellFizzleTimer(int spellID, unsigned char status) {
   }
 }
 
+void CGUnit_C::StartSpellFizzleTimer(int spellID, unsigned int castingTime, int animSet) {
+  StopSpellFizzleTimer(m_castingSpell, 2);
+  m_spellFizzleTimer = ClientSetTimer(castingTime, SpellFizzleTimer, this);
+  SetCastingSpell(spellID, 1, animSet != 0);
+}
+
 void CGUnit_C::SpellDelayed(unsigned int delay) {
   if (m_spellFizzleTimer && delay) {
     float remaining = EventGetRemainingTime(m_spellFizzleTimer);
@@ -5559,7 +5574,7 @@ void CGUnit_C::OnCollideFallLand(unsigned long eventTime) {
     SendMovementUpdate(MSG_MOVE_HEARTBEAT);
   }
 
-  if (GetGUID() == ClntObjMgrGetActivePlayer() && (m_flags & 0x2000)) {
+  if (GetGUID() == ClntObjMgrGetActivePlayer() && (m_animFlags & 0x2000)) {
     CGGameUI::UpdateActivePlayer();
   }
 }
@@ -5726,6 +5741,407 @@ void CGUnit_C::RenderDebugPathing() {
   GxRsPop();
 }
 
+void CGUnit_C::PreAnimate(CGWorldFrame *worldFrame) {
+  FATALASSERT(worldFrame);
+  unsigned int currentTime = OsGetAsyncTimeMs();
+
+  if (s_drawNameplates && !(m_obj->m_type & TYPE_PLAYER) && m_unit->health > 0) {
+    CGCamera *camera = CGWorldFrame::GetActiveCamera();
+    CGObject_C *target =
+        static_cast<CGObject_C *>(ClntObjMgrObjectPtr(camera->GetTarget(), __FILE__, __LINE__));
+    if (target) {
+      NTempest::C3Vector targetPosition = target->GetPosition();
+      NTempest::C3Vector position = GetPosition();
+      if ((position - targetPosition).SquaredMag() < MAX_NAMEPLATE_DIST_SQ) {
+        AddUnitNamePlate(worldFrame);
+      }
+    }
+  }
+
+  if (CGGameUI::GetLockedTarget() == GetGUID()) {
+    CGPlayer_C *player =
+        static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player && player->IsInCombatMode()) {
+      m_flags |= 0x200;
+      if (static_cast<int>(currentTime - s_lastTargetFlashTime - 500) >= 0) {
+        s_lastTargetFlashTime = currentTime;
+        s_targetPulseDirection = !s_targetPulseDirection;
+      }
+
+      int   timePassed = s_lastTargetFlashTime - currentTime + 500;
+      float pulse = static_cast<float>(timePassed) * 0.002f;
+      if (s_targetPulseDirection) {
+        pulse = 1.0f - pulse;
+      }
+      s_targetFlashColor.g = static_cast<unsigned char>(pulse * 128.0f);
+      PlayerNameTriggerColorUpdate(m_unitNameHandle);
+    }
+  } else if (m_flags & 0x200) {
+    m_flags &= ~0x200U;
+    PlayerNameTriggerColorUpdate(m_unitNameHandle);
+  }
+
+  for (BLOODSPLATNODE *node = m_bloodSplatNodes.Head(); node; ) {
+    if (static_cast<int>(currentTime - node->time) < 0) {
+      break;
+    }
+
+    BLOODSPLATNODE *next = node->Next();
+    UnitFootprintNewBloodSplat(GetBloodRecord(), GetUnitSize(), node->position);
+    node->Unlink();
+    s_bloodSplatList.LinkNode(node, LIST_TAIL, 0);
+    node = next;
+  }
+
+  if (m_flags & 8) {
+    m_flags = (m_flags & ~8U) | 0x80000;
+    if (m_castingSpell && m_ammoDisplayID) {
+      ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(m_ammoDisplayID);
+      unsigned int        sequenceDuration;
+      HMODEL              ammoModel = ObjComponentBuildAmmoModel(displayInfo, m_ammoInvType, sequenceDuration);
+      if (ammoModel) {
+        HMODEL charModel = GetCharacterModel(0);
+        if (charModel) {
+          ModelAddLink(charModel, 35, ammoModel, 1.0f);
+          HandleClose(charModel);
+        }
+        HandleClose(ammoModel);
+      }
+    }
+  }
+
+  CGObject_C::PreAnimate(worldFrame);
+}
+
+void CGUnit_C::BuildSelectionRotMatrix(NTempest::C44Matrix &matrix) const {
+  matrix = NTempest::C44Matrix();
+  if (CGWorldFrame::GetActive()) {
+    NTempest::C3Vector cameraPosition;
+    CGWorldFrame::GetCameraPosition(&cameraPosition);
+    NTempest::C3Vector position = GetPosition();
+    NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
+    matrix.Rotate(-CalculateFacingTo(cameraPosition, position), axis, 1);
+  }
+}
+
+void CGUnit_C::ObjectPostAnimate(
+    const NTempest::C34Matrix &,
+    const NTempest::C3Vector &cameraPos,
+    const NTempest::C3Vector &cameraTarg
+) {
+  if (m_fadingPureMountModel) {
+    UpdateFadingMountModel(cameraPos, cameraTarg);
+  }
+}
+
+void CGUnit_C::UpdateFadingMountModel(
+    const NTempest::C3Vector &cameraPos,
+    const NTempest::C3Vector &cameraTarg
+) {
+  FATALASSERT(m_fadingPureMountModel);
+
+  int elapsed = OsGetAsyncTimeMs() - m_pureMountFadeStartTime;
+  if (elapsed > 1000) {
+    if (m_pureMountFadeMode == PUREMOUNTFADE_OUT) {
+      HandleClose(m_fadingPureMountModel);
+      m_fadingPureMountModel = 0;
+      return;
+    }
+    elapsed = 1000;
+  }
+
+  float alpha = min(static_cast<float>(elapsed) * 0.001f, 1.0f);
+  if (m_pureMountFadeMode == PUREMOUNTFADE_OUT) {
+    alpha = 1.0f - alpha;
+  }
+  ModelSetVertexAlpha(m_fadingPureMountModel, static_cast<unsigned char>(alpha * 255.0f), 1);
+
+  if (ModelAdvanceTime(m_fadingPureMountModel)) {
+    NTempest::C3Vector rotationAxis(0.0f, 0.0f, 1.0f);
+    NTempest::C3Vector cameraVector = cameraTarg - cameraPos;
+    ModelAnimate(
+        m_fadingPureMountModel,
+        m_fadingMountPos,
+        m_fadingMountFacing,
+        rotationAxis,
+        m_fadingMountScale,
+        cameraPos,
+        cameraVector
+    );
+    ModelAddToScene(m_fadingPureMountModel, 0);
+  }
+}
+
+void CGUnit_C::UpdatePlayerName() {
+  if (!m_unitNameHandle) {
+    return;
+  }
+
+  HMODEL charModel = GetCharacterModel(0);
+  FATALASSERT(charModel);
+
+  NTempest::C3Vector namePosition(0.0f);
+  unsigned int       objectID = 22 | ((m_unit->flags >> 13) & 1);
+  if (!ModelAnimHasObjectId(charModel, objectID)) {
+    objectID = 22;
+  }
+
+  ModelGetModelSpacePivot(charModel, objectID, &namePosition);
+  PlayerNameChangeLocation(m_unitNameHandle, namePosition);
+  PlayerNameTriggerColorUpdate(m_unitNameHandle);
+  HandleClose(charModel);
+}
+
+void CGUnit_C::InitializeUnitName() {
+  if (m_unitNameHandle) {
+    HandleClose(reinterpret_cast<HOBJECT>(m_unitNameHandle));
+  }
+  m_unitNameHandle = PlayerNameCreate(this);
+}
+
+void CGUnit_C::InitializeSequenceFlags() {
+  m_animFlags &= 0xFFF7FF9B;
+  if (ModelHasSequenceId(m_model, 13)) {
+    m_animFlags |= 4;
+  }
+  if (ModelHasSequenceId(m_model, 92)) {
+    m_animFlags |= 0x20;
+  }
+  if (ModelHasSequenceId(m_model, 93)) {
+    m_animFlags |= 0x40;
+  }
+  if (ModelHasSequenceId(m_model, 14)) {
+    m_animFlags |= 0x80000;
+  }
+}
+
+void CGUnit_C::MarkSwimAnimations() {
+  m_animFlags &= 0xFFFFF87F;
+  if (ModelHasSequenceId(m_model, 44)) {
+    m_animFlags |= 0x80;
+  }
+  if (ModelHasSequenceId(m_model, 43)) {
+    m_animFlags |= 0x100;
+  }
+  if (ModelHasSequenceId(m_model, 45)) {
+    m_animFlags |= 0x200;
+  }
+  if (ModelHasSequenceId(m_model, 131)) {
+    m_animFlags |= 0x400;
+  }
+}
+
+void CGUnit_C::UpdateBaseRadius(HMODEL model) {
+  NTempest::CAaSphere bounds;
+  ModelGetBounds(model, &bounds);
+  m_baseRadius = bounds.r * 0.5f;
+}
+
+void CGUnit_C::QueryModelStats() {
+  if (m_combat.IsAttacking()) {
+    DetermineReadySequence(0);
+    ObjectModelSetSequence(m_model, m_readySequence, 0, GetModelFileName());
+  }
+
+  UpdateUnitCollisionBox(m_model, GetModelFileName());
+  UpdateBaseRadius(m_model);
+  MarkSwimAnimations();
+
+  if (ModelHasLinkPoint(m_model, 29)) {
+    m_flags &= ~0x1000U;
+  } else {
+    m_flags |= 0x1000;
+  }
+
+  if (ModelAnimHasObjectId(m_model, 18)) {
+    m_flags |= 0x2000;
+  } else {
+    m_flags &= ~0x2000U;
+  }
+}
+
+void CGUnit_C::QueryMountModelStats() {
+  if (ModelAnimHasObjectId(m_model, 18)) {
+    m_flags |= 0x4000;
+  } else {
+    m_flags &= ~0x4000U;
+  }
+
+  if (!ModelHasLinkPoint(m_model, 0)) {
+    SysMsgPrintf(SYSMSG_ERROR, 0x10, "MOUNTDISPLAYIDNOMOUNTATTACHMENT|%d", m_unit->mountDisplayID);
+  }
+}
+
+int CGUnit_C::UpdateModelLoadStatus() {
+  if (!CGObject_C::UpdateModelLoadStatus()) {
+    return 0;
+  }
+
+  if (m_castingSpell && m_deferredPrecastAnim != RESET_ANIMATION_INDICES0) {
+    SetSpellPreCastingAnimation(m_deferredPrecastAnim);
+    SetTorsoAnimation(37, 0, 0);
+    m_deferredPrecastAnim = RESET_ANIMATION_INDICES0;
+  }
+
+  if (m_flags & 0x40) {
+    HMODEL charModel = GetCharacterModel(0);
+    RefreshAttachmentInfo(charModel);
+    HandleClose(charModel);
+    m_flags &= ~0x40U;
+  }
+
+  InitializeSequenceFlags();
+  if (m_flags & 0x10) {
+    QueryMountModelStats();
+    UpdateMovementAnimSpeed(1, -1);
+  } else {
+    QueryModelStats();
+    UpdateMovementAnimSpeed(0, -1);
+  }
+
+  CGGameUI::UnitPortraitUpdate(GetGUID());
+  if (!m_unitNameHandle) {
+    InitializeUnitName();
+  }
+  UpdatePlayerName();
+  return 1;
+}
+
+void CGUnit_C::RenderTargetSelection() const {
+  NTempest::C3Vector  position = GetPosition();
+  float               radius = m_baseRadius * m_obj->m_scale;
+  NTempest::C3Vector  extents(radius, radius, radius + radius);
+  NTempest::CAaBox    worldBox(position - extents, position + extents);
+  NTempest::CImVector color;
+  GetSelectionHighlightColor(&color);
+
+  NTempest::C44Matrix matrix;
+  BuildSelectionRotMatrix(matrix);
+
+  GxRsPush();
+  SetCircleRenderStates();
+  ProjectTex2d(worldBox, color, &matrix, 0.5f);
+  GxRsPop();
+}
+
+int CGUnit_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
+  static const NTempest::CImVector reactionTypeColors[NUM_UNIT_REACTIONS] = {
+      NTempest::CImVector(0xFFFF0000),
+      NTempest::CImVector(0xFFFF0000),
+      NTempest::CImVector(255, 255, 128, 0),
+      NTempest::CImVector(255, 255, 255, 0),
+      NTempest::CImVector(255, 0, 255, 0),
+      NTempest::CImVector(255, 0, 255, 0),
+      NTempest::CImVector(255, 0, 255, 0)
+  };
+  static const NTempest::CImVector playerReactionColor(255, 96, 96, 255);
+  static const NTempest::CImVector partyReactionColor(255, 170, 170, 255);
+
+  CGUnit_C *currentPlayer =
+      static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  FATALASSERT(currentPlayer);
+  FATALASSERT(outPtr);
+
+  UNIT_REACTION reaction = UnitReaction(currentPlayer);
+  if (!(m_obj->m_type & TYPE_PLAYER) || m_unit->charmedBy || reaction <= UNIT_REACTION_HOSTILE) {
+    *outPtr = (m_flags & 0x200) ? s_targetFlashColor : reactionTypeColors[reaction];
+  } else if (m_flags & 0x200) {
+    *outPtr = s_targetFlashColor;
+  } else if (GetGUID() == currentPlayer->GetGUID() || !CGPartyInfo::IsMember(GetGUID())) {
+    *outPtr = playerReactionColor;
+  } else {
+    *outPtr = partyReactionColor;
+  }
+
+  return 1;
+}
+
+void CGUnit_C::OnLeftClick() {
+  if ((m_obj->m_type & TYPE_PLAYER) || !m_NPCSoundsRec || !m_numNPCPissedSounds) {
+    ++s_currentGlobalClickCount;
+    return;
+  }
+
+  if (m_lastGlobalClickCount != s_currentGlobalClickCount) {
+    m_pissedCount = 0;
+  }
+
+  if (m_pissedCount < 4) {
+    if (!PlayNPCSound(NPCSOUND_ACK, 0)) {
+      return;
+    }
+    ++m_pissedCount;
+  } else {
+    unsigned int pissedIndex = m_pissedCount - 4;
+    if (pissedIndex < m_numNPCPissedSounds) {
+      if (!PlayNPCSound(NPCSOUND_PISSED, pissedIndex)) {
+        return;
+      }
+      ++m_pissedCount;
+    } else {
+      if (!PlayNPCSound(NPCSOUND_ACK, 0)) {
+        return;
+      }
+      m_pissedCount = 1;
+    }
+  }
+
+  m_lastGlobalClickCount = ++s_currentGlobalClickCount;
+}
+
+void CGUnit_C::OnRightClick() {
+  CGPlayer_C *player =
+      static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player || player->m_unit->health <= 0) {
+    return;
+  }
+
+  if (player->m_flags & 0x800) {
+    CGUnit_C *possessed = player->GetPossessedUnit();
+    if (m_unit->health > 0 && possessed && possessed->m_unit->health > 0 &&
+        !(possessed->m_unit->flags & 0x2000) && possessed->CanAttack(this)) {
+      CGPetInfo::PetAttackTarget(GetGUID());
+    }
+    return;
+  }
+
+  if (m_unit->health > 0) {
+    if (player->CanInteract(this)) {
+      unsigned int npcFlags = m_unit->npcFlags;
+      if (npcFlags & 1) {
+        player->ShopFromMerchant(GetGUID());
+      } else if (npcFlags & 4) {
+        player->QueryTaxiNodes(GetGUID());
+      } else if (npcFlags & 8) {
+        player->TalkToTrainer(GetGUID());
+      } else if (npcFlags & 0x10) {
+        player->TalkToBinder(GetGUID());
+      } else if (npcFlags & 0x20) {
+        player->TalkToBanker(GetGUID());
+      } else if (player->IsQuestUnit(this)) {
+        player->TalkToQuestUnit(GetGUID());
+      } else if ((npcFlags & 0xC0) == 0x40) {
+        player->TalkToTabardVendor(GetGUID());
+      } else if (npcFlags & 0x80) {
+        player->TalkToNpcPetition(GetGUID());
+      }
+    } else if (player->CanAttack(this)) {
+      if (player->m_unit->standState) {
+        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(208));
+      } else if (player->m_unit->health > 0 && !(player->m_unit->flags & 0x2000) &&
+                 m_unit->health > 0 && player->CanAttack(this)) {
+        player->SetCombatMode(1);
+      }
+    }
+  } else if (!(player->m_unit->flags & 0x2000)) {
+    if (player->m_unit->standState) {
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(120));
+    } else {
+      player->LootUnit(this);
+    }
+  }
+}
+
 bool __fastcall CGUnit_C::FactionHasReputation(int faction) {
   FactionRec *rec = g_factionDB.GetRecord(faction);
   if (!rec) {
@@ -5874,7 +6290,7 @@ void CGUnit_C::UpdatePlayerNameColor() {
 }
 
 static int __fastcall IsInSitSleepPosition(unsigned int animState) {
-  return animState < 64 ? (s_animInfo[animState].statePreempts >> 19) & 1 : 0;
+  return animState < 64 ? (s_animInfo[animState].flags >> 19) & 1 : 0;
 }
 
 void CGUnit_C::AddWorldDamageText(unsigned int damage, int normalCombatDamage) {
@@ -6492,7 +6908,7 @@ void CGUnit_C::ThrownMissileReleased() {
   FATALASSERT(model);
   SetRangedWeaponPullAnim(1);
   HandleClose(model);
-  m_animFlags |= 0x20000;
+  m_flags |= 0x20000;
 }
 
 void CGUnit_C::CheckPendingThrownWeaponReattach(unsigned int force) {
@@ -6516,15 +6932,15 @@ void CGUnit_C::OnStopRender() {
 }
 
 void CGUnit_C::CheckRendering() {
-  int wasRendering = (m_flags & 0x40000) != 0;
-  if (m_flags & 0x20000) {
-    m_flags |= 0x40000;
+  int wasRendering = (m_animFlags & 0x40000) != 0;
+  if (m_animFlags & 0x20000) {
+    m_animFlags |= 0x40000;
   } else {
-    m_flags &= ~0x40000;
+    m_animFlags &= ~0x40000;
   }
-  m_flags &= ~0x20000;
+  m_animFlags &= ~0x20000;
 
-  if (wasRendering && !(m_flags & 0x40000)) {
+  if (wasRendering && !(m_animFlags & 0x40000)) {
     OnStopRender();
   }
 }
@@ -6843,6 +7259,61 @@ void CGUnit_C::ProcessDiscardedAnim(ANIMQUEUENODE *node, bool doNotProcess) {
       node->type == ANIMQUEUE_SITCHAIRHIGH || node->type == ANIMQUEUE_KNEELDOWN || node->type == ANIMQUEUE_KNEELUP
   ) {
     m_flags &= ~0x40000u;
+  }
+
+  RecycleAnimNode(node);
+}
+
+void CGUnit_C::ProcessAnim(ANIMQUEUENODE *node) {
+  static const int s_standStateAnims[ANIMQUEUE_NUMTYPES] = {
+      -1, -1, -1, 50, 52, 53, 55, 56, -1, 56, 57, 58, 1, 59, 61
+  };
+
+  FATALASSERT(node);
+  FATALASSERT(node->type < ANIMQUEUE_NUMTYPES);
+
+  CheckPendingVictimFeedback();
+
+  switch (node->type) {
+    case ANIMQUEUE_ATTACK:
+      FATALASSERT(!m_currentDamageInfo);
+      if (SetAttackerAnimation(&node->roundInfo, 1)) {
+        m_currentDamageInfo = node;
+        return;
+      }
+      break;
+
+    case ANIMQUEUE_WOUND:
+      SetVictimAnimation(
+          node->roundInfo.newVictimState,
+          node->roundInfo.flags & 4,
+          node->roundInfo.flags & 8,
+          node->roundInfo.victimRoundDuration,
+          1
+      );
+      RecycleAnimNode(node);
+      return;
+
+    case ANIMQUEUE_SITDOWN:
+    case ANIMQUEUE_SITUP:
+    case ANIMQUEUE_SLEEPDOWN:
+    case ANIMQUEUE_SLEEPUP:
+    case ANIMQUEUE_SITCHAIR:
+    case ANIMQUEUE_SITCHAIRLOW:
+    case ANIMQUEUE_SITCHAIRMEDIUM:
+    case ANIMQUEUE_SITCHAIRHIGH:
+    case ANIMQUEUE_DEAD:
+    case ANIMQUEUE_KNEELDOWN:
+    case ANIMQUEUE_KNEELUP:
+      FATALASSERT(s_standStateAnims[node->type] != -1);
+      UpdateBaseAnimation(s_standStateAnims[node->type], 0);
+      m_flags &= ~0x40000u;
+      break;
+
+    case ANIMQUEUE_SITCHAIRUP:
+      UpdateBaseAnimation(0);
+      m_flags &= ~0x40000u;
+      break;
   }
 
   RecycleAnimNode(node);
@@ -7513,23 +7984,23 @@ int __fastcall CGUnit_C::GetAnimPriority(int state) {
 }
 
 int CGUnit_C::IsInStandSitTransition() {
-  if (m_animFlags & 0x40000) {
+  if (m_flags & 0x40000) {
     return 1;
   }
   return IsSitStandSleepTransition(m_currentBaseAnimState);
 }
 
 static int __fastcall IsSitStandSleepTransition(unsigned int animState) {
-  return animState < 64 ? (s_animInfo[animState].statePreempts >> 16) & 1 : 0;
+  return animState < 64 ? (s_animInfo[animState].flags >> 16) & 1 : 0;
 }
 
 int CGUnit_C::IsInSitSleepPosition() {
-  if (m_animFlags & 0x40000) {
+  if (m_flags & 0x40000) {
     return 0;
   }
 
   unsigned int animState = m_currentBaseAnimState;
-  return animState < 64 ? (s_animInfo[animState].statePreempts >> 19) & 1 : 0;
+  return animState < 64 ? (s_animInfo[animState].flags >> 19) & 1 : 0;
 }
 
 void CGUnit_C::PrintAttackSeqErrorMsg(unsigned int sequence, unsigned int fallBack) const {
@@ -7554,7 +8025,7 @@ UNITAFFILIATION CGUnit_C::GetGUIDAffiliation(unsigned __int64 unit) const {
   return AFFILIATION_OTHER;
 }
 
-int CGUnit_C::GetSpellRank(int spellID) {
+int CGUnit_C::GetSpellRank(int spellID) const {
   FATALASSERT(!IsA(TYPE_PLAYER));
 
   SpellRec *spell = g_spellDB.GetRecord(spellID);
@@ -9254,4 +9725,155 @@ void IMPACTEFFECTDESC::Set(unsigned __int64 a, unsigned __int64 v, const SpellVi
   victim = v;
   impactKit = const_cast<SpellVisualKitRec *>(i);
   spellID = s;
+}
+void CGUnit_C::GetAFKText(char *buffer, int) const {
+  buffer[0] = '\0';
+}
+
+void CGUnit_C::GetDNDText(char *buffer, int) const {
+  buffer[0] = '\0';
+}
+
+void CGUnit_C::GetGMText(char *buffer, int) const {
+  buffer[0] = '\0';
+}
+
+const char *CGUnit_C::GetUnitTitle() const {
+  return m_stats && m_stats->m_title && m_stats->m_title[0] ? m_stats->m_title : 0;
+}
+
+unsigned int CGUnit_C::UpdateUnitNameString(
+    unsigned int,
+    unsigned int otherUnitsFlags,
+    char *buffer,
+    unsigned int bufferSize
+) const {
+  FATALASSERT(buffer);
+  FATALASSERT(bufferSize);
+
+  unsigned int added = 0;
+  char temp[260];
+
+  GetAFKText(temp, sizeof(temp));
+  SStrPack(buffer, temp, bufferSize);
+  GetDNDText(temp, sizeof(temp));
+  SStrPack(buffer, temp, bufferSize);
+  GetGMText(temp, sizeof(temp));
+  SStrPack(buffer, temp, bufferSize);
+
+  if (otherUnitsFlags & 1) {
+    SStrPrintf(temp, sizeof(temp), "%s%s", "", GetUnitName());
+    SStrPack(buffer, temp, bufferSize);
+    added = 1;
+  }
+
+  if ((GetType() & TYPE_PLAYER) && (otherUnitsFlags & 2)) {
+    const CGPlayer_C *player = static_cast<const CGPlayer_C *>(this);
+    unsigned int guildID = player->GetGuildID();
+    if (guildID) {
+      const unsigned __int64 noGuid = 0;
+      const GuildStats_C *guild =
+          g_guildInfoCache.GetRecord(guildID, noGuid, PlayerNameGuildCallback, const_cast<HPLAYERNAME *>(&m_unitNameHandle));
+      if (guild) {
+        if (added) {
+          SStrPack(buffer, "\n", bufferSize);
+        }
+        SStrPack(buffer, "<", bufferSize);
+        SStrPack(buffer, guild->m_guildName, bufferSize);
+        SStrPack(buffer, ">", bufferSize);
+        ++added;
+      }
+    }
+  }
+
+  const char *title = GetUnitTitle();
+  if (title && (otherUnitsFlags & 4)) {
+    if (added) {
+      SStrPack(buffer, "\n", bufferSize);
+    }
+    SStrPack(buffer, "<", bufferSize);
+    SStrPrintf(temp, sizeof(temp), FrameScript_GetText("UNITNAME_TITLE", -1, GENDER_NOT_APPLICABLE), title);
+    SStrPack(buffer, temp, bufferSize);
+    SStrPack(buffer, ">", bufferSize);
+    ++added;
+  }
+
+  if (otherUnitsFlags & 8) {
+    char summonString[128] = {0};
+    CGTooltip::GetSummonedByString(this, summonString, sizeof(summonString));
+    if (summonString[0]) {
+      if (added) {
+        SStrPack(buffer, "\n", bufferSize);
+      }
+      SStrPack(buffer, "<", bufferSize);
+      SStrPack(buffer, summonString, bufferSize);
+      SStrPack(buffer, ">", bufferSize);
+      ++added;
+    }
+  }
+
+  return added;
+}
+
+unsigned __int64 CGUnit_C::GetLocalTarget() const {
+  return m_targetUnit;
+}
+
+void CGUnit_C::HandleSpellEventSound() {
+}
+
+void CGUnit_C::CombatLoggingFlagChanged() {
+}
+
+void CGUnit_C::OnGetAttacked(unsigned __int64) {
+}
+
+float CGUnit_C::GetMountScale() const {
+  return 1.0f;
+}
+
+void CGUnit_C::OnMount() {
+}
+
+void CGUnit_C::OnDismount() {
+}
+
+bool CGUnit_C::CanBeMounted() {
+  return true;
+}
+
+void CGUnit_C::OnStandStateChanged(unsigned int, unsigned int) {
+}
+
+bool CGUnit_C::GetDefenseSkillRank(int &base, int &modifier) const {
+  base = 0;
+  modifier = 0;
+  return false;
+}
+
+bool CGUnit_C::GetAttackSkillRank(int, int &base, int &modifier) const {
+  base = 0;
+  modifier = 0;
+  return false;
+}
+
+float CGUnit_C::GetBlockChance() const {
+  return 0.0f;
+}
+
+float CGUnit_C::GetDodgeChance() const {
+  return 0.0f;
+}
+
+float CGUnit_C::GetParryChance() const {
+  return 0.0f;
+}
+
+void CGUnit_C::UpdateObjComponentVisuals(const CGItem_C *, const ItemEnchantment *, int) {
+}
+
+void CGUnit_C::ClearItemVisuals(ACTIVEATTACHMENTINFO *) {
+}
+
+void CGUnit_C::SetItemVisuals(ACTIVEATTACHMENTINFO *, const ItemVisualsRec *, bool) {
 }

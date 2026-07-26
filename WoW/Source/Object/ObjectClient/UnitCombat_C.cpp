@@ -21,7 +21,9 @@
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/Camera.h"
 #include "Ui/GameUI.h"
+#include "Ui/WorldFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 extern CVar *g_combatModeMaxDistance;
@@ -31,7 +33,7 @@ void __fastcall UnitCombatLogXPGain(const unsigned __int64 &victim, CDataStore *
 void __fastcall UnitCombatLog(ATTACKROUNDINFO &roundInfo);
 void __fastcall UnitCombatLog(SPELLLOG &log);
 void __fastcall UnitCombatLog(SPELLMISSLOG &log);
-void __fastcall UnitCombatLog(MIRRORTIMERDAMAGE &log);
+void __fastcall UnitCombatLog(const MIRRORTIMERDAMAGE &log);
 void __fastcall UnitCombatLog(ENVIRONMENTALDAMAGE &log);
 void __fastcall UnitCombatLogHeartbeatResist(RESISTLOG &log);
 void __fastcall UnitCombatLogEnchantment(ENCHANTMENTLOG &log);
@@ -625,7 +627,7 @@ void CGUnit_C::SetVictimAnimation(VICTIMSTATES newState, int unitDead, int criti
   SetTorsoAnimation(sequence, victimRoundDuration, 16);
 }
 
-int CGUnit_C::SetAttackerAnimation(ATTACKROUNDINFO *roundInfo, int processNow) {
+int CGUnit_C::SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int processNow) {
   FATALASSERT(roundInfo);
 
   COMBATHAND hand = COMBAT_MAINHAND;
@@ -998,12 +1000,12 @@ void CGUnit_C::OnAttackStop(unsigned __int64 previousTarget, int nowDead) {
   }
 }
 
-void CGUnit_C::OnAttackerStateChange(ATTACKROUNDINFO &roundInfo) {
+void CGUnit_C::OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo) {
   m_hitInformation.attackFlags = 0;
 
   CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo.victim, __FILE__, __LINE__));
   if (victimPtr) {
-    AdjustVictimState(&roundInfo);
+    victimPtr->AdjustVictimState(const_cast<ATTACKROUNDINFO *>(&roundInfo));
   }
 
   if (roundInfo.flags & 0x1000) {
@@ -1032,11 +1034,28 @@ void CGUnit_C::OnAttackerStateChange(ATTACKROUNDINFO &roundInfo) {
   }
 }
 
-void CGUnit_C::HandleMirrorTimerDamage(MIRRORTIMERDAMAGE &log) {
+void CGUnit_C::HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log) {
   UnitCombatLog(log);
 }
 
-void CGUnit_C::DoVictimFeedback(ATTACKROUNDINFO *roundInfo, int showAnimation) {
+void CGUnit_C::PlayDeathThudCameraShake() const {
+  CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+  if (!worldFrame) {
+    return;
+  }
+
+  CGCamera *camera = worldFrame->Camera();
+  if (!camera) {
+    return;
+  }
+
+  FATALASSERT(m_modelData);
+  if (m_modelData->m_deathThudShakeSize) {
+    camera->AddShake(m_modelData->m_deathThudShakeSize, GetPosition());
+  }
+}
+
+void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimation) {
   FATALASSERT(roundInfo);
 
   CGUnit_C *attackerPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo->attacker, __FILE__, __LINE__));
@@ -1068,7 +1087,7 @@ void CGUnit_C::DoVictimFeedback(ATTACKROUNDINFO *roundInfo, int showAnimation) {
 
   if (roundInfo->flags & 2) {
     if (showAnimation) {
-      AdjustVictimState(roundInfo);
+      AdjustVictimState(const_cast<ATTACKROUNDINFO *>(roundInfo));
     }
     if (roundInfo->spellDamageAdded && (roundInfo->newVictimState == VS_WOUND || roundInfo->newVictimState == VS_INTERRUPT)) {
       ShowBloodSpurt(attackerPtr, roundInfo->flags & 0x400);
@@ -1108,7 +1127,7 @@ void CGUnit_C::DoVictimFeedback(ATTACKROUNDINFO *roundInfo, int showAnimation) {
 
 void CGUnit_C::AdjustVictimState(ATTACKROUNDINFO *roundInfo) {
   if (roundInfo->newVictimState == VS_PARRY) {
-    VirtualItemInfo *item = GetAttackingWeapon(COMBAT_MAINHAND);
+    const VirtualItemInfo *item = GetAttackingWeapon(COMBAT_MAINHAND);
     if (!item || !m_unit->virtualItemDisplay[0]) {
       roundInfo->flags |= 0x40000;
       roundInfo->newVictimState = VS_DEFLECT;
@@ -1136,7 +1155,7 @@ MISS_REASON CGUnit_C::AdjustVictimState(MISS_REASON reason) {
   return reason;
 }
 
-void CGUnit_C::ShowWorldText(ATTACKROUNDINFO *roundInfo) {
+void CGUnit_C::ShowWorldText(const ATTACKROUNDINFO *roundInfo) {
   unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
   if (activePlayer != roundInfo->attacker) {
     return;

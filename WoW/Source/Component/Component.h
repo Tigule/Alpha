@@ -92,6 +92,8 @@ unsigned int __fastcall CompUtilGetObjComponents(
 int __fastcall
 GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool isPlayer, bool useAlternate, HMODEL *models, int *attachmentPoints);
 HMODEL __fastcall ObjComponentBuildAmmoModel(ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration);
+void __fastcall ComponentUtilAddItemVisual(HMODEL itemModel, int index, const char *name);
+HMODEL __fastcall ComponentUtilGetChildModel(HMODEL parent, int index);
 void __fastcall
 CompDecorateTexName(const char *string, TEXCOMPONENT_SECTIONS section, char *buffer, unsigned int size, unsigned int sex, int includeSex);
 void __fastcall CompDecorateObjName(const char *string, char *buffer, unsigned int size, unsigned int race, unsigned int sex);

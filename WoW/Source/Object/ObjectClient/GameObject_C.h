@@ -291,7 +291,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
 
  public:
   CGGameObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
-  virtual ~CGGameObject_C();
+  ~CGGameObject_C();
 
   void SetStorage(unsigned long *storage);
   void PostInit(const CClientObjCreate &init);
@@ -305,12 +305,14 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   virtual NTempest::C3Vector GetPosition() const;
   virtual void               GetPosition(NTempest::C3Vector &vec) const;
   virtual float              GetFacing() const;
+  virtual NTempest::C3Vector GetCurrentMoveVector() const;
   virtual const char        *GetModelFileName() const;
   virtual int                CanHighlight() const;
   virtual int                IsSolidSelectable() const;
   virtual int                IsSolidCollidable() const;
   virtual int                FloatingTooltip() const;
   virtual void               OnRightClick();
+  virtual int                IsPointInside(const NTempest::C3Vector &point) const;
   virtual NTempest::C34Matrix GetMatrix() const;
   virtual const char        *GetObjectName() const;
   virtual int                GetPageTextID(void(__fastcall *func)(int, const unsigned __int64 &, void *, bool)) const;
@@ -318,7 +320,6 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   virtual void               ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
 
   int           IsTransport() const;
-  int           IsPointInside(const NTempest::C3Vector &point) const;
   int           GetPageTextLanguage() const;
   int           GetPageTextMaterial() const;
   void          LoadBaseObject(const GameObjectStats *stats);
@@ -328,7 +329,6 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   void          PostPostInit();
   void          UpdateMatrix();
   void          ActivateCustomAnim(unsigned int anim);
-  NTempest::C3Vector GetCurrentMoveVector() const;
   const char   *GetName() const;
   const char   *GetTypeName() const;
   const char   *GetDebugStatus() const;

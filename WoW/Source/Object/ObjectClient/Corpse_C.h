@@ -36,11 +36,11 @@ class CGCorpse {
 class CGCorpse_C : public CGObject_C, public CGCorpse {
  public:
   CGCorpse_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
-  virtual ~CGCorpse_C();
+  ~CGCorpse_C();
 
   void         SetStorage(unsigned long *storage);
   void         PostInit(const CClientObjCreate &init);
-  virtual void PostMovementUpdate() {
+  void PostMovementUpdate() {
   }
   virtual void                   Disable(int shutdown);
   virtual void                   Reenable();

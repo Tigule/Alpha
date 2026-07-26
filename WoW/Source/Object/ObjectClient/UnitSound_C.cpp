@@ -144,18 +144,18 @@ void CGUnit_C::PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const {
   SndInterfacePlaySound(soundID, position, -1, 1.0f);
 }
 
-void CGUnit_C::PlayParrySound(unsigned int ignoreMainHand, ATTACKROUNDINFO *roundInfo, NTempest::C3Vector &position) {
+void CGUnit_C::PlayParrySound(bool ignoreMainHand, const ATTACKROUNDINFO *roundInfo, const NTempest::C3Vector &position) const {
   FATALASSERT(roundInfo);
 
   CGUnit_C        *attacker = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo->attacker, __FILE__, __LINE__));
-  VirtualItemInfo *attackingWeapon = attacker ? attacker->GetAttackingWeapon(static_cast<COMBATHAND>((roundInfo->flags >> 9) & 1)) : 0;
-  VirtualItemInfo *defendingItem = GetParryingItem(ignoreMainHand);
+  const VirtualItemInfo *attackingWeapon = attacker ? attacker->GetAttackingWeapon(static_cast<COMBATHAND>((roundInfo->flags >> 9) & 1)) : 0;
+  const VirtualItemInfo *defendingItem = GetParryingItem(ignoreMainHand);
   if (defendingItem) {
     SndInterfacePlayParrySound(attackingWeapon, defendingItem, roundInfo->flags & 8, position);
   }
 }
 
-void CGUnit_C::PlayImpactSound(unsigned __int64 attacker, int criticalHit, COMBATHAND hand) {
+void CGUnit_C::PlayImpactSound(unsigned __int64 attacker, int criticalHit, COMBATHAND hand) const {
   CGUnit_C *attackerPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__));
   if (!attackerPtr) {
     return;
@@ -214,8 +214,13 @@ void CGUnit_C::PlaySplashSound(const NTempest::C3Vector &position) {
   SndInterfacePlaySplashSound(m_splashSoundID, position);
 }
 
-VirtualItemInfo *CGUnit_C::GetParryingItem(unsigned int ignoreMainHand) {
-  VirtualItemInfo *item = &m_unit->virtualItemInfo[0];
+void CGUnit_C::PlayFoleySound() const {
+  FATALASSERT(m_modelData);
+  SndInterfacePlayFoleySound(m_modelData->m_foleyMaterialID, GetPosition());
+}
+
+const VirtualItemInfo *CGUnit_C::GetParryingItem(bool ignoreMainHand) const {
+  const VirtualItemInfo *item = &m_unit->virtualItemInfo[0];
   if (!ignoreMainHand && item->m_classID == 2) {
     return item;
   }
@@ -227,13 +232,13 @@ VirtualItemInfo *CGUnit_C::GetParryingItem(unsigned int ignoreMainHand) {
   return item;
 }
 
-VirtualItemInfo *CGUnit_C::GetDefendingItem() {
+const VirtualItemInfo *CGUnit_C::GetDefendingItem() const {
   return GetParryingItem(0);
 }
 
-VirtualItemInfo *CGUnit_C::GetAttackingWeapon(COMBATHAND hand) {
+const VirtualItemInfo *CGUnit_C::GetAttackingWeapon(COMBATHAND hand) const {
   FATALASSERT(hand < NUMHANDS);
-  VirtualItemInfo *item = &m_unit->virtualItemInfo[hand == COMBAT_OFFHAND];
+  const VirtualItemInfo *item = &m_unit->virtualItemInfo[hand == COMBAT_OFFHAND];
   return item->m_classID == 2 ? item : 0;
 }
 
@@ -302,7 +307,7 @@ bool CGUnit_C::GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type) {
   return subClass != 0;
 }
 
-unsigned int CGUnit_C::GetImpactType() {
+unsigned int CGUnit_C::GetImpactType() const {
   FATALASSERT(m_modelData);
   return m_modelData->m_sizeClass;
 }

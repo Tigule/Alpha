@@ -393,7 +393,7 @@ void CGInputControl::OnUpdate(float elapsedSec) {
 }
 
 void CGInputControl::UpdatePlayer(unsigned long now) {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   if (!player) {
     return;
   }
@@ -405,7 +405,8 @@ void CGInputControl::UpdatePlayer(unsigned long now) {
   const CGUnitData *unit = player->GetUnitData();
   bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charm &&
                                                                      ((unit->flags & 2) || !(unit->flags & 0xC00004)) && !(unit->flags & 1));
-  bool              canMove = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() && !(player->m_flags & 0x2400);
+  bool              canMove = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() &&
+                              !(player->m_movement.m_moveFlags & 0x2400);
   bool              canTurn = !(unit->flags & 0x40000);
 
   if (canMove) {

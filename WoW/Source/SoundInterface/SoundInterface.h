@@ -94,9 +94,9 @@ void __fastcall SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj);
 unsigned int __fastcall SndInterfaceGetSoundVariations(unsigned int soundID);
 void __fastcall SndInterfacePlaySpellFizzleSound(unsigned int spellID, const CGUnit_C *caster);
 void __fastcall
-SndInterfacePlayParrySound(VirtualItemInfo *attackingWeapon, VirtualItemInfo *defendingItem, int criticalHit, NTempest::C3Vector &position);
+SndInterfacePlayParrySound(const VirtualItemInfo *attackingWeapon, const VirtualItemInfo *defendingItem, int criticalHit, const NTempest::C3Vector &position);
 void __fastcall
-SndInterfacePlayHitSound(VirtualItemInfo *attackingWeapon, unsigned int defendingItemType, int criticalHit, NTempest::C3Vector &position);
+SndInterfacePlayHitSound(const VirtualItemInfo *attackingWeapon, unsigned int defendingItemType, int criticalHit, const NTempest::C3Vector &position);
 void __fastcall SndInterfacePlaySheatheSound(
     const VirtualItemInfo *info,
     int sheathing,
@@ -114,6 +114,7 @@ bool __fastcall   SndInterfacePlaySound(unsigned int soundID, int forceIndex);
 bool __fastcall   SndInterfacePlaySound(unsigned int soundID, const NTempest::C3Vector &position, int forceIndex, float volumeScaler);
 bool __fastcall   SoundInterfaceIsSoundLooping(unsigned int soundID, bool &looping);
 bool __fastcall   SndInterfacePlaySplashSound(unsigned int soundID, const NTempest::C3Vector &position);
+void __fastcall   SndInterfacePlayFoleySound(unsigned int materialID, const NTempest::C3Vector &position);
 Sound *__fastcall SndInterfacePlayLoopedSound(unsigned int soundID, unsigned int loopCount);
 Sound *__fastcall SndInterfacePlayLoopedSound(unsigned int soundID, const NTempest::C3Vector &position, unsigned int loopCount);
 Sound *__fastcall SndInterfaceCreateSound(unsigned int soundID, float fadeInRate, int forceIndex, bool doNotKeepAlive);

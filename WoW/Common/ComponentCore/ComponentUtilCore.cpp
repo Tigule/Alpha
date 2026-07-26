@@ -2,7 +2,41 @@
 
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
 
+#include <Model/IModel.h>
 #include <Services/Texture.h>
+
+#include <string.h>
+
+static const char *s_itemVisualAnimNames[1] = {"stand"};
+
+void __fastcall ComponentUtilAddItemVisual(HMODEL itemModel, int index, const char *name) {
+  if (ModelIsLoaded(itemModel, 1) && !ModelHasLinkPoint(itemModel, index)) {
+    return;
+  }
+
+  CModelCreate createData;
+  memset(&createData.boneNames, 0, 4 * sizeof(createData.boneNames));
+  createData.flags = 0x2002;
+  createData.sequenceNames = s_itemVisualAnimNames;
+  createData.numSequences = 1;
+
+  if (itemModel && name && *name) {
+    HMODEL visualModel = ModelCreate(name, &createData, 0);
+    ModelAddLink(itemModel, index, visualModel, 1.0f);
+    HandleClose(visualModel);
+  }
+}
+
+HMODEL __fastcall ComponentUtilGetChildModel(HMODEL parent, int index) {
+  if (!parent) {
+    return 0;
+  }
+
+  HMODEL       model = 0;
+  unsigned int max = 1;
+  ModelGetLinkPoint(parent, index, &model, &max);
+  return model;
+}
 
 SUBCOMPONENTDESC::~SUBCOMPONENTDESC() {
   if (modelName) {

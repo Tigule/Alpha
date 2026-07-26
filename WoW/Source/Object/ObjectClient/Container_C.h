@@ -21,10 +21,10 @@ class CGContainer {
 class CGContainer_C : public CGItem_C, public CGContainer {
  public:
   CGContainer_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
-  virtual ~CGContainer_C();
+  ~CGContainer_C();
 
   void         SetStorage(unsigned long *storage);
-  virtual void PostMovementUpdate() {
+  void PostMovementUpdate() {
   }
   virtual void                   Disable(int shutdown);
   virtual void                   Reenable();

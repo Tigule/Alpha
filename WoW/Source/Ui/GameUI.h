@@ -18,6 +18,7 @@ struct CSpriteClickEvent;
 struct CTerrainClickEvent;
 struct CWorldClickEvent;
 struct CObjectTrackEvent;
+struct MIRRORTIMERDAMAGE;
 struct HMODEL__;
 struct lua_State;
 
@@ -146,6 +147,7 @@ class CGGameUI {
   static void __fastcall         ShowCursor();
   static void __fastcall         ShowHealingFeedback(const unsigned __int64 &guid, int amount);
   static void __fastcall         ShowCombatFeedback(const unsigned __int64 &guid, int amount, int damageClass, unsigned int flags);
+  static void __fastcall         ShowCombatFeedback(const MIRRORTIMERDAMAGE &log);
   static void __fastcall         OnItemPush(unsigned __int64 player, int slot, int itemID, int pushed, int display);
   static void __fastcall         OpenPartyInvite(const char *inviter);
   static void __fastcall         OpenResurrectRequest(const char *inviter);

@@ -121,7 +121,7 @@ void WEAPONSOUNDS::Clear() {
   soundList[1] = 0;
 }
 
-static void __fastcall DetermineWeaponTypeAndMaterial(VirtualItemInfo *item, unsigned int *weaponType, PARRYMATERIALS *material) {
+static void __fastcall DetermineWeaponTypeAndMaterial(const VirtualItemInfo *item, unsigned int *weaponType, PARRYMATERIALS *material) {
   FATALASSERT(weaponType);
   FATALASSERT(material);
 
@@ -412,7 +412,7 @@ void __fastcall SndInterfaceWorldDestroy() {
 }
 
 void __fastcall
-SndInterfacePlayParrySound(VirtualItemInfo *attackingWeapon, VirtualItemInfo *defendingItem, int criticalHit, NTempest::C3Vector &position) {
+SndInterfacePlayParrySound(const VirtualItemInfo *attackingWeapon, const VirtualItemInfo *defendingItem, int criticalHit, const NTempest::C3Vector &position) {
   if (!g_impactSounds.Count()) {
     return;
   }
@@ -438,7 +438,7 @@ SndInterfacePlayParrySound(VirtualItemInfo *attackingWeapon, VirtualItemInfo *de
 }
 
 void __fastcall
-SndInterfacePlayHitSound(VirtualItemInfo *attackingWeapon, unsigned int defendingItemType, int criticalHit, NTempest::C3Vector &position) {
+SndInterfacePlayHitSound(const VirtualItemInfo *attackingWeapon, unsigned int defendingItemType, int criticalHit, const NTempest::C3Vector &position) {
   if (!g_impactSounds.Count()) {
     return;
   }

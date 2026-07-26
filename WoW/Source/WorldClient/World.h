@@ -286,6 +286,7 @@ class CWorld {
   static const char *__fastcall  QueryChunkName();
   static bool __fastcall  QueryMapObjAreaTable(unsigned long hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
   static int __fastcall   QueryObjectLiquid(unsigned long hWorldObject, unsigned int &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep);
+  static bool __fastcall  QueryMountAllowed(unsigned long hWorldObject, bool &allowed);
   static int __fastcall   QueryLiquidStatus(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir);
   static void __fastcall  UpdateObject(unsigned long hWorldObject, NTempest::C44Matrix &mat, NTempest::CAaBox &aaBox);
   static void __fastcall  ObjectUpdate(unsigned int id, NTempest::C3Vector &pos, float angle, int bSnap);

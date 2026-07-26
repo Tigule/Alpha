@@ -60,7 +60,7 @@ class CGItem_C : public CGObject_C, public CGItem {
 
  public:
   CGItem_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
-  virtual ~CGItem_C();
+  ~CGItem_C();
 
   void         PostInit(const CClientObjCreate &init);
   void         PostInitWithStats();

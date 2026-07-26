@@ -28,12 +28,12 @@ class CGObject_C : public CGObject {
 
  public:
   CGObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
-  virtual ~CGObject_C();
+  ~CGObject_C();
 
   void         SetStorage(unsigned long *storage);
   void         SetTypeID(OBJECT_TYPE_ID typeID);
   void         PostInit(const CClientObjCreate &init);
-  virtual void PostMovementUpdate();
+  void         PostMovementUpdate();
   int          IsPostInited();
 
   static void __fastcall Initialize();

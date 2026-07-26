@@ -456,6 +456,24 @@ int __fastcall CWorld::QueryObjectLiquid(unsigned long hWorldObject, unsigned in
   return 1;
 }
 
+bool __fastcall CWorld::QueryMountAllowed(unsigned long hWorldObject, bool &allowed) {
+  CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
+  FATALASSERT(entity);
+  FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
+
+  if (!entity->flagInside) {
+    return false;
+  }
+
+  CMapObjDef      *mapObjDef;
+  CMapObj         *mapObj;
+  CMapObjDefGroup *mapObjDefGroup;
+  CMapObjGroup    *mapObjGroup = 0;
+  FATALASSERT(entity->GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup));
+  allowed = (mapObjGroup->flags & 0x8000) != 0;
+  return true;
+}
+
 unsigned int __fastcall CWorld::ObjectCreate(
     const char *name,
     NTempest::C3Vector &pos,

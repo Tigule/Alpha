@@ -25,6 +25,7 @@
 #include "Object/ObjectClient/GameObject_C.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/Player_C.h"
+#include "Object/UnitCombat.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Game/GameClient/PlayerName.h"
 #include "DB/DBClient/AutoCode/CinematicCameraRec.h"
@@ -5693,6 +5694,14 @@ void __fastcall CGGameUI::ShowCombatFeedback(const unsigned __int64 &guid, int a
   char **names = Script_GetNamesFromGUID(guid, numnames);
   for (int index = 0; index < numnames; ++index) {
     FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], "WOUND", flagText, amount, damageClass);
+  }
+}
+
+void __fastcall CGGameUI::ShowCombatFeedback(const MIRRORTIMERDAMAGE &log) {
+  int    numnames;
+  char **names = Script_GetNamesFromGUID(log.victim, numnames);
+  for (int index = 0; index < numnames; ++index) {
+    FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], "WOUND", "", log.amount, 0);
   }
 }
 

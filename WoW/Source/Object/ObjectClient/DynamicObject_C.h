@@ -28,11 +28,11 @@ class CGDynamicObject {
 class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
  public:
   CGDynamicObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
-  virtual ~CGDynamicObject_C();
+  ~CGDynamicObject_C();
 
   void         SetStorage(unsigned long *storage);
   void         PostInit(const CClientObjCreate &init);
-  virtual void PostMovementUpdate() {
+  void PostMovementUpdate() {
   }
   virtual void                   Disable(int shutdown);
   virtual void                   Reenable();

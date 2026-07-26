@@ -156,14 +156,69 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
 
  public:
   CGPlayer_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
-  virtual ~CGPlayer_C();
+  ~CGPlayer_C();
   virtual void Disable(int shutdown);
   virtual void Reenable();
   virtual int  ShouldRender(unsigned long worldStatus);
-  void         CommitTexture(int force);
+  virtual void PreAnimate(CGWorldFrame *worldFrame);
+  virtual void GetAFKText(char *buffer, int size) const;
+  virtual void GetDNDText(char *buffer, int size) const;
+  virtual void GetGMText(char *buffer, int size) const;
+  virtual unsigned __int64 GetLocalTarget() const;
+  virtual void HandleSpellEventSound();
+  virtual void CombatLoggingFlagChanged();
+  virtual unsigned __int64 GetUnitBeingLooted() const;
+  virtual void OnAttackStart(unsigned __int64 victim);
+  virtual void OnAttackStop(unsigned __int64 previousTarget, int nowDead);
+  virtual void OnDeath();
+  virtual void OnDeathAnimate();
+  virtual void OnBadAttackFacing(unsigned __int64 victim);
+  virtual void OnBadAttackTarget(unsigned __int64 victim);
+  virtual void OnBadAttackPosition(unsigned __int64 victim, float range);
+  virtual void OnNotStanding(unsigned __int64 victim);
+  virtual void UnitHit(VICTIMSTATES state, unsigned __int64 attacker);
+  virtual void OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo);
+  virtual void HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log);
+  virtual void PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const;
+  virtual void PlayFoleySound() const;
+  virtual unsigned int GetImpactType() const;
+  virtual const VirtualItemInfo *GetDefendingItem() const;
+  virtual void PlayDeathThudCameraShake() const;
+  virtual void LootAnimEndHandler();
+  virtual void SetTorsoAnimState(unsigned int newState);
+  virtual void SetBaseAnimState(unsigned int newState);
+  virtual unsigned int DetermineWoundSequence() const;
+  virtual const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
+  virtual int GetVirtualItemDisplayID(unsigned int slot) const;
+  virtual int ShouldRenderUnitName(unsigned int mode) const;
+  virtual void CommitTexture(int force);
+  virtual unsigned int UpdateUnitNameString(unsigned int localPlayerFlags, unsigned int otherUnitsFlags, char *buffer, unsigned int bufferSize) const;
+  virtual float GetMountScale() const;
+  virtual void OnMount();
+  virtual void OnDismount();
+  virtual bool CanBeMounted();
+  virtual void CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
+  virtual void ReinitializeUnitArtwork();
+  virtual void PostReinitializeArtwork();
+  virtual void OnStandStateChanged(unsigned int oldState, unsigned int newState);
+  virtual void ChangeStandState(unsigned int standState);
+  virtual void SetEmoteState(unsigned int emoteID);
+  virtual int GetSpellRank(int spellID) const;
+  virtual bool GetDefenseSkillRank(int &base, int &modifier) const;
+  virtual bool GetAttackSkillRank(int hand, int &base, int &modifier) const;
+  virtual void OnLevelChange();
+  virtual float GetBlockChance() const;
+  virtual float GetDodgeChance() const;
+  virtual float GetParryChance() const;
+  virtual int GetSpellCastingTime(int spellID) const;
+  virtual void UpdateObjComponentVisuals(const CGItem_C *item, const ItemEnchantment *enchantments, int num);
+  virtual void ClearItemVisuals(ACTIVEATTACHMENTINFO *info);
+  virtual void SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec *rec, bool force);
+  virtual void SetLastWeaponModeSent(int mode);
 
   void                               SetStorage(unsigned long *storage);
   void                               PostInit(const CClientObjCreate &init);
+  void                               GuildInfoLoaded(const TSGrowableArray<unsigned int> &guildList);
   static ITEMEXPIRATION *__fastcall  GetPendingItemExpirationNode(const unsigned __int64 &itemGUID);
   static void __fastcall             Initialize();
   static void __fastcall             InstallGMHandlers();
@@ -193,7 +248,6 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   static void __fastcall             ProcessDeferredDamage();
   static void __fastcall             ProcessDeferredSpellMiss();
   static void __fastcall             XBuyItem(unsigned __int64 merchant, unsigned int itemID, unsigned int quantity, unsigned int autoEquip);
-  unsigned __int64                   GetLocalTarget() const;
   static void __fastcall             Shutdown();
   void                               TrySheathingWeapon();
   void                               SheatheWeapon(unsigned int sheathe);
@@ -208,24 +262,6 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   }
   CGUnit_C                *GetPossessedUnit();
   int                      CanLoot(CGUnit_C *unitPtr);
-  virtual unsigned __int64 GetUnitBeingLooted() const {
-    return m_lootingUnit;
-  }
-  virtual void SetBaseAnimState(unsigned int newState);
-  void SetEmoteState(unsigned int emoteID);
-  void PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const;
-  void OnDeathAnimate();
-  virtual void SetTorsoAnimState(unsigned int newState);
-  int  GetSpellCastingTime(int spellID) const;
-  unsigned int DetermineWoundSequence() const;
-  virtual const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
-  virtual int  GetVirtualItemDisplayID(unsigned int slot) const;
-  int  ShouldRenderUnitName(unsigned int mode) const;
-  void OnDeath();
-  virtual void CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
-  virtual void ReinitializeUnitArtwork();
-  virtual void PostReinitializeArtwork();
-  void SetLastWeaponModeSent(int mode);
   static bool __fastcall IsGiftWrapping();
   static void __fastcall CancelGiftWrap();
   void                   SetCombatMode(int state);
@@ -240,8 +276,6 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void SetActiveMirrorHandlers();
   void UnsetActiveMirrorHandlers();
   virtual void PostReenable();
-  virtual void OnMount();
-  virtual void OnDismount();
   void         KillCombatModeTimer();
   void         ResetCombatModeTimer(int newCombat);
   unsigned int GetCombatModeTimerInterval();
@@ -272,7 +306,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
       int              ignoreOwnershipRules
   );
   void                                  AutoEquipItem(unsigned __int64 container, unsigned int slot, int force);
-  void                                  SellItem(unsigned __int64 merchant, unsigned __int64 item, unsigned int amount);
+  static void __fastcall                SellItem(unsigned __int64 merchant, unsigned __int64 item, unsigned int amount);
   void                                  AutoEquipCursorItem(int force);
   void                                  ClearPendingEquip(unsigned int index, int equip);
   int                                   OnAttackIconPressed();
@@ -312,7 +346,6 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   static void __fastcall                SaveBindPoint(CDataStore *msg);
   void                                  HandleMountResult(unsigned int result);
   void                                  HandleDismountResult(unsigned int result);
-  virtual float                         GetMountScale() const;
   void                                  OnTaxiNodeStatus(CDataStore *msg);
   void                                  ShowTaxiNodes(CDataStore *msg);
   void                                  StartTaxi(unsigned __int64 vendor, unsigned int startNode, unsigned int destNode);
@@ -350,7 +383,6 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   int                                   OnLootClearMoney(CDataStore *msg);
   int                                   OnLootItemNotify(CDataStore *msg);
   int                                   OnSplitMoneyNotify(CDataStore *msg);
-  void                                  LootAnimEndHandler();
   void                                  AddKnownSpell(int spellID, int slot, int learned, int addToBook);
   void                                  DelKnownSpell(int spellID);
   void                                  DeleteWornItems();
@@ -359,7 +391,15 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void                                  UpdateQuestStatus(CGUnit_C *unit);
   void                                  UpdateQuestStatusAll();
   void                                  UpdateTaxiStatus(CGUnit_C *unit);
+  int                                   LootUnit(CGUnit_C *unit);
+  void                                  ShopFromMerchant(const unsigned __int64 &merchant);
+  int                                   IsQuestUnit(CGUnit_C *unit);
+  void                                  TalkToQuestUnit(const unsigned __int64 &unit);
+  int                                   QueryTaxiNodes(const unsigned __int64 &unit);
   void                                  TalkToTrainer(const unsigned __int64 &trainerUnit);
+  void                                  TalkToBinder(const unsigned __int64 &binder);
+  void                                  TalkToBanker(const unsigned __int64 &banker);
+  void                                  TalkToNpcPetition(const unsigned __int64 &vendor);
   void                                  TrainerBuySpell(const unsigned __int64 &trainer, int spellID);
   void                                  TalkToTabardVendor(const unsigned __int64 &tabardUnit);
   void                                  ReadItem(unsigned int packSlot, unsigned int slot);
@@ -369,9 +409,9 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   int                                   GetLanguageSkill(unsigned int language, unsigned int &skill);
   TSGrowableArray<int>                 *GetTradeSkills(int skillLine);
   TSGrowableArray<int>                 *GetCraftSkills(SPELL_CAST_UI_TYPE type);
-  int                                   GetSkillIndex(int skillID);
-  int                                   GetSkillRank(int skillID);
-  virtual int                           GetSpellRank(int spellID);
+  int                                   GetSkillIndex(int skillID) const;
+  int                                   GetSkillRank(int skillID) const;
+  bool                                  GetExpandedSkillRank(int skillID, int &rank, int &modifier) const;
   bool                                  GetPackAndSlot(CGItem_C *item, unsigned char &packSlot, unsigned char &slot);
   virtual CGBag_C                      *GetBag() {
     return &m_inventory;
@@ -379,6 +419,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual const CGBag_C *GetBag() const {
     return &m_inventory;
   }
+  virtual void ItemReceived(const ItemStats *stats) const;
 
   int IsInCombatMode() const {
     return (m_flags & 0x400) != 0;

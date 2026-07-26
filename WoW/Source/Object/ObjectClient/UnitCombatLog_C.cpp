@@ -654,7 +654,7 @@ void __fastcall UnitCombatLog(SPELLMISSLOG &log) {
   }
 }
 
-void __fastcall UnitCombatLog(MIRRORTIMERDAMAGE &log) {
+void __fastcall UnitCombatLog(const MIRRORTIMERDAMAGE &log) {
   if (static_cast<unsigned int>(log.damage) > 2 || !log.amount || !log.victim) {
     return;
   }

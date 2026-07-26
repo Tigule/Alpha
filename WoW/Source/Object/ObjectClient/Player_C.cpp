@@ -16,9 +16,12 @@
 #include "DB/DBClient/AutoCode/FactionRec.h"
 #include "DB/DBClient/AutoCode/ItemSubClassRec.h"
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
+#include "DB/DBClient/AutoCode/ItemVisualEffectsRec.h"
+#include "DB/DBClient/AutoCode/ItemVisualsRec.h"
 #include "DB/DBClient/AutoCode/LockRec.h"
 #include "DB/DBClient/AutoCode/SkillLineAbilityRec.h"
 #include "DB/DBClient/AutoCode/SkillLineRec.h"
+#include "DB/DBClient/AutoCode/SpellItemEnchantmentRec.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"
 #include "DB/DBClient/AutoCode/TaxiNodesRec.h"
 #include "DB/DBClient/DBCacheInstances.h"
@@ -52,6 +55,7 @@
 #include "Ui/TaxiMapFrame.h"
 #include "Ui/WorldFrame.h"
 #include "WorldClient/AreaList.h"
+#include "WorldClient/World.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WowSvcs/WowSvcsClient/FriendList.h"
 
@@ -79,6 +83,8 @@ class CGCraftInfo {
 };
 
 const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
+void __fastcall UnitDebugCombatLogOnEnable(int enable);
+int __fastcall InvSlotToObjAttachSlot(int invSlot);
 
 struct ITEMSWAP {
   unsigned __int64 bagA;
@@ -169,6 +175,12 @@ class CGBuffBar {
 class CGContainerInfo {
  public:
   static void __fastcall OpenContainer(unsigned __int64 container);
+  static void __fastcall UpdateItem(unsigned __int64 item);
+};
+
+class CGTradeInfo {
+ public:
+  static void __fastcall UpdatePlayerItem(unsigned __int64 item);
 };
 
 class CGBankInfo {
@@ -3144,6 +3156,97 @@ void CGPlayer_C::TalkToTrainer(const unsigned __int64 &trainerUnit) {
   ClientServices_Send(&hello);
 }
 
+int CGPlayer_C::LootUnit(CGUnit_C *unit) {
+  if (CanLoot(unit) && unit->CanBeLooted(OsGetAsyncTimeMs()) &&
+      !(m_movement.GetMoveFlags() & 0x40FF)) {
+    CGGameUI::CloseLoot(1, 1);
+
+    CDataStore lootMsg;
+    lootMsg.Put(static_cast<unsigned int>(CMSG_LOOT));
+    lootMsg.Put(unit->GetGUID());
+    lootMsg.Finalize();
+    ClientServices_Send(&lootMsg);
+
+    m_lootingUnitSent = unit->GetGUID();
+    UpdateBaseAnimation(44, 0);
+  }
+  return 1;
+}
+
+void CGPlayer_C::ShopFromMerchant(const unsigned __int64 &merchant) {
+  unsigned __int64 cursorItem = CGGameUI::GetCursorItem();
+  if (cursorItem) {
+    SellItem(merchant, cursorItem, 0);
+    CGGameUI::SetCursorItem(0, 0, 0, 0, 0);
+    return;
+  }
+
+  CDataStore invMsg;
+  invMsg.Put(static_cast<unsigned int>(CMSG_LIST_INVENTORY));
+  invMsg.Put(merchant);
+  invMsg.Finalize();
+  ClientServices_Send(&invMsg);
+}
+
+int CGPlayer_C::IsQuestUnit(CGUnit_C *unit) {
+  if (unit->GetUnitData()->npcFlags & 2) {
+    return 1;
+  }
+
+  for (unsigned int index = 0; index < 16; ++index) {
+    if (m_plyr->questLog[index].m_questRewarderID == unit->GetEntryID()) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+void CGPlayer_C::TalkToQuestUnit(const unsigned __int64 &unit) {
+  CDataStore hello;
+  hello.Put(static_cast<unsigned int>(CMSG_QUESTGIVER_HELLO));
+  hello.Put(unit);
+  hello.Finalize();
+  ClientServices_Send(&hello);
+}
+
+int CGPlayer_C::QueryTaxiNodes(const unsigned __int64 &unit) {
+  CDataStore msg;
+  msg.Put(static_cast<unsigned int>(CMSG_TAXIQUERYAVAILABLENODES));
+  msg.Put(unit);
+  msg.Finalize();
+  ClientServices_Send(&msg);
+  return 1;
+}
+
+void CGPlayer_C::TalkToBinder(const unsigned __int64 &binder) {
+  if (s_lastBinderID && binder == s_lastBinderID) {
+    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(283));
+    return;
+  }
+
+  CDataStore hello;
+  hello.Put(static_cast<unsigned int>(CMSG_BINDER_ACTIVATE));
+  hello.Put(binder);
+  hello.Finalize();
+  ClientServices_Send(&hello);
+}
+
+void CGPlayer_C::TalkToBanker(const unsigned __int64 &banker) {
+  CDataStore hello;
+  hello.Put(static_cast<unsigned int>(CMSG_BANKER_ACTIVATE));
+  hello.Put(banker);
+  hello.Finalize();
+  ClientServices_Send(&hello);
+}
+
+void CGPlayer_C::TalkToNpcPetition(const unsigned __int64 &vendor) {
+  CDataStore hello;
+  hello.Put(static_cast<unsigned int>(CMSG_PETITION_SHOWLIST));
+  hello.Put(vendor);
+  hello.Finalize();
+  ClientServices_Send(&hello);
+}
+
 void CGPlayer_C::TalkToTabardVendor(const unsigned __int64 &tabardUnit) {
   CDataStore hello;
   hello.Put(static_cast<unsigned int>(MSG_TABARDVENDOR_ACTIVATE));
@@ -3513,7 +3616,7 @@ void __fastcall CGPlayer_C::TogglePlayerBounds() {
   }
 }
 
-void CGPlayer_C::SellItem(unsigned __int64 merchant, unsigned __int64 item, unsigned int amount) {
+void __fastcall CGPlayer_C::SellItem(unsigned __int64 merchant, unsigned __int64 item, unsigned int amount) {
   CDataStore sellMsg;
   sellMsg.Put(static_cast<unsigned int>(CMSG_SELL_ITEM));
   sellMsg.Put(merchant);
@@ -4628,7 +4731,7 @@ TSGrowableArray<int> *CGPlayer_C::GetCraftSkills(SPELL_CAST_UI_TYPE type) {
   return &m_craftSpells[type];
 }
 
-int CGPlayer_C::GetSkillIndex(int skillID) {
+int CGPlayer_C::GetSkillIndex(int skillID) const {
   unsigned int   index;
   for (index = 0; index < 64; ++index) {
     if (GetMirrorSkillID(index) == skillID) {
@@ -4638,7 +4741,7 @@ int CGPlayer_C::GetSkillIndex(int skillID) {
   return index == 64 ? -1 : static_cast<int>(index);
 }
 
-int CGPlayer_C::GetSkillRank(int skillID) {
+int CGPlayer_C::GetSkillRank(int skillID) const {
   int index = GetSkillIndex(skillID);
   if (index < 0) {
     return 0;
@@ -4647,7 +4750,7 @@ int CGPlayer_C::GetSkillRank(int skillID) {
   return rank < 0 ? 0 : rank;
 }
 
-int CGPlayer_C::GetSpellRank(int spellID) {
+int CGPlayer_C::GetSpellRank(int spellID) const {
   SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
     return 0;
@@ -6217,5 +6320,396 @@ void CGPlayer_C::OnLootGameObject(
   m_lootingUnitSent = gameObject;
   if (lootAnim && m_currentTorsoAnimState != 37) {
     UpdateBaseAnimation(44, 0);
+  }
+}
+void CGPlayer_C::GetAFKText(char *buffer, int size) const {
+  if (m_plyr->playerFlags & 4) {
+    SStrCopy(buffer, FrameScript_GetText("CHAT_FLAG_AFK", -1, GENDER_NOT_APPLICABLE), size);
+  } else {
+    buffer[0] = '\0';
+  }
+}
+
+void CGPlayer_C::GetDNDText(char *buffer, int size) const {
+  if (m_plyr->playerFlags & 8) {
+    SStrCopy(buffer, FrameScript_GetText("CHAT_FLAG_DND", -1, GENDER_NOT_APPLICABLE), size);
+  } else {
+    buffer[0] = '\0';
+  }
+}
+
+void CGPlayer_C::GetGMText(char *buffer, int size) const {
+  if (m_plyr->playerFlags & 0x10) {
+    SStrCopy(buffer, FrameScript_GetText("CHAT_FLAG_GM", -1, GENDER_NOT_APPLICABLE), size);
+  } else {
+    buffer[0] = '\0';
+  }
+}
+
+void CGPlayer_C::GuildInfoLoaded(const TSGrowableArray<unsigned int> &guildList) {
+  if (!m_plyr->guildID) {
+    return;
+  }
+
+  for (unsigned int index = guildList.Count(); index; --index) {
+    if (guildList[index - 1] == m_plyr->guildID) {
+      OnGuildChanged();
+      return;
+    }
+  }
+}
+
+void CGPlayer_C::PreAnimate(CGWorldFrame *worldFrame) {
+  FATALASSERT(worldFrame);
+  if (s_guildIDs.Count()) {
+    GuildInfoLoaded(s_guildIDs);
+  }
+  CGUnit_C::PreAnimate(worldFrame);
+}
+
+unsigned int CGPlayer_C::UpdateUnitNameString(
+    unsigned int localPlayerFlags,
+    unsigned int otherUnitsFlags,
+    char *buffer,
+    unsigned int bufferSize
+) const {
+  unsigned int flags =
+      GetGUID() == ClntObjMgrGetActivePlayer() ? localPlayerFlags : otherUnitsFlags;
+  return CGUnit_C::UpdateUnitNameString(flags, flags, buffer, bufferSize);
+}
+
+bool CGPlayer_C::GetExpandedSkillRank(int skillID, int &rank, int &modifier) const {
+  int index = GetSkillIndex(skillID);
+  if (index < 0) {
+    return false;
+  }
+
+  rank = m_plyr->skillInfo[index].m_skillRank;
+  modifier = m_plyr->skillInfo[index].m_skillModifier;
+  return true;
+}
+
+bool CGPlayer_C::GetDefenseSkillRank(int &base, int &modifier) const {
+  base = 0;
+  modifier = 0;
+
+  const SkillLineAbilityRec *ability =
+      SpellTableLookupAbility(GetUnitData()->race, GetUnitData()->classId, s_defenseSkillID);
+  return ability && ability->m_spell == static_cast<int>(s_defenseSkillID) &&
+         GetExpandedSkillRank(ability->m_skillLine, base, modifier);
+}
+
+bool CGPlayer_C::GetAttackSkillRank(int hand, int &base, int &modifier) const {
+  base = 0;
+  modifier = 0;
+
+  int weaponSpell = GetWeaponSpell(static_cast<COMBATHAND>(hand));
+  const SkillLineAbilityRec *ability =
+      SpellTableLookupAbility(GetUnitData()->race, GetUnitData()->classId, weaponSpell);
+  return ability && ability->m_spell == weaponSpell &&
+         GetExpandedSkillRank(ability->m_skillLine, base, modifier);
+}
+
+void CGPlayer_C::CombatLoggingFlagChanged() {
+  UnitDebugCombatLogOnEnable(m_unit->flags & 0x800000);
+}
+
+void CGPlayer_C::OnAttackStart(unsigned __int64 victim) {
+  CGUnit_C::OnAttackStart(victim);
+  m_flags = (m_flags & ~0x30u) | 0x10;
+
+  if (GetGUID() == ClntObjMgrGetActivePlayer() && ClntObjMgrGetPlayerType() != PLAYER_BOT) {
+    if (s_attackBreakTimer) {
+      ClientKillTimer(
+          s_attackBreakTimer,
+          reinterpret_cast<CLIENTTIMERHANDLER>(PlayerAttackBreakHandler),
+          "PlayerAttackBreakHandler"
+      );
+    }
+    s_attackBreakTimer =
+        ClientSetTimer(500, PlayerAttackBreakHandler, GetGUID(), ClntObjMgrGetCurrent());
+  }
+}
+
+void CGPlayer_C::OnAttackStop(unsigned __int64 previousTarget, int nowDead) {
+  m_flags &= ~0x30u;
+  if (GetGUID() == ClntObjMgrGetActivePlayer() && ClntObjMgrGetPlayerType() != PLAYER_BOT) {
+    if (s_attackBreakTimer) {
+      ClientKillTimer(
+          s_attackBreakTimer,
+          reinterpret_cast<CLIENTTIMERHANDLER>(PlayerAttackBreakHandler),
+          "PlayerAttackBreakHandler"
+      );
+    }
+    s_attackBreakTimer = 0;
+  }
+  CGUnit_C::OnAttackStop(previousTarget, nowDead);
+}
+
+void CGPlayer_C::OnBadAttackFacing(unsigned __int64 victim) {
+  if (GetGUID() != ClntObjMgrGetActivePlayer()) {
+    CGUnit_C::OnBadAttackFacing(victim);
+    return;
+  }
+
+  if (!(m_flags & 0x40)) {
+    char buffer[128];
+    SStrCopy(
+        buffer,
+        FrameScript_GetText("ERR_WRONG_DIRECTION_FOR_ATTACK", -1, GENDER_NOT_APPLICABLE),
+        sizeof(buffer)
+    );
+    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(195));
+    m_flags |= 0x40;
+  }
+}
+
+void CGPlayer_C::OnBadAttackPosition(unsigned __int64 victim, float range) {
+  if (GetGUID() != ClntObjMgrGetActivePlayer()) {
+    CGUnit_C::OnBadAttackPosition(victim, range);
+    return;
+  }
+
+  if (!(m_flags & 0x80)) {
+    char buffer[128];
+    SStrCopy(
+        buffer,
+        FrameScript_GetText("ERR_TOO_FAR_TO_ATTACK", -1, GENDER_NOT_APPLICABLE),
+        sizeof(buffer)
+    );
+    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(196));
+    m_flags |= 0x80;
+  }
+}
+
+unsigned __int64 CGPlayer_C::GetUnitBeingLooted() const {
+  return m_lootingUnit;
+}
+
+void CGPlayer_C::OnBadAttackTarget(unsigned __int64) {
+  SetCombatMode(0);
+}
+
+void CGPlayer_C::OnNotStanding(unsigned __int64) {
+  CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(208));
+}
+
+void CGPlayer_C::UnitHit(VICTIMSTATES state, unsigned __int64 attacker) {
+  if (state && GetGUID() == ClntObjMgrGetActivePlayer() && !CGGameUI::GetLockedTarget()) {
+    CGGameUI::Target(attacker, 0);
+  }
+}
+
+void CGPlayer_C::OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo) {
+  if (roundInfo.attacker == ClntObjMgrGetActivePlayer()) {
+    m_flags |= 0x20;
+  }
+  CGUnit_C::OnAttackerStateChange(roundInfo);
+}
+
+void CGPlayer_C::HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log) {
+  CGUnit_C::HandleMirrorTimerDamage(log);
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CGGameUI::ShowCombatFeedback(log);
+  }
+}
+
+void CGPlayer_C::PlayDeathThudCameraShake() const {
+}
+
+bool CGPlayer_C::CanBeMounted() {
+  if (m_unit->flags & 0x100000) {
+    return true;
+  }
+
+  bool allowed;
+  return !CWorld::QueryMountAllowed(m_worldObject, allowed) || allowed;
+}
+
+void CGPlayer_C::ChangeStandState(unsigned int standState) {
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CGUnit_C::ChangeStandState(standState);
+  }
+}
+
+void CGPlayer_C::OnStandStateChanged(unsigned int, unsigned int newState) {
+  if (GetGUID() != ClntObjMgrGetActivePlayer()) {
+    return;
+  }
+
+  if (newState) {
+    FrameScript_SignalEvent(260);
+    if (m_unit->flags & 0x400) {
+      CGGameUI::CloseLoot(1, 1);
+    }
+    if (m_flags & 0x400) {
+      SetCombatMode(0);
+    }
+  } else {
+    FrameScript_SignalEvent(259);
+  }
+}
+
+void CGPlayer_C::OnLevelChange() {
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CGSpellBook::UpdateSpells();
+    CGClassTrainer::RefreshList();
+    UpdateQuestStatusAll();
+  }
+  CGUnit_C::OnLevelChange();
+}
+
+float CGPlayer_C::GetBlockChance() const {
+  return m_plyr->blockPercentage;
+}
+
+float CGPlayer_C::GetDodgeChance() const {
+  return m_plyr->dodgePercentage;
+}
+
+float CGPlayer_C::GetParryChance() const {
+  return m_plyr->parryPercentage;
+}
+
+void CGPlayer_C::UpdateObjComponentVisuals(const CGItem_C *itemPtr, const ItemEnchantment *enchantments, int num) {
+  if (!itemPtr) {
+    return;
+  }
+
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CGTradeSkillInfo::RefreshList(0);
+    CGActionBar::UpdateItem(itemPtr->GetEntryID());
+    CGTradeInfo::UpdatePlayerItem(itemPtr->GetGUID());
+    CGContainerInfo::UpdateItem(itemPtr->GetGUID());
+    CGCharacterInfo::UpdateItem(itemPtr->GetGUID());
+  }
+
+  ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(itemPtr->GetDisplayID());
+  if (!displayInfo) {
+    return;
+  }
+
+  int invSlot = static_cast<unsigned char>(FindSlotIndex(itemPtr->GetGUID()));
+  if (invSlot >= 69) {
+    return;
+  }
+
+  int attachmentSlot = InvSlotToObjAttachSlot(invSlot);
+  if (attachmentSlot < 0) {
+    return;
+  }
+
+  ACTIVEATTACHMENTINFO *info = m_attachments[attachmentSlot];
+  if (!info) {
+    return;
+  }
+
+  ItemVisualsRec *visual = g_itemVisualsDB.GetRecord(displayInfo->m_itemVisual);
+  if (visual) {
+    return;
+  }
+
+  for (int i = 0; i < num; ++i) {
+    if (!enchantments[i].id) {
+      continue;
+    }
+
+    SpellItemEnchantmentRec *enchantment = g_spellItemEnchantmentDB.GetRecord(enchantments[i].id);
+    if (enchantment && enchantment->m_itemVisual) {
+      visual = g_itemVisualsDB.GetRecord(enchantment->m_itemVisual);
+      if (visual) {
+        break;
+      }
+    }
+  }
+
+  SetItemVisuals(info, visual, false);
+}
+
+void CGPlayer_C::ClearItemVisuals(ACTIVEATTACHMENTINFO *info) {
+  if (!info || info->displayInfo->m_itemVisual || !info->enchantmentVisual) {
+    return;
+  }
+
+  info->enchantmentVisual = 0;
+  for (int i = 0; i < 2; ++i) {
+    if (info->modelInfo[i].model) {
+      ModelClearAllLinks(info->modelInfo[i].model);
+    }
+
+    if (info->modelInfo[i].currentLink >= 0) {
+      HMODEL child = ComponentUtilGetChildModel(m_paperDollModel, info->modelInfo[i].currentLink);
+      if (child) {
+        ModelClearAllLinks(child);
+        HandleClose(child);
+      }
+    }
+  }
+}
+
+void CGPlayer_C::SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec *rec, bool force) {
+  if (!info || (info->displayInfo->m_itemVisual && !force) ||
+      (rec && info->enchantmentVisual && info->enchantmentVisual->m_ID == rec->m_ID)) {
+    return;
+  }
+
+  ClearItemVisuals(info);
+  if (!rec) {
+    return;
+  }
+
+  if (!info->displayInfo->m_itemVisual) {
+    info->enchantmentVisual = const_cast<ItemVisualsRec *>(rec);
+  }
+
+  for (int modelIndex = 0; modelIndex < 2; ++modelIndex) {
+    ATTACHMENTMODELINFO &modelInfo = info->modelInfo[modelIndex];
+    HMODEL child = 0;
+    if (modelInfo.currentLink >= 0) {
+      child = ComponentUtilGetChildModel(m_paperDollModel, modelInfo.currentLink);
+    }
+
+    for (int visualIndex = 0; visualIndex < 5; ++visualIndex) {
+      if (!modelInfo.model) {
+        continue;
+      }
+
+      ItemVisualEffectsRec *effect = g_itemVisualEffectsDB.GetRecord(rec->m_Slot[visualIndex]);
+      if (!effect) {
+        continue;
+      }
+
+      ComponentUtilAddItemVisual(modelInfo.model, visualIndex, effect->m_Model);
+      if (modelInfo.currentLink >= 0 && child) {
+        ComponentUtilAddItemVisual(child, visualIndex, effect->m_Model);
+      }
+    }
+
+    if (child) {
+      HandleClose(child);
+    }
+  }
+}
+
+void CGPlayer_C::ItemReceived(const ItemStats *stats) const {
+  if (!stats || GetGUID() != ClntObjMgrGetActivePlayer()) {
+    return;
+  }
+
+  for (unsigned int spellIndex = 0; spellIndex < 5; ++spellIndex) {
+    SpellRec *spell = g_spellDB.GetRecord(stats->m_spellID[spellIndex]);
+    if (!spell || stats->m_spellTrigger[spellIndex]) {
+      continue;
+    }
+
+    for (unsigned int effectIndex = 0; effectIndex < 3; ++effectIndex) {
+      if (
+          spell->m_effect[effectIndex] == 18 &&
+          (spell->m_implicitTargetA[effectIndex] == 1 || spell->m_implicitTargetB[effectIndex] == 1)
+      ) {
+        FrameScript_SignalEvent(308);
+        return;
+      }
+    }
   }
 }
