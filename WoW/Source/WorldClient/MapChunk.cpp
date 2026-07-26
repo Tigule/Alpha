@@ -469,9 +469,9 @@ void CMapChunk::Load(SMChunkInfo *chunkInfo) {
   FATALASSERT(chunkInfo);
   FATALASSERT(chunkInfo->size < 15000);
 
-  shadowTexture = 0;
+  nLayers = 0;
   asyncObject = 0;
-  shadowOffs = 0;
+  gxBuf = 0;
   lod = -1;
   remapLod = -1;
   detailDoodadInst = 0;
@@ -895,6 +895,7 @@ void CMapChunk::CreateLayer(CMapArea *area, SMLayer *layer, unsigned int *alphaT
   chunkLayer->chunk = this;
   ++nLayers;
 
+  FATALASSERT(layer->textureId < area->texIdTable.Count());
   chunkLayer->texId = area->texIdTable[layer->textureId];
   chunkLayer->props = static_cast<unsigned short>(layer->props);
   chunkLayer->offsAlpha = reinterpret_cast<unsigned char *>(alphaTex) + layer->offsAlpha;
