@@ -3554,7 +3554,7 @@ int CGUnit_C::GetVirtualItemDisplayID(unsigned int slot) const {
 }
 
 const VirtualItemInfo *CGUnit_C::GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const {
-  FATALASSERT(!(GetType() & TYPE_PLAYER));
+  FATALASSERT(!IsA(TYPE_PLAYER));
   if (!GetVirtualItemDisplayID(slot)) {
     return 0;
   }

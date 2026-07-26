@@ -457,8 +457,8 @@ void __fastcall SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit) {
                  identity.d1, identity.d2
              )
   );
-  DataMgrGetCoord(camera, 7, &center);
-  DataMgrGetCoord(camera, 8, &eye);
+  DataMgrGetCoord(camera, 7, &eye);
+  DataMgrGetCoord(camera, 8, &center);
 
   projectionRect.Set(0.0f, 0.0f, 1.0f, aspectRatio);
   CameraSetupWorldProjection(camera, projectionRect, 0);
@@ -485,8 +485,8 @@ void __fastcall SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit) {
   }
 
   ModelSetLightSelectCallback(model, 0, 0, 1);
-  NTempest::C3Vector cameraVector = eye - center;
-  ModelAnimate(model, NTempest::C3Vector(), 0.0f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f, center, cameraVector);
+  NTempest::C3Vector cameraVector = center - eye;
+  ModelAnimate(model, NTempest::C3Vector(), 0.0f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f, eye, cameraVector);
   ModelRender(model, 0, 0);
 
   if (unit->GetType() & TYPE_PLAYER) {

@@ -1184,7 +1184,7 @@ void CMapObj::RenderExteriorWater_0(CMapObjGroup *group, unsigned int liquid) {
   NTempest::C3Vector  dumbNormal(0.0f, 0.0f, 1.0f);
   unsigned short     *idxBase;
   int                 nVerts = group->liquidVerts.x * group->liquidVerts.y;
-  NTempest::CImVector shallowClr = DayNightGetInfo()->light.WaterArray[2];
+  NTempest::CImVector shallowClr = DayNightGetInfo()->light.WaterArray[3];
   CGxVertexPNCT0     *vtxBase;
   unsigned int        idxSub = 0;
   int                 x;

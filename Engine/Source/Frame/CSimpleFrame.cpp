@@ -53,9 +53,7 @@ CSimpleFrame::CSimpleFrame(CSimpleFrame *parent)
       m_onKeyUp(0),
       m_backdrop(0),
       m_batchDirty(0) {
-  ASSERT(CSimpleTop::s_instance);
-
-  m_top = CSimpleTop::s_instance;
+  m_top = CSimpleTop::GetInstance();
   m_top->RegisterFrame(this);
   SetParent(parent);
 

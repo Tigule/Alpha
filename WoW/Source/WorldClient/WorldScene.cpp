@@ -144,6 +144,7 @@ void __fastcall CWorldScene::PrepareRenderLiquid() {
   NTempest::C3Vector camQueryPos = camPos;
   float              lqSurface;
   unsigned int       newLiquid = 15;
+  int                forceFullUpdate = 0;
 
   for (unsigned int i = 0; i < 4; ++i) {
     if (camFrustumCorners[i].z < camQueryPos.z) {
@@ -158,7 +159,39 @@ void __fastcall CWorldScene::PrepareRenderLiquid() {
     CWorld::QueryLiquidStatus(camQueryPos, newLiquid, lqSurface, lqDir);
   }
 
+  if (newLiquid == 15) {
+    forceFullUpdate = camLiquid != 15;
+  } else {
+    switch (newLiquid & 3) {
+      case 0:
+      case 1:
+        if (newLiquid != camLiquid && (CWorld::enables & CWorld::Enable_Particulates)) {
+          CWorld::particulate->InitParticles(newLiquid);
+          CWorld::particulate->SetScale(1.0f / 36.0f);
+          CWorld::particulate->Show(1);
+        }
+        break;
+      case 2:
+        if (newLiquid != camLiquid && (CWorld::enables & CWorld::Enable_Particulates)) {
+          CWorld::particulate->InitParticles(newLiquid);
+          CWorld::particulate->SetScale(1.0f / 9.0f);
+          CWorld::particulate->Show(1);
+        }
+        break;
+      case 3:
+        CWorld::particulate->Show(0);
+        break;
+    }
+  }
+
   camLiquid = newLiquid;
+
+  if (forceFullUpdate) {
+    DayNightForceFullUpdate();
+  }
+
+  CMap::riverDiffTexUpdated = false;
+  CMap::oceanDiffTexUpdated = false;
 }
 
 void __fastcall CWorldScene::PrepareRender(NTempest::C3Vector &position, NTempest::C3Vector &target) {
@@ -404,15 +437,15 @@ void __fastcall CWorldScene::ClipPortal(NTempest::C4Vector *inList, unsigned int
       unsigned int        idx1 = (cnt + 1) % c[from];
       NTempest::C4Vector *v0 = &v[from][cnt];
       NTempest::C4Vector *v1 = &v[from][idx1];
-      float               d0 = plane.n.x * v0->x + plane.n.y * v0->y + plane.n.z * v0->z;
-      float               d1 = plane.n.x * v1->x + plane.n.y * v1->y + plane.n.z * v1->z;
+      float               d0 = plane.n.x * v0->x + plane.n.y * v0->y + plane.n.z * v0->w;
+      float               d1 = plane.n.x * v1->x + plane.n.y * v1->y + plane.n.z * v1->w;
       int                 side0 = d0 > 0.019444443f ? 1 : (d0 < -0.019444443f ? 2 : 0);
       int                 side1 = d1 > 0.019444443f ? 1 : (d1 < -0.019444443f ? 2 : 0);
 
       if (side0 != 2) {
         v[to][c[to]++] = *v0;
       }
-      if (side0 && side1 && side0 != side1) {
+      if (side1 && side1 != side0) {
         float               t = d0 / (d0 - d1);
         NTempest::C4Vector &out = v[to][c[to]++];
         out.x = v0->x + (v1->x - v0->x) * t;
@@ -1408,21 +1441,19 @@ WorldCullStatus CWFrustum::Cull(NTempest::CAaBox &box, NTempest::C33Matrix &basi
 }
 
 WorldCullStatus CWFrustum::Cull(NTempest::C3Vector &center, float radius) {
-  WorldCullStatus result = WorldCull_inside;
-  for (unsigned int p = 0; p < 6; ++p) {
-    float distance = planes[p].DistSigned(center);
-    if (distance < -radius) {
-      return WorldCull_outside;
-    }
-    if (distance < radius) {
-      result = WorldCull_intersect;
-    }
-  }
-  return result;
+  NTempest::CAaSphere sphere;
+  sphere.c = center;
+  sphere.r = radius;
+  return Cull(sphere);
 }
 
 WorldCullStatus CWFrustum::Cull(NTempest::CAaSphere &sphere) {
-  return Cull(sphere.c, sphere.r);
+  for (unsigned int p = 0; p < 6; ++p) {
+    if (planes[p].DistSigned(sphere.c) < -sphere.r) {
+      return WorldCull_outside;
+    }
+  }
+  return WorldCull_notOutside;
 }
 
 WorldCullStatus CWFrustum::Cull(NTempest::C3Vector &point) {
@@ -1431,7 +1462,7 @@ WorldCullStatus CWFrustum::Cull(NTempest::C3Vector &point) {
       return WorldCull_outside;
     }
   }
-  return WorldCull_inside;
+  return WorldCull_notOutside;
 }
 
 void CWFrustum::Cull(NTempest::C3Vector &point, unsigned int &cullFlags) {
@@ -1444,17 +1475,22 @@ void CWFrustum::Cull(NTempest::C3Vector &point, unsigned int &cullFlags) {
 }
 
 WorldCullStatus CWFrustum::Cull(NTempest::C4Plane &plane) {
-  unsigned int counts[WorldCull_count] = {0, 0, 0, 0};
+  unsigned int outside = 0;
+  unsigned int inside = 0;
   for (unsigned int i = 0; i < 8; ++i) {
-    ++counts[plane.DistSigned(corners[i]) < 0.0f ? WorldCull_outside : WorldCull_inside];
+    float distance = plane.DistSigned(corners[i]);
+    if (distance > 0.019444443f) {
+      ++inside;
+    } else if (distance < -0.019444443f) {
+      ++outside;
+    } else {
+      return WorldCull_intersect;
+    }
   }
-  if (counts[WorldCull_outside] == 8) {
+  if (!inside) {
     return WorldCull_outside;
   }
-  if (counts[WorldCull_inside] == 8) {
-    return WorldCull_inside;
-  }
-  return WorldCull_intersect;
+  return outside ? WorldCull_intersect : WorldCull_inside;
 }
 
 struct ClipInfo {

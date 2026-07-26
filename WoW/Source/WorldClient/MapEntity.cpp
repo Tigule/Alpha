@@ -396,13 +396,15 @@ void __fastcall CMap::UpdateEntity(CMapEntity *entity) {
     }
   }
 
-  entity->ambientTarget = CMap::sunLight->gxLight.m_ambColor;
-  if ((entity->flags & CMapBaseObj::Flag_InteriorLit) || !QueryShadow(entity->pos)) {
-    entity->dirLightScaleTarget = 1.0f;
-  } else {
-    entity->dirLightScaleTarget = 0.5f;
-    entity->flagShadowed = 1;
+  if (!(entity->flags & CMapBaseObj::Flag_InteriorLit)) {
+    entity->ambientTarget = CMap::sunLight->gxLight.m_ambColor;
+    if (QueryShadow(entity->pos)) {
+      entity->dirLightScaleTarget = CMapStaticEntity::dirLightScaleAmount;
+      entity->flagShadowed = 1;
+      return;
+    }
   }
+  entity->dirLightScaleTarget = 1.0f;
 }
 
 void __fastcall CMap::LinkEntityToMapObj(CMapStaticEntity *entity, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
@@ -570,7 +572,7 @@ void CMapEntity::Tick() {
     }
   }
 
-  if (refCount <= 0) {
-    CMap::FreeEntity(this);
+  if (!parentLinkList.Head()) {
+    CMap::UpdateEntity(this);
   }
 }

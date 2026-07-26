@@ -474,8 +474,7 @@ unsigned int CMapObjGroup::QueryLiquidStatus(NTempest::C3Vector &pos, unsigned i
     return 0;
   }
 
-  liquid = tile & 3;
-  if (liquid == 1) {
+  if ((tile & 3) == 1) {
     return 0;
   }
 
@@ -496,6 +495,7 @@ unsigned int CMapObjGroup::QueryLiquidStatus(NTempest::C3Vector &pos, unsigned i
   dir.x = 0.0f;
   dir.y = 0.0f;
   dir.z = 0.0f;
+  liquid = tile & 3;
   return 1;
 }
 

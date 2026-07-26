@@ -416,13 +416,13 @@ class CGxDevice {
  public:
   CGxDevice();
   virtual ~CGxDevice();
-  virtual int           DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
   virtual int           DeviceCreate(unsigned int hwnd, const CGxFormat &format);
+  virtual int           DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
   virtual void          DeviceDestroy();
   virtual int           DeviceSetFormat(const CGxFormat &format);
   virtual void          DeviceSetBaseMipLevel(unsigned int baseMipLevel);
-  virtual void          DeviceSetGamma(float gamma);
   virtual void          DeviceSetGamma(const CGxGammaRamp &ramp);
+  virtual void          DeviceSetGamma(float gamma);
   virtual void          DeviceSetTextureQuality(int force32);
   virtual unsigned long DeviceWindow() = 0;
   virtual void          DeviceTakeScreenShot();
@@ -491,15 +491,6 @@ class CGxDevice {
   virtual void BufDestroy(CGxBuf *&buf);
   virtual void BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, unsigned int numVertices, unsigned int numIndices);
   CGxBuf      *BufGetDynamic(EGxVertexBufferFormat format);
-  virtual int  TexCreate(
-      unsigned int width,
-      unsigned int height,
-      EGxTexFormat format,
-      CGxTexFlags  flags,
-      void        *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
-      CGxTex *&texId
-  );
   virtual int TexCreate(
       EGxTexTarget target,
       unsigned int width,
@@ -507,6 +498,15 @@ class CGxDevice {
       unsigned int depth,
       EGxTexFormat format,
       EGxTexFormat dataFormat,
+      CGxTexFlags  flags,
+      void        *userArg,
+      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+      CGxTex *&texId
+  );
+  virtual int TexCreate(
+      unsigned int width,
+      unsigned int height,
+      EGxTexFormat format,
       CGxTexFlags  flags,
       void        *userArg,
       void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),

@@ -93,10 +93,10 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual void OnLayerHide();
   virtual void OnLayerUpdate(float elapsedSec);
   virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
-  virtual void OnFrameRender(CRenderBatch *batch, unsigned int layer);
   virtual void OnFrameRender();
-  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
+  virtual void OnFrameRender(CRenderBatch *batch, unsigned int layer);
   virtual void OnFrameSizeChanged(float w, float h);
+  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
   virtual void OnLayerCursorEnter();
   virtual void OnLayerCursorExit();
   virtual int  OnLayerIme(CImeEvent &evt) {

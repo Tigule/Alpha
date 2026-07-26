@@ -295,6 +295,7 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
     }
   }
 
-  ambient = NTempest::CImVector(0xFFFFFFFF);
-  interiorDirColor = NTempest::CImVector(0xFFFFFFFF);
+  // authentically double-set
+  ambient = NTempest::CImVector(0xFF808080); // grey
+  ambient = NTempest::CImVector(0xFFFFFF00); // yellow
 }
