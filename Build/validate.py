@@ -177,6 +177,21 @@ def normalize_object(name: str) -> str:
 
 
 def procedure_identity(name: str) -> str:
+    marker = "@?%"
+    if marker in name:
+        prefix = name.split(marker, 1)[0]
+        anonymous = "`anonymous namespace'::"
+        if prefix.startswith("??0"):
+            class_name = prefix[3:]
+            return f"{anonymous}{class_name}::{class_name}"
+        if prefix.startswith("??1"):
+            class_name = prefix[3:]
+            return f"{anonymous}{class_name}::~{class_name}"
+        if prefix.startswith("?"):
+            components = prefix[1:].split("@")
+            function = components[0]
+            scopes = list(reversed(components[1:]))
+            return anonymous + "::".join(scopes + [function])
     if name.startswith("?"):
         end = name.find("@@")
         return name[:end + 2] if end >= 0 else name
@@ -523,10 +538,12 @@ class TypeTable:
         data = record.payload
         position = 0
         result = []
-        while position + 6 <= len(data):
+        while position + 8 <= len(data):
             attrs = struct.unpack_from("<H", data, position)[0]
-            method_type = struct.unpack_from("<I", data, position + 2)[0]
-            position += 6
+            # VC6 PDB 2.0 method-list entries place two reserved bytes between
+            # the attributes and the 32-bit type index.
+            method_type = struct.unpack_from("<I", data, position + 4)[0]
+            position += 8
             method_property = (attrs >> 2) & 7
             vtable_offset = None
             if method_property in (4, 6) and position + 4 <= len(data):
@@ -537,7 +554,10 @@ class TypeTable:
             )
             while position < len(data) and data[position] >= 0xF0:
                 position += max(1, data[position] & 0x0F)
-        value = tuple(result)
+        # An LF_METHOD record describes an overload set. VC6 orders its
+        # LF_METHODLIST entries by internal type-index allocation, which can
+        # differ between otherwise equivalent builds.
+        value = tuple(sorted(result, key=repr))
         self._method_cache[type_index] = value
         return value
 
@@ -703,14 +723,14 @@ def compare_pdbs(reference: Pdb2, actual: Pdb2) -> tuple[Comparison, Comparison]
             continue
         expected_signatures = sorted(
             (
-                item.name,
+                procedure_identity(item.name),
                 compact(reference.types.canonical(item.type_index), 1000),
             )
             for item in expected
         )
         actual_signatures = sorted(
             (
-                item.name,
+                procedure_identity(item.name),
                 compact(actual.types.canonical(item.type_index), 1000),
             )
             for item in found

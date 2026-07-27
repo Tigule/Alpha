@@ -268,9 +268,9 @@ uint CCharCreateInfo::GetNumOutfits(uint raceID, uint classID, uint sexID) {
   return count;
 }
 
-CharStartOutfitRec *CCharCreateInfo::GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID) {
+const CharStartOutfitRec *CCharCreateInfo::GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID) {
   for (int i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
-    CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
+    const CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
     if (outfit->m_raceID == raceID && outfit->m_classID == classID && outfit->m_sexID == sexID && outfit->m_outfitID == outfitID) {
       return outfit;
     }
@@ -426,7 +426,7 @@ void CHARCREATEINFO::UpdateEquipment(int doNotCommitGeosets, uint race, uint sex
   TexComponentRemoveSections(characterComponent[sex], s_removeSections, s_startingLayer, 8);
   TexComponentRemoveAllHolds(characterComponent[sex]);
 
-  CharStartOutfitRec *outfit = CCharCreateInfo::GetOutfit(race, selections[sex].classID, sex, selections[sex].outfit);
+  const CharStartOutfitRec *outfit = CCharCreateInfo::GetOutfit(race, selections[sex].classID, sex, selections[sex].outfit);
   if (outfit) {
     int itemCount = 0;
     for (int i = 0; i < 12; ++i) {

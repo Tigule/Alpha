@@ -75,6 +75,18 @@ CSimpleCamera::CSimpleCamera(float nearZ, float farZ, float fov)
   SetFacing(0.0f, 0.0f, 0.0f);
 }
 
+NTempest::C3Vector CSimpleCamera::Forward() const {
+  return NTempest::C3Vector(m_facing.a0, m_facing.a1, m_facing.a2);
+}
+
+NTempest::C3Vector CSimpleCamera::Right() const {
+  return NTempest::C3Vector(m_facing.b0, m_facing.b1, m_facing.b2);
+}
+
+NTempest::C3Vector CSimpleCamera::Up() const {
+  return NTempest::C3Vector(m_facing.c0, m_facing.c1, m_facing.c2);
+}
+
 void CSimpleCamera::SetFacing(const NTempest::C3Vector &forward) {
   BuildBillboardMatrix(forward, &m_facing);
 }

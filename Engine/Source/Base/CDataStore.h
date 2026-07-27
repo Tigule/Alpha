@@ -192,14 +192,25 @@ class CDataStore {
   CDataStore &Put(__int64 val);
   CDataStore &Put(unsigned __int64 val);
   CDataStore &Put(float val);
-  CDataStore &Put(CDataStore &store);
+  CDataStore &Put(CDataStore &store) {
+    const void  *data;
+    unsigned int size;
+    store.GetBufferParams(&data, &size, 0);
+    return PutData(data, size);
+  }
   CDataStore &PutString(const char *pval);
   CDataStore &PutString(const unsigned short *pval);
   CDataStore &PutArray(const unsigned char *pval, unsigned int count);
-  CDataStore &PutArray(const char *pval, unsigned int count);
-  CDataStore &PutArray(const short *pval, unsigned int count);
+  CDataStore &PutArray(const char *pval, unsigned int count) {
+    return PutArray(reinterpret_cast<const unsigned char *>(pval), count);
+  }
+  CDataStore &PutArray(const short *pval, unsigned int count) {
+    return PutArray(reinterpret_cast<const unsigned short *>(pval), count);
+  }
   CDataStore &PutArray(const unsigned short *pval, unsigned int count);
-  CDataStore &PutArray(const long *pval, unsigned int count);
+  CDataStore &PutArray(const long *pval, unsigned int count) {
+    return PutArray(reinterpret_cast<const unsigned long *>(pval), count);
+  }
   CDataStore &PutArray(const unsigned long *pval, unsigned int count);
   CDataStore &PutArray(const unsigned __int64 *pval, unsigned int count);
   CDataStore &PutArray(const float *pval, unsigned int count);
@@ -259,10 +270,16 @@ class CDataStore {
   CDataStore &GetString(char *pval, unsigned int maxChars);
   CDataStore &GetString(unsigned short *pval, unsigned int maxChars);
   CDataStore &GetArray(unsigned char *pval, unsigned int count);
-  CDataStore &GetArray(char *pval, unsigned int count);
-  CDataStore &GetArray(short *pval, unsigned int count);
+  CDataStore &GetArray(char *pval, unsigned int count) {
+    return GetArray(reinterpret_cast<unsigned char *>(pval), count);
+  }
+  CDataStore &GetArray(short *pval, unsigned int count) {
+    return GetArray(reinterpret_cast<unsigned short *>(pval), count);
+  }
   CDataStore &GetArray(unsigned short *pval, unsigned int count);
-  CDataStore &GetArray(long *pval, unsigned int count);
+  CDataStore &GetArray(long *pval, unsigned int count) {
+    return GetArray(reinterpret_cast<unsigned long *>(pval), count);
+  }
   CDataStore &GetArray(unsigned long *pval, unsigned int count);
   CDataStore &GetArray(unsigned __int64 *pval, unsigned int count);
   CDataStore &GetArray(float *pval, unsigned int count);

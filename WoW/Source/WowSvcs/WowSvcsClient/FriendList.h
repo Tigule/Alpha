@@ -27,8 +27,12 @@ enum FRIEND_RESULT {
 
 class FriendList {
  public:
-  struct Friend {
-    unsigned int     m_connected;
+  class Friend {
+   public:
+    Friend() {
+    }
+
+    unsigned char    m_connected;
     char            *m_name;
     unsigned __int64 guid;
     int              m_level;
@@ -47,19 +51,19 @@ class FriendList {
   static void RegisterScriptFunctions();
   static void UnregisterScriptFunctions();
   static void Destroy();
-  unsigned int           GetNumFriends() const;
-  Friend                *GetFriend(unsigned int index);
+  unsigned int           GetNumFriends();
+  const Friend          *GetFriend(unsigned int index);
   void                   SetFriendSelectionIndex(unsigned int index);
-  int                    GetFriendSelectionIndex() const;
+  int                    GetFriendSelectionIndex();
   void                   AddFriend(const char *name);
   void                   RemoveFriend(const char *name);
   void                   RemoveFriend(unsigned __int64 guid);
   void                   RemoveFriend(unsigned int index);
   void                   ShowFriends();
-  unsigned int           GetNumIgnores() const;
-  unsigned __int64       GetIgnore(unsigned int index) const;
+  unsigned int           GetNumIgnores();
+  unsigned __int64       GetIgnore(unsigned int index);
   void                   SetIgnoreSelectionIndex(unsigned int index);
-  int                    GetIgnoreSelectionIndex() const;
+  int                    GetIgnoreSelectionIndex();
   void                   AddOrDelIgnore(const char *name);
   void                   AddIgnore(const char *name);
   void                   DelIgnore(const char *name);
@@ -74,6 +78,9 @@ class FriendList {
   void                   DecrementPendingIgnoreName();
   void                   SortFriends();
   void                   SortIgnore();
+  int                    Added(unsigned __int64 guid);
+  void                   Removed(unsigned __int64 guid);
+  void                   SetConnected(unsigned __int64 guid, bool connected);
   void                   IgnoreAdded(unsigned __int64 guid, int sort);
   void                   IgnoreRemoved(unsigned __int64 guid);
 

@@ -76,7 +76,7 @@ class CCharCreateInfo {
   }
   static uint GetSelectedSexID();
   static uint GetNumOutfits(uint raceID, uint classID, uint sexID);
-  static class CharStartOutfitRec *GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID);
+  static const class CharStartOutfitRec *GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID);
   static void Initialize();
   static void RandomizeCharCustomization();
   static void ResetCharCustomizeInfo();
@@ -89,6 +89,7 @@ class CCharCreateInfo {
   static void Shutdown();
   static void UpdateAvailableClasses();
 
+ protected:
   static void UpdateAllCharacterInfo(int race, uint sex);
   static void InitializeCharacterInfo(uint sex, int doNotCommitGeosets);
   static void UpdateCharacterInfo(uint sex);

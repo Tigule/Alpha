@@ -36,17 +36,33 @@ class CSimpleCamera {
     return m_position;
   }
 
-  virtual NTempest::C3Vector Forward() {
-    return NTempest::C3Vector(m_facing.a0, m_facing.a1, m_facing.a2);
+  NTempest::C33Matrix &Facing() {
+    return m_facing;
   }
 
-  virtual NTempest::C3Vector Right() {
-    return NTempest::C3Vector(m_facing.b0, m_facing.b1, m_facing.b2);
+  void SetPosition(const NTempest::C3Vector &position) {
+    m_position = position;
   }
 
-  virtual NTempest::C3Vector Up() {
-    return NTempest::C3Vector(m_facing.c0, m_facing.c1, m_facing.c2);
+  void SetPosition(float x, float y, float z) {
+    m_position.Set(x, y, z);
   }
+
+  void SetFieldOfView(float fov) {
+    m_fov = fov;
+  }
+
+  void SetNearZ(float nearZ) {
+    m_nearZ = nearZ;
+  }
+
+  void SetFarZ(float farZ) {
+    m_farZ = farZ;
+  }
+
+  virtual NTempest::C3Vector Forward() const;
+  virtual NTempest::C3Vector Right() const;
+  virtual NTempest::C3Vector Up() const;
 
   void SetFacing(float yaw, float pitch, float roll);
   void SetFacing(const NTempest::C3Vector &forward);

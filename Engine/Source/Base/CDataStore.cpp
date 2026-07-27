@@ -96,13 +96,6 @@ DATASTORE_PUT(float)
 
 #undef DATASTORE_PUT
 
-CDataStore &CDataStore::Put(CDataStore &store) {
-  const void  *data;
-  unsigned int size;
-  store.GetBufferParams(&data, &size, 0);
-  return PutData(data, size);
-}
-
 CDataStore &CDataStore::PutString(const char *pval) {
   ASSERT(!IsFinal());
 
@@ -190,10 +183,6 @@ CDataStore &CDataStore::PutArray(const unsigned char *pval, unsigned int count) 
   return *this;
 }
 
-CDataStore &CDataStore::PutArray(const char *pval, unsigned int count) {
-  return PutArray(reinterpret_cast<const unsigned char *>(pval), count);
-}
-
 #define DATASTORE_PUT_ARRAY(type, elementSize)                                                      \
   CDataStore &CDataStore::PutArray(const type *pval, unsigned int count) {                          \
     unsigned int bytes;                                                                             \
@@ -222,9 +211,7 @@ CDataStore &CDataStore::PutArray(const char *pval, unsigned int count) {
   }
 
 DATASTORE_PUT_ARRAY(unsigned short, 2)
-DATASTORE_PUT_ARRAY(short, 2)
 DATASTORE_PUT_ARRAY(unsigned long, 4)
-DATASTORE_PUT_ARRAY(long, 4)
 DATASTORE_PUT_ARRAY(unsigned __int64, 8)
 DATASTORE_PUT_ARRAY(float, 4)
 DATASTORE_PUT_ARRAY(unreal, 4)
@@ -408,10 +395,6 @@ CDataStore &CDataStore::GetArray(unsigned char *pval, unsigned int count) {
   return *this;
 }
 
-CDataStore &CDataStore::GetArray(char *pval, unsigned int count) {
-  return GetArray(reinterpret_cast<unsigned char *>(pval), count);
-}
-
 #define DATASTORE_GET_ARRAY(type, elementSize)                                          \
   CDataStore &CDataStore::GetArray(type *pval, unsigned int count) {                    \
     unsigned int bytes;                                                                 \
@@ -447,9 +430,7 @@ CDataStore &CDataStore::GetArray(char *pval, unsigned int count) {
   }
 
 DATASTORE_GET_ARRAY(unsigned short, 2)
-DATASTORE_GET_ARRAY(short, 2)
 DATASTORE_GET_ARRAY(unsigned long, 4)
-DATASTORE_GET_ARRAY(long, 4)
 DATASTORE_GET_ARRAY(unsigned __int64, 8)
 DATASTORE_GET_ARRAY(float, 4)
 DATASTORE_GET_ARRAY(unreal, 4)

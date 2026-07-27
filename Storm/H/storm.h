@@ -367,7 +367,7 @@ typedef struct SHA1_CONTEXT {
 
 void SHA1_Init(SHA1_CONTEXT *context);
 void SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int len);
-void SHA1_Final(unsigned char *const digest, SHA1_CONTEXT *context);
+void SHA1_Final(unsigned char *digest, SHA1_CONTEXT *context);
 
 class Sha1 {
  public:
@@ -379,10 +379,14 @@ class Sha1 {
 
   void Initialize();
   void Append(const void *_data, unsigned long size);
-  void Finalize(unsigned char *const hash);
+  void Append(const char *data);
+  void Finalize(unsigned char *hash);
+
+  static void Hash(unsigned char *hash, const void *data, unsigned long size);
+  static void Hash(unsigned char *hash, const char *data);
 
  private:
-  static void Pump(unsigned long *const hash, const unsigned char *const data);
+  static void Pump(unsigned long *hash, const unsigned char *data);
 
   unsigned __int64 m_size;
   unsigned long    m_hash[5];

@@ -1321,18 +1321,30 @@ class HASHKEY_STR {
   HASHKEY_STR(const char *str) : m_str(SStrDupA(str, __FILE__, __LINE__)) {
   }
 
+  HASHKEY_STR(const HASHKEY_STR &key) : m_str(SStrDupA(key.m_str, __FILE__, __LINE__)) {
+  }
+
   ~HASHKEY_STR();
 
   HASHKEY_STR &operator=(const char *str);
 
+  HASHKEY_STR &operator=(const HASHKEY_STR &key) {
+    return operator=(key.m_str);
+  }
+
   bool operator==(const char *str) const {
     return SStrCmp(m_str, str, 0x7FFFFFFF) == 0;
+  }
+
+  bool operator==(const HASHKEY_STR &key) const {
+    return operator==(key.m_str);
   }
 
   const char *GetString() const {
     return m_str;
   }
 
+ protected:
   char *m_str;
 };
 
@@ -1344,13 +1356,25 @@ class HASHKEY_STRI : public HASHKEY_STR {
   HASHKEY_STRI(const char *str) : HASHKEY_STR(str) {
   }
 
+  HASHKEY_STRI(const HASHKEY_STRI &key) : HASHKEY_STR(key) {
+  }
+
   HASHKEY_STRI &operator=(const char *str) {
     HASHKEY_STR::operator=(str);
     return *this;
   }
 
+  HASHKEY_STRI &operator=(const HASHKEY_STRI &key) {
+    HASHKEY_STR::operator=(key);
+    return *this;
+  }
+
   bool operator==(const char *str) const {
     return SStrCmpI(m_str, str, 0x7FFFFFFF) == 0;
+  }
+
+  bool operator==(const HASHKEY_STRI &key) const {
+    return operator==(key.m_str);
   }
 };
 

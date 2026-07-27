@@ -2,7 +2,7 @@
 
 namespace NTempest {
 
-  float CMath::sinoid_(float x, float oneOverPi) {
+  float CMath::sinoid_(float x, const float oneOverPi) {
     float fraction;
     long integer;
     split_(x * oneOverPi - 0.5f, fraction, integer);
@@ -10,7 +10,7 @@ namespace NTempest {
     return integer & 1 ? -result : result;
   }
 
-  float CMath::cosoid_(float x, float oneOverPi) {
+  float CMath::cosoid_(float x, const float oneOverPi) {
     float fraction;
     long integer;
     split_(x * oneOverPi, fraction, integer);

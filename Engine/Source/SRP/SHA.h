@@ -9,7 +9,7 @@ struct SHA1_CONTEXT {
 
 void SHA1_Init(SHA1_CONTEXT *context);
 void SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int len);
-void SHA1_Final(unsigned char *const digest, SHA1_CONTEXT *context);
+void SHA1_Final(unsigned char *digest, SHA1_CONTEXT *context);
 unsigned char *SHA1_InterleaveHash(unsigned char *digest, const unsigned char *data, unsigned int len);
 
 #endif

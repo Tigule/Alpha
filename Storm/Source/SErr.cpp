@@ -28,8 +28,6 @@ struct APPFATINFO {
 };
 
 struct HANDLER : public TSLinkedNode<HANDLER> {
-  HANDLER();
-  ~HANDLER();
   SERRHANDLER handler;
 };
 
@@ -81,12 +79,6 @@ static BOOL                                        checked;
 static DWORD                                       s_debugMemory;
 static EXCEPTION_POINTERS                         *s_exceptionPointers;
 static char                                        buffer[0x100];
-
-HANDLER::HANDLER() {
-}
-
-HANDLER::~HANDLER() {
-}
 
 template <>
 void TSList<HANDLER, TSGetLink<HANDLER> >::Clear() {
@@ -387,7 +379,7 @@ static void WriteMessageToLog(HANDLE logfile, LPCSTR message) {
   WriteFile(logfile, buffer, out, &byteswritten, NULL);
 }
 
-static HANDLE CreateErrorLogFile(LPCSTR suffix, LPCSTR ext, char *const logpath, DWORD logpathchars, SYSTEMTIME &time) {
+static HANDLE CreateErrorLogFile(LPCSTR suffix, LPCSTR ext, char *logpath, DWORD logpathchars, SYSTEMTIME &time) {
   char  logfilename[MAX_PATH];
   char  exefullpath[MAX_PATH];
   char *pathend;

@@ -133,9 +133,9 @@ namespace {
     inline DWORD InputBit();
 
    private:
-    const BYTE *m_currsource;
-    DWORD       m_rack;
-    DWORD       m_rackbits;
+    const DWORD *m_currsource;
+    DWORD        m_rack;
+    DWORD        m_rackbits;
   };
 
   class CBitOutput {
@@ -221,9 +221,9 @@ struct ZlibCompressAllocBuffer {
 };
 
 CBitInput::CBitInput(const void *source) {
-  m_currsource = (const BYTE *)source;
-  m_rack = *(const DWORD *)m_currsource;
-  m_currsource += sizeof(DWORD);
+  m_currsource = static_cast<const DWORD *>(source);
+  m_rack = *m_currsource;
+  ++m_currsource;
   m_rackbits = 32;
 }
 
@@ -234,8 +234,8 @@ inline DWORD CBitInput::InputBit() {
   m_rack >>= 1;
   --m_rackbits;
   if (!m_rackbits) {
-    m_rack = *(const DWORD *)m_currsource;
-    m_currsource += sizeof(DWORD);
+    m_rack = *m_currsource;
+    ++m_currsource;
     m_rackbits = 32;
   }
   return value;
@@ -251,8 +251,8 @@ inline DWORD CBitInput::InputBits(DWORD count, DWORD mask) {
 
 inline DWORD CBitInput::PeekBits(DWORD count, DWORD mask) {
   if (m_rackbits <= count) {
-    m_rack |= ((DWORD) * (const WORD *)m_currsource) << m_rackbits;
-    m_currsource += sizeof(WORD);
+    m_rack |= static_cast<DWORD>(*reinterpret_cast<const WORD *>(m_currsource)) << m_rackbits;
+    m_currsource = reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(m_currsource) + sizeof(WORD));
     m_rackbits += 16;
   }
   return m_rack & mask;
@@ -972,14 +972,15 @@ static void ZlibFree(void *opaque, void *ptr) {
   }
 }
 
-extern "C" int __stdcall zlib_compress(void *dest, unsigned long *destLen, const void *source, unsigned long sourceLen, unsigned long level) {
+extern "C" int __stdcall
+zlib_compress(unsigned char *dest, unsigned long *destLen, const unsigned char *source, unsigned long sourceLen, int level) {
   ZlibCompressAllocBuffer buffer;
   z_stream                stream;
   int                     result;
 
-  stream.next_in = (Bytef *)source;
+  stream.next_in = const_cast<Bytef *>(source);
   stream.avail_in = sourceLen;
-  stream.next_out = (Bytef *)dest;
+  stream.next_out = dest;
   stream.avail_out = *destLen;
   buffer.arena.current = buffer.workspace;
   buffer.arena.size = sizeof(buffer.workspace);
@@ -1020,21 +1021,28 @@ ZlibCompress(void *dest, unsigned long *destsize, const void *source, unsigned l
       break;
   }
   finalsize = *destsize;
-  result = zlib_compress(dest, &finalsize, source, sourcesize, level);
+  result = zlib_compress(
+      static_cast<unsigned char *>(dest),
+      &finalsize,
+      static_cast<const unsigned char *>(source),
+      sourcesize,
+      level
+  );
   if (result == Z_OK) {
     *destsize = finalsize;
   }
   *hint = SCOMP_HINT_NONE;
 }
 
-extern "C" int __stdcall zlib_uncompress(void *dest, unsigned long *destLen, const void *source, unsigned long sourceLen) {
+extern "C" int __stdcall
+zlib_uncompress(unsigned char *dest, unsigned long *destLen, const unsigned char *source, unsigned long sourceLen) {
   ZlibUncompressAllocBuffer buffer;
   z_stream                  stream;
   int                       result;
 
-  stream.next_in = (Bytef *)source;
+  stream.next_in = const_cast<Bytef *>(source);
   stream.avail_in = sourceLen;
-  stream.next_out = (Bytef *)dest;
+  stream.next_out = dest;
   stream.avail_out = *destLen;
   buffer.arena.current = buffer.workspace;
   buffer.arena.size = sizeof(buffer.workspace);
@@ -1059,7 +1067,13 @@ static void ZlibDecompress(void *dest, unsigned long *destsize, const void *sour
   DWORD size;
 
   size = *destsize;
-  if (zlib_uncompress(dest, &size, source, sourcesize) != Z_OK) {
+  if (zlib_uncompress(
+          static_cast<unsigned char *>(dest),
+          &size,
+          static_cast<const unsigned char *>(source),
+          sourcesize
+      )
+      != Z_OK) {
     SErrDisplayError(0x85100083, filename, -4, NULL, TRUE, 0);
   }
   *destsize = size;

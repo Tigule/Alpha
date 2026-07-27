@@ -15,9 +15,9 @@ namespace NTempest {
     }
 
    public:
-    static double logoid_(double x, double a, double b, double c, double d, double ln2);
-    static double logoid2_(double x, double a, double b, double c, double d);
-    static double logoid10_(double x, double a, double b, double c, double d, double ln10);
+    static double logoid_(double x, const double a, const double b, const double c, const double d, const double ln2);
+    static double logoid2_(double x, const double a, const double b, const double c, const double d);
+    static double logoid10_(double x, const double a, const double b, const double c, const double d, const double ln10);
     static double log2_(double x);
     static float log2_(float x) {
       return static_cast<float>(log2_(static_cast<double>(x)));
@@ -174,9 +174,9 @@ namespace NTempest {
     static double atan_(double x) { return atan(x); }
     static float atan2_(float y, float x) { return static_cast<float>(atan2(y, x)); }
     static double atan2_(double y, double x) { return atan2(y, x); }
-    static float sinoid_(float x, float oneOverPi);
-    static float cosoid_(float x, float oneOverPi);
-    static float atanoid_(float x, float piOverTwo);
+    static float sinoid_(float x, const float oneOverPi);
+    static float cosoid_(float x, const float oneOverPi);
+    static float atanoid_(float x, const float piOverTwo);
     static float pow_(float x, float y) { return static_cast<float>(pow(x, y)); }
     static double pow_(double x, double y) { return pow(x, y); }
 
@@ -198,7 +198,7 @@ namespace NTempest {
     static void normalize_(double &x, double &y);
     static void normalize_(float &x, float &y, float &z);
     static void normalize_(double &x, double &y, double &z);
-    static bool xsectunitsphere_(double x, double y, double z, double dx, double dy, double dz, double r2);
+    static bool xsectunitsphere_(double x, double y, double z, double dx, double dy, double dz, const double r2);
     static bool xsectunitcube_(double x, double y, double z, double dx, double dy, double dz) {
       double minimum = 0.0;
       double maximum = HUGE_VAL;

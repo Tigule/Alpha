@@ -11,8 +11,8 @@ static const BYTE s_sha1Padding = 0x80;
 static BYTE       s_sha1Zero;
 
 #define SHA1_ROL(value, bits) _lrotl((value), (bits))
-#define SHA1_BLK0(i)          (words[i] = (SHA1_ROL(((DWORD *)buffer)[i], 24) & 0xFF00FF00) | (SHA1_ROL(((DWORD *)buffer)[i], 8) & 0x00FF00FF))
-#define SHA1_BLK(i) (words[(i) & 15] = SHA1_ROL(words[((i) + 13) & 15] ^ words[((i) + 8) & 15] ^ words[((i) + 2) & 15] ^ words[(i) & 15], 1))
+#define SHA1_BLK0(i)          (words.l[i] = (SHA1_ROL(((DWORD *)buffer)[i], 24) & 0xFF00FF00) | (SHA1_ROL(((DWORD *)buffer)[i], 8) & 0x00FF00FF))
+#define SHA1_BLK(i) (words.l[(i) & 15] = SHA1_ROL(words.l[((i) + 13) & 15] ^ words.l[((i) + 8) & 15] ^ words.l[((i) + 2) & 15] ^ words.l[(i) & 15], 1))
 #define SHA1_R0(v, w, x, y, z, i)                                        \
   z += ((w & (x ^ y)) ^ y) + SHA1_BLK0(i) + 0x5A827999 + SHA1_ROL(v, 5); \
   w = SHA1_ROL(w, 30)
@@ -29,8 +29,13 @@ static BYTE       s_sha1Zero;
   z += (w ^ x ^ y) + SHA1_BLK(i) + 0xCA62C1D6 + SHA1_ROL(v, 5); \
   w = SHA1_ROL(w, 30)
 
-void SHA1_Transform(unsigned int *const state, const unsigned char *const buffer) {
-  DWORD words[16];
+void SHA1_Transform(unsigned int *state, const unsigned char *buffer) {
+  union CHAR64LONG16 {
+    BYTE  c[64];
+    DWORD l[16];
+  };
+
+  CHAR64LONG16 words;
   DWORD a;
   DWORD b;
   DWORD c;
@@ -167,7 +172,7 @@ void SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int 
   memcpy(&context->buffer[j], data + i, len - i);
 }
 
-void SHA1_Final(unsigned char *const digest, SHA1_CONTEXT *context) {
+void SHA1_Final(unsigned char *digest, SHA1_CONTEXT *context) {
   BYTE  finalcount[8];
   DWORD i;
 

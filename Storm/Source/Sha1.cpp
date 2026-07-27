@@ -35,11 +35,11 @@ namespace Private {
     w = 0;
   }
 
-  void Load(DWORD &a, const BYTE *const b) {
+  void Load(DWORD &a, const BYTE *b) {
     a = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
   }
 
-  void Save(unsigned __int64 a, BYTE *const b) {
+  void Save(unsigned __int64 a, BYTE *b) {
     int i;
 
     for (i = 7; i >= 0; i--) {
@@ -48,7 +48,7 @@ namespace Private {
     }
   }
 
-  void Save(DWORD a, BYTE *const b) {
+  void Save(DWORD a, BYTE *b) {
     int i;
 
     for (i = 3; i >= 0; i--) {
@@ -59,7 +59,7 @@ namespace Private {
 
 }  // namespace Private
 
-void Sha1::Pump(unsigned long *const hash, const unsigned char *const data) {
+void Sha1::Pump(unsigned long *hash, const unsigned char *data) {
   DWORD w[80];
   int   i;
   DWORD a;
@@ -162,7 +162,7 @@ void Sha1::Append(const void *_data, unsigned long size) {
   }
 }
 
-void Sha1::Finalize(unsigned char *const hash) {
+void Sha1::Finalize(unsigned char *hash) {
   BYTE          size[8];
   unsigned long padBytes;
   int           i;

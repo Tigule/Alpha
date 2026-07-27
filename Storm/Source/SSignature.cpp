@@ -10,11 +10,10 @@ class SSignatureData {
  public:
   unsigned long  modulusSize;
   unsigned long  pubExponentSize;
-  unsigned long  buffered;
-  unsigned long  signatureLength;
-  unsigned char *tail;
-  unsigned long  reserved;
-  Sha1           hash;
+  unsigned long  magicBufferUsed;
+  unsigned long  magicBufferSize;
+  unsigned char *magicBuffer;
+  Sha1           sha;
 };
 
 namespace Signature {
@@ -24,7 +23,7 @@ namespace Signature {
     return size >= modulusSize + sizeof(DWORD) && *(const DWORD *)(data + dataSize) == SIGNATURE_MAGIC;
   }
 
-  void Hash(const unsigned char *data, unsigned long size, unsigned char *const digest) {
+  void Hash(const unsigned char *data, unsigned long size, unsigned char *digest) {
     Sha1 sha;
 
     sha.Initialize();
@@ -38,14 +37,14 @@ extern "C" void SSignatureVerifyStream_Begin(SSignatureData **token, unsigned lo
   *token = new SSignatureData;
   (*token)->modulusSize = modulusSize;
   (*token)->pubExponentSize = pubExponentSize;
-  (*token)->buffered = 0;
-  (*token)->signatureLength = modulusSize + sizeof(DWORD);
-  (*token)->tail = (unsigned char *)SMemAlloc((*token)->signatureLength, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY);
-  (*token)->hash.Initialize();
+  (*token)->magicBufferUsed = 0;
+  (*token)->magicBufferSize = modulusSize + sizeof(DWORD);
+  (*token)->magicBuffer = (unsigned char *)SMemAlloc((*token)->magicBufferSize, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY);
+  (*token)->sha.Initialize();
 }
 
 extern "C" unsigned long SSignatureVerifyStream_GetSignatureLength(SSignatureData *token) {
-  return token->signatureLength;
+  return token->magicBufferSize;
 }
 
 extern "C" void SSignatureVerifyStream_ProvideData(SSignatureData *token, const unsigned char *data, unsigned long size) {
@@ -54,27 +53,27 @@ extern "C" void SSignatureVerifyStream_ProvideData(SSignatureData *token, const 
 
   ASSERT(token);
 
-  hashBytes = size - token->signatureLength;
+  hashBytes = size - token->magicBufferSize;
   if (hashBytes >= 0) {
-    if (token->buffered) {
-      token->hash.Append(token->tail, token->buffered);
+    if (token->magicBufferUsed) {
+      token->sha.Append(token->magicBuffer, token->magicBufferUsed);
     }
     if (hashBytes > 0) {
-      token->hash.Append(data, hashBytes);
+      token->sha.Append(data, hashBytes);
     }
-    memcpy(token->tail, data + hashBytes, token->signatureLength);
-    token->buffered = token->signatureLength;
+    memcpy(token->magicBuffer, data + hashBytes, token->magicBufferSize);
+    token->magicBufferUsed = token->magicBufferSize;
     return;
   }
 
-  overflow = token->buffered + size - token->signatureLength;
+  overflow = token->magicBufferUsed + size - token->magicBufferSize;
   if (overflow > 0) {
-    token->hash.Append(token->tail, overflow);
-    token->buffered -= overflow;
-    memmove(token->tail, token->tail + overflow, token->buffered);
+    token->sha.Append(token->magicBuffer, overflow);
+    token->magicBufferUsed -= overflow;
+    memmove(token->magicBuffer, token->magicBuffer + overflow, token->magicBufferUsed);
   }
-  memcpy(token->tail + token->buffered, data, size);
-  token->buffered += size;
+  memcpy(token->magicBuffer + token->magicBufferUsed, data, size);
+  token->magicBufferUsed += size;
 }
 
 extern "C" int SSignatureVerifyStream_Finish(SSignatureData *token, const unsigned char *modulus, const unsigned char *pubExponent) {
@@ -83,23 +82,23 @@ extern "C" int SSignatureVerifyStream_Finish(SSignatureData *token, const unsign
   ASSERT(token);
   result = FALSE;
 
-  if (token->buffered == token->signatureLength && *(DWORD *)token->tail == SIGNATURE_MAGIC) {
+  if (token->magicBufferUsed == token->magicBufferSize && *(DWORD *)token->magicBuffer == SIGNATURE_MAGIC) {
     unsigned char *generated;
     unsigned char *stored;
 
     generated = (unsigned char *)_alloca(token->modulusSize);
     memset(generated, 0xBB, token->modulusSize);
     generated[token->modulusSize - 1] = 0x0B;
-    token->hash.Finalize(generated);
+    token->sha.Finalize(generated);
     stored = (unsigned char *)_alloca(token->modulusSize);
-    memcpy(stored, token->tail + sizeof(DWORD), token->modulusSize);
+    memcpy(stored, token->magicBuffer + sizeof(DWORD), token->modulusSize);
     Crypt::RSA decoder;
     decoder.Prepare(modulus, token->modulusSize, pubExponent, token->pubExponentSize);
     decoder.Process(stored, token->modulusSize);
     result = memcmp(stored, generated, token->modulusSize) == 0;
   }
 
-  SMemFree(token->tail, __FILE__, __LINE__, 0);
+  SMemFree(token->magicBuffer, __FILE__, __LINE__, 0);
   delete token;
   return result;
 }

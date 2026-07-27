@@ -17,18 +17,14 @@
 
 class CGUIBindingsStatus : public CStatus {
  public:
-  CGUIBindingsStatus() {
-  }
-  virtual ~CGUIBindingsStatus() {
-  }
-  virtual void Add(STATUS_TYPE severity, const char *format, ...);
+  virtual void Add(int severity, const char *format, ...);
 };
 
 static CGUIBindingsStatus s_nullStatus;
 
 int ConsoleCommand_RunExec(const char *cmd, const char *arguments);
 
-void CGUIBindingsStatus::Add(STATUS_TYPE, const char *format, ...) {
+void CGUIBindingsStatus::Add(int, const char *format, ...) {
   char    buffer[512];
   va_list arguments;
 
@@ -374,7 +370,7 @@ int CGUIBindings::Bind(const char *keystring, const char *command) {
   if (*command && !m_commands.Ptr(command)) {
     return 0;
   }
-  KEYCOMMAND *keyCommand = m_commands.Ptr(command);
+  const KEYCOMMAND *keyCommand = m_commands.Ptr(command);
   if (keyCommand && keyCommand->runOnUp && !SStrCmpI(keystring, "MOUSEWHEEL", SStrLen("MOUSEWHEEL"))) {
     return 0;
   }
@@ -399,7 +395,7 @@ int CGUIBindings::Bind(const char *keystring, const char *command) {
   return 1;
 }
 
-int CGUIBindings::ExecKey(const char *keystring, unsigned long timestamp, int down) {
+int CGUIBindings::ExecKey(const char *keystring, unsigned long timestamp, int down) const {
   if (!keystring || !*keystring) {
     return 0;
   }
@@ -412,11 +408,11 @@ int CGUIBindings::ExecKey(const char *keystring, unsigned long timestamp, int do
   return ExecCommand(command, timestamp, down);
 }
 
-int CGUIBindings::ExecCommand(const char *command, unsigned long timestamp, int down) {
+int CGUIBindings::ExecCommand(const char *command, unsigned long timestamp, int down) const {
   if (!command || !*command) {
     return 0;
   }
-  KEYCOMMAND *keyCommand = m_commands.Ptr(command);
+  const KEYCOMMAND *keyCommand = m_commands.Ptr(command);
   if (!keyCommand || !keyCommand->function || (!down && !keyCommand->runOnUp)) {
     return 0;
   }
@@ -434,9 +430,9 @@ int CGUIBindings::ExecCommand(const char *command, unsigned long timestamp, int 
   return 1;
 }
 
-void CGUIBindings::GetCommand(int index, const char *&command) {
+void CGUIBindings::GetCommand(int index, const char *&command) const {
   command = 0;
-  for (KEYCOMMAND *entry = m_commands.Head(); entry; entry = m_commands.Next(entry)) {
+  for (const KEYCOMMAND *entry = m_commands.Head(); entry; entry = m_commands.Next(entry)) {
     if (entry->index == index) {
       command = entry->GetString();
       return;
@@ -444,9 +440,9 @@ void CGUIBindings::GetCommand(int index, const char *&command) {
   }
 }
 
-void CGUIBindings::GetHiddenCommand(int index, const char *&command) {
+void CGUIBindings::GetHiddenCommand(int index, const char *&command) const {
   command = 0;
-  for (KEYCOMMAND *entry = m_commands.Head(); entry; entry = m_commands.Next(entry)) {
+  for (const KEYCOMMAND *entry = m_commands.Head(); entry; entry = m_commands.Next(entry)) {
     if (entry->index == -index - 1) {
       command = entry->GetString();
       return;
@@ -454,8 +450,8 @@ void CGUIBindings::GetHiddenCommand(int index, const char *&command) {
   }
 }
 
-const char *CGUIBindings::GetCommandKey(const char *command, int keyindex) {
-  for (KEYBINDING *binding = m_bindings.Head(); binding; binding = m_bindings.Next(binding)) {
+const char *CGUIBindings::GetCommandKey(const char *command, int keyindex) const {
+  for (const KEYBINDING *binding = m_bindings.Head(); binding; binding = m_bindings.Next(binding)) {
     if (!SStrCmpI(binding->command, command, 0x7FFFFFFF) && binding->index == keyindex) {
       return binding->GetString();
     }
@@ -463,9 +459,9 @@ const char *CGUIBindings::GetCommandKey(const char *command, int keyindex) {
   return 0;
 }
 
-unsigned int CGUIBindings::GetNumCommandKeys(const char *command) {
+unsigned int CGUIBindings::GetNumCommandKeys(const char *command) const {
   unsigned int count = 0;
-  for (KEYBINDING *binding = m_bindings.Head(); binding; binding = m_bindings.Next(binding)) {
+  for (const KEYBINDING *binding = m_bindings.Head(); binding; binding = m_bindings.Next(binding)) {
     if (!SStrCmpI(binding->command, command, 0x7FFFFFFF)) {
       ++count;
     }
@@ -473,7 +469,7 @@ unsigned int CGUIBindings::GetNumCommandKeys(const char *command) {
   return count;
 }
 
-void CGUIBindings::AdjustCommandKeyIndices(const char *command, int index) {
+void CGUIBindings::AdjustCommandKeyIndices(const char *command, int index) const {
   for (KEYBINDING *binding = m_bindings.Head(); binding; binding = m_bindings.Next(binding)) {
     if (!SStrCmpI(binding->command, command, 0x7FFFFFFF) && binding->index > index) {
       --binding->index;
@@ -481,8 +477,8 @@ void CGUIBindings::AdjustCommandKeyIndices(const char *command, int index) {
   }
 }
 
-const char *CGUIBindings::GetCommandAction(const char *keystring) {
-  KEYBINDING *binding = m_bindings.Ptr(keystring);
+const char *CGUIBindings::GetCommandAction(const char *keystring) const {
+  const KEYBINDING *binding = m_bindings.Ptr(keystring);
   return binding ? binding->command : 0;
 }
 

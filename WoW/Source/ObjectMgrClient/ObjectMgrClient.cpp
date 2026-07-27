@@ -27,7 +27,8 @@
 #include "WowSvcs/WowSvcsClient/ClientConnection.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
-extern "C" int __stdcall zlib_uncompress(void *dest, unsigned long *destLen, const void *source, unsigned long sourceLen);
+extern "C" int __stdcall
+zlib_uncompress(unsigned char *dest, unsigned long *destLen, const unsigned char *source, unsigned long sourceLen);
 
 static ClntObjMgr        *s_curMgr;
 static unsigned int       s_hashMemBlock;
@@ -993,7 +994,12 @@ static int ObjectCompressedUpdateHandler(void *, NETMESSAGE, unsigned long event
   msg->GetDataInSitu(data, compressedSize);
   void *dest = _alloca(origSize);
   destSize = origSize;
-  zlib_uncompress(dest, &destSize, data, compressedSize);
+  zlib_uncompress(
+      static_cast<unsigned char *>(dest),
+      &destSize,
+      static_cast<const unsigned char *>(data),
+      compressedSize
+  );
   FATALASSERT(destSize == origSize);
   realmsg.PutData(dest, destSize);
   realmsg.Finalize();

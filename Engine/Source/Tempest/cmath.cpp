@@ -77,7 +77,7 @@ namespace NTempest {
     return estimate;
   }
 
-  float CMath::atanoid_(float x, float piOverTwo) {
+  float CMath::atanoid_(float x, const float piOverTwo) {
     bool negative = x < 0.0f;
     if (negative) {
       x = -x;
@@ -96,7 +96,7 @@ namespace NTempest {
     return negative ? -result : result;
   }
 
-  double CMath::logoid_(double x, double a, double b, double c, double d, double ln2) {
+  double CMath::logoid_(double x, const double a, const double b, const double c, const double d, const double ln2) {
     if (x <= 1.0e-307) {
       return -HUGE_VAL;
     }
@@ -106,7 +106,7 @@ namespace NTempest {
     return ((a * x + b) * x * x + x * c + d + exponent) * ln2;
   }
 
-  double CMath::logoid2_(double x, double a, double b, double c, double d) {
+  double CMath::logoid2_(double x, const double a, const double b, const double c, const double d) {
     if (x <= 1.0e-307) {
       return -HUGE_VAL;
     }
@@ -116,7 +116,7 @@ namespace NTempest {
     return (a * x + b) * x * x + x * c + d + exponent;
   }
 
-  double CMath::logoid10_(double x, double a, double b, double c, double d, double ln10) {
+  double CMath::logoid10_(double x, const double a, const double b, const double c, const double d, const double ln10) {
     if (x <= 1.0e-307) {
       return -HUGE_VAL;
     }
@@ -161,7 +161,7 @@ namespace NTempest {
     return exponent <= 0 ? 0.0 : HUGE_VAL;
   }
 
-  bool CMath::xsectunitsphere_(double x, double y, double z, double dx, double dy, double dz, double r2) {
+  bool CMath::xsectunitsphere_(double x, double y, double z, double dx, double dy, double dz, const double r2) {
     double distance2 = x * x + y * y + z * z;
     double direction = x * dx + y * dy + z * dz;
     if (distance2 < r2) {

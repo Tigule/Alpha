@@ -157,17 +157,7 @@ class CharGeosetInfo {
     Clear();
   }
 
-  void Clear() {
-    unsigned int group;
-    for (group = 0; group < 9; ++group) {
-      highestPriority[group] = -1;
-      currentGeosets[group] = 1;
-      geosetCurrentlyUsedBy[group] = 0;
-      disabledByFlags[group] = 0;
-      flags[group] = 0;
-      memset(inventoryTypeGeosets[group], 0, sizeof(inventoryTypeGeosets[group]));
-    }
-  }
+  void Clear();
 
   int ShowingSameGeosetsAs(const CharGeosetInfo &rhs) const {
     unsigned int group;
@@ -379,8 +369,25 @@ class CharGeosetInfo {
   unsigned int inventoryTypeGeosets[9][INDEX_NUMSLOTS];
 };
 
+void CharGeosetInfo::Clear() {
+  unsigned int group;
+  for (group = 0; group < 9; ++group) {
+    highestPriority[group] = -1;
+    currentGeosets[group] = 1;
+    geosetCurrentlyUsedBy[group] = 0;
+    disabledByFlags[group] = 0;
+    flags[group] = 0;
+    memset(inventoryTypeGeosets[group], 0, sizeof(inventoryTypeGeosets[group]));
+  }
+}
+
 class CCharGeoset : public CHandleObject {
  public:
+  enum {
+    CHANGED = 1,
+    HASSCALP = 2
+  };
+
   CCharGeoset() : m_charModel(0), m_paperDollModel(0), m_flags(0) {
     memset(m_currentGeosets, 0, sizeof(m_currentGeosets));
   }
@@ -394,71 +401,52 @@ class CCharGeoset : public CHandleObject {
     }
   }
 
-  void ClearGeosets() {
-    m_geosetInfo.Clear();
-    m_workingGeosetInfo.Clear();
-    unsigned int group;
-    for (group = 0; group < 9; ++group) {
-      ShowGeosetSection(s_clothingGeosetRanges[group], 0, 0);
-    }
-  }
+  void ClearGeosets();
 
   void ShowGeosetSection(CHARACTER_GEOSET_SECTIONS section, unsigned int geosetNumber, int hideRemainder) {
     ASSERT(section < NUM_CHARGEOSETS);
     ASSERT(m_charModel);
     ASSERT(geosetNumber < 100);
 
-    if (hideRemainder) {
-      HideGeosetSection(section);
+    ShowGeosetSection(m_charModel, section, geosetNumber, hideRemainder);
+    if (m_paperDollModel) {
+      ShowGeosetSection(m_paperDollModel, section, geosetNumber, hideRemainder);
     }
     if (!geosetNumber) {
       geosetNumber = !s_defaultGeosets[section];
     }
 
     if (m_currentGeosets[section] != geosetNumber) {
-      if (m_currentGeosets[section] && !hideRemainder) {
-        ModelHideGeosets(m_charModel, 100 * section + m_currentGeosets[section], 1);
-        if (m_paperDollModel) {
-          ModelHideGeosets(m_paperDollModel, 100 * section + m_currentGeosets[section], 1);
-        }
-      }
       m_currentGeosets[section] = geosetNumber;
-      m_flags |= 1;
+      m_flags |= CHANGED;
     }
   }
 
-  void HideGeosetSection(CHARACTER_GEOSET_SECTIONS section) {
+  void ShowGeosetSection(
+      HMODEL model, CHARACTER_GEOSET_SECTIONS section, unsigned int geosetNumber, int hideRemainder
+  ) const {
     ASSERT(section < NUM_CHARGEOSETS);
-    ASSERT(m_charModel);
-    m_currentGeosets[section] = 0;
-    ModelHideGeosetsRange(m_charModel, 100 * section + 1, 100 * section + 99, 1);
-    if (m_paperDollModel) {
-      ModelHideGeosetsRange(m_paperDollModel, 100 * section + 1, 100 * section + 99, 1);
+    ASSERT(model);
+    ASSERT(geosetNumber < 100);
+
+    if (hideRemainder) {
+      HideGeosetSection(model, section);
+    }
+    if (!geosetNumber) {
+      geosetNumber = !s_defaultGeosets[section];
+    }
+    if (m_currentGeosets[section] != geosetNumber && m_currentGeosets[section] && !hideRemainder) {
+      ModelHideGeosets(model, 100 * section + m_currentGeosets[section], 1);
     }
   }
 
-  void CommitGeosets(HMODEL model) {
-    if (!model || !(m_flags & 1)) {
-      return;
-    }
-    unsigned int section;
-    for (section = 0; section < NUM_CHARGEOSETS; ++section) {
-      if (m_currentGeosets[section]) {
-        ModelHideGeosets(model, 100 * section + m_currentGeosets[section], 0);
-      }
-    }
-    if (m_flags & 2) {
-      ModelHideGeosets(model, 1, 0);
-    }
-    ModelHideGeosets(model, 0, 0);
-    ModelOptimizeVisibleGeosets(model);
-  }
+  void HideGeosetSection(CHARACTER_GEOSET_SECTIONS section);
 
-  void Commit() {
-    CommitGeosets(m_charModel);
-    CommitGeosets(m_paperDollModel);
-    m_flags &= ~1;
-  }
+  void HideGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section) const;
+
+  void CommitGeosets(HMODEL model);
+
+  void Commit();
 
   void CommitWorkingGeosetInfo() {
     if (!m_geosetInfo.ShowingSameGeosetsAs(m_workingGeosetInfo)) {
@@ -490,26 +478,11 @@ class CCharGeoset : public CHandleObject {
       HTEXCOMPONENT             component,
       unsigned int              playerRace,
       int                       doNotCommit
-  ) {
-    m_workingGeosetInfo.UpdateGeosetDisplay(displayInfoRec, itemInventoryType, component, playerRace);
-    if (!doNotCommit) {
-      CommitWorkingGeosetInfo();
-    }
-  }
+  );
 
-  void RemoveItemGeoset(const ItemDisplayInfoRec *displayInfoRec, unsigned int itemInventoryType, HTEXCOMPONENT component) {
-    m_workingGeosetInfo.RemoveGeosetInfo(displayInfoRec, itemInventoryType, component);
-  }
+  void RemoveItemGeoset(const ItemDisplayInfoRec *displayInfoRec, unsigned int itemInventoryType, HTEXCOMPONENT component);
 
-  void EnableHairGeosets(unsigned int race, unsigned int sex, unsigned int hairStyleID) {
-    int geoset = static_cast<int>(CharCustomizationGetHairGeoset(race, sex, hairStyleID));
-    ShowGeosetSection(CGS_HAIR, abs(geoset), 1);
-    if (geoset < 0) {
-      m_flags |= 2;
-    } else {
-      m_flags &= ~2;
-    }
-  }
+  void EnableHairGeosets(unsigned int race, unsigned int sex, unsigned int hairStyleID);
 
   HMODEL         m_charModel;
   HMODEL         m_paperDollModel;
@@ -518,6 +491,83 @@ class CCharGeoset : public CHandleObject {
   int            m_flags;
   unsigned int   m_currentGeosets[NUM_CHARGEOSETS];
 };
+
+void CCharGeoset::ClearGeosets() {
+  m_geosetInfo.Clear();
+  m_workingGeosetInfo.Clear();
+  unsigned int group;
+  for (group = 0; group < 9; ++group) {
+    ShowGeosetSection(s_clothingGeosetRanges[group], 0, 0);
+  }
+}
+
+void CCharGeoset::HideGeosetSection(CHARACTER_GEOSET_SECTIONS section) {
+  ASSERT(section < NUM_CHARGEOSETS);
+  ASSERT(m_charModel);
+  m_currentGeosets[section] = 0;
+  HideGeosetSection(m_charModel, section);
+  if (m_paperDollModel) {
+    HideGeosetSection(m_paperDollModel, section);
+  }
+}
+
+void CCharGeoset::HideGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section) const {
+  ASSERT(section < NUM_CHARGEOSETS);
+  ASSERT(model);
+  ModelHideGeosetsRange(model, 100 * section + 1, 100 * section + 99, 1);
+}
+
+void CCharGeoset::CommitGeosets(HMODEL model) {
+  if (!model || !(m_flags & CHANGED)) {
+    return;
+  }
+  unsigned int section;
+  for (section = 0; section < NUM_CHARGEOSETS; ++section) {
+    if (m_currentGeosets[section]) {
+      ModelHideGeosets(model, 100 * section + m_currentGeosets[section], 0);
+    }
+  }
+  if (m_flags & HASSCALP) {
+    ModelHideGeosets(model, 1, 0);
+  }
+  ModelHideGeosets(model, 0, 0);
+  ModelOptimizeVisibleGeosets(model);
+}
+
+void CCharGeoset::Commit() {
+  CommitGeosets(m_charModel);
+  CommitGeosets(m_paperDollModel);
+  m_flags &= ~CHANGED;
+}
+
+void CCharGeoset::AddItemGeoset(
+    const ItemDisplayInfoRec *displayInfoRec,
+    unsigned int              itemInventoryType,
+    HTEXCOMPONENT             component,
+    unsigned int              playerRace,
+    int                       doNotCommit
+) {
+  m_workingGeosetInfo.UpdateGeosetDisplay(displayInfoRec, itemInventoryType, component, playerRace);
+  if (!doNotCommit) {
+    CommitWorkingGeosetInfo();
+  }
+}
+
+void CCharGeoset::RemoveItemGeoset(
+    const ItemDisplayInfoRec *displayInfoRec, unsigned int itemInventoryType, HTEXCOMPONENT component
+) {
+  m_workingGeosetInfo.RemoveGeosetInfo(displayInfoRec, itemInventoryType, component);
+}
+
+void CCharGeoset::EnableHairGeosets(unsigned int race, unsigned int sex, unsigned int hairStyleID) {
+  int geoset = CharCustomizationGetHairGeoset(race, sex, hairStyleID);
+  ShowGeosetSection(CGS_HAIR, abs(geoset), 1);
+  if (geoset < 0) {
+    m_flags |= HASSCALP;
+  } else {
+    m_flags &= ~HASSCALP;
+  }
+}
 
 static void InitializeCameraFileNames();
 static void FillInMissingTextureFileNames();

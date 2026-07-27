@@ -393,14 +393,15 @@ class CGxMatrixStack {
   unsigned int        m_flags[4];
 };
 
-struct CGxStateRegister {
+class CGxStateRegister {
+ public:
   CGxStateRegister();
 
   CGxLight     m_lights[8];
   int          m_lightsDirty[8];
   float        m_lightLinearFalloff;
   float        m_lightQuadraticFalloff;
-  unsigned int m_masterEnables;
+  unsigned long m_masterEnables;
 };
 
 class CGxDevice {
@@ -415,7 +416,7 @@ class CGxDevice {
   static const unsigned int s_texFormatBitDepth[GxTexFormats_Last];
 
  protected:
-  unsigned int ITexComputeByteSize(const CGxTex *texId, unsigned int width, unsigned int height);
+  unsigned int ITexComputeByteSize(const CGxTex *texId, const unsigned int width, const unsigned int height);
   int          EnableState(unsigned long app, unsigned long appDisables, unsigned int flagPos);
   int  NeedsUpdate(unsigned long app, unsigned long hw, unsigned long appDisables, unsigned long hwDisables, unsigned int flagPos, int &enable);
   void ITexBind(CGxTex *texId);

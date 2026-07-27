@@ -1349,20 +1349,25 @@ void CGxDevice::ITexMarkAsUpdated(CGxTex *texId) {
   }
 }
 
-unsigned int CGxDevice::ITexComputeByteSize(const CGxTex *texId, unsigned int width, unsigned int height) {
-  if (width == UINT_MAX) {
-    width = texId->m_width;
+unsigned int CGxDevice::ITexComputeByteSize(
+    const CGxTex *texId, const unsigned int width, const unsigned int height
+) {
+  unsigned int texWidth = width;
+  unsigned int texHeight = height;
+
+  if (texWidth == UINT_MAX) {
+    texWidth = texId->m_width;
   }
-  if (height == UINT_MAX) {
-    height = texId->m_height;
+  if (texHeight == UINT_MAX) {
+    texHeight = texId->m_height;
   }
 
-  width >>= m_baseMipLevel;
-  height >>= m_baseMipLevel;
-  unsigned int bytes = (width * height * s_texFormatBitDepth[texId->m_format]) >> 3;
+  texWidth >>= m_baseMipLevel;
+  texHeight >>= m_baseMipLevel;
+  unsigned int bytes = (texWidth * texHeight * s_texFormatBitDepth[texId->m_format]) >> 3;
 
   if (texId->m_flags.m_filter == GxTex_LinearMipNearest || texId->m_flags.m_filter == GxTex_LinearMipLinear) {
-    return static_cast<unsigned int>(bytes * 1.3f);
+    return bytes * 1.3f;
   }
   return bytes;
 }

@@ -60,9 +60,9 @@ class CGCamera : public CSimpleCamera {
   void ToggleFreeLook();
   void EnableFreeLook();
   void DisableFreeLook(int sticky);
-  virtual NTempest::C3Vector Forward();
-  virtual NTempest::C3Vector Right();
-  virtual NTempest::C3Vector Up();
+  virtual NTempest::C3Vector Forward() const;
+  virtual NTempest::C3Vector Right() const;
+  virtual NTempest::C3Vector Up() const;
   void                       SyncFreeLookFacing();
   void                       UpdateFreeLookFacing(float dx, float dy);
   void                       CreateViewFromParams(int view, float dist, float pitch, float yaw);
@@ -76,6 +76,12 @@ class CGCamera : public CSimpleCamera {
   void                       ZoomOut(float distance, unsigned long timestamp);
   void                       StartMotion(CGCameraMotion move, unsigned long timestamp, unsigned long timeout);
   void                       StopMotion(CGCameraMotion move, unsigned long timestamp);
+  void                       SetPositionAndTargetWithRoll(const NTempest::C3Vector &position, const NTempest::C3Vector &target, float roll);
+  NTempest::C3Vector         Target() const;
+  NTempest::C3Vector         Facing() const;
+  int                        InFreeLookMode() const;
+  int                        GetView() const;
+  static int                 UpdateCallback(const void *__formal, void *param);
 
  private:
   friend class CGWorldFrame;
@@ -84,12 +90,13 @@ class CGCamera : public CSimpleCamera {
 
   int                   FinishLoadingModel();
   int                   FinishLoadingTarget(CGObject_C *target);
-  NTempest::C33Matrix   ParentToWorld();
+  int                   CompletedAngle() const;
+  void                  SetViewFlags(int flags);
+  NTempest::C33Matrix   ParentToWorld() const;
   static int CCommand_CameraClip(const char *command, const char *arguments);
   void                  SetTargetFadeValue(unsigned char value);
   void                  SetModeNormal();
   void                  SetModeFreeLook();
-  static int UpdateCallback(const void *__formal, void *param);
   void                  CalcThirdPerson(CGObject_C *target, unsigned long timestamp);
   void                  CalcFirstPerson(CGObject_C *target, unsigned long timestamp);
   void                  ClampAngles();
@@ -107,7 +114,6 @@ class CGCamera : public CSimpleCamera {
   float                 CollideCameraWithWorld(const NTempest::C3Vector &targetPosition);
   void                  UpdateMotion(unsigned long timestamp);
   void                  CalcModelCamera(unsigned long timestamp);
-  void                  SetPositionAndTargetWithRoll(const NTempest::C3Vector &position, const NTempest::C3Vector &target, float roll);
   void                  RunShakes();
   void                  CheckUnderwater();
   HMODEL__             *m_model;

@@ -1274,7 +1274,7 @@ void CGCamera::MakeRelativeTo(unsigned __int64 guid) {
   CSimpleCamera::SetFacing(m_yaw, m_pitch, m_roll);
 }
 
-NTempest::C33Matrix CGCamera::ParentToWorld() {
+NTempest::C33Matrix CGCamera::ParentToWorld() const {
   FATALASSERT(m_relativeTo);
 
   NTempest::C3Vector  zAxis(0.0f, 0.0f, 1.0f);
@@ -1308,21 +1308,21 @@ const FrameScript_Method s_CameraScriptFunctions[20] = {
     {          "PrevView",           Script_PrevView}
 };
 
-NTempest::C3Vector CGCamera::Forward() {
+NTempest::C3Vector CGCamera::Forward() const {
   if (m_relativeTo) {
     return ParentToWorld() * CSimpleCamera::Forward();
   }
   return CSimpleCamera::Forward();
 }
 
-NTempest::C3Vector CGCamera::Right() {
+NTempest::C3Vector CGCamera::Right() const {
   if (m_relativeTo) {
     return ParentToWorld() * CSimpleCamera::Right();
   }
   return CSimpleCamera::Right();
 }
 
-NTempest::C3Vector CGCamera::Up() {
+NTempest::C3Vector CGCamera::Up() const {
   if (m_relativeTo) {
     return ParentToWorld() * CSimpleCamera::Up();
   }

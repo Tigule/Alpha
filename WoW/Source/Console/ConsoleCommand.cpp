@@ -113,7 +113,7 @@ static int ConsoleCommand_Help(const char *command, const char *arguments) {
         buffer[0] = 0;
         while (entry) {
           if (entry->m_category == category) {
-            SStrPack(buffer, entry->m_key.m_str, 128);
+            SStrPack(buffer, entry->m_key.GetString(), 128);
             SStrPack(buffer, ", ", 128);
             ++categoryCount;
             if (categoryCount == 8) {
@@ -501,8 +501,8 @@ int ConsoleCommandComplete(const char *partial, const char **previous, int direc
 
   partialLength = SStrLen(partial);
   while (entry) {
-    if (!SStrCmpI(partial, entry->m_key.m_str, partialLength)) {
-      *previous = entry->m_key.m_str;
+    if (!SStrCmpI(partial, entry->m_key.GetString(), partialLength)) {
+      *previous = entry->m_key.GetString();
       return 1;
     }
 

@@ -48,32 +48,33 @@ class CGUIBindings {
 
   int Load(const char *commandsFile, CStatus *status);
   int Bind(const char *keystring, const char *command);
-  int ExecKey(const char *keystring, unsigned long timestamp, int down);
-  int ExecCommand(const char *command, unsigned long timestamp, int down);
+  int ExecKey(const char *keystring, unsigned long timestamp, int down) const;
+  int ExecCommand(const char *command, unsigned long timestamp, int down) const;
   int GetNumCommands() const {
     return m_numCommands;
   }
   int GetNumHiddenCommands() const {
     return m_numHiddenCommands;
   }
-  void         GetCommand(int index, const char *&command);
-  void         GetHiddenCommand(int index, const char *&command);
-  const char  *GetCommandKey(const char *command, int keyindex);
-  unsigned int GetNumCommandKeys(const char *command);
-  const char  *GetCommandAction(const char *keystring);
-  void         AdjustCommandKeyIndices(const char *command, int index);
+  void         GetCommand(int index, const char *&command) const;
+  void         GetHiddenCommand(int index, const char *&command) const;
+  const char  *GetCommandKey(const char *command, int keyindex) const;
+  unsigned int GetNumCommandKeys(const char *command) const;
+  const char  *GetCommandAction(const char *keystring) const;
+  void         AdjustCommandKeyIndices(const char *command, int index) const;
   void         ClearBindings() {
     m_bindings.Clear();
   }
 
- private:
+ protected:
   static int AddMetaPrefix(unsigned int metaKeyState, char *&string, int &maxLen);
 
+ private:
   static CGUIBindings *s_bindings;
 
   int                                   m_numCommands;
   int                                   m_numHiddenCommands;
-  TSHashTable<KEYBINDING, HASHKEY_STRI> m_bindings;
+  mutable TSHashTable<KEYBINDING, HASHKEY_STRI> m_bindings;
   TSHashTable<KEYCOMMAND, HASHKEY_STRI> m_commands;
 };
 

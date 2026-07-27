@@ -174,7 +174,7 @@ void FriendList::RemoveFriend(unsigned __int64 guid) {
 }
 
 void FriendList::RemoveFriend(unsigned int index) {
-  Friend *entry = GetFriend(index);
+  const Friend *entry = GetFriend(index);
   if (!entry) {
     return;
   }
@@ -245,7 +245,7 @@ static int Script_GetFriendInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetFriendInfo(index)");
   }
-  FriendList::Friend *entry = g_friendList ? g_friendList->GetFriend(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1) : 0;
+  const FriendList::Friend *entry = g_friendList ? g_friendList->GetFriend(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1) : 0;
   if (!entry) {
     return 0;
   }
@@ -559,7 +559,7 @@ void FriendList::Destroy() {
   }
 }
 
-unsigned int FriendList::GetNumFriends() const {
+unsigned int FriendList::GetNumFriends() {
   unsigned int count = 0;
   while (count < 50 && m_friends[count].guid) {
     ++count;
@@ -567,16 +567,16 @@ unsigned int FriendList::GetNumFriends() const {
   return count;
 }
 
-FriendList::Friend *FriendList::GetFriend(unsigned int index) {
+const FriendList::Friend *FriendList::GetFriend(unsigned int index) {
   return index < GetNumFriends() ? &m_friends[index] : 0;
 }
 
 void FriendList::SetFriendSelectionIndex(unsigned int index) {
-  Friend *entry = GetFriend(index);
+  const Friend *entry = GetFriend(index);
   m_selectedFriend = entry ? entry->guid : 0;
 }
 
-int FriendList::GetFriendSelectionIndex() const {
+int FriendList::GetFriendSelectionIndex() {
   for (unsigned int i = 0; i < GetNumFriends(); ++i) {
     if (m_friends[i].guid == m_selectedFriend) {
       return i;
@@ -585,7 +585,7 @@ int FriendList::GetFriendSelectionIndex() const {
   return -1;
 }
 
-unsigned int FriendList::GetNumIgnores() const {
+unsigned int FriendList::GetNumIgnores() {
   unsigned int count = 0;
   while (count < 25 && m_ignore[count]) {
     ++count;
@@ -593,7 +593,7 @@ unsigned int FriendList::GetNumIgnores() const {
   return count;
 }
 
-unsigned __int64 FriendList::GetIgnore(unsigned int index) const {
+unsigned __int64 FriendList::GetIgnore(unsigned int index) {
   return index < GetNumIgnores() ? m_ignore[index] : 0;
 }
 
@@ -601,7 +601,7 @@ void FriendList::SetIgnoreSelectionIndex(unsigned int index) {
   m_selectedIgnore = GetIgnore(index);
 }
 
-int FriendList::GetIgnoreSelectionIndex() const {
+int FriendList::GetIgnoreSelectionIndex() {
   for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
     if (m_ignore[i] == m_selectedIgnore) {
       return i;
@@ -678,11 +678,49 @@ void FriendList::SortIgnore() {
   FrameScript_SignalEvent(331);
 }
 
+void FriendList::Removed(unsigned __int64 guid) {
+  for (unsigned int i = 0; i < 50; ++i) {
+    if (m_friends[i].guid == guid) {
+      m_friends[i].guid = 0;
+      FREEIFUSED(m_friends[i].m_name);
+      return;
+    }
+  }
+}
+
+int FriendList::Added(unsigned __int64 guid) {
+  unsigned int freeIndex = -1;
+  unsigned int i = 0;
+
+  for (; i < 50; ++i) {
+    if (m_friends[i].guid == guid) {
+      return i;
+    }
+    if (!m_friends[i].guid) {
+      freeIndex = i;
+      break;
+    }
+  }
+
+  m_friends[freeIndex].guid = guid;
+  m_friends[freeIndex].m_connected = 0;
+  return freeIndex;
+}
+
 void FriendList::SetName(unsigned __int64 guid, const char *name) {
   for (unsigned int i = 0; i < 50; ++i) {
     if (m_friends[i].guid == guid) {
       FREEIFUSED(m_friends[i].m_name);
       m_friends[i].m_name = SStrDupA(name, __FILE__, __LINE__);
+      return;
+    }
+  }
+}
+
+void FriendList::SetConnected(unsigned __int64 guid, bool connected) {
+  for (unsigned int i = 0; i < 50; ++i) {
+    if (m_friends[i].guid == guid) {
+      m_friends[i].m_connected = connected;
       return;
     }
   }
