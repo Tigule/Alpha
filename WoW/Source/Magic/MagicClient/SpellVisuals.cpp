@@ -125,6 +125,7 @@ static inline void             RenderFishingLines();
 static unsigned int __fastcall GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos);
 int __fastcall                 GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID);
 void __fastcall                GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position);
+int __fastcall                 Spell_C_GetCastTime(int id, int isPet);
 
 TSList<BlizzardObject::Shard, TSGetLink<BlizzardObject::Shard> > BlizzardObject::shardPool;
 
@@ -419,7 +420,7 @@ void __fastcall SpellVisualsProcedure(
 bool __fastcall IsSpellAura(const SpellRec *rec);
 unsigned int __fastcall Object_C_AnimHasHitEvent(int anim);
 void __fastcall UnitCombatLogSpellMissed(
-    unsigned int spellID, unsigned int reason,
+    unsigned int reason, unsigned int spellID,
     unsigned __int64 caster, unsigned __int64 target);
 void __fastcall SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
 void __fastcall UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster);
@@ -785,20 +786,7 @@ unsigned int LightningObject::Tick(unsigned int currentTime) {
 void __fastcall SpellVisualsProc_Eclipse(CGUnit_C *caster, SpellVisualKitRec *kitRec, unsigned int spellID) {
   FATALASSERT(kitRec->m_characterParam[1] >= 0.0f && kitRec->m_characterParam[1] <= 1.0f);
 
-  unsigned int    duration = 0;
-  const SpellRec *spellRec = g_spellDB.GetRecord(spellID);
-  if (spellRec) {
-    const SpellDurationRec *durationRec = g_spellDurationDB.GetRecord(spellRec->m_durationIndex);
-    if (durationRec) {
-      unsigned int level = 0;
-      CGUnit_C    *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      if (player) {
-        level = player->GetSpellRank(spellID) / 5;
-      }
-      int scaledDuration = durationRec->m_duration + level * durationRec->m_durationPerLevel;
-      duration = scaledDuration <= durationRec->m_maxDuration ? durationRec->m_maxDuration : scaledDuration;
-    }
-  }
+  unsigned int duration = Spell_C_GetCastTime(spellID, 0);
   s_eclipseObject.color = NTempest::CImVector(static_cast<unsigned long>(kitRec->m_characterParam[0]) | 0xFF000000ul);
   unsigned int fadeDuration = static_cast<unsigned int>(duration * kitRec->m_characterParam[1]);
   s_eclipseObject.startTime = OsGetAsyncTimeMs();
@@ -873,9 +861,9 @@ static void __fastcall CreateLightningObj(
         if (!lightning->forever && !(target->GetType() & TYPE_GAMEOBJECT)) {
           CGUnit_C *targetUnit = static_cast<CGUnit_C *>(target);
           if (i > 0 && i < numGuids - 1) {
-            targetUnit->DDDELLOG(unitPtr->GetGUID(), "CreateLightningObj", __FILE__, __LINE__);
+            targetUnit->DDADDLOG(unitPtr->GetGUID(), "CreateLightningObj", __FILE__, __LINE__);
           }
-          targetUnit->DDDELLOG(unitPtr->GetGUID(), "CreateLightningObj", __FILE__, __LINE__);
+          targetUnit->DDADDLOG(unitPtr->GetGUID(), "CreateLightningObj", __FILE__, __LINE__);
         }
         srcGuidSub = bolt.dstGuidSub;
       } else {
@@ -1397,7 +1385,7 @@ void __fastcall SpellVisualsHandleSpellStartMisses(
       } else {
         target->AddWorldText(missReasons[i]);
         UnitCombatLogSpellMissed(
-            spellID, missReasons[i], caster->GetGUID(),
+            missReasons[i], spellID, caster->GetGUID(),
             target->GetGUID());
       }
     }

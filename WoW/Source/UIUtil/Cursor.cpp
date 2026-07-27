@@ -66,7 +66,7 @@ int __fastcall CursorGrabSpell(HMODEL model) {
   return 1;
 }
 
-static void __fastcall CreateCursorIconModel(HTEXTURE texture) {
+static void CreateCursorIconModel(HTEXTURE texture) {
   NTempest::C3Vector vertices[4] = {
       NTempest::C3Vector(-0.0144f, -0.0144f, 0.01f), NTempest::C3Vector(-0.0144f, 0.0144f, 0.01f), NTempest::C3Vector(0.0144f, -0.0144f, 0.01f),
       NTempest::C3Vector(0.0144f, 0.0144f, 0.01f)
@@ -162,7 +162,7 @@ void __fastcall CursorDropSpell() {
   }
 }
 
-int CursorHasSpell() {
+int __fastcall CursorHasSpell() {
   return g_cursor && g_cursor->GetItemType() == CURSOR_SPELL;
 }
 
@@ -175,7 +175,7 @@ void __fastcall CursorModelSetSequence(CURSORANIMATIONS sequence) {
   }
 }
 
-unsigned int CursorGetCursorType() {
+unsigned int __fastcall CursorGetCursorType() {
   return s_cursorType;
 }
 

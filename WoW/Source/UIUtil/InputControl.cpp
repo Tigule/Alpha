@@ -406,7 +406,7 @@ void CGInputControl::UpdatePlayer(unsigned long now) {
   bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charm &&
                                                                      ((unit->flags & 2) || !(unit->flags & 0xC00004)) && !(unit->flags & 1));
   bool              canMove = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() &&
-                              !(player->m_movement.m_moveFlags & 0x2400);
+                              !(player->m_move.m_moveFlags & 0x2400);
   bool              canTurn = !(unit->flags & 0x40000);
 
   if (canMove) {
@@ -660,7 +660,7 @@ int CGInputControl::CameraCanTurnPlayer() const {
   return (m_controlFlags & INPUT_TURN_PLAYER) != 0;
 }
 
-void CGInputControl::CameraTurnPlayer(unsigned long timestamp, float yaw, float pitch, unsigned int setSmoothFacing) {
+void CGInputControl::CameraTurnPlayer(unsigned long timestamp, float yaw, float pitch, bool setSmoothFacing) {
   if (!CameraCanTurnPlayer()) {
     return;
   }
@@ -676,7 +676,7 @@ void CGInputControl::CameraTurnPlayer(unsigned long timestamp, float yaw, float 
   }
 
   activeMover->OnSetRawFacingLocal(timestamp, yaw);
-  if (activeMover->m_movement.m_moveFlags & 0x2000000) {
+  if (activeMover->m_move.m_moveFlags & 0x2000000) {
     activeMover->OnSetPitchLocal(timestamp, 6.2831855f - pitch);
   }
   m_controlFlags &= 0xFFFF3FFF;

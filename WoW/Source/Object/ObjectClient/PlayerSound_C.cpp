@@ -10,7 +10,7 @@
 #include "Services/SysMessage.h"
 #include "SoundInterface/SoundInterface.h"
 
-int __fastcall GetSoundID(CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType);
+int __fastcall GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType);
 int __fastcall CheckUnitSoundTimer(UNITSOUNDTYPE soundType);
 
 static unsigned int s_playerSoundChances[16] = {35, 100, 30, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};

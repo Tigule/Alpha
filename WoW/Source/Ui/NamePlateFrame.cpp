@@ -1,6 +1,7 @@
 #include "Ui/NamePlateFrame.h"
 
 #include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
 #include "UIUtil/HealthBar.h"
 #include "Ui/GameUI.h"
 
@@ -55,28 +56,28 @@ void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
 
   char level[32];
   char buf[32];
-  SStrCopy(level, "", sizeof(level));
+  SStrCopy(level, FrameScript_GetText("LEVEL", -1, GENDER_NOT_APPLICABLE), sizeof(level));
   SStrPrintf(buf, sizeof(buf), "%s %d", level, unit->GetUnitData()->level);
   m_nameFrame->SetText(unit->GetUnitName());
   m_healthBar->SetUnit(unit);
 
-  NTempest::CImVector color;
-  UNIT_REACTION       reaction = unit->UnitReaction(0);
-  if (reaction <= UNIT_REACTION_HOSTILE) {
-    color.Set(1.0f, 0.0f, 0.0f, 1.0f);
-  } else if (reaction <= UNIT_REACTION_NEUTRAL) {
-    color.Set(1.0f, 1.0f, 0.0f, 1.0f);
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (player && unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
+    m_healthBar->SetStatusBarColor(NTempest::CImVector(0xFFFF0000));
+  } else if (unit->GetType() & TYPE_PLAYER) {
+    m_healthBar->SetStatusBarColor(NTempest::CImVector(0xFF0000FF));
+  } else if (player && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
+    m_healthBar->SetStatusBarColor(NTempest::CImVector(0xFF00FF00));
   } else {
-    color.Set(0.0f, 1.0f, 0.0f, 1.0f);
+    m_healthBar->SetStatusBarColor(NTempest::CImVector(0xFFFFFF00));
   }
-  m_healthBar->SetStatusBarColor(color);
 
-  float width = m_nameFrame->GetStringWidth();
+  float width = m_nameFrame->GetWidth();
   if (width < m_healthBar->GetWidth()) {
     width = m_healthBar->GetWidth();
   }
   SetWidth(width + 0.01f);
-  SetHeight(m_nameFrame->GetStringHeight() + m_healthBar->GetHeight() + 0.016f);
+  SetHeight(m_nameFrame->GetHeight() + 0.016f);
 }
 
 void CGNamePlateFrame::OnLayerCursorEnter() {

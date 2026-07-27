@@ -16,6 +16,8 @@
 void __fastcall            SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard);
 BlizzardObject *__fastcall SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec);
 void __fastcall            SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
+void __fastcall            SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
+void __fastcall            SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
 
 void CGDynamicObject_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
@@ -209,13 +211,9 @@ const char *CGDynamicObject_C::GetModelFileName() const {
 void CGDynamicObject_C::HandleAnimEvent(const char *eventName, const NTempest::C3Vector &position) {
   unsigned int event = *reinterpret_cast<const unsigned int *>(eventName);
   if (event == 0x444E5324) {  // $SND
-    if (eventName[1]) {
-      SndInterfacePlaySound(SStrToInt(eventName + 1), position, -1, 1.0f);
-    }
+    SpellSoundEffectCallback(eventName + 4, position);
   } else if (event == 0x4B485324) {  // $SHK
-    if (eventName[1]) {
-      SpellVisualsPlayCameraShakeID(SStrToInt(eventName + 1), position);
-    }
+    SpellCameraShakeCallback(eventName + 4, position);
   } else {
     SysMsgPrintf(SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|CGDynamicObject_C|CGDynamicObject_C::HandleAnimEvent", eventName);
   }

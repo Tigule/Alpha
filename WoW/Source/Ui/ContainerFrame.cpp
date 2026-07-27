@@ -231,10 +231,14 @@ static int __fastcall Script_GetContainerItemInfo(lua_State *L) {
   SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, item->GetInventoryArt());
   lua_pushstring(L, buffer);
   lua_pushnumber(L, static_cast<double>(item->GetStackCount()));
-  item->IsUnlocked() ? lua_pushnil(L) : lua_pushnumber(L, 1.0);
+  if (item->IsUnlocked()) {
+    lua_pushnil(L);
+  } else {
+    lua_pushnumber(L, 1.0);
+  }
   unsigned __int64 noGuid = 0;
   const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0);
-  lua_pushnumber(L, stats ? static_cast<double>(stats->m_overallQualityID) : -2.0);
+  lua_pushnumber(L, stats && stats->m_inventoryType ? static_cast<double>(stats->m_overallQualityID) : -2.0);
   return 4;
 }
 
@@ -425,7 +429,11 @@ static int __fastcall Script_GetBagName(lua_State *L) {
   CGItem_C        *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__));
   unsigned __int64 noGuid = 0;
   const ItemStats *stats = item ? g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0) : 0;
-  stats ? lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]) : lua_pushnil(L);
+  if (stats) {
+    lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 

@@ -39,7 +39,7 @@ TSGrowableArray<TrainerSkillLineInfo *> CGClassTrainer::m_skillLines;
 char                                    CGClassTrainer::m_greetingText[512];
 
 void __fastcall Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet);
-bool __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
+int __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
 
 static void __fastcall TrainerItemCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
   if (granted) {
@@ -77,7 +77,7 @@ void __fastcall CGClassTrainer::EnterWorld() {
 }
 
 void __fastcall CGClassTrainer::LeaveWorld() {
-  SetTrainer(0, TRAINER_TYPE_CLASS);
+  SetTrainer(0, TRAINER_TYPE_GENERAL);
 }
 
 void __fastcall CGClassTrainer::SetTrainer(unsigned __int64 trainerGUID, TRAINER_TYPE type) {
@@ -265,13 +265,13 @@ void __fastcall CGClassTrainer::AddServices(
     unsigned int   count,
     int           *spellID,
     unsigned int  *moneyCost,
-    unsigned int **pointCost,
-    unsigned int  *reqLevel,
+    unsigned char **pointCost,
+    unsigned char  *reqLevel,
     unsigned int  *reqSkillLine,
     unsigned int  *reqSkillRank,
     unsigned int  *reqSkillStep,
     int          **reqAbility,
-    unsigned int  *usable,
+    unsigned char  *usable,
     const char    *greeting
 ) {
   while (m_services.Count() < count) {
@@ -279,12 +279,12 @@ void __fastcall CGClassTrainer::AddServices(
     m_services.Add(1, &info);
   }
 
-  m_serviceTypeFilter = m_trainerType == TRAINER_TYPE_MOUNTS ? 5 : 3;
+  m_serviceTypeFilter = m_trainerType == TRAINER_TYPE_TALENTS ? 5 : 3;
   m_skillLineFilter = -1;
   m_collapseFilter = -1;
   m_numSkillLines = 0;
 
-  if (m_trainerType == TRAINER_TYPE_MOUNTS) {
+  if (m_trainerType == TRAINER_TYPE_TALENTS) {
     if (!m_skillLines.Count()) {
       TrainerSkillLineInfo *info = NEW(TrainerSkillLineInfo);
       m_skillLines.Add(1, &info);
@@ -304,16 +304,16 @@ void __fastcall CGClassTrainer::AddServices(
     info->spellID = spellID[source];
     info->moneyCost = moneyCost[source];
     for (unsigned int point = 0; point < 2; ++point) {
-      info->pointCost[point] = static_cast<unsigned char>(pointCost[point][source]);
+      info->pointCost[point] = pointCost[point][source];
     }
-    info->reqLevel = static_cast<unsigned char>(reqLevel[source]);
+    info->reqLevel = reqLevel[source];
     info->reqSkillLine = reqSkillLine[source];
     info->reqSkillRank = reqSkillRank[source];
     info->reqSkillStep = reqSkillStep[source];
     for (unsigned int ability = 0; ability < 3; ++ability) {
       info->reqAbility[ability] = reqAbility[ability][source];
     }
-    info->usable = static_cast<unsigned char>(usable[source]);
+    info->usable = usable[source];
 
     if (m_trainerType == TRAINER_TYPE_TRADESKILLS) {
       info->skillLine = 2;
@@ -326,7 +326,7 @@ void __fastcall CGClassTrainer::AddServices(
           }
         }
       }
-    } else if (m_trainerType == TRAINER_TYPE_MOUNTS && info->usable == 2) {
+    } else if (m_trainerType == TRAINER_TYPE_TALENTS && info->usable == 2) {
       info->skillLine = -1;
     } else {
       info->skillLine = GetSkillLineFromService(info->spellID);
@@ -408,7 +408,7 @@ void __fastcall CGClassTrainer::RefreshList() {
 
   for (i = 0; i < m_numServices; ++i) {
     TrainerServiceInfo *info = m_services[i];
-    if (info->spellID == -1 || (info->usable == 2 && m_trainerType != TRAINER_TYPE_MOUNTS)) {
+    if (info->spellID == -1 || (info->usable == 2 && m_trainerType != TRAINER_TYPE_TALENTS)) {
       continue;
     }
 
@@ -427,7 +427,7 @@ void __fastcall CGClassTrainer::RefreshList() {
       if (srec->m_effect[j] == 36) {
         ++numToLearn;
         learnSpell = srec->m_effectTriggerSpell[j];
-        if (m_trainerType == TRAINER_TYPE_MOUNTS && player->IsSpellSuperceded(learnSpell)) {
+        if (m_trainerType == TRAINER_TYPE_TALENTS && player->IsSpellSuperceded(learnSpell)) {
           info->usable = 3;
         } else if (player->IsSpellKnown(learnSpell) || player->IsSpellSuperceded(learnSpell)) {
           ++numLearned;
@@ -514,7 +514,7 @@ void __fastcall CGClassTrainer::RefreshList() {
       }
 
       info->usable = 1;
-      if (m_trainerType == TRAINER_TYPE_MOUNTS && learnSpell) {
+      if (m_trainerType == TRAINER_TYPE_TALENTS && learnSpell) {
         const SkillLineAbilityRec *ability = player->LookupAbility(info->reqAbility[j]);
         if (ability && ability->m_supercededBySpell == learnSpell) {
           info->usable = 3;
@@ -538,7 +538,7 @@ void __fastcall CGClassTrainer::RefreshList() {
     if (info->spellID == -1) {
       continue;
     }
-    if (m_trainerType == TRAINER_TYPE_MOUNTS && info->usable == 2) {
+    if (m_trainerType == TRAINER_TYPE_TALENTS && info->usable == 2) {
       info->skillLine = -1;
     }
     for (j = 0; j < m_numSkillLines; ++j) {
@@ -585,7 +585,7 @@ void __fastcall CGClassTrainer::FilterAndSortServices() {
   }
 
   int(__cdecl * compare)(const void *, const void *) = QSortServices_General;
-  if (m_trainerType == TRAINER_TYPE_MOUNTS) {
+  if (m_trainerType == TRAINER_TYPE_TALENTS) {
     compare = QSortServices_Talent;
   } else if (m_trainerType == TRAINER_TYPE_TRADESKILLS) {
     compare = QSortServices_Tradeskill;
@@ -681,7 +681,7 @@ static int __fastcall Script_OpenTrainer(lua_State *__formal) {
 }
 
 static int __fastcall Script_CloseTrainer(lua_State *__formal) {
-  CGClassTrainer::SetTrainer(0, TRAINER_TYPE_CLASS);
+  CGClassTrainer::SetTrainer(0, TRAINER_TYPE_GENERAL);
   return 0;
 }
 
@@ -724,7 +724,7 @@ static int __fastcall Script_IsTradeskillTrainer(lua_State *L) {
 }
 
 static int __fastcall Script_IsTalentTrainer(lua_State *L) {
-  if (!CGClassTrainer::GetTrainer() || CGClassTrainer::GetTrainerType() == TRAINER_TYPE_MOUNTS) {
+  if (!CGClassTrainer::GetTrainer() || CGClassTrainer::GetTrainerType() == TRAINER_TYPE_TALENTS) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);
@@ -855,7 +855,17 @@ static int __fastcall Script_GetTrainerServiceAbilityReq(lua_State *L) {
   }
   lua_pushstring(L, *ability ? ability : 0);
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!spell || !player || player->IsSpellKnown(spell->m_ID) || player->IsSpellSuperceded(spell->m_ID)) {
+  CGUnit_C   *unit = player;
+  const SpellRec *trainerSpell = service ? g_spellDB.GetRecord(service->spellID) : 0;
+  for (unsigned int i = 0; trainerSpell && i < 3; ++i) {
+    if (trainerSpell->m_effect[i] == 57) {
+      const CGUnitData *unitData = player ? player->GetUnitData() : 0;
+      unsigned __int64 pet = unitData ? unitData->summon : 0;
+      unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(pet, __FILE__, __LINE__));
+      break;
+    }
+  }
+  if (!spell || !unit || unit->IsSpellKnown(spell->m_ID) || unit->IsSpellSuperceded(spell->m_ID)) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);
@@ -867,10 +877,36 @@ static int __fastcall Script_GetTrainerServiceStepReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceStepReq(index)");
   }
+  int                 found = 1;
+  CGPlayer_C         *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   const SpellRec     *spell = service ? g_spellDB.GetRecord(service->reqSkillStep) : 0;
-  lua_pushstring(L, spell ? spell->m_name_lang[CURRENT_LANGUAGE] : 0);
-  if (!spell || !service || !service->usable) {
+  if (player && spell) {
+    found = 0;
+    for (unsigned int effect = 0; effect < 3; ++effect) {
+      if (spell->m_effect[effect] != 44) {
+        continue;
+      }
+      for (unsigned int skill = 0; skill < 64; ++skill) {
+        if (player->GetMirrorSkillID(skill) == spell->m_effectMiscValue[effect]) {
+          int min;
+          int max;
+          Spell_C_GetMinMaxPoints(spell, effect, &min, &max, 0, 0);
+          if (player->GetMirrorSkillMaxRank(skill) >= 5 * max) {
+            found = 1;
+          }
+          break;
+        }
+      }
+      break;
+    }
+  }
+  if (spell && spell->m_name_lang[CURRENT_LANGUAGE] && *spell->m_name_lang[CURRENT_LANGUAGE]) {
+    lua_pushstring(L, spell->m_name_lang[CURRENT_LANGUAGE]);
+  } else {
+    lua_pushnil(L);
+  }
+  if (found) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);

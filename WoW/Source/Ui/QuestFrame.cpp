@@ -545,7 +545,7 @@ int __fastcall CGQuestInfo::GetQuestItemInfo(
   amount = 1;
   quality = 0;
   usable = 1;
-  if (index >= 6) {
+  if (index > 6) {
     return 0;
   }
   int itemID = 0;
@@ -568,7 +568,7 @@ int __fastcall CGQuestInfo::GetQuestItemInfo(
   const ItemStats_C *stats = itemID ? g_itemDBCache.GetRecord(itemID, m_npc, reinterpret_cast<DBCACHECALLBACKPROC>(QuestItemStatsCallback), 0) : 0;
   if (stats) {
     SStrCopy(name, stats->m_displayName[0], nameSize);
-    quality = stats->m_overallQualityID;
+    quality = stats->m_inventoryType ? stats->m_overallQualityID : -1;
     CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     GAME_ERROR_TYPE reason;
     if (player && !player->CanUseItem(stats, reason)) {
@@ -578,7 +578,7 @@ int __fastcall CGQuestInfo::GetQuestItemInfo(
   const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   SStrPrintf(texture, textureSize, "%s%s", path, *path ? "\\" : "");
   SStrPack(texture, CGItem_C::GetInventoryArt(displayID), textureSize);
-  return itemID != 0;
+  return 1;
 }
 
 int __fastcall CGQuestInfo::GetQuestItemID(const char *type, unsigned int index) {
@@ -708,7 +708,11 @@ static int __fastcall Script_DeclineQuest(lua_State *__formal) {
 }
 
 static int __fastcall Script_IsQuestCompletable(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGQuestInfo::IsCompletable()));
+  if (CGQuestInfo::IsCompletable()) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -747,7 +751,7 @@ static int __fastcall Script_GetNumQuestItems(lua_State *L) {
 
 static int __fastcall Script_GetQuestItemInfo(lua_State *L) {
   if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
-    return luaL_error(L, "Invalid quest item in GetQuestItemInfo");
+    return luaL_error(L, "Invalid quest item in GetQuestItemInfo(\"type\", index)");
   }
   char         texture[260];
   char         name[256];
@@ -758,18 +762,17 @@ static int __fastcall Script_GetQuestItemInfo(lua_State *L) {
           lua_tostring(L, 1), static_cast<unsigned int>(lua_tonumber(L, 2)) - 1, name, sizeof(name), texture, sizeof(texture), amount, quality, usable
       ))
   {
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    return 5;
+    return luaL_error(L, "Invalid quest item in GetQuestItemInfo(\"type\", index)");
   }
   lua_pushstring(L, name);
   lua_pushstring(L, texture);
   lua_pushnumber(L, static_cast<double>(amount));
   lua_pushnumber(L, static_cast<double>(quality));
-  lua_pushnumber(L, static_cast<double>(usable));
+  if (usable) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 5;
 }
 

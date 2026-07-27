@@ -545,7 +545,11 @@ static int __fastcall Script_GetTradeSkillInfo(lua_State *L) {
         lua_pushstring(L, name);
         lua_pushstring(L, "header");
         lua_pushnumber(L, 0.0);
-        CGTradeSkillInfo::IsCollpasedHeader(index) ? lua_pushnil(L) : lua_pushnumber(L, 1.0);
+        if (CGTradeSkillInfo::IsCollpasedHeader(index)) {
+          lua_pushnil(L);
+        } else {
+          lua_pushnumber(L, 1.0);
+        }
         return 4;
       }
     }
@@ -574,10 +578,28 @@ static int __fastcall Script_GetTradeSkillIcon(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillIcon(index)");
   }
-  TradeSkillInfo     *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
-  const SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
-  lua_pushstring(L, icon ? icon->m_textureFilename : 0);
+  TradeSkillInfo *info =
+      CGTradeSkillInfo::GetTradeSkillInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const SpellRec *spell =
+      info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
+  unsigned __int64 guid =
+      info ? static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64 : 0;
+  const ItemStats_C *stats =
+      spell ? g_itemDBCache.GetRecord(
+                  spell->m_effectItemType[0], guid, TradeSkillItemCallback, 0)
+            : 0;
+  if (stats) {
+    char buffer[260];
+    const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+    SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
+    SStrPack(
+        buffer,
+        CGItem_C::GetInventoryArt(stats->m_displayInfoID),
+        sizeof(buffer));
+    lua_pushstring(L, buffer);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -792,7 +814,11 @@ static int __fastcall Script_GetTradeSkillSubClassFilter(lua_State *L) {
   if (static_cast<unsigned int>(index) >= CGTradeSkillInfo::GetNumSubClasses()) {
     return luaL_error(L, "Bad sub class in GetTradeSkillSubClassFilter");
   }
-  filter & (1 << index) ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (filter & (1 << index)) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -841,7 +867,11 @@ static int __fastcall Script_GetTradeSkillInvSlotFilter(lua_State *L) {
   int available = CGTradeSkillInfo::GetAvailableSlots();
   int filter = CGTradeSkillInfo::GetInvTypeFilter();
   if (index < 0) {
-    lua_pushnumber(L, (filter & available) == available ? 1.0 : 0.0);
+    if ((filter & available) == available) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
     return 1;
   }
   int slot = 0;
@@ -858,7 +888,11 @@ static int __fastcall Script_GetTradeSkillInvSlotFilter(lua_State *L) {
   if (slot >= 24) {
     return luaL_error(L, "Bad inventory slot in GetTradeSkillInvSlotFilter");
   }
-  filter & (1 << slot) ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (filter & (1 << slot)) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 

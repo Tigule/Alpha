@@ -806,7 +806,7 @@ void __fastcall ClientServices_CharacterForceLogout() {
   s_currentConnection->CharacterForceLogout();
 }
 
-void ClientConnection::CharacterLogout(unsigned int exitAfterLogout, unsigned int instant) {
+void ClientConnection::CharacterLogout(bool exitAfterLogout, bool instant) {
   if (m_loggingOut && !instant) {
     return;
   }
@@ -827,7 +827,7 @@ void ClientConnection::CharacterLogout(unsigned int exitAfterLogout, unsigned in
   Send(&netMsg);
 }
 
-void __fastcall ClientServices_CharacterLogout(unsigned int instant) {
+void __fastcall ClientServices_CharacterLogout(bool instant) {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterLogout(false, instant);
 }

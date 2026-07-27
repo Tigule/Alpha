@@ -135,3 +135,14 @@ void __fastcall EnableFadingScreen(float fadeTime, void(__fastcall *fadedCallbac
   s_fadingTime = fadeTime;
   s_fadingComplete = 0;
 }
+
+void __fastcall DisableFadingScreen(float fadeTime, void(__fastcall *fadedCallback)(void *), void *param) {
+  if (s_fadingScreenEnabled) {
+    s_fadingTime = fadeTime;
+    s_drawingFadingScreen = 0;
+    s_fadingMode = 1;
+    s_fadingComplete = 0;
+    s_fadedCallback = fadedCallback;
+    s_fadedCallbackParam = param;
+  }
+}

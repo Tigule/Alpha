@@ -32,8 +32,8 @@ int __cdecl QSortServices_Tradeskill(const void *a, const void *b);
 int __cdecl QSortServices_Talent(const void *a, const void *b);
 
 enum TRAINER_TYPE {
-  TRAINER_TYPE_CLASS = 0,
-  TRAINER_TYPE_MOUNTS = 1,
+  TRAINER_TYPE_GENERAL = 0,
+  TRAINER_TYPE_TALENTS = 1,
   TRAINER_TYPE_TRADESKILLS = 2,
   TRAINER_TYPE_PET = 3
 };
@@ -49,13 +49,13 @@ class CGClassTrainer {
       unsigned int   count,
       int           *spellID,
       unsigned int  *moneyCost,
-      unsigned int **pointCost,
-      unsigned int  *reqLevel,
+      unsigned char **pointCost,
+      unsigned char  *reqLevel,
       unsigned int  *reqSkillLine,
       unsigned int  *reqSkillRank,
       unsigned int  *reqSkillStep,
       int          **reqAbility,
-      unsigned int  *usable,
+      unsigned char  *usable,
       const char    *greeting
   );
   static void __fastcall                SetSelection(unsigned int index);

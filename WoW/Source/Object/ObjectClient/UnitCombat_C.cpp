@@ -30,8 +30,8 @@ extern CVar *g_combatModeMaxDistance;
 
 void __fastcall UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp);
 void __fastcall UnitCombatLogXPGain(const unsigned __int64 &victim, CDataStore *msg, unsigned int count);
-void __fastcall UnitCombatLog(ATTACKROUNDINFO &roundInfo);
-void __fastcall UnitCombatLog(SPELLLOG &log);
+void __fastcall UnitCombatLog(const ATTACKROUNDINFO &roundInfo);
+void __fastcall UnitCombatLog(const SPELLLOG &log);
 void __fastcall UnitCombatLog(SPELLMISSLOG &log);
 void __fastcall UnitCombatLog(const MIRRORTIMERDAMAGE &log);
 void __fastcall UnitCombatLog(ENVIRONMENTALDAMAGE &log);
@@ -90,6 +90,8 @@ ATTACKROUNDINFO::ATTACKROUNDINFO() {
   dodgeRollNeededFloat = 0.0f;
   parryRollFloat = 0.0f;
   parryRollNeededFloat = 0.0f;
+  blockRollFloat = 0.0f;
+  blockRollNeededFloat = 0.0f;
   stunRollFloat = 0.0f;
   stunRollNeededFloat = 0.0f;
   delayTime = 0;
@@ -216,14 +218,15 @@ void ATTACKROUNDINFO::UI(CDataStore &msg) {
       msg.Get(dmg.minDamage[i]);
       msg.Get(dmg.maxDamage[i]);
     }
-    msg.Get(scaledDamage);
-    msg.Get(modDamageDone);
     msg.Get(netDamageMultiplier);
-    msg.Get(maxDamageReduction);
+    msg.Get(scaledDamage);
     msg.Get(scaledArmorReduction);
-    msg.Get(intellectBonus);
+    msg.Get(maxDamageReduction);
+    msg.Get(stunRollFloat);
+    msg.Get(stunRollNeededFloat);
     msg.Get(DPSScaler);
     msg.Get(modDamageTaken);
+    msg.Get(modDamageDone);
     msg.Get(sinceLastSwing);
   }
 
@@ -362,6 +365,7 @@ int __fastcall OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long
       SPELLLOG log;
       log.UI(*msg);
       UnitCombatLog(log);
+      CGGameUI::ShowCombatFeedback(log);
       return 1;
     }
     case SMSG_ATTACKERSTATEUPDATEDEBUGINFOSPELLMISS: {
@@ -377,6 +381,7 @@ int __fastcall OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long
       msg->Get(attacker);
       CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(victim, __FILE__, __LINE__));
       if (unit) {
+        unit->m_combat.ClearAttackSent();
         unit->OnAttackStart(attacker);
       }
       return 1;
@@ -397,10 +402,12 @@ int __fastcall OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long
     case SMSG_ATTACKERSTATEUPDATE: {
       ATTACKROUNDINFO attackInfo;
       attackInfo.UI(*msg);
-      CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(0, __FILE__, __LINE__));
+      CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attackInfo.attacker, __FILE__, __LINE__));
       if (unit) {
-        unit->SetDebugHitRolls(attackInfo);
+        unit->m_combat.ClearAttackSent();
         unit->OnAttackerStateChange(attackInfo);
+        unit->m_hitInformation.attackFlags = 0;
+        unit->SetDebugHitRolls(attackInfo);
         UnitCombatLog(attackInfo);
       }
       return 0;
@@ -419,17 +426,9 @@ int __fastcall OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long
         return 0;
       }
       if (msgId == SMSG_ATTACKSWING_NOTINRANGE) {
-        if (unit->GetType() & TYPE_PLAYER) {
-          static_cast<CGPlayer_C *>(unit)->CGPlayer_C::OnBadAttackPosition(victim, 0.0f);
-        } else {
-          unit->CGUnit_C::OnBadAttackPosition(victim, 0.0f);
-        }
+        unit->OnBadAttackPosition(victim, 0.0f);
       } else if (msgId == SMSG_ATTACKSWING_BADFACING) {
-        if (unit->GetType() & TYPE_PLAYER) {
-          static_cast<CGPlayer_C *>(unit)->CGPlayer_C::OnBadAttackFacing(victim);
-        } else {
-          unit->CGUnit_C::OnBadAttackFacing(victim);
-        }
+        unit->OnBadAttackFacing(victim);
       } else if (msgId == SMSG_ATTACKSWING_NOTSTANDING) {
         unit->OnNotStanding(victim);
       } else {
@@ -720,13 +719,7 @@ unsigned int CGUnit_C::DetermineAttackerSequence(COMBATHAND hand) const {
   static const unsigned int s_unarmed[NUMHANDS] = {16, 117};
   static const unsigned int s_weaponSeq[5] = {18, 19, 46, 17, 49};
 
-  CGUnit_C             *unit = const_cast<CGUnit_C *>(this);
-  const VirtualItemInfo *itemInfo;
-  if (GetType() & TYPE_PLAYER) {
-    itemInfo = static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetVirtualItem(s_slots[hand], 0);
-  } else {
-    itemInfo = unit->CGUnit_C::GetVirtualItem(s_slots[hand], 0);
-  }
+  const VirtualItemInfo *itemInfo = GetVirtualItem(s_slots[hand], 0);
 
   if (!itemInfo || itemInfo->m_classID != 2) {
     unsigned int sequence = s_unarmed[hand];
@@ -757,13 +750,7 @@ unsigned int CGUnit_C::DetermineAttackerSequence(COMBATHAND hand) const {
 unsigned int CGUnit_C::DetermineParrySequence() const {
   static const unsigned int s_anims[4] = {22, 23, 21, 0};
 
-  CGUnit_C             *unit = const_cast<CGUnit_C *>(this);
-  const VirtualItemInfo *itemInfo;
-  if (GetType() & TYPE_PLAYER) {
-    itemInfo = static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetVirtualItem(0, 0);
-  } else {
-    itemInfo = unit->CGUnit_C::GetVirtualItem(0, 0);
-  }
+  const VirtualItemInfo *itemInfo = GetVirtualItem(0, 0);
   if (!itemInfo || itemInfo->m_classID != 2) {
     SysMsgPrintf(SYSMSG_ERROR, 2, "NOWEAPONPARRY|%d|0x%016I64X", 0, GetGUID());
     return 20;
@@ -1087,9 +1074,15 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
 
   if (roundInfo->flags & 2) {
     if (showAnimation) {
-      AdjustVictimState(const_cast<ATTACKROUNDINFO *>(roundInfo));
+      SetVictimAnimation(
+          roundInfo->newVictimState,
+          roundInfo->flags & 4,
+          roundInfo->flags & 8,
+          roundInfo->victimRoundDuration,
+          0
+      );
     }
-    if (roundInfo->spellDamageAdded && (roundInfo->newVictimState == VS_WOUND || roundInfo->newVictimState == VS_INTERRUPT)) {
+    if (roundInfo->dmg.totalDamage && (roundInfo->newVictimState == VS_WOUND || roundInfo->newVictimState == VS_INTERRUPT)) {
       ShowBloodSpurt(attackerPtr, roundInfo->flags & 0x400);
     }
   }
@@ -1118,10 +1111,13 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
 
   PerformSpellProcImpact(roundInfo->procSpell);
   if (!(roundInfo->flags & 0x1000)) {
-    ShowWorldText(roundInfo);
+    CGGameUI::ShowCombatFeedback(roundInfo);
   }
   if (attackerPtr) {
     attackerPtr->PerformLevelUpAnim(0);
+  }
+  if (!(roundInfo->flags & 0x1000)) {
+    ShowWorldText(roundInfo);
   }
 }
 
@@ -1133,8 +1129,8 @@ void CGUnit_C::AdjustVictimState(ATTACKROUNDINFO *roundInfo) {
       roundInfo->newVictimState = VS_DEFLECT;
     }
   } else if (roundInfo->newVictimState == VS_BLOCK) {
-    VirtualItemInfo *item = &m_unit->virtualItemInfo[1];
-    if (!item->m_classID || !m_unit->virtualItemDisplay[1]) {
+    const VirtualItemInfo *item = GetVirtualItem(1, 1);
+    if (!item || !m_unit->virtualItemDisplay[1]) {
       roundInfo->flags &= ~0x40000u;
       roundInfo->newVictimState = VS_DEFLECT;
     }
@@ -1147,8 +1143,8 @@ MISS_REASON CGUnit_C::AdjustVictimState(MISS_REASON reason) {
       return static_cast<MISS_REASON>(9);
     }
   } else if (static_cast<int>(reason) == 7) {
-    VirtualItemInfo *item = &m_unit->virtualItemInfo[1];
-    if (!item->m_classID || !m_unit->virtualItemDisplay[1]) {
+    const VirtualItemInfo *item = GetVirtualItem(1, 1);
+    if (!item || !m_unit->virtualItemDisplay[1]) {
       return static_cast<MISS_REASON>(9);
     }
   }
@@ -1437,7 +1433,7 @@ void CGUnit_C::OnCombatModeTimer() {
   if (m_unit->health > 0 && !(m_unit->flags & 0x2000) && victimPtr->m_unit->health > 0 && CanAttack(victimPtr) && rangeSquared <= maxRange * maxRange)
   {
     float attackRange =
-        victimPtr->m_unit->combatReach + victimPtr->m_unit->boundingRadius + m_unit->combatReach + m_unit->boundingRadius + 1.3333334f;
+        victimPtr->m_unit->weaponReach + victimPtr->m_unit->combatReach + m_unit->weaponReach + m_unit->combatReach + 1.3333334f;
     bool inPosition = false;
     if (rangeSquared <= attackRange * attackRange) {
       if (rangeSquared < 0.33333334f * 0.33333334f) {
@@ -1513,7 +1509,7 @@ void CGUnit_C::AttackUnit(CGUnit_C *newVictim) {
   }
 
   SpellRec *spell = m_castingSpell ? g_spellDB.GetRecord(m_castingSpell) : 0;
-  if (spell && (spell->m_attributesEx & 8)) {
+  if (spell && (spell->m_interruptFlags & 8)) {
     return;
   }
 

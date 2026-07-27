@@ -198,7 +198,8 @@ class CCombat {
   void             StopAttack() {
     m_victim = 0;
   }
-  void             SetClientInitData(CClientObjCreate &init);
+  void             GetClientInitData(CClientObjCreate *init) const;
+  void             SetClientInitData(const CClientObjCreate &init);
 
  protected:
   unsigned __int64 m_victim;

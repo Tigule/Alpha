@@ -3,6 +3,10 @@
 
 #include "Object/Object.h"
 #include "Net/NetClient/NetClient.h"
+#include "LootFrame.h"
+#include "PartyFrame.h"
+
+#include <Event/EvtApi.h>
 
 class CSimpleFrame;
 class CSimpleTop;
@@ -18,13 +22,16 @@ struct CSpriteClickEvent;
 struct CTerrainClickEvent;
 struct CWorldClickEvent;
 struct CObjectTrackEvent;
+struct ATTACKROUNDINFO;
 struct MIRRORTIMERDAMAGE;
+struct SPELLLOG;
 struct HMODEL__;
 struct lua_State;
 
 static int __fastcall DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
 class CMouseEvent;
 class CSizeEvent;
+class PetAction;
 enum SYSMSG_TYPE;
 
 struct CinematicData {
@@ -32,13 +39,14 @@ struct CinematicData {
   Sound                 *sequenceMusic;
   int                    currentCamera;
   CinematicCameraRec    *camera;
-  void                  *cameraModel;
+  Sound                 *cameraMusic;
   int                    zoneMusicPaused;
 };
 
 enum GAME_ERROR_TYPE {
   GAME_ERROR_NONE = 0,
   GERR_SPELL_FAILED_S = 39,
+  GERR_SPELL_ALREADY_KNOWN_S = 45,
   GERR_PLAYER_DIED_S = 68,
   GERR_PLAYER_DEAD = 113,
   GERR_QUEST_ACCEPTED_S = 123,
@@ -92,6 +100,12 @@ class CGGameUI {
   }
   static void __fastcall             UnitNameUpdate(const unsigned __int64 &guid);
   static void __fastcall             UnitPortraitUpdate(const unsigned __int64 &guid);
+  static void __fastcall             SetPartyLeader(unsigned __int64 guid);
+  static void __fastcall             AddPartyMember(unsigned __int64 guid, int connected);
+  static void __fastcall             RemoveAllPartyMembers();
+  static void __fastcall             SetLootMethod(LOOT_METHOD method, unsigned __int64 master);
+  static void __fastcall             ClearLootSlot(unsigned char slot);
+  static void __fastcall             OpenLoot(CGObject_C *object, int coins, LOOT_ACQUIRE lootType);
   static void __fastcall             Target(const unsigned __int64 &target, int usingNearest);
   static unsigned __int64 __fastcall ClosestObjectMatch(const char *match, OBJECT_TYPE type);
   static void __fastcall             TargetNearestEnemy(int reverse);
@@ -111,6 +125,7 @@ class CGGameUI {
   static int __fastcall              HandleMouseUp(const CMouseEvent &evt);
   static int __fastcall              HandleDisplaySizeChanged(const CSizeEvent &evt);
   static void __fastcall             ScaleUI(float scale, int force);
+  static void __fastcall             NamePlateClicked(unsigned __int64 unit, MOUSEBUTTON button);
   static void __fastcall             EnterWorld();
   static void __fastcall             LeaveWorld();
   static void __fastcall             UpdateInteractTarget();
@@ -126,6 +141,8 @@ class CGGameUI {
   static void __fastcall         SetCursorMoney(unsigned int money);
   static void __fastcall         SetCursorSpell(int spellId, int pet);
   static void __fastcall         DropCursorSpell();
+  static void __fastcall         SetCursorPetAction(const PetAction &action);
+  static void __fastcall         DropCursorPetAction();
   static int __fastcall          GetCursorSpell();
   static void __fastcall         GetCursorItem(unsigned __int64 &cursorItem, unsigned __int64 &containerGUID, unsigned int &slot);
   static unsigned int __fastcall GetCursorVirtualItem();
@@ -142,10 +159,20 @@ class CGGameUI {
   static void __fastcall         DeleteCursorItem();
   static void __fastcall         PlayerCombatModeChanged(int newState);
   static void __fastcall         StartCinematic(int cinematicID);
+  static void __fastcall         BeginCinematic();
+  static void __fastcall         BeginCinematicInternal(void *);
+  static int __fastcall          StartCinematicCamera();
+  static int __fastcall          NextCinematic(void *);
+  static void __fastcall         NextCinematicInternal(void *);
   static int __fastcall          StopCinematic(void *__formal);
+  static void __fastcall         StopCinematicInternal(void *);
   static void __fastcall         HideCursor();
   static void __fastcall         ShowCursor();
   static void __fastcall         ShowHealingFeedback(const unsigned __int64 &guid, int amount);
+  static void __fastcall         ShowSpellMissFeedback(unsigned __int64 victim, int reason);
+  static void __fastcall         OnClientControlChanged(int hasControl);
+  static void __fastcall         ShowCombatFeedback(const ATTACKROUNDINFO *info);
+  static void __fastcall         ShowCombatFeedback(const SPELLLOG &log);
   static void __fastcall         ShowCombatFeedback(const unsigned __int64 &guid, int amount, int damageClass, unsigned int flags);
   static void __fastcall         ShowCombatFeedback(const MIRRORTIMERDAMAGE &log);
   static void __fastcall         OnItemPush(unsigned __int64 player, int slot, int itemID, int pushed, int display);
@@ -209,6 +236,7 @@ class CGGameUI {
   friend int __fastcall Script_CursorHasItem(lua_State *L);
   friend int __fastcall Script_CursorHasSpell(lua_State *L);
   friend int __fastcall Script_CursorHasMoney(lua_State *L);
+  friend int __fastcall Script_HasFullControl(lua_State *L);
   friend int __fastcall Script_DeleteCursorItem(lua_State *__formal);
   friend int __fastcall Script_TargetLastEnemy(lua_State *__formal);
 

@@ -22,16 +22,21 @@ struct TooltipExtendedItemInfo {
     memset(this, 0, sizeof(*this));
   }
 
-  unsigned int enchantment[10];
-  unsigned int randomProperty;
-  unsigned int suffixFactor;
-  unsigned int cooldownTime;
+  int            enchantment[5];
+  unsigned int   enchantmentExpiration[5];
+  unsigned int   cooldownTime;
+  int            proposedEnchantment;
+  unsigned __int64 creator;
 };
 
 enum TOOLTIP_ANCHORPOINT {
   TOOLTIP_ANCHOR_LEFT = 0,
+  TOOLTIP_ANCHOR_RIGHT = 1,
+  TOOLTIP_ANCHOR_BOTTOMLEFT = 2,
+  TOOLTIP_ANCHOR_BOTTOMRIGHT = 3,
   TOOLTIP_ANCHOR_FIXED = 4,
-  TOOLTIP_ANCHOR_CURSOR = 5
+  TOOLTIP_ANCHOR_CURSOR = 5,
+  TOOLTIP_ANCHOR_NONE = 6
 };
 
 class CGTooltip : public CSimpleFrame {
@@ -90,7 +95,7 @@ class CGTooltip : public CSimpleFrame {
       TooltipExtendedItemInfo *info
   );
   int                     SetSpell(int spellID, int nameOnly, unsigned int cooldownTime, int isPet);
-  void                    SetBuff(int spellID, unsigned int flags);
+  void                    SetBuff(int spellID, unsigned char flags);
   void                    SetCorpse(const unsigned __int64 &corpseGUID);
   const unsigned __int64 &GetObjectGUID() const {
     return m_objectGUID;

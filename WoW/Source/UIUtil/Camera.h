@@ -52,6 +52,7 @@ class CGCamera : public CSimpleCamera {
   int  SetModelCamera(
       const char *modelFile, const NTempest::C3Vector &origin, float facing, int(__fastcall *ModelCameraFinished)(void *), void *param
   );
+  void ClearModelCamera();
   void ResetModelCamera();
   void SetupWorldProjection(const NTempest::CRect &projectionRect);
   void AddShake(int shake, const NTempest::C3Vector &position);
@@ -83,7 +84,6 @@ class CGCamera : public CSimpleCamera {
 
   int                   FinishLoadingModel();
   int                   FinishLoadingTarget(CGObject_C *target);
-  void                  ClearModelCamera();
   NTempest::C33Matrix   ParentToWorld();
   static int __fastcall CCommand_CameraClip(const char *command, const char *arguments);
   void                  SetTargetFadeValue(unsigned char value);

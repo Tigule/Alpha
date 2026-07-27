@@ -67,7 +67,7 @@ class CGInputControl {
   void SetControlBit(INPUT_CONTROL bit, int set, unsigned long now, int sticky);
   int  UnsetControlBit(INPUT_CONTROL bit, int sticky);
   int  CameraCanTurnPlayer() const;
-  void CameraTurnPlayer(unsigned long timestamp, float yaw, float pitch, unsigned int setSmoothFacing);
+  void CameraTurnPlayer(unsigned long timestamp, float yaw, float pitch, bool setSmoothFacing);
   int  IsMouseDragMoving() const;
 
   static CGInputControl *s_inputControl;

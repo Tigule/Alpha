@@ -238,13 +238,16 @@ static int __fastcall Script_GetNumPartyMembers(lua_State *L) {
 }
 
 static int __fastcall Script_GetPartyMember(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
+  if (!lua_isnumber(L, 1) ||
+      static_cast<unsigned int>(lua_tonumber(L, 1)) - 1 >= 4) {
     return luaL_error(L, "Usage: GetPartyMember(index)");
   }
-  unsigned int     index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
-  unsigned __int64 member = index < 4 ? CGPartyInfo::GetMember(index) : 0;
-  const NameCache *name = member ? g_nameDBCache.GetRecord(member, member, 0, 0) : 0;
-  name ? lua_pushstring(L, name->m_name) : lua_pushnil(L);
+  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  if (CGPartyInfo::GetMember(index)) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -254,7 +257,12 @@ static int __fastcall Script_GetPartyLeaderIndex(lua_State *L) {
 }
 
 static int __fastcall Script_IsPartyLeader(lua_State *L) {
-  CGPartyInfo::GetLeader() == ClntObjMgrGetActivePlayer() ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (CGPartyInfo::GetLeader() &&
+      CGPartyInfo::GetLeader() == ClntObjMgrGetActivePlayer()) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -316,7 +324,11 @@ static int __fastcall Script_SetLootMethod(lua_State *L) {
 }
 
 static int __fastcall Script_GetLookingForGroup(lua_State *L) {
-  CGPartyInfo::IsLookingForGroup() ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (CGPartyInfo::IsLookingForGroup()) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 

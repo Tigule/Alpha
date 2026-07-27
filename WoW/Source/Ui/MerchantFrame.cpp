@@ -171,7 +171,11 @@ static int __fastcall Script_GetMerchantItemInfo(lua_State *L) {
   }
 
   const ItemStats *stats = CGMerchantInfo::GetItemStats(item->m_itemType);
-  stats ? lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]) : lua_pushnil(L);
+  if (stats) {
+    lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
+  } else {
+    lua_pushnil(L);
+  }
   const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   const char *separator = path && *path ? "\\" : "";
   char        buffer[260];

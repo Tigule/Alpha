@@ -3,14 +3,20 @@
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 
+#include <Frame/CSimpleRender.h>
 #include <Tempest/cimvector.h>
 
 static int __fastcall SimpleHealthUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *data, void *parameter) {
+  FATALASSERT(parameter);
+
   CGSimpleHealthBar *healthBar = static_cast<CGSimpleHealthBar *>(parameter);
   CGUnit_C          *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
-    healthBar->SetUnit(unit);
+    const CGUnitData *unitData = unit->GetUnitData();
+    healthBar->SetMinMaxValues(0.0f, static_cast<float>(unitData->maxHealth));
+    healthBar->SetValue(static_cast<float>(unitData->health));
   }
+
   return 1;
 }
 
@@ -29,31 +35,27 @@ void CGSimpleHealthBar::SetUnit(CGUnit_C *unit) {
   }
 
   m_unitGUID = unit->GetGUID();
+  InstallMirrorHandlers();
+
   const CGUnitData *unitData = unit->GetUnitData();
   SetMinMaxValues(0.0f, static_cast<float>(unitData->maxHealth));
   SetValue(static_cast<float>(unitData->health));
-  InstallMirrorHandlers();
 }
 
 void CGSimpleHealthBar::SetValue(float value) {
   CSimpleStatusBar::SetValue(value);
   if (m_scaleColor) {
-    float range = GetMaxValue() - GetMinValue();
-    float scale = range > 0.0f ? (value - GetMinValue()) / range : 0.0f;
-    if (scale < 0.0f) {
-      scale = 0.0f;
-    } else if (scale > 1.0f) {
-      scale = 1.0f;
-    }
-    NTempest::CImVector color;
-    color.Set(1.0f - scale, scale, 0.0f, 1.0f);
-    CSimpleStatusBar::SetStatusBarColor(color);
+    NTempest::CImVector color(GetAnimValue() <= 0.2f ? 0xFFFF0000 : 0xFF00FF00);
+    SetStatusBarColor(color);
+    m_scaleColor = 1;
   }
 }
 
 void CGSimpleHealthBar::SetStatusBarColor(const NTempest::CImVector &color) {
+  if (m_barTexture) {
+    m_barTexture->SetVertexColor(color);
+  }
   m_scaleColor = 0;
-  CSimpleStatusBar::SetStatusBarColor(color);
 }
 
 void CGSimpleHealthBar::InstallMirrorHandlers() {

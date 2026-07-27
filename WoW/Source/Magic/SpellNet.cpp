@@ -43,7 +43,7 @@ void __fastcall SpellPutCastTargets(SpellCast *cast, CDataStore *msg) {
     msg->Put(cast->destLocation.z);
   }
   if (cast->targets & 0x2000) {
-    msg->PutData(cast->targetString, sizeof(cast->targetString));
+    msg->PutArray(cast->targetString, sizeof(cast->targetString));
   }
 }
 

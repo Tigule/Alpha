@@ -69,8 +69,11 @@ class CGTradeInfo {
   static void __fastcall             TargetAccept(int accept);
   static void __fastcall             HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
   static int __fastcall              SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot);
+  static void __fastcall             RemovePlayerItem(unsigned __int64 guid);
   static void __fastcall             UpdatePlayerItem(unsigned __int64 guid);
-  static void __fastcall             GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned int &slot);
+  static void __fastcall             UnlockTradeItems();
+  static GAME_ERROR_TYPE __fastcall  GetGameError(BAG_RESULT bagResult, int myFailure);
+  static void __fastcall             GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot);
   static int __fastcall              GetTargetTradeItem(int index);
   static int __fastcall GetTargetTradeItemCount(int index) {
     return index >= 0 && index < 8 ? m_targetItemCount[index] : 0;
@@ -131,6 +134,7 @@ void __fastcall CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT 
       break;
     case TRADE_STATUS_CANCELLED:
       FrameScript_SignalEvent(267);
+      UnlockTradeItems();
       SetTradePartner(0);
       CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(172));
       break;
@@ -142,6 +146,7 @@ void __fastcall CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT 
       TargetAccept(1);
       break;
     case TRADE_STATUS_COMPLETE:
+      UnlockTradeItems();
       SetTradePartner(0);
       CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(173));
       break;
@@ -154,6 +159,11 @@ void __fastcall CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT 
       break;
     case TRADE_STATUS_WRONG_FACTION:
       CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(229));
+      break;
+    case TRADE_STATUS_FAILED:
+      UnlockTradeItems();
+      CGGameUI::DisplayError(GetGameError(bagResult, myFailure));
+      SetTradePartner(0);
       break;
     default:
       break;
@@ -304,6 +314,19 @@ int __fastcall CGTradeInfo::SetPlayerItem(int index, unsigned __int64 guid, unsi
   return 1;
 }
 
+void __fastcall CGTradeInfo::RemovePlayerItem(unsigned __int64 guid) {
+  if (!guid) {
+    return;
+  }
+
+  for (int index = 0; index < 8; ++index) {
+    if (m_playerItems[index] == guid) {
+      SetPlayerItem(index, 0, 0, 0);
+      return;
+    }
+  }
+}
+
 void __fastcall CGTradeInfo::UpdatePlayerItem(unsigned __int64 guid) {
   if (!guid) {
     return;
@@ -317,7 +340,25 @@ void __fastcall CGTradeInfo::UpdatePlayerItem(unsigned __int64 guid) {
   }
 }
 
-void __fastcall CGTradeInfo::GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned int &slot) {
+void __fastcall CGTradeInfo::UnlockTradeItems() {
+  for (int index = 0; index < 8; ++index) {
+    if (m_playerItems[index]) {
+      CGGameUI::UnlockItem(m_playerItems[index]);
+    }
+  }
+}
+
+GAME_ERROR_TYPE __fastcall CGTradeInfo::GetGameError(BAG_RESULT bagResult, int myFailure) {
+  if (bagResult == static_cast<BAG_RESULT>(4)) {
+    return static_cast<GAME_ERROR_TYPE>(175 - (myFailure != 0));
+  }
+  if (bagResult == static_cast<BAG_RESULT>(16)) {
+    return static_cast<GAME_ERROR_TYPE>(177 - (myFailure != 0));
+  }
+  return CGBag_C::GetGameError(bagResult);
+}
+
+void __fastcall CGTradeInfo::GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot) {
   if (index >= 0 && index < 8) {
     guid = m_playerItems[index];
     bag = m_playerItemBag[index];
@@ -350,7 +391,7 @@ static int __fastcall Script_ClickTradeButton(lua_State *L) {
   CGGameUI::GetCursorItem(cursorItem, cursorBag, cursorSlot);
   unsigned __int64 item;
   unsigned __int64 bag;
-  unsigned int     slot;
+  unsigned char    slot;
   CGTradeInfo::GetPlayerItemInfo(index, item, bag, slot);
   if (cursorItem == item) {
     CGGameUI::ClearCursor(1);
@@ -403,7 +444,11 @@ static int __fastcall Script_GetTradeTargetItemInfo(lua_State *L) {
   SStrCopy(buffer + strlen(buffer), CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer) - strlen(buffer));
   lua_pushstring(L, buffer);
   lua_pushnumber(L, static_cast<double>(CGTradeInfo::GetTargetTradeItemCount(index)));
-  CGTradeInfo::GetTargetEnchantSlot() == index ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (CGTradeInfo::GetTargetEnchantSlot() == index) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   lua_pushnumber(L, static_cast<double>(CGTradeInfo::GetTargetTradeItemEnachantment(index)));
   lua_pushnil(L);
   return 6;
@@ -432,7 +477,7 @@ static int __fastcall Script_GetTradePlayerItemInfo(lua_State *L) {
   int              index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   unsigned __int64 guid;
   unsigned __int64 bag;
-  unsigned int     slot;
+  unsigned char    slot;
   CGTradeInfo::GetPlayerItemInfo(index, guid, bag, slot);
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!item) {
@@ -445,7 +490,11 @@ static int __fastcall Script_GetTradePlayerItemInfo(lua_State *L) {
   }
   unsigned __int64 player = ClntObjMgrGetActivePlayer();
   const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), player, TradeItemStatsCallback, 0);
-  stats ? lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]) : lua_pushnil(L);
+  if (stats) {
+    lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
+  } else {
+    lua_pushnil(L);
+  }
   const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   const char *separator = path && *path ? "\\" : "";
   char        buffer[260];
@@ -453,7 +502,11 @@ static int __fastcall Script_GetTradePlayerItemInfo(lua_State *L) {
   SStrCopy(buffer + strlen(buffer), item->GetInventoryArt(), sizeof(buffer) - strlen(buffer));
   lua_pushstring(L, buffer);
   lua_pushnumber(L, static_cast<double>(item->GetStackCount()));
-  CGTradeInfo::GetPlayerEnchantSlot() == index ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (CGTradeInfo::GetPlayerEnchantSlot() == index) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   lua_pushnumber(L, 0.0);
   return 5;
 }
@@ -464,7 +517,7 @@ static int __fastcall Script_GetTradePlayerItemLink(lua_State *L) {
   }
   unsigned __int64 guid;
   unsigned __int64 bag;
-  unsigned int     slot;
+  unsigned char    slot;
   CGTradeInfo::GetPlayerItemInfo(static_cast<int>(lua_tonumber(L, 1)) - 1, guid, bag, slot);
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!item) {

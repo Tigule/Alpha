@@ -539,6 +539,16 @@ void __fastcall CWorld::ObjectGetExtents(unsigned int id, NTempest::CAaBox &exte
   }
 }
 
+void __fastcall CWorld::ObjectEnableCollision(unsigned int id, int enable) {
+  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
+  ASSERT(baseObj);
+  if (enable) {
+    baseObj->flags &= ~CMapBaseObj::Flag_NoCollision;
+  } else {
+    baseObj->flags |= CMapBaseObj::Flag_NoCollision;
+  }
+}
+
 bool __fastcall CWorld::ObjectTestConvexVolume(
     unsigned int id, const NTempest::C3Vector &pos) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);

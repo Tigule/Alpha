@@ -83,7 +83,7 @@ int __fastcall               ClientServices_GetCharacterListCount();
 void __fastcall              ClientServices_CharacterCreate(const CHARACTER_CREATE_INFO &info);
 CHAR_NAME_RESULT __fastcall  ClientServices_CharacterValidateName(const char *name);
 int __fastcall               ClientServices_AccountValidateName(const char *name);
-void __fastcall              ClientServices_CharacterLogout(unsigned int instant);
+void __fastcall              ClientServices_CharacterLogout(bool instant);
 void __fastcall              ClientServices_CharacterSetInGame(int state);
 int __fastcall               ClientServices_CharacterIsInGame();
 void __fastcall              ClientServices_CharacterAbortLogout();

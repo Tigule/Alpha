@@ -1,4 +1,5 @@
 #include "Unit_C.h"
+#include "Player_C.h"
 
 #include <Base/CDataStore.h>
 
@@ -6,6 +7,8 @@
 #include "DB/DBClient/AutoCode/SpellItemEnchantmentRec.h"
 #include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/AutoCode/FactionRec.h"
+#include "DB/DBClient/AutoCode/ResistancesRec.h"
+#include "DB/DBClient/DBClient.h"
 #include "DB/WowLocale.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/ChatFrame.h"
@@ -16,10 +19,50 @@
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <FrameScript/FrameScript.h>
+#include <Os/OsTime.h>
 #include <storm.h>
 
-class CGPlayer_C;
-struct COMBATLOGDESC;
+struct UNITHASHOBJ : public TSHashObject<UNITHASHOBJ, CHashKeyGUID> {
+  UNITHASHOBJ() : count(0) {
+  }
+  unsigned int count;
+};
+
+struct COMBATLOGDESC {
+  unsigned int totalDamageDoneByEntity;
+  unsigned int totalDamageReducedByVictim;
+  unsigned int totalAttemptsByEntity;
+  unsigned int totalMisses;
+  unsigned int totalHits;
+  unsigned int totalVictimStatesByEntity[9];
+  unsigned int parryAttempts;
+  unsigned int dodgeAttempts;
+  unsigned int blockAttempts;
+  unsigned int totalTimeDelayed;
+  unsigned int criticalHits;
+  unsigned int spellCritsAttempted;
+  unsigned int spellCritsSucceeded;
+  unsigned int spellCritsSuffered;
+  int          totalHealthHealed;
+  int          totalReflectedDamageSuffered;
+  int          totalDamageSuffered;
+  int          totalHealingProvided;
+  int          totalReflectedDamageProvided;
+  int          totalDamageProvided;
+  float        totalSpellDamageReducedByVictim;
+  float        totalSpellDamageReduced;
+  TSHashTable<UNITHASHOBJ, CHashKeyGUID> victims;
+  TSHashTable<UNITHASHOBJ, CHashKeyGUID> attackers;
+  char          m_name[48];
+
+  COMBATLOGDESC(const char *name);
+  void Clear();
+  void LogAttack(const ATTACKROUNDINFO &info);
+  void LogAttack(const SPELLLOG &info);
+  void LogVictim(const SPELLLOG &info);
+  void LogVictim(const ATTACKROUNDINFO &info);
+  void LogUnitGUID(unsigned __int64 guid, TSHashTable<UNITHASHOBJ, CHashKeyGUID> &theTable);
+};
 
 struct COMBATMESSAGEPRONOUNS {
   char attackerName[48];
@@ -46,6 +89,131 @@ static HSLOG        s_logHandle;
 static HSLOG        s_generalLogHandle;
 static unsigned int s_flags;
 static CGPlayer_C  *s_activePlayer;
+static TSGrowableArray<char> s_charArray;
+static unsigned int s_logStartTime;
+static unsigned int s_lastLogTime;
+static COMBATLOGDESC s_unitCombatData[AFFILIATION_NUMAFFILIATIONS] = {
+    "You", "Your Pet", "Party Members", "Enemy", "Your Charmer"
+};
+static const char *formatString =
+    "(%d)%s Hit (%g%%/%g%%) %s for %d points of %s damage(-/+/mDone/mTaken/actual/scaler) "
+    "%d/%d/%g/%g/%d/%g ( %g/%g - %g(max:%g)) )%s%s%s";
+
+COMBATLOGDESC::COMBATLOGDESC(const char *name) {
+  if (name && *name) {
+    SStrPrintf(m_name, sizeof(m_name), name);
+  } else {
+    m_name[0] = 0;
+  }
+}
+
+void COMBATLOGDESC::Clear() {
+  victims.Clear();
+  attackers.Clear();
+  totalDamageDoneByEntity = 0;
+  totalDamageReducedByVictim = 0;
+  totalAttemptsByEntity = 0;
+  totalMisses = 0;
+  totalHits = 0;
+  memset(totalVictimStatesByEntity, 0, sizeof(totalVictimStatesByEntity));
+  parryAttempts = 0;
+  dodgeAttempts = 0;
+  blockAttempts = 0;
+  totalTimeDelayed = 0;
+  criticalHits = 0;
+  spellCritsAttempted = 0;
+  spellCritsSucceeded = 0;
+  spellCritsSuffered = 0;
+  totalHealthHealed = 0;
+  totalReflectedDamageSuffered = 0;
+  totalDamageSuffered = 0;
+  totalHealingProvided = 0;
+  totalReflectedDamageProvided = 0;
+  totalDamageProvided = 0;
+  totalSpellDamageReducedByVictim = 0.0f;
+  totalSpellDamageReduced = 0.0f;
+}
+
+void COMBATLOGDESC::LogUnitGUID(unsigned __int64 guid, TSHashTable<UNITHASHOBJ, CHashKeyGUID> &theTable) {
+  CHashKeyGUID key(guid);
+  unsigned int hash = static_cast<unsigned int>(guid);
+  UNITHASHOBJ *unit = theTable.Ptr(hash, key);
+  if (!unit) {
+    unit = theTable.New(hash, key, 0, 0);
+  }
+  ++unit->count;
+}
+
+void COMBATLOGDESC::LogAttack(const ATTACKROUNDINFO &info) {
+  FATALASSERT(info.attacker);
+  FATALASSERT(info.victim);
+  FATALASSERT(info.attacker != info.victim);
+  totalDamageDoneByEntity += info.dmg.totalDamage;
+  totalDamageReducedByVictim += info.armorReduction;
+  ++totalAttemptsByEntity;
+  if (info.flags & 1) {
+    ++totalMisses;
+  } else {
+    ++totalHits;
+  }
+  LogUnitGUID(info.victim, victims);
+  LogUnitGUID(info.attacker, attackers);
+  if (info.flags & 8) {
+    ++criticalHits;
+  }
+}
+
+void COMBATLOGDESC::LogAttack(const SPELLLOG &info) {
+  FATALASSERT(info.attacker);
+  FATALASSERT(info.victim);
+  if (info.flags & 1) {
+    ++spellCritsAttempted;
+    if (info.flags & 0x40) {
+      ++spellCritsSucceeded;
+    }
+  }
+  if (info.flags & 0x82) {
+    totalHealingProvided += info.dmg.totalDamage;
+  } else if (info.flags & 8) {
+    totalReflectedDamageProvided += info.dmg.totalDamage;
+  } else {
+    totalDamageProvided += info.dmg.totalDamage;
+  }
+  totalSpellDamageReducedByVictim += info.scaledArmorReduction;
+}
+
+void COMBATLOGDESC::LogVictim(const SPELLLOG &info) {
+  FATALASSERT(info.attacker);
+  FATALASSERT(info.victim);
+  if (info.flags & 0x40) {
+    ++spellCritsSuffered;
+  }
+  if (info.flags & 0x82) {
+    totalHealthHealed += info.dmg.totalDamage;
+  } else if (info.flags & 8) {
+    totalReflectedDamageSuffered += info.dmg.totalDamage;
+  } else {
+    totalDamageSuffered += info.dmg.totalDamage;
+  }
+  totalSpellDamageReduced += info.scaledArmorReduction;
+}
+
+void COMBATLOGDESC::LogVictim(const ATTACKROUNDINFO &info) {
+  FATALASSERT(info.attacker);
+  FATALASSERT(info.victim);
+  FATALASSERT(info.attacker != info.victim);
+  FATALASSERT(info.newVictimState < NUM_VICTIMSTATES);
+  ++totalVictimStatesByEntity[info.newVictimState];
+  if (info.flags & 0x40) {
+    ++parryAttempts;
+  }
+  if (info.flags & 0x20) {
+    ++dodgeAttempts;
+  }
+  if (info.flags & 0x80) {
+    ++blockAttempts;
+  }
+}
 
 static SLASH_COMMAND_ID s_affiliationLogType[AFFILIATION_NUMAFFILIATIONS] = {
     static_cast<SLASH_COMMAND_ID>(26), static_cast<SLASH_COMMAND_ID>(27), static_cast<SLASH_COMMAND_ID>(27), static_cast<SLASH_COMMAND_ID>(25),
@@ -333,31 +501,107 @@ static void Capitalize(char* string) {
 }
 
 static void NormalHitHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
-  SStrPrintf(buffer, size, "%s hits %s for %d.", pronouns.attackerName, pronouns.victimName, info.dmg.totalDamage);
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+  const ResistancesRec *damageClass = GetDamageClassRecord(info.dmg.damageType[0]);
+  const char *damageType = damageClass ? damageClass->m_name_lang[CURRENT_LANGUAGE] : "";
+
+  char critString[128] = "";
+  if (info.flags & 8) {
+    SStrPrintf(critString, sizeof(critString), " (CRIT: %g%%/%g%%)", info.critRollNeededFloat, info.critRollFloat);
+  }
+  char stunString[128] = "";
+  if (info.flags & 0x10) {
+    SStrPrintf(
+        stunString, sizeof(stunString), " (STUN: %g%%/%g%%%s%s)", info.stunRollNeededFloat, info.stunRollFloat,
+        (info.flags & 0x800) ? " HIT" : "", (info.flags & 0x100) ? " CLDN" : ""
+    );
+  }
+  char offHandString[128] = "";
+  if (info.flags & 0x200) {
+    SStrPrintf(
+        offHandString, sizeof(offHandString), " (OFFHAND: %g%%/%g%%",
+        info.dualWieldHitRollNeededFloat, info.dualWieldHitRollFloat
+    );
+  }
+  int totalDamage = (info.flags & 0x4000) ? 0 : info.dmg.totalDamage;
+  SStrPrintf(
+      buffer, size, formatString, info.sinceLastSwing, pronouns.attackerName, info.hitRollNeededFloat, info.hitRollFloat,
+      pronouns.victimName, totalDamage, damageType, info.dmg.minDamage[0], info.dmg.maxDamage[0], info.modDamageDone,
+      info.modDamageTaken, totalDamage, info.DPSScaler, info.scaledDamage, info.dmg.damageFloat[0],
+      info.scaledArmorReduction, info.maxDamageReduction, critString, stunString, offHandString
+  );
 }
 
 static void NormalMissHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
-  SStrPrintf(buffer, size, "%s misses %s.", pronouns.attackerName, pronouns.victimName);
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+  if (info.flags & 0x8000) {
+    SStrPrintf(
+        buffer, size, "(%d) offhand failed (%g%%/%g%%)", info.sinceLastSwing,
+        info.dualWieldHitRollNeededFloat, info.dualWieldHitRollFloat
+    );
+    return;
+  }
+  char offHandString[128] = "";
+  if (info.flags & 0x200) {
+    SStrPrintf(
+        offHandString, sizeof(offHandString), " OFFHAND: (%g%%/%g%%)",
+        info.dualWieldHitRollNeededFloat, info.dualWieldHitRollFloat
+    );
+  }
+  SStrPrintf(
+      buffer, size, "(%d)%s (%g%%/%g%%) Missed %s%s", info.sinceLastSwing, pronouns.attackerName,
+      info.hitRollNeededFloat, info.hitRollFloat, pronouns.victimName, offHandString
+  );
 }
 
 static void NormalBlockHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
-  SStrPrintf(buffer, size, "%s blocks %s's attack.", pronouns.victimName, pronouns.attackerName);
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+  SStrPrintf(
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is blocked (%g%%/%g%%)", info.sinceLastSwing,
+      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat,
+      info.blockRollNeededFloat, info.blockRollFloat
+  );
 }
 
 static void NormalParryHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
-  SStrPrintf(buffer, size, "%s parries %s's attack.", pronouns.victimName, pronouns.attackerName);
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+  SStrPrintf(
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is parried (%g%%/%g%%) by %s", info.sinceLastSwing,
+      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat,
+      info.parryRollNeededFloat, info.parryRollFloat, pronouns.victimName
+  );
 }
 
 static void NormalDodgeHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
-  SStrPrintf(buffer, size, "%s dodges %s's attack.", pronouns.victimName, pronouns.attackerName);
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+  SStrPrintf(
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is dodged (%g%%/%g%%) by %s", info.sinceLastSwing,
+      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat,
+      info.dodgeRollNeededFloat, info.dodgeRollFloat, pronouns.victimName
+  );
 }
 
 static void NormalImmuneHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
-  SStrPrintf(buffer, size, "%s is immune to %s's attack.", pronouns.victimName, pronouns.attackerName);
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+  SStrPrintf(
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) failed, victim is immune", info.sinceLastSwing,
+      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat
+  );
 }
 
 static void NormalEvadeHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
-  SStrPrintf(buffer, size, "%s evades %s's attack.", pronouns.victimName, pronouns.attackerName);
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+  SStrPrintf(
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is evaded by %s", info.sinceLastSwing,
+      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat, pronouns.victimName
+  );
 }
 
 static void __fastcall WriteMessage(const char *message) {
@@ -417,13 +661,58 @@ static void OutputCombatMessage(const ATTACKROUNDINFO& info) {
   WriteMessage(buffer);
 }
 
+static void WriteString(int writeToConsole, TSGrowableArray<char> &array, const char *format, ...) {
+  char buff[256];
+  va_list args;
+  va_start(args, format);
+  SStrVPrintf(buff, sizeof(buff), format, args);
+  va_end(args);
+  buff[sizeof(buff) - 1] = 0;
+  array.Add(SStrLen(buff), buff);
+  if (writeToConsole) {
+    ConsoleWrite(buff, DEFAULT_COLOR);
+  }
+}
+
 static void WriteSpellInfo(const COMBATLOGDESC& unit) {
+  float critRate = unit.spellCritsAttempted
+                     ? static_cast<float>(unit.spellCritsSucceeded) / unit.spellCritsAttempted * 100.0f
+                     : 0.0f;
+  WriteString(1, s_charArray, "%s: %d/%d crits/attempts (suffered %d), %02f%% crit rate\r\n",
+      unit.m_name, unit.spellCritsSucceeded, unit.spellCritsAttempted, unit.spellCritsSuffered, critRate);
+  WriteString(1, s_charArray, "%s: Received %d HP of healing\r\n", unit.m_name, unit.totalHealthHealed);
+  int totalReceived = unit.totalReflectedDamageSuffered + unit.totalDamageSuffered;
+  WriteString(1, s_charArray, "%s: %d/%d/%d points of reflected/normal/total damage received\r\n",
+      unit.m_name, unit.totalReflectedDamageSuffered, unit.totalDamageSuffered, totalReceived);
+  WriteString(1, s_charArray, "%s: Provided %d HP of healing\r\n", unit.m_name, unit.totalHealingProvided);
+  WriteString(1, s_charArray, "%s: %d/%d/%d points of reflected/normal/total damage given\r\n",
+      unit.m_name, unit.totalReflectedDamageProvided, unit.totalDamageProvided,
+      unit.totalReflectedDamageProvided + unit.totalDamageProvided);
+  WriteString(1, s_charArray, "%s: Total spell damage reduced by self/victim: %g/%g\r\n",
+      unit.m_name, unit.totalSpellDamageReduced, unit.totalSpellDamageReducedByVictim);
+  float reduced = totalReceived ? unit.totalSpellDamageReduced / totalReceived * 100.0f : 0.0f;
+  WriteString(1, s_charArray, "%s: percent damage reduced: %g\r\n", unit.m_name, reduced);
 }
 
 static void WriteAttemptsHitsMisses(const COMBATLOGDESC& attacker) {
+  WriteString(1, s_charArray, "%s Attempts/Hits/Misses on victim: %d/%d/%d\r\n",
+      attacker.m_name, attacker.totalAttemptsByEntity, attacker.totalHits, attacker.totalMisses);
+  unsigned int hitPercent = attacker.totalAttemptsByEntity
+                              ? 100 * attacker.totalHits / attacker.totalAttemptsByEntity
+                              : 0;
+  WriteString(1, s_charArray, "%s percentage hits: %d\r\n", attacker.m_name, hitPercent);
+  float critRate = attacker.totalAttemptsByEntity
+                     ? static_cast<float>(attacker.criticalHits) / attacker.totalAttemptsByEntity * 100.0f
+                     : 0.0f;
+  WriteString(1, s_charArray, "%d/%d crits/attempts, %02f%% crit rate\r\n",
+      attacker.criticalHits, attacker.totalHits, critRate);
 }
 
 static void WriteVictimStates(const COMBATLOGDESC& victim, const char* name, unsigned int attempts, unsigned int successes) {
+  WriteString(1, s_charArray, "%s %s Attempts/Success/Failure: %d/%d/%d\r\n",
+      victim.m_name, name, attempts, successes, attempts - successes);
+  float successRate = attempts ? static_cast<float>(successes) * 100.0f / attempts : 0.0f;
+  WriteString(1, s_charArray, "%s Percentage %s successes: %g%%\r\n", victim.m_name, name, successRate);
 }
 
 static float RoundTo(float roundThis, float toThis) {
@@ -448,12 +737,57 @@ static float RoundTo(float roundThis, float toThis) {
 }
 
 static void WriteDamageTallies(const COMBATLOGDESC& desc, float seconds) {
+  float perSecond = 1.0f / seconds;
+  float reducedPerSecond = RoundTo(desc.totalDamageReducedByVictim * perSecond, 0.5f);
+  WriteString(1, s_charArray, "  Total damage reduced by the armor of victim: %d (%g per second)\r\n",
+      desc.totalDamageReducedByVictim, reducedPerSecond);
+  unsigned int grossDamage = desc.totalDamageDoneByEntity + desc.totalDamageReducedByVictim;
+  WriteString(1, s_charArray, "  Gross damage suffered by victim: %d (%g per second)\r\n",
+      grossDamage, RoundTo(grossDamage * perSecond, 0.3f));
+  WriteString(1, s_charArray, "  Net damage suffered by victim: %d (%g per second)\r\n",
+      desc.totalDamageDoneByEntity, RoundTo(desc.totalDamageDoneByEntity * perSecond, 0.3f));
+  unsigned int percent = grossDamage ? 100 * desc.totalDamageReducedByVictim / grossDamage : 0;
+  WriteString(1, s_charArray, "  Percent damage reduction: %d\r\n", percent);
 }
 
 static void LogResults() {
-  if (s_logHandle) {
-    SLogWrite(s_logHandle, "Combat logging stopped.");
+  s_charArray.SetCount(0);
+  unsigned int currentTime = OsGetAsyncTimeMs();
+  unsigned int elapsed = s_lastLogTime - s_logStartTime;
+  if (s_lastLogTime == s_logStartTime) {
+    elapsed = 1;
   }
+  float seconds = elapsed * 0.001f;
+  WriteString(1, s_charArray, "Combat Summary:\r\n");
+  WriteString(1, s_charArray, "===============\r\n");
+  WriteString(1, s_charArray, "Start Time: %d\r\n", s_logStartTime);
+  WriteString(1, s_charArray, "End Time  : %d\r\n", currentTime);
+  WriteString(1, s_charArray, "Elapsed time: %g seconds\r\n", seconds);
+  for (unsigned int i = 0; i < AFFILIATION_NUMAFFILIATIONS; ++i) {
+    WriteString(1, s_charArray, "Tallies for %s:\r\n", s_unitCombatData[i].m_name);
+    WriteDamageTallies(s_unitCombatData[i], seconds);
+  }
+  for (unsigned int j = 0; j < AFFILIATION_NUMAFFILIATIONS; ++j) {
+    WriteString(1, s_charArray, "--------------------\r\n");
+    WriteAttemptsHitsMisses(s_unitCombatData[j]);
+    WriteVictimStates(
+        s_unitCombatData[j], "Parry", s_unitCombatData[j].parryAttempts,
+        s_unitCombatData[j].totalVictimStatesByEntity[VS_PARRY]
+    );
+    WriteVictimStates(
+        s_unitCombatData[j], "Dodge", s_unitCombatData[j].dodgeAttempts,
+        s_unitCombatData[j].totalVictimStatesByEntity[VS_DODGE]
+    );
+    WriteVictimStates(
+        s_unitCombatData[j], "Block", s_unitCombatData[j].blockAttempts,
+        s_unitCombatData[j].totalVictimStatesByEntity[VS_BLOCK]
+    );
+    WriteString(1, s_charArray, "Spell Info:\r\n");
+    WriteSpellInfo(s_unitCombatData[j]);
+  }
+  WriteString(1, s_charArray, "===============\r\n");
+  const char terminator = 0;
+  s_charArray.Add(1, &terminator);
 }
 
 static void UnitCombatLogEnchantmentRemoved(const ENCHANTMENTLOG& log, unsigned char isCallback) {
@@ -485,18 +819,29 @@ static void __fastcall ItemEnchantmentCacheCallback(int id, const unsigned __int
 }
 
 static void ClearUnitDataStructs() {
+  for (unsigned int i = 0; i < AFFILIATION_NUMAFFILIATIONS; ++i) {
+    s_unitCombatData[i].Clear();
+  }
 }
 
 void __fastcall UnitDebugCombatLogOnEnable(int enable) {
   if (enable) {
-    s_flags |= 2;
-    if (!s_logHandle) {
-      SLogCreate("Logs.Client\\PlayerCombatLog.txt", 0, &s_logHandle);
-    }
-  } else {
-    LogResults();
-    s_flags &= ~2U;
     CloseDebugLogHandle();
+    SLogCreate("PlayerCombatLog.txt", 0, &s_logHandle);
+    s_charArray.SetChunkSize(256);
+    s_charArray.Reserve(256);
+    ClearUnitDataStructs();
+    s_flags &= ~1U;
+    s_logStartTime = OsGetAsyncTimeMs();
+    s_lastLogTime = s_logStartTime;
+    s_flags |= 2;
+  } else {
+    if (s_flags & 2) {
+      LogResults();
+      WriteMessage(s_charArray.Ptr());
+    }
+    CloseDebugLogHandle();
+    s_flags &= ~2U;
   }
 }
 
@@ -517,7 +862,7 @@ void __fastcall UnitCombatLogInitialize() {
 void __fastcall UnitCombatLogShutdown() {
   ConsoleCommandUnregister("playercombatlogdebug");
   s_flags = 0;
-  UnitCombatLogEnableFileLog(0);
+  CloseDebugLogHandle();
   FrameScript_UnregisterFunction("ToggleCombatLogFileWrite");
 }
 
@@ -599,31 +944,41 @@ void __fastcall UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 ca
   }
 }
 
-void __fastcall UnitCombatLog(ATTACKROUNDINFO &roundInfo) {
+void __fastcall UnitCombatLog(const ATTACKROUNDINFO &roundInfo) {
   ATTACKROUNDINFO info(roundInfo);
-  CGObject_C     *attackerObjPtr;
-  CGObject_C     *victimObjPtr;
-  UNITAFFILIATION aAff;
-  UNITAFFILIATION vAff;
-  if (!ShouldLogAttacker(info.attacker, aAff, attackerObjPtr, 0, 0, -1) || !ShouldLogAttacker(info.victim, vAff, victimObjPtr, 0, 0, -1) ||
-      !(attackerObjPtr->GetType() & TYPE_UNIT) || !(victimObjPtr->GetType() & TYPE_UNIT))
-  {
+  FATALASSERT(info.attacker);
+  FATALASSERT(info.victim);
+  FATALASSERT(info.attacker != info.victim);
+  if (!s_activePlayer) {
     return;
   }
-
-  const char *attackerName = static_cast<CGUnit_C *>(attackerObjPtr)->GetUnitName();
-  const char *victimName = static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName();
-  char        outputString[256];
-  if (info.dmg.totalDamage) {
-    SStrPrintf(outputString, sizeof(outputString), "%s hits %s for %d.", attackerName, victimName, info.dmg.totalDamage);
-  } else {
-    SStrPrintf(outputString, sizeof(outputString), "%s attacks %s.", attackerName, victimName);
+  if ((s_flags & 2) && (info.flags & 0x2000) && !(info.flags & 0x1000)) {
+    if (!(s_flags & 1)) {
+      s_flags |= 1;
+      s_logStartTime = OsGetAsyncTimeMs();
+      s_lastLogTime = s_logStartTime;
+      ClearUnitDataStructs();
+    }
+    if (info.newVictimState == VS_DEFLECT) {
+      info.newVictimState = (info.flags & 0x40000) ? VS_PARRY : VS_BLOCK;
+    }
+    OutputCombatMessage(info);
+    s_lastLogTime = OsGetAsyncTimeMs();
+    UNITAFFILIATION aAff = s_activePlayer->GetGUIDAffiliation(info.attacker);
+    UNITAFFILIATION vAff = s_activePlayer->GetGUIDAffiliation(info.victim);
+    FATALASSERT(aAff < AFFILIATION_NUMAFFILIATIONS);
+    FATALASSERT(vAff < AFFILIATION_NUMAFFILIATIONS);
+    if (aAff != AFFILIATION_OTHER || vAff != AFFILIATION_OTHER) {
+      s_unitCombatData[vAff].LogVictim(info);
+      s_unitCombatData[aAff].LogAttack(info);
+    }
   }
-  GeneralLogPrintf(s_affiliationLogType[aAff], "%s", outputString);
-  WriteMessage(outputString);
+  if (!(info.flags & 0x4000)) {
+    HandleGeneralCombatLogging(info);
+  }
 }
 
-void __fastcall UnitCombatLog(SPELLLOG &log) {
+void __fastcall UnitCombatLog(const SPELLLOG &log) {
   if (!s_activePlayer) {
     return;
   }
@@ -642,6 +997,10 @@ void __fastcall UnitCombatLog(SPELLLOG &log) {
   const char *spellName = spellRec ? spellRec->m_name_lang[CURRENT_LANGUAGE] : "Unknown Spell";
   const char *attackerName = static_cast<CGUnit_C *>(attackerObjPtr)->GetUnitName();
   const char *victimName = static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName();
+  if ((log.flags & 0x20) && (aAff != AFFILIATION_OTHER || vAff != AFFILIATION_OTHER)) {
+    s_unitCombatData[vAff].LogVictim(log);
+    s_unitCombatData[aAff].LogAttack(log);
+  }
   char        outputString[512];
   SStrPrintf(outputString, sizeof(outputString), "%s's %s hits %s for %d.", attackerName, spellName, victimName, log.dmg.totalDamage);
   GeneralLogPrintf(s_affiliationLogType[aAff], "%s", outputString);

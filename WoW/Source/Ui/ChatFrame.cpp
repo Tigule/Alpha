@@ -940,7 +940,11 @@ static int __fastcall Script_ChatFrameLog(lua_State *L) {
       ConsoleWrite("Chat logging disabled", DEFAULT_COLOR);
     }
   }
-  s_loggingEnabled ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (s_loggingEnabled) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 

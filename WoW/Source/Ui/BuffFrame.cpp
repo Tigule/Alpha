@@ -31,7 +31,7 @@ class CGBuffDesc {
   int GetAuraSpell() const {
     return m_auraSpell;
   }
-  unsigned int GetAuraFlags() const {
+  unsigned char GetAuraFlags() const {
     return m_auraFlags;
   }
   int GetUntilCancelled() const {
@@ -41,8 +41,8 @@ class CGBuffDesc {
  protected:
   int          m_auraIndex;
   int          m_auraSpell;
-  unsigned int m_auraFlags;
-  int          m_untilCancelled;
+  unsigned char m_auraFlags;
+  int           m_untilCancelled;
 };
 
 class CGBuffBar {
@@ -53,8 +53,8 @@ class CGBuffBar {
   static void __fastcall         LeaveWorld();
   static void __fastcall         UpdateBuffs();
   static void __fastcall         UpdateDuration(unsigned char slot, unsigned int duration);
-  static CGBuffDesc *__fastcall  GetBuffByFilter(int index, unsigned int filter, int &buffIndex);
-  static CGBuffDesc *__fastcall  GetBuffByIndex(int buffIndex);
+  static const CGBuffDesc *__fastcall GetBuffByFilter(int index, unsigned int filter, int &buffIndex);
+  static const CGBuffDesc *__fastcall GetBuffByIndex(int buffIndex);
   static unsigned int __fastcall GetBuffTimeLeftByIndex(int buffIndex);
 
  private:
@@ -104,8 +104,7 @@ void __fastcall CGBuffBar::UpdateBuffs() {
   while (desc < 56 && m_buffs[desc].m_auraSpell > 0) {
     int       spellID = m_buffs[desc].m_auraSpell;
     SpellRec *spell = g_spellDB.GetRecord(spellID);
-    if (spell && (spell->m_attributes < 0 || (spell->m_attributesEx & 0x10000000))) {
-      ++desc;
+    if (spell && (static_cast<signed char>(spell->m_attributes) < 0 || (spell->m_attributesEx & 0x10000000))) {
       continue;
     }
 
@@ -128,7 +127,8 @@ void __fastcall CGBuffBar::UpdateBuffs() {
     int          spellID = unitData->auras[aura];
     unsigned int flags = (unitData->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
     SpellRec    *spell = g_spellDB.GetRecord(spellID);
-    if (spellID <= 0 || !(flags & 0xE) || (spell && (spell->m_attributes < 0 || (spell->m_attributesEx & 0x10000000)))) {
+    if (spellID <= 0 || !(flags & 0xE) ||
+        (spell && (static_cast<signed char>(spell->m_attributes) < 0 || (spell->m_attributesEx & 0x10000000)))) {
       continue;
     }
 
@@ -149,44 +149,49 @@ void __fastcall CGBuffBar::UpdateDuration(unsigned char slot, unsigned int durat
   }
 }
 
-inline CGBuffDesc *__fastcall CGBuffBar::GetBuffByFilter(int index, unsigned int filter, int &buffIndex) {
+inline const CGBuffDesc *__fastcall CGBuffBar::GetBuffByFilter(int index, unsigned int filter, int &buffIndex) {
   for (int i = 0; i < 56; ++i) {
     CGBuffDesc &buff = m_buffs[i];
-    if (buff.m_auraSpell <= 0) {
-      break;
+    bool matches = buff.m_auraIndex >= 0;
+    if (matches) {
+      if (buff.m_auraIndex < 32) {
+        matches = (filter & 1) != 0;
+      } else if (buff.m_auraIndex < 40) {
+        matches = (filter & 2) != 0;
+      } else {
+        matches = (filter & 4) != 0;
+      }
     }
-    bool matches = true;
-    if ((filter & 1) && !(buff.m_auraFlags & 2)) {
+    if (matches && (filter & 0x10) && !(buff.m_auraFlags & 1)) {
       matches = false;
     }
-    if ((filter & 2) && !(buff.m_auraFlags & 4)) {
+    if (matches && (filter & 0x20) && (buff.m_auraFlags & 1)) {
       matches = false;
     }
-    if ((filter & 4) && buff.m_untilCancelled) {
-      matches = false;
-    }
-    if (matches && !index--) {
+    if (matches && index-- == 0) {
       buffIndex = i;
       return &buff;
     }
   }
-  buffIndex = -1;
   return 0;
 }
 
-inline CGBuffDesc *__fastcall CGBuffBar::GetBuffByIndex(int buffIndex) {
-  return buffIndex >= 0 && buffIndex < 56 && m_buffs[buffIndex].m_auraSpell > 0 ? &m_buffs[buffIndex] : 0;
+const CGBuffDesc *__fastcall CGBuffBar::GetBuffByIndex(int buffIndex) {
+  ASSERT(buffIndex >= 0 && buffIndex < 56);
+  return &m_buffs[buffIndex];
 }
 
 unsigned int __fastcall CGBuffBar::GetBuffTimeLeftByIndex(int buffIndex) {
-  if (buffIndex < 0 || buffIndex >= 56 || !m_durations[buffIndex]) {
+  const CGBuffDesc *buff = GetBuffByIndex(buffIndex);
+  if (buff->m_auraIndex < 0) {
     return 0;
   }
   unsigned int now = OsGetAsyncTimeMs();
-  return m_durations[buffIndex] > now ? m_durations[buffIndex] - now : 0;
+  unsigned int expiry = m_durations[buff->m_auraIndex];
+  return static_cast<int>(now - expiry) < 0 ? expiry - now : 0;
 }
 
-CGBuffDesc::CGBuffDesc() : m_auraIndex(-1), m_auraSpell(0), m_auraFlags(0), m_untilCancelled(0) {
+CGBuffDesc::CGBuffDesc() : m_auraIndex(-1), m_auraSpell(0), m_untilCancelled(0) {
 }
 
 void CGBuffDesc::SetAuraIndex(int index, CGPlayer_C *player) {
@@ -208,44 +213,56 @@ void CGBuffDesc::SetAuraIndex(int index, CGPlayer_C *player) {
 
 static int __fastcall Script_GetPlayerBuff(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetPlayerBuff(index, filter)");
+    return luaL_error(L, "Usage: GetPlayerBuff(index [, \"filter\"])");
   }
-  unsigned int filter = 0;
+  unsigned int filter = 7;
   if (lua_isstring(L, 2)) {
     const char *cursor = lua_tostring(L, 2);
-    if (strstr(cursor, "HELPFUL"))
-      filter |= 1;
-    if (strstr(cursor, "HARMFUL"))
-      filter |= 2;
-    if (strstr(cursor, "CANCELABLE"))
-      filter |= 4;
+    char token[32];
+    filter = 0;
+    do {
+      SStrTokenize(&cursor, token, sizeof(token), " |", 0);
+      if (!*token) {
+        break;
+      }
+      if (!SStrCmpI(token, "HELPFUL", 0x7FFFFFFF)) {
+        filter |= 1;
+      } else if (!SStrCmpI(token, "HARMFUL", 0x7FFFFFFF)) {
+        filter |= 2;
+      } else if (!SStrCmpI(token, "PASSIVE", 0x7FFFFFFF)) {
+        filter |= 4;
+      } else if (!SStrCmpI(token, "CANCELABLE", 0x7FFFFFFF)) {
+        filter |= 0x10;
+      } else if (!SStrCmpI(token, "NOT_CANCELABLE", 0x7FFFFFFF)) {
+        filter |= 0x20;
+      }
+    } while (*cursor);
   }
-  int         buffIndex;
-  CGBuffDesc *buff = CGBuffBar::GetBuffByFilter(static_cast<int>(lua_tonumber(L, 1)), filter, buffIndex);
-  if (!buff) {
-    lua_pushnumber(L, -1.0);
-    return 1;
-  }
+  int         buffIndex = -1;
+  const CGBuffDesc *buff = CGBuffBar::GetBuffByFilter(static_cast<int>(lua_tonumber(L, 1)), filter, buffIndex);
   lua_pushnumber(L, static_cast<double>(buffIndex));
-  lua_pushnumber(L, static_cast<double>(buff->GetAuraIndex()));
-  lua_pushnumber(L, static_cast<double>(buff->GetAuraSpell()));
-  return 3;
+  lua_pushnumber(L, buff ? static_cast<double>(buff->GetUntilCancelled()) : 0.0);
+  return 2;
 }
 
 static int __fastcall Script_GetPlayerBuffTexture(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetPlayerBuffTexture(index)");
+    return luaL_error(L, "Usage: GetPlayerBuffTexture(buffIndex)");
   }
-  CGBuffDesc   *buff = CGBuffBar::GetBuffByIndex(static_cast<int>(lua_tonumber(L, 1)));
+  const CGBuffDesc *buff = CGBuffBar::GetBuffByIndex(static_cast<int>(lua_tonumber(L, 1)));
   SpellRec     *spell = buff ? g_spellDB.GetRecord(buff->GetAuraSpell()) : 0;
   SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
-  icon ? lua_pushstring(L, icon->m_textureFilename) : lua_pushnil(L);
+  if (icon) {
+    lua_pushstring(L, icon->m_textureFilename);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
 static int __fastcall Script_GetPlayerBuffTimeLeft(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetPlayerBuffTimeLeft(index)");
+    return luaL_error(L, "Usage: GetPlayerBuffTimeLeft(buffIndex)");
   }
   lua_pushnumber(L, static_cast<double>(CGBuffBar::GetBuffTimeLeftByIndex(static_cast<int>(lua_tonumber(L, 1)))) * 0.001);
   return 1;
@@ -253,11 +270,14 @@ static int __fastcall Script_GetPlayerBuffTimeLeft(lua_State *L) {
 
 static int __fastcall Script_CancelPlayerBuff(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: CancelPlayerBuff(index)");
+    return luaL_error(L, "Usage: CancelPlayerBuff(buffIndex)");
   }
-  CGBuffDesc *buff = CGBuffBar::GetBuffByIndex(static_cast<int>(lua_tonumber(L, 1)));
-  if (buff && !buff->GetUntilCancelled()) {
-    Spell_C_CancelAura(buff->GetAuraSpell());
+  int buffIndex = static_cast<int>(lua_tonumber(L, 1));
+  if (buffIndex >= 0) {
+    const CGBuffDesc *buff = CGBuffBar::GetBuffByIndex(buffIndex);
+    if (buff->GetAuraIndex() >= 0) {
+      Spell_C_CancelAura(buff->GetAuraSpell());
+    }
   }
   return 0;
 }

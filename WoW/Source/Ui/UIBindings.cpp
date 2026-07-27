@@ -498,28 +498,31 @@ static int __fastcall Script_GetBinding(lua_State *L) {
     return luaL_error(L, "Usage: GetBinding(index)");
   }
   CGUIBindings *bindings = CGUIBindings::GetActive();
-  FATALASSERT(bindings);
-  const char *command;
+  ASSERT(bindings);
+  const char *command = "";
   bindings->GetCommand(static_cast<int>(lua_tonumber(L, 1)) - 1, command);
-  if (!command) {
-    return 0;
-  }
   lua_pushstring(L, command);
-  const char *key = bindings->GetCommandKey(command, 0);
-  key ? lua_pushstring(L, key) : lua_pushnil(L);
-  key = bindings->GetCommandKey(command, 1);
-  key ? lua_pushstring(L, key) : lua_pushnil(L);
-  return 3;
+  int count = 0;
+  for (const char *key = bindings->GetCommandKey(command, 0);
+       key;
+       key = bindings->GetCommandKey(command, count)) {
+    ++count;
+    lua_pushstring(L, key);
+  }
+  return count + 1;
 }
 
 static int __fastcall Script_SetBinding(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: SetBinding(\"key\" [, \"command\"])");
+    return luaL_error(L, "Usage: SetBinding(\"KEY\"[, \"COMMAND\"])");
   }
-  const char   *command = lua_isstring(L, 2) ? lua_tostring(L, 2) : "";
   CGUIBindings *bindings = CGUIBindings::GetActive();
-  FATALASSERT(bindings);
-  lua_pushnumber(L, bindings->Bind(lua_tostring(L, 1), command));
+  ASSERT(bindings);
+  if (bindings->Bind(lua_tostring(L, 1), lua_tostring(L, 2))) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -550,12 +553,16 @@ static int __fastcall Script_GetBindingAction(lua_State *L) {
 
 static int __fastcall Script_RunBinding(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: RunBinding(\"command\")");
+    return luaL_error(L, "Usage: RunBinding(\"COMMAND\")");
   }
   CGUIBindings *bindings = CGUIBindings::GetActive();
-  FATALASSERT(bindings);
-  lua_pushnumber(L, bindings->ExecCommand(lua_tostring(L, 1), OsGetAsyncTimeMs(), 1));
-  return 1;
+  ASSERT(bindings);
+  int down = 1;
+  if (lua_isstring(L, 2)) {
+    down = SStrCmpI(lua_tostring(L, 2), "up", 0x7FFFFFFF) != 0;
+  }
+  bindings->ExecCommand(lua_tostring(L, 1), OsGetAsyncTimeMs(), down);
+  return 0;
 }
 
 static int __fastcall Script_ResetBindings(lua_State *L) {

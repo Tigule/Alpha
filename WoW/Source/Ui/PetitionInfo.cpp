@@ -152,7 +152,11 @@ static int __fastcall Script_GetPetitionInfo(lua_State *L) {
     lua_pushnumber(L, static_cast<double>(petition->m_maxSignatures));
     const NameCache *name = g_nameDBCache.GetRecord(petition->m_petitioner, petition->m_petitioner, 0, 0);
     lua_pushstring(L, name ? name->m_name : 0);
-    petition->m_petitioner == ClntObjMgrGetActivePlayer() ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+    if (petition->m_petitioner == ClntObjMgrGetActivePlayer()) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
   } else {
     lua_pushnil(L);
     lua_pushnil(L);
@@ -197,7 +201,11 @@ static int __fastcall Script_CanSignPetition(lua_State *L) {
       canSign = 0;
     }
   }
-  canSign ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (canSign) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 

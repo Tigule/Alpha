@@ -1,6 +1,7 @@
 #include "ActionBarFrame.h"
 
 #include "Base/CDataStore.h"
+#include "DB/DBClient/AutoCode/SkillLineAbilityRec.h"
 #include "DB/DBClient/AutoCode/SpellShapeshiftFormRec.h"
 #include "DB/DBClient/AutoCode/SpellIconRec.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"
@@ -12,6 +13,7 @@
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "FrameScript/FrameScript.h"
+#include "FrameXML/LoadXML.h"
 #include "SoundInterface/SoundInterface.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
@@ -21,12 +23,39 @@
 #include <storm.h>
 
 bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
+int __fastcall  Spell_C_GetManaCost(int id, int isPet);
 int __fastcall  Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
 int __fastcall  Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
 int __fastcall  Spell_C_GetModalSpell();
+const unsigned __int64 &__fastcall Spell_C_GetModalItem();
 int __fastcall  Spell_C_GetTargettingSpell();
+bool __fastcall Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
+bool __fastcall Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
+int __fastcall  Spell_C_NeedsCooldownEvent(const SpellRec *spell, int isPet);
+int __fastcall  Spell_C_NeedsCooldownEvent(int itemID);
 void __fastcall Spell_C_StopTargeting();
 void __fastcall Spell_C_CancelAura(int spellID);
+const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
+
+class CGTradeSkillInfo {
+ public:
+  static int __fastcall GetSkillLine() {
+    return m_skillLine;
+  }
+
+ private:
+  static int m_skillLine;
+};
+
+class CGCraftInfo {
+ public:
+  static SPELL_CAST_UI_TYPE __fastcall GetCraftType() {
+    return m_craftType;
+  }
+
+ private:
+  static SPELL_CAST_UI_TYPE m_craftType;
+};
 
 int          CGActionBar::m_slotActions[120];
 unsigned int CGActionBar::m_bonusPage;
@@ -58,22 +87,163 @@ void __fastcall CGActionBar::UpdateBonusBar() {
 
 int __fastcall CGActionBar::IsUsableAction(int id, int &noMana) {
   noMana = 0;
-  if (!HasAction(id)) {
+
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(
+      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
     return 0;
   }
-  if (IsItem(id)) {
-    return GetCount(id) > 0;
+
+  const CGUnitData *unitData = player->GetUnitData();
+  if (IsAttackAction(id)) {
+    return !(unitData->flags & 0x20000);
   }
-  return g_spellDB.GetRecord(GetSpell(id)) != 0;
+
+  int action = m_slotActions[id];
+  if (action < 0) {
+    return !Spell_C_NeedsCooldownEvent(-action);
+  }
+  if (!action || IsToggledAction(id)) {
+    return 1;
+  }
+
+  const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
+  if (!spell ||
+      !Spell_C_HaveSpellTokens(player, spell, false) ||
+      !Spell_C_HaveEquippedSpellItems(player, spell, true, false))
+  {
+    return 0;
+  }
+
+  if ((spell->m_attributesEx & 0x500000) && !unitData->comboPoints) {
+    return 0;
+  }
+
+  if (spell->m_shapeshiftMask &&
+      !(spell->m_shapeshiftMask & (1 << (unitData->shapeshiftForm - 1))))
+  {
+    return 0;
+  }
+
+  if ((spell->m_attributes & 0x10000) && player->IsShapeShifted()) {
+    return 0;
+  }
+
+  if ((spell->m_attributes & 0x20000) && !(unitData->flags & 0x8000)) {
+    return 0;
+  }
+  if ((spell->m_attributes & 0x10000000) && (unitData->flags & 0x80000)) {
+    return 0;
+  }
+
+  if (spell->m_casterAuraState &&
+      !(unitData->auraState & (1 << (spell->m_casterAuraState - 1))))
+  {
+    return 0;
+  }
+
+  if (spell->m_targetAuraState && spell->m_implicitTargetA[0] == 6) {
+    CGUnit_C *target = static_cast<CGUnit_C *>(
+        ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
+    if (!target ||
+        !(target->GetUnitData()->auraState & (1 << (spell->m_targetAuraState - 1))))
+    {
+      return 0;
+    }
+  }
+
+  if ((spell->m_attributes & 0x2000000) && Spell_C_NeedsCooldownEvent(spell, 0)) {
+    return 0;
+  }
+
+  int power = spell->m_powerType == -2
+      ? unitData->health
+      : unitData->power[spell->m_powerType];
+  if (Spell_C_GetManaCost(spell->m_ID, 0) <= power) {
+    return 1;
+  }
+
+  noMana = 1;
+  return 0;
 }
 
 int __fastcall CGActionBar::IsCurrentAction(int id) {
-  int spell = GetSpell(id);
-  return spell && (spell == Spell_C_GetModalSpell() || spell == Spell_C_GetTargettingSpell());
+  int action = m_slotActions[id];
+  if (!action) {
+    return 0;
+  }
+
+  if (IsAttackAction(id)) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(
+        ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    return player && (player->GetUnitData()->flags & 0x400);
+  }
+
+  if (action < 0) {
+    CGObject_C *item = ClntObjMgrObjectPtr(Spell_C_GetModalItem(), __FILE__, __LINE__);
+    return item && item->GetEntryID() == -action;
+  }
+
+  int spellID = GetSpell(id);
+  if (Spell_C_GetModalSpell() == spellID || Spell_C_GetTargettingSpell() == spellID) {
+    return 1;
+  }
+
+  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  if (!spell) {
+    return 0;
+  }
+
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(
+      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (player && spell->m_effect[0] == 47) {
+    if (spell->m_effectMiscValue[0]) {
+      if (CGCraftInfo::GetCraftType() == spell->m_effectMiscValue[0]) {
+        return 1;
+      }
+    } else {
+      const SkillLineAbilityRec *ability =
+          SpellTableLookupAbility(player->GetUnitData()->race, player->GetUnitData()->classId, spell->m_ID);
+      if (ability && CGTradeSkillInfo::GetSkillLine() == ability->m_skillLine) {
+        return 1;
+      }
+    }
+  }
+
+  unsigned int effect;
+  for (effect = 0; effect < 3; ++effect) {
+    if (spell->m_effectAura[effect] == 36) {
+      break;
+    }
+  }
+  if (effect >= 3) {
+    return 0;
+  }
+
+  int form = spell->m_effectMiscValue[effect];
+  return form && player && player->GetUnitData()->shapeshiftForm == form;
 }
 
 int __fastcall CGActionBar::IsToggledAction(int id) {
-  return IsCurrentAction(id);
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(
+      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
+    return 0;
+  }
+
+  SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
+  if (!spell || !spell->m_activeIconID) {
+    return 0;
+  }
+
+  const CGUnitData    *unitData = player->GetUnitData();
+  const unsigned char *auraFlags = unitData->auraFlags;
+  for (unsigned int aura = 0; aura < 40; ++aura) {
+    if (unitData->auras[aura] == spell->m_ID && ((auraFlags[aura / 2] >> (4 * (aura % 2))) & 1)) {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 void __fastcall CGActionBar::ShowGrid() {
@@ -395,7 +565,11 @@ static int __fastcall Script_GetActionTexture(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetActionTexture(slot)");
   const char *texture = CGActionBar::GetTexture(static_cast<int>(lua_tonumber(L, 1)) - 1);
-  texture ? lua_pushstring(L, texture) : lua_pushnil(L);
+  if (texture) {
+    lua_pushstring(L, texture);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -422,14 +596,22 @@ static int __fastcall Script_GetActionCooldown(lua_State *L) {
 static int __fastcall Script_HasAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: HasAction(slot)");
-  CGActionBar::HasAction(static_cast<int>(lua_tonumber(L, 1)) - 1) ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (CGActionBar::HasAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
 static int __fastcall Script_UseAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: UseAction(slot)");
-  CGActionBar::UseAction(static_cast<int>(lua_tonumber(L, 1)) - 1, 1);
+  int checkCursor = 0;
+  if (lua_isstring(L, 2)) {
+    checkCursor = StringToBOOL(lua_tostring(L, 2));
+  }
+  CGActionBar::UseAction(static_cast<int>(lua_tonumber(L, 1)) - 1, checkCursor);
   return 0;
 }
 
@@ -450,14 +632,22 @@ static int __fastcall Script_PlaceAction(lua_State *L) {
 static int __fastcall Script_IsAttackAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: IsAttackAction(slot)");
-  CGActionBar::IsAttackAction(static_cast<int>(lua_tonumber(L, 1)) - 1) ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (CGActionBar::IsAttackAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
 static int __fastcall Script_IsCurrentAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: IsCurrentAction(slot)");
-  CGActionBar::IsCurrentAction(static_cast<int>(lua_tonumber(L, 1)) - 1) ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (CGActionBar::IsCurrentAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -466,8 +656,16 @@ static int __fastcall Script_IsUsableAction(lua_State *L) {
     return luaL_error(L, "Usage: IsUsableAction(slot)");
   int noMana;
   int usable = CGActionBar::IsUsableAction(static_cast<int>(lua_tonumber(L, 1)) - 1, noMana);
-  usable ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
-  noMana ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (usable) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
+  if (noMana) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 2;
 }
 
@@ -482,9 +680,9 @@ static int __fastcall Script_ChangeActionBarPage(lua_State *__formal) {
 }
 
 static int __fastcall Script_PrecacheSpellArt(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: PrecacheSpellArt(slot)");
-  CGActionBar::PrecacheButtonArt(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  if (lua_isnumber(L, 1)) {
+    CGActionBar::PrecacheButtonArt(static_cast<int>(lua_tonumber(L, 1)));
+  }
   return 0;
 }
 

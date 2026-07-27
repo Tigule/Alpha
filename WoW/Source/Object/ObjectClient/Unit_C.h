@@ -383,7 +383,7 @@ struct CGUnitData {
   unsigned int     flags;
   unsigned int     coinage;
   int              auras[56];
-  unsigned int     auraFlags[7];
+  unsigned char    auraFlags[28];
   unsigned int     auraState;
   int              modDamageDone[6];
   int              modDamageTaken[6];
@@ -420,7 +420,27 @@ struct CGUnitData {
   unsigned int     pad;
 };
 
-class CGUnit_C : public CGObject_C {
+class CGUnit {
+ public:
+  CGUnit(
+      unsigned long *storage,
+      const NTempest::C3Vector &position,
+      float facing,
+      const unsigned __int64 &guid
+  );
+  ~CGUnit();
+
+  virtual UNITAFFILIATION GetGUIDAffiliation(unsigned __int64 unit) const;
+
+ protected:
+  void SetStorage(unsigned long *storage);
+
+ public:
+  CGUnitData *m_unit;
+  CMovement m_move;
+};
+
+class CGUnit_C : public CGObject_C, public CGUnit {
   friend class CGObject_C;
 
  public:
@@ -566,7 +586,7 @@ class CGUnit_C : public CGObject_C {
   virtual const char        *GetModelFileName() const;
   virtual int                UpdateModelLoadStatus();
   void                       RequestTalkEmote(TALKANIMATION talkAnim);
-  UNITAFFILIATION            GetGUIDAffiliation(unsigned __int64 unit) const;
+  virtual UNITAFFILIATION    GetGUIDAffiliation(unsigned __int64 unit) const;
 
   const CGUnitData *GetUnitData() const {
     return m_unit;
@@ -673,6 +693,8 @@ class CGUnit_C : public CGObject_C {
   void               PlayDeathThud() const;
   int                GetStandStateAnim(HMODEL model) const;
   void               SetTorsoAnim(unsigned int newAnim);
+  int                IsSplashing(const NTempest::C3Vector &position);
+  bool               IsShapeShifted() const;
   int                IsUnderWater() const;
   unsigned int       GetRunSequence() const;
   unsigned int       GetStopSequence() const;
@@ -869,6 +891,7 @@ class CGUnit_C : public CGObject_C {
     return GetSpellRank(spellID) / 5;
   }
   bool                            IsSpellKnown(int spellID) const;
+  bool                            CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGItem_C *item);
   const SkillLineAbilityRec      *LookupAbility(int spellID) const;
   bool                            IsSpellSuperceded(int spellID) const;
   int                             GetSpellSkillLine(int spellID) const;
@@ -982,6 +1005,7 @@ class CGUnit_C : public CGObject_C {
   void             SaveQuestAddItemMessage(int killed, int needed);
   void             ProcessQuestItemMessages();
   void             AddDamageDone(unsigned int damage, int normalCombatDamage, unsigned int flags, unsigned __int64 attacker, int spellID);
+  void             SpellEventHit();
   void             ShowPlayerXPGained();
   void             WeaponModeChanged();
   void             VirtualComponentChanged(int slot, int oldValue);
@@ -1012,6 +1036,8 @@ class CGUnit_C : public CGObject_C {
   void             FinishAuraDecays();
   void             RegisterScript();
   void             UnregisterScript();
+  void             TriggerPlayerNameUpdate();
+  void             PlayerNameVisibilityChanged(int nameVisible);
   void             UpdatePlayerNameColor();
   void             SetForcedAnimation(const char *string);
   void             ResetForcedAnimation();
@@ -1021,11 +1047,6 @@ class CGUnit_C : public CGObject_C {
 
   friend void __fastcall MovementFixOutOfBoundsUnit(unsigned __int64 guid);
 
-  void                                                  *m_unitVTable;
-  unsigned int                                           m_unitUnknown;
-  CGUnitData                                            *m_unit;
-  unsigned int                                           m_unitPadding;
-  CMovement                                              m_movement;
   int                                                    m_questCountKilled;
   int                                                    m_questCountNeeded;
   HMODEL                                                 m_resEffectModel;

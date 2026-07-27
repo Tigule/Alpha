@@ -16,6 +16,8 @@ static const char *token;
 static int         s_lastNumber;
 
 int __fastcall  Spell_C_GetSpellLevel(int id, int isPet);
+int __fastcall  Spell_C_GetManaCost(int id, int isPet);
+int __fastcall  Spell_C_GetManaCostPerSecond(int id, int isPet);
 void __fastcall Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet);
 
 bool __fastcall QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
@@ -277,7 +279,7 @@ int __fastcall SpellParserReplaceText(char *buf, unsigned int size, const SpellR
     }
     case 'C':
     case 'c':
-      SStrPrintf(string, sizeof(string), "%d", Spell_C_GetSpellLevel(spell->m_ID, isPet));
+      SStrPrintf(string, sizeof(string), "%d", Spell_C_GetManaCost(spell->m_ID, isPet));
       SStrPack(buf, string, size);
       break;
     case 'D':
@@ -285,11 +287,22 @@ int __fastcall SpellParserReplaceText(char *buf, unsigned int size, const SpellR
       const SpellDurationRec *duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);
       if (duration) {
         int milliseconds = duration->m_duration + level * duration->m_durationPerLevel;
-        if (milliseconds > duration->m_maxDuration) {
+        if (milliseconds >= duration->m_maxDuration) {
           milliseconds = duration->m_maxDuration;
         }
-        SStrPrintf(string, sizeof(string), "%d", milliseconds / (milliseconds >= 60000 ? 60000 : 1000));
-        SStrPack(buf, string, size);
+        if (milliseconds <= 0) {
+          SStrPack(buf, FrameScript_GetText("SPELL_DURATION_UNTIL_CANCELLED", -1, GENDER_NOT_APPLICABLE), size);
+        } else {
+          char format[64];
+          char formatted[64];
+          SStrCopy(
+              format,
+              FrameScript_GetText(milliseconds < 60000 ? "SPELL_DURATION_SEC" : "SPELL_DURATION_MIN", -1, GENDER_NOT_APPLICABLE),
+              sizeof(format)
+          );
+          SStrPrintf(formatted, sizeof(formatted), format, milliseconds / (milliseconds >= 60000 ? 60000 : 1000));
+          SStrPack(buf, formatted, size);
+        }
       }
       break;
     }
@@ -310,6 +323,33 @@ int __fastcall SpellParserReplaceText(char *buf, unsigned int size, const SpellR
       int min;
       int max;
       Spell_C_GetMinMaxPoints(spell, effect, &min, &max, level, isPet);
+
+      if (*token == 'O' || *token == 'o') {
+        int period = spell->m_effectAuraPeriod[effect];
+        if (!period) {
+          period = 5000;
+        }
+        if (period > 0) {
+          const SpellDurationRec *duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);
+          if (duration) {
+            int milliseconds = duration->m_duration + level * duration->m_durationPerLevel;
+            if (milliseconds >= duration->m_maxDuration) {
+              milliseconds = duration->m_maxDuration;
+            }
+            if (milliseconds > 0) {
+              min = min * milliseconds / period;
+              max = max * milliseconds / period;
+            } else {
+              min = 0;
+              max = 0;
+            }
+          }
+        } else {
+          min = 0;
+          max = 0;
+        }
+      }
+
       min = abs(min);
       max = abs(max);
       s_lastNumber = *token == 'M' ? max : min;
@@ -320,27 +360,33 @@ int __fastcall SpellParserReplaceText(char *buf, unsigned int size, const SpellR
       } else if (min == max) {
         SStrPrintf(string, sizeof(string), "%d", min);
       } else {
-        SStrPrintf(string, sizeof(string), "%d - %d", min, max);
+        SStrPrintf(
+            string,
+            sizeof(string),
+            FrameScript_GetText("SPELL_POINTS_SPREAD_TEMPLATE", -1, GENDER_NOT_APPLICABLE),
+            min,
+            max
+        );
       }
       SStrPack(buf, string, size);
       break;
     }
     case 'P':
     case 'p':
-      SStrPrintf(string, sizeof(string), "%d", spell->m_effectBasePoints[effect]);
+      SStrPrintf(string, sizeof(string), "%d", Spell_C_GetManaCostPerSecond(spell->m_ID, isPet));
       SStrPack(buf, string, size);
       break;
     case 'R':
     case 'r': {
       const SpellRangeRec *range = g_spellRangeDB.GetRecord(spell->m_rangeIndex > 1 ? spell->m_rangeIndex : 1);
       if (range) {
-        SStrPack(buf, range->m_displayNameShort_lang[CURRENT_LANGUAGE], size);
+        SStrPack(buf, range->m_displayName_lang[CURRENT_LANGUAGE], size);
       }
       break;
     }
     case 'T':
     case 't':
-      SStrPrintf(string, sizeof(string), "%d", ((spell->m_channelInterruptFlags & 8) ? 5000 : spell->m_effectAmplitude[effect]) / 1000);
+      SStrPrintf(string, sizeof(string), "%d", ((spell->m_procFlags & 8) ? 5000 : spell->m_effectAuraPeriod[effect]) / 1000);
       SStrPack(buf, string, size);
       break;
     case 'X':
@@ -361,7 +407,7 @@ int __fastcall SpellParserReplaceText(char *buf, unsigned int size, const SpellR
   return 1;
 }
 
-bool __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet) {
+int __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet) {
   FATALASSERT(spell);
   FATALASSERT(buf);
   buf[0] = 0;

@@ -269,6 +269,7 @@ class CWorld {
   static void __fastcall         SetUpdateTime(float elapsedSec, unsigned long pCurTimeMs);
   static void __fastcall         Update();
   static void __fastcall         ObjectGetExtents(unsigned int id, NTempest::CAaBox &extents);
+  static void __fastcall         ObjectEnableCollision(unsigned int id, int enable);
   static bool __fastcall         ObjectTestConvexVolume(unsigned int id, const NTempest::C3Vector &pos);
   static void __fastcall         ObjectDelete(unsigned int id);
   static void __fastcall         SetHidden(unsigned long hWorldObject, int hidden);

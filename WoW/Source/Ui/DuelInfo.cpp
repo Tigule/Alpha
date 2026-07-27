@@ -3,7 +3,9 @@
 #include "GameUI.h"
 #include "SpellBookFrame.h"
 #include "Object/ObjectClient/Object_C.h"
+#include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "WowSvcs/WowSvcsClient/FriendList.h"
 
 #include <Base/CDataStore.h>
 #include <FrameScript/FrameScript.h>
@@ -73,7 +75,19 @@ int __fastcall CGDuelInfo::OnDuelRequested(void *__formal, NETMESSAGE msgId, uns
   unsigned __int64 requestedBy;
   msg->Get(m_arbiter);
   msg->Get(requestedBy);
-  FrameScript_SignalEvent(363);
+
+  if (requestedBy == ClntObjMgrGetActivePlayer()) {
+    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(281));
+    AcceptDuel();
+  } else if (g_friendList->IsIgnored(requestedBy)) {
+    CancelDuel();
+    m_arbiter = 0;
+  } else {
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(requestedBy, __FILE__, __LINE__));
+    if (unit) {
+      FrameScript_SignalEvent(363, "%s", unit->GetUnitName());
+    }
+  }
   return 1;
 }
 
@@ -88,10 +102,15 @@ int __fastcall CGDuelInfo::OnDuelInBounds(void *__formal, NETMESSAGE msgId, unsi
 }
 
 int __fastcall CGDuelInfo::OnDuelComplete(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
-  unsigned int started;
-  msg->Get(reinterpret_cast<unsigned char &>(started));
-  m_arbiter = 0;
-  FrameScript_SignalEvent(366);
+  unsigned char started;
+  msg->Get(started);
+  if (m_arbiter) {
+    if (!started) {
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(282));
+    }
+    m_arbiter = 0;
+    FrameScript_SignalEvent(366);
+  }
   return 1;
 }
 

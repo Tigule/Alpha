@@ -1,3 +1,6 @@
+struct lua_State;
+static int __fastcall Script_HasFullControl(lua_State *L);
+
 #include <FrameScript/FrameScript.h>
 #include <Frame/CSimpleRender.h>
 
@@ -8,6 +11,7 @@
 #include "DB/WowLocale.h"
 #include "Game/GameTime.h"
 #include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/GameUI.h"
@@ -56,7 +60,6 @@ static int __fastcall Script_UnitDefense(lua_State *L);
 static int __fastcall Script_UnitArmor(lua_State *L);
 static int __fastcall Script_UnitCharacterPoints(lua_State *L);
 static int __fastcall Script_SetPortraitTexture(lua_State *L);
-static int __fastcall Script_HasFullControl(lua_State *L);
 static int __fastcall Script_GetComboPoints(lua_State *L);
 static int __fastcall Script_IsInGuild(lua_State *L);
 
@@ -727,8 +730,9 @@ static int __fastcall Script_UnitAttackBothHands(lua_State *L) {
   }
   unit = GetScriptUnit(L, 1);
   if (unit) {
-    base[0] = unit->GetUnitData()->baseStats[0];
-    base[1] = base[0];
+    for (i = 0; i < 2; ++i) {
+      unit->GetAttackSkillRank(i, base[i], modifier[i]);
+    }
   }
   for (i = 0; i < 2; ++i) {
     lua_pushnumber(L, base[i]);
@@ -748,13 +752,14 @@ static int __fastcall Script_UnitDamage(lua_State *L) {
   lua_pushnumber(L, unit ? unit->GetUnitData()->minDamage : 0);
   lua_pushnumber(L, unit ? unit->GetUnitData()->maxDamage : 0);
   for (i = 0; i < 6; ++i) {
-    lua_pushnumber(L, unit ? unit->GetUnitData()->modDamageDone[i] : 0);
+    lua_pushnumber(L, unit && !i ? unit->GetUnitData()->modDamageDone[0] : 0);
   }
   return 8;
 }
 
 static int __fastcall Script_UnitAttackSpeed(lua_State *L) {
   CGUnit_C *unit;
+  CGItem_C *offhand = 0;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitAttackSpeed(\"unit\")");
@@ -762,6 +767,14 @@ static int __fastcall Script_UnitAttackSpeed(lua_State *L) {
   unit = GetScriptUnit(L, 1);
   if (unit && (unit->GetType() & TYPE_PLAYER)) {
     lua_pushnumber(L, unit->GetUnitData()->attackRoundBaseTime[0] * 0.001);
+    CGBag_C *bag = unit->GetBag();
+    if (bag) {
+      offhand = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(16), __FILE__, __LINE__));
+    }
+    if (offhand && offhand->GetClassID() == 2) {
+      lua_pushnumber(L, unit->GetUnitData()->attackRoundBaseTime[1] * 0.001);
+      return 2;
+    }
   } else {
     lua_pushnumber(L, 0.0);
   }
@@ -779,7 +792,7 @@ static int __fastcall Script_UnitDefense(lua_State *L) {
   }
   unit = GetScriptUnit(L, 1);
   if (unit) {
-    base = unit->GetUnitData()->level * 5;
+    unit->GetDefenseSkillRank(base, modifier);
   }
   lua_pushnumber(L, base);
   lua_pushnumber(L, modifier);
@@ -861,7 +874,7 @@ static int __fastcall Script_SetPortraitTexture(lua_State *L) {
 
 static int __fastcall Script_HasFullControl(lua_State *L) {
   CGUnit_C *player = Script_GetUnitFromName("player");
-  PushBoolean(L, player && !(player->GetUnitData()->flags & 0x100000) && player->GetUnitData()->health > 0);
+  PushBoolean(L, player && !(player->GetUnitData()->flags & 0x100000) && player->GetUnitData()->health > 0 && CGGameUI::m_hasControl);
   return 1;
 }
 

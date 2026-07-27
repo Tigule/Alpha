@@ -49,6 +49,11 @@ class CGItem {
   friend class CGItemText;
   friend class CGPlayer_C;
 
+ public:
+  unsigned __int64 GetCreator() {
+    return m_item->m_creator;
+  }
+
  protected:
   CGItemData *m_item;
 };

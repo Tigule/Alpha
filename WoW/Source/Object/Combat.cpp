@@ -2,7 +2,11 @@
 
 #include "Object/Object.h"
 
-void CCombat::SetClientInitData(CClientObjCreate &init) {
+void CCombat::GetClientInitData(CClientObjCreate *init) const {
+  init->victim = m_victim;
+}
+
+void CCombat::SetClientInitData(const CClientObjCreate &init) {
   m_victim = init.victim;
 }
 

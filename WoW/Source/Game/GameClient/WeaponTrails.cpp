@@ -247,6 +247,23 @@ WTOBJECT::WTOBJECT()
     : m_model(0), m_geosetID(-1), m_bottomCoord(0.0f), m_topCoord(0.0f), m_color(0ul), m_fadeOutRate(-1), m_flags(0), m_timer(0), m_currentAlpha(0) {
 }
 
+void WTOBJECT::Recycle() {
+  m_flags = 0;
+  while (SWING *swing = m_swings.Head()) {
+    swing->Recycle();
+    swing->~SWING();
+    s_freeSwings.PutData(swing, 0, 0);
+  }
+  if (m_geosetID != -1) {
+    ModelCustGeosetRemove(m_model, m_geosetID);
+  }
+  m_geosetID = -1;
+  if (m_model) {
+    HandleClose(m_model);
+  }
+  m_model = 0;
+}
+
 void WTOBJECT::RenderVerts(const NTempest::C3Vector &cameraPos) {
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsPush();

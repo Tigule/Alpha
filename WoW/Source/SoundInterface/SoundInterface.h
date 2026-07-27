@@ -121,6 +121,12 @@ bool __fastcall   SndInterfacePlaySound(unsigned int soundID, int forceIndex);
 bool __fastcall   SndInterfacePlaySound(unsigned int soundID, const NTempest::C3Vector &position, int forceIndex, float volumeScaler);
 bool __fastcall   SoundInterfaceIsSoundLooping(unsigned int soundID, bool &looping);
 bool __fastcall   SndInterfacePlaySplashSound(unsigned int soundID, const NTempest::C3Vector &position);
+void __fastcall   SndInterfacePlayFootstepSound(
+    unsigned int footstepID,
+    const NTempest::C3Vector &position,
+    unsigned int terrainID,
+    int splashing
+);
 void __fastcall   SndInterfacePlayFoleySound(unsigned int materialID, const NTempest::C3Vector &position);
 Sound *__fastcall SndInterfacePlayLoopedSound(unsigned int soundID, unsigned int loopCount);
 Sound *__fastcall SndInterfacePlayLoopedSound(unsigned int soundID, const NTempest::C3Vector &position, unsigned int loopCount);

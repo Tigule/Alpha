@@ -461,36 +461,59 @@ static int __fastcall Script_GetInventoryItemTexture(lua_State *L) {
 
 static int __fastcall Script_GetInventoryItemCount(lua_State *L) {
   int slot;
-  if (!GetSlotFromLua(L, slot, 2)) {
+  if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetInventoryItemCount(unit, slot)");
   }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!GetSlotFromLua(L, slot, 2)) {
+    return luaL_error(L, "Invalid inventory slot in GetInventoryItemCount");
+  }
+  CGUnit_C   *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  CGPlayer_C *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
   CGBag_C    *bag = player ? player->GetBag() : 0;
   CGItem_C   *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
-  lua_pushnumber(L, item ? static_cast<double>(item->GetStackCount()) : 0.0);
+  int         count = 1;
+  if (item && item->GetType() & TYPE_CONTAINER && item->GetClassID() == 11) {
+    CGBag_C *container = item->GetBag();
+    count = container ? container->GetItemTypeCount(-1, 0) : 0;
+  } else if (item) {
+    count = item->GetStackCount();
+  }
+  lua_pushnumber(L, static_cast<double>(count));
   return 1;
 }
 
 static int __fastcall Script_GetInventoryItemQuality(lua_State *L) {
   int slot;
-  if (!GetSlotFromLua(L, slot, 2)) {
+  if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetInventoryItemQuality(unit, slot)");
   }
-  CGPlayer_C      *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!GetSlotFromLua(L, slot, 2)) {
+    return luaL_error(L, "Invalid inventory slot in GetInventoryItemQuality");
+  }
+  CGUnit_C        *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  CGPlayer_C      *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
   CGBag_C         *bag = player ? player->GetBag() : 0;
   CGItem_C        *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
+  if (!item) {
+    lua_pushnil(L);
+    return 1;
+  }
   unsigned __int64 noGuid = 0;
-  const ItemStats *stats = item ? g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0) : 0;
-  lua_pushnumber(L, stats ? static_cast<double>(stats->m_overallQualityID) : -1.0);
+  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0);
+  lua_pushnumber(L, stats && stats->m_inventoryType ? static_cast<double>(stats->m_overallQualityID) : -1.0);
   return 1;
 }
 
 static int __fastcall Script_GetInventoryItemCooldown(lua_State *L) {
   int slot;
-  if (!GetSlotFromLua(L, slot, 2)) {
+  if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetInventoryItemCooldown(unit, slot)");
   }
-  CGPlayer_C   *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!GetSlotFromLua(L, slot, 2)) {
+    return luaL_error(L, "Invalid inventory slot in GetInventoryItemCooldown");
+  }
+  CGUnit_C     *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  CGPlayer_C   *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
   CGBag_C      *bag = player ? player->GetBag() : 0;
   CGItem_C     *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
   unsigned int  duration = 0;
@@ -507,10 +530,14 @@ static int __fastcall Script_GetInventoryItemCooldown(lua_State *L) {
 
 static int __fastcall Script_GetInventoryItemLink(lua_State *L) {
   int slot;
-  if (!GetSlotFromLua(L, slot, 2)) {
+  if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetInventoryItemLink(unit, slot)");
   }
-  CGPlayer_C      *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!GetSlotFromLua(L, slot, 2)) {
+    return luaL_error(L, "Invalid inventory slot in GetInventoryItemLink");
+  }
+  CGUnit_C        *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  CGPlayer_C      *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
   CGBag_C         *bag = player ? player->GetBag() : 0;
   CGItem_C        *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
   unsigned __int64 noGuid = 0;
@@ -550,7 +577,11 @@ static int __fastcall Script_IsInventoryItemLocked(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   CGBag_C    *bag = player ? player->GetBag() : 0;
   CGItem_C   *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
-  item && !item->IsUnlocked() ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  if (item && !item->IsUnlocked()) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -564,26 +595,45 @@ static int __fastcall Script_GetSkillLineInfo(lua_State *L) {
 }
 
 static int __fastcall Script_GetSkillByIndex(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetSkillByIndex(index)");
+  int offset = 0;
+  if (!lua_isstring(L, 1) ||
+      !CGCharacterInfo::GetSkillOffsetFromString(lua_tostring(L, 1), offset) ||
+      !lua_isnumber(L, 2)) {
+    return luaL_error(L, "Invalid skill index in GetSkillByIndex(\"skillType\", index)");
   }
-  SkillInfo *info = CGCharacterInfo::GetSkillInfoByIndex(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  SkillInfo *info =
+      CGCharacterInfo::GetSkillInfoByIndex(static_cast<int>(lua_tonumber(L, 2)) + offset);
   if (!info) {
-    return 0;
+    return luaL_error(L, "Invalid skill index in GetSkillByIndex(\"skillType\", index)");
   }
+
   if (info->isProf) {
     lua_pushstring(L, info->profName);
     lua_pushnumber(L, static_cast<double>(info->profLevel));
-    lua_pushnil(L);
-    lua_pushnil(L);
+    lua_pushnumber(L, 0.0);
+    lua_pushnumber(L, 0.0);
+    lua_pushnumber(L, 0.0);
   } else {
     SkillLineRec *skill = g_skillLineDB.GetRecord(info->skillID);
-    skill ? lua_pushstring(L, skill->m_displayName_lang[CURRENT_LANGUAGE]) : lua_pushnil(L);
-    lua_pushnumber(L, 0.0);
-    lua_pushnumber(L, 0.0);
-    lua_pushnumber(L, 0.0);
+    if (!skill) {
+      return 5;
+    }
+    lua_pushstring(L, skill->m_displayName_lang[CURRENT_LANGUAGE]);
+    lua_pushnumber(L, static_cast<double>(skill->m_minCharLevel));
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(
+        ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (!player) {
+      lua_pushnumber(L, 0.0);
+      lua_pushnumber(L, 0.0);
+      lua_pushnumber(L, 0.0);
+      return 5;
+    }
+    int skillIndex = player->GetSkillIndex(info->skillID);
+    lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillRank(skillIndex)));
+    lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillModifier(skillIndex)));
+    lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillMaxRank(skillIndex)));
   }
-  return 4;
+  return 5;
 }
 
 static int __fastcall Script_PutItemInBag(lua_State *L) {
@@ -608,10 +658,18 @@ static int __fastcall Script_PickupBagFromSlot(lua_State *L) {
 }
 
 static int __fastcall Script_CursorCanGoInSlot(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: CursorCanGoInSlot(slot)");
+  int slot;
+  if (!GetSlotFromLua(L, slot, 1)) {
+    return luaL_error(L, "Invalid inventory slot in CursorCanGoInSlot");
   }
-  CGGameUI::GetCursorItem() ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(
+      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  unsigned __int64 cursorItem = CGGameUI::GetCursorItem();
+  if (player && player->ValidateSlot(slot, cursorItem)) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -655,13 +713,25 @@ void __fastcall GuildNameCallback(int, const unsigned __int64 &, void *, bool gr
 }
 
 static int __fastcall Script_GetGuildInfo(lua_State *L) {
-  CGPlayer_C         *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned __int64    noGuid = 0;
-  const GuildStats_C *guild = player && player->GetGuildID() ? g_guildInfoCache.GetRecord(player->GetGuildID(), noGuid, GuildNameCallback, 0) : 0;
-  guild ? lua_pushstring(L, guild->m_guildName) : lua_pushnil(L);
-  lua_pushnil(L);
-  lua_pushnumber(L, player ? static_cast<double>(player->GetGuildRank()) : 0.0);
-  return 3;
+  if (!lua_isstring(L, 1)) {
+    return luaL_error(L, "Usage: GetGuildInfo(\"unit\")");
+  }
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  CGPlayer_C *player =
+      unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
+  unsigned __int64 guid = unit ? unit->GetGUID() : 0;
+  const GuildStats_C *guild =
+      player && player->GetGuildID()
+          ? g_guildInfoCache.GetRecord(player->GetGuildID(), guid, GuildNameCallback, 0)
+          : 0;
+  if (guild) {
+    lua_pushstring(L, guild->m_guildName);
+    lua_pushnumber(L, static_cast<double>(player->GetGuildRank()));
+  } else {
+    lua_pushnil(L);
+    lua_pushnumber(L, 0.0);
+  }
+  return 2;
 }
 
 static FrameScript_Method s_ScriptFunctions[18] = {

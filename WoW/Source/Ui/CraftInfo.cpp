@@ -41,7 +41,7 @@ static int __cdecl QSortPetSkills(const void *a, const void *b);
 static int __cdecl QSortSkillLines(const void *a, const void *b);
 
 bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
-bool __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
+int __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
 
 class CGCraftInfo {
  public:
@@ -404,7 +404,7 @@ static int __fastcall Script_CloseCraft(lua_State *__formal) {
 
 static int __fastcall Script_GetCraftName(lua_State *L) {
   CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const SpellRec *spell = player ? g_spellDB.GetRecord(player->GetSkillIndex(CGCraftInfo::GetCraftType())) : 0;
+  const SpellRec *spell = player ? g_spellDB.GetRecord(player->GetCraftSkillActivator(CGCraftInfo::GetCraftType())) : 0;
   lua_pushstring(L, spell ? spell->m_name_lang[CURRENT_LANGUAGE] : 0);
   return 1;
 }

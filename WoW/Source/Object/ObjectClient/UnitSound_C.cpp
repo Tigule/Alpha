@@ -7,8 +7,10 @@
 #include "DB/DBClient/AutoCode/CreatureModelDataRec.h"
 #include "DB/DBClient/AutoCode/DeathThudLookupsRec.h"
 #include "DB/DBClient/AutoCode/ItemSubClassRec.h"
+#include "DB/DBClient/AutoCode/NPCSoundsRec.h"
 #include "DB/DBClient/AutoCode/SoundEntriesRec.h"
 #include "DB/DBClient/AutoCode/TerrainTypeRec.h"
+#include "DB/DBClient/AutoCode/TerrainTypeSoundsRec.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
@@ -23,17 +25,18 @@ struct DEATTHUDSOUNDINFO {
 
 static TSFixedArray<DEATTHUDSOUNDINFO> s_deathThudSounds[5];
 
+static unsigned int s_creatureIpactSounds[4] = {0, 8, 7, 9};
 static unsigned int s_unitSoundTimeouts[16] = {0, 0, 0, 0, 0, 0, 0, 10000, 0, 0, 0, 0, 0, 0, 0, 0};
 static unsigned int s_unitSoundChances[16] = {70, 100, 60, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 static unsigned int s_unitSoundTimers[16];
 static CVar        *s_footstepSoundCVar;
 static int          soundDataOffsets[16] = {4, 8, 12, 16, 24, 28, 32, 0, 36, 40, 44, 52, 20, 48, 100, 104};
 
-int __fastcall GetSoundID(CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
+int __fastcall GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
   FATALASSERT(soundData);
   FATALASSERT(static_cast<unsigned int>(soundType) < 16);
   int offset = soundDataOffsets[soundType];
-  return offset ? *reinterpret_cast<int *>(reinterpret_cast<unsigned char *>(soundData) + offset) : 0;
+  return offset ? *reinterpret_cast<const int *>(reinterpret_cast<const unsigned char *>(soundData) + offset) : 0;
 }
 
 int __fastcall GetFidgetSoundID(const CreatureSoundDataRec* soundData, unsigned int soundType) {
@@ -50,7 +53,7 @@ static int __fastcall CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
 }
 
 void __fastcall GenerateDeathThudSounds() {
-  unsigned int maxTerrainFootstepID = g_terrainTypeDB.GetMaxID();
+  unsigned int maxTerrainFootstepID = g_terrainTypeSoundsDB.GetMaxID();
   for (unsigned int i = 0; i < 5; ++i) {
     s_deathThudSounds[i].SetCount(maxTerrainFootstepID + 1);
   }
@@ -108,9 +111,13 @@ void CGUnit_C::HandlePlayStandSound(unsigned long code, const char *eventName) {
 }
 
 void CGUnit_C::HandleFootfallAnimEvent(const NTempest::C3Vector &position) {
-  if (m_soundData && m_soundData->m_soundFootstepID) {
-    SndInterfacePlaySound(m_soundData->m_soundFootstepID, position, -1, 1.0f);
+  const CreatureSoundDataRec *soundData = GetSoundData();
+  int                         soundID = GetSoundID(soundData, UNITSOUNDTYPE_FOOTFALL);
+  if (soundID && s_footstepSoundCVar->GetInt()) {
+    int splashing = IsSplashing(position);
+    SndInterfacePlayFootstepSound(soundID, position, m_terrain, splashing);
   }
+  PlayFoleySound();
 }
 
 void CGUnit_C::PlayFidgetSound(unsigned int fidgetNumber) {
@@ -185,12 +192,12 @@ void CGUnit_C::PlayDeathThud() const {
   NTempest::C3Vector pos;
   GetPosition(pos);
 
-  NTempest::C3Vector flowDir;
+  NTempest::C3Vector flowDir(0.0f);
   unsigned int       liquid;
   int                deep;
   float              surfaceIntersect;
   int                inLiquid = CWorld::QueryObjectLiquid(GetWorldObject(), liquid, surfaceIntersect, flowDir, deep);
-  if (pos.z - surfaceIntersect > 2.0f) {
+  if (surfaceIntersect - pos.z > 2.0f) {
     return;
   }
 
@@ -266,36 +273,25 @@ void CGUnit_C::KillSpellLoopedSound() {
 
 int CGUnit_C::PlayNPCSound(NPCSOUNDS sound, unsigned int index) {
   FATALASSERT(sound < NUM_NPCSOUNDS);
-  if (!m_soundData) {
+  if (!m_NPCSoundsRec) {
     return 0;
   }
 
   NTempest::C3Vector position;
   GetPosition(position);
   position.z += 2.0f;
-  const int *sounds = &m_soundData->m_soundExertionID;
-  return SndInterfacePlaySound(sounds[sound], position, index, 1.0f);
+  return SndInterfacePlaySound(m_NPCSoundsRec->m_SoundID[sound], position, index, 1.0f);
 }
 
 bool CGUnit_C::GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type) {
   unsigned int slot = !mainHand;
-  int          itemDisplay;
-  if (GetType() & TYPE_PLAYER) {
-    itemDisplay = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItemDisplayID(slot);
-  } else {
-    itemDisplay = CGUnit_C::GetVirtualItemDisplayID(slot);
-  }
+  int          itemDisplay = GetVirtualItemDisplayID(slot);
   if (!itemDisplay) {
     type = WEAPONSWING_LIGHT;
     return true;
   }
 
-  const VirtualItemInfo *item;
-  if (GetType() & TYPE_PLAYER) {
-    item = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(slot, 0);
-  } else {
-    item = CGUnit_C::GetVirtualItem(slot, 0);
-  }
+  const VirtualItemInfo *item = GetVirtualItem(slot, 0);
   if (!item || item->m_classID != 2) {
     return false;
   }
@@ -308,6 +304,8 @@ bool CGUnit_C::GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type) {
 }
 
 unsigned int CGUnit_C::GetImpactType() const {
-  FATALASSERT(m_modelData);
-  return m_modelData->m_sizeClass;
+  if (m_soundData && m_soundData->m_creatureImpactType < 4) {
+    return s_creatureIpactSounds[m_soundData->m_creatureImpactType];
+  }
+  return 0;
 }

@@ -13,7 +13,9 @@
 #include "DB/DBClient/AutoCode/SpellVisualEffectNameRec.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "Ui/GameUI.h"
 #include "UIUtil/Camera.h"
+#include "Ui/WorldFrame.h"
 #include "WorldClient/World.h"
 #include <Event/EvtInt.h>
 #include <Os/OsTime.h>
@@ -35,8 +37,9 @@ void __fastcall   SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTem
 HMODEL __fastcall InitializeModel(const char *fileName, void(__fastcall *callback)(const char *, const NTempest::C3Vector &, void *), void *param);
 static void __fastcall DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size);
 static void __fastcall SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
-static void __fastcall SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
-static void __fastcall SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
+void __fastcall SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
+void __fastcall SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
+void __fastcall UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim);
 static int __fastcall  OneShotEndHandler(void *param);
 static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
 static int __fastcall  PurgeTimerHandler(const void *timerData, void *userData);
@@ -95,9 +98,9 @@ void __fastcall PreloadModelsByKit(int record, CStatus *status) {
 static void SpellAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
   unsigned int event = *reinterpret_cast<const unsigned int *>(eventName);
   if (event == 0x4B485324) {
-    SpellCameraShakeCallback(eventName + 1, position);
+    SpellCameraShakeCallback(eventName + 4, position);
   } else if (event == 0x444E5324 || event == 0x58444E53) {
-    SpellSoundEffectCallback(eventName + 1, position);
+    SpellSoundEffectCallback(eventName + 4, position);
   } else {
     SysMsgPrintf(
         SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|SpellAnimEventCallback|SpellAnimEventCallback", eventName
@@ -236,12 +239,15 @@ static void __fastcall SpellUnitAnimEventCallback(const char *eventName, const N
       if (object) {
         soundPos += object->GetPosition();
       }
-      SpellSoundEffectCallback(eventName + 1, soundPos);
+      SpellSoundEffectCallback(eventName + 4, soundPos);
       break;
     }
+    case 0x4B485324:  // $SHK
+      SpellCameraShakeCallback(eventName + 4, position);
+      break;
     case 0x54494824:  // $HIT
       if (unit) {
-        unit->PlayDeathThud();
+        unit->SpellEventHit();
       }
       break;
     default:
@@ -268,7 +274,7 @@ static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const N
 
   switch (event) {
     case 0x4B485324:  // $SHK
-      SpellCameraShakeCallback(eventName + 1, position);
+      SpellCameraShakeCallback(eventName + 4, position);
       break;
     case 0x48544424:  // $DTH
       if (node) {
@@ -281,7 +287,7 @@ static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const N
       if (node) {
         soundPos += node->position;
       }
-      SpellSoundEffectCallback(eventName + 1, soundPos);
+      SpellSoundEffectCallback(eventName + 4, soundPos);
       break;
     }
     case 0x54494824:  // $HIT
@@ -289,7 +295,7 @@ static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const N
         for (unsigned int index = 0; index < node->objects.Count(); ++index) {
           CGObject_C *object = ClntObjMgrObjectPtr(node->objects[index], __FILE__, __LINE__);
           if (object && (object->GetType() & TYPE_UNIT)) {
-            static_cast<CGUnit_C *>(object)->PlayDeathThud();
+            static_cast<CGUnit_C *>(object)->SpellEventHit();
           }
         }
       }
@@ -371,12 +377,16 @@ void __fastcall GetMissileTargetPosition(CGObject_C *target, int hitLocation, NT
 
   HMODEL model = target->GetCharacterModel(0);
   FATALASSERT(model);
-  NTempest::C3Vector modelPosition;
-  if (ModelGetObjectPosition(model, 0, &modelPosition)) {
-    position = target->GetPosition() + modelPosition;
-  } else {
-    position = target->GetPosition();
+  if (hitLocation != 2) {
+    unsigned int eventObject = hitLocation ? 25 : 24;
+    if (ModelGetEventObjectPosition(model, eventObject, 0, &position)) {
+      position += CGWorldFrame::GetActiveCamera()->Position();
+      HandleClose(model);
+      return;
+    }
+    target->ReportMissingEventObject(eventObject, 0);
   }
+  position = target->GetPosition();
   HandleClose(model);
 }
 
@@ -391,9 +401,37 @@ static int MoveMissile(MISSILENODE *node) {
     if (target && (target->GetType() & TYPE_UNIT)) {
       CGUnit_C *unit = static_cast<CGUnit_C *>(target);
       if (!node->miss) {
+        unit->SetVictimAnimation(VS_WOUND, unit->GetUnitData()->health <= 0, 0, 1000, 0);
         SpellVisualKitRec *kit = g_spellVisualKitDB.GetRecord(node->victimEffect);
         if (kit) {
           unit->PlayImpactKit(node->spellID, kit);
+        }
+      } else {
+        MISS_REASON reason = node->missReason;
+        if (reason == MISS_BLOCKED && (!unit->GetVirtualItem(1, 1) || !unit->GetVirtualItemDisplayID(1))) {
+          reason = MISS_DEFLECTED;
+        }
+        if (reason != MISS_REASON_NONE) {
+          UnitCombatLogSpellMissed(reason, node->spellID, node->caster, unit->GetGUID());
+          CGGameUI::ShowSpellMissFeedback(unit->GetGUID(), reason);
+        }
+        if (node->caster == ClntObjMgrGetActivePlayer()) {
+          unit->AddWorldText(reason);
+        }
+        switch (reason) {
+          case MISS_EVADED:
+            unit->SetVictimAnimation(VS_EVADE, 0, 0, 0, 0);
+            break;
+          case MISS_DODGED:
+          case MISS_DEFLECTED:
+            unit->SetVictimAnimation(VS_DODGE, 0, 0, 0, 0);
+            break;
+          case MISS_PARRIED:
+            unit->SetVictimAnimation(VS_PARRY, 0, 0, 0, 0);
+            break;
+          case MISS_BLOCKED:
+            unit->SetVictimAnimation(VS_BLOCK, 0, 0, 0, 0);
+            break;
         }
       }
       unit->DDDELLOG(node->caster, "MoveMissile", __FILE__, __LINE__);
@@ -730,13 +768,13 @@ int __fastcall UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber) {
   return g_specialSpellIDs[effectNumber];
 }
 
-static void __fastcall SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position) {
+void __fastcall SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position) {
   if (eventName && *eventName) {
     SpellVisualsPlayCameraShakeID(SStrToInt(eventName), position);
   }
 }
 
-static void __fastcall SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position) {
+void __fastcall SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position) {
   if (eventName && *eventName) {
     SndInterfacePlaySound(SStrToInt(eventName), position, -1, 1.0f);
   }

@@ -203,6 +203,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual void OnStandStateChanged(unsigned int oldState, unsigned int newState);
   virtual void ChangeStandState(unsigned int standState);
   virtual void SetEmoteState(unsigned int emoteID);
+  virtual UNITAFFILIATION GetGUIDAffiliation(unsigned __int64 unit) const;
   virtual int GetSpellRank(int spellID) const;
   virtual bool GetDefenseSkillRank(int &base, int &modifier) const;
   virtual bool GetAttackSkillRank(int hand, int &base, int &modifier) const;
@@ -409,8 +410,10 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   int                                   GetLanguageSkill(unsigned int language, unsigned int &skill);
   TSGrowableArray<int>                 *GetTradeSkills(int skillLine);
   TSGrowableArray<int>                 *GetCraftSkills(SPELL_CAST_UI_TYPE type);
+  int                                   GetCraftSkillActivator(SPELL_CAST_UI_TYPE type) const;
   int                                   GetSkillIndex(int skillID) const;
   int                                   GetSkillRank(int skillID) const;
+  int                                   ValidateSlot(unsigned int slotID, unsigned __int64 cursorItem);
   bool                                  GetExpandedSkillRank(int skillID, int &rank, int &modifier) const;
   bool                                  GetPackAndSlot(CGItem_C *item, unsigned char &packSlot, unsigned char &slot);
   virtual CGBag_C                      *GetBag() {

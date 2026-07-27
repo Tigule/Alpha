@@ -81,6 +81,7 @@ void __fastcall             Trade_C_CancelTrade();
 void __fastcall             Trade_C_BeginTrade();
 CGUnit_C *__fastcall        Script_GetUnitFromName(const char *name);
 unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
+void __fastcall             Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
 bool __fastcall             Spell_C_IsTargeting();
 bool __fastcall             Spell_C_WorldObjectHousing();
 void __fastcall             Spell_C_WorldObjectRotate();
@@ -180,6 +181,7 @@ class CWorld {
   static float __fastcall       GetFramerate();
   static void __fastcall        GetCounts(int *const counts);
   static const char *__fastcall QueryChunkName();
+  static void __fastcall        Preload(const NTempest::C3Vector &position);
 };
 
 class CGBuffBar {
@@ -2698,6 +2700,12 @@ static TSGrowableArray<NearestEnemyData> s_nearestList;
 static unsigned int                      s_nearestListTime;
 static unsigned int                      s_sameTargetTime;
 static const char                       *compasDirStr[8] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+static const char *s_spellMissReasons[10] = {
+    "NONE", "PHYSICAL", "RESIST", "IMMUNE", "EVADED", "DODGED", "PARRIED", "BLOCKED", "TEMPIMMUNE", "DEFLECTED"
+};
+static const char                       *s_combatEvent[9] = {
+    "MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT"
+};
 static const float                       s_distCullValues[3] = {350.0f, 550.0f, 750.0f};
 static const float                       s_smallCullValues[3] = {0.07f, 0.04f, 0.01f};
 static const float                       MAX_INSPECT_DISTANCE = 5.5555553f;
@@ -2717,7 +2725,7 @@ struct ItemPushInfo {
 
 bool __fastcall         Spell_C_IsTargeting();
 bool __fastcall         Spell_C_HandleSpriteClick(CGObject_C *object);
-unsigned int __fastcall Spell_C_HandleTerrainClick(CTerrainClickEvent &evt);
+bool __fastcall Spell_C_HandleTerrainClick(const CTerrainClickEvent &evt);
 void __fastcall         Trade_C_InitiateTrade(unsigned __int64 target, int useCursorItem);
 
 static int __fastcall CCommand_Script(const char *__formal, const char *arguments) {
@@ -2726,6 +2734,7 @@ static int __fastcall CCommand_Script(const char *__formal, const char *argument
 }
 
 void __fastcall EnableFadingScreen(float fadeTime, void(__fastcall *fadedCallback)(void *), void *param);
+void __fastcall DisableFadingScreen(float fadeTime, void(__fastcall *fadedCallback)(void *), void *param);
 
 static int __fastcall CCommand_ScaleUI(const char *__formal, const char *arguments) {
   float scale = SStrToFloat(arguments);
@@ -3382,9 +3391,9 @@ static int __fastcall Script_ToggleRun(lua_State *L) {
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   if (mover) {
-    unsigned int moveFlags = mover->m_movement.GetMoveFlags();
-    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->m_movement.GetMoveStartTime()) < 0) {
-      eventTime = mover->m_movement.GetMoveStartTime();
+    unsigned int moveFlags = mover->m_move.GetMoveFlags();
+    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->m_move.GetMoveStartTime()) < 0) {
+      eventTime = mover->m_move.GetMoveStartTime();
     }
 
     const CGUnitData *unitData = mover->GetUnitData();
@@ -3404,9 +3413,9 @@ static int __fastcall Script_Jump(lua_State *L) {
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   if (mover) {
-    unsigned int moveFlags = mover->m_movement.GetMoveFlags();
-    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->m_movement.GetMoveStartTime()) < 0) {
-      eventTime = mover->m_movement.GetMoveStartTime();
+    unsigned int moveFlags = mover->m_move.GetMoveFlags();
+    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->m_move.GetMoveStartTime()) < 0) {
+      eventTime = mover->m_move.GetMoveStartTime();
     }
 
     const CGUnitData *unitData = mover->GetUnitData();
@@ -3778,7 +3787,7 @@ static int __fastcall Script_GuildSetLeaderByName(lua_State *L) {
   }
   const char *name = lua_tostring(L, 1);
   msg.Put(static_cast<unsigned int>(CMSG_GUILD_LEADER));
-  if (*name && SStrCmp(name, "target", INT_MAX)) {
+  if (*name && SStrCmpI(name, "target", INT_MAX)) {
     msg.PutString(name);
   }
   msg.Finalize();
@@ -4447,12 +4456,24 @@ void __fastcall CGGameUI::StartCinematic(int cinematicID) {
     }
   }
 
+  BeginCinematic();
+}
+
+void __fastcall CGGameUI::BeginCinematic() {
   m_cinematic.zoneMusicPaused = SndInterfaceIsZoneMusicPaused();
   if (m_cinematic.zoneMusicPaused) {
     SndInterfacePauseZoneMusic(1);
   }
   HideCursor();
-  EnableFadingScreen(0.25f, 0, 0);
+  EnableFadingScreen(0.25f, BeginCinematicInternal, 0);
+}
+
+void __fastcall CGGameUI::BeginCinematicInternal(void *) {
+  DisableLoadingScreen();
+  FrameScript_SignalEvent(353);
+  if (!StartCinematicCamera()) {
+    StopCinematicInternal(0);
+  }
 }
 
 static unsigned char GetCinematicStartingCameraPosition(
@@ -4481,10 +4502,93 @@ static unsigned char GetCinematicStartingCameraPosition(
   return 1;
 }
 
+int __fastcall CGGameUI::StartCinematicCamera() {
+  CGCamera *camera = CGWorldFrame::GetActiveCamera();
+  FATALASSERT(camera);
+
+  CinematicCameraRec *cinematicCamera = m_cinematic.camera;
+  if (!cinematicCamera) {
+    return 0;
+  }
+
+  NTempest::C3Vector cameraOrigin(cinematicCamera->m_originX, cinematicCamera->m_originY, cinematicCamera->m_originZ);
+  NTempest::C3Vector initialPosition(0.0f);
+  if (GetCinematicStartingCameraPosition(
+          cinematicCamera->m_model, cameraOrigin, cinematicCamera->m_originFacing, initialPosition
+      ) &&
+      (camera->Position() - initialPosition).SquaredMag() > 2500.0f) {
+    CWorld::Preload(initialPosition);
+  }
+
+  if (!camera->SetModelCamera(cinematicCamera->m_model, cameraOrigin, cinematicCamera->m_originFacing, NextCinematic, 0)) {
+    return 0;
+  }
+
+  ScrnPaint();
+  CGObject_C::UpdateAllWorldObjects();
+  AsyncFileReadWaitAll();
+  camera->ResetModelCamera();
+
+  FATALASSERT(!m_cinematic.cameraMusic);
+  m_cinematic.cameraMusic = SndInterfacePlayLoopedSound(cinematicCamera->m_soundID, 1);
+  DisableFadingScreen(0.25f, 0, 0);
+  return 1;
+}
+
+int __fastcall CGGameUI::NextCinematic(void *) {
+  EnableFadingScreen(0.25f, NextCinematicInternal, 0);
+  return 1;
+}
+
+void __fastcall CGGameUI::NextCinematicInternal(void *) {
+  m_cinematic.camera = 0;
+  Sound::KillSound(m_cinematic.cameraMusic);
+
+  if (m_cinematic.sequence && ++m_cinematic.currentCamera < 8 &&
+      m_cinematic.sequence->m_camera[m_cinematic.currentCamera]) {
+    CDataStore msg;
+    msg.Put(static_cast<unsigned int>(CMSG_NEXT_CINEMATIC_CAMERA));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+    m_cinematic.camera = g_cinematicCameraDB.GetRecord(m_cinematic.sequence->m_camera[m_cinematic.currentCamera]);
+  }
+
+  if (!StartCinematicCamera()) {
+    StopCinematicInternal(0);
+  }
+}
+
 int __fastcall CGGameUI::StopCinematic(void *__formal) {
   Sound::KillSound(m_cinematic.sequenceMusic);
-  EnableFadingScreen(0.25f, 0, 0);
+  EnableFadingScreen(0.25f, StopCinematicInternal, 0);
   return 1;
+}
+
+void __fastcall CGGameUI::StopCinematicInternal(void *) {
+  CGCamera *camera = CGWorldFrame::GetActiveCamera();
+  FATALASSERT(camera);
+
+  FrameScript_SignalEvent(354);
+  CGObject_C *target = ClntObjMgrObjectPtr(camera->GetTarget(), __FILE__, __LINE__);
+  if (target && (camera->Position() - target->GetPosition()).SquaredMag() > 2500.0f) {
+    CWorld::Preload(target->GetPosition());
+  }
+
+  camera->ClearModelCamera();
+  ScrnPaint();
+  CGObject_C::UpdateAllWorldObjects();
+  AsyncFileReadWaitAll();
+  Sound::KillSound(m_cinematic.sequenceMusic);
+  if (m_cinematic.zoneMusicPaused) {
+    SndInterfacePauseZoneMusic(0);
+  }
+
+  CDataStore msg;
+  msg.Put(static_cast<unsigned int>(CMSG_COMPLETE_CINEMATIC));
+  msg.Finalize();
+  ClientServices_Send(&msg);
+  ShowCursor();
+  DisableFadingScreen(0.25f, 0, 0);
 }
 
 void __fastcall CGGameUI::CloseLoot(unsigned int send, unsigned int moving) {
@@ -4515,6 +4619,17 @@ void __fastcall CGGameUI::CloseLoot(unsigned int send, unsigned int moving) {
       }
     }
   }
+}
+
+void __fastcall CGGameUI::ClearLootSlot(unsigned char slot) {
+  CGLootInfo::ClearSlot(slot);
+}
+
+void __fastcall CGGameUI::OpenLoot(CGObject_C *object, int coins, LOOT_ACQUIRE lootType) {
+  if (object->GetType() & TYPE_UNIT) {
+    Target(object->GetGUID(), 0);
+  }
+  CGLootInfo::SetObject(object, coins, lootType);
 }
 
 void __fastcall CGGameUI::OpenResurrectRequest(const char *inviter) {
@@ -4789,7 +4904,43 @@ unsigned __int64 __fastcall CGGameUI::GetPartyMember(unsigned int index) {
   return CGPartyInfo::GetMember(index);
 }
 
+void __fastcall CGGameUI::SetPartyLeader(unsigned __int64 guid) {
+  CGPartyInfo::SetLeader(guid);
+}
+
+void __fastcall CGGameUI::AddPartyMember(unsigned __int64 guid, int connected) {
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  if (unit) {
+    unit->RegisterScript();
+  }
+  CGPartyInfo::AddMember(guid, connected);
+}
+
+void __fastcall CGGameUI::RemoveAllPartyMembers() {
+  for (unsigned int i = 0; i < 4; ++i) {
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGPartyInfo::GetMember(i), __FILE__, __LINE__));
+    if (unit) {
+      unit->UnregisterScript();
+    }
+  }
+  CGPartyInfo::RemoveAll();
+}
+
+void __fastcall CGGameUI::SetLootMethod(LOOT_METHOD method, unsigned __int64 master) {
+  CGPartyInfo::SetLootMethod(method, master);
+}
+
 void __fastcall CGGameUI::UnitNameUpdate(const unsigned __int64 &guid) {
+  if (m_gameTooltip && m_gameTooltip->GetUnit() == guid) {
+    m_gameTooltip->SetUnit(0);
+    m_gameTooltip->SetUnit(guid);
+  }
+
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  if (unit) {
+    unit->TriggerPlayerNameUpdate();
+  }
+  Script_SendUnitSignal(guid, 180);
 }
 
 void __fastcall CGGameUI::UnitPortraitUpdate(const unsigned __int64 &guid) {
@@ -5144,7 +5295,7 @@ void __fastcall CGGameUI::CloseInteraction() {
     } else if (target == CGTaxiMap::GetTaxiVendor()) {
       CGTaxiMap::CloseMap();
     } else if (target == CGClassTrainer::GetTrainer()) {
-      CGClassTrainer::SetTrainer(0, TRAINER_TYPE_CLASS);
+      CGClassTrainer::SetTrainer(0, TRAINER_TYPE_GENERAL);
     } else if (target == CGMerchantInfo::GetMerchant()) {
       CGMerchantInfo::CloseMerchant();
     } else if (target == CGTradeInfo::GetTradePartner()) {
@@ -5490,6 +5641,18 @@ int __fastcall CGGameUI::HandleMouseUp(const CMouseEvent &evt) {
   return 0;
 }
 
+void __fastcall CGGameUI::NamePlateClicked(unsigned __int64 unit, MOUSEBUTTON button) {
+  FATALASSERT(unit);
+
+  if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
+    if (button == MOUSE_BUTTON_LEFT) {
+      OnSpriteLeftClick(unit, 0.0f, 0.0f);
+    } else if (button == MOUSE_BUTTON_RIGHT) {
+      OnSpriteRightClick(unit, 0.0f, 0.0f);
+    }
+  }
+}
+
 void __fastcall CGGameUI::AddErrorMessage(const char *string, int error) {
   if (string && *string) {
     FrameScript_SignalEvent(error ? 215 : 216, "%s", string);
@@ -5520,6 +5683,15 @@ void __fastcall CGGameUI::ShowHealingFeedback(const unsigned __int64 &guid, int 
   char **names = Script_GetNamesFromGUID(guid, numnames);
   for (int index = 0; index < numnames; ++index) {
     FrameScript_SignalEvent(178, "%s%s%s%d", names[index], "HEAL", "", amount);
+  }
+}
+
+void __fastcall CGGameUI::ShowSpellMissFeedback(unsigned __int64 victim, int reason) {
+  FATALASSERT(static_cast<unsigned int>(reason) < sizeof(s_spellMissReasons) / sizeof(s_spellMissReasons[0]));
+  int    numnames;
+  char **names = Script_GetNamesFromGUID(victim, numnames);
+  for (int index = 0; index < numnames; ++index) {
+    FrameScript_SignalEvent(179, "%s%s", names[index], s_spellMissReasons[reason]);
   }
 }
 
@@ -5679,6 +5851,120 @@ void __fastcall CGGameUI::SetCursorSpell(int spellId, int pet) {
 void __fastcall CGGameUI::DropCursorSpell() {
   if (m_cursorItemType == UICURSOR_SPELL || m_cursorItemType == UICURSOR_PET_SPELL) {
     ClearCursor(1);
+  }
+}
+
+void __fastcall CGGameUI::SetCursorPetAction(const PetAction &action) {
+  if (!m_hasControl) {
+    return;
+  }
+
+  unsigned int value = action;
+  unsigned int type = value >> 24 & 0x3F;
+  unsigned int id = value & 0xFFFF;
+  const char  *texture = 0;
+  char         textureToken[64];
+
+  switch (type) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5: {
+      SpellRec *spell = g_spellDB.GetRecord(id);
+      if (spell) {
+        SpellIconRec *icon = g_spellIconDB.GetRecord(spell->m_spellIconID);
+        texture = icon ? icon->m_textureFilename : 0;
+      }
+      break;
+    }
+    case 6:
+      SStrPrintf(textureToken, sizeof(textureToken), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(id));
+      texture = FrameScript_GetText(textureToken, -1, GENDER_NOT_APPLICABLE);
+      break;
+    case 7:
+      SStrPrintf(textureToken, sizeof(textureToken), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(id));
+      texture = FrameScript_GetText(textureToken, -1, GENDER_NOT_APPLICABLE);
+      break;
+  }
+
+  if (texture) {
+    ClearCursor(1);
+    m_cursorPetAction = value;
+    m_cursorItemType = UICURSOR_PET_ACTION;
+    SndInterfacePlayInterfaceSound("INTERFACESOUND_CURSORGRABOBJECT");
+    CursorGrabSpell(texture);
+    CGPetInfo::ShowGrid();
+    m_cursorHasAction = 1;
+  }
+}
+
+void __fastcall CGGameUI::DropCursorPetAction() {
+  if (m_cursorItemType == UICURSOR_PET_ACTION) {
+    ClearCursor(1);
+  }
+}
+
+void __fastcall CGGameUI::ShowCombatFeedback(const ATTACKROUNDINFO *info) {
+  FATALASSERT(info);
+  FATALASSERT(static_cast<unsigned int>(info->newVictimState) < sizeof(s_combatEvent) / sizeof(s_combatEvent[0]));
+
+  const char *flagText = "";
+  if (info->flags & 0x10000) {
+    flagText = "ABSORB";
+  } else if (info->flags & 8) {
+    flagText = "CRITICAL";
+  }
+
+  int    numnames;
+  char **names = Script_GetNamesFromGUID(info->victim, numnames);
+  for (int index = 0; index < numnames; ++index) {
+    FrameScript_SignalEvent(
+        178,
+        "%s%s%s%d%d",
+        names[index],
+        s_combatEvent[info->newVictimState],
+        flagText,
+        info->dmg.totalDamage,
+        info->dmg.damageType[0]
+    );
+  }
+}
+
+void __fastcall CGGameUI::ShowCombatFeedback(const SPELLLOG &log) {
+  if (log.flags & 0x200) {
+    return;
+  }
+
+  if (log.flags & 0x100) {
+    CVar *periodicSpells = CVar::Lookup("CombatLogPeriodicSpells");
+    if (!periodicSpells || !periodicSpells->GetInt()) {
+      return;
+    }
+  }
+
+  unsigned __int64 pet = 0;
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (player) {
+    const CGUnitData *unitData = player->GetUnitData();
+    pet = unitData->charm ? unitData->charm : unitData->summon;
+  }
+
+  if (log.victim != pet && log.victim != ClntObjMgrGetActivePlayer()) {
+    return;
+  }
+
+  if (log.flags & 2) {
+    ShowHealingFeedback(log.victim, log.dmg.totalDamage);
+  } else if (log.dmg.damageType[0] != -1) {
+    unsigned int flags = 0;
+    if (log.dmg.absorbed[0] == log.dmg.damage[0]) {
+      flags = 0x10000;
+    }
+    if (log.flags & 0x40) {
+      flags |= 8;
+    }
+    ShowCombatFeedback(log.victim, log.dmg.totalDamage, log.dmg.damageType[0], flags);
   }
 }
 
@@ -5864,6 +6150,18 @@ void __fastcall CGGameUI::UpdateActivePlayer() {
     FrameScript_SignalEvent(255);
   } else {
     FrameScript_SignalEvent(256);
+  }
+}
+
+void __fastcall CGGameUI::OnClientControlChanged(int hasControl) {
+  if (hasControl != m_hasControl) {
+    m_hasControl = hasControl;
+    if (hasControl) {
+      FrameScript_SignalEvent(194);
+    } else {
+      ClearClientControls();
+      FrameScript_SignalEvent(193);
+    }
   }
 }
 

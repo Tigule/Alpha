@@ -611,7 +611,17 @@ int FriendList::GetIgnoreSelectionIndex() const {
 }
 
 void FriendList::ShowFriends() {
-  FrameScript_SignalEvent(250);
+  char text[256];
+  for (unsigned int i = 0; i < 50; ++i) {
+    if (m_friends[i].m_name) {
+      SStrPrintf(
+          text,
+          sizeof(text),
+          m_friends[i].m_connected ? "%s - Online" : "%s - Offline",
+          m_friends[i].m_name);
+      CGChat::AddChatMessage(text, static_cast<SLASH_COMMAND_ID>(9), 0, 0, 0, 0, 0);
+    }
+  }
 }
 
 void FriendList::AddFriend(const char *name) {
@@ -660,12 +670,12 @@ static int __cdecl QSortIgnore(const void* a, const void* b) {
 
 void FriendList::SortFriends() {
   qsort(m_friends, 50, sizeof(m_friends[0]), QSortFriends);
-  FrameScript_SignalEvent(250);
+  FrameScript_SignalEvent(330);
 }
 
 void FriendList::SortIgnore() {
   qsort(m_ignore, 25, sizeof(m_ignore[0]), QSortIgnore);
-  FrameScript_SignalEvent(251);
+  FrameScript_SignalEvent(331);
 }
 
 void FriendList::SetName(unsigned __int64 guid, const char *name) {

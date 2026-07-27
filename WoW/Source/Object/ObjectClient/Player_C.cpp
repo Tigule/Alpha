@@ -1072,7 +1072,7 @@ static int __fastcall OnQuestItemLoot(QuestCache *quest, int itemID, int quantit
       if (killed > needed) {
         killed = needed;
       }
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(226), stats->m_displayName[FrameScript_GetPluralIndex(quantity)], killed, needed);
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(226), stats->m_displayName[FrameScript_GetPluralIndex(needed)], killed, needed);
     }
   }
   return 1;
@@ -1115,8 +1115,8 @@ int __fastcall OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eve
 
     case SMSG_QUESTUPDATE_COMPLETE:
       if (quest) {
-        if (quest->m_logTitle[0]) {
-          CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(222), quest->m_logTitle);
+        if (quest->m_areaDescription[0]) {
+          CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(222), quest->m_areaDescription);
         } else {
           CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(223));
         }
@@ -1429,7 +1429,7 @@ int __fastcall OnPetSpells(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
 
   CGSpellBook::UpdateSpells();
   CGPetInfo::SetPet(petGUID, timelimit);
-  CGPetInfo::UpdateCooldowns();
+  CGClassTrainer::RefreshList();
   return 1;
 }
 
@@ -1478,7 +1478,7 @@ int __fastcall OnGroupNewLeader(void *__formal, NETMESSAGE msgId, unsigned long 
   msg->GetString(name, sizeof(name));
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player && SStrCmp(player->GetUnitName(), name, sizeof(name))) {
+  if (player && SStrCmpI(player->GetUnitName(), name, sizeof(name))) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(55), name);
   } else {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(56));
@@ -2185,8 +2185,8 @@ int CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
 
   TSStackArray<QUESTGIVEREMOTENODE> emotes(_alloca(emoteCount * sizeof(QUESTGIVEREMOTENODE)), emoteCount, emoteCount);
   for (int index = 0; index < emoteCount; ++index) {
-    msg->Get(emotes[index].emoteID);
     msg->Get(emotes[index].delay);
+    msg->Get(emotes[index].emoteID);
   }
 
   CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
@@ -2388,7 +2388,7 @@ int CGPlayer_C::OnQuestGiverStatus(CDataStore *msg) {
 int CGPlayer_C::OnTrainerList(CDataStore *msg) {
   char             greeting[512];
   int             *reqAbilities[3];
-  unsigned int    *pointCosts[2];
+  unsigned char   *pointCosts[2];
   unsigned __int64 trainerGUID;
   int              trainerType;
   unsigned int     count;
@@ -2426,8 +2426,8 @@ int CGPlayer_C::OnTrainerList(CDataStore *msg) {
   }
 
   msg->GetString(greeting, 512);
-  pointCosts[0] = reinterpret_cast<unsigned int *>(pointCost0.Ptr());
-  pointCosts[1] = reinterpret_cast<unsigned int *>(pointCost1.Ptr());
+  pointCosts[0] = pointCost0.Ptr();
+  pointCosts[1] = pointCost1.Ptr();
   reqAbilities[0] = reqAbility0.Ptr();
   reqAbilities[1] = reqAbility1.Ptr();
   reqAbilities[2] = reqAbility2.Ptr();
@@ -2435,8 +2435,8 @@ int CGPlayer_C::OnTrainerList(CDataStore *msg) {
   if (trainerGUID == CGClassTrainer::GetTrainer()) {
     CGClassTrainer::SetTrainer(trainerGUID, static_cast<TRAINER_TYPE>(trainerType));
     CGClassTrainer::AddServices(
-        count, spellID.Ptr(), moneyCost.Ptr(), pointCosts, reinterpret_cast<unsigned int *>(reqLevel.Ptr()), reqSkillLine.Ptr(), reqSkillRank.Ptr(),
-        reqSkillStep.Ptr(), reqAbilities, reinterpret_cast<unsigned int *>(usable.Ptr()), greeting
+        count, spellID.Ptr(), moneyCost.Ptr(), pointCosts, reqLevel.Ptr(), reqSkillLine.Ptr(), reqSkillRank.Ptr(), reqSkillStep.Ptr(), reqAbilities,
+        usable.Ptr(), greeting
     );
   }
   return 1;
@@ -3147,7 +3147,7 @@ void CGPlayer_C::AddComponent(int displayID, unsigned int inventoryType, int slo
 
 void CGPlayer_C::TalkToTrainer(const unsigned __int64 &trainerUnit) {
   s_lastVendorListReceived = trainerUnit;
-  CGClassTrainer::SetTrainer(0, TRAINER_TYPE_CLASS);
+  CGClassTrainer::SetTrainer(0, TRAINER_TYPE_GENERAL);
 
   CDataStore hello;
   hello.Put(static_cast<unsigned int>(CMSG_TRAINER_LIST));
@@ -3158,7 +3158,7 @@ void CGPlayer_C::TalkToTrainer(const unsigned __int64 &trainerUnit) {
 
 int CGPlayer_C::LootUnit(CGUnit_C *unit) {
   if (CanLoot(unit) && unit->CanBeLooted(OsGetAsyncTimeMs()) &&
-      !(m_movement.GetMoveFlags() & 0x40FF)) {
+      !(m_move.GetMoveFlags() & 0x40FF)) {
     CGGameUI::CloseLoot(1, 1);
 
     CDataStore lootMsg;
@@ -4443,7 +4443,7 @@ int __fastcall Player_C_AppFocusMovementHandler(int focus) {
     CGPlayer_C      *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
     if (player) {
       CMovementStatus status;
-      player->m_movement.GetMoveStatus(&status);
+      player->m_move.GetMoveStatus(&status);
       unsigned int moveFlags = status.moveFlags;
       if ((moveFlags & 0x01000000) ||
           ((player->GetType() & TYPE_PLAYER) && !status.transport && ((moveFlags & 2) || !(moveFlags & 0x00C00004)) && !(moveFlags & 1)))
@@ -4731,6 +4731,13 @@ TSGrowableArray<int> *CGPlayer_C::GetCraftSkills(SPELL_CAST_UI_TYPE type) {
   return &m_craftSpells[type];
 }
 
+int CGPlayer_C::GetCraftSkillActivator(SPELL_CAST_UI_TYPE type) const {
+  if (static_cast<unsigned int>(type) >= NUM_SPELL_CAST_UI_TYPES) {
+    return 0;
+  }
+  return m_craftActivators[type];
+}
+
 int CGPlayer_C::GetSkillIndex(int skillID) const {
   unsigned int   index;
   for (index = 0; index < 64; ++index) {
@@ -4750,6 +4757,36 @@ int CGPlayer_C::GetSkillRank(int skillID) const {
   return rank < 0 ? 0 : rank;
 }
 
+int CGPlayer_C::ValidateSlot(unsigned int slotID, unsigned __int64 cursorItem) {
+  CGObject_C *object = ClntObjMgrObjectPtr(cursorItem, __FILE__, __LINE__);
+  if (!object) {
+    return 0;
+  }
+
+  CGItem_C *item = static_cast<CGItem_C *>(object);
+  if (!(object->GetType() & TYPE_ITEM) ||
+      (slotID >= 19 && slotID <= 22) ||
+      (slotID >= 63 && slotID <= 68)) {
+    return item->CanGoInSlot(slotID);
+  }
+
+  CGBag_C *bag = object->GetBag();
+  for (unsigned int slot = 0; slot < bag->NumSlots(); ++slot) {
+    if (bag->GetItem(slot)) {
+      return 0;
+    }
+  }
+  return item->CanGoInSlot(slotID);
+}
+
+UNITAFFILIATION CGPlayer_C::GetGUIDAffiliation(unsigned __int64 unit) const {
+  UNITAFFILIATION affiliation = CGUnit_C::GetGUIDAffiliation(unit);
+  if (affiliation == AFFILIATION_OTHER && CGGameUI::IsPartyMember(unit)) {
+    affiliation = AFFILIATION_PARTYMEMBER;
+  }
+  return affiliation;
+}
+
 int CGPlayer_C::GetSpellRank(int spellID) const {
   SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
@@ -4765,7 +4802,7 @@ int CGPlayer_C::GetSpellRank(int spellID) const {
   if (spell->m_attributes & 0x406) {
     int weaponSpell;
     if (spell->m_attributes & 2) {
-      const VirtualItemInfo *item = CGUnit_C::GetVirtualItem(2, 0);
+      const VirtualItemInfo *item = GetVirtualItem(2, 0);
       if (!item) {
         return 0;
       }
@@ -4787,7 +4824,7 @@ int CGPlayer_C::GetWeaponSpell(COMBATHAND hand) const {
     return 0;
   }
 
-  const VirtualItemInfo *item = CGUnit_C::GetVirtualItem(static_cast<unsigned int>(hand), 0);
+  const VirtualItemInfo *item = GetVirtualItem(static_cast<unsigned int>(hand), 0);
   unsigned int subclass = item ? item->m_subclassID : ClientDBGetUnarmedWeapon();
   if (item && item->m_classID != 2) {
     return 0;
@@ -5206,7 +5243,6 @@ int CGPlayer_C::OnLootReleaseResponse(CDataStore *msg) {
   msg->Get(*reinterpret_cast<unsigned char *>(&success));
   if (success && packGUID == m_lootingUnit) {
     m_lootingUnit = 0;
-    m_lootingUnitSent = 0;
     if (GetPlayerAnimState() == 44) {
       UpdateBaseAnimation(45, 0);
     }
@@ -5273,7 +5309,7 @@ unsigned int CGPlayer_C::GetPlayerAnimState() {
         return 44;
       }
     }
-  } else if (!(m_flags & 0x200) && (GetUnitData()->flags & 0x400) && !(m_movement.m_moveFlags & 0xFF)) {
+  } else if (!(m_flags & 0x200) && (GetUnitData()->flags & 0x400) && !(m_move.m_moveFlags & 0xFF)) {
     return 44;
   }
 
@@ -6126,7 +6162,7 @@ int CGPlayer_C::OnPetitionShowSignatures(CDataStore *msg) {
     msg->Get(choices[i]);
   }
 
-  if (!CGGameUI::IsPartyMember(ownerGUID)) {
+  if (!g_friendList->IsIgnored(ownerGUID)) {
     CGPetitionInfo::SetPetition(itemGUID, petitionID);
     CGPetitionInfo::SetSignatures(count, signers, choices);
   }

@@ -244,7 +244,11 @@ static int __fastcall Script_GetFactionInfo(lua_State *L) {
     lua_pushstring(L, rec->m_name_lang[CURRENT_LANGUAGE]);
     lua_pushnumber(L, static_cast<double>(reaction + 1));
     lua_pushnumber(L, static_cast<double>(standing - threshold[reaction]) / (threshold[reaction + 1] - threshold[reaction]));
-    CGReputationInfo::IsAtWar(faction) ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+    if (CGReputationInfo::IsAtWar(faction)) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
     return 4;
   }
   lua_pushnil(L);
@@ -261,7 +265,11 @@ static int __fastcall Script_FactionToggleAtWar(lua_State *L) {
   int faction = CGReputationInfo::GetFactionFromSortIndex(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   if (faction) {
     CGReputationInfo::SetAtWar(faction, !CGReputationInfo::IsAtWar(faction));
-    CGReputationInfo::IsAtWar(faction) ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
+    if (CGReputationInfo::IsAtWar(faction)) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
   } else {
     lua_pushnil(L);
   }

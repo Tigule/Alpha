@@ -1298,7 +1298,7 @@ unsigned int CGGameObject_C_Type_Chair::CanUseNow(GAME_ERROR_TYPE *reason) {
     return 0;
   }
 
-  NTempest::C3Vector playerPosition = player->m_movement.GetPosition();
+  NTempest::C3Vector playerPosition = player->m_move.GetPosition();
   for (unsigned int i = 0; i < GetNumSlots(); ++i) {
     if ((playerPosition - m_slotPositions[i]).SquaredMag() <=
         MAX_SITCHAIRUSE_DISTANCE_SQUARED) {

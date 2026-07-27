@@ -65,7 +65,7 @@ class ClientConnection : public NetClient {
   void              CharacterLogin(unsigned __int64 id);
   int               Disconnect();
   void              CharacterSetInGame(int state);
-  void              CharacterLogout(unsigned int exitAfterLogout, unsigned int instant);
+  void              CharacterLogout(bool exitAfterLogout, bool instant);
   void              CharacterRemoveFromGame();
   void              CharacterAbortLogout();
   void              CharacterForceLogout();

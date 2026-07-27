@@ -254,7 +254,6 @@ WC_SEND_RESULT WowConnection::Send(CDataStore *msg) {
 }
 
 WC_SEND_RESULT WowConnection::SendRaw(unsigned char *data, int len) {
-  SENDNODE      *sn = NewSendNode(data, len, true);
   WC_SEND_RESULT result = WC_SEND_ERROR;
 
   m_lock.Enter();
@@ -263,47 +262,39 @@ WC_SEND_RESULT WowConnection::SendRaw(unsigned char *data, int len) {
     ASSERT(m_sock >= 0);
 
     if (!m_sendList.IsEmpty()) {
+      SENDNODE *sn = NewSendNode(data, len, true);
+      m_sendList.LinkNode(sn, LIST_LINK_BEFORE, 0);
+      ++m_sendDepth;
+      m_sendDepthBytes += sn->size;
+      result = WC_SEND_QUEUED;
+    } else {
+      int sent = send(m_sock, reinterpret_cast<const char *>(data), len, 0);
+
+      if (sent == len) {
+        m_lock.Leave();
+        return WC_SEND_SENT;
+      }
+
+      if (sent < 0) {
+        if (WSAGetLastError() != WSAEWOULDBLOCK) {
+          SetState(WOWC_DISCONNECTING);
+          m_lock.Leave();
+          return WC_SEND_ERROR;
+        }
+        sent = 0;
+      }
+
+      SENDNODE *sn = NewSendNode(data + sent, len - sent, true);
       m_sendList.LinkNode(sn, LIST_LINK_BEFORE, 0);
       ++m_sendDepth;
       m_sendDepthBytes += sn->size;
       s_network->PlatformChangeState(this, m_connState);
-      m_lock.Leave();
-      return WC_SEND_QUEUED;
-    }
-
-    int sent = send(m_sock, reinterpret_cast<const char *>(sn->data), sn->size, 0);
-
-    if (sent == sn->size) {
-      FreeSendNode(sn);
-      m_lock.Leave();
-      return WC_SEND_SENT;
-    }
-
-    if (sent > 0) {
-      sn->offset += sent;
       result = WC_SEND_QUEUED;
-    } else if (WSAGetLastError() != WSAEWOULDBLOCK) {
-      SetState(WOWC_DISCONNECTING);
-      result = WC_SEND_ERROR;
     }
-
-    m_sendList.LinkNode(sn, LIST_LINK_BEFORE, 0);
-    ++m_sendDepth;
-    m_sendDepthBytes += sn->size;
-
-    if (m_sendDepth >= 100000U) {
-      SetState(WOWC_DISCONNECTING);
-      result = WC_SEND_ERROR;
-    }
-
-    s_network->PlatformChangeState(this, m_connState);
-    m_lock.Leave();
-    return result;
   }
 
-  FreeSendNode(sn);
   m_lock.Leave();
-  return WC_SEND_ERROR;
+  return result;
 }
 
 void WowConnection::CheckConnect() {
