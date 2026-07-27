@@ -26,9 +26,10 @@ All of the original source file paths have been pre-created. You should not need
 
 Firstly, you'll need to install CMake no matter what OS you're on: [cmake.org](https://cmake.org/download/).
 
-Then you need a VC6 compiler and a DirectX SDK (up to August 2007). To save time, you can grab my CI artifacts: [VC6.zip](https://tigule.org/files/ci/VC6.zip) [DXSDK.zip](https://tigule.org/files/ci/DXSDK.zip)
-
 We are targeting **VC6 + x86 + Windows ONLY** at this stage. Once this reaches parity we will support other platform and architecture targets.
+
+You can save time by using my CI dependencies: [VC6.zip](https://tigule.org/files/ci/VC6.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip)  
+If those are unavailable: [Visual Studio 6.0 Professional](https://archive.org/details/en_vs60_pro), [DirectX 9.0b SDK](https://archive.org/details/dx90bsdk)
 
 ### Windows
 
@@ -65,3 +66,4 @@ Libraries:
 * `FreeType` 2.0
 * `Lua` 5.0
 * `Zlib` 1.1.4
+* `DirectX` 9.0b

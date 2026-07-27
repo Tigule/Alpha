@@ -5,6 +5,8 @@
 
 typedef unsigned long DWORD_PTR;
 
+// embeds guids into object file
+#include <initguid.h>
 #include <dmusici.h>
 
 struct ASYNCLOADER {

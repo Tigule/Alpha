@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD 98)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if(MSVC_VERSION EQUAL 1200)
-    add_compile_options(/G6 /Ob1 /Oy-)
+    add_compile_options(/G6 /Ob1 /Oy- /Z7)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG /MAP")
 endif()
 
 add_subdirectory(Engine)

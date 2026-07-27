@@ -512,13 +512,18 @@ target_link_libraries(Engine Storm Expat FreeType lua)
 if(WIN32)
     set(FMOD_IMPORT_LIBRARY
         "${CMAKE_CURRENT_SOURCE_DIR}/Source/FMOD/api/lib/fmodvc.lib")
-    find_library(D3DX9_IMPORT_LIBRARY d3dx9 PATHS "$ENV{DXSDK_DIR}/Lib/x86")
-    find_library(DXGUID_IMPORT_LIBRARY dxguid PATHS "$ENV{DXSDK_DIR}/Lib/x86" NO_DEFAULT_PATH)
+    unset(D3DX9_IMPORT_LIBRARY CACHE)
+    find_library(
+        D3DX9_IMPORT_LIBRARY
+        d3dx9
+        PATHS
+            "$ENV{DXSDK_DIR}/Lib/x86"
+            "$ENV{DXSDK_DIR}/Lib"
+        NO_DEFAULT_PATH)
     target_link_libraries(
         Engine
         "${FMOD_IMPORT_LIBRARY}"
         "${D3DX9_IMPORT_LIBRARY}"
-        "${DXGUID_IMPORT_LIBRARY}"
         glu32
         comctl32
         imm32

@@ -35,12 +35,12 @@ jobs:
       - name: Download DirectX SDK
         shell: pwsh
         run: |
-          Invoke-WebRequest "https://tigule.org/files/ci/DXSDK.zip" -OutFile "DXSDK.zip"
+          Invoke-WebRequest "https://tigule.org/files/ci/DXSDK90.zip" -OutFile "DXSDK90.zip"
 
       - name: Extract DirectX SDK
         uses: ihiroky/extract-action@v1
         with:
-          file_path: DXSDK.zip
+          file_path: DXSDK90.zip
           extract_dir: DXSDK
 
       - name: Replace VCVARS32 absolute paths
