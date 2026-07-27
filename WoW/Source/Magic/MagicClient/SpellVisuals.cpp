@@ -113,10 +113,10 @@ struct FishingLineObject : public TSLinkedNode<FishingLineObject> {
   unsigned __int64    object;
   unsigned __int64    caster;
   NTempest::CImVector color;
-  unsigned int        visible;
+  bool                visible;
 
   void Render();
-  void RenderLine(NTempest::C3Vector &p0, NTempest::C3Vector &p1, NTempest::CImVector &color);
+  void RenderLine(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, const NTempest::CImVector &color);
 };
 
 static void ShardEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
@@ -327,7 +327,7 @@ void FishingLineObject::Render() {
   HandleClose(objectModel);
 }
 
-void FishingLineObject::RenderLine(NTempest::C3Vector &p0, NTempest::C3Vector &p1, NTempest::CImVector &color) {
+void FishingLineObject::RenderLine(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, const NTempest::CImVector &color) {
   NTempest::C3Vector points[201];
   NTempest::C3Vector point0 = p0;
   NTempest::C3Vector xyIncr = (p1 - p0) * 0.005f;
@@ -1019,12 +1019,10 @@ FishingLineObject* SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec
       static_cast<FishingLineObject *>(
           s_freeFishingObjects.GetData(
               0,
-              ".?AUFishingLineObject@@",
-              -2));
+              typeid(FishingLineObject).raw_name(),
+              SERR_LINECODE_OBJECT));
   if (object) {
-    object->m_link.m_prevlink = 0;
-    object->m_link.m_next = 0;
-    object->visible = 0;
+    new (object) FishingLineObject;
   }
   object->object = gameObj;
   object->caster = caster;

@@ -20,7 +20,6 @@ namespace NTempest {
 
 class CGMinimapFrame : public CSimpleFrame {
  public:
-  virtual ~CGMinimapFrame();
 
   static void Initialize(int continentID);
   static void Shutdown();

@@ -12,9 +12,6 @@
 #include <string.h>
 
 struct CWalkableSurface {
-  CWalkableSurface() : closeDist(0.0f), farDist(0.0f), firstPtOfContact(0.0f), lastPtOfContact(0.0f), facetId(0), highestElevation(0.0f) {
-  }
-
   float              closeDist;
   float              farDist;
   NTempest::C3Vector firstPtOfContact;
@@ -101,9 +98,6 @@ float MovementGetTerminalVelocity() {
 
 CRedirect::CRedirect() {
   Reset();
-}
-
-CRedirect::~CRedirect() {
 }
 
 void CRedirect::Reset() {
@@ -429,7 +423,7 @@ int CMovement::IsJumpingUp(unsigned long eventTime) {
 }
 
 int CMovement::FallFromTransport() {
-  if (!transportLink.m_next) {
+  if (!transportLink.IsLinked()) {
     return 0;
   }
   FATALASSERT(m_transportGUID);

@@ -99,8 +99,6 @@ class WowConnection {
     }
     ~SENDNODE();
 
-    SENDNODE &operator=(const SENDNODE &node);
-
     unsigned char *data;
     unsigned int   size;
     unsigned int   offset;

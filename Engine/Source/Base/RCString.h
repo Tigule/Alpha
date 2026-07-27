@@ -101,18 +101,7 @@ class RCString : public TRefCnt {
 
 class RCStaticString : public RCString {
  public:
-  RCStaticString(const char *str = 0) : RCString(str) {
-  }
-
-  RCStaticString(const RCString &str) : RCString(str) {
-  }
-
   RCStaticString &operator=(const char *str) {
-    Copy(str);
-    return *this;
-  }
-
-  RCStaticString &operator=(const RCString &str) {
     Copy(str);
     return *this;
   }

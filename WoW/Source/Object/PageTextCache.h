@@ -22,10 +22,6 @@ class PageTextCache {
 
 class PageTextCache_C : public PageTextCache {
  public:
-  PageTextCache_C() {
-    memset(this, 0, sizeof(*this));
-  }
-
   void Unpack(CDataStore *msg);
 };
 

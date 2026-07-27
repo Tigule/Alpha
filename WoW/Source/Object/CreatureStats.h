@@ -36,10 +36,6 @@ class CreatureStats {
 
 class CreatureStats_C : public CreatureStats {
  public:
-  CreatureStats_C() {
-    memset(this, 0, sizeof(*this));
-  }
-
   void Unpack(CDataStore *msg);
 };
 

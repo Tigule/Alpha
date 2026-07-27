@@ -4,9 +4,6 @@
 #include <ctype.h>
 
 struct CMDDEF : public TSLinkedNode<CMDDEF> {
-  CMDDEF();
-  ~CMDDEF();
-
   DWORD        flags;
   DWORD        id;
   char         name[0x10];
@@ -37,12 +34,6 @@ static CMDDEF_LIST s_arglist;
 static CMDDEF_LIST s_flaglist;
 #define SCMD_ARG_LIST  (&s_arglist)
 #define SCMD_FLAG_LIST (&s_flaglist)
-
-CMDDEF::CMDDEF() {
-}
-
-CMDDEF::~CMDDEF() {
-}
 
 static void ConvertBool(CMDDEF *ptr, const char *string, int *datachars) {
   BOOL enabled;

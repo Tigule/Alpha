@@ -32,15 +32,6 @@ class HASHKEY_INT {
 typedef void(*DBCACHECALLBACKPROC)(int result, const unsigned __int64 &guid, void *arg, bool haveData);
 
 struct DBCACHECALLBACK : public TSLinkedNode<DBCACHECALLBACK> {
-  DBCACHECALLBACK(DBCACHECALLBACK &callback);
-  DBCACHECALLBACK() {
-  }
-
-  ~DBCACHECALLBACK() {
-  }
-
-  DBCACHECALLBACK &operator=(DBCACHECALLBACK &callback);
-
   DBCACHECALLBACKPROC m_callback;
   unsigned __int64    m_guid;
   void               *m_cbArg;
@@ -50,15 +41,13 @@ template <class RECORD, class KEY, class HASHKEY>
 class DBCache {
  public:
   struct DBCACHEHASH : public TSHashObject<DBCACHEHASH, HASHKEY> {
-    DBCACHEHASH(DBCACHEHASH &entry);
+    DBCACHEHASH(const DBCACHEHASH &entry);
     DBCACHEHASH() : m_haveData(false), m_temp(false) {
     }
 
     ~DBCACHEHASH() {
       m_callbacks.Clear();
     }
-
-    DBCACHEHASH &operator=(DBCACHEHASH &entry);
 
     RECORD                                               m_record;
     KEY                                                  m_dbkey;
@@ -67,11 +56,9 @@ class DBCache {
     bool                                                 m_temp;
   };
 
-  DBCache(DBCache<RECORD, KEY, HASHKEY> &cache);
+  DBCache(const DBCache<RECORD, KEY, HASHKEY> &cache);
   DBCache(unsigned long fileTag, const char *fileName, NETMESSAGE singleQuery, NETMESSAGE multiQuery, bool requireGuids, bool persistent);
   ~DBCache();
-
-  DBCache<RECORD, KEY, HASHKEY> &operator=(DBCache<RECORD, KEY, HASHKEY> &cache);
 
   const RECORD *GetRecord(KEY id, const unsigned __int64 &guid, DBCACHECALLBACKPROC cb, void *cbArg);
   void          VerifyPack(CGContainer_C *container, DBCACHECALLBACKPROC callback, void *arg);

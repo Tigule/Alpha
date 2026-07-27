@@ -94,8 +94,6 @@ class CGxDeviceOpenGl : public CGxDevice {
     ColorSourceColor() : m_color(0xFFFFFFFF), m_dirty(0) {
     }
 
-    ~ColorSourceColor() {
-    }
   };
 
   CGxDeviceOpenGl();

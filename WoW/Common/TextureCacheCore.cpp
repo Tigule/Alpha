@@ -64,7 +64,7 @@ void CACHEOBJECT::PurgeTextureCache() {
     case CACHEMODE_SIZE:
       curr = m_LRUList.Tail();
       while (curr && m_currentCacheSize > m_cacheSize) {
-        next = m_LRUList.Previous(curr);
+        next = m_LRUList.Prev(curr);
 
         if (curr->GetRefCount() <= 1) {
           m_currentCacheSize -= curr->m_size;

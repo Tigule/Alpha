@@ -30,10 +30,6 @@ class CObserver : public TRefCnt {
   void      ClearRegistry();
   EventReg *GetEventReg(unsigned int eventId, int create);
 
-  CObserver &operator=(const CObserver &) {
-    return *this;
-  }
-
  protected:
   EventRegistry *GetRegistry(int create);
 

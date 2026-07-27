@@ -871,7 +871,7 @@ int ZipFileList(unsigned long archive, int(*cb)(const char *, void *), void *par
   ZipFileArchive  *archiveptr = (ZipFileArchive *)archive;
   ZipFileDirEntry *entry;
 
-  entry = s_directory.m_fulllist.m_terminator.Next();
+  entry = s_directory.m_fulllist.Head();
   while ((LONG)entry > 0) {
     if (entry->archive == archiveptr && !cb(entry->filename, param)) {
       break;

@@ -33,8 +33,6 @@ class ASYNCREAD : public TSLinkedNode<ASYNCREAD> {
 };
 
 struct NoPaqCompHdr {
-  NoPaqCompHdr();
-
   DWORD uncompressedSize;
   char  signature[4];
   MD5   md5;
@@ -72,9 +70,6 @@ static char                                     s_datapath2[MAX_PATH];
 static char                                     s_initialbasepath[MAX_PATH];
 
 MD5::MD5() {
-}
-
-NoPaqCompHdr::NoPaqCompHdr() {
 }
 
 static void AddDirectoryToHash(const char *top, const char *sub, SDIR *dir) {

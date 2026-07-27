@@ -1073,9 +1073,6 @@ static int CCommand_ObjUsage(const char *command, const char *arguments) {
   return 1;
 }
 
-CMirrorHandler::~CMirrorHandler() {
-}
-
 ClntObjMgr *ClntObjMgrCreate(PLAYER_TYPE type, void *clientPtr) {
   return NEW(ClntObjMgr)(type, clientPtr);
 }

@@ -14,8 +14,6 @@ namespace NTempest {
 struct TAXILINE {
   NTempest::C2Vector src;
   NTempest::C2Vector dst;
-
-  ~TAXILINE();
 };
 
 enum TAXNODE_TYPE {

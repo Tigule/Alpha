@@ -212,7 +212,7 @@ int GxuFontCreateString(
 }
 void GxuFontDestroyString(CGxString *&string) {
   if (string) {
-    string->m_link.Unlink();
+    string->Unlink();
     string->Recycle();
     string = 0;
   }

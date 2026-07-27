@@ -13,7 +13,6 @@ class BigBuffer {
 
  public:
   BigBuffer();
-  BigBuffer &operator=(const BigBuffer &that);
   UINT      &operator[](UINT index);
   UINT       operator[](UINT index) const;
   void       Clear();
@@ -128,12 +127,6 @@ void BigBuffer::GrowToFit(UINT index) {
 }
 
 BigBuffer::BigBuffer() : m_offset(0) {
-}
-
-BigBuffer &BigBuffer::operator=(const BigBuffer &that) {
-  m_data = that.m_data;
-  m_offset = that.m_offset;
-  return *this;
 }
 
 UINT &BigBuffer::operator[](UINT index) {

@@ -487,5 +487,3 @@ void CRibbonEmitter::DecRef() {
   }
 }
 
-CRibbonVertex::~CRibbonVertex() {
-}

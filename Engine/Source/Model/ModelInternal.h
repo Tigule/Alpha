@@ -116,10 +116,6 @@ enum COLLIDE_TYPE {
 };
 
 struct CBoundsData {
-  CBoundsData() {
-    sphere.r = 0.0f;
-  }
-
   NTempest::CAaBox    extent;
   NTempest::CAaSphere sphere;
 };
@@ -150,8 +146,6 @@ struct CGeosetShared {
         geosetId(0),
         flags(0) {
   }
-  ~CGeosetShared();
-
   TSFixedArray_<NTempest::C3Vector, 'IMod', 276>  position;
   TSFixedArray_<unsigned char, 'IMod', 277>       boneWeights;
   TSFixedArray_<NTempest::C3Vector, 'IMod', 278>  normal;
@@ -284,7 +278,6 @@ struct CModelShared : public CHandleObject {
   unsigned char                                  numLayers;
 
  private:
-  CModelShared &operator=(const CModelShared &source);
 };
 
 void ModelEnableLights(HMODEL model, int enable);

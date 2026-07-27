@@ -114,9 +114,6 @@ namespace NTempest {
         : CMemBlock(count * sizeof(T), prologue, filen ? filen : typeid(T).raw_name(), filen ? linen : SERR_LINECODE_OBJECT) {
     }
 
-    virtual ~CMemBlockT() {
-    }
-
     T *Get() {
       return reinterpret_cast<T *>(CMemBlock::Get());
     }
@@ -130,10 +127,6 @@ namespace NTempest {
       return CMemBlock::Resize(count * sizeof(T), preserve);
     }
 
-    CMemBlockT &operator=(const CMemBlockT &other) {
-      CMemBlock::operator=(other);
-      return *this;
-    }
   };
 
 #if defined(_M_IX86) || defined(__i386__)

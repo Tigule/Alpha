@@ -78,8 +78,6 @@ struct OsGuiTreeItemParams {
   int                 used;
   NTempest::CImVector color;
   void               *user;
-
-  OsGuiTreeItemParams();
 };
 
 struct OsGuiTVSelectionInfo {
@@ -337,8 +335,6 @@ class COsImageButton : public COsControl {
 class COsTextButton : public COsControl {
  public:
   COsTextButton(COsDialog *inDialog, short inID);
-  virtual ~COsTextButton() {
-  }
 
   virtual int OnDraw(void *inContext, unsigned int inState, NTempest::CiRect &inRect);
 
@@ -370,9 +366,6 @@ class COsStaticBox : public COsControl {
   COsStaticBox(void *inWindow, short inID, unsigned int inFlags)
       : COsControl(inWindow, 12, inID, inFlags) {
   }
-  virtual ~COsStaticBox() {
-  }
-
   virtual int OnDraw(void *inContext, unsigned int inState, NTempest::CiRect &inRect);
 
   void ClearTransparentRects();

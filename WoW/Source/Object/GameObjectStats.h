@@ -32,10 +32,6 @@ class GameObjectStats {
 
 class GameObjectStats_C : public GameObjectStats {
  public:
-  GameObjectStats_C() {
-    memset(this, 0, sizeof(*this));
-  }
-
   void Unpack(CDataStore *msg);
 };
 

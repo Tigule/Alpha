@@ -846,8 +846,8 @@ unsigned int CHARCODEDESC::GapToNextTexture() const {
 unsigned int CHARCODEDESC::GapToPreviousTexture() const {
   ASSERT(ValidBlockEndPoints());
 
-  const CHARCODEDESC *previous = textureRowLink.m_prevlink->m_prevlink->m_next;
-  if (reinterpret_cast<long>(previous) <= 0) {
+  const CHARCODEDESC *previous = textureRowLink.Prev();
+  if (!previous) {
     return glyphStartPixel;
   }
 
@@ -2919,8 +2919,3 @@ void CGxString::AddShadowFixedGeometry() {
   }
 }
 
-VERT::~VERT() {
-}
-
-CHARCODEDESC::~CHARCODEDESC() {
-}

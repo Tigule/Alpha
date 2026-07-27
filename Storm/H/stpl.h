@@ -871,31 +871,45 @@ template <class T>
 class TSGetExplicitLink;
 
 template <class T>
+class TSLinkedNode;
+
+template <class T>
 class TSLink {
   friend class TSList<T, TSGetLink<T> >;
   friend class TSList<T, TSGetExplicitLink<T> >;
 
- public:
+ private:
   TSLink<T> *m_prevlink;
   T         *m_next;
 
+  void Constructor() {
+    m_prevlink = 0;
+    m_next = 0;
+  }
+
+  void CopyConstructor(const TSLink<T> &) {
+    Constructor();
+  }
+
+  TSLink<T> *NextLink(int linkoffset) const;
+
+ public:
   TSLink() {
     Constructor();
+  }
+
+  TSLink(const TSLink<T> &source) {
+    CopyConstructor(source);
   }
 
   ~TSLink() {
     Unlink();
   }
 
- private:
-  void Constructor() {
-    m_prevlink = 0;
-    m_next = 0;
+  TSLink<T> &operator=(const TSLink<T> &) {
+    return *this;
   }
 
-  TSLink<T> *NextLink(int linkoffset) const;
-
- public:
   T *Next() {
     return reinterpret_cast<int>(m_next) > 0 ? m_next : 0;
   }
@@ -958,9 +972,15 @@ void TSLink<T>::Unlink() {
 
 template <class T>
 class TSLinkedNode {
+  friend class TSGetLink<T>;
+
  public:
   ~TSLinkedNode() {
     Unlink();
+  }
+
+  int IsLinked() const {
+    return m_link.IsLinked();
   }
 
   void Unlink() {
@@ -991,6 +1011,7 @@ class TSLinkedNode {
     return m_link.RawNext();
   }
 
+ private:
   TSLink<T> m_link;
 };
 
@@ -1012,11 +1033,10 @@ class TSGetExplicitLink {
 
 template <class T, class GETLINK>
 class TSList {
- public:
+ private:
   int       m_linkoffset;
   TSLink<T> m_terminator;
 
- private:
   void Constructor() {
     m_linkoffset = 0;
     InitializeTerminator();
@@ -1047,6 +1067,11 @@ class TSList {
 
   TSList(const TSList<T, GETLINK> &source) {
     CopyConstructor(source);
+  }
+
+  TSList(int linkoffset) {
+    Constructor();
+    SetLinkOffset(linkoffset);
   }
 
   ~TSList() {
@@ -1112,13 +1137,13 @@ class TSList {
     return Link(instance)->RawNext();
   }
 
-  T *Previous(const T *instance) {
+  T *Prev(const T *instance) {
     TSLink<T> *link = Link(instance);
     T         *previous = link->m_prevlink->m_prevlink->m_next;
     return reinterpret_cast<long>(previous) > 0 ? previous : 0;
   }
 
-  const T *Previous(const T *instance) const {
+  const T *Prev(const T *instance) const {
     TSLink<T> *link = Link(instance);
     const T   *previous = link->m_prevlink->m_prevlink->m_next;
     return reinterpret_cast<long>(previous) > 0 ? previous : 0;
@@ -1443,17 +1468,10 @@ class TSHashObject {
   TSHashObject() {
   }
 
-  TSHashObject(const TSHashObject<T, KEY> &source)
-      : m_hashval(source.m_hashval), m_linktoslot(source.m_linktoslot), m_linktofull(source.m_linktofull), m_key(source.m_key) {
+  TSHashObject(const TSHashObject<T, KEY> &) {
   }
 
-  TSHashObject<T, KEY> &operator=(const TSHashObject<T, KEY> &source) {
-    if (this != &source) {
-      m_hashval = source.m_hashval;
-      m_linktoslot = source.m_linktoslot;
-      m_linktofull = source.m_linktofull;
-      m_key = source.m_key;
-    }
+  TSHashObject<T, KEY> &operator=(const TSHashObject<T, KEY> &) {
     return *this;
   }
 
@@ -1612,7 +1630,7 @@ class TSHashTable {
   }
 
   T *Prev(const T *ptr) {
-    return m_fulllist.Previous(ptr);
+    return m_fulllist.Prev(ptr);
   }
 
   const T *Prev(const T *ptr) const {
@@ -1718,7 +1736,6 @@ class TSExportTableSimple : public TSHashTableReuse<T, HASHKEY_NONE, REUSE> {
 
  public:
   TSExportTableSimple();
-  virtual ~TSExportTableSimple();
 
   void Delete(HANDLE handle);
   void Delete(T *ptr);
@@ -1737,7 +1754,6 @@ class TSExportTableSync : public TSExportTableSimple<T, HANDLE, REUSE> {
 
  public:
   TSExportTableSync();
-  virtual ~TSExportTableSync();
 
   void Delete(HANDLE handle);
   void DeleteUnlock(T *ptr, LOCKED lockedhandle);
@@ -2022,10 +2038,6 @@ TSExportTableSimple<T, HANDLE, REUSE>::TSExportTableSimple() : m_sequence(0), m_
 }
 
 template <class T, class HANDLE, int REUSE>
-TSExportTableSimple<T, HANDLE, REUSE>::~TSExportTableSimple() {
-}
-
-template <class T, class HANDLE, int REUSE>
 void TSExportTableSimple<T, HANDLE, REUSE>::Delete(T *ptr) {
   TSHashTable<T, HASHKEY_NONE>::Delete(ptr);
 }
@@ -2063,10 +2075,6 @@ void TSExportTableSync<T, HANDLE, LOCKED, SYNC, REUSE>::SyncLeaveLock(LOCKED loc
 
 template <class T, class HANDLE, class LOCKED, class SYNC, int REUSE>
 TSExportTableSync<T, HANDLE, LOCKED, SYNC, REUSE>::TSExportTableSync() {
-}
-
-template <class T, class HANDLE, class LOCKED, class SYNC, int REUSE>
-TSExportTableSync<T, HANDLE, LOCKED, SYNC, REUSE>::~TSExportTableSync() {
 }
 
 template <class T, class HANDLE, class LOCKED, class SYNC, int REUSE>

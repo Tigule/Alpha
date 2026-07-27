@@ -20,8 +20,6 @@ CBackdropGenerator::CBackdropGenerator()
       m_topRightTexture(0),
       m_bottomLeftTexture(0),
       m_bottomRightTexture(0),
-      m_background(0),
-      m_border(0),
       m_pieces(BACKDROPONLY),
       m_tileBackground(0),
       m_cornerSize(DEFAULT_CORNER_SIZE),

@@ -358,10 +358,6 @@ struct MDLPARTICLEEMITTER : public MDLGENOBJECT {
   MDLKEYTRACK<float> visibilityKeys;
 };
 struct MDLTARGETSECTION {
-  MDLTARGETSECTION()
-      : pivot(0.0f) {
-  }
-
   NTempest::C3Vector                  pivot;
   MDLKEYTRACK<NTempest::C3Vector>     transkeys;
 };

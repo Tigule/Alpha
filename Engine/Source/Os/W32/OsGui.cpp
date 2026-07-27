@@ -2519,9 +2519,6 @@ static HBITMAP__* sMaskFromImageData(int inWidth, int inHeight, void* inData, HD
   return bitmap;
 }
 
-OsGuiTreeItemParams::OsGuiTreeItemParams() : color(0ul) {
-}
-
 COsImageButton::COsImageButton(COsDialog *inDialog, short inID, unsigned int inFlags)
     : COsControl(inDialog, 1, inID, inFlags) {
 }

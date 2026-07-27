@@ -15,7 +15,6 @@ class CMovement;
 struct CWalkableSurface;
 struct CRedirect {
   CRedirect();
-  ~CRedirect();
   void Reset();
 
   NTempest::C3Vector hitPoint;

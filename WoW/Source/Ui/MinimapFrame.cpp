@@ -115,9 +115,6 @@ NTempest::C2Vector CGMinimapFrame::WorldPosToMinimapFrameCoords(
   return NTempest::C2Vector(halfSize - halfSize * (y - centerPoint.y) * ooRadius, halfSize + halfSize * (x - centerPoint.x) * ooRadius);
 }
 
-CGMinimapFrame::~CGMinimapFrame() {
-}
-
 int CGMinimapFrame::ObjectEnumProc(unsigned __int64 object, void *param) {
   MINIMAPINFO *info = static_cast<MINIMAPINFO *>(param);
   FATALASSERT(info);

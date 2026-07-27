@@ -21,24 +21,6 @@ enum MISS_REASON {
 };
 
 struct MISSILESTRUCT {
-  MISSILESTRUCT()
-      : caster(0),
-        spellID(0),
-        target(0),
-        speed(0.0f),
-        ammoDisplayID(0),
-        inventoryType(0),
-        missileEffect(0),
-        missileVictimEffect(0),
-        missilePathType(0),
-        hits(0),
-        reason(MISS_REASON_NONE),
-        sound(0) {
-  }
-
-  ~MISSILESTRUCT() {
-  }
-
   CGUnit_C          *caster;
   unsigned int       spellID;
   unsigned __int64   target;

@@ -28,10 +28,6 @@ struct PENDINGUSERLIST : public TSLinkedNode<PENDINGUSERLIST> {
 };
 
 struct ChatChannel {
-  ChatChannel() : localID(0), channelFlags(0) {
-    name[0] = 0;
-  }
-
   int                                                  localID;
   char                                                 name[128];
   TSList<PENDINGUSERLIST, TSGetLink<PENDINGUSERLIST> > pendingNames;

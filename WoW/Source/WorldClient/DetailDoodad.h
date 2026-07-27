@@ -15,9 +15,6 @@ struct MDLDATA;
 
 class CDetailDoodadGeom {
  public:
-  CDetailDoodadGeom();
-  ~CDetailDoodadGeom();
-
   void FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf);
   void FillGxBufIndex(CGxBufCommand &cmd, CGxBuf *buf);
 

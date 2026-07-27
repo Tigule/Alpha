@@ -425,7 +425,7 @@ void CSimpleFrame::SetBeingScrolled(int on) {
     }
   }
 
-  for (node = m_children.Head(); node; node = node->m_link.Next()) {
+  for (node = m_children.Head(); node; node = node->Next()) {
     node->frame->SetBeingScrolled(on);
   }
 }
@@ -440,7 +440,7 @@ void CSimpleFrame::SetFrameStrata(int strata) {
     m_strata = strata;
     m_top->RegisterFrame(this);
 
-    for (node = m_children.Head(); node; node = node->m_link.Next()) {
+    for (node = m_children.Head(); node; node = node->Next()) {
       node->frame->SetFrameStrata(strata);
     }
   }
@@ -460,7 +460,7 @@ void CSimpleFrame::SetFrameLevel(int level, int shiftChildren) {
     m_top->RegisterFrame(this);
 
     if (shiftChildren) {
-      for (node = m_children.Head(); node; node = node->m_link.Next()) {
+      for (node = m_children.Head(); node; node = node->Next()) {
         CSimpleFrame *child = node->frame;
 
         if (child->m_strata == m_strata) {
@@ -520,11 +520,11 @@ void CSimpleFrame::SetAlpha(unsigned char alpha) {
 
     m_alpha = alpha;
 
-    for (regionNode = m_regions.Head(); regionNode; regionNode = regionNode->m_link.Next()) {
+    for (regionNode = m_regions.Head(); regionNode; regionNode = regionNode->Next()) {
       regionNode->region->OnGxColorChanged();
     }
 
-    for (frameNode = m_children.Head(); frameNode; frameNode = frameNode->m_link.Next()) {
+    for (frameNode = m_children.Head(); frameNode; frameNode = frameNode->Next()) {
       frameNode->frame->SetAlpha(alpha);
     }
   }
@@ -634,7 +634,7 @@ void CSimpleFrame::ParentFrame(CSimpleFrame *frame) {
 void CSimpleFrame::UnparentFrame(CSimpleFrame *frame) {
   SIMPLEFRAMENODE *node;
 
-  for (node = m_children.Head(); node; node = node->m_link.Next()) {
+  for (node = m_children.Head(); node; node = node->Next()) {
     if (node->frame == frame) {
       m_children.DeleteNode(node);
       break;
@@ -648,12 +648,12 @@ void CSimpleFrame::ClearChildrenFromSimpleRegistry() {
 
   ClearFromSimpleRegistry();
 
-  for (region = m_regions.Head(); region; region = region->m_link.Next()) {
+  for (region = m_regions.Head(); region; region = region->Next()) {
     ASSERT(region->region);
     region->region->ClearFromSimpleRegistry();
   }
 
-  for (frame = m_children.Head(); frame; frame = frame->m_link.Next()) {
+  for (frame = m_children.Head(); frame; frame = frame->Next()) {
     ASSERT(frame->frame);
     frame->frame->ClearChildrenFromSimpleRegistry();
   }
@@ -706,7 +706,7 @@ void CSimpleFrame::SetDeferredResize(int enable) {
     CLayoutFrame::m_flags &= ~0x2U;
   }
 
-  for (node = m_regions.Head(); node; node = node->m_link.Next()) {
+  for (node = m_regions.Head(); node; node = node->Next()) {
     node->region->SetDeferredResize(enable);
   }
 
@@ -726,11 +726,11 @@ void CSimpleFrame::SetLayoutScale(float scale, bool force) {
 
     CLayoutFrame::SetLayoutScale(scale, force);
 
-    for (regionNode = m_regions.Head(); regionNode; regionNode = regionNode->m_link.Next()) {
+    for (regionNode = m_regions.Head(); regionNode; regionNode = regionNode->Next()) {
       regionNode->region->SetLayoutScale(scale, force);
     }
 
-    for (frameNode = m_children.Head(); frameNode; frameNode = frameNode->m_link.Next()) {
+    for (frameNode = m_children.Head(); frameNode; frameNode = frameNode->Next()) {
       frameNode->frame->SetLayoutScale(scale, force);
     }
   }
@@ -749,7 +749,7 @@ int CSimpleFrame::HideThis() {
     m_visible = 0;
     OnLayerHide();
 
-    for (node = m_children.Head(); node; node = node->m_link.Next()) {
+    for (node = m_children.Head(); node; node = node->Next()) {
       node->frame->HideThis();
     }
   }
@@ -772,7 +772,7 @@ int CSimpleFrame::ShowThis() {
       NotifyDrawLayersChanged();
 
       SIMPLEFRAMENODE *node;
-      for (node = m_children.Head(); node; node = node->m_link.Next()) {
+      for (node = m_children.Head(); node; node = node->Next()) {
         node->frame->ShowThis();
       }
 

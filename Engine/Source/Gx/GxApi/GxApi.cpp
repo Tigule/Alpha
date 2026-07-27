@@ -1149,6 +1149,3 @@ void GxTexGetDimensions(const CGxTex *texId, unsigned int *width, unsigned int *
   FATALASSERT(texId != 0);
   g_theGxDevicePtr->TexGetDimensions(texId, width, height);
 }
-
-CGxFormat::~CGxFormat() {
-}

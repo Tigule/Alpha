@@ -213,8 +213,6 @@ struct CGxBuf {
     m_userCallback = userCallback;
   }
 
-  ~CGxBuf() {
-  }
 };
 
 class CGxMemBuffer {
@@ -308,9 +306,6 @@ class CGxTex {
       void        *userArg,
       void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
   );
-  ~CGxTex() {
-  }
-
   unsigned char    m_needsUpdate;
   unsigned char    m_needsCreation;
   unsigned char    m_needsFlagUpdate;
@@ -334,25 +329,6 @@ class CGxTex {
 class CGxLight {
  public:
   CGxLight();
-  ~CGxLight() {
-  }
-  CGxLight &operator=(const CGxLight &__that) {
-    m_enabled = __that.m_enabled;
-    m_isOmni = __that.m_isOmni;
-    m_dir = __that.m_dir;
-    m_ambColor = __that.m_ambColor;
-    m_dirColor = __that.m_dirColor;
-    m_specColor = __that.m_specColor;
-    m_ambIntensity = __that.m_ambIntensity;
-    m_dirIntensity = __that.m_dirIntensity;
-    m_specIntensity = __that.m_specIntensity;
-    m_constantAttenuation = __that.m_constantAttenuation;
-    m_linearAttenuation = __that.m_linearAttenuation;
-    m_quadraticAttenuation = __that.m_quadraticAttenuation;
-    m_attenStart = __that.m_attenStart;
-    m_attenEnd = __that.m_attenEnd;
-    return *this;
-  }
 
   int                 m_enabled : 1;
   int                 m_isOmni : 1;

@@ -1739,5 +1739,3 @@ int IModelDerefHandle(CModel *model, CModelShared **shared) {
   return model->state == CMODEL_LOADED;
 }
 
-CGeosetShared::~CGeosetShared() {
-}

@@ -51,9 +51,6 @@ class CHashKeyGUID {
 struct C_OBJECTHASH : public TSHashObject<C_OBJECTHASH, CHashKeyGUID> {
   C_OBJECTHASH(const C_OBJECTHASH &object);
   C_OBJECTHASH();
-  ~C_OBJECTHASH();
-
-  C_OBJECTHASH &operator=(const C_OBJECTHASH &object);
 
   unsigned int                                       memHandle;
   unsigned int                                       thisMemHandle;
@@ -75,27 +72,12 @@ struct CMirrorHandler : public TSLinkedNode<CMirrorHandler> {
   unsigned int                                offset;
   TSGrowableArray_<unsigned char, 'OMGR', 71> previous;
   HANDLER_PRIORITY                            priority;
-
-  CMirrorHandler() {
-  }
-  ~CMirrorHandler();
 };
 
 inline C_OBJECTHASH::C_OBJECTHASH() : memHandle(0) {
 }
 
-inline C_OBJECTHASH::~C_OBJECTHASH() {
-}
-
 struct OBJHANDLERREQUEST : public TSLinkedNode<OBJHANDLERREQUEST> {
-  OBJHANDLERREQUEST(const OBJHANDLERREQUEST &request);
-  OBJHANDLERREQUEST() {
-  }
-  ~OBJHANDLERREQUEST() {
-  }
-
-  OBJHANDLERREQUEST &operator=(const OBJHANDLERREQUEST &request);
-
   unsigned __int64 guid;
   unsigned int     offset;
   unsigned int     bytes;
@@ -125,8 +107,6 @@ class ClntObjMgr {
   }
   ~ClntObjMgr() {
   }
-
-  ClntObjMgr &operator=(const ClntObjMgr &mgr);
 
   TSHashTable<C_OBJECTHASH, CHashKeyGUID>                  m_objects;
   TSHashTable<C_OBJECTHASH, CHashKeyGUID>                  m_lazyCleanupObjects;

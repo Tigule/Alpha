@@ -1405,5 +1405,3 @@ unsigned int CMap::GetFacetsMapObjs(CWFrustum &frustum, CWFacetData *facetData, 
   return hit;
 }
 
-CMapCacheLight::~CMapCacheLight() {
-}

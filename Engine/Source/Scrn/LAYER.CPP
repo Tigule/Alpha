@@ -18,12 +18,6 @@ const float OO_TWO_PI = 1.0f / TWO_PI;
 
 class CILayer : public CHandleObject {
 public:
-  CILayer() {
-  }
-
-  virtual ~CILayer() {
-  }
-
   RECTF rect;
   RECTF visible;
   float zorder;
@@ -102,10 +96,7 @@ static int __fastcall OnPaint(const void *, void *) {
   baseRect.top = 1.0f;
   SRgnCombineRectf(rgn, &baseRect, 0, 2);
 
-  layer = s_zorderlist.m_terminator.m_prevlink->m_prevlink->m_next;
-  if (reinterpret_cast<long>(layer) <= 0) {
-    layer = 0;
-  }
+  layer = s_zorderlist.Tail();
 
   while (layer) {
     CILayer *previousLayer;
@@ -128,11 +119,8 @@ static int __fastcall OnPaint(const void *, void *) {
       SRgnCombineRectf(rgn, &layer->rect, 0, 4);
     }
 
-    previousLayer =
-        layer->zorderlink.m_prevlink->m_prevlink->m_next;
-    layer = reinterpret_cast<long>(previousLayer) > 0
-              ? previousLayer
-              : 0;
+    previousLayer = s_zorderlist.Prev(layer);
+    layer = previousLayer;
   }
 
   SRgnDelete(rgn);
@@ -234,18 +222,11 @@ void __fastcall ScrnLayerCreate(
   newLayer->param = param;
   newLayer->paintfunc = paintfunc;
 
-  existingLayer =
-      s_zorderlist.m_terminator.m_prevlink->m_prevlink->m_next;
-  if (reinterpret_cast<long>(existingLayer) <= 0) {
-    existingLayer = 0;
-  }
+  existingLayer = s_zorderlist.Tail();
 
   while (existingLayer && existingLayer->zorder > zorder) {
-    CILayer *previousLayer =
-        existingLayer->zorderlink.m_prevlink->m_prevlink->m_next;
-    existingLayer = reinterpret_cast<long>(previousLayer) > 0
-                      ? previousLayer
-                      : 0;
+    CILayer *previousLayer = s_zorderlist.Prev(existingLayer);
+    existingLayer = previousLayer;
   }
 
   s_zorderlist.LinkNode(newLayer, LIST_LINK_AFTER, existingLayer);

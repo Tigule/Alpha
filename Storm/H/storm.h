@@ -419,9 +419,6 @@ BigNum::~BigNum() {
 namespace Crypt {
   class RSA {
    public:
-    RSA();
-    ~RSA();
-
     void Prepare(const void *modulus, unsigned long mLength, const void *exponent, unsigned long eLength);
     void Process(unsigned char *data, unsigned long size);
 
@@ -722,7 +719,7 @@ class SInitCritSect {
 
 class SEvent : public SSyncObject {
  public:
-  SEvent(int manualReset, int initialValue);
+  SEvent(int manualReset = 0, int initialValue = 0);
   ~SEvent() {
   }
   int Set();

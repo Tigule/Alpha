@@ -44,12 +44,6 @@ CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame *parent) : CSimpleButton(parent)
   SetClickAction(0x500);
 }
 
-CGNamePlateFrame::~CGNamePlateFrame() {
-  DEL(m_healthBar);
-  DEL(m_nameFrame);
-  DEL(m_highlight);
-}
-
 void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
   FATALASSERT(unit);
   m_unit = unit->GetGUID();

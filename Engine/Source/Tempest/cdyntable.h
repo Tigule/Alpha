@@ -36,9 +36,6 @@ namespace NTempest {
         : CMemBlockT<T>(dp.Prealloc(), prologue, filen, linen), expand(dp.ExpandF()), iallocated(dp.Prealloc()), iused(0) {
     }
 
-    virtual ~CDynTable() {
-    }
-
     CDynTable &operator=(const CDynTable &other) {
       CMemBlockT<T>::operator=(other);
       expand = other.expand;

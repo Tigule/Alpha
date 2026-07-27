@@ -2399,9 +2399,6 @@ namespace OsNet {
     }
   }
 
-  LOOPCONN::INPUT::~INPUT() {
-  }
-
   TCPCONN::TCPCONN(TCPNET *net, unsigned int sock, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr)
       : NETCONNFULL(net, sock, eventProc, user, pconnAddr), m_bytes(0) {
     int mode = 1;

@@ -224,8 +224,6 @@ namespace OsNet {
         : NETCONN(net, sock, eventProc, user, pconnAddr) {
     }
 
-    virtual ~NETCONNFULL() {
-    }
     virtual void    Send(const void *data, unsigned long bytes) = 0;
     virtual OS_SEND SendSync(const void *data, unsigned long bytes, unsigned long *bytesSent, unsigned long timeout) = 0;
     virtual void    SetNagle(int enable);
@@ -239,8 +237,6 @@ namespace OsNet {
         : NETCONN(net, sock, eventProc, user, pconnAddr) {
     }
 
-    virtual ~NETCONNLESS() {
-    }
     virtual void SendTo(const void *data, unsigned long bytes, unsigned long addrCount, const NETADDR *addrArray) = 0;
   };
 
@@ -437,7 +433,6 @@ namespace OsNet {
       unsigned long m_dataBytes;
       unsigned char m_data[4];
 
-      ~INPUT();
     };
 
     LOOPCONN(TCPNET *net, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);

@@ -73,10 +73,6 @@ class ItemStats {
 
 class ItemStats_C : public ItemStats {
  public:
-  ItemStats_C() {
-    memset(this, 0, sizeof(*this));
-  }
-
   void Unpack(CDataStore *msg);
 };
 

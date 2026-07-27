@@ -158,11 +158,6 @@ struct CAnimCameraObjStatus {
 };
 
 struct CAnimLayerStatus {
-  CAnimLayerStatus() {
-    memset(this, 0, sizeof(*this));
-    base.flags = 0x10;
-  }
-
   CKeyTrackStatus visibility;
   CKeyTrackStatus flipIndex;
   CBaseStatus     base;
@@ -189,11 +184,6 @@ struct CAnimEmitter2ObjStatus : public CAnimObjStatus {
 };
 
 struct CAnimLightObjStatus : public CAnimObjStatus {
-  CAnimLightObjStatus() {
-    memset(this, 0, sizeof(*this));
-    base.flags = 0x10;
-  }
-
   CKeyTrackStatus attenstart;
   CKeyTrackStatus attenend;
   CKeyTrackStatus color;

@@ -105,7 +105,7 @@ static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect) {
   }
 
   REGIONNODE *regionNode;
-  for (regionNode = frame->m_regions.Head(); regionNode; regionNode = regionNode->m_link.Next()) {
+  for (regionNode = frame->m_regions.Head(); regionNode; regionNode = regionNode->Next()) {
     CSimpleRegion *region = regionNode->region;
 
     if (region->IsVisible() && region->GetRect(&frameRect)) {
@@ -117,7 +117,7 @@ static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect) {
   }
 
   SIMPLEFRAMENODE *frameNode;
-  for (frameNode = frame->m_children.Head(); frameNode; frameNode = frameNode->m_link.Next()) {
+  for (frameNode = frame->m_children.Head(); frameNode; frameNode = frameNode->Next()) {
     if (frameNode->frame && frameNode->frame->m_shown) {
       GetScrollChildRect(frameNode->frame, rect);
     }

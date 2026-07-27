@@ -30,8 +30,6 @@ class CBackdropGenerator {
   };
 
   CBackdropGenerator();
-  ~CBackdropGenerator() {
-  }
 
   void LoadXML(const XMLNode *node, CStatus *status);
   void SetOutput(CSimpleFrame *output);

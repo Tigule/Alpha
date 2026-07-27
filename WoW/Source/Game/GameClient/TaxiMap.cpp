@@ -362,5 +362,3 @@ unsigned int TaxiRouteExists(int fromNode, int toNode) {
   return fromNode > 0 && toNode > 0 && fromNode <= 63 && toNode <= 63 && s_taxiPathCosts[fromNode][toNode] != 0;
 }
 
-TAXILINE::~TAXILINE() {
-}

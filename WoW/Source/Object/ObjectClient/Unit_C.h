@@ -162,7 +162,7 @@ struct QUESTGIVEREMOTENODE {
   unsigned int emoteID;
 };
 class LightningObject;
-class FishingLineObject;
+struct FishingLineObject;
 
 struct DEBUGHITROLLINFO {
   ATTACKROUNDINFO attackInfo;

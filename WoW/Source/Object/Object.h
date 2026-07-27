@@ -18,9 +18,6 @@ struct CMovementStatus {
 
 struct CMoveSpline {
   struct SplineFaceData {
-    SplineFaceData() : spot(0.0f) {
-    }
-
     NTempest::C3Vector spot;
     unsigned __int64   guid;
     float              facing;

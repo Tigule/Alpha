@@ -351,13 +351,6 @@ void CDetailDoodadData::MdlReadCallback(unsigned int *fileData, unsigned int fil
   memcpy(geom->indexList.Ptr(), data, nPrims * sizeof(unsigned short));
 }
 
-CDetailDoodadGeom::CDetailDoodadGeom() {
-  texture = 0;
-}
-
-CDetailDoodadGeom::~CDetailDoodadGeom() {
-}
-
 CDetailDoodadInst::CDetailDoodadInst() {
   geom[0] = 0;
   geom[1] = 0;

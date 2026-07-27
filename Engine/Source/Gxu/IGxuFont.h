@@ -94,8 +94,6 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
         bitmapData(0) {
   }
 
-  ~CHARCODEDESC();
-
   void         GenerateTextureCoords(unsigned int rowNumber, unsigned int glyphSide);
   unsigned int GapToNextTexture() const;
   unsigned int GapToPreviousTexture() const;
@@ -281,8 +279,6 @@ struct HYPERLINKPARSEINFO {
 };
 
 struct VERT {
-  ~VERT();
-
   NTempest::C3Vector vc;
   NTempest::C2Vector tc;
 };

@@ -105,7 +105,7 @@ PLAYERNAMEDESC::~PLAYERNAMEDESC() {
       HandleClose(reinterpret_cast<HOBJECT>(m_worldTextHandles[i]));
     }
   }
-  if (m_link.m_prevlink) {
+  if (m_link.IsLinked()) {
     s_playerNames.UnlinkNode(this);
   }
 }

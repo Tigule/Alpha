@@ -401,7 +401,7 @@ void LISTBASE::Render() {
   m_currentCount = 0;
   int found = 0;
   for (SPLATDATA *splat = m_splatOrder.Tail(); splat;) {
-    SPLATDATA   *newTail = m_splatOrder.Previous(splat);
+    SPLATDATA   *newTail = m_splatOrder.Prev(splat);
     unsigned int nuke;
     if (splat->Update(static_cast<float>(found) / m_maxCount, nuke) && nuke) {
       splat->chunk->RecycleSplat(splat);

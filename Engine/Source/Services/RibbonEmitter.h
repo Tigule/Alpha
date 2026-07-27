@@ -17,8 +17,6 @@ struct CRibbonMat {
 };
 
 struct CRibbonVertex {
-  ~CRibbonVertex();
-
   NTempest::C3Vector pos;
   NTempest::C2Vector texCoord;
 };

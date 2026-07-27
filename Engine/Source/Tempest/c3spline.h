@@ -120,11 +120,6 @@ namespace NTempest {
     }
     C3Spline_Bezier3(const C3Spline_Bezier3 &spline) : C3Spline(spline) {
     }
-    C3Spline_Bezier3 &operator=(const C3Spline_Bezier3 &spline) {
-      C3Spline::operator=(spline);
-      return *this;
-    }
-
    protected:
     virtual float ILength() const;
     virtual void  IValidateCache() const;
@@ -158,14 +153,6 @@ namespace NTempest {
     C3Spline_CatmullRom(const C3Spline_CatmullRom &spline)
         : C3Spline(spline), splineMode(spline.splineMode) {
     }
-    C3Spline_CatmullRom &operator=(const C3Spline_CatmullRom &spline) {
-      if (this != &spline) {
-        C3Spline::operator=(spline);
-        splineMode = spline.splineMode;
-      }
-      return *this;
-    }
-
     unsigned int NumPoints() const {
       return points.Count();
     }

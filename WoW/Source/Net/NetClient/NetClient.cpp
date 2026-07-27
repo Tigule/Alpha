@@ -61,8 +61,6 @@ class NetClientRedirect : public WowConnectionResponse {
     }
   }
 
-  NetClientRedirect &operator=(const NetClientRedirect &redirect);
-
   void Connect(const char *host, unsigned short port) {
     if (m_conn) {
       m_conn->SetResponse(0);

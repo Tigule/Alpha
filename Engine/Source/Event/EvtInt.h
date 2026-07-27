@@ -354,10 +354,6 @@ struct EvtThread : public TSLinkedNode<EvtThread> {
   DWORD           m_rebalance;
   SEvent          m_wakeEvent;
   EvtContextQueue m_contextQueue;
-
-  EvtThread() : m_threadSlot(0), m_threadCount(0), m_weightTotal(0), m_weightAvg(0), m_contextCount(0), m_rebalance(0), m_wakeEvent(0, 0) {
-  }
-  ~EvtThread();
 };
 
 void IEvtQueueInitialize();

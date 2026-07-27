@@ -9,7 +9,6 @@ class CGUnit_C;
 class CGNamePlateFrame : public CSimpleButton {
  public:
   CGNamePlateFrame(CSimpleFrame *parent);
-  virtual ~CGNamePlateFrame();
 
   void         Initialize(CGUnit_C *unit);
   virtual void OnLayerCursorEnter();

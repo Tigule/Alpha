@@ -1398,9 +1398,6 @@ CGGameObject_C_Type_Transport::CGGameObject_C_Type_Transport(CGGameObject_C *own
       GetMovement(OsGetAsyncTimeMs());
 }
 
-CGGameObject_C_Type_Transport::~CGGameObject_C_Type_Transport() {
-}
-
 NTempest::C3Vector CGGameObject_C_Type_Transport::GetPosition() const {
   return m_position;
 }

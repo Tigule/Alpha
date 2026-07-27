@@ -176,7 +176,6 @@ struct CChunkLayer : public TSLinkedNode<CChunkLayer> {
 
 class CMapCacheLight {
  public:
-  ~CMapCacheLight();
 
   CGxLight               gxLight;
   float                  attenStart;
@@ -187,7 +186,6 @@ class CMapCacheLight {
 
 class CMapAreaLow {
  public:
-  ~CMapAreaLow();
 
   NTempest::CAaBox    aaBox;
   NTempest::CAaSphere aaSphere;
@@ -436,7 +434,6 @@ struct SMAreaHeader {
 };
 
 struct SMDoodadDef {
-  ~SMDoodadDef();
 
   unsigned int       nameId;
   unsigned int       uniqueId;
@@ -447,7 +444,6 @@ struct SMDoodadDef {
 };
 
 struct SMMapObjDef {
-  ~SMMapObjDef();
 
   unsigned int       nameId;
   unsigned int       uniqueId;

@@ -70,8 +70,6 @@ struct FADEOUTHASHOBJ : public TSHashObject<FADEOUTHASHOBJ, CHashKeyGUID> {
   unsigned int        startTime;
   unsigned char       startAlpha;
 
-  FADEOUTHASHOBJ() : model(0), texture(0) {
-  }
   ~FADEOUTHASHOBJ() {
     if (model) {
       HandleClose(model);

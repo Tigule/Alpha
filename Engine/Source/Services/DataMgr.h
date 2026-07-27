@@ -95,9 +95,6 @@ inline void TManaged<NTempest::C33Matrix>::Set_(const NTempest::C33Matrix &val) 
 
 class CDataMgr : public CHandleObject {
  public:
-  virtual ~CDataMgr() {
-  }
-
   TSFixedArray<CBaseManaged *>    m_managedArray;
   TSExplicitList<CBaseManaged, 4> m_updateList;
 

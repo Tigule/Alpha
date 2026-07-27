@@ -117,9 +117,6 @@ struct CGxBufOp {
 struct CGxBufCommand {
   CGxBufOp vertex;
   CGxBufOp index;
-
-  CGxBufCommand() {
-  }
 };
 
 struct CGxVertexPN {
@@ -142,18 +139,12 @@ struct CGxVertexPNT0 {
   NTempest::C3Vector p;
   NTempest::C3Vector n;
   NTempest::C2Vector tc[1];
-
-  CGxVertexPNT0();
-  ~CGxVertexPNT0();
 };
 
 struct CGxVertexPNT0T1 {
   NTempest::C3Vector p;
   NTempest::C3Vector n;
   NTempest::C2Vector tc[2];
-
-  CGxVertexPNT0T1();
-  ~CGxVertexPNT0T1();
 };
 
 struct CGxVertexPNCT0 {
@@ -413,16 +404,12 @@ struct CGxFormat {
       bool                       p_hwTnl,
       bool                       p_fixLag
   );
-  ~CGxFormat();
 };
 
 struct CGxMonitorMode {
   NTempest::C2iVector size;
   unsigned int        bpp;
   unsigned int        refreshRate;
-
-  ~CGxMonitorMode() {
-  }
 };
 
 class CGxCaps {
@@ -470,13 +457,13 @@ struct CGxTexFlags {
   unsigned int m_maxAnisotropy : 5;
 
   CGxTexFlags(
-      EGxTexFilter  filter,
-      unsigned long wrapU,
-      unsigned long wrapV,
-      unsigned long force,
-      unsigned long generateMipMaps,
-      unsigned long renderTarget,
-      unsigned long maxAnisotropy
+      EGxTexFilter  filter = GxTex_Linear,
+      unsigned long wrapU = 0,
+      unsigned long wrapV = 0,
+      unsigned long force = 0,
+      unsigned long generateMipMaps = 0,
+      unsigned long renderTarget = 0,
+      unsigned long maxAnisotropy = 1
   );
 };
 
@@ -490,9 +477,6 @@ struct CGxTexParms {
 };
 
 struct CGxTexParmsEx {
-  CGxTexParmsEx() : flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
-  }
-
   EGxTexTarget target;
   unsigned int width;
   unsigned int height;

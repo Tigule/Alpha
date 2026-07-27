@@ -230,7 +230,6 @@ class CGGameObject_C_Type_Goober : public CGGameObject_C_TypeAnimated {
 class CGGameObject_C_Type_Transport : public CGGameObject_C_TypeAnimated {
  public:
   CGGameObject_C_Type_Transport(CGGameObject_C *owner);
-  virtual ~CGGameObject_C_Type_Transport();
   virtual NTempest::C3Vector GetPosition() const;
   virtual void               AddPassenger(CMovementData *passenger);
   virtual NTempest::C3Vector GetCurrentMoveVector() const;

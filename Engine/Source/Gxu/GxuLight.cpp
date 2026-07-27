@@ -10,9 +10,6 @@ struct CGxuLight : public TSLinkedNode<CGxuLight> {
   CGxuLight() : m_lockCount(0) {
   }
 
-  ~CGxuLight() {
-  }
-
   float          Fitness(NTempest::C3Vector &pos, float linearAttenuation, float quadraticAttenuation);
   CGxuLightLink *AllocListLink();
   void           ClearListLinks();

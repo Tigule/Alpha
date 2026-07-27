@@ -205,11 +205,6 @@ struct CVariations {
   CVariations() : primary(0xFF) {
   }
 
-  ~CVariations() {
-    delete[] variation.m_data;
-    variation.m_data = 0;
-  }
-
   CArray<unsigned char> variation;
   unsigned int          primary;
 };
@@ -508,8 +503,6 @@ struct CAnimBoneObj : public CAnimObj {
 };
 
 struct CAnimVisibleObj {
-  ~CAnimVisibleObj() {
-  }
   CKeyFrameTrack<float, float> visibility;
 };
 
@@ -650,8 +643,6 @@ struct CAnim : public CHandleObject {
 
 struct CAnimData : public CHandleObject {
   CAnimData() : flags(0) {
-  }
-  ~CAnimData() {
   }
   int Animates();
   int Moves();

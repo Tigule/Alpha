@@ -24,9 +24,6 @@ namespace ProfileInternal {
   static const char FALSESTR[] = "false";
 
   struct STRINGBLOCK : public TSLinkedNode<STRINGBLOCK> {
-    STRINGBLOCK(unsigned long chars) : m_refCount(0), m_dataSize(chars), m_dataUsed(0) {
-    }
-
     int Contains(const char *string) {
       return string >= m_data && string < m_data + m_dataSize;
     }
@@ -50,9 +47,6 @@ namespace ProfileInternal {
   };
 
   struct PROFILE : public CHandleObject {
-    PROFILE() {
-    }
-
     virtual ~PROFILE() {
       STRINGBLOCK *stringBlock;
 
@@ -85,7 +79,11 @@ namespace ProfileInternal {
     unsigned long dataChars = sizeof(((STRINGBLOCK *)0)->m_data);
     unsigned long allocChars = chars < dataChars ? dataChars : chars;
 
-    return new (ALLOC(sizeof(STRINGBLOCK) + allocChars - dataChars)) STRINGBLOCK(chars);
+    STRINGBLOCK *block = new (ALLOC(sizeof(STRINGBLOCK) + allocChars - dataChars)) STRINGBLOCK;
+    block->m_refCount = 0;
+    block->m_dataSize = chars;
+    block->m_dataUsed = 0;
+    return block;
   }
 
   char *STRINGBLOCK::AllocString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, const char *string, int inSitu) {

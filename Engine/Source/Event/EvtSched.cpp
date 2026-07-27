@@ -202,7 +202,7 @@ static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
     if (!thread || candidate->m_weightTotal < thread->m_weightTotal) {
       thread = candidate;
     }
-    candidate = candidate->m_link.Next();
+    candidate = candidate->Next();
   }
 
   if (thread) {
@@ -253,7 +253,7 @@ static void DetachContextFromThread(unsigned int hThread, EvtContext *context) {
           other->m_rebalance = other->m_contextCount;
         }
       }
-      other = other->m_link.Next();
+      other = other->Next();
     }
   }
   s_threadListCritsect.Leave();
@@ -318,7 +318,7 @@ static void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWake
           bestThread = candidate;
           bestWeightTotal = context->m_schedWeight + candidate->m_weightTotal;
         }
-        candidate = candidate->m_link.Next();
+        candidate = candidate->Next();
       }
 
       if (bestThread != thread) {
@@ -764,7 +764,4 @@ void EventProcessDone() {
   }
   DestroySchedulerThread(s_hThread);
   OsCallDestroy();
-}
-
-EvtThread::~EvtThread() {
 }

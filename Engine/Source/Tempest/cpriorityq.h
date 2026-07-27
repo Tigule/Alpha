@@ -27,11 +27,6 @@ namespace NTempest {
     virtual ~CPriorityQ() {
     }
 
-    CPriorityQ &operator=(const CPriorityQ &other) {
-      CDynTable<T>::operator=(other);
-      return *this;
-    }
-
     void Validate();
 
     bool HasEntries() const {

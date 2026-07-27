@@ -6,14 +6,6 @@
 
 class CInputObserver : public CObserver {
  public:
-  CInputObserver() {
-  }
-  CInputObserver(const CInputObserver &);
-  virtual ~CInputObserver() {
-  }
-
-  CInputObserver &operator=(const CInputObserver &);
-
   static void RegisterKeyDown(CObserver *pObs);
   static void UnregisterKeyDown(CObserver *pObs);
   static void RegisterKeyDownRepeating(CObserver *pObs);

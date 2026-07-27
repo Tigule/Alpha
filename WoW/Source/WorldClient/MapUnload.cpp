@@ -68,6 +68,3 @@ void DNStars::Destroy() {
     HandleClose(reinterpret_cast<HOBJECT>(m_hModel));
   }
 }
-
-CMapAreaLow::~CMapAreaLow() {
-}

@@ -208,8 +208,3 @@ void CMapArea::AsyncCallback(void *userArg) {
   area->asyncObject = 0;
 }
 
-SMDoodadDef::~SMDoodadDef() {
-}
-
-SMMapObjDef::~SMMapObjDef() {
-}

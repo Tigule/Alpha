@@ -23,9 +23,6 @@ namespace NTempest {
     C4Plane(float x, float y, float z, float distance) : n(x, y, z), d(distance) {
     }
 
-    ~C4Plane() {
-    }
-
     void From3Pos(const C3Vector &a, const C3Vector &b, const C3Vector &c) {
       n = C3Vector::Cross(b - a, c - a);
       n.Normalize();

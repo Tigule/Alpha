@@ -162,9 +162,3 @@ extern "C" int SSignatureGenerate(
   size = dataSize + sizeof(DWORD) + modulusSize;
   return TRUE;
 }
-
-Crypt::RSA::RSA() {
-}
-
-Crypt::RSA::~RSA() {
-}
