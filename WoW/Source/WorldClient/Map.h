@@ -340,7 +340,7 @@ struct CMapEntity : public CMapStaticEntity {
   int          QueryMapObjListenerId(unsigned int &listenerId);
   int          QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct);
   static int   QueryCameraFog(SMOFog::Fogs &oFog, float &oPct);
-  unsigned int QueryMapObjMinimap(NTempest::CAaBox &aaBox, TSStackArray<CWorldMinimapQuad> &quads);
+  bool QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorldMinimapQuad> &quads);
   unsigned int QueryMapObjIDs(unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID);
   unsigned int QueryMapObjMatrix(NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
   bool         QueryMapObjAreaTable(const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);

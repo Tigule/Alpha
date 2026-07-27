@@ -49,7 +49,7 @@ void SndInterfaceUnregisterVocalScriptFunctions() {
   FrameScript_UnregisterFunction(s_ScriptFunctions[0].name);
 }
 
-void SoundInterfacePlayVocalMacro(CGPlayer_C *player, int category) {
+void SoundInterfacePlayVocalMacro(const CGPlayer_C *player, int category) {
   if (player && (player->GetType() & TYPE_PLAYER) && category < 12) {
     const CGUnitData  *unitData = player->GetUnitData();
     unsigned int       race = unitData->race;

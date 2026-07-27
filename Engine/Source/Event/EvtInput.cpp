@@ -252,7 +252,7 @@ void PostMouseWheel(EvtContext *context, int distance, int x, int y, int time) {
   IEvtQueueDispatch(context, EVENT_ID_MOUSEWHEEL, &data);
 }
 
-void ProcessInput(EvtContext *context, OSINPUT id, const int *const param, int *shutdown) {
+void ProcessInput(EvtContext *context, OSINPUT id, const int param[4], int *shutdown) {
   FATALASSERT(context);
 
   switch (id) {

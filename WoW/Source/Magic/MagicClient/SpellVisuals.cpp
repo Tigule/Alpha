@@ -366,7 +366,8 @@ static TSList<LightningObject, TSGetLink<LightningObject> > s_lightning;
 static CLightningManager                                   *s_lightningManager;
 static EclipseObject                                        s_eclipseObject;
 
-struct SpellCast {
+class SpellCast {
+ public:
   unsigned __int64   caster;
   unsigned __int64   casterUnit;
   int                spellID;
@@ -422,7 +423,7 @@ void SpellVisualsProcedure(
     TSStackArray<MISS_REASON>      *missReasons
 );
 bool IsSpellAura(const SpellRec *rec);
-unsigned int Object_C_AnimHasHitEvent(int anim);
+bool Object_C_AnimHasHitEvent(int anim);
 void UnitCombatLogSpellMissed(
     unsigned int reason, unsigned int spellID,
     unsigned __int64 caster, unsigned __int64 target);

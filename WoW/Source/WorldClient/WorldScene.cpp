@@ -1609,7 +1609,7 @@ int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTemp
   return 1;
 }
 
-unsigned int CWorld::NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate) {
+bool CWorld::NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate) {
   NTempest::C3Vector forward = frustum.corners[3] - frustum.corners[0];
   NTempest::C3Vector up = frustum.corners[1] - frustum.corners[0];
   NTempest::C3Vector right = frustum.corners[4] - frustum.corners[0];

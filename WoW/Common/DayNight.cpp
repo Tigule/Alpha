@@ -266,7 +266,7 @@ static void ResetLightPos() {
   }
 }
 
-static NTempest::CImVector DarkenColor(NTempest::CImVector clr, float amount) {
+static NTempest::CImVector DarkenColor(const NTempest::CImVector clr, float amount) {
   NTempest::C3Vector rgb = clr;
   NTempest::C3Vector hsv;
   NTempest::RGBtoHSV(rgb, hsv);

@@ -1,6 +1,7 @@
 #include "Profile.h"
 
 #include "Base/Handle.h"
+#include "Base/UnrealConstants.h"
 
 #include <storm.h>
 #include <stpl.h>
@@ -24,7 +25,7 @@ namespace ProfileInternal {
   static const char FALSESTR[] = "false";
 
   struct STRINGBLOCK : public TSLinkedNode<STRINGBLOCK> {
-    int Contains(const char *string) {
+    int Contains(const char *string) const {
       return string >= m_data && string < m_data + m_dataSize;
     }
 
@@ -43,6 +44,8 @@ namespace ProfileInternal {
   };
 
   struct SECTION : public TSHashObject<SECTION, HASHKEY_CONSTSTRI> {
+    ~SECTION() {}
+
     TSHashTable<KEYVALUE, HASHKEY_CONSTSTRI> keyTable;
   };
 
@@ -495,6 +498,16 @@ int ProfileAddValue(HPROFILE handle, const char *section, const char *key, float
   return ProfileAddValue(handle, section, key, strValue);
 }
 
+int ProfileAddValue(HPROFILE handle, const char *section, const char *key, const unreal &value) {
+  FATALASSERT(section);
+  FATALASSERT(key);
+
+  char strValue[256];
+  unreal::asString(value, strValue, 1, -1);
+  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 0, 0);
+  return 1;
+}
+
 int ProfileAddValue(HPROFILE handle, const char *section, const char *key, const char *value) {
   FATALASSERT(section);
   FATALASSERT(key);
@@ -536,6 +549,16 @@ int ProfileSetValue(HPROFILE handle, const char *section, const char *key, float
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%f", value);
   return ProfileSetValue(handle, section, key, strValue);
+}
+
+int ProfileSetValue(HPROFILE handle, const char *section, const char *key, const unreal &value) {
+  FATALASSERT(section);
+  FATALASSERT(key);
+
+  char strValue[256];
+  unreal::asString(value, strValue, 1, -1);
+  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 1, 0);
+  return 1;
 }
 
 int ProfileSetValue(HPROFILE handle, const char *section, const char *key, const char *value) {
@@ -614,6 +637,23 @@ int ProfileGetValue(HPROFILE handle, const char *section, const char *key, float
   }
 
   *value = SStrToFloat(string);
+  return 1;
+}
+
+int ProfileGetValue(HPROFILE handle, const char *section, const char *key, unreal *value, unsigned int index) {
+  const char *string;
+
+  FATALASSERT(section);
+  FATALASSERT(key);
+  FATALASSERT(value);
+
+  *value = u_0;
+  string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
+  if (!string) {
+    return 0;
+  }
+
+  *value = unreal::fromString(string);
   return 1;
 }
 

@@ -68,78 +68,78 @@ static void IAddParticleEmitter2Errors(TSet &errors) {
 
 static void IReadIntOption(
     Parser &parse,
-    unsigned int *a,
-    unsigned int *b,
-    unsigned int *c
+    unsigned int &a,
+    unsigned int &b,
+    unsigned int &c
 ) {
   parse.Expect('{');
-  *a = parse.ExpectInt();
+  a = parse.ExpectInt();
   parse.Expect(',');
-  *b = parse.ExpectInt();
+  b = parse.ExpectInt();
   parse.Expect(',');
-  *c = parse.ExpectInt();
+  c = parse.ExpectInt();
   parse.Expect('}');
 }
 
 static void IReadByteOption(
     Parser &parse,
-    unsigned char *a,
-    unsigned char *b,
-    unsigned char *c
+    unsigned char &a,
+    unsigned char &b,
+    unsigned char &c
 ) {
   parse.Expect('{');
-  *a = static_cast<unsigned char>(parse.ExpectInt());
+  a = static_cast<unsigned char>(parse.ExpectInt());
   parse.Expect(',');
-  *b = static_cast<unsigned char>(parse.ExpectInt());
+  b = static_cast<unsigned char>(parse.ExpectInt());
   parse.Expect(',');
-  *c = static_cast<unsigned char>(parse.ExpectInt());
+  c = static_cast<unsigned char>(parse.ExpectInt());
   parse.Expect('}');
 }
 
 static void IReadFloatOption(
     Parser &parse,
-    float *a,
-    float *b,
-    float *c
+    float &a,
+    float &b,
+    float &c
 ) {
   parse.Expect('{');
-  *a = parse.ExpectFloat();
+  a = parse.ExpectFloat();
   parse.Expect(',');
-  *b = parse.ExpectFloat();
+  b = parse.ExpectFloat();
   parse.Expect(',');
-  *c = parse.ExpectFloat();
+  c = parse.ExpectFloat();
   parse.Expect('}');
 }
 
-static void IReadFloatOption(Parser &parse, float *a, float *b) {
+static void IReadFloatOption(Parser &parse, float &a, float &b) {
   parse.Expect('{');
-  *a = parse.ExpectFloat();
+  a = parse.ExpectFloat();
   parse.Expect(',');
-  *b = parse.ExpectFloat();
+  b = parse.ExpectFloat();
   parse.Expect('}');
 }
 
 static void IReadFloatOption(
     Parser &parse,
-    float *a,
-    float *b,
-    float *c,
-    float *d,
-    float *e,
-    float *f
+    float &a,
+    float &b,
+    float &c,
+    float &d,
+    float &e,
+    float &f
 ) {
   parse.Expect('{');
-  *a = parse.ExpectFloat();
+  a = parse.ExpectFloat();
   parse.Expect(',');
-  *b = parse.ExpectFloat();
+  b = parse.ExpectFloat();
   parse.Expect(',');
-  *c = parse.ExpectFloat();
+  c = parse.ExpectFloat();
   parse.Expect(',');
-  *d = parse.ExpectFloat();
+  d = parse.ExpectFloat();
   parse.Expect(',');
-  *e = parse.ExpectFloat();
+  e = parse.ExpectFloat();
   parse.Expect(',');
-  *f = parse.ExpectFloat();
+  f = parse.ExpectFloat();
   parse.Expect('}');
 }
 
@@ -151,25 +151,25 @@ static void IReadParticleEmitter2Color(
   parse.Expect(0x136);
   IReadFloatOption(
       parse,
-      &emitter->startColor.b,
-      &emitter->startColor.g,
-      &emitter->startColor.r
+      emitter->startColor.b,
+      emitter->startColor.g,
+      emitter->startColor.r
   );
   parse.Expect(',');
   parse.Expect(0x136);
   IReadFloatOption(
       parse,
-      &emitter->middleColor.b,
-      &emitter->middleColor.g,
-      &emitter->middleColor.r
+      emitter->middleColor.b,
+      emitter->middleColor.g,
+      emitter->middleColor.r
   );
   parse.Expect(',');
   parse.Expect(0x136);
   IReadFloatOption(
       parse,
-      &emitter->endColor.b,
-      &emitter->endColor.g,
-      &emitter->endColor.r
+      emitter->endColor.b,
+      emitter->endColor.g,
+      emitter->endColor.r
   );
   parse.Expect(',');
   parse.Expect('}');
@@ -177,12 +177,12 @@ static void IReadParticleEmitter2Color(
 
 static void IReadSpline(
     Parser &parse,
-    MDLPARTICLEEMITTER2 *emitter
+    TSGrowableArray<NTempest::C3Vector> &spline
 ) {
   parse.Expect('{');
   parse.Expect(0x128);
   parse.Expect(0x1D8);
-  ReadVertices(parse, MDL::TokenText(0x1D8), &emitter->spline);
+  ReadVertices(parse, MDL::TokenText(0x1D8), &spline);
   parse.Expect('}');
 }
 
@@ -273,9 +273,9 @@ static void IReadParticleEmitter2KeyFrames(
     case 0x11C:
       IReadByteOption(
           parse,
-          &emitter->startAlpha,
-          &emitter->middleAlpha,
-          &emitter->endAlpha
+          emitter->startAlpha,
+          emitter->middleAlpha,
+          emitter->endAlpha
       );
       parse.Expect(',');
       break;
@@ -286,9 +286,9 @@ static void IReadParticleEmitter2KeyFrames(
     case 0x13D:
       IReadIntOption(
           parse,
-          &emitter->decayUVAnimStart,
-          &emitter->decayUVAnimEnd,
-          &emitter->decayUVAnimRepeat
+          emitter->decayUVAnimStart,
+          emitter->decayUVAnimEnd,
+          emitter->decayUVAnimRepeat
       );
       parse.Expect(',');
       break;
@@ -321,9 +321,9 @@ static void IReadParticleEmitter2KeyFrames(
     case 0x166:
       IReadIntOption(
           parse,
-          &emitter->lifespanUVAnimStart,
-          &emitter->lifespanUVAnimEnd,
-          &emitter->lifespanUVAnimRepeat
+          emitter->lifespanUVAnimStart,
+          emitter->lifespanUVAnimEnd,
+          emitter->lifespanUVAnimRepeat
       );
       parse.Expect(',');
       break;
@@ -358,21 +358,21 @@ static void IReadParticleEmitter2KeyFrames(
     case 0x198:
       IReadFloatOption(
           parse,
-          &emitter->startScale,
-          &emitter->middleScale,
-          &emitter->endScale
+          emitter->startScale,
+          emitter->middleScale,
+          emitter->endScale
       );
       parse.Expect(',');
       break;
     case 0x199:
       IReadFloatOption(
           parse,
-          &emitter->tumblexMin,
-          &emitter->tumblexMax,
-          &emitter->tumbleyMin,
-          &emitter->tumbleyMax,
-          &emitter->tumblezMin,
-          &emitter->tumblezMax
+          emitter->tumblexMin,
+          emitter->tumblexMax,
+          emitter->tumbleyMin,
+          emitter->tumbleyMax,
+          emitter->tumblezMin,
+          emitter->tumblezMax
       );
       parse.Expect(',');
       break;
@@ -383,8 +383,8 @@ static void IReadParticleEmitter2KeyFrames(
     case 0x19C:
       IReadFloatOption(
           parse,
-          &emitter->twinkleScaleMin,
-          &emitter->twinkleScaleMax
+          emitter->twinkleScaleMin,
+          emitter->twinkleScaleMax
       );
       parse.Expect(',');
       break;
@@ -408,7 +408,7 @@ static void IReadParticleEmitter2KeyFrames(
       parse.Expect(',');
       break;
     case 0x1B6:
-      IReadSpline(parse, emitter);
+      IReadSpline(parse, emitter->spline);
       break;
     case 0x1B9:
       ReadObjectFloatKeyframes(parse, &emitter->speed);
@@ -424,18 +424,18 @@ static void IReadParticleEmitter2KeyFrames(
     case 0x1BF:
       IReadIntOption(
           parse,
-          &emitter->tailDecayUVAnimStart,
-          &emitter->tailDecayUVAnimEnd,
-          &emitter->tailDecayUVAnimRepeat
+          emitter->tailDecayUVAnimStart,
+          emitter->tailDecayUVAnimEnd,
+          emitter->tailDecayUVAnimRepeat
       );
       parse.Expect(',');
       break;
     case 0x1C0:
       IReadIntOption(
           parse,
-          &emitter->tailUVAnimStart,
-          &emitter->tailUVAnimEnd,
-          &emitter->tailUVAnimRepeat
+          emitter->tailUVAnimStart,
+          emitter->tailUVAnimEnd,
+          emitter->tailUVAnimRepeat
       );
       parse.Expect(',');
       break;
@@ -460,9 +460,9 @@ static void IReadParticleEmitter2KeyFrames(
       parse.Expect('{');
       IReadFloatOption(
           parse,
-          &emitter->windVector.x,
-          &emitter->windVector.y,
-          &emitter->windVector.z
+          emitter->windVector.x,
+          emitter->windVector.y,
+          emitter->windVector.z
       );
       parse.Expect(',');
       emitter->windTime = parse.ExpectFloat();

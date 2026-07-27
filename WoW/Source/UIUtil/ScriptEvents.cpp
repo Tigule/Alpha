@@ -68,7 +68,7 @@ static char *s_unitNames[4] = {s_unitNameArray[0], s_unitNameArray[1], s_unitNam
 
 CGUnit_C *Script_GetUnitFromName(const char *name);
 unsigned __int64 Script_GetGUIDFromName(const char *name);
-void SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit);
+void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit);
 void SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int sex, unsigned __int64 guid);
 
 class ScriptPartyInfoAccess : public CGPartyInfo {

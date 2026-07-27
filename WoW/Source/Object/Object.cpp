@@ -145,7 +145,7 @@ unsigned char IsAngleWithinRange(float a, float b, float fieldofView) {
   return fabs(a - b) < fieldofView;
 }
 
-float CalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination) {
+float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination) {
   NTempest::C3Vector diff = destination - position;
 
   if (fabs(diff.x) >= 2.3841858e-7f) {

@@ -128,8 +128,8 @@ static int __cdecl QSortSkillLines(const void *a, const void *b) {
   if (info1->skillLine == -1 || info2->skillLine == -1) {
     return info2->skillLine == -1 ? 1 : -1;
   }
-  if (info1->hasCost != info2->hasCost) {
-    return info1->hasCost ? 1 : -1;
+  if (info1->allCostPoints != info2->allCostPoints) {
+    return info1->allCostPoints ? 1 : -1;
   }
   SkillLineRec *line1 = g_skillLineDB.GetRecord(info1->skillLine);
   SkillLineRec *line2 = g_skillLineDB.GetRecord(info2->skillLine);
@@ -155,8 +155,8 @@ int __cdecl QSortServices_General(const void *a, const void *b) {
   FATALASSERT(b);
   TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
   TrainerServiceInfo *info2 = *static_cast<TrainerServiceInfo *const *>(b);
-  if (info1->filtered != info2->filtered) {
-    return info2->filtered ? 1 : -1;
+  if (info1->enabled != info2->enabled) {
+    return info2->enabled ? 1 : -1;
   }
   unsigned int line1 = 0;
   unsigned int line2 = 0;
@@ -190,8 +190,8 @@ int __cdecl QSortServices_Tradeskill(const void *a, const void *b) {
   FATALASSERT(b);
   TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
   TrainerServiceInfo *info2 = *static_cast<TrainerServiceInfo *const *>(b);
-  if (info1->filtered != info2->filtered) {
-    return info2->filtered ? 1 : -1;
+  if (info1->enabled != info2->enabled) {
+    return info2->enabled ? 1 : -1;
   }
   if (info1->skillLine != info2->skillLine) {
     return info1->skillLine > info2->skillLine ? 1 : -1;
@@ -212,8 +212,8 @@ int __cdecl QSortServices_Talent(const void *a, const void *b) {
   FATALASSERT(b);
   TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
   TrainerServiceInfo *info2 = *static_cast<TrainerServiceInfo *const *>(b);
-  if (info1->filtered != info2->filtered) {
-    return info2->filtered ? 1 : -1;
+  if (info1->enabled != info2->enabled) {
+    return info2->enabled ? 1 : -1;
   }
   if (info1->skillLine != info2->skillLine) {
     return info1->skillLine > info2->skillLine ? 1 : -1;
@@ -265,12 +265,12 @@ void CGClassTrainer::AddServices(
     unsigned int   count,
     int           *spellID,
     unsigned int  *moneyCost,
-    unsigned char **pointCost,
+    unsigned char **const pointCost,
     unsigned char  *reqLevel,
     unsigned int  *reqSkillLine,
     unsigned int  *reqSkillRank,
     unsigned int  *reqSkillStep,
-    int          **reqAbility,
+    int          **const reqAbility,
     unsigned char  *usable,
     const char    *greeting
 ) {
@@ -292,7 +292,7 @@ void CGClassTrainer::AddServices(
     TrainerSkillLineInfo *info = m_skillLines[0];
     memset(info, 0, sizeof(*info));
     info->skillLine = -1;
-    info->expanded = 1;
+    info->ClearSkills();
     m_numSkillLines = 1;
   }
 
@@ -354,18 +354,18 @@ void CGClassTrainer::AddServices(
       }
       memset(line, 0, sizeof(*line));
       line->skillLine = info->skillLine;
-      line->expanded = 1;
-      line->hasCost = 0;
+      line->collapsed = 1;
+      line->allCostPoints = 0;
       for (unsigned int point = 0; point < 2; ++point) {
         if (info->pointCost[point]) {
-          line->hasCost = 1;
+          line->allCostPoints = 1;
         }
       }
       ++m_numSkillLines;
-    } else if (line->hasCost) {
-      line->hasCost = info->pointCost[0] || info->pointCost[1];
+    } else if (line->allCostPoints) {
+      line->allCostPoints = info->pointCost[0] || info->pointCost[1];
     }
-    ++line->serviceTypeCount[info->usable];
+    ++line->numSkills[info->usable];
   }
 
   m_numServices = count - skipped;
@@ -529,8 +529,7 @@ void CGClassTrainer::RefreshList() {
   }
 
   for (i = 0; i < m_numSkillLines; ++i) {
-    memset(m_skillLines[i]->serviceTypeCount, 0, sizeof(m_skillLines[i]->serviceTypeCount));
-    m_skillLines[i]->expanded = 1;
+    m_skillLines[i]->ClearSkills();
   }
 
   for (i = 0; i < m_numServices; ++i) {
@@ -543,7 +542,7 @@ void CGClassTrainer::RefreshList() {
     }
     for (j = 0; j < m_numSkillLines; ++j) {
       if (m_skillLines[j]->skillLine == info->skillLine) {
-        ++m_skillLines[j]->serviceTypeCount[info->usable];
+        ++m_skillLines[j]->numSkills[info->usable];
         break;
       }
     }
@@ -558,19 +557,19 @@ void CGClassTrainer::FilterAndSortServices() {
   for (unsigned int lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
     TrainerSkillLineInfo *line = m_skillLines[lineIndex];
     int                   hasService = 0;
-    for (unsigned int type = 0; type < 6; ++type) {
-      if ((m_serviceTypeFilter & (1 << type)) && line->serviceTypeCount[type]) {
+    for (unsigned int type = 0; type < NUM_TRAINER_SERVICE_TYPES; ++type) {
+      if ((m_serviceTypeFilter & (1 << type)) && line->numSkills[type]) {
         hasService = 1;
         break;
       }
     }
-    line->filtered = hasService && (m_skillLineFilter & (1 << lineIndex));
-    line->expanded = !(m_collapseFilter & (1 << lineIndex));
+    line->enabled = hasService && (m_skillLineFilter & (1 << lineIndex));
+    line->collapsed = !(m_collapseFilter & (1 << lineIndex));
   }
 
   for (unsigned int index = 0; index < m_numServices; ++index) {
     TrainerServiceInfo *info = m_services[index];
-    info->filtered = info->spellID < 0 || (m_serviceTypeFilter & (1 << info->usable));
+    info->enabled = info->spellID < 0 || (m_serviceTypeFilter & (1 << info->usable));
     TrainerSkillLineInfo *line = 0;
     for (unsigned int lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
       if (m_skillLines[lineIndex]->skillLine == info->skillLine) {
@@ -578,8 +577,8 @@ void CGClassTrainer::FilterAndSortServices() {
         break;
       }
     }
-    if (!info->filtered || !line || !line->filtered || (info->spellID >= 0 && !line->expanded)) {
-      info->filtered = 0;
+    if (!info->enabled || !line || !line->enabled || (info->spellID >= 0 && !line->collapsed)) {
+      info->enabled = 0;
       --m_filteredServices;
     }
   }
@@ -1127,20 +1126,20 @@ static int Script_GetTrainerServiceItemStats(lua_State *L) {
   return count;
 }
 
-static int GetServiceTypeFromString(const char *string) {
+static TRAINER_SERVICE GetServiceTypeFromString(const char *string) {
   if (!string) {
-    return 6;
+    return NUM_TRAINER_SERVICE_TYPES;
   }
   if (!SStrCmp(string, "available", 0x7FFFFFFF)) {
-    return 0;
+    return TRAINER_SERVICE_AVAILABLE;
   }
   if (!SStrCmp(string, "unavailable", 0x7FFFFFFF)) {
-    return 1;
+    return TRAINER_SERVICE_UNAVAILABLE;
   }
   if (!SStrCmp(string, "used", 0x7FFFFFFF)) {
-    return 2;
+    return TRAINER_SERVICE_USED;
   }
-  return 6;
+  return NUM_TRAINER_SERVICE_TYPES;
 }
 
 static int Script_SetTrainerServiceTypeFilter(lua_State *L) {
@@ -1152,8 +1151,8 @@ static int Script_SetTrainerServiceTypeFilter(lua_State *L) {
     CGClassTrainer::SetServiceTypeFilter(7);
     return 0;
   }
-  int serviceType = GetServiceTypeFromString(type);
-  if (serviceType == 6) {
+  TRAINER_SERVICE serviceType = GetServiceTypeFromString(type);
+  if (serviceType == NUM_TRAINER_SERVICE_TYPES) {
     return luaL_error(L, "Bad service type in SetTrainerServiceTypeFilter");
   }
   if (!lua_isnumber(L, 2)) {
@@ -1206,8 +1205,8 @@ static int Script_GetTrainerServiceTypeFilter(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceTypeFilter(\"type\")");
   }
-  int serviceType = GetServiceTypeFromString(lua_tostring(L, 1));
-  if (serviceType == 6) {
+  TRAINER_SERVICE serviceType = GetServiceTypeFromString(lua_tostring(L, 1));
+  if (serviceType == NUM_TRAINER_SERVICE_TYPES) {
     return luaL_error(L, "Bad service type in GetTrainerServiceTypeFilter");
   }
   if (CGClassTrainer::GetServiceTypeFilter() & (1 << serviceType)) {

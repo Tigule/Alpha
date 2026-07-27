@@ -49,13 +49,40 @@ struct CSectionFileNames {
 };
 
 struct SUBCOMPONENTDESC {
-  SUBCOMPONENTDESC() : modelName(0), textureName(0), attachmentPoint(0) {
+  SUBCOMPONENTDESC() : pathName(0), textureName(0), connectionPointIndex(0) {
   }
-  ~SUBCOMPONENTDESC();
+  ~SUBCOMPONENTDESC() {
+    Cleanup();
+  }
 
-  char        *modelName;
+  void Cleanup() {
+    if (pathName) {
+      SMemFree(pathName, __FILE__, __LINE__, 0);
+    }
+    if (textureName) {
+      SMemFree(textureName, __FILE__, __LINE__, 0);
+    }
+    pathName = 0;
+    textureName = 0;
+  }
+
+  void SetPathName(const char *pathName) {
+    if (this->pathName) {
+      SMemFree(this->pathName, __FILE__, __LINE__, 0);
+    }
+    this->pathName = pathName ? SStrDupA(pathName, __FILE__, __LINE__) : 0;
+  }
+
+  void SetTextureName(const char *textureName) {
+    if (this->textureName) {
+      SMemFree(this->textureName, __FILE__, __LINE__, 0);
+    }
+    this->textureName = textureName ? SStrDupA(textureName, __FILE__, __LINE__) : 0;
+  }
+
+  char        *pathName;
   char        *textureName;
-  unsigned int attachmentPoint;
+  unsigned int connectionPointIndex;
 };
 
 struct LAYERIDS {
@@ -76,9 +103,9 @@ int CompUtilItemSectionInfo(
     const ItemDisplayInfoRec    *displayInfoRec,
     unsigned int                 inventoryType,
     unsigned int                *numTextureComponents,
-    TEXCOMPONENT_SECTIONS *const sectionList,
-    TEXCOMPONENT_LAYERS *const   layerList,
-    LAYERPRIORITY *const         priorityList,
+    TEXCOMPONENT_SECTIONS        sectionList[6],
+    TEXCOMPONENT_LAYERS          layerList[6],
+    LAYERPRIORITY                priorityList[6],
     CSectionFileNames           *fileNameList
 );
 const char *CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, unsigned int textureSection);
@@ -91,7 +118,7 @@ unsigned int CompUtilGetObjComponents(
 );
 int
 GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool isPlayer, bool useAlternate, HMODEL *models, int *attachmentPoints);
-HMODEL ObjComponentBuildAmmoModel(ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration);
+HMODEL ObjComponentBuildAmmoModel(const ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration);
 void ComponentUtilAddItemVisual(HMODEL itemModel, int index, const char *name);
 HMODEL ComponentUtilGetChildModel(HMODEL parent, int index);
 void
@@ -342,7 +369,7 @@ class CTexComponent : public CTexturePiece {
 void ComponentInitialize();
 void ComponentShutdown();
 bool ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle, int eColor, int bStyle, int bColor, int b);
-void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, ItemDisplayInfoRec *displayInfo, int inventoryType);
+void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfo, int inventoryType);
 void ComponentForceTabardDraw(HTEXCOMPONENT component);
 void TexComponentCopy(HTEXCOMPONENT d, HTEXCOMPONENT s);
 int TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce);

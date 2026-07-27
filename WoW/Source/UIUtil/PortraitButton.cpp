@@ -22,6 +22,8 @@
 
 void Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
 
+#define PORTRAIT_SIZE_SMALL 64
+
 static int CCommand_PLightInfo(const char *command, const char *arguments);
 static int CCommand_PLightEnable(const char *command, const char *arguments);
 static int CCommand_PLightOmni(const char *command, const char *arguments);
@@ -45,6 +47,10 @@ struct UNITPORTRAIT : public TSHashObject<UNITPORTRAIT, HASHKEY_NONE> {
   PortraitData portrait;
 };
 
+struct ITEMPORTRAIT : public TSHashObject<ITEMPORTRAIT, HASHKEY_STR> {
+  PortraitData portrait;
+};
+
 struct DIRTYFACE : public TSLinkedNode<DIRTYFACE> {
   unsigned __int64 guid;
 };
@@ -53,11 +59,12 @@ static NTempest::C44Matrix                       identity;
 static TSFixedArray<unsigned char>               alphaMasks[2];
 static TSHashTable<PLAYERPORTRAIT, CHashKeyGUID> s_playerPortraits;
 static TSHashTable<UNITPORTRAIT, HASHKEY_NONE>   s_unitPortraits;
+static TSHashTable<ITEMPORTRAIT, HASHKEY_STR>    s_itemPortraits;
 static HASHKEY_NONE                              s_nullHashKey;
 static TSList<DIRTYFACE, TSGetLink<DIRTYFACE> >  s_dirtyFaces;
 static TSList<DIRTYFACE, TSGetLink<DIRTYFACE> >  s_freeDirtyFaces;
 
-static TSFixedArray<unsigned char> &GetAlphaMask(unsigned int size) {
+static const TSFixedArray<unsigned char> &GetAlphaMask(unsigned int size) {
   CBLPFile                     image;
   CTgaFile                     alpha;
   unsigned int                 stride;
@@ -296,6 +303,7 @@ void PortraitInitialize() {
 void PortraitShutdown() {
   s_playerPortraits.Clear();
   s_unitPortraits.Clear();
+  s_itemPortraits.Clear();
   alphaMasks[0].Clear();
   alphaMasks[1].Clear();
   while (DIRTYFACE *dirty = s_dirtyFaces.Head()) {
@@ -368,7 +376,7 @@ void SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int
   texture->SetTexture(buf, 0);
 }
 
-void SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit) {
+void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   PortraitData       *portrait;
   NTempest::CRect     screenRect;
   NTempest::CRect     viewRect;
@@ -506,7 +514,7 @@ void SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit) {
   GxDevReadPixels(pixRect, portrait->pixels);
   GxSceneClear(3);
 
-  TSFixedArray<unsigned char> &alphaMask = GetAlphaMask(64);
+  const TSFixedArray<unsigned char> &alphaMask = GetAlphaMask(64);
   ASSERT(portrait->pixels.Count() == alphaMask.Count());
   for (unsigned int i = 0; i < portrait->pixels.Count(); ++i) {
     portrait->pixels[i].a = alphaMask[i];
@@ -529,4 +537,54 @@ void SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit) {
   GxMasterEnableSet(GxMasterEnable_Fog, gxFogEnable);
   HandleClose(model);
   HandleClose(camera);
+}
+
+void SetPortraitTexture(CSimpleTexture *texture, const char *textureFile) {
+  if (!textureFile || !*textureFile) {
+    return;
+  }
+
+  ITEMPORTRAIT *itemPortrait = s_itemPortraits.Ptr(textureFile);
+  if (itemPortrait) {
+    texture->SetTexture(itemPortrait->portrait.texture);
+    return;
+  }
+
+  itemPortrait = s_itemPortraits.New(textureFile, 0, 0);
+
+  CBLPFile texFile;
+  if (texFile.Open(textureFile)) {
+    ASSERT(texFile.Width() == PORTRAIT_SIZE_SMALL);
+    ASSERT(texFile.Height() == PORTRAIT_SIZE_SMALL);
+
+    TSGrowableArray<NTempest::CImVector> &pixels = itemPortrait->portrait.pixels;
+    if (!pixels.Count()) {
+      pixels.SetCount(PORTRAIT_SIZE_SMALL * PORTRAIT_SIZE_SMALL);
+    }
+
+    unsigned char *texData;
+    unsigned int   stride;
+    if (texFile.Lock(PIXEL_ARGB8888, 0, texData, stride)) {
+      for (unsigned int i = 0; i < pixels.Count(); ++i) {
+        pixels[i] = NTempest::CImVector(texData[4 * i + 3], texData[4 * i + 2], texData[4 * i + 1], texData[4 * i]);
+      }
+    }
+    texFile.Unlock(0);
+    texFile.Close();
+
+    const TSFixedArray<unsigned char> &alphaMask = GetAlphaMask(PORTRAIT_SIZE_SMALL);
+    ASSERT(pixels.Count() == alphaMask.Count());
+    for (unsigned int i = 0; i < pixels.Count(); ++i) {
+      pixels[i].a = alphaMask[i];
+    }
+
+    CGxTex     *gxTex;
+    CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
+    GxTexCreate(
+        PORTRAIT_SIZE_SMALL, PORTRAIT_SIZE_SMALL, GxTex_Argb8888, flags, &pixels, TextureUpdate, gxTex
+    );
+    HTEXTURE portraitTexture = TextureCreate(gxTex);
+    texture->SetTexture(portraitTexture);
+    itemPortrait->portrait.texture = portraitTexture;
+  }
 }

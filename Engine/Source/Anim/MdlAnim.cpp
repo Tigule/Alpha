@@ -101,8 +101,8 @@ static void HashNewAnim(const char* modelFName, HANIM__* anim) {
   entry->anim = reinterpret_cast<HANIM>(HandleDuplicate(anim));
 }
 
-static unsigned int GetObjectFlags(unsigned int mdlFlags) {
-  unsigned int flags = 0;
+static unsigned char GetObjectFlags(unsigned int mdlFlags) {
+  unsigned char flags = 0;
   if (mdlFlags & 8) {
     flags = 0x38;
   } else if (mdlFlags & 0x10) {

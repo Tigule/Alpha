@@ -38,25 +38,6 @@ HMODEL ComponentUtilGetChildModel(HMODEL parent, int index) {
   return model;
 }
 
-SUBCOMPONENTDESC::~SUBCOMPONENTDESC() {
-  if (modelName) {
-    SMemFree(modelName, __FILE__, __LINE__, 0);
-  }
-  if (textureName) {
-    SMemFree(textureName, __FILE__, __LINE__, 0);
-  }
-}
-
-static char *DuplicateComponentString(const char *string) {
-  if (!string) {
-    return 0;
-  }
-  unsigned int length = SStrLen(string) + 1;
-  char        *copy = static_cast<char *>(SMemAlloc(length, __FILE__, __LINE__, 0));
-  SStrCopy(copy, string, length);
-  return copy;
-}
-
 struct SECTIONDESC {
   char        *m_columnName;
   unsigned int x;
@@ -227,9 +208,9 @@ int CompUtilItemSectionInfo(
     const ItemDisplayInfoRec    *displayInfoRec,
     unsigned int                 inventoryType,
     unsigned int                *numTextureComponents,
-    TEXCOMPONENT_SECTIONS *const sectionList,
-    TEXCOMPONENT_LAYERS *const   layerList,
-    LAYERPRIORITY *const         priorityList,
+    TEXCOMPONENT_SECTIONS        sectionList[6],
+    TEXCOMPONENT_LAYERS          layerList[6],
+    LAYERPRIORITY                priorityList[6],
     CSectionFileNames           *fileNameList
 ) {
   ASSERT(inventoryType < INDEX_NUMSLOTS);
@@ -293,6 +274,17 @@ ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichCom
   ASSERT(displayInfoRec);
   ASSERT(whichComponent < 2);
 
+  if (subComp) {
+    if (subComp->pathName) {
+      SMemFree(subComp->pathName, __FILE__, __LINE__, 0);
+    }
+    if (subComp->textureName) {
+      SMemFree(subComp->textureName, __FILE__, __LINE__, 0);
+    }
+    subComp->pathName = 0;
+    subComp->textureName = 0;
+  }
+
   if (!displayInfoRec) {
     return 0;
   }
@@ -304,7 +296,7 @@ ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichCom
     return 1;
   }
 
-  subComp->modelName = DuplicateComponentString(modelName);
+  subComp->pathName = SStrDupA(modelName, __FILE__, __LINE__);
   const char *textureName = displayInfoRec->m_modelTexture[whichComponent];
   if (textureName && *textureName) {
     char alternate[MAX_PATH];
@@ -312,7 +304,7 @@ ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichCom
       TexturePickAlternateFilename(textureName, TEXFILETYPE_TGA, alternate, sizeof(alternate));
       textureName = alternate;
     }
-    subComp->textureName = DuplicateComponentString(textureName);
+    subComp->textureName = SStrDupA(textureName, __FILE__, __LINE__);
   }
   return 1;
 }
@@ -393,7 +385,7 @@ unsigned int CompUtilGetObjComponents(
   unsigned int whichComponent;
   for (whichComponent = 0; whichComponent < 2 && count < numSubComponents; ++whichComponent) {
     if (ReadSubComponent(displayInfoRec, whichComponent, itemInventoryType, &subComponents[count])) {
-      subComponents[count].attachmentPoint =
+      subComponents[count].connectionPointIndex =
           useAlternate ? alternateAttachmentPoints[itemInventoryType][count] : attachmentPoints[itemInventoryType][count];
       ++count;
     }

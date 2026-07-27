@@ -4,12 +4,13 @@
 class CDataStore;
 
 class unreal {
- public:
+ protected:
   union {
     unsigned int bits;
     float fp;
   };
 
+ public:
   unreal() {}
   unreal(const unreal &value) : bits(value.bits) {}
   ~unreal() {}
@@ -126,35 +127,87 @@ class unreal {
   unreal &operator*=(const unreal &value);
   unreal &operator/=(const unreal &value);
 
-  unsigned char operator<(const unreal &value) {
+  bool operator<(const unreal &value) const {
     return fp < value.fp;
   }
 
-  unsigned char operator>(const unreal &value) {
+  bool operator>(const unreal &value) const {
     return fp > value.fp;
   }
 
-  unsigned char operator<=(const unreal &value) {
+  bool operator<=(const unreal &value) const {
     return fp <= value.fp;
   }
 
-  unsigned char operator>=(const unreal &value) {
+  bool operator>=(const unreal &value) const {
     return fp >= value.fp;
   }
 
-  unsigned char operator==(const unreal &value) {
+  bool operator==(const unreal &value) const {
     return fp == value.fp;
   }
 
-  unsigned char operator!=(const unreal &value) {
+  bool operator!=(const unreal &value) const {
     return fp != value.fp;
   }
+
+  friend unreal operator*(const unreal &a, const unreal &b);
+  friend unreal operator/(const unreal &a, const unreal &b);
+  friend unreal operator-(const unreal &a, const unreal &b);
+  friend unreal operator+(const unreal &a, const unreal &b);
+  friend unreal reciprocal(const unreal &value);
+  friend unreal floor(const unreal &value);
+  friend unreal ceil(const unreal &value);
+  friend unreal trunc(const unreal &value);
+  friend unreal fract(const unreal &value);
+  friend unreal round(const unreal &value);
+  friend unreal mod(const unreal &a, const unreal &b);
+  friend unreal ln(const unreal &value);
+  friend unreal e(const unreal &value);
+  friend unreal pow(const unreal &value, unsigned int exponent);
+  friend unreal pow(const unreal &value, const unreal &exponent);
+  friend unreal sqrt(const unreal &value);
+  friend unreal sqrtinv(const unreal &value);
+  friend unreal sin(const unreal &value);
+  friend unreal cos(const unreal &value);
+  friend void sincos(const unreal &value, unreal *sine, unreal *cosine);
+  friend unreal tan(const unreal &value);
+  friend unreal acos(const unreal &value);
+  friend unreal asin(const unreal &value);
+  friend unreal atan(const unreal &value);
+  friend unreal atan2(const unreal &y, const unreal &x);
+  friend CDataStore &operator<<(CDataStore &store, const unreal &value);
+  friend CDataStore &operator>>(CDataStore &store, unreal &value);
 };
 
 unreal operator*(const unreal &a, const unreal &b);
 unreal operator/(const unreal &a, const unreal &b);
 unreal operator-(const unreal &a, const unreal &b);
 unreal operator+(const unreal &a, const unreal &b);
+
+inline unreal &unreal::operator+=(const unreal &value) {
+  *this = *this + value;
+  return *this;
+}
+
+inline unreal &unreal::operator-=(const unreal &value) {
+  *this = *this - value;
+  return *this;
+}
+
+inline unreal &unreal::operator*=(const unreal &value) {
+  *this = *this * value;
+  return *this;
+}
+
+inline unreal &unreal::operator/=(const unreal &value) {
+  *this = *this / value;
+  return *this;
+}
+
+inline unreal unreal::fromRatio(int numerator, int denominator) {
+  return fromInt(numerator) / fromInt(denominator);
+}
 
 unreal reciprocal(const unreal &value);
 unreal floor(const unreal &value);

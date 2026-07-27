@@ -1,7 +1,8 @@
 #include <Base/CDataStore.h>
 #include <Tempest/c3vector.h>
 
-struct SpellCast {
+class SpellCast {
+ public:
   unsigned __int64   caster;
   unsigned __int64   casterUnit;
   int                spellID;

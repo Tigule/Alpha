@@ -25,6 +25,7 @@
 int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
 void CursorModelSetSequence(CURSORANIMATIONS sequence);
 CGUnit_C *Script_GetUnitFromName(const char *name);
+void SetPortraitTexture(CSimpleTexture *texture, const char *textureFile);
 
 SkillInfo             CGCharacterInfo::m_skillInfoList[93];
 unsigned int          CGCharacterInfo::m_profOffset;
@@ -700,8 +701,8 @@ static int Script_SetInventoryPortaitTexture(lua_State *L) {
     const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     const char *separator = path && *path ? "\\" : "";
     char        buffer[260];
-    SStrPrintf(buffer, sizeof(buffer), "%s%s%s.blp", path, separator, item->GetInventoryArt());
-    texture->SetTexture(buffer, 0);
+    SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, item->GetInventoryArt());
+    SetPortraitTexture(texture, buffer);
   }
   return 0;
 }

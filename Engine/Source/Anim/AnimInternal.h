@@ -569,15 +569,15 @@ struct CAnimObj : public CAnimTransform {
   unsigned int                splitIndex;
   char                        name[80];
   TSGrowableArray<CAnimObj *> childarray;
-  unsigned int                type : 8;
-  unsigned int                flags : 8;
+  unsigned char               type;
+  unsigned char               flags;
 };
 
 struct CAnimBoneObj : public CAnimObj {
   CAnimBoneObj() : CAnimObj(OBJ_TYPE_BONE), geosetId(0) {
   }
 
-  unsigned int geosetId : 8;
+  unsigned char geosetId;
 };
 
 struct CAnimVisibleObj {
@@ -605,7 +605,7 @@ struct CAnimModelObj : public CAnimObj, public CAnimVisibleObj {
   CAnimModelObj() : CAnimObj(OBJ_TYPE_MODEL), geosetId(0xFF) {
   }
 
-  unsigned int geosetId : 8;
+  unsigned char geosetId;
 };
 
 struct CAnimEventObj : public CAnimObj {

@@ -21,6 +21,7 @@
 #include <string.h>
 
 int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+void SetPortraitTexture(CSimpleTexture *texture, const char *textureFile);
 
 class CGContainerInfo {
  public:
@@ -412,7 +413,7 @@ static int Script_SetBagPortaitTexture(lua_State *L) {
     const char *separator = path && *path ? "\\" : "";
     char        buffer[260];
     SStrPrintf(buffer, sizeof(buffer), "%s%s%s.blp", path, separator, item->GetInventoryArt());
-    texture->SetTexture(buffer, 0);
+    SetPortraitTexture(texture, buffer);
   }
   return 0;
 }

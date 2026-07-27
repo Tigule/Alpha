@@ -44,7 +44,7 @@ struct DNInfo {
   NTempest::CImVector eclipseColor;
   CurrentLight        light;
   DNFogInfo           fogInfo;
-  unsigned int        intFog;
+  unsigned char       intFog;
   DNFogInfo           intFogInfo;
   DNLightInfo         lightInfo;
   NTempest::CImVector shadowClr;

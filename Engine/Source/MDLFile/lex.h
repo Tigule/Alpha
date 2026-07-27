@@ -15,11 +15,20 @@ class mdl_scan {
   mdl_scan(const char *input, int inputSize);
   ~mdl_scan();
 
-  virtual int mdlwrap();
+  virtual int mdlwrap() {
+    return 1;
+  }
   virtual void __cdecl mdlerror(char *format, ...);
-  virtual void output(int character);
-  virtual void YY_FATAL(char *message);
-  virtual void ECHO();
+  virtual void output(int character) {
+    putc(character, mdlout);
+  }
+  virtual void YY_FATAL(char *message) {
+    mdlerror(message);
+    mdlLexFatal = 1;
+  }
+  virtual void ECHO() {
+    fputs(mdltext, mdlout);
+  }
 
   int mdllex();
   int mdlgetc();
@@ -45,7 +54,6 @@ class mdl_scan {
   int mdl_lastc;
   int mdlLexFatal;
   char save;
-  char padding[3];
 
  public:
   mdl_data tokendata;

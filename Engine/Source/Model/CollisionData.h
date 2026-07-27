@@ -20,15 +20,7 @@ int ModelCollisionVectorIntersect(
 void ModelAddCollisionFacets(
     HMODEL                             model,
     const NTempest::C34Matrix         &toWorld,
-    float                              scale,
+    const float                        scale,
     const NTempest::CAaBox            &worldBox,
     TSGrowableArray<NTempest::CFacet> *facets
 );
-void CollisionDataAddFacets(
-    HCOLLISIONDATA                     collide,
-    const NTempest::C34Matrix         &toWorld,
-    float                              scale,
-    const NTempest::CAaBox            &worldBox,
-    TSGrowableArray<NTempest::CFacet> *facets
-);
-int TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts);

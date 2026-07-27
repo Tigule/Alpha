@@ -286,7 +286,7 @@ class CWorld {
   static int QueryMapObjSubzoneName(unsigned long hWorldObject, const char *&subzoneName, unsigned int &subzoneId);
   static int QueryMapObjFileName(unsigned long hWorldObject, const char *&fileName);
   static int QueryMapObjFog(unsigned long hWorldObject, SMOFog::Fogs &oFogs, float &oPct);
-  static unsigned int QueryMapObjMinimap(unsigned long hWorldObject, NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads);
+  static bool QueryMapObjMinimap(unsigned long hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads);
   static unsigned int QueryMapObjIDs(unsigned long hWorldObject, unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID);
   static unsigned int QueryMapObjMatrix(unsigned long hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
   static const char *QueryChunkName();
@@ -339,7 +339,7 @@ class CWorld {
   static void TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, unsigned __int64 param64);
   static bool GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
   static int NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTempest::C3Vector **&p_outVerts, unsigned int &p_outCount);
-  static unsigned int NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate);
+  static bool NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate);
 
  private:
   friend class CDetailDoodadInst;

@@ -17,10 +17,11 @@ struct TAXILINE {
 };
 
 enum TAXNODE_TYPE {
-  TAXNODE_NONE = 0,
-  TAXNODE_CURRENT = 1,
-  TAXNODE_REACHABLE = 2,
-  TAXNODE_DISTANT = 3
+  TAXINODE_NONE = 0,
+  TAXINODE_CURRENT = 1,
+  TAXINODE_REACHABLE = 2,
+  TAXINODE_DISTANT = 3,
+  TAXINODE_NUMTAXINODES = 4
 };
 
 void TaxiMapInitialize();
@@ -31,4 +32,4 @@ unsigned int TaxiNodeCost(unsigned int srcNode, unsigned int dstNode);
 NTempest::CRect TaxiMapGetRect();
 TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID);
 HMODEL TaxiGetRouteModel(float width, float height);
-unsigned int TaxiRouteExists(int fromNode, int toNode);
+bool TaxiRouteExists(int fromNode, int toNode);

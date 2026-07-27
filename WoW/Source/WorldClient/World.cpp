@@ -398,7 +398,7 @@ int CWorld::QueryMapObjFileName(unsigned long hWorldObject, const char *&fileNam
   return entity->QueryMapObjFileName(fileName);
 }
 
-unsigned int CWorld::QueryMapObjMinimap(unsigned long hWorldObject, NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads) {
+bool CWorld::QueryMapObjMinimap(unsigned long hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);

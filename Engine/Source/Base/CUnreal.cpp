@@ -621,30 +621,6 @@ unreal operator+(const unreal &a, const unreal &b) {
   return result;
 }
 
-unreal &unreal::operator+=(const unreal &value) {
-  *this = *this + value;
-  return *this;
-}
-
-unreal &unreal::operator-=(const unreal &value) {
-  *this = *this - value;
-  return *this;
-}
-
-unreal &unreal::operator*=(const unreal &value) {
-  *this = *this * value;
-  return *this;
-}
-
-unreal &unreal::operator/=(const unreal &value) {
-  *this = *this / value;
-  return *this;
-}
-
-unreal unreal::fromRatio(int numerator, int denominator) {
-  return fromInt(numerator) / fromInt(denominator);
-}
-
 unreal reciprocal(const unreal &value) {
   ASSERT((value.bits & 0x7F800000) != 0);
 
@@ -950,8 +926,8 @@ static unreal __ln(const unreal &value) {
 }
 
 static unreal _ln(const unreal &value) {
-  if (value.fp < u_ln_limit1.fp) {
-    if (value.fp < u_ln_limit2.fp) {
+  if (unreal::asFloat(value) < unreal::asFloat(u_ln_limit1)) {
+    if (unreal::asFloat(value) < unreal::asFloat(u_ln_limit2)) {
       return __ln(value * u_ln_const2) + u_ln_mult2;
     }
 

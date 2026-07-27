@@ -634,7 +634,7 @@ void GxRsGet(EGxRenderState which, int &value);
 void GxRsPush();
 void GxRsPop();
 unsigned int GxRsStackOffset();
-void GxLightSet(unsigned int whichLight, const CGxLight &lightInfo, NTempest::C3Vector cameraPos);
+void GxLightSet(unsigned int whichLight, const CGxLight &lightInfo, const NTempest::C3Vector cameraPos);
 void GxLightEnable(unsigned int whichLight, int enable);
 void GxVertexShaderSelect(EGxVertexShader shader);
 void GxPrimLockVertexPtrs(

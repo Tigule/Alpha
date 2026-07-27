@@ -600,7 +600,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     return m_unit;
   }
 
-  HMODEL DuplicateCharacterModel(unsigned int flags);
+  HMODEL DuplicateCharacterModel(unsigned int flags) const;
 
  protected:
   void InitializeSequenceFlags();
@@ -613,7 +613,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int  ShouldShuffle() const;
 
  public:
-  friend void SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit);
+  friend void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit);
   friend void CreatureQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
   friend int UnitModeUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param);
   friend int OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
@@ -697,7 +697,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void               HandlePlayStandSound(unsigned long code, const char *eventName);
   void               HandleFootfallAnimEvent(const NTempest::C3Vector &position);
   void               PlayFidgetSound(unsigned int fidgetNumber);
-  void               PlayStandSound();
+  void               PlayStandSound() const;
   void               PlayDeathThud() const;
   int                GetStandStateAnim(HMODEL model) const;
   void               SetTorsoAnim(unsigned int newAnim);
@@ -729,7 +729,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void               ClearMeleeDeathHold();
   void               PlayParrySound(bool ignoreMainHand, const ATTACKROUNDINFO *roundInfo, const NTempest::C3Vector &position) const;
   void               PlayImpactSound(unsigned __int64 attacker, int criticalHit, COMBATHAND hand) const;
-  void               PlayCustomAttackSound(int sound, NTempest::C3Vector &position);
+  void               PlayCustomAttackSound(int sound, const NTempest::C3Vector &position);
   void               SetCustomAttackSound(int sound, const NTempest::C3Vector &position);
   void               ShowHandArrow(int show);
   const VirtualItemInfo *GetParryingItem(bool ignoreMainHand) const;

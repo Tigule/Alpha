@@ -45,7 +45,7 @@ struct CGItemData {
 class ItemGroupSoundsRec;
 class CGItemText;
 class ItemStats;
-struct SpellCast;
+class SpellCast;
 
 enum ITEM_STATIC_FLAGS {
   ITEM_FLAG_NO_PICKUP = 1,

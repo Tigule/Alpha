@@ -818,8 +818,7 @@ void CMapChunk::CreateVertices(float *heights) {
     float fx = static_cast<float>(y) * dx + wCorner.x;
     for (int x = 0; x < 9; ++x) {
       v->Set(fx, static_cast<float>(x) * dy + wCorner.y, *he++);
-      aaBox.b = NTempest::C3Vector::Min(aaBox.b, *v);
-      aaBox.t = NTempest::C3Vector::Max(aaBox.t, *v);
+      aaBox.Enclose(*v);
       *v = *v - corner;
       ++v;
     }
@@ -827,8 +826,7 @@ void CMapChunk::CreateVertices(float *heights) {
     if (y < 8) {
       for (int x = 0; x < 8; ++x) {
         v->Set(fx + dx2, static_cast<float>(x) * dy + wCorner.y + dy2, *ho++);
-        aaBox.b = NTempest::C3Vector::Min(aaBox.b, *v);
-        aaBox.t = NTempest::C3Vector::Max(aaBox.t, *v);
+        aaBox.Enclose(*v);
         *v = *v - corner;
         ++v;
       }

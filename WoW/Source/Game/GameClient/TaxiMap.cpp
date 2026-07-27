@@ -5,6 +5,7 @@
 
 #include <Base/Handle.h>
 #include <Base/Status.h>
+#include <Services/SysMessage.h>
 #include <Services/Texture.h>
 #include <Model/ModelInternal.h>
 #include <Tempest/cimvector.h>
@@ -73,44 +74,45 @@ static void UglifyMapTexture() {
   }
 }
 
-static unsigned int UpdateTexture(int continentID) {
+static bool UpdateTexture(int continentID) {
   if (continentID == s_continent) {
-    return 1;
+    return true;
   }
 
   char fileName[260];
   SStrPrintf(fileName, sizeof(fileName), "Textures\\TaxiMaps\\TaxiMap%02d", continentID);
   s_continent = continentID;
   if (!fileName[0]) {
-    return 0;
+    return false;
   }
 
   unsigned int width;
   unsigned int height;
   unsigned int format;
-  unsigned int alphaBits;
   int          isOpaque;
   CStatus      status;
-  MipBits     *bits = TextureLoadImage(fileName, &width, &height, &format, &isOpaque, &status, &alphaBits);
+  MipBits     *bits = TextureLoadImage(fileName, &width, &height, &format, &isOpaque, &status, 0);
   if (!bits) {
-    return 0;
+    return false;
   }
   if (width != 512 || height != 512) {
-    TextureFreeMippedImg(bits);
-    return 0;
+    SysMsgPrintf(SYSMSG_ERROR, 4, "TAXIMAPFILEWRONGSIZE|%s|%d|%d|%d|%d", fileName, 512, 512, width, height);
+    return false;
   }
 
   for (unsigned int y = 0; y < 512; ++y) {
+    C4Pixel *src = &bits->mip[0][y * 512];
+    C4Pixel *dst = &s_textureData[y * 512];
     for (unsigned int x = 0; x < 512; ++x) {
-      s_textureData[y * 512 + x] = bits->mip[0][y * 512 + x];
+      dst[x] = src[x];
     }
   }
   CGxTex *tex = TextureGetGxTex(s_texture, 1, 0);
   if (tex) {
     GxTexUpdate(tex, 0, 0, 511, 511, 1);
   }
-  TextureFreeMippedImg(bits);
-  return 1;
+  TextureUnloadImage(bits);
+  return true;
 }
 
 static NTempest::C2Vector CalculateNormalizedCoords(const NTempest::C2Vector &vec) {
@@ -284,25 +286,25 @@ NTempest::CRect TaxiMapGetRect() {
 
 TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
   if (nodeID == s_currentTaxiNode) {
-    return TAXNODE_CURRENT;
+    return TAXINODE_CURRENT;
   }
 
   if (nodeID <= 0 || nodeID > 64) {
-    return TAXNODE_NONE;
+    return TAXINODE_NONE;
   }
 
   __int64 mask = static_cast<__int64>(1) << (nodeID - 1);
   if (s_currentReachable & mask) {
-    return TAXNODE_REACHABLE;
+    return TAXINODE_REACHABLE;
   }
 
   TaxiNodesRec *node = g_taxiNodesDB.GetRecord(nodeID);
   TaxiNodesRec *current = g_taxiNodesDB.GetRecord(s_currentTaxiNode);
   if ((s_knownNodes & mask) && node && current && node->m_ContinentID == current->m_ContinentID) {
-    return TAXNODE_DISTANT;
+    return TAXINODE_DISTANT;
   }
 
-  return TAXNODE_NONE;
+  return TAXINODE_NONE;
 }
 
 HMODEL TaxiGetRouteModel(float width, float height) {
@@ -358,7 +360,7 @@ HMODEL TaxiGetRouteModel(float width, float height) {
   );
 }
 
-unsigned int TaxiRouteExists(int fromNode, int toNode) {
-  return fromNode > 0 && toNode > 0 && fromNode <= 63 && toNode <= 63 && s_taxiPathCosts[fromNode][toNode] != 0;
+bool TaxiRouteExists(int fromNode, int toNode) {
+  return fromNode && toNode && fromNode <= 63 && toNode <= 63 && s_taxiPathCosts[fromNode][toNode];
 }
 

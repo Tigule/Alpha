@@ -43,10 +43,6 @@ mdl_scan::~mdl_scan() {
   }
 }
 
-int mdl_scan::mdlwrap() {
-  return 1;
-}
-
 void __cdecl mdl_scan::mdlerror(char *format, ...) {
   va_list args;
   va_start(args, format);
@@ -56,19 +52,6 @@ void __cdecl mdl_scan::mdlerror(char *format, ...) {
   vfprintf(stderr, format, args);
   fputc('\n', stderr);
   va_end(args);
-}
-
-void mdl_scan::output(int character) {
-  fputc(character, mdlout);
-}
-
-void mdl_scan::YY_FATAL(char *message) {
-  mdlerror("%s", message);
-  exit(1);
-}
-
-void mdl_scan::ECHO() {
-  fwrite(mdltext, mdlleng, 1, mdlout);
 }
 
 int mdl_scan::mdlgetc() {

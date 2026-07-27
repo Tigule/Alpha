@@ -443,7 +443,7 @@ int GetObjAnimFlags(int unitAnimFlags);
 unsigned int SpellGetRangedPrecastHoldAnim(unsigned int loadAnim);
 unsigned int PlayerNameGetUnitNameMode();
 void SpellVisualsPlayCastKit(CGUnit_C *caster, SpellVisualKitRec *kitRec, int spellID, unsigned int isCastEffect);
-unsigned int Object_C_AnimHasHitEvent(int anim);
+bool Object_C_AnimHasHitEvent(int anim);
 float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
 void UnitEffectOneShot(
     const SpellVisualEffectNameRec *effect,
@@ -6451,7 +6451,7 @@ void CGUnit_C::RemoveInteractIcon() {
   }
 }
 
-HMODEL CGUnit_C::DuplicateCharacterModel(unsigned int flags) {
+HMODEL CGUnit_C::DuplicateCharacterModel(unsigned int flags) const {
   HMODEL characterModel = GetCharacterModel(0);
   HMODEL duplicate = ModelDuplicate(characterModel, flags);
   HandleClose(characterModel);

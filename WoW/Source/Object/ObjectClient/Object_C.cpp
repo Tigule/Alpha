@@ -1070,7 +1070,7 @@ HMODEL__ *CGObject_C::GetCharacterModel(int *mounted) const {
   return static_cast<HMODEL>(HandleDuplicate(m_model));
 }
 
-unsigned int Object_C_AnimHasHitEvent(int anim) {
+bool Object_C_AnimHasHitEvent(int anim) {
   FATALASSERT(anim < NUM_OBJECTANIMATIONS);
   return g_seqInformation[anim].flags & 1;
 }

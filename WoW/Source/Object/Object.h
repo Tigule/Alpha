@@ -48,7 +48,7 @@ struct CClientMoveUpdate {
 
 CDataStore &operator<<(CDataStore &packet, const CClientMoveUpdate &update);
 CDataStore &operator>>(CDataStore &packet, CClientMoveUpdate &update);
-float CalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination);
+float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
 
 struct CClientObjCreate {
   CClientObjCreate() : flags(0) {

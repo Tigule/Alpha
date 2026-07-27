@@ -993,14 +993,12 @@ void HeadGeosetHideCharGeosets(
 
 static void UpdateSubComponentPathNames(SUBCOMPONENTDESC *subComponent, const char *modelName) {
   FATALASSERT(subComponent);
-  if (subComponent->modelName) {
-    SMemFree(subComponent->modelName, __FILE__, __LINE__, 0);
+  if (subComponent->pathName) {
+    SMemFree(subComponent->pathName, __FILE__, __LINE__, 0);
   }
-  subComponent->modelName = 0;
+  subComponent->pathName = 0;
   if (modelName && *modelName) {
-    unsigned int length = SStrLen(modelName) + 1;
-    subComponent->modelName = static_cast<char *>(SMemAlloc(length, __FILE__, __LINE__, 0));
-    SStrCopy(subComponent->modelName, modelName, length);
+    subComponent->pathName = SStrDupA(modelName, __FILE__, __LINE__);
   }
 }
 
@@ -1017,15 +1015,12 @@ static void AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, unsigned in
   unsigned int i;
   for (i = 0; i < numSubComponents; ++i) {
     char buffer[MAX_PATH];
-    SStrPrintf(buffer, sizeof(buffer), "Item\\ObjectComponents\\%s\\%s", inventoryNames[inventoryType], subcomponents[i].modelName);
-    UpdateSubComponentPathNames(&subcomponents[i], buffer);
+    SStrPrintf(buffer, sizeof(buffer), "Item\\ObjectComponents\\%s\\%s", inventoryNames[inventoryType], subcomponents[i].pathName);
+    subcomponents[i].SetPathName(buffer);
 
     if (subcomponents[i].textureName && *subcomponents[i].textureName) {
       SStrPrintf(buffer, sizeof(buffer), "Item\\ObjectComponents\\%s\\%s", inventoryNames[inventoryType], subcomponents[i].textureName);
-      unsigned int length = SStrLen(buffer) + 1;
-      SMemFree(subcomponents[i].textureName, __FILE__, __LINE__, 0);
-      subcomponents[i].textureName = static_cast<char *>(SMemAlloc(length, __FILE__, __LINE__, 0));
-      SStrCopy(subcomponents[i].textureName, buffer, length);
+      subcomponents[i].SetTextureName(buffer);
     }
   }
 }
@@ -1042,7 +1037,7 @@ DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, unsigned int numSubC
   unsigned int i;
   for (i = 0; i < numSubComponents; ++i) {
     char modelBuffer[MAX_PATH];
-    CompDecorateObjName(subComponents[i].modelName, modelBuffer, sizeof(modelBuffer), race, sex);
+    CompDecorateObjName(subComponents[i].pathName, modelBuffer, sizeof(modelBuffer), race, sex);
     UpdateSubComponentPathNames(&subComponents[i], modelBuffer);
   }
 }
@@ -1050,7 +1045,7 @@ DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, unsigned int numSubC
 static HMODEL ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, const ItemDisplayInfoRec *displayInfoRec) {
   FATALASSERT(subComponent);
   FATALASSERT(displayInfoRec);
-  if (!subComponent->modelName || !*subComponent->modelName) {
+  if (!subComponent->pathName || !*subComponent->pathName) {
     return 0;
   }
 
@@ -1063,7 +1058,7 @@ static HMODEL ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, cons
   createData.cameraNames = 0;
   createData.numCameras = 0;
   CStatus status;
-  HMODEL  subCompModel = ModelCreate(subComponent->modelName, &createData, &status);
+  HMODEL  subCompModel = ModelCreate(subComponent->pathName, &createData, &status);
   FATALASSERT(subCompModel);
   ModelSetSequence(subCompModel, 0, 0);
 
@@ -1114,11 +1109,11 @@ int ObjComponentAdd(
       continue;
     }
 
-    if (!ModelAddLink(model, subComponents[componentIndex].attachmentPoint, itemModel, 1.0f)) {
+    if (!ModelAddLink(model, subComponents[componentIndex].connectionPointIndex, itemModel, 1.0f)) {
       SysMsgPrintf(SYSMSG_WARNING, 0x10, "PLAYERMODELNOCONNECTION|%d|%d|%d", unitRace, unitSex, itemInventoryType);
     }
     if (callback) {
-      callback(param, inventorySlot, itemModel, subComponents[componentIndex].attachmentPoint, 1);
+      callback(param, inventorySlot, itemModel, subComponents[componentIndex].connectionPointIndex, 1);
     } else {
       HandleClose(itemModel);
     }
@@ -1298,7 +1293,7 @@ GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool is
     HMODEL model = ObjComponentBuildSubComponent(&subComponents[componentIndex], displayInfoRec);
     if (model) {
       models[added] = model;
-      attachmentPoints[added] = subComponents[componentIndex].attachmentPoint;
+      attachmentPoints[added] = subComponents[componentIndex].connectionPointIndex;
       ++added;
     }
   }
@@ -1346,7 +1341,7 @@ void GetTabardBorderFileName(int section, int border, int color, char *buffer, i
   SStrPrintf(buffer, size, "Textures\\GuildEmblems\\Border_%02d_%02d%s_U", border, color, s_tabardSectionSuffix[section]);
 }
 
-void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, ItemDisplayInfoRec *displayInfo, int inventoryType) {
+void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfo, int inventoryType) {
   CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentptr);
 
@@ -1435,7 +1430,7 @@ CTexturePiece &CTexturePiece::operator=(const CTexturePiece &rhs) {
   return *this;
 }
 
-HMODEL ObjComponentBuildAmmoModel(ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration) {
+HMODEL ObjComponentBuildAmmoModel(const ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration) {
   seqDuration = 0;
   if (!displayInfoRec || !displayInfoRec->m_modelName[1] || !displayInfoRec->m_modelTexture[1] || !inventoryType || inventoryType >= INDEX_NUMSLOTS) {
     return 0;
@@ -1452,12 +1447,8 @@ HMODEL ObjComponentBuildAmmoModel(ItemDisplayInfoRec *displayInfoRec, unsigned i
   SStrPrintf(texturePath, sizeof(texturePath), "Item\\ObjectComponents\\%s\\%s", inventoryNames[inventoryType], displayInfoRec->m_modelTexture[1]);
 
   SUBCOMPONENTDESC subComponent;
-  unsigned int     length = SStrLen(modelPath) + 1;
-  subComponent.modelName = static_cast<char *>(SMemAlloc(length, __FILE__, __LINE__, 0));
-  SStrCopy(subComponent.modelName, modelPath, length);
-  length = SStrLen(texturePath) + 1;
-  subComponent.textureName = static_cast<char *>(SMemAlloc(length, __FILE__, __LINE__, 0));
-  SStrCopy(subComponent.textureName, texturePath, length);
+  subComponent.pathName = SStrDupA(modelPath, __FILE__, __LINE__);
+  subComponent.textureName = SStrDupA(texturePath, __FILE__, __LINE__);
 
   HMODEL model = ObjComponentBuildSubComponent(&subComponent, displayInfoRec);
   if (model) {

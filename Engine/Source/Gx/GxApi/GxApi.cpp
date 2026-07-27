@@ -269,7 +269,7 @@ void GxDevOverride(EGxOverride override, unsigned long value) {
   g_theGxDevicePtr->DeviceOverride(override, value);
 }
 
-void GxLightSet(unsigned int whichLight, const CGxLight &lightInfo, NTempest::C3Vector cameraPos) {
+void GxLightSet(unsigned int whichLight, const CGxLight &lightInfo, const NTempest::C3Vector cameraPos) {
   FATALASSERT(whichLight < Gx_MaxLights);
 
   g_theGxDevicePtr->LightSet(whichLight, lightInfo, cameraPos);

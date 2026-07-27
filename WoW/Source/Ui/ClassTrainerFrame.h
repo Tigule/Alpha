@@ -9,22 +9,35 @@ struct TrainerServiceInfo {
   unsigned int  moneyCost;
   unsigned char pointCost[2];
   unsigned char reqLevel;
-  unsigned char pad;
   unsigned int  reqSkillLine;
   unsigned int  reqSkillRank;
   unsigned int  reqSkillStep;
   int           reqAbility[3];
   unsigned char usable;
-  unsigned char pad2[3];
-  int           filtered;
+  int           enabled;
+};
+
+enum TRAINER_SERVICE {
+  TRAINER_SERVICE_AVAILABLE = 0,
+  TRAINER_SERVICE_UNAVAILABLE = 1,
+  TRAINER_SERVICE_USED = 2,
+  TRAINER_SERVICE_NOT_SHOWN = 3,
+  TRAINER_SERVICE_NEVER = 4,
+  TRAINER_SERVICE_NO_PET = 5,
+  NUM_TRAINER_SERVICE_TYPES = 6
 };
 
 struct TrainerSkillLineInfo {
   int          skillLine;
-  unsigned int serviceTypeCount[6];
-  int          filtered;
-  int          expanded;
-  int          hasCost;
+  unsigned int numSkills[NUM_TRAINER_SERVICE_TYPES];
+  int          enabled;
+  int          collapsed;
+  int          allCostPoints;
+
+  void ClearSkills() {
+    memset(numSkills, 0, sizeof(numSkills));
+    allCostPoints = 1;
+  }
 };
 
 int __cdecl QSortServices_General(const void *a, const void *b);

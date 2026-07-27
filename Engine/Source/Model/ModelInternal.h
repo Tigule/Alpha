@@ -31,8 +31,7 @@ unsigned int GetInvalidMatrixId();
 void
 GxuLightSelectCallback(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
 
-struct HCOLLISIONDATA__;
-typedef HCOLLISIONDATA__ *HCOLLISIONDATA;
+DECLARE_DERIVED_HANDLE(HCOLLISIONDATA, HOBJECT);
 
 DECLARE_DERIVED_HANDLE(HMODELSHARED, HOBJECT);
 

@@ -13,7 +13,7 @@ unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes
 static const unsigned short vertIndices[36] = {4, 6, 0, 0, 6, 2, 4, 0, 5, 5, 0, 1, 0, 2, 1, 1, 2, 3,
                                                2, 6, 3, 3, 6, 7, 1, 3, 5, 5, 3, 7, 5, 7, 4, 4, 7, 6};
 
-int TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts) {
+static int TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts) {
   return (triVerts[0].x < bounds.b.x && triVerts[1].x < bounds.b.x && triVerts[2].x < bounds.b.x) ||
          (triVerts[0].x > bounds.t.x && triVerts[1].x > bounds.t.x && triVerts[2].x > bounds.t.x) ||
          (triVerts[0].y < bounds.b.y && triVerts[1].y < bounds.b.y && triVerts[2].y < bounds.b.y) ||
@@ -22,10 +22,10 @@ int TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vecto
          (triVerts[0].z > bounds.t.z && triVerts[1].z > bounds.t.z && triVerts[2].z > bounds.t.z);
 }
 
-void CollisionDataAddFacets(
+static void CollisionDataAddFacets(
     HCOLLISIONDATA                     handle,
     const NTempest::C34Matrix         &toWorld,
-    float                              scale,
+    const float                        scale,
     const NTempest::CAaBox            &worldBox,
     TSGrowableArray<NTempest::CFacet> *facets
 ) {
@@ -132,16 +132,7 @@ HCOLLISIONDATA CollisionDataCreate(const NTempest::CAaBox &bounds) {
   collision->indices.SetCount(36);
   memcpy(collision->indices.Ptr(), vertIndices, sizeof(vertIndices));
 
-  collision->surfaceNormals.SetCount(12);
-  for (unsigned int surface = 0; surface < 12; ++surface) {
-    const NTempest::C3Vector &a = collision->vertices[collision->indices[surface * 3]];
-    const NTempest::C3Vector &b = collision->vertices[collision->indices[surface * 3 + 1]];
-    const NTempest::C3Vector &c = collision->vertices[collision->indices[surface * 3 + 2]];
-    NTempest::C3Vector        ab(b.x - a.x, b.y - a.y, b.z - a.z);
-    NTempest::C3Vector        ac(c.x - a.x, c.y - a.y, c.z - a.z);
-    collision->surfaceNormals[surface] = NTempest::C3Vector::Cross(ab, ac);
-    collision->surfaceNormals[surface].Normalize();
-  }
+  ComputeSurfaceNormals(collision, 12);
   collision->extents = bounds;
 
   return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
@@ -187,39 +178,39 @@ HCOLLISIONDATA CollisionDataCreate(unsigned char *fileData, unsigned int fileByt
   }
 
   CCollisionData *collision = new (storage) CCollisionData;
-  unsigned char  *data = section + 4;
-  unsigned char  *sectionDone = data + *reinterpret_cast<unsigned int *>(section);
+  fileData = section + 4;
+  unsigned char *sectionDone = fileData + *reinterpret_cast<unsigned int *>(section);
 
-  ASSERT(*reinterpret_cast<unsigned int *>(data) == 0x58545256);
-  data += 4;
+  ASSERT(*((ULONG *) (fileData)) == 'XTRV');
+  fileData += 4;
 
-  unsigned int numVertices = *reinterpret_cast<unsigned int *>(data);
-  data += 4;
-  ASSERT(numVertices <= 0xFFFF);
+  unsigned int numVertices = *reinterpret_cast<unsigned int *>(fileData);
+  fileData += 4;
+  ASSERT(numVertices <= 0xffff);
 
   collision->vertices.SetCount(numVertices);
-  memcpy(collision->vertices.Ptr(), data, numVertices * sizeof(NTempest::C3Vector));
-  data += numVertices * sizeof(NTempest::C3Vector);
+  memcpy(collision->vertices.Ptr(), fileData, numVertices * sizeof(NTempest::C3Vector));
+  fileData += numVertices * sizeof(NTempest::C3Vector);
 
-  ASSERT(*reinterpret_cast<unsigned int *>(data) == 0x20495254);
-  data += 4;
+  ASSERT(*((ULONG *) (fileData)) == ' IRT');
+  fileData += 4;
 
-  unsigned int numVertIndices = *reinterpret_cast<unsigned int *>(data);
-  data += 4;
+  unsigned int numVertIndices = *reinterpret_cast<unsigned int *>(fileData);
+  fileData += 4;
   collision->indices.SetCount(numVertIndices);
-  memcpy(collision->indices.Ptr(), data, numVertIndices * sizeof(unsigned short));
-  data += numVertIndices * sizeof(unsigned short);
+  memcpy(collision->indices.Ptr(), fileData, numVertIndices * sizeof(unsigned short));
+  fileData += numVertIndices * sizeof(unsigned short);
 
-  ASSERT(*reinterpret_cast<unsigned int *>(data) == 0x534D524E);
-  data += 4;
+  ASSERT(*((ULONG *) (fileData)) == 'SMRN');
+  fileData += 4;
 
-  unsigned int numSurfaceNormals = *reinterpret_cast<unsigned int *>(data);
-  data += 4;
+  unsigned int numSurfaceNormals = *reinterpret_cast<unsigned int *>(fileData);
+  fileData += 4;
   collision->surfaceNormals.SetCount(numSurfaceNormals);
-  memcpy(collision->surfaceNormals.Ptr(), data, numSurfaceNormals * sizeof(NTempest::C3Vector));
-  data += numSurfaceNormals * sizeof(NTempest::C3Vector);
+  memcpy(collision->surfaceNormals.Ptr(), fileData, numSurfaceNormals * sizeof(NTempest::C3Vector));
+  fileData += numSurfaceNormals * sizeof(NTempest::C3Vector);
 
-  ASSERT(data == sectionDone);
+  ASSERT(fileData == sectionDone);
   collision->extents = NTempest::CAaBox::Bounding(collision->vertices.Ptr(), collision->vertices.Count());
 
   return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
@@ -228,7 +219,7 @@ HCOLLISIONDATA CollisionDataCreate(unsigned char *fileData, unsigned int fileByt
 void ModelAddCollisionFacets(
     HMODEL                             model,
     const NTempest::C34Matrix         &toWorld,
-    float                              scale,
+    const float                        scale,
     const NTempest::CAaBox            &worldBox,
     TSGrowableArray<NTempest::CFacet> *facets
 ) {

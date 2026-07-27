@@ -188,7 +188,7 @@ int CMapEntity::QueryMapObjListenerId(unsigned int &listenerId) {
   return 1;
 }
 
-unsigned int CMapEntity::QueryMapObjMinimap(NTempest::CAaBox &aaBox, TSStackArray<CWorldMinimapQuad> &quads) {
+bool CMapEntity::QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorldMinimapQuad> &quads) {
   NTempest::CAaBox localBox;
   CMapObjGroup    *mapObjGroup;
   CMapObj         *mapObj;
