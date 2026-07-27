@@ -128,9 +128,9 @@ void ObserverInitialize() {
 }
 
 void ObserverDestroy() {
-  s_eventRegAllocator.Clear(typeid(EventReg).raw_name(), SERR_LINECODE_OBJECT);
-  s_callbackRegAllocator.Clear(typeid(EventReg::EVENTCALLBACKREG).raw_name(), SERR_LINECODE_OBJECT);
-  s_dispatchRegAllocator.Clear(typeid(EventReg::EVENTDISPATCHREG).raw_name(), SERR_LINECODE_OBJECT);
+  s_eventRegAllocator.Clear();
+  s_callbackRegAllocator.Clear();
+  s_dispatchRegAllocator.Clear();
 }
 
 CObserver::~CObserver() {
@@ -275,19 +275,12 @@ int CObserver::IsEventRegisteredBy(unsigned int id, CObserver *pObserver) {
 
 void EventRegistry::InternalDelete(EventReg *pReg) {
   FATALASSERT(!pReg->Locked());
-  pReg->~EventReg();
-  s_eventRegAllocator.m_critsect.Enter();
-  s_eventRegAllocator.PutData(pReg, typeid(EventReg).raw_name(), SERR_LINECODE_OBJECT);
-  s_eventRegAllocator.m_critsect.Leave();
+  s_eventRegAllocator.Put(pReg);
 }
 
 EventReg *EventRegistry::InternalNew(TSExplicitList<EventReg, -572662307> *, unsigned long extrabytes, unsigned long flags) {
   FATALASSERT(!extrabytes);
-  s_eventRegAllocator.m_critsect.Enter();
-  void *data = s_eventRegAllocator.GetData((flags & SMEM_FLAG_ZEROMEMORY) != 0, typeid(EventReg).raw_name(), SERR_LINECODE_OBJECT);
-  EventReg *reg = data ? new (data) EventReg : 0;
-  s_eventRegAllocator.m_critsect.Leave();
-  return reg;
+  return s_eventRegAllocator.Get((flags & SMEM_FLAG_ZEROMEMORY) != 0);
 }
 
 EventReg::EventReg() : flags(0) {
@@ -307,10 +300,7 @@ void EventReg::RegisterCallback(EVENTCALLBACK callback, void *param) {
     }
   }
 
-  s_callbackRegAllocator.m_critsect.Enter();
-  void *data = s_callbackRegAllocator.GetData(0, typeid(EVENTCALLBACKREG).raw_name(), SERR_LINECODE_OBJECT);
-  entry = data ? new (data) EVENTCALLBACKREG : 0;
-  s_callbackRegAllocator.m_critsect.Leave();
+  entry = s_callbackRegAllocator.Get(0);
   ASSERT(entry);
   callbackList.LinkNode(entry, LIST_TAIL, 0);
   entry->callback = callback;
@@ -326,10 +316,7 @@ void EventReg::RegisterEvent(int expectedEventId, CObserver *pObserver) {
     }
   }
 
-  s_dispatchRegAllocator.m_critsect.Enter();
-  void *data = s_dispatchRegAllocator.GetData(0, typeid(EVENTDISPATCHREG).raw_name(), SERR_LINECODE_OBJECT);
-  entry = data ? new (data) EVENTDISPATCHREG : 0;
-  s_dispatchRegAllocator.m_critsect.Leave();
+  entry = s_dispatchRegAllocator.Get(0);
   ASSERT(entry);
   dispatchList.LinkNode(entry, LIST_TAIL, 0);
   entry->pObserver = pObserver;
@@ -346,10 +333,7 @@ void EventReg::UnregisterCallback(EVENTCALLBACK callback) {
         MarkChanged();
       } else {
         callbackList.UnlinkNode(entry);
-        entry->~EVENTCALLBACKREG();
-        s_callbackRegAllocator.m_critsect.Enter();
-        s_callbackRegAllocator.PutData(entry, typeid(EVENTCALLBACKREG).raw_name(), SERR_LINECODE_OBJECT);
-        s_callbackRegAllocator.m_critsect.Leave();
+        s_callbackRegAllocator.Put(entry);
       }
       if (callback) {
         break;
@@ -369,10 +353,7 @@ void EventReg::UnregisterEvent(CObserver *pObserver) {
         MarkChanged();
       } else {
         dispatchList.UnlinkNode(entry);
-        entry->~EVENTDISPATCHREG();
-        s_dispatchRegAllocator.m_critsect.Enter();
-        s_dispatchRegAllocator.PutData(entry, typeid(EVENTDISPATCHREG).raw_name(), SERR_LINECODE_OBJECT);
-        s_dispatchRegAllocator.m_critsect.Leave();
+        s_dispatchRegAllocator.Put(entry);
       }
       if (pObserver) {
         break;
@@ -388,10 +369,7 @@ void EventReg::CleanupCallbacks() {
     EVENTCALLBACKREG *next = callbackList.Next(entry);
     if (!entry->callback) {
       callbackList.UnlinkNode(entry);
-      entry->~EVENTCALLBACKREG();
-      s_callbackRegAllocator.m_critsect.Enter();
-      s_callbackRegAllocator.PutData(entry, typeid(EVENTCALLBACKREG).raw_name(), SERR_LINECODE_OBJECT);
-      s_callbackRegAllocator.m_critsect.Leave();
+      s_callbackRegAllocator.Put(entry);
     }
     entry = next;
   }
@@ -403,10 +381,7 @@ void EventReg::CleanupEvents() {
     EVENTDISPATCHREG *next = dispatchList.Next(entry);
     if (!entry->pObserver) {
       dispatchList.UnlinkNode(entry);
-      entry->~EVENTDISPATCHREG();
-      s_dispatchRegAllocator.m_critsect.Enter();
-      s_dispatchRegAllocator.PutData(entry, typeid(EVENTDISPATCHREG).raw_name(), SERR_LINECODE_OBJECT);
-      s_dispatchRegAllocator.m_critsect.Leave();
+      s_dispatchRegAllocator.Put(entry);
     }
     entry = next;
   }

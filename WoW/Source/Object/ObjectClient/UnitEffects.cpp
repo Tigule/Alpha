@@ -366,8 +366,7 @@ int GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID) {
 
 static void RecycleMissileNode(MISSILENODE *node) {
   s_missiles.UnlinkNode(node);
-  node->~MISSILENODE();
-  s_freeMissiles.PutData(node, 0, 0);
+  s_freeMissiles.Put(node);
 }
 
 void GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position) {
@@ -653,14 +652,12 @@ void UnitEffectsInitialize() {
 void UnitEffectsShutdown() {
   while (reinterpret_cast<long>(s_missiles.Head()) > 0) {
     MISSILENODE *node = s_missiles.Head();
-    node->~MISSILENODE();
-    s_freeMissiles.PutData(node, 0, 0);
+    s_freeMissiles.Put(node);
   }
 
   while (reinterpret_cast<long>(s_standAloneEffects.Head()) > 0) {
     ONESHOTSTANDALONEEFFECTNODE *node = s_standAloneEffects.Head();
-    node->~ONESHOTSTANDALONEEFFECTNODE();
-    s_freeStandaloneEffects.PutData(node, 0, 0);
+    s_freeStandaloneEffects.Put(node);
   }
 
   if (s_purgeTimer) {
@@ -720,8 +717,7 @@ static int PurgeTimerHandler(const void *timerData, void *userData) {
       ++found;
     } else {
       s_standAloneEffects.UnlinkNode(node);
-      node->~ONESHOTSTANDALONEEFFECTNODE();
-      s_freeStandaloneEffects.PutData(node, 0, 0);
+      s_freeStandaloneEffects.Put(node);
     }
     node = nextNode;
   }
@@ -889,24 +885,18 @@ void UnitEffectOneShot(
     return;
   }
 
-  ONESHOTSTANDALONEEFFECTNODE *unitEffectDesc =
-      static_cast<ONESHOTSTANDALONEEFFECTNODE *>(s_freeStandaloneEffects.GetData(0, typeid(ONESHOTSTANDALONEEFFECTNODE).raw_name(), -2));
-  if (unitEffectDesc) {
-    new (unitEffectDesc) ONESHOTSTANDALONEEFFECTNODE;
-  }
+  ONESHOTSTANDALONEEFFECTNODE *unitEffectDesc = s_freeStandaloneEffects.Get(0);
 
   HMODEL model = InitializeModel(effectRec->m_fileName, SpellAreaAnimEventCallback, unitEffectDesc);
   if (!model) {
-    unitEffectDesc->~ONESHOTSTANDALONEEFFECTNODE();
-    s_freeStandaloneEffects.PutData(unitEffectDesc, 0, 0);
+    s_freeStandaloneEffects.Put(unitEffectDesc);
     return;
   }
 
   unsigned int duration = 0;
   if (!ModelIsLoaded(model, 1) || !ModelGetSequenceDuration(model, 0, &duration) || !duration) {
     HandleClose(model);
-    unitEffectDesc->~ONESHOTSTANDALONEEFFECTNODE();
-    s_freeStandaloneEffects.PutData(unitEffectDesc, 0, 0);
+    s_freeStandaloneEffects.Put(unitEffectDesc);
     return;
   }
 
@@ -993,10 +983,7 @@ void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset) {
     return;
   }
 
-  MISSILENODE *node = static_cast<MISSILENODE *>(s_freeMissiles.GetData(0, typeid(MISSILENODE).raw_name(), -2));
-  if (node) {
-    new (node) MISSILENODE;
-  }
+  MISSILENODE *node = s_freeMissiles.Get(0);
   s_missiles.LinkNode(node, LIST_HEAD, 0);
   node->model = model;
   node->caster = caster;

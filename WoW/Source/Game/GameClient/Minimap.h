@@ -14,15 +14,15 @@
 class AreaPOIRec;
 
 struct MinimapTexParams {
-  unsigned int        inside;
+  unsigned char       inside;
   CGxTex             *texture;
-  unsigned int        updateTexture;
+  unsigned char       updateTexture;
   float               size;
   NTempest::C44Matrix worldRotation;
   NTempest::C44Matrix invMapObjMtx;
   NTempest::C3Vector  localCenter;
   NTempest::C3Vector  localOffset;
-  unsigned int        asyncTexWait;
+  unsigned char       asyncTexWait;
 };
 
 struct QUADDATA {
@@ -50,7 +50,7 @@ struct QUADDATA {
       const NTempest::CRect    &maskBox,
       float                     layoutScale
   );
-  void UpdateData(unsigned int quad, NTempest::C2Vector centerPoint, float radius, float layoutScale);
+  void UpdateData(unsigned int quad, const NTempest::C2Vector centerPoint, float radius, float layoutScale);
 };
 
 struct POIDIRECTIONDATA {
@@ -82,7 +82,7 @@ void MinimapSetZoom(unsigned int zoomFactor);
 unsigned int MinimapGetZoom();
 unsigned int MinimapGetZoomLevels();
 float MinimapGetViewRadius();
-TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI);
+const TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI);
 int MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData);
 float MinimapGetWorldRadius();
 void MinimapSetQuestPOI(float x, float y, int priority, const char *name);

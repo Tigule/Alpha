@@ -1019,12 +1019,7 @@ FishingLineObject* SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec
   if (!kitRec) {
     return 0;
   }
-  FishingLineObject *object =
-      static_cast<FishingLineObject *>(
-          s_freeFishingObjects.GetData(
-              0,
-              typeid(FishingLineObject).raw_name(),
-              SERR_LINECODE_OBJECT));
+  FishingLineObject *object = s_freeFishingObjects.Get(0);
   if (object) {
     new (object) FishingLineObject;
   }
@@ -1041,8 +1036,7 @@ FishingLineObject* SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec
 void SpellVisualsFishingLineDestroy(FishingLineObject* object) {
   if (object) {
     s_fishingLineObjects.UnlinkNode(object);
-    object->~FishingLineObject();
-    s_freeFishingObjects.PutData(object, 0, 0);
+    s_freeFishingObjects.Put(object);
   }
 }
 

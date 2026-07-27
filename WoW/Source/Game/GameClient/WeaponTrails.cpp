@@ -216,8 +216,7 @@ WTOBJECT::~WTOBJECT() {
   }
 
   while (SWING *swing = m_swings.Head()) {
-    swing->~SWING();
-    s_freeSwings.PutData(swing, 0, 0);
+    s_freeSwings.Put(swing);
   }
 
   if (m_timer) {
@@ -251,8 +250,7 @@ void WTOBJECT::Recycle() {
   m_flags = 0;
   while (SWING *swing = m_swings.Head()) {
     swing->Recycle();
-    swing->~SWING();
-    s_freeSwings.PutData(swing, 0, 0);
+    s_freeSwings.Put(swing);
   }
   if (m_geosetID != -1) {
     ModelCustGeosetRemove(m_model, m_geosetID);
@@ -329,8 +327,7 @@ void WTOBJECT::FadeVerts() {
 
     if (swing->m_trail.Count() && !visible) {
       swing->Recycle();
-      swing->~SWING();
-      s_freeSwings.PutData(swing, 0, 0);
+      s_freeSwings.Put(swing);
     }
     swing = next;
   }
@@ -351,9 +348,8 @@ void WTOBJECT::SetDrawTrail(const NTempest::CImVector &color, int fadeOutRate, u
   m_currentAlpha = color.a;
   m_fadeOutRate = fadeOutRate > 0 ? -fadeOutRate : fadeOutRate;
 
-  SWING *swing = static_cast<SWING *>(s_freeSwings.GetData(0, typeid(SWING).raw_name(), -2));
+  SWING *swing = s_freeSwings.Get(0);
   if (swing) {
-    new (swing) SWING;
     m_swings.LinkNode(swing, LIST_TAIL, 0);
   }
 
@@ -380,10 +376,7 @@ void WeaponTrailsShutdown() {
 int WeaponTrailCreate(HMODEL model) {
   FATALASSERT(model);
 
-  WTOBJECT *trail = static_cast<WTOBJECT *>(s_unusedObjects.GetData(0, typeid(WTOBJECT).raw_name(), -2));
-  if (trail) {
-    new (trail) WTOBJECT;
-  }
+  WTOBJECT *trail = s_unusedObjects.Get(0);
 
   trail->m_model = static_cast<HMODEL>(HandleDuplicate(model));
   trail->m_fadeOutRate = -1;
@@ -393,8 +386,7 @@ int WeaponTrailCreate(HMODEL model) {
   ModelCustGeosetAdd(trail->m_model, NTempest::C3Vector(0.0f), GeosetRenderFunction, trail, &trail->m_geosetID);
 
   if (trail->m_geosetID == -1) {
-    trail->~WTOBJECT();
-    s_unusedObjects.PutData(trail, 0, 0);
+    s_unusedObjects.Put(trail);
     return 0;
   }
 
@@ -415,8 +407,7 @@ void WeaponTrailClose(int trail) {
   if (object->m_model && object->m_geosetID) {
     ModelCustGeosetRemove(object->m_model, object->m_geosetID);
   }
-  object->~WTOBJECT();
-  s_unusedObjects.PutData(object, 0, 0);
+  s_unusedObjects.Put(object);
 }
 
 void WeaponTrailSetColor(int trail, NTempest::CImVector color) {

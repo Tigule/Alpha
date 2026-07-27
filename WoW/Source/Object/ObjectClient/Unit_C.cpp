@@ -564,8 +564,7 @@ CGUnit_C::~CGUnit_C() {
   }
 
   while (ACTIVEAURAINFO *active = m_activeAuraInfo.Head()) {
-    active->~ACTIVEAURAINFO();
-    s_auraInfoFreeList.PutData(active, 0, 0);
+    s_auraInfoFreeList.Put(active);
   }
 
   UnitUninitializeModel(m_model);
@@ -587,14 +586,12 @@ CGUnit_C::~CGUnit_C() {
 
   for (index = 0; index < sizeof(m_spellEffectLists) / sizeof(m_spellEffectLists[0]); ++index) {
     while (SPELLEFFECTDESC *effect = m_spellEffectLists[index].Head()) {
-      effect->~SPELLEFFECTDESC();
-      s_spellEffectFreeList.PutData(effect, 0, 0);
+      s_spellEffectFreeList.Put(effect);
     }
   }
 
   if (m_channelSpellEffect) {
-    m_channelSpellEffect->~SPELLEFFECTDESC();
-    s_spellEffectFreeList.PutData(m_channelSpellEffect, 0, 0);
+    s_spellEffectFreeList.Put(m_channelSpellEffect);
     m_channelSpellEffect = 0;
   }
 
@@ -650,8 +647,7 @@ static void PurgeExpiredNodes(TSList<SPELLEFFECTDESC, TSGetLink<SPELLEFFECTDESC>
     SPELLEFFECTDESC *next = desc->Next();
     desc->curTime += static_cast<unsigned int>(elapsed * 1000.0f);
     if (desc->endTime && desc->curTime > desc->endTime) {
-      desc->~SPELLEFFECTDESC();
-      s_spellEffectFreeList.PutData(desc, 0, 0);
+      s_spellEffectFreeList.Put(desc);
     }
     desc = next;
   }
@@ -692,8 +688,7 @@ void SpellProcChainHandler(
     unit->ClearSavedChannelSpellTargets();
   } else if (action == SPELLPROCREMOVE) {
     newDesc->ClearLightningObjects();
-    newDesc->~SPELLEFFECTDESC();
-    s_spellEffectFreeList.PutData(newDesc, 0, 0);
+    s_spellEffectFreeList.Put(newDesc);
   }
 }
 
@@ -838,8 +833,7 @@ void SpellProcEmissiveHandler(
     unit->AddEmissiveColor(newDesc->color);
   } else if (action == SPELLPROCREMOVE) {
     unit->RemoveEmissiveColor(newDesc->color);
-    newDesc->~SPELLEFFECTDESC();
-    s_spellEffectFreeList.PutData(newDesc, 0, 0);
+    s_spellEffectFreeList.Put(newDesc);
   } else if (action == SPELLPROCUPDATE) {
     PurgeExpiredNodes(list, elapsed);
   }
@@ -862,8 +856,7 @@ void SpellProcEclipseHandler(
     newDesc->endTime = newDesc->startTime + castTime;
     newDesc->fadeInTime = newDesc->startTime + static_cast<unsigned int>(castTime * rec->m_characterParam[1]);
   } else if (action == SPELLPROCREMOVE) {
-    newDesc->~SPELLEFFECTDESC();
-    s_spellEffectFreeList.PutData(newDesc, 0, 0);
+    s_spellEffectFreeList.Put(newDesc);
   } else if (action == SPELLPROCUPDATE) {
     PurgeExpiredNodes(list, elapsed);
   }
@@ -890,8 +883,7 @@ void SpellProcStandWalkAnimHandler(
     newDesc->endTime = 0;
   } else if (action == SPELLPROCREMOVE) {
     FATALASSERT(newDesc);
-    newDesc->~SPELLEFFECTDESC();
-    s_spellEffectFreeList.PutData(newDesc, 0, 0);
+    s_spellEffectFreeList.Put(newDesc);
   } else if (action == SPELLPROCUPDATE) {
     PurgeExpiredNodes(list, elapsed);
   }
@@ -951,8 +943,7 @@ void SpellProcWeaponTrailHandler(
     unit->EnableWeaponTrail(color, static_cast<int>(rec->m_characterParam[1]), static_cast<unsigned int>(rec->m_characterParam[2]));
   } else if (action == SPELLPROCREMOVE) {
     FATALASSERT(newDesc);
-    newDesc->~SPELLEFFECTDESC();
-    s_spellEffectFreeList.PutData(newDesc, 0, 0);
+    s_spellEffectFreeList.Put(newDesc);
   }
 }
 
@@ -3441,8 +3432,7 @@ int OnAuraDecayFinished(void *param) {
   }
 
   decay->Unlink();
-  decay->~AuraDecayNode();
-  s_auraDecayFreeList.PutData(decay, 0, 0);
+  s_auraDecayFreeList.Put(decay);
   return 0;
 }
 
@@ -3719,7 +3709,7 @@ void CGUnit_C::InstallSeqEndHandler(HMODEL model, unsigned int animID) {
     return;
   }
   if (!m_callbackList[animID]) {
-    m_callbackList[animID] = static_cast<ANIMENDDATA *>(s_animEndDataPool.GetData(0, __FILE__, __LINE__));
+    m_callbackList[animID] = s_animEndDataPool.Get(0);
     m_callbackList[animID]->guid = GetGUID();
     m_callbackList[animID]->anim = static_cast<ANIMENUMERATION>(animID);
   } else {
@@ -3732,7 +3722,7 @@ void CGUnit_C::InstallSeqEndHandler(HMODEL model, unsigned int animID) {
 void CGUnit_C::ClearAnimCallbackData() {
   for (unsigned int animID = 0; animID < NUM_OBJECTANIMATIONS; ++animID) {
     if (m_callbackList[animID]) {
-      s_animEndDataPool.PutData(m_callbackList[animID], 0, 0);
+      s_animEndDataPool.Put(m_callbackList[animID]);
       m_callbackList[animID] = 0;
     }
   }
@@ -4218,7 +4208,7 @@ void CGUnit_C::RemoveAuraVisual(UNITEFFECTATTACHPPOINT attach) {
   if (visual.IsWorldModel()) {
     HMODEL model = visual.GetModel();
     if (VisualHasDecay(model)) {
-      AuraDecayNode *decay = new (s_auraDecayFreeList.GetData(0, typeid(AuraDecayNode).raw_name(), -2)) AuraDecayNode;
+      AuraDecayNode *decay = s_auraDecayFreeList.Get(0);
       decay->visual.Set(visual);
       decay->unit = GetGUID();
       s_activeAuraDecays.LinkNode(decay, LIST_HEAD, 0);
@@ -4235,7 +4225,7 @@ void CGUnit_C::RemoveAuraVisual(UNITEFFECTATTACHPPOINT attach) {
   HMODEL model = visual.GetModel();
   if (VisualHasDecay(model)) {
     ModelSetSequence(model, 2, 0);
-    AuraDecayNode *decay = new (s_auraDecayFreeList.GetData(0, typeid(AuraDecayNode).raw_name(), -2)) AuraDecayNode;
+    AuraDecayNode *decay = s_auraDecayFreeList.Get(0);
     decay->visual.SetModel(model);
     decay->unit = GetGUID();
     decay->attach = attach;
@@ -4253,8 +4243,7 @@ void CGUnit_C::RemoveAuraEffect(unsigned int slot, int previousSpell) {
   if (active) {
     RemoveSpellProcAuraEffect(active);
     active->Unlink();
-    active->~ACTIVEAURAINFO();
-    s_auraInfoFreeList.PutData(active, 0, 0);
+    s_auraInfoFreeList.Put(active);
   }
 
   for (unsigned int attach = 0; attach < sizeof(m_auraVisual) / sizeof(m_auraVisual[0]); ++attach) {
@@ -4338,7 +4327,7 @@ void CGUnit_C::AddAuraEffect(unsigned int slot, unsigned int startNow) {
     return;
   }
 
-  ACTIVEAURAINFO *active = new (s_auraInfoFreeList.GetData(0, typeid(ACTIVEAURAINFO).raw_name(), -2)) ACTIVEAURAINFO;
+  ACTIVEAURAINFO *active = s_auraInfoFreeList.Get(0);
   m_activeAuraInfo.LinkNode(active, LIST_HEAD, 0);
   active->slot = slot;
   active->stateKitRec = stateRec;
@@ -5089,8 +5078,7 @@ void CGUnit_C::Shutdown() {
   s_bowStringIndices.Clear();
 
   while (AuraDecayNode *decay = s_activeAuraDecays.Head()) {
-    decay->~AuraDecayNode();
-    s_auraDecayFreeList.PutData(decay, 0, 0);
+    s_auraDecayFreeList.Put(decay);
   }
 
   g_unitSeqEndList.Clear();
@@ -7473,8 +7461,7 @@ void CGUnit_C::HandlePrecastStop(int spellID, unsigned int force) {
 }
 
 ANIMQUEUENODE *CGUnit_C::GetNewAnimNode(int leaveUnlinked) {
-  void          *storage = s_animQueueFreeList.GetData(0, typeid(ANIMQUEUENODE).raw_name(), -2);
-  ANIMQUEUENODE *node = storage ? new (storage) ANIMQUEUENODE : 0;
+  ANIMQUEUENODE *node = s_animQueueFreeList.Get(0);
 
   if (!leaveUnlinked) {
     m_animQueue.LinkNode(node, LIST_TAIL, 0);
@@ -7485,8 +7472,7 @@ ANIMQUEUENODE *CGUnit_C::GetNewAnimNode(int leaveUnlinked) {
 
 void CGUnit_C::RecycleAnimNode(ANIMQUEUENODE *node) {
   if (node) {
-    node->~ANIMQUEUENODE();
-    s_animQueueFreeList.PutData(node, 0, 0);
+    s_animQueueFreeList.Put(node);
   }
 }
 
@@ -8112,8 +8098,7 @@ void CGUnit_C::AddSpellProcAuraEffect(int auraslot, const SpellVisualKitRec *rec
     return;
   }
 
-  void            *storage = s_spellEffectFreeList.GetData(0, typeid(SPELLEFFECTDESC).raw_name(), -2);
-  SPELLEFFECTDESC *newDesc = storage ? new (storage) SPELLEFFECTDESC : 0;
+  SPELLEFFECTDESC *newDesc = s_spellEffectFreeList.Get(0);
   FATALASSERT(newDesc);
   newDesc->kitPtr = const_cast<SpellVisualKitRec *>(rec);
   newDesc->isOneShot = 0;
@@ -8171,7 +8156,7 @@ void CGUnit_C::RemoveSpellProcAuraEffect(ACTIVEAURAINFO *rec) {
   if (proc >= 11 || ((1 << proc) & 0x640)) {
     desc->ClearLightningObjects();
     desc->Unlink();
-    s_spellEffectFreeList.PutData(desc, 0, 0);
+    s_spellEffectFreeList.Put(desc);
     return;
   }
 
@@ -8179,7 +8164,7 @@ void CGUnit_C::RemoveSpellProcAuraEffect(ACTIVEAURAINFO *rec) {
   if (!charModel) {
     desc->ClearLightningObjects();
     desc->Unlink();
-    s_spellEffectFreeList.PutData(desc, 0, 0);
+    s_spellEffectFreeList.Put(desc);
     return;
   }
 
@@ -9708,8 +9693,7 @@ void CGUnit_C::AddSpellProcOneShotEffect(int spellID, const SpellVisualKitRec *r
     return;
   }
 
-  void            *storage = s_spellEffectFreeList.GetData(0, typeid(SPELLEFFECTDESC).raw_name(), -2);
-  SPELLEFFECTDESC *newDesc = storage ? new (storage) SPELLEFFECTDESC : 0;
+  SPELLEFFECTDESC *newDesc = s_spellEffectFreeList.Get(0);
   FATALASSERT(newDesc);
   newDesc->kitPtr = const_cast<SpellVisualKitRec *>(rec);
   newDesc->isOneShot = 1;

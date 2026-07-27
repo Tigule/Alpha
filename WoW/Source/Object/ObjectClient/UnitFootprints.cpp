@@ -192,8 +192,7 @@ LISTBASE::~LISTBASE() {
     HandleClose(m_texture);
   }
   while (CHUNKDATA *chunk = m_chunks.Head()) {
-    chunk->~CHUNKDATA();
-    s_freeChunks.PutData(chunk, 0, 0);
+    s_freeChunks.Put(chunk);
   }
 }
 
@@ -213,8 +212,7 @@ CHUNKDATA *LISTBASE::FindChunk(int id) {
     chunk = m_chunks.RawNext(chunk);
   }
   if (!chunk) {
-    void *storage = s_freeChunks.GetData(0, typeid(CHUNKDATA).raw_name(), -2);
-    chunk = storage ? new (storage) CHUNKDATA : 0;
+    chunk = s_freeChunks.Get(0);
     chunk->m_sourceID = id;
     m_chunks.LinkNode(chunk, LIST_HEAD, 0);
   }

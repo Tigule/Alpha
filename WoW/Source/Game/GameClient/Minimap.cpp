@@ -194,7 +194,7 @@ static NTempest::C3Vector AreaToCoordinate(const NTempest::C2iVector &coords) {
   return NTempest::C3Vector(17066.666f - coords.y * 533.33331f, 17066.666f - coords.x * 533.33331f, 0.0f);
 }
 
-static void BuildPathName(NTempest::C2iVector &location, char *buffer, unsigned int size) {
+static void BuildPathName(const NTempest::C2iVector &location, char *buffer, unsigned int size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   buffer[0] = 0;
@@ -213,7 +213,7 @@ static void BuildPathName(NTempest::C2iVector &location, char *buffer, unsigned 
   }
 }
 
-static void SetupTextureHandles(NTempest::C2iVector &upperLeftArea, int continentChanged, QUADDATA *quads) {
+static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int continentChanged, QUADDATA *quads) {
   unsigned int i;
   for (i = 0; i < 4; ++i) {
     quads[i].m_flags &= ~2u;
@@ -644,7 +644,7 @@ float MinimapGetViewRadius() {
   return s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f * 33.333332f;
 }
 
-TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI) {
+const TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI) {
   updatePOI = s_updatePOI;
   s_updatePOI = 0;
   return s_visiblePOI;

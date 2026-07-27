@@ -59,7 +59,7 @@ CGCorpse_C::~CGCorpse_C() {
   m_texComponent = 0;
 
   if (m_animData) {
-    s_freeAnimData.PutData(m_animData, 0, 0);
+    s_freeAnimData.Put(m_animData);
   }
 }
 
@@ -80,7 +80,7 @@ void CGCorpse_C::PostInit(const CClientObjCreate &init) {
 
   AddWorldObject();
   if (IsUnderWater()) {
-    m_animData = static_cast<CORPSEANIMDATA *>(s_freeAnimData.GetData(0, typeid(CORPSEANIMDATA).raw_name(), -2));
+    m_animData = s_freeAnimData.Get(0);
     m_animData->guid = GetGUID();
     ModelSetSeqFinishedHandler(model, 132, DrownAnimCallback, m_animData);
     ObjectModelSetSequence(model, 132, 0, 0);

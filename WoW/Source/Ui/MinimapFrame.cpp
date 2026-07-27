@@ -181,7 +181,7 @@ NTempest::CRect QUADDATA::NormalizeToQuad(unsigned int quad, NTempest::CRect cli
   );
 }
 
-void QUADDATA::UpdateData(unsigned int quad, NTempest::C2Vector centerPoint, float radius, float layoutScale) {
+void QUADDATA::UpdateData(unsigned int quad, const NTempest::C2Vector centerPoint, float radius, float layoutScale) {
   FATALASSERT(quad < 1024);
   m_flags &= ~1u;
   if (quad >= 4) {
@@ -791,8 +791,8 @@ void CGMinimapFrame::Render() {
     }
   }
 
-  int                                  updatePOI;
-  TSGrowableArray<const AreaPOIRec *> &poi = MinimapGetPOI(updatePOI);
+  int                                        updatePOI;
+  const TSGrowableArray<const AreaPOIRec *> &poi = MinimapGetPOI(updatePOI);
   if (updatePOI) {
     s_POIInfo.SetCount(poi.Count());
     for (unsigned int poiIndex = 0; poiIndex < poi.Count(); ++poiIndex) {

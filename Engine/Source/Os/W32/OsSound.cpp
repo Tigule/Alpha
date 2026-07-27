@@ -441,8 +441,7 @@ void Sound::Shutdown() {
 
   sound = s_soundListActive.Head();
   while (sound) {
-    sound->~Sound();
-    s_soundListFree.PutData(sound, 0, 0);
+    s_soundListFree.Put(sound);
     sound = s_soundListActive.Head();
   }
 
@@ -485,8 +484,7 @@ void Sound::ProcessStopList() {
     if (sound->m_flags & 0x00000004) {
       sound->Stop();
     } else {
-      sound->~Sound();
-      s_soundListFree.PutData(sound, 0, 0);
+      s_soundListFree.Put(sound);
     }
 
     s_soundSystemLock.Enter();
@@ -522,8 +520,7 @@ void Sound::ProcessFadeList() {
         } else if (sound->m_flags & 0x00000004) {
           sound->Stop();
         } else {
-          sound->~Sound();
-          s_soundListFree.PutData(sound, 0, 0);
+          s_soundListFree.Put(sound);
         }
 
         continue;
@@ -618,11 +615,7 @@ void Sound::ProcessCutoffList(const NTempest::C3Vector &listenerPos) {
 }
 
 Sound *Sound::Alloc(const char *name) {
-  Sound *sound = static_cast<Sound *>(s_soundListFree.GetData(0, typeid(Sound).raw_name(), -2));
-
-  if (sound) {
-    new (sound) Sound;
-  }
+  Sound *sound = s_soundListFree.Get(0);
 
   s_soundListActive.LinkNode(sound, LIST_TAIL, 0);
   if (name) {
@@ -644,8 +637,7 @@ Sound *Sound::Play(SOUNDCATEGORIES category, const char *filename, unsigned int 
   ASSERT(filename);
   sound->m_stream = FSOUND_Stream_Open(filename, mode, 0, 0);
   if (!sound->m_stream) {
-    sound->~Sound();
-    s_soundListFree.PutData(sound, 0, 0);
+    s_soundListFree.Put(sound);
     return 0;
   }
 
@@ -655,8 +647,7 @@ Sound *Sound::Play(SOUNDCATEGORIES category, const char *filename, unsigned int 
   if (!startPaused) {
     sound->m_channel = FSOUND_Stream_PlayEx(-1, sound->m_stream, 0, 0);
     if (sound->m_channel == -1) {
-      sound->~Sound();
-      s_soundListFree.PutData(sound, 0, 0);
+      s_soundListFree.Put(sound);
       return 0;
     }
 
@@ -705,8 +696,7 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, const char *filename, int loo
 
   sound->m_stream = FSOUND_Stream_Open(filename, mode, 0, 0);
   if (!sound->m_stream) {
-    sound->~Sound();
-    s_soundListFree.PutData(sound, 0, 0);
+    s_soundListFree.Put(sound);
     return 0;
   }
 
@@ -719,8 +709,7 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, const char *filename, int loo
   if (!startPaused) {
     sound->m_channel = FSOUND_Stream_PlayEx(-1, sound->m_stream, 0, 0);
     if (sound->m_channel == -1) {
-      sound->~Sound();
-      s_soundListFree.PutData(sound, 0, 0);
+      s_soundListFree.Put(sound);
       return 0;
     }
 
@@ -775,8 +764,7 @@ Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, const char *filename, int f
 void Sound::KillSound(Sound *&sound) {
   if (sound) {
     Sound *released = sound;
-    released->~Sound();
-    s_soundListFree.PutData(released, 0, 0);
+    s_soundListFree.Put(released);
   }
 
   sound = 0;
