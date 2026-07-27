@@ -22,7 +22,7 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
   friend int CSimpleHTML_SetTextColor(lua_State *L);
 
  public:
-  CSimpleHTML(CSimpleFrame *parent);
+  CSimpleHTML(CSimpleFrame *parent = 0);
   virtual ~CSimpleHTML();
 
   static void RegisterScriptMethods();
@@ -33,7 +33,7 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
     ASSERT(textType >= HTML_TEXT_NORMAL && textType < NUM_HTML_TEXT_TYPES);
     m_attrib[textType] = attrib;
   }
-  const CSimpleFontStringAttributes &GetTextAttributes(HTML_TEXT_TYPE textType) const {
+  const CSimpleFontStringAttributes &GetTextAttributes(HTML_TEXT_TYPE textType) {
     ASSERT(textType >= HTML_TEXT_NORMAL && textType < NUM_HTML_TEXT_TYPES);
     return m_attrib[textType];
   }

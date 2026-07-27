@@ -278,7 +278,7 @@ namespace NTempest {
     return result;
   }
 
-  C44Matrix C44Matrix::Rotation(float angle, const C3Vector &axis, unsigned int unit) {
+  C44Matrix C44Matrix::Rotation(float angle, const C3Vector &axis, bool unit) {
     C3Vector axis_(axis);
 
     if (!unit) {
@@ -340,7 +340,7 @@ namespace NTempest {
     c2 *= scale.z;
   }
 
-  void C44Matrix::Rotate(float angle, const C3Vector &axis, unsigned int unit) {
+  void C44Matrix::Rotate(float angle, const C3Vector &axis, bool unit) {
     *this = Rotation(angle, axis, unit) * *this;
   }
 

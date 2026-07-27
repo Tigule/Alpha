@@ -25,16 +25,16 @@ void CKeyFrameTrackBase::SetSequenceIndices(const CArray<CAnimSequence> &seq) {
   unsigned int numSequences = seq.Count();
   if (!numSequences) {
     m_indices.ReserveSpace(1);
-    m_indices.m_count = 1;
+    m_indices.SetCount(1);
     m_indices[0].start = 0;
     m_indices[0].count = m_numKeyFrames;
     return;
   }
 
   m_indices.ReserveSpace(numSequences);
-  m_indices.m_count = numSequences;
+  m_indices.SetCount(numSequences);
   if (!m_numKeyFrames) {
-    memset(m_indices.m_data, 0, numSequences * sizeof(CKeySeq));
+    m_indices.Zero();
     return;
   }
 

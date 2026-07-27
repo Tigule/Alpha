@@ -161,7 +161,7 @@ struct QUESTGIVEREMOTENODE {
   unsigned int delay;
   unsigned int emoteID;
 };
-class LightningObject;
+struct LightningObject;
 struct FishingLineObject;
 
 struct DEBUGHITROLLINFO {
@@ -431,6 +431,14 @@ class CGUnit {
   ~CGUnit();
 
   virtual UNITAFFILIATION GetGUIDAffiliation(unsigned __int64 unit) const;
+
+  unsigned int GetMoveFlags() const {
+    return m_move.GetMoveFlags();
+  }
+
+  unsigned long GetMoveStartTime() const {
+    return m_move.GetMoveStartTime();
+  }
 
  protected:
   void SetStorage(unsigned long *storage);
@@ -818,6 +826,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void             HandleFollowTarget();
   void             SetWeaponMode(WEAPONMODE mode);
   void             ClearRangedStandTimer();
+  void             SetAmmoDisplay(unsigned int displayID, unsigned int inventoryType) {
+    m_ammoDisplayID = displayID;
+    m_ammoInvType = inventoryType;
+  }
   void             SetRangedStandTimer();
   void             DetermineReadySequence(unsigned int forceNormal);
   void             OnCombatModeTimer();
@@ -1047,24 +1059,28 @@ class CGUnit_C : public CGObject_C, public CGUnit {
 
   friend void MovementFixOutOfBoundsUnit(unsigned __int64 guid);
 
+ public:
   int                                                    m_questCountKilled;
   int                                                    m_questCountNeeded;
   HMODEL                                                 m_resEffectModel;
   unsigned __int64                                       m_meleeTargetDeathHold;
   int                                                    m_precastSheatheHoldTimer;
+
   int                                                    m_customAttackSound;
   NTempest::C3Vector                                     m_customAttackPosition;
   unsigned int                                           m_splashSoundID;
+
   unsigned int                                           m_disengageLookAtTimer;
+
   TSGrowableArray<ANIMENDDATA>                           m_animEndCallbackList;
   ANIMENDDATA                                           *m_callbackList[135];
-  CreatureStats_C                                       *m_stats;
-  CreatureDisplayInfoRec                                *m_displayInfo;
-  CreatureDisplayInfoExtraRec                           *m_displayInfoExtra;
-  CreatureModelDataRec                                  *m_modelData;
-  CreatureSoundDataRec                                  *m_soundData;
-  CreatureSoundDataRec                                  *m_mountedSoundData;
-  UnitBloodLevelsRec                                    *m_bloodRec;
+  const CreatureStats_C                                 *m_stats;
+  const CreatureDisplayInfoRec                          *m_displayInfo;
+  const CreatureDisplayInfoExtraRec                     *m_displayInfoExtra;
+  const CreatureModelDataRec                            *m_modelData;
+  const CreatureSoundDataRec                            *m_soundData;
+  const CreatureSoundDataRec                            *m_mountedSoundData;
+  const UnitBloodLevelsRec                              *m_bloodRec;
   AuraVisual                                             m_auraVisual[12];
   TSList<ACTIVEAURAINFO, TSGetLink<ACTIVEAURAINFO> >     m_activeAuraInfo;
   ANIMENUMERATION                                        m_pendingImpactAnim;
@@ -1140,7 +1156,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   float                                                  m_fadingMountFacing;
   NTempest::C3Vector                                     m_fadingMountPos;
   float                                                  m_fadingMountScale;
-  NPCSoundsRec                                          *m_NPCSoundsRec;
+  const NPCSoundsRec                                    *m_NPCSoundsRec;
   unsigned int                                           m_lastGlobalClickCount;
   unsigned int                                           m_pissedCount;
   unsigned int                                           m_numNPCPissedSounds;
@@ -1148,6 +1164,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   HTEXCOMPONENT                                          m_texComponent;
   unsigned int                                           m_preferredGeosets[15];
   int                                                    m_displayHealth;
+
   TSList<IMPACTEFFECTDESC, TSGetLink<IMPACTEFFECTDESC> > m_impactEffectsDesc;
   TSList<SPELLEFFECTDESC, TSGetLink<SPELLEFFECTDESC> >   m_spellEffectLists[11];
   NTempest::C3iVector                                    m_currentEmissive;
@@ -1157,6 +1174,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int                                                    m_walkStateAnim;
   int                                                    m_standStateAnim;
   float                                                  m_baseRadius;
+
   unsigned int                                           m_ammoDisplayID;
   unsigned int                                           m_ammoInvType;
   unsigned int                                           m_rangedStandTimer;
@@ -1171,7 +1189,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int                                                    m_savedChannelSpellID;
   TSGrowableArray<unsigned __int64>                      m_savedChannelSpellTargets;
   SPELLEFFECTDESC                                       *m_channelSpellEffect;
-  SpellRec                                              *m_shapeShiftPoof;
+  const SpellRec                                        *m_shapeShiftPoof;
   FishingLineObject                                     *m_fishingLineObject;
 
  protected:

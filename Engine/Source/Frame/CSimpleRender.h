@@ -235,10 +235,12 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   int                   SetFont(const char *font, float fontHeight, unsigned int fontFlags);
   void                  SetTextLength(int size);
   void                  SetText(const char *text);
+  void                  SetText(int value);
+  void                  GetText(char *buffer, int bufferBytes) const;
   const char           *GetText() const {
     return m_text;
   }
-  int GetTextLength() const {
+  int GetTextLength() {
     return m_text ? SStrLen(m_text) : 0;
   }
   float GetFontHeight() const {
@@ -273,7 +275,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   void GetShadowOffset(NTempest::C2Vector &offset) const {
     offset = m_shadowOffset;
   }
-  CGxString *GetString() const {
+  CGxString *GetString() {
     return m_string ? TextBlockGetStringPtr(m_string) : 0;
   }
   void         SetJustificationOffset(float x, float y);
@@ -294,6 +296,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   void SetTextColor(const NTempest::CImVector &color) {
     SetVertexColor(color);
   }
+  void SetTextColor(float red, float green, float blue, float alpha);
   void GetTextColor(NTempest::CImVector &color) const {
     GetVertexColor(color);
   }
@@ -328,7 +331,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);
 
-  void ChangeStyleFlags(unsigned int mask, unsigned int flags) {
+  void ChangeStyleFlags(unsigned int mask, int flags) {
     unsigned int styleFlags = (m_styleFlags & ~mask) | flags;
 
     if (styleFlags != m_styleFlags) {
@@ -399,13 +402,13 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
   HTEXTURE__            *GetHTEXTURE() {
     return m_texture;
   }
-  EGxBlend GetAlphaMode() const {
+  EGxBlend GetAlphaMode() {
     return m_alphamode;
   }
-  const NTempest::C3Vector *GetPosition() const {
+  const NTempest::C3Vector *GetPosition() {
     return m_position;
   }
-  const NTempest::C2Vector *GetTexCoord() const {
+  const NTempest::C2Vector *GetTexCoord() {
     return m_texCoord;
   }
   static void SetTextureFilterMode(EGxTexFilter mode) {

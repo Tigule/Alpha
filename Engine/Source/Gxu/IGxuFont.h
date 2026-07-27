@@ -139,7 +139,7 @@ class KERNINGHASHKEY {
     return *this;
   }
 
-  int operator==(const KERNINGHASHKEY &rhs) {
+  int operator==(const KERNINGHASHKEY &rhs) const {
     return this == &rhs || code == rhs.code;
   }
 

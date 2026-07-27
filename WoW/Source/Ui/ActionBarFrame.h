@@ -45,12 +45,12 @@ class CGActionBar {
   static int GetCount(int id);
   static void GetCooldown(int id, unsigned long &startTime, unsigned int &duration, unsigned int &enable);
   static void PrecacheButtonArt(int id);
+  static void SlotChanged(int id);
   static unsigned int GetBonusBarOffset() {
     return m_bonusPage;
   }
 
  private:
-  static void SlotChanged(int id);
   static int             m_slotActions[120];
   static unsigned int    m_bonusPage;
 };

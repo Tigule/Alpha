@@ -17,7 +17,7 @@ class ItemGroupSoundsRec {
     return 20;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

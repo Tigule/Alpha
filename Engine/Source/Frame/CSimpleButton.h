@@ -17,7 +17,7 @@ enum CSimpleButtonState {
 
 class CSimpleButton : public CSimpleFrame {
  public:
-  CSimpleButton(CSimpleFrame *parent);
+  CSimpleButton(CSimpleFrame *parent = 0);
   virtual ~CSimpleButton();
 
   static void RegisterScriptMethods();

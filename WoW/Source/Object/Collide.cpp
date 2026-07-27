@@ -12,6 +12,8 @@
 #include <string.h>
 
 struct CWalkableSurface {
+  static unsigned char HasHigherPriority(const CWalkableSurface &, const CWalkableSurface &);
+
   float              closeDist;
   float              farDist;
   NTempest::C3Vector firstPtOfContact;
@@ -22,7 +24,12 @@ struct CWalkableSurface {
 
 class CClippedTriangle {
  public:
-  CClippedTriangle() : numVerts(0) {
+  CClippedTriangle() : numVerts(3) {
+  }
+
+  CClippedTriangle(const CClippedTriangle &triangle) {
+    memcpy(verts, triangle.verts, sizeof(NTempest::C3Vector) * triangle.numVerts);
+    numVerts = triangle.numVerts;
   }
 
   void Init(const NTempest::C3Vector *vertices) {
@@ -41,7 +48,12 @@ class CClippedTriangle {
     return verts[index];
   }
 
-  NTempest::C3Vector &Last() {
+  const NTempest::C3Vector &operator[](unsigned int index) const {
+    FATALASSERT(index < numVerts);
+    return verts[index];
+  }
+
+  const NTempest::C3Vector &Last() const {
     FATALASSERT(numVerts);
     return verts[numVerts - 1];
   }
@@ -58,6 +70,12 @@ class CClippedTriangle {
   void Add(const NTempest::C3Vector &vertex) {
     FATALASSERT(numVerts < 9);
     verts[numVerts++] = vertex;
+  }
+
+  CClippedTriangle &operator=(const CClippedTriangle &triangle) {
+    memcpy(verts, triangle.verts, sizeof(NTempest::C3Vector) * triangle.numVerts);
+    numVerts = triangle.numVerts;
+    return *this;
   }
 
  private:
@@ -108,7 +126,7 @@ void CRedirect::Reset() {
   flags = 0;
 }
 
-static int PolygonIntersectsPlane(NTempest::C4Plane &plane, CClippedTriangle &poly) {
+static int PolygonIntersectsPlane(const NTempest::C4Plane &plane, const CClippedTriangle &poly) {
   int allPositive = 1;
   int allNegative = 1;
   for (unsigned int i = 0; i < poly.Count(); ++i) {
@@ -122,13 +140,16 @@ static int PolygonIntersectsPlane(NTempest::C4Plane &plane, CClippedTriangle &po
   return !allPositive && !allNegative;
 }
 
-static float ClipPolygonToPlane(NTempest::C4Plane &plane, CClippedTriangle *poly) {
-  CClippedTriangle input = *poly;
-  poly->SetCount(0);
-  float penetrationDepth = -FLT_MAX;
-  if (!input.Count()) {
+static float ClipPolygonToPlane(const NTempest::C4Plane &plane, CClippedTriangle *poly) {
+  FATALASSERT(poly);
+  if (!poly->Count()) {
     return 0.0f;
   }
+
+  static CClippedTriangle input;
+  input = *poly;
+  poly->SetCount(0);
+  float penetrationDepth = -FLT_MAX;
 
   for (unsigned int i = 0; i < input.Count(); ++i) {
     unsigned int nextIndex = i + 1;
@@ -176,7 +197,7 @@ static float ClipPolygonToPlane(NTempest::C4Plane &plane, CClippedTriangle *poly
   return penetrationDepth;
 }
 
-static int ClipPolygonToPolyhedron(NTempest::C4Plane *boxSides, unsigned int numSides, CClippedTriangle *poly, float *penetrationDepth) {
+static int ClipPolygonToPolyhedron(const NTempest::C4Plane *boxSides, unsigned int numSides, CClippedTriangle *poly, float *penetrationDepth) {
   *penetrationDepth = FLT_MAX;
   for (unsigned int side = 0; side < numSides; ++side) {
     float depth = ClipPolygonToPlane(boxSides[side], poly);
@@ -190,7 +211,11 @@ static int ClipPolygonToPolyhedron(NTempest::C4Plane *boxSides, unsigned int num
   return 1;
 }
 
-static float DistFromPlaneAlongVector(NTempest::C3Vector &point, NTempest::C4Plane &plane, NTempest::C3Vector &unitVector) {
+static float DistFromPlaneAlongVector(
+    const NTempest::C3Vector &point,
+    const NTempest::C4Plane &plane,
+    const NTempest::C3Vector &unitVector
+) {
   float directDist = plane.DistSigned(point);
   float cosTheta = NTempest::C3Vector::Dot(plane.n, unitVector);
   FATALASSERT(NTempest::CMath::fnotequal_(cosTheta, 0.0f));
@@ -227,10 +252,10 @@ static void LogHitInfoFlags(unsigned int flags) {
 
 void CMovement::Redirect(
     unsigned long       timeStamp,
-    NTempest::C3Vector &unitMoveVector,
-    NTempest::C3Vector &platformNorm,
-    CRedirect          &hitInfoX,
-    CRedirect          &hitInfoY
+    const NTempest::C3Vector &unitMoveVector,
+    const NTempest::C3Vector &platformNorm,
+    const CRedirect          &hitInfoX,
+    const CRedirect          &hitInfoY
 ) {
   if (!hitInfoX.flags && !hitInfoY.flags) {
     return;
@@ -242,7 +267,7 @@ void CMovement::Redirect(
       (((typeX == 8 || typeX == 16) && !typeY) || ((typeY == 8 || typeY == 16) && !typeX) || (typeX == 4 && !typeY) || (typeY == 4 && !typeX) ||
        (typeX == 4 && typeY == 4));
   if (corner) {
-    NTempest::C3Vector *normal;
+    const NTempest::C3Vector *normal;
     if (!hitInfoX.flags) {
       normal = &hitInfoY.surfaceNorm[0];
     } else if (
@@ -266,7 +291,12 @@ void CMovement::Redirect(
   }
 }
 
-void CMovement::Redirect(unsigned long timeStamp, NTempest::C3Vector &unitMoveVector, NTempest::C3Vector &platformNorm, CRedirect &hitInfo) {
+void CMovement::Redirect(
+    unsigned long timeStamp,
+    const NTempest::C3Vector &unitMoveVector,
+    const NTempest::C3Vector &platformNorm,
+    const CRedirect &hitInfo
+) {
   unsigned int hitType = hitInfo.flags & 0x1F;
   if (!hitInfo.flags) {
     return;
@@ -278,7 +308,9 @@ void CMovement::Redirect(unsigned long timeStamp, NTempest::C3Vector &unitMoveVe
   }
 }
 
-void CMovement::AttemptRedirect(unsigned long timeStamp, NTempest::C3Vector &unitMove, NTempest::C3Vector &newDirection) {
+void CMovement::AttemptRedirect(
+    unsigned long timeStamp, const NTempest::C3Vector &unitMove, const NTempest::C3Vector &newDirection
+) {
   NTempest::C2Vector newDirection2d(newDirection.x, newDirection.y);
   float              length = static_cast<float>(sqrt(newDirection2d.x * newDirection2d.x + newDirection2d.y * newDirection2d.y));
   if (NTempest::CMath::fabs_(length) >= 0.00000023841858f) {
@@ -312,7 +344,12 @@ void CMovement::AttemptRedirect(unsigned long timeStamp, NTempest::C3Vector &uni
   }
 }
 
-void CMovement::Obstruct(unsigned long timeStamp, NTempest::C3Vector &unitMove, NTempest::C3Vector &platformNorm, NTempest::C3Vector &facetNormHit) {
+void CMovement::Obstruct(
+    unsigned long timeStamp,
+    const NTempest::C3Vector &unitMove,
+    const NTempest::C3Vector &platformNorm,
+    const NTempest::C3Vector &facetNormHit
+) {
   float normalLength = facetNormHit.Mag();
   if (normalLength < 0.00000095367432f || NTempest::C3Vector::Dot(facetNormHit, unitMove) > -0.0013888889f || !(m_moveFlags & 0xF)) {
     Halt(timeStamp);
@@ -552,10 +589,10 @@ void CMovement::SetOrientation() {
   boxSides[3].Set(0.0f, -1.0f, 0.0f, m_position.y - m_collisionBoxHalfDepth);
   boxSides[4].Set(0.0f, 0.0f, 1.0f, -m_position.z - m_collisionBoxHeight);
   boxSides[5].Set(0.0f, 0.0f, -1.0f, m_position.z);
-  m_groundNormal = CalcAverageSurfaceNormal(boxSides);
+  m_groundNormal = CalcAverageSurfaceNormal(boxSides, 6);
 }
 
-static int AddNormal(NTempest::C3Vector &normal, unsigned int maxNormals, NTempest::C3Vector *normalList, unsigned int *numNormals) {
+static int AddNormal(const NTempest::C3Vector &normal, unsigned int maxNormals, NTempest::C3Vector *normalList, unsigned int *numNormals) {
   if (*numNormals == maxNormals) {
     return 0;
   }
@@ -703,7 +740,9 @@ float CMovement::FindGroundDistanceBelow(float distanceToFall, unsigned __int64 
   return shortestDist > 0.0f ? shortestDist : 0.0f;
 }
 
-float CMovement::CollideWithWaterSurface(NTempest::C3Vector &unitMove, NTempest::C3Vector &unitMoveWanted, float distanceWanted) {
+float CMovement::CollideWithWaterSurface(
+    const NTempest::C3Vector &unitMove, const NTempest::C3Vector &unitMoveWanted, float distanceWanted
+) {
   float verticalMove = distanceWanted * unitMove.z;
   if (NTempest::CMath::fabs_(verticalMove) < 0.00000095367432f || m_position.z + verticalMove < m_waterSurfaceElev) {
     m_moveFlags &= ~0x1000U;
@@ -719,7 +758,9 @@ float CMovement::CollideWithWaterSurface(NTempest::C3Vector &unitMove, NTempest:
   return (m_waterSurfaceElev - m_position.z) / verticalMove * distanceWanted;
 }
 
-float CMovement::ExtrudeFlyBoxUp(NTempest::C3Vector &unitMove, NTempest::C3Vector &unitMoveWanted, float distanceWanted) {
+float CMovement::ExtrudeFlyBoxUp(
+    const NTempest::C3Vector &unitMove, const NTempest::C3Vector &unitMoveWanted, float distanceWanted
+) {
   NTempest::C4Plane  boxPlanes[5][6];
   CRedirect          hitInfoZ;
   CRedirect          hitInfoY;
@@ -774,7 +815,9 @@ float CMovement::ExtrudeFlyBoxUp(NTempest::C3Vector &unitMove, NTempest::C3Vecto
   return distance > 0.0f ? distance : 0.0f;
 }
 
-float CMovement::ExtrudeProjectileBoxUpHill(NTempest::C3Vector &unitMove, float distanceWanted, unsigned __int64 *gameObjHit) {
+float CMovement::ExtrudeProjectileBoxUpHill(
+    const NTempest::C3Vector &unitMove, float distanceWanted, unsigned __int64 *gameObjHit
+) {
   NTempest::C4Plane  boxPlanes[5][6];
   CRedirect          hitInfo;
   NTempest::C4Plane  startPlanes[3];
@@ -809,7 +852,7 @@ float CMovement::ExtrudeProjectileBoxUpHill(NTempest::C3Vector &unitMove, float 
   return distance > 0.0f ? distance : 0.0f;
 }
 
-float CMovement::ExtrudeSlideBoxDownHill(NTempest::C3Vector &unitMove, float distanceWanted, CRedirect *hitInfo) {
+float CMovement::ExtrudeSlideBoxDownHill(const NTempest::C3Vector &unitMove, float distanceWanted, CRedirect *hitInfo) {
   NTempest::C4Plane  boxPlanes[4][6];
   NTempest::C4Plane  startPlanes[2];
   NTempest::C3Vector moveVector = unitMove * distanceWanted;
@@ -838,7 +881,9 @@ static float GetDist2d(NTempest::C3Vector &unitMove, float closestDist3D) {
   return horizontal * closestDist3D;
 }
 
-static NTempest::C3Vector ComputeFlyRedirection(NTempest::C3Vector *normals, unsigned int numNormals, NTempest::C3Vector &unitMoveWanted) {
+static NTempest::C3Vector ComputeFlyRedirection(
+    const NTempest::C3Vector *normals, unsigned int numNormals, const NTempest::C3Vector &unitMoveWanted
+) {
   NTempest::C3Vector finalDirection(0.0f);
   float              mostObtuse = 1.0f;
   for (unsigned int i = 0; i < numNormals; ++i) {
@@ -862,7 +907,12 @@ static NTempest::C3Vector ComputeFlyRedirection(NTempest::C3Vector *normals, uns
   return finalDirection;
 }
 
-void CMovement::FlyRedirect(NTempest::C3Vector &unitMoveWanted, CRedirect &hitInfoX, CRedirect &hitInfoY, CRedirect &hitInfoZ) {
+void CMovement::FlyRedirect(
+    const NTempest::C3Vector &unitMoveWanted,
+    const CRedirect &hitInfoX,
+    const CRedirect &hitInfoY,
+    const CRedirect &hitInfoZ
+) {
   if (!hitInfoX.flags && !hitInfoY.flags && !hitInfoZ.flags) {
     return;
   }
@@ -911,7 +961,9 @@ void CMovement::FlyRedirect(NTempest::C3Vector &unitMoveWanted, CRedirect &hitIn
   }
 }
 
-void CMovement::FlyRedirect(NTempest::C3Vector &unitMoveWanted, CRedirect &hitInfoX, CRedirect &hitInfoY) {
+void CMovement::FlyRedirect(
+    const NTempest::C3Vector &unitMoveWanted, const CRedirect &hitInfoX, const CRedirect &hitInfoY
+) {
   if (!hitInfoX.flags && !hitInfoY.flags) {
     return;
   }
@@ -949,7 +1001,9 @@ void CMovement::FlyRedirect(NTempest::C3Vector &unitMoveWanted, CRedirect &hitIn
   }
 }
 
-float CMovement::ExtrudeFlyBoxDown(NTempest::C3Vector &unitMove, NTempest::C3Vector &unitMoveWanted, float distanceWanted) {
+float CMovement::ExtrudeFlyBoxDown(
+    const NTempest::C3Vector &unitMove, const NTempest::C3Vector &unitMoveWanted, float distanceWanted
+) {
   NTempest::C4Plane  boxPlanes[4][6];
   CRedirect          hitInfoY;
   CRedirect          hitInfoX;
@@ -988,9 +1042,9 @@ float CMovement::ExtrudeFlyBoxDown(NTempest::C3Vector &unitMove, NTempest::C3Vec
 
 float CMovement::ExtrudeProjectileBoxDownHill(
     unsigned long       timeStamp,
-    NTempest::C3Vector &unitMove,
+    const NTempest::C3Vector &unitMove,
     float               distanceWanted,
-    NTempest::C2Vector &unitMoveWanted,
+    const NTempest::C2Vector &unitMoveWanted,
     unsigned __int64   *gameObjHit
 ) {
   NTempest::C4Plane  boxPlanes[4][6];
@@ -1173,7 +1227,7 @@ unsigned int CMovement::Fall(unsigned int fallenSoFar, unsigned int timeIncremen
   return timeIncrement;
 }
 
-void CMovement::GetMoveFacets(float distance, unsigned int timeToFall, NTempest::C3Vector &unitMove) {
+void CMovement::GetMoveFacets(float distance, unsigned int timeToFall, const NTempest::C3Vector &unitMove) {
   NTempest::C3Vector moveDirection = unitMove;
   if (!(m_moveFlags & 0x02000000)) {
     moveDirection.z = 0.0f;
@@ -1245,10 +1299,10 @@ static int __cdecl FacetCompare(const void *elem1, const void *elem2) {
 }
 
 static void EnqueueFacets(
-    NTempest::C4Plane                 &slopeTestPlane,
-    NTempest::C2Vector                &position,
-    NTempest::C2Vector                &unitMove,
-    TSGrowableArray<NTempest::CFacet> &facets,
+    const NTempest::C4Plane                 &slopeTestPlane,
+    const NTempest::C2Vector                &position,
+    const NTempest::C2Vector                &unitMove,
+    const TSGrowableArray<NTempest::CFacet> &facets,
     TSGrowableArray<CWalkableSurface> *surfacePool
 ) {
   surfacePool->SetCount(0);
@@ -1258,7 +1312,7 @@ static void EnqueueFacets(
   startPlane.Set(-startPlane.n.x, -startPlane.n.y, -startPlane.n.z, -startPlane.d);
   unsigned int count = facets.Count();
   for (unsigned int i = 0; i < count; ++i) {
-    NTempest::CFacet &facet = facets[i];
+    const NTempest::CFacet &facet = facets[i];
     if (facet.plane.n.z < 0.00000095367432f) {
       continue;
     }
@@ -1340,7 +1394,7 @@ static void EnqueueFacets(
   qsort(surfacePool->Ptr(), surfacePool->Count(), sizeof(CWalkableSurface), FacetCompare);
 }
 
-void CMovement::ShowCollisionBox(NTempest::C3Vector &unitMove, unsigned int oldMoveFlags) {
+void CMovement::ShowCollisionBox(const NTempest::C3Vector &unitMove, unsigned int oldMoveFlags) {
   if (oldMoveFlags & 0x02004000) {
     CollisionInfoSetFallBox(m_position, m_collisionBoxHalfDepth, m_collisionBoxHeight);
     return;
@@ -1356,7 +1410,9 @@ void CMovement::ShowCollisionBox(NTempest::C3Vector &unitMove, unsigned int oldM
   CollisionInfoAddVector(vectorPosition, moveDirection);
 }
 
-int CMovement::CollideRequestMove(unsigned long lastUpdateTime, unsigned int timeElapsed, NTempest::C3Vector &moveVector) {
+int CMovement::CollideRequestMove(
+    unsigned long lastUpdateTime, unsigned int timeElapsed, const NTempest::C3Vector &moveVector
+) {
   float distance = moveVector.Mag();
   LogWrite("0x%016I64X: ====| Starting new move: elapsed (%u), requested vector (%g,%g)\n", m_guid, timeElapsed, distance, moveVector.z);
   if (!timeElapsed) {
@@ -1515,12 +1571,12 @@ int CMovement::CollideRequestMove(unsigned long lastUpdateTime, unsigned int tim
 }
 
 float CMovement::CalcFallSurfaceProjection(
-    NTempest::C3Vector &position,
+    const NTempest::C3Vector &position,
     unsigned long       moveStartTime,
     unsigned int        timeLeft,
     NTempest::C3Vector  hitPoint,
     float               distanceAway,
-    NTempest::C3Vector &moveNormal,
+    const NTempest::C3Vector &moveNormal,
     NTempest::C4Plane  *platform
 ) {
   if (NTempest::CMath::fabs_(distanceAway) >= 0.0013888889f && timeLeft) {
@@ -1557,11 +1613,11 @@ float CMovement::CalcFallSurfaceProjection(
 
 float CMovement::AttemptMove(
     unsigned long       eventTime,
-    NTempest::C3Vector &move,
+    const NTempest::C3Vector &move,
     float               distance2d,
-    NTempest::C2Vector &unitMove,
-    NTempest::C2Vector &unitMoveWanted,
-    NTempest::C4Plane  &ground
+    const NTempest::C2Vector &unitMove,
+    const NTempest::C2Vector &unitMoveWanted,
+    const NTempest::C4Plane  &ground
 ) {
   float distance = move.Mag();
   if (NTempest::CMath::fabs_(distance) < 0.00000023841858f) {
@@ -1606,7 +1662,7 @@ float CMovement::AttemptMove(
 }
 
 int CMovement::IsTooLow(
-    NTempest::C3Vector &position,
+    const NTempest::C3Vector &position,
     unsigned long       moveStartTime,
     CWalkableSurface   *surface,
     float               distanceMoved,
@@ -1689,7 +1745,9 @@ static void SplitFacetWithFacet(CWalkableSurface *beingSplit, CWalkableSurface *
   beingSplit->lastPtOfContact = newSurface->firstPtOfContact;
 }
 
-void CMovement::ClipFacetsWithOneAnother(NTempest::C4Plane &startPlane, TSGrowableArray<CWalkableSurface> *surfacePool) {
+void CMovement::ClipFacetsWithOneAnother(
+    const NTempest::C4Plane &startPlane, TSGrowableArray<CWalkableSurface> *surfacePool
+) {
   CWalkableSurface   newSurface2;
   CWalkableSurface   newSurface1;
   NTempest::C3Vector projected;
@@ -1852,12 +1910,12 @@ static void LogSurface(unsigned __int64 guid, CWalkableSurface &surface) {
 }
 
 CWalkableSurface *CMovement::GetNextSurface(
-    NTempest::C3Vector                &position,
+    const NTempest::C3Vector          &position,
     unsigned int                       surfaceId,
     unsigned long                      eventTime,
     float                              distanceMoved,
     float                              currSpeedInv,
-    NTempest::C4Plane                 &currentCeiling,
+    const NTempest::C4Plane           &currentCeiling,
     TSGrowableArray<CWalkableSurface> *surfacePool
 ) {
   if (surfaceId >= surfacePool->Count()) {
@@ -2001,7 +2059,12 @@ void CMovement::CheckSurfaceObstacles(
   hitInfo->flags = 4;
 }
 
-unsigned int CMovement::Swim(unsigned long eventTime, unsigned int timeToMove, NTempest::C3Vector &moveWanted, NTempest::C3Vector &unitMoveWanted) {
+unsigned int CMovement::Swim(
+    unsigned long eventTime,
+    unsigned int timeToMove,
+    const NTempest::C3Vector &moveWanted,
+    const NTempest::C3Vector &unitMoveWanted
+) {
   if (!timeToMove || (m_transportGUID && FallFromTransport())) {
     return 0;
   }
@@ -2062,7 +2125,12 @@ unsigned int CMovement::Swim(unsigned long eventTime, unsigned int timeToMove, N
 }
 
 unsigned int
-CMovement::ProjectileFall(unsigned long eventTime, unsigned int timeToMove, NTempest::C3Vector &moveWanted, NTempest::C2Vector &unitMoveWanted) {
+CMovement::ProjectileFall(
+    unsigned long eventTime,
+    unsigned int timeToMove,
+    const NTempest::C3Vector &moveWanted,
+    const NTempest::C2Vector &unitMoveWanted
+) {
   if (!timeToMove || (m_transportGUID && FallFromTransport())) {
     return 0;
   }
@@ -2135,8 +2203,8 @@ unsigned int CMovement::TraceSurface(
     unsigned long       eventTime,
     unsigned int        timeToMove,
     float               distance,
-    NTempest::C2Vector &unitMove,
-    NTempest::C2Vector &unitMoveWanted
+    const NTempest::C2Vector &unitMove,
+    const NTempest::C2Vector &unitMoveWanted
 ) {
   FATALASSERT(!(m_moveFlags & 0x4000));
   FATALASSERT(!(m_moveFlags & 0x01000000));
@@ -2288,7 +2356,9 @@ unsigned int CMovement::TraceSurface(
   return timeUsed < timeToMove ? timeUsed : timeToMove;
 }
 
-int CMovement::DetermineHitType(int hitType, NTempest::C3Vector &unitMove, float distance, unsigned int facetId, CRedirect *hitInfo) {
+int CMovement::DetermineHitType(
+    int hitType, const NTempest::C3Vector &unitMove, float distance, unsigned int facetId, CRedirect *hitInfo
+) {
   FATALASSERT(hitType < 3);
   if (hitType == 0) {
     return DetermineBoxHitType(unitMove, distance, facetId, m_collisionBoxHalfDepth * 1.849399f, hitInfo);
@@ -2302,7 +2372,9 @@ int CMovement::DetermineHitType(int hitType, NTempest::C3Vector &unitMove, float
   return 1;
 }
 
-void CMovement::DeterminePyramidHitType(NTempest::C3Vector &unitMove, float distance, unsigned int facetId, CRedirect *hitInfo) {
+void CMovement::DeterminePyramidHitType(
+    const NTempest::C3Vector &unitMove, float distance, unsigned int facetId, CRedirect *hitInfo
+) {
   NTempest::C3Vector newPosition = m_position + unitMove * distance;
   int                hitPyrTrailingX = unitMove.x >= 0.0f;
   int                hitPyrTrailingY = unitMove.y >= 0.0f;
@@ -2359,7 +2431,11 @@ void CMovement::DeterminePyramidHitType(NTempest::C3Vector &unitMove, float dist
   }
 }
 
-static float FindClosestVertDist(NTempest::C4Plane &front, NTempest::C4Plane *sides, CClippedTriangle &poly) {
+static float FindClosestVertDist(
+    const NTempest::C4Plane &front,
+    const NTempest::C4Plane *sides,
+    const CClippedTriangle  &poly
+) {
   CClippedTriangle testPoly = poly;
   float            penetrationDepth;
   if (!ClipPolygonToPolyhedron(sides, 2, &testPoly, &penetrationDepth)) {
@@ -2376,7 +2452,11 @@ static float FindClosestVertDist(NTempest::C4Plane &front, NTempest::C4Plane *si
   return minDist;
 }
 
-static void DetermineBoxParallelHitType(NTempest::C4Plane *boxSides, CClippedTriangle &clippedPoly, CRedirect *hitInfo) {
+static void DetermineBoxParallelHitType(
+    const NTempest::C4Plane *boxSides,
+    const CClippedTriangle  &clippedPoly,
+    CRedirect               *hitInfo
+) {
   float xDist = FindClosestVertDist(boxSides[0], &boxSides[2], clippedPoly);
   float yDist = FindClosestVertDist(boxSides[2], &boxSides[0], clippedPoly);
   if (NTempest::CMath::fabs_(xDist - yDist) < 0.00000095367432f) {
@@ -2388,7 +2468,9 @@ static void DetermineBoxParallelHitType(NTempest::C4Plane *boxSides, CClippedTri
   }
 }
 
-int CMovement::DetermineBoxHitType(NTempest::C3Vector &unitMove, float distance, unsigned int facetId, float baseHeight, CRedirect *hitInfo) {
+int CMovement::DetermineBoxHitType(
+    const NTempest::C3Vector &unitMove, float distance, unsigned int facetId, float baseHeight, CRedirect *hitInfo
+) {
   NTempest::C3Vector newPosition = m_position + unitMove * distance;
   int                hitBoxTrailingX = unitMove.x >= 0.0f;
   int                hitBoxTrailingY = unitMove.y >= 0.0f;
@@ -2437,7 +2519,7 @@ int CMovement::DetermineBoxHitType(NTempest::C3Vector &unitMove, float distance,
   return 1;
 }
 
-NTempest::C3Vector CMovement::CalcAverageSurfaceNormal(NTempest::C4Plane *box) {
+NTempest::C3Vector CMovement::CalcAverageSurfaceNormal(const NTempest::C4Plane *box, unsigned int count) {
   NTempest::C3Vector average(0.0f);
   unsigned int       numNormals = 0;
   for (unsigned int facetId = 0; facetId < s_facetData.facets.Count(); ++facetId) {
@@ -2449,7 +2531,7 @@ NTempest::C3Vector CMovement::CalcAverageSurfaceNormal(NTempest::C4Plane *box) {
     CClippedTriangle clippedPoly;
     clippedPoly.Init(facet.vertices);
     float penetrationDepth;
-    if (ClipPolygonToPolyhedron(box, 6, &clippedPoly, &penetrationDepth) && penetrationDepth >= 0.013888889f) {
+    if (ClipPolygonToPolyhedron(box, count, &clippedPoly, &penetrationDepth) && penetrationDepth >= 0.013888889f) {
       average += facet.plane.n;
       ++numNormals;
     }
@@ -2464,10 +2546,10 @@ NTempest::C3Vector CMovement::CalcAverageSurfaceNormal(NTempest::C4Plane *box) {
 }
 
 void CMovement::FindObstacles(
-    NTempest::C3Vector &unitMoveVector,
+    const NTempest::C3Vector &unitMoveVector,
     NTempest::C4Plane  *box,
     unsigned int        numSides,
-    NTempest::C4Plane  &startPlane,
+    const NTempest::C4Plane &startPlane,
     int                 hitType,
     float              *closestDist,
     CRedirect          *hitInfo
@@ -2555,10 +2637,10 @@ void CMovement::FindObstacles(
 
 float CMovement::ExtrudeCollisionShape(
     unsigned long       timeStamp,
-    NTempest::C3Vector &moveVector,
+    const NTempest::C3Vector &moveVector,
     float               distanceWanted,
-    NTempest::C2Vector &unitMoveWanted,
-    NTempest::C3Vector &platformNorm
+    const NTempest::C2Vector &unitMoveWanted,
+    const NTempest::C3Vector &platformNorm
 ) {
   NTempest::C3Vector unitMove = moveVector;
   if (unitMove.Mag() >= 0.00000023841858f) {
@@ -2607,7 +2689,7 @@ float CMovement::ExtrudeCollisionShape(
   return distance > 0.0f ? distance : 0.0f;
 }
 
-int CMovement::TestStepUp(NTempest::C3Vector &destination) {
+int CMovement::TestStepUp(const NTempest::C3Vector &destination) {
   float stepHeight = destination.z - m_position.z;
   if (stepHeight <= 0.0f) {
     return 1;
@@ -2638,7 +2720,7 @@ int CMovement::TestStepUp(NTempest::C3Vector &destination) {
   return distance >= distWanted;
 }
 
-void CMovement::ExtrudeBoxSideZ(NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
+void CMovement::ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
   float              height[2] = {bottom, m_collisionBoxHeight};
   NTempest::C3Vector moveDir[2] = {-moveVector, moveVector};
   int                posZ = moveVector.z >= 0.0f;
@@ -2673,7 +2755,7 @@ void CMovement::ExtrudeBoxSideZ(NTempest::C3Vector &moveVector, float bottom, NT
   }
 }
 
-void CMovement::ExtrudeBoxSideY(NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
+void CMovement::ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
   float              depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
   NTempest::C3Vector moveDir[2] = {-moveVector, moveVector};
   int                posY = moveVector.y >= 0.0f;
@@ -2709,7 +2791,7 @@ void CMovement::ExtrudeBoxSideY(NTempest::C3Vector &moveVector, float bottom, NT
   }
 }
 
-void CMovement::ExtrudeBoxSideX(NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
+void CMovement::ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
   float              depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
   NTempest::C3Vector moveDir[2] = {-moveVector, moveVector};
   int                posX = moveVector.x >= 0.0f;
@@ -2745,7 +2827,7 @@ void CMovement::ExtrudeBoxSideX(NTempest::C3Vector &moveVector, float bottom, NT
   }
 }
 
-int CMovement::ExtrudePyramidSideX(NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides) {
+int CMovement::ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides) {
   if (NTempest::CMath::fabs_(unitMove.x) < 0.00000023841858f && NTempest::CMath::fabs_(unitMove.z) < 0.00000023841858f) {
     return 0;
   }
@@ -2780,7 +2862,7 @@ int CMovement::ExtrudePyramidSideX(NTempest::C3Vector &unitMove, float distance,
   return 1;
 }
 
-int CMovement::ExtrudePyramidSideY(NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides) {
+int CMovement::ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides) {
   if (NTempest::CMath::fabs_(unitMove.y) < 0.00000023841858f && NTempest::CMath::fabs_(unitMove.z) < 0.00000023841858f) {
     return 0;
   }

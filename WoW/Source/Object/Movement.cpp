@@ -19,7 +19,7 @@ void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime);
 void OnCollideFalling(unsigned __int64 unit, unsigned long eventTime);
 void UnitUpdateMovementAnim(const unsigned __int64 &unit);
 
-static unsigned int s_localMoveHeap = static_cast<unsigned int>(-1);
+static unsigned int s_localMoveHeap = -1;
 
 int CMovementData::IsLocalPlayer() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
@@ -306,11 +306,11 @@ unsigned long MovementGetLastUpdate() {
   return globals ? globals->m_lastUpdateTime : 0;
 }
 
-void CMovement::GetMovingDirection(NTempest::C3Vector *direction) {
+void CMovement::GetMovingDirection(NTempest::C3Vector *direction) const {
   *direction = m_moveFlags & 2 ? m_direction * -1.0f : m_direction;
 }
 
-void CMovement::GetStrafingDirection(NTempest::C3Vector *direction) {
+void CMovement::GetStrafingDirection(NTempest::C3Vector *direction) const {
   direction->x = m_direction.y;
   direction->y = m_direction.x;
   direction->z = 0.0f;
@@ -321,7 +321,7 @@ void CMovement::GetStrafingDirection(NTempest::C3Vector *direction) {
   }
 }
 
-void CMovement::GetDiagonalDirection(NTempest::C3Vector *direction) {
+void CMovement::GetDiagonalDirection(NTempest::C3Vector *direction) const {
   NTempest::C3Vector moveDir;
   GetMovingDirection(&moveDir);
   GetStrafingDirection(direction);
@@ -330,7 +330,7 @@ void CMovement::GetDiagonalDirection(NTempest::C3Vector *direction) {
   direction->z += moveDir.z;
 }
 
-void CMovement::GetMovingDirection2d(NTempest::C2Vector *direction) {
+void CMovement::GetMovingDirection2d(NTempest::C2Vector *direction) const {
   if (m_moveFlags & 2) {
     direction->x = -m_direction2d.x;
     direction->y = -m_direction2d.y;
@@ -339,7 +339,7 @@ void CMovement::GetMovingDirection2d(NTempest::C2Vector *direction) {
   }
 }
 
-void CMovement::GetStrafingDirection2d(NTempest::C2Vector *direction) {
+void CMovement::GetStrafingDirection2d(NTempest::C2Vector *direction) const {
   direction->x = m_direction2d.y;
   direction->y = m_direction2d.x;
   if (m_moveFlags & 4) {
@@ -349,7 +349,7 @@ void CMovement::GetStrafingDirection2d(NTempest::C2Vector *direction) {
   }
 }
 
-void CMovement::GetDiagonalDirection2d(NTempest::C2Vector *direction) {
+void CMovement::GetDiagonalDirection2d(NTempest::C2Vector *direction) const {
   NTempest::C2Vector moveDir;
   GetMovingDirection2d(&moveDir);
   GetStrafingDirection2d(direction);
@@ -357,7 +357,7 @@ void CMovement::GetDiagonalDirection2d(NTempest::C2Vector *direction) {
   direction->y = (direction->y + moveDir.y) * 0.70710677f;
 }
 
-void CMovement::PlotLinearPosition(NTempest::C3Vector &direction, float secsElapsed, NTempest::C3Vector *totalMove) {
+void CMovement::PlotLinearPosition(const NTempest::C3Vector &direction, float secsElapsed, NTempest::C3Vector *totalMove) {
   *totalMove = direction * (GetCurrentSpeed() * secsElapsed);
 }
 
@@ -377,7 +377,7 @@ void CMovement::PlotUnitPitch(float elapsedSec) {
   }
 }
 
-void CMovement::PlotSpiralPosition(NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
+void CMovement::PlotSpiralPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
   float currentSpeed = GetCurrentSpeed();
   float turnRate = GetCurrentTurnRate();
   float pitchRate = GetCurrentPitchRate();
@@ -410,7 +410,7 @@ void CMovement::PlotSpiralPosition(NTempest::C2Vector &direction2d, float secsEl
   }
 }
 
-void CMovement::PlotVertCircularPosition(NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
+void CMovement::PlotVertCircularPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
   float currentSpeed = GetCurrentSpeed();
   float pitchRate = GetCurrentPitchRate();
   float pitchRadius = currentSpeed / pitchRate;
@@ -437,7 +437,7 @@ void CMovement::PlotVertCircularPosition(NTempest::C2Vector &direction2d, float 
   }
 }
 
-void CMovement::PlotHorzCircularPosition(NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
+void CMovement::PlotHorzCircularPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
   float currentSpeed = GetCurrentSpeed();
   float turnRate = GetCurrentTurnRate();
   float turnRadius = currentSpeed / turnRate;
@@ -616,7 +616,7 @@ int CMovement::PlotUnitSplineMovement(unsigned long eventTime, NTempest::C3Vecto
   return 1;
 }
 
-int CMovement::CheckInvalidPositionOrMove(NTempest::C3Vector &move, unsigned int moveTime) {
+int CMovement::CheckInvalidPositionOrMove(const NTempest::C3Vector &move, unsigned int moveTime) {
   if (_isnan(m_position.x) || _isnan(m_position.y) || m_position.x - 2.0f < -17066.666f || m_position.x + 2.0f > 17066.666f ||
       m_position.y - 2.0f < -17066.666f || m_position.y + 2.0f > 17066.666f)
   {
@@ -645,7 +645,9 @@ int CMovement::CheckInvalidPositionOrMove(NTempest::C3Vector &move, unsigned int
   return 0;
 }
 
-void CMovement::ApplyAdjustedMove(unsigned long timeStemp, NTempest::C3Vector &moveWanted, int wasAdjusted, unsigned int oldMoveFlags) {
+void CMovement::ApplyAdjustedMove(
+    unsigned long timeStemp, const NTempest::C3Vector &moveWanted, int wasAdjusted, unsigned int oldMoveFlags
+) {
   if (wasAdjusted || (m_moveFlags & 0x1000)) {
     if (!m_spline || (m_spline->flags & 4) || (oldMoveFlags & 0x1000)) {
       UpdateAnchors(timeStemp);
@@ -666,7 +668,7 @@ void CMovement::ApplyAdjustedMove(unsigned long timeStemp, NTempest::C3Vector &m
   }
 }
 
-void CMovement::SimpleRequestMove(unsigned int fallTime, NTempest::C3Vector &moveVector) {
+void CMovement::SimpleRequestMove(unsigned int fallTime, const NTempest::C3Vector &moveVector) {
   m_position = m_anchorPosition + moveVector;
   if (m_jumpVelocity != 0.0f) {
     float distJumped = static_cast<float>(fallTime) * 0.001f * m_jumpVelocity * -0.5f;
@@ -751,10 +753,6 @@ CMovementData::CMovementData(const NTempest::C3Vector &position, float facing, c
       m_spline(0),
       m_waterSurfaceElev(0.0f) {
   CalcDirection();
-}
-
-NTempest::C3Vector CMovementData::GetPosition() const {
-  return GetPosition(m_position);
 }
 
 NTempest::C3Vector CMovementData::GetPosition(const NTempest::C3Vector &position) const {
@@ -1328,7 +1326,7 @@ void CMovementData::RemoveSpline() {
   RemoveFromMoversList();
 }
 
-void CMovement::SetUpdateInfo(unsigned long eventTime, CClientMoveUpdate &init, int localPlayer) {
+void CMovement::SetUpdateInfo(unsigned long eventTime, const CClientMoveUpdate &init, int localPlayer) {
   FATALASSERT(NTempest::CMath::fnotequal_(init.runSpeed, 0));
   FATALASSERT(NTempest::CMath::fnotequal_(init.walkSpeed, 0));
   FATALASSERT(NTempest::CMath::fnotequal_(init.swimSpeed, 0));
@@ -1825,7 +1823,7 @@ unsigned int CMovement::FallTime() const {
   return 0;
 }
 
-void CMovement::SaveMoveState(CMoveState *state) {
+void CMovement::SaveMoveState(CMoveState *state) const {
   state->position = m_position;
   state->facing = m_facing;
   state->pitch = m_pitch;
@@ -1844,7 +1842,7 @@ void CMovement::SaveMoveState(CMoveState *state) {
   state->jumpVelocity = m_jumpVelocity;
 }
 
-void CMovement::RestoreMoveState(CMoveState &state) {
+void CMovement::RestoreMoveState(const CMoveState &state) {
   m_position = state.position;
   m_facing = state.facing;
   m_pitch = state.pitch;

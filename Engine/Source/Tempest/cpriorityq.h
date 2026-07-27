@@ -27,7 +27,7 @@ namespace NTempest {
     virtual ~CPriorityQ() {
     }
 
-    void Validate();
+    void Validate() const;
 
     bool HasEntries() const {
       ASSERT(Used() > 0);

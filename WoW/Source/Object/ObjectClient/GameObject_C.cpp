@@ -67,6 +67,8 @@ static const float MAX_BIND_DISTANCE = 10.0f;
 static const float MAX_SHOP_DISTANCE = 5.5555553f;
 static const float MAX_OBJ_INTEREST_RADIUS = 100.0f;
 
+static CGGameObject_C_Type_Null s_nullBaseObj;
+
 void ClntObjMgrHideObject(unsigned __int64 guid);
 void ClntObjMgrShowObject(unsigned __int64 guid);
 void MovementAddTransport(CGGameObject_C *transport);
@@ -132,7 +134,7 @@ CGGameObject_C::~CGGameObject_C() {
 void CGGameObject_C::LoadBaseObject(const GameObjectStats *stats) {
   FATALASSERT(stats);
   SetMirrorHandlers();
-  m_stats = const_cast<GameObjectStats *>(stats);
+  m_stats = stats;
 
   switch (stats->m_typeID) {
     case 0:  m_baseObj = NEW(CGGameObject_C_Type_Door)(this); break;
@@ -215,29 +217,29 @@ CGGameObject_C_TypeBase::CGGameObject_C_TypeBase(CGGameObject_C *owner)
 CGGameObject_C_TypeBase::~CGGameObject_C_TypeBase() {
 }
 
-unsigned int CGGameObject_C_TypeBase::CanHighlight() {
+bool CGGameObject_C_TypeBase::CanHighlight() const {
   return CanUse();
 }
 
-unsigned int CGGameObject_C_TypeBase::CanChangeCursor() {
+bool CGGameObject_C_TypeBase::CanChangeCursor() const {
   return CanUse();
 }
 
-unsigned int CGGameObject_C_TypeBase::CanUse() {
+bool CGGameObject_C_TypeBase::CanUse() const {
   unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
   if (!player) {
     return 0;
   }
 
-  const CGGameObjectData *data = m_owner->GetGameObjectData();
+  const CGGameObjectData *data = m_owner->GameObject();
   if (m_owner->GetType() != 6 && m_owner->ObjectReaction(player) == UNIT_REACTION_HOSTILE) {
     return 0;
   }
-  return !(data->m_data[1] & 1) && (!(data->m_data[1] & 4) || (data->m_dynamicFlags & 1));
+  return !(data->m_flags & 1) && (!(data->m_flags & 4) || (data->m_dynamicFlags & 1));
 }
 
-unsigned int CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE *reason) {
+bool CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE *reason) const {
   unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
   CGPlayer_C *player = static_cast<CGPlayer_C *>(
       ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
@@ -248,7 +250,7 @@ unsigned int CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE *reason) {
     return 0;
   }
 
-  if (m_owner->GetGameObjectData()->m_data[1] & 2) {
+  if (m_owner->GameObject()->m_flags & 2) {
     if (reason) {
       *reason = GERR_USE_LOCKED;
     }
@@ -279,7 +281,7 @@ unsigned int CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE *reason) {
   return 1;
 }
 
-unsigned int CGGameObject_C_TypeBase::Use(const unsigned __int64 &) {
+bool CGGameObject_C_TypeBase::Use(const unsigned __int64 &) {
   FATALASSERT(CanUseNow(0));
 
   int       spellID = 0;
@@ -387,11 +389,11 @@ void CGGameObject_C_TypeBase::StartInteraction() {
 void CGGameObject_C_TypeBase::CloseInteraction() {
 }
 
-unsigned int CGGameObject_C_Type_Null::CanUse() {
+bool CGGameObject_C_Type_Null::CanUse() const {
   return 0;
 }
 
-unsigned int CGGameObject_C_Type_Null::CanUseNow(GAME_ERROR_TYPE *) {
+bool CGGameObject_C_Type_Null::CanUseNow(GAME_ERROR_TYPE *) const {
   return 0;
 }
 
@@ -400,7 +402,7 @@ const char *CGGameObject_C_Type_Null::DebugStatus() {
 }
 
 int CGGameObject::GetState() const {
-  return m_gameObj->m_data[6];
+  return m_gameObj->m_state;
 }
 
 void CGGameObject_C::ActivateCustomAnim(unsigned int anim) {
@@ -430,7 +432,7 @@ int CGGameObject_C::IsPointInside(const NTempest::C3Vector &point) const {
 
 void CGGameObject_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
-  m_gameObj = reinterpret_cast<CGGameObjectData *>(storage + 6);
+  CGGameObject::SetStorage(storage + 6);
 }
 
 void CGGameObject_C::PostInit(const CClientObjCreate &init) {
@@ -504,9 +506,7 @@ void CGGameObject_C::SetData(const void *data, unsigned int bytes) {
 }
 
 CGGameObject_C::CGGameObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), m_baseObj(0), m_stats(0), m_serverTimeOffset(init->move.timeFallen - eventTime), m_isSolid(0) {
-  m_gameObj = reinterpret_cast<CGGameObjectData *>(storage + 6);
-
+    : CGObject_C(storage, eventTime, init), CGGameObject(storage + 6), m_baseObj(0), m_stats(0), m_serverTimeOffset(init->move.timeFallen - eventTime), m_isSolid(0) {
   ClntObjMgrHideObject(GetGUID());
   m_gameObj->m_position = init->move.status.worldPosition;
   m_gameObj->m_facing = init->move.status.worldFacing;
@@ -520,14 +520,14 @@ UNIT_REACTION CGGameObject_C::ObjectReaction(const CGUnit_C *unit) const {
 }
 
 const char *CGGameObject_C::GetModelFileNameInternal() const {
-  int displayID = m_gameObj->m_data[0];
+  int displayID = m_gameObj->m_displayID;
   if (!displayID) {
     return 0;
   }
 
   GameObjectDisplayInfoRec *displayInfo = g_gameObjectDisplayInfoDB.GetRecord(displayID);
   if (!displayInfo) {
-    SysMsgPrintf(SYSMSG_FATAL, 2, "NOOBJECTFILENAME|%d|%d|Game", displayID, GetEntryID());
+    SysMsgPrintf(SYSMSG_FATAL, 2, "NOOBJECTFILENAME|%d|%d|Game", displayID, m_obj->m_entryID);
     return "NoName";
   }
 
@@ -553,7 +553,7 @@ unsigned int CGGameObject_C::GetPropertyValue(unsigned int index) const {
   return m_stats && index < 10 ? m_stats->m_propValue[index] : 0;
 }
 
-LockRec *CGGameObject_C::GetLockRec() const {
+const LockRec *CGGameObject_C::GetLockRec() const {
   int lockID = GetPropertyValue(CGameObjectDef::GetPropNum(GetType(), 4));
   return g_lockDB.GetRecord(lockID);
 }
@@ -641,8 +641,8 @@ bool CGGameObject_C::IsLocked(
   return locked;
 }
 
-unsigned int CGGameObject_C::IsValidOpenAction(int action) const {
-  int state = m_gameObj->m_data[6];
+bool CGGameObject_C::IsValidOpenAction(int action) const {
+  int state = m_gameObj->m_state;
   if (action == 4) {
     return state == 2;
   }
@@ -650,16 +650,16 @@ unsigned int CGGameObject_C::IsValidOpenAction(int action) const {
     return 0;
   }
   if (!action) {
-    return !(m_gameObj->m_data[1] & 2);
+    return !(m_gameObj->m_flags & 2);
   }
   if (action == 1) {
-    return (m_gameObj->m_data[1] & 2) != 0;
+    return (m_gameObj->m_flags & 2) != 0;
   }
   return action != 2 || !state;
 }
 
-unsigned int CGGameObject_C::IsValidTargetForSpell(const unsigned __int64 &caster, int spellID) const {
-  LockRec  *lock = GetLockRec();
+bool CGGameObject_C::IsValidTargetForSpell(const unsigned __int64 &caster, int spellID) const {
+  const LockRec *lock = GetLockRec();
   SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!lock || !spell) {
     return 0;
@@ -747,17 +747,17 @@ void CGGameObject_C::OnRightClick() {
   }
 }
 
-int CGGameObject_C::CanChangeCursor() const {
+bool CGGameObject_C::CanChangeCursor() const {
   FATALASSERT(m_baseObj);
   return m_baseObj->CanChangeCursor();
 }
 
-int CGGameObject_C::CanUse() const {
+bool CGGameObject_C::CanUse() const {
   FATALASSERT(m_baseObj);
   return m_baseObj->CanUse();
 }
 
-int CGGameObject_C::CanUseNow() const {
+bool CGGameObject_C::CanUseNow() const {
   FATALASSERT(m_baseObj && m_baseObj->CanUse());
   return m_baseObj->CanUseNow(0);
 }
@@ -845,15 +845,13 @@ void CGGameObject_C::UpdateMatrix() {
 
   m_matrix = NTempest::C34Matrix();
   m_matrix.Translate(GetPosition());
-  m_matrix.Rotate(*reinterpret_cast<NTempest::C4Quaternion *>(&m_gameObj->m_data[2]));
+  m_matrix.Rotate(m_gameObj->m_rotation);
   m_matrix.Scale(GetScale());
   if (GetObjectModel()) {
     ModelGetCollisionExtents(GetObjectModel(), &localExtents);
   }
   CWorldMath::TransformAABox(m_matrix, localExtents, m_collideExtents);
 }
-
-CGGameObject_C_Type_Null CGGameObject_C::s_nullBaseObj;
 
 CGGameObject_C_TypeAnimated::CGGameObject_C_TypeAnimated(CGGameObject_C *owner)
     : CGGameObject_C_TypeBase(owner), m_animState(0), m_loopingSound(0), m_animPresent(0) {
@@ -1002,7 +1000,7 @@ void CGGameObject_C_TypeAnimated::PlayAnimatedSound(
   }
 
   GameObjectDisplayInfoRec *displayInfo =
-      g_gameObjectDisplayInfoDB.GetRecord(m_owner->GetGameObjectData()->m_data[0]);
+      g_gameObjectDisplayInfoDB.GetRecord(m_owner->GameObject()->m_displayID);
   if (!displayInfo) {
     return;
   }
@@ -1061,7 +1059,7 @@ CGGameObject_C_Type_Door::CGGameObject_C_Type_Door(CGGameObject_C *owner)
     : CGGameObject_C_TypeAnimated(owner) {
 }
 
-unsigned int CGGameObject_C_Type_Door::CanUseNow(GAME_ERROR_TYPE *reason) {
+bool CGGameObject_C_Type_Door::CanUseNow(GAME_ERROR_TYPE *reason) const {
   if (IsAtRest()) {
     return CGGameObject_C_TypeBase::CanUseNow(reason);
   }
@@ -1076,18 +1074,18 @@ void CGGameObject_C_Type_Door::UpdateAnimState(unsigned int newState) {
   m_owner->m_isSolid = m_animState == 0;
 }
 
-unsigned int CGGameObject_C_Type_Door::IsAtRest() {
+bool CGGameObject_C_Type_Door::IsAtRest() const {
   if (!GetAutoClose()) {
     return 1;
   }
   return GetStartOpen() ? m_animState != 0 : m_animState != 2;
 }
 
-unsigned int CGGameObject_C_Type_Door::GetStartOpen() {
+unsigned int CGGameObject_C_Type_Door::GetStartOpen() const {
   return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 1));
 }
 
-unsigned int CGGameObject_C_Type_Door::GetAutoClose() {
+unsigned int CGGameObject_C_Type_Door::GetAutoClose() const {
   return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 3));
 }
 
@@ -1134,12 +1132,12 @@ CGGameObject_C_Type_Generic::CGGameObject_C_Type_Generic(CGGameObject_C *owner)
     : CGGameObject_C_TypeBase(owner) {
 }
 
-unsigned int CGGameObject_C_Type_Generic::CanHighlight() {
+bool CGGameObject_C_Type_Generic::CanHighlight() const {
   int prop = CGameObjectDef::GetPropNum(m_owner->GetType(), 18);
   return m_owner->GetPropertyValue(prop) != 0;
 }
 
-unsigned int CGGameObject_C_Type_Generic::CanUse() {
+bool CGGameObject_C_Type_Generic::CanUse() const {
   return 0;
 }
 
@@ -1154,11 +1152,11 @@ CGGameObject_C_Type_MapObj::~CGGameObject_C_Type_MapObj() {
   }
 }
 
-unsigned int CGGameObject_C_Type_MapObj::CanHighlight() {
+bool CGGameObject_C_Type_MapObj::CanHighlight() const {
   return 0;
 }
 
-unsigned int CGGameObject_C_Type_MapObj::CanUse() {
+bool CGGameObject_C_Type_MapObj::CanUse() const {
   return 0;
 }
 
@@ -1288,7 +1286,7 @@ CGGameObject_C_Type_Chair::CGGameObject_C_Type_Chair(CGGameObject_C *owner)
   memset(m_slotPositions, 0, sizeof(m_slotPositions));
 }
 
-unsigned int CGGameObject_C_Type_Chair::CanUseNow(GAME_ERROR_TYPE *reason) {
+bool CGGameObject_C_Type_Chair::CanUseNow(GAME_ERROR_TYPE *reason) const {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(
       ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || player->GetUnitData()->health <= 0) {
@@ -1298,9 +1296,9 @@ unsigned int CGGameObject_C_Type_Chair::CanUseNow(GAME_ERROR_TYPE *reason) {
     return 0;
   }
 
-  NTempest::C3Vector playerPosition = player->m_move.GetPosition();
   for (unsigned int i = 0; i < GetNumSlots(); ++i) {
-    if ((playerPosition - m_slotPositions[i]).SquaredMag() <=
+    if ((player->m_move.GetPosition(player->m_move.m_position) -
+         m_slotPositions[i]).SquaredMag() <=
         MAX_SITCHAIRUSE_DISTANCE_SQUARED) {
       return 1;
     }
@@ -1326,11 +1324,11 @@ void CGGameObject_C_Type_Chair::PostInit() {
   GenerateChairPoints(matrix, GetNumSlots(), m_slotPositions);
 }
 
-unsigned int CGGameObject_C_Type_Chair::GetNumSlots() {
+unsigned int CGGameObject_C_Type_Chair::GetNumSlots() const {
   return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 11));
 }
 
-unsigned int CGGameObject_C_Type_Chair::GetHeight() {
+unsigned int CGGameObject_C_Type_Chair::GetHeight() const {
   return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 12));
 }
 
@@ -1338,11 +1336,11 @@ CGGameObject_C_Type_SpellFocus::CGGameObject_C_Type_SpellFocus(CGGameObject_C *o
     : CGGameObject_C_TypeAnimated(owner) {
 }
 
-unsigned int CGGameObject_C_Type_SpellFocus::CanHighlight() {
+bool CGGameObject_C_Type_SpellFocus::CanHighlight() const {
   return 1;
 }
 
-unsigned int CGGameObject_C_Type_SpellFocus::CanUse() {
+bool CGGameObject_C_Type_SpellFocus::CanUse() const {
   return 0;
 }
 
@@ -1351,7 +1349,7 @@ CGGameObject_C_Type_Text::CGGameObject_C_Type_Text(CGGameObject_C *owner)
   m_interactDistance = MAX_SHOP_DISTANCE;
 }
 
-unsigned int CGGameObject_C_Type_Text::Use(const unsigned __int64 &activator) {
+bool CGGameObject_C_Type_Text::Use(const unsigned __int64 &activator) {
   FATALASSERT(m_owner);
   CGItemText::SetItem(m_owner->GetGUID(), 0);
   return 1;
@@ -1394,7 +1392,7 @@ CGGameObject_C_Type_Transport::CGGameObject_C_Type_Transport(CGGameObject_C *own
     ++m_numKeys;
   }
 
-  m_position = m_owner->GetGameObjectData()->m_position +
+  m_position = m_owner->GameObject()->m_position +
       GetMovement(OsGetAsyncTimeMs());
 }
 
@@ -1411,7 +1409,7 @@ NTempest::C3Vector CGGameObject_C_Type_Transport::GetCurrentMoveVector() const {
   return m_currDirection * m_currSpeed;
 }
 
-unsigned int CGGameObject_C_Type_Transport::CanUse() {
+bool CGGameObject_C_Type_Transport::CanUse() const {
   return 0;
 }
 
@@ -1448,7 +1446,7 @@ void CGGameObject_C_Type_Transport::UpdateMovement(
     unsigned long eventTime, float elapsed) {
   NTempest::C3Vector oldPosition = m_position;
   m_position =
-      m_owner->GetGameObjectData()->m_position + GetMovement(eventTime);
+      m_owner->GameObject()->m_position + GetMovement(eventTime);
   NTempest::C3Vector move = m_position - oldPosition;
 
   m_owner->UpdateMatrix();
@@ -1521,8 +1519,7 @@ NTempest::C3Vector CGGameObject_C_Type_Transport::GetMovement(
       key->m_PosY * (1.0f - ratio) + nextKey->m_PosY * ratio,
       key->m_PosZ * (1.0f - ratio) + nextKey->m_PosZ * ratio);
   NTempest::C4Quaternion *rotation =
-      reinterpret_cast<NTempest::C4Quaternion *>(
-          &m_owner->m_gameObj->m_data[2]);
+      &m_owner->m_gameObj->m_rotation;
   NTempest::C33Matrix matrix = *rotation;
   return matrix * movement;
 }
@@ -1541,7 +1538,7 @@ int CGGameObject_C_Type_Transport::FindAnimData(CGGameObject_C *owner) {
   return -1;
 }
 
-unsigned int CGGameObject_C_Type_Transport::NextKeyID() {
+unsigned int CGGameObject_C_Type_Transport::NextKeyID() const {
   return m_currKey + 1 == m_numKeys ? 0 : m_currKey + 1;
 }
 
@@ -1553,12 +1550,12 @@ CGGameObject_C_Type_DuelArbiter::CGGameObject_C_Type_DuelArbiter(CGGameObject_C 
     : CGGameObject_C_TypeBase(owner) {
 }
 
-unsigned int CGGameObject_C_Type_DuelArbiter::CanHighlight() {
+bool CGGameObject_C_Type_DuelArbiter::CanHighlight() const {
   return 1;
 }
 
-unsigned int CGGameObject_C_Type_DuelArbiter::CanUse() {
-  return 1;
+bool CGGameObject_C_Type_DuelArbiter::CanUse() const {
+  return 0;
 }
 
 CGGameObject_C_Type_FishingNode::CGGameObject_C_Type_FishingNode(CGGameObject_C *owner)
@@ -1566,7 +1563,7 @@ CGGameObject_C_Type_FishingNode::CGGameObject_C_Type_FishingNode(CGGameObject_C 
   m_interactDistance = MAX_OBJ_INTEREST_RADIUS;
 }
 
-unsigned int CGGameObject_C_Type_FishingNode::CanUse() {
+bool CGGameObject_C_Type_FishingNode::CanUse() const {
   unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
   if (!player || player->GetUnitData()->summonedBy != m_owner->GetGUID()) {
@@ -1579,6 +1576,6 @@ CGGameObject_C_Type_Ritual::CGGameObject_C_Type_Ritual(CGGameObject_C *owner)
     : CGGameObject_C_TypeAnimated(owner) {
 }
 
-unsigned int CGGameObject_C_Type_Ritual::CanUseNow(GAME_ERROR_TYPE *reason) {
+bool CGGameObject_C_Type_Ritual::CanUseNow(GAME_ERROR_TYPE *reason) const {
   return 1;
 }

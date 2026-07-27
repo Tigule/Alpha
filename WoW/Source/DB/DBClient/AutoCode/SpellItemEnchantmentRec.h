@@ -17,7 +17,7 @@ class SpellItemEnchantmentRec {
     return 92;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

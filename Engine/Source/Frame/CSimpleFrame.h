@@ -52,6 +52,11 @@ class CSimpleTitleRegion : public CLayoutFrame {
     return m_parent;
   }
 
+  void SetParent(CLayoutFrame *parent) {
+    m_parent = parent;
+  }
+
+ protected:
   CLayoutFrame *m_parent;
 };
 
@@ -68,7 +73,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   friend int CSimpleFrame_SetBackdropBorderColor(lua_State *L);
 
  public:
-  CSimpleFrame(CSimpleFrame *parent);
+  CSimpleFrame(CSimpleFrame *parent = 0);
   virtual ~CSimpleFrame();
 
   static void RegisterScriptMethods();
@@ -95,8 +100,8 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnFrameRender();
   virtual void OnFrameRender(CRenderBatch *batch, unsigned int layer);
-  virtual void OnFrameSizeChanged(float w, float h);
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
+  virtual void OnFrameSizeChanged(float w, float h);
   virtual void OnLayerCursorEnter();
   virtual void OnLayerCursorExit();
   virtual int  OnLayerIme(CImeEvent &evt) {
@@ -129,7 +134,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return ShowThis();
   }
 
-  int GetFrameLevel() {
+  int GetFrameLevel() const {
     return m_level;
   }
 
@@ -141,11 +146,11 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return m_id;
   }
 
-  CSimpleTop *GetTop() {
+  CSimpleTop *GetTop() const {
     return m_top;
   }
 
-  CSimpleFrame *GetParent() {
+  CSimpleFrame *GetParent() const {
     return m_parent;
   }
 
@@ -162,11 +167,11 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return frame;
   }
 
-  unsigned char GetAlpha() {
+  unsigned char GetAlpha() const {
     return m_alpha;
   }
 
-  int GetFrameStrata() {
+  int GetFrameStrata() const {
     return m_strata;
   }
 
@@ -182,7 +187,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return m_titleRegion;
   }
 
-  int IsBeingScrolled() {
+  int IsBeingScrolled() const {
     return (m_flags >> 13) & 1;
   }
 
@@ -200,35 +205,35 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return m_initialized_state == STATE_INITIALIZED;
   }
 
-  int IsMovable() {
+  int IsMovable() const {
     return (m_flags & 0x100) != 0;
   }
 
-  int IsOccluded() {
+  int IsOccluded() const {
     return (m_flags & 0x10) != 0;
   }
 
-  int IsParentDrawn() {
+  int IsParentDrawn() const {
     return !m_parent || m_parent->m_visible;
   }
 
-  int IsResizable() {
+  int IsResizable() const {
     return (m_flags & 0x200) != 0;
   }
 
-  int IsToplevel() {
+  int IsToplevel() const {
     return (m_flags & 0x1) != 0;
   }
 
-  int IsUserPlaced() {
+  int IsUserPlaced() const {
     return (m_flags & 0x1000) != 0;
   }
 
-  int IsVisible() {
+  int IsVisible() const {
     return m_visible;
   }
 
-  int IsShown() {
+  int IsShown() const {
     return m_shown;
   }
 

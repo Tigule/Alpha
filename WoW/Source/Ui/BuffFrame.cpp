@@ -24,6 +24,8 @@ class CGBuffDesc {
 
  public:
   CGBuffDesc();
+  __forceinline ~CGBuffDesc() {
+  }
   void SetAuraIndex(int index, CGPlayer_C *player);
   int  GetAuraIndex() const {
     return m_auraIndex;

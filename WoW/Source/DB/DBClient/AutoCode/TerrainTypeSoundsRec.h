@@ -17,7 +17,7 @@ class TerrainTypeSoundsRec {
     return 4;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

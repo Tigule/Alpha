@@ -64,6 +64,10 @@ class GlareBase {
   static unsigned short     m_idx[4];
 
  public:
+  virtual void Update(float elapsedSec) = 0;
+  virtual void Render() = 0;
+  virtual int  IsVisible() = 0;
+
   static int          m_masterEnable;
   int                 m_enabled;
   NTempest::C3Vector  m_pos;
@@ -108,6 +112,12 @@ class DNMoonGlare : public DNGlare {
 
 class DNPlanet {
  public:
+  enum {
+    SUN,
+    MOON,
+    MOON2
+  };
+
   void Initialize(const char *filename);
   void Destroy();
   void GenGeometry(
@@ -119,7 +129,12 @@ class DNPlanet {
       unsigned long       &idxCount
   );
   void Render();
+  void Update();
 
+ private:
+  static const NTempest::C2Vector m_scaleTable[];
+
+ public:
   NTempest::C3Vector  m_pos;
   NTempest::CImVector m_color;
   HTEXTURE__         *m_texid;
@@ -137,6 +152,7 @@ class DNStars {
 
  private:
   friend void DayNightInitialize(const char *litFile);
+  static const NTempest::C2Vector m_fadeTable[4];
   HMODEL__              *m_hModel;
   NTempest::CImVector    m_color;
   NTempest::C3Vector     m_pos;
@@ -145,12 +161,11 @@ class DNStars {
 class DNClouds {
  public:
   DNClouds();
-  void  BumpMap();
-  void  Collide(NTempest::C3Vector &origin, NTempest::C3Vector &dir, NTempest::C3Vector &hitPoint);
+  void  Collide(const NTempest::C3Vector &origin, const NTempest::C3Vector &dir, NTempest::C3Vector &hitPoint);
   void  Destroy();
   void  FullUpdate();
   void  GenSphere(float size);
-  float GetDensity(NTempest::C3Vector &worldPoint, float area);
+  float GetDensity(const NTempest::C3Vector &worldPoint, float area);
   void  Render();
   void  SetLOD(unsigned long newlod, unsigned long newUpdateSize);
   void  SetLayers(unsigned long layers) {
@@ -160,9 +175,10 @@ class DNClouds {
   void SetSharpness(float newSharpness);
   void OverrideDensitySharpness(float newDensity, float newSharpness);
   void Update();
-  void WorldToTexture(NTempest::C3Vector &worldPt, NTempest::C2Vector &tex);
-
  private:
+  void BumpMap();
+  void WorldToTexture(const NTempest::C3Vector &worldPt, NTempest::C2Vector &tex);
+
   static void Callback_GxTex(
       EGxTexCommand cmd,
       unsigned int  w,
@@ -204,12 +220,12 @@ class DNClouds {
 
   static unsigned long      m_tmSizeTable[];
   static unsigned long      m_tmShiftTable[];
-  static NTempest::C2Vector m_bumpFadeTable[];
+  static const NTempest::C2Vector m_bumpFadeTable[];
   static const float        BUMPFADETIME;
 
   unsigned int                      m_lastTime;
   float                             m_sharpness;
-  unsigned int                      m_density;
+  unsigned char                     m_density;
   float                             m_densityOverride;
   unsigned long                     m_lod;
   unsigned long                     m_updateSize;

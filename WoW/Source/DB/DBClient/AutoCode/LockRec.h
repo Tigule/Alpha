@@ -17,7 +17,7 @@ class LockRec {
     return 68;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

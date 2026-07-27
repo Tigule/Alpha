@@ -29,7 +29,7 @@ class CRibbonEmitter {
   CRibbonEmitter(const CRibbonEmitter &rhs);
   ~CRibbonEmitter();
   const CRibbonEmitter &operator=(const CRibbonEmitter &rhs);
-  CRibbonEmitter       *Clone() {
+  CRibbonEmitter       *Clone() const {
     return NEW(CRibbonEmitter)(*this);
   }
 
@@ -57,8 +57,8 @@ class CRibbonEmitter {
       const TSGrowableArray<HTEXTURE>     &textures,
       const TSGrowableArray<unsigned int> &replaces
   );
-  void         SetColor(float r, float g, float b);
-  void         SetAlpha(float a);
+  void         SetColor(const float r, const float g, const float b);
+  void         SetAlpha(const float a);
   void         SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, int suppressNewEdges);
   int          Render();
   int          IsDead();

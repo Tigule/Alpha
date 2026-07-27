@@ -6,7 +6,10 @@
 
 #include "Base/Base.h"
 #include "Gx/Gx.h"
+#include "Os/W32/Debugging.h"
 #include "Services/AsyncFileRead.h"
+
+typedef unsigned int uint32;
 
 struct STPrimRemap {
   unsigned short  nIndicies;
@@ -88,10 +91,11 @@ static STPrimGroup s_tPrimGroups[4][2] = {
 static unsigned int g_gxBufCreateCount;
 static unsigned int g_gxBufDestroyCount;
 
+static TSCArray<unsigned char, 15000>   s_syncLoadBuffer;
 static SCritSect                        s_fileCritSect;
 static TSCArray<unsigned char, 15000>   s_asyncLoadBuffers[16];
-static unsigned int                    *s_freeAsyncBuffer;
-static unsigned int                     s_asyncBuffersInitialized;
+static unsigned char                   *s_freeAsyncBuffer;
+static unsigned char                    s_asyncBuffersInitialized;
 static TSExplicitList<CAsyncObject, 32> s_asyncLoadList;
 
 unsigned int              CMapChunk::cornerVertexIndex[4] = {0, 8, 136, 144};
@@ -103,7 +107,7 @@ static int iIndiciesP[4][2] = {
     {18, 17},
     { 1, 18}
 };
-unsigned int              CMapChunk::syncLoadBuffer[15000];
+unsigned char             CMapChunk::syncLoadBuffer[15000];
 NTempest::C2Vector        CMapChunk::texCoordList[145];
 NTempest::C2Vector        CMapChunk::texCoordList2[145];
 NTempest::C2Vector        CMapChunk::rmTexCoordList[4][145];
@@ -118,9 +122,9 @@ TSGrowableArray<CGxTex *> CMapChunk::gxShadowTexFreeList;
 void(*CMapChunk::soundEmitterCreateHandler)(CWSoundEmitter &);
 void(*CMapChunk::soundEmitterDestroyHandler)(unsigned long);
 
-static void ValidateAsyncReadBuffer(unsigned int *buffer) {
+static void ValidateAsyncReadBuffer(unsigned char *buffer) {
   for (unsigned int index = 0; index < 16; ++index) {
-    if (buffer == reinterpret_cast<unsigned int *>(s_asyncLoadBuffers[index].Ptr())) {
+    if (buffer == s_asyncLoadBuffers[index].Ptr()) {
       return;
     }
   }
@@ -128,31 +132,31 @@ static void ValidateAsyncReadBuffer(unsigned int *buffer) {
   FATALERROR(("%08x is not a valid map chunk async read buffer", buffer));
 }
 
-void CMapChunk::FreeAsyncLoadBuffer(unsigned int *buffer) {
+void CMapChunk::FreeAsyncLoadBuffer(unsigned char *buffer) {
   ValidateAsyncReadBuffer(buffer);
-  *reinterpret_cast<unsigned int **>(buffer) = s_freeAsyncBuffer;
+  *reinterpret_cast<unsigned char **>(buffer) = s_freeAsyncBuffer;
   s_freeAsyncBuffer = buffer;
 }
 
 void CMapChunk::InitAsyncLoadBuffers() {
   for (unsigned int index = 0; index < 16; ++index) {
-    FreeAsyncLoadBuffer(reinterpret_cast<unsigned int *>(s_asyncLoadBuffers[index].Ptr()));
+    FreeAsyncLoadBuffer(s_asyncLoadBuffers[index].Ptr());
   }
 }
 
-unsigned int *CMapChunk::AllocAsyncLoadBuffer() {
+unsigned char *CMapChunk::AllocAsyncLoadBuffer() {
   if (!s_asyncBuffersInitialized) {
     InitAsyncLoadBuffers();
     s_asyncBuffersInitialized = 1;
   }
 
-  unsigned int *buffer = s_freeAsyncBuffer;
+  unsigned char *buffer = s_freeAsyncBuffer;
   if (!buffer) {
     return 0;
   }
 
   ValidateAsyncReadBuffer(buffer);
-  s_freeAsyncBuffer = *reinterpret_cast<unsigned int **>(buffer);
+  s_freeAsyncBuffer = *reinterpret_cast<unsigned char **>(buffer);
   if (s_freeAsyncBuffer) {
     ValidateAsyncReadBuffer(s_freeAsyncBuffer);
   }
@@ -212,7 +216,7 @@ void CMapChunk::AsyncPollHandler() {
   CAsyncObject *object = s_asyncLoadList.Head();
 
   while (object) {
-    unsigned int *buffer = AllocAsyncLoadBuffer();
+    unsigned char *buffer = AllocAsyncLoadBuffer();
     if (!buffer) {
       break;
     }
@@ -429,8 +433,8 @@ void CMapChunk::AsyncCallback(void *userArg) {
   CMapChunk *chunk = static_cast<CMapChunk *>(userArg);
   FATALASSERT(chunk);
 
-  chunk->Create(static_cast<unsigned int *>(chunk->asyncObject->buffer));
-  FreeAsyncLoadBuffer(static_cast<unsigned int *>(chunk->asyncObject->buffer));
+  chunk->Create(static_cast<unsigned char *>(chunk->asyncObject->buffer));
+  FreeAsyncLoadBuffer(static_cast<unsigned char *>(chunk->asyncObject->buffer));
   chunk->asyncObject->buffer = 0;
   AsyncFileReadDestroyObject(chunk->asyncObject);
   chunk->asyncObject = 0;
@@ -482,10 +486,11 @@ void CMapChunk::Load(SMChunkInfo *chunkInfo) {
   fileSize = chunkInfo->size;
 
   if (CMap::bPreload) {
+    OsOutputDebugString("CMapChunk::Load() preload\n");
     s_fileCritSect.Enter();
     SFile::SetFilePointer(CMap::wdtFile, fileOffset, 0, FILE_BEGIN);
-    SFile::Read(CMap::wdtFile, syncLoadBuffer, fileSize, 0, 0, 0);
-    Create(syncLoadBuffer);
+    SFile::Read(CMap::wdtFile, s_syncLoadBuffer.Ptr(), fileSize, 0, 0, 0);
+    Create(s_syncLoadBuffer.Ptr());
     s_fileCritSect.Leave();
   } else {
     asyncObject = AsyncFileReadCreateObject();
@@ -511,8 +516,8 @@ void CMapChunk::Load(SMChunkInfo *chunkInfo) {
 void CMapChunk::SyncLoadLayer(CChunkLayer *layer) {
   SMChunk      *mChunk = 0;
   SMLayer      *mLayer = 0;
-  unsigned int *shadowTex = 0;
-  unsigned int *alphaTex = 0;
+  unsigned char *shadowTex = 0;
+  unsigned char *alphaTex = 0;
 
   s_fileCritSect.Enter();
   SyncLoad(mChunk, mLayer, shadowTex, alphaTex);
@@ -525,7 +530,7 @@ void CMapChunk::SyncLoadLayer(CChunkLayer *layer) {
   }
   FATALASSERT(i < nLayers);
 
-  layer->offsAlpha = reinterpret_cast<unsigned char *>(alphaTex) + mLayer[i].offsAlpha;
+  layer->offsAlpha = alphaTex + mLayer[i].offsAlpha;
   CreateChunkLayerTex(layer);
   s_fileCritSect.Leave();
 }
@@ -533,8 +538,8 @@ void CMapChunk::SyncLoadLayer(CChunkLayer *layer) {
 void CMapChunk::SyncLoadShadow() {
   SMChunk      *mChunk = 0;
   SMLayer      *mLayer = 0;
-  unsigned int *shadowTex = 0;
-  unsigned int *alphaTex = 0;
+  unsigned char *shadowTex = 0;
+  unsigned char *alphaTex = 0;
 
   s_fileCritSect.Enter();
   SyncLoad(mChunk, mLayer, shadowTex, alphaTex);
@@ -547,14 +552,14 @@ void CMapChunk::SyncLoadShadow() {
 void CMapChunk::SyncLoadShader() {
   SMChunk      *mChunk = 0;
   SMLayer      *mLayer = 0;
-  unsigned int *shadowTex = 0;
-  unsigned int *alphaTex = 0;
+  unsigned char *shadowTex = 0;
+  unsigned char *alphaTex = 0;
 
   s_fileCritSect.Enter();
   SyncLoad(mChunk, mLayer, shadowTex, alphaTex);
 
   for (unsigned int i = 0; i < mChunk->nLayers; ++i) {
-    layerList[i]->offsAlpha = reinterpret_cast<unsigned char *>(alphaTex) + mLayer[i].offsAlpha;
+    layerList[i]->offsAlpha = alphaTex + mLayer[i].offsAlpha;
   }
   shadowOffs = shadowTex;
   shadowSize = mChunk->sizeShadow;
@@ -562,48 +567,48 @@ void CMapChunk::SyncLoadShader() {
   s_fileCritSect.Leave();
 }
 
-void CMapChunk::SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, unsigned int *&shadowTex, unsigned int *&alphaTex) {
+void CMapChunk::SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, unsigned char *&shadowTex, unsigned char *&alphaTex) {
   FATALASSERT(CMap::wdtFile);
 
   SFile::SetFilePointer(CMap::wdtFile, fileOffset, 0, FILE_BEGIN);
-  SFile::Read(CMap::wdtFile, syncLoadBuffer, fileSize, 0, 0, 0);
+  SFile::Read(CMap::wdtFile, s_syncLoadBuffer.Ptr(), fileSize, 0, 0, 0);
 
-  SIffChunk *iffChunk = reinterpret_cast<SIffChunk *>(syncLoadBuffer);
-  FATALASSERT(iffChunk->token == 'MCNK');
+  SIffChunk *iffChunk = reinterpret_cast<SIffChunk *>(s_syncLoadBuffer.Ptr());
+  FATALASSERT(iffChunk->token=='MCNK');
   mChunk = reinterpret_cast<SMChunk *>(iffChunk + 1);
 
   float    *mHeights = reinterpret_cast<float *>(mChunk + 1);
   SMNormal *mNormals = reinterpret_cast<SMNormal *>(mHeights + 145);
   iffChunk = reinterpret_cast<SIffChunk *>(mNormals + 1);
-  FATALASSERT(iffChunk->token == 'MCLY');
+  FATALASSERT(iffChunk->token=='MCLY');
   mLayer = reinterpret_cast<SMLayer *>(iffChunk + 1);
 
   iffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(mLayer) + iffChunk->size);
-  shadowTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(iffChunk + 1) + iffChunk->size);
-  alphaTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(shadowTex) + mChunk->sizeShadow);
+  shadowTex = reinterpret_cast<unsigned char *>(iffChunk + 1) + iffChunk->size;
+  alphaTex = shadowTex + mChunk->sizeShadow;
 }
 
-void CMapChunk::Create(unsigned int *data) {
+void CMapChunk::Create(unsigned char *data) {
   FATALASSERT(data);
   FATALASSERT(CMap::bActive);
   FATALASSERT(bLoaded == 0);
 
   SIffChunk *iffChunk = reinterpret_cast<SIffChunk *>(data);
-  FATALASSERT(iffChunk->token == 'MCNK');
+  FATALASSERT(iffChunk->token=='MCNK');
   SMChunk  *mChunk = reinterpret_cast<SMChunk *>(iffChunk + 1);
   float    *mHeights = reinterpret_cast<float *>(mChunk + 1);
   SMNormal *mNormals = reinterpret_cast<SMNormal *>(mHeights + 145);
 
   iffChunk = reinterpret_cast<SIffChunk *>(mNormals + 1);
-  FATALASSERT(iffChunk->token == 'MCLY');
+  FATALASSERT(iffChunk->token=='MCLY');
   SMLayer *mLayer = reinterpret_cast<SMLayer *>(iffChunk + 1);
 
   iffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(mLayer) + iffChunk->size);
-  FATALASSERT(iffChunk->token == 'MCRF');
+  FATALASSERT(iffChunk->token=='MCRF');
   unsigned int  *mRef = reinterpret_cast<unsigned int *>(iffChunk + 1);
-  unsigned int  *shadowTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(mRef) + iffChunk->size);
-  unsigned int  *alphaTex = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(shadowTex) + mChunk->sizeShadow);
-  unsigned char *liquidData = reinterpret_cast<unsigned char *>(alphaTex) + mChunk->sizeAlpha;
+  unsigned char *shadowTex = reinterpret_cast<unsigned char *>(mRef) + iffChunk->size;
+  unsigned char *alphaTex = shadowTex + mChunk->sizeShadow;
+  unsigned char *liquidData = alphaTex + mChunk->sizeAlpha;
 
   unsigned long mask = 4;
   for (unsigned int i = 0; i < 4; ++i) {
@@ -624,20 +629,20 @@ void CMapChunk::Create(unsigned int *data) {
     unsigned char *emitterData = liquidData;
     for (unsigned int i = 0; i < mChunk->nSndEmitters; ++i) {
       CMapSoundEmitter *emitter = CMap::AllocSoundEmitter();
-      memcpy(emitter, emitterData, 32);
-      emitter->startTime = *reinterpret_cast<unsigned short *>(emitterData + 32);
-      emitter->endTime = *reinterpret_cast<unsigned short *>(emitterData + 34);
-      emitter->mode = *reinterpret_cast<unsigned short *>(emitterData + 36);
-      emitter->groupSilenceMin = *reinterpret_cast<unsigned short *>(emitterData + 40);
-      emitter->groupSilenceMax = *reinterpret_cast<unsigned short *>(emitterData + 42);
-      emitter->playInstancesMin = *reinterpret_cast<unsigned short *>(emitterData + 44);
-      emitter->playInstancesMax = 0;
-      emitter->loopCountMin = emitterData[38];
-      emitter->loopCountMax = emitterData[39];
-      emitter->interSoundGapMin = *reinterpret_cast<unsigned short *>(emitterData + 40);
-      emitter->interSoundGapMax = *reinterpret_cast<unsigned short *>(emitterData + 42);
+      memcpy(&emitter->data, emitterData, 32);
+      emitter->data.startTime = *reinterpret_cast<unsigned short *>(emitterData + 32);
+      emitter->data.endTime = *reinterpret_cast<unsigned short *>(emitterData + 34);
+      emitter->data.mode = *reinterpret_cast<unsigned short *>(emitterData + 36);
+      emitter->data.groupSilenceMin = *reinterpret_cast<unsigned short *>(emitterData + 40);
+      emitter->data.groupSilenceMax = *reinterpret_cast<unsigned short *>(emitterData + 42);
+      emitter->data.playInstancesMin = *reinterpret_cast<unsigned short *>(emitterData + 44);
+      emitter->data.playInstancesMax = *reinterpret_cast<unsigned short *>(emitterData + 46);
+      emitter->data.loopCountMin = emitterData[38];
+      emitter->data.loopCountMax = emitterData[39];
+      emitter->data.interSoundGapMin = *reinterpret_cast<unsigned short *>(emitterData + 48);
+      emitter->data.interSoundGapMax = *reinterpret_cast<unsigned short *>(emitterData + 50);
       soundEmitterList.LinkNode(emitter, LIST_TAIL, 0);
-      soundEmitterCreateHandler(*emitter);
+      soundEmitterCreateHandler(emitter->data);
       emitterData += 52;
     }
   }
@@ -658,14 +663,13 @@ void CMapChunk::Create(unsigned int *data) {
   memset(shadowBits, 0, sizeof(shadowBits));
 
   CreateVertices(mHeights);
-  CreateNormals(reinterpret_cast<int *>(mNormals));
+  CreateNormals(reinterpret_cast<signed char *>(mNormals));
   CreateFacePlanes();
 
   CMapBaseObjLink *areaLink = parentLinkList.Head();
-  FATALASSERT(areaLink);
   CMapArea *area = static_cast<CMapArea *>(areaLink->ref);
-  FATALASSERT(mChunk->indexX == static_cast<unsigned int>(aIndex.x));
-  FATALASSERT(mChunk->indexY == static_cast<unsigned int>(aIndex.y));
+  FATALASSERT(mChunk->indexX == (uint32)aIndex.x);
+  FATALASSERT(mChunk->indexY == (uint32)aIndex.y);
   CreateRefs(area, mRef, mChunk->nDoodadRefs, mChunk->nMapObjRefs);
 
   for (unsigned int layerIndex = 0; layerIndex < mChunk->nLayers; ++layerIndex) {
@@ -837,11 +841,11 @@ void CMapChunk::CreateVertices(float *heights) {
   aaSphere.r = rv.Mag();
 }
 
-void CMapChunk::CreateNormals(int *normals) {
+void CMapChunk::CreateNormals(signed char *normals) {
   FATALASSERT(normals);
 
-  char               *outer = reinterpret_cast<char *>(normals);
-  char               *inner = outer + 243;
+  signed char        *outer = normals;
+  signed char        *inner = outer + 243;
   NTempest::C3Vector *normal = normalList;
 
   for (int fixed = 0; fixed < 9; ++fixed) {
@@ -885,7 +889,7 @@ void CMapChunk::CreateFacePlanes() {
   }
 }
 
-void CMapChunk::CreateLayer(CMapArea *area, SMLayer *layer, unsigned int *alphaTex) {
+void CMapChunk::CreateLayer(CMapArea *area, SMLayer *layer, unsigned char *alphaTex) {
   FATALASSERT(area);
   FATALASSERT(layer);
   FATALASSERT(nLayers <= 4);
@@ -895,10 +899,9 @@ void CMapChunk::CreateLayer(CMapArea *area, SMLayer *layer, unsigned int *alphaT
   chunkLayer->chunk = this;
   ++nLayers;
 
-  FATALASSERT(layer->textureId < area->texIdTable.Count());
   chunkLayer->texId = area->texIdTable[layer->textureId];
   chunkLayer->props = static_cast<unsigned short>(layer->props);
-  chunkLayer->offsAlpha = reinterpret_cast<unsigned char *>(alphaTex) + layer->offsAlpha;
+  chunkLayer->offsAlpha = alphaTex + layer->offsAlpha;
   chunkLayer->effectId = layer->effectId;
 
   if (!CMap::EnableTerrainShader() && !CMap::EnableSpecularTerrain()) {
@@ -912,7 +915,7 @@ void CMapChunk::CreateLayer(CMapArea *area, SMLayer *layer, unsigned int *alphaT
   }
 }
 
-void CMapChunk::CreateShadow(unsigned int *shadowTex) {
+void CMapChunk::CreateShadow(unsigned char *shadowTex) {
   shadowOffs = shadowTex;
   if (!CMap::EnableTerrainShader() && !CMap::EnableSpecularTerrain()) {
     int sizeX;
@@ -979,27 +982,29 @@ void CMapChunk::CreateRefs(CMapArea *area, unsigned int *ref, unsigned int dooda
 }
 
 void CMapChunk::CreateChunkShadowTex() {
-  shadowTexture = CMap::GetTex();
-  FATALASSERT(shadowTexture);
+  CChunkTex *tex = CMap::GetTex();
+  FATALASSERT(tex);
+  shadowTexture = tex;
   UnpackShadowBits(shadowTexture->pixels, shadowBits, shadowOffs);
 }
 
 void CMapChunk::CreateChunkLayerTex(CChunkLayer *layer) {
   FATALASSERT(layer);
-  layer->tex = CMap::GetTex();
-  FATALASSERT(layer->tex);
-  UnpackAlphaBits(layer->tex->pixels, reinterpret_cast<const unsigned int *>(layer->offsAlpha));
+  CChunkTex *tex = CMap::GetTex();
+  FATALASSERT(tex);
+  layer->tex = tex;
+  UnpackAlphaBits(layer->tex->pixels, layer->offsAlpha);
 }
 
 void CMapChunk::CreateChunkShaderTex() {
   shaderTexture = CMap::GetTex();
   FATALASSERT(shaderTexture);
 
-  const unsigned int *alpha[4];
+  const unsigned char *alpha[4];
   for (unsigned int i = 0; i < 4; ++i) {
     alpha[i] = 0;
     if (i < nLayers && (layerList[i]->props & 0x100)) {
-      alpha[i] = reinterpret_cast<const unsigned int *>(layerList[i]->offsAlpha);
+      alpha[i] = layerList[i]->offsAlpha;
     }
   }
 
@@ -1009,19 +1014,16 @@ void CMapChunk::CreateChunkShaderTex() {
 void CMapChunk::UnpackAlphaShadowBits(
     NTempest::CImVector       *texels,
     unsigned long             *bits,
-    const unsigned int *const *alpha,
-    const unsigned int        *shadow
+    const unsigned char *const *const alpha,
+    const unsigned char        *shadow
 ) {
   unsigned int coordDelta = 1;
   if (CWorld::shadowMipLevel == 1) {
     coordDelta = 2;
   }
 
-  const unsigned char *alphaBytes[4] = {
-      reinterpret_cast<const unsigned char *>(alpha[0]), reinterpret_cast<const unsigned char *>(alpha[1]),
-      reinterpret_cast<const unsigned char *>(alpha[2]), reinterpret_cast<const unsigned char *>(alpha[3])
-  };
-  const unsigned char *shadowBytes = reinterpret_cast<const unsigned char *>(shadow);
+  const unsigned char *alphaBytes[4] = {alpha[0], alpha[1], alpha[2], alpha[3]};
+  const unsigned char *shadowBytes = shadow;
   unsigned long       *pixels = reinterpret_cast<unsigned long *>(texels);
   unsigned int         dst = 0;
 
@@ -1050,11 +1052,11 @@ void CMapChunk::UnpackAlphaShadowBits(
   }
 }
 
-void CMapChunk::UnpackAlphaBits(unsigned long *pixels, const unsigned int *alphaPixels) {
+void CMapChunk::UnpackAlphaBits(unsigned long *pixels, const unsigned char *alphaPixels) {
   FATALASSERT(pixels);
   FATALASSERT(alphaPixels);
 
-  const unsigned char *alpha = reinterpret_cast<const unsigned char *>(alphaPixels);
+  const unsigned char *alpha = alphaPixels;
   if (CWorld::alphaMipLevel == 1) {
     unsigned int source = 0;
     unsigned int dest = 0;
@@ -1075,12 +1077,12 @@ void CMapChunk::UnpackAlphaBits(unsigned long *pixels, const unsigned int *alpha
   }
 }
 
-void CMapChunk::UnpackShadowBits(unsigned long *pixels, unsigned long *shadowBits, const unsigned int *shadow) {
+void CMapChunk::UnpackShadowBits(unsigned long *pixels, unsigned long *shadowBits, const unsigned char *shadow) {
   FATALASSERT(pixels);
   FATALASSERT(shadowBits);
   FATALASSERT(shadow);
 
-  const unsigned char *shadowBytes = reinterpret_cast<const unsigned char *>(shadow);
+  const unsigned char *shadowBytes = shadow;
   unsigned int         shadowIndex = 0;
   if (CWorld::shadowMipLevel == 1) {
     for (unsigned int y = 0; y < 32; ++y) {

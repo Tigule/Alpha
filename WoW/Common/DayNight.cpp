@@ -38,7 +38,7 @@ static float         coserpTable[256];
 unsigned long      DNClouds::m_tmSizeTable[] = {128, 256, 512, 1024, 2048};
 unsigned long      DNClouds::m_tmShiftTable[] = {7, 8, 9, 10, 11};
 const float        DNClouds::BUMPFADETIME = 0.027777778f;
-NTempest::C2Vector DNClouds::m_bumpFadeTable[] = {NTempest::C2Vector(0.16666667f, 1.0f), NTempest::C2Vector(0.19444445f, 0.0f),
+const NTempest::C2Vector DNClouds::m_bumpFadeTable[] = {NTempest::C2Vector(0.16666667f, 1.0f), NTempest::C2Vector(0.19444445f, 0.0f),
                                                   NTempest::C2Vector(0.2013889f, 0.0f),  NTempest::C2Vector(0.22916667f, 1.0f),
                                                   NTempest::C2Vector(0.89583331f, 1.0f), NTempest::C2Vector(0.9236111f, 0.0f),
                                                   NTempest::C2Vector(0.8888889f, 0.0f),  NTempest::C2Vector(0.91666669f, 1.0f)};
@@ -50,6 +50,11 @@ static NTempest::C2Vector s_sidnTable[4] = {
     NTempest::C2Vector(0.89583331f, 1.0f)
 };
 static NTempest::C2Vector s_unitColorTable[2] = {NTempest::C2Vector(0.083333336f, 0.25f), NTempest::C2Vector(0.5f, 1.0f)};
+
+const NTempest::C2Vector DNStars::m_fadeTable[4] = {
+    NTempest::C2Vector(0.22916667f - 0.10416666f, 1.0f), NTempest::C2Vector(0.22916667f - 0.041666668f, 0.0f),
+    NTempest::C2Vector(0.89583331f + 0.041666668f, 0.0f), NTempest::C2Vector(0.89583331f + 0.10416666f, 1.0f)
+};
 
 DNStars     s_stars;
 DNMoonGlare s_moonGlare;
@@ -100,13 +105,10 @@ static inline float Interp(float range1, float range2, float percent) {
 
 class LightQE {
  public:
-  LightQE() {
-  }
-
   LightQE(float pDist, int pSubscript) : dist(pDist), subscript(pSubscript) {
   }
 
-  static unsigned int HasHigherPriority(LightQE &a, LightQE &b) {
+  static bool HasHigherPriority(const LightQE &a, const LightQE &b) {
     return a.dist >= b.dist;
   }
 
@@ -123,7 +125,7 @@ static NTempest::CImVector BlendColor(NTempest::CImVector from, NTempest::CImVec
   return color;
 }
 
-static float InterpTable(NTempest::C2Vector *table, unsigned long size, float key) {
+static float InterpTable(const NTempest::C2Vector *table, unsigned long size, float key) {
   unsigned long next;
   for (next = 0; next < size; ++next) {
     if (key <= table[next].x) {
@@ -342,7 +344,7 @@ static void SetFogColors() {
 
 void DNSky::SetColors() {
   NTempest::CImVector midColors[6];
-  float               darkness = InterpTable(const_cast<NTempest::C2Vector *>(m_darkTable), 7, s_dnInfo.dayProgression) * s_dnInfo.light.Darkness;
+  float               darkness = InterpTable(m_darkTable, 6, s_dnInfo.dayProgression) * s_dnInfo.light.Darkness;
 
   for (unsigned int i = 0; i < 5; ++i) {
     midColors[i + 1] = BlendColor(s_dnInfo.light.SkyArray[i + 1], s_dnInfo.light.SkyArray[0], darkness);
@@ -362,7 +364,7 @@ void DNSky::SetColors() {
       if (angle < 0.0f) {
         angle += 1.0f;
       }
-      float               fade = InterpTable(const_cast<NTempest::C2Vector *>(m_fadeTable), 6, angle);
+      float               fade = InterpTable(m_fadeTable, 6, angle);
       NTempest::CImVector bandColor;
       if (fade >= 0.0f) {
         bandColor = BlendColor(midColors[band], s_dnInfo.light.SkyArray[band], (1.0f - fade) * darkness);
@@ -548,7 +550,7 @@ float DNSunGlare::GetCloudDensityFade() {
   return 1.0f - s_clouds.GetDensity(m_pos, 1.0f);
 }
 
-void DNClouds::WorldToTexture(NTempest::C3Vector &worldPt, NTempest::C2Vector &tex) {
+void DNClouds::WorldToTexture(const NTempest::C3Vector &worldPt, NTempest::C2Vector &tex) {
   NTempest::C3Vector localPt = worldPt - s_dnInfo.cameraPos;
   NTempest::C3Vector sphColpt(localPt.x, localPt.y, localPt.z + 736.0f);
   NTempest::C3Vector up(0.0f, 0.0f, 800.0f);
@@ -576,7 +578,7 @@ void DNClouds::WorldToTexture(NTempest::C3Vector &worldPt, NTempest::C2Vector &t
   tex.y = (localPt.y * texRadius + 0.5f) * m_tmSize;
 }
 
-void DNClouds::Collide(NTempest::C3Vector &origin, NTempest::C3Vector &dir, NTempest::C3Vector &hitPoint) {
+void DNClouds::Collide(const NTempest::C3Vector &origin, const NTempest::C3Vector &dir, NTempest::C3Vector &hitPoint) {
   float r1;
   float r2;
 
@@ -598,7 +600,7 @@ void DNClouds::Collide(NTempest::C3Vector &origin, NTempest::C3Vector &dir, NTem
   hitPoint = s_dnInfo.cameraPos + origin + dir * r1;
 }
 
-float DNClouds::GetDensity(NTempest::C3Vector &worldPoint, float area) {
+float DNClouds::GetDensity(const NTempest::C3Vector &worldPoint, float area) {
   if (!m_nLayers) {
     return 0.0f;
   }
@@ -1212,8 +1214,8 @@ static int ConsoleCommand_SkySunGlare(const char *__formal, const char *args) {
 }
 
 void DNStars::Update() {
-  m_pos = s_dnInfo.playerPos;
-  m_color.a = static_cast<unsigned char>(InterpTable(s_sidnTable, 4, s_dnInfo.dayProgression) * 254.0f + 1.0f);
+  m_pos = s_dnInfo.cameraPos;
+  m_color.a = InterpTable(m_fadeTable, 4, s_dnInfo.dayProgression) * 254.0f + 1.0f;
 }
 
 static int ConsoleCommand_SkyShow(const char *__formal, const char *args) {

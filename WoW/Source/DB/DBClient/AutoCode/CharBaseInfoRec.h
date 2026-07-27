@@ -17,7 +17,7 @@ class CharBaseInfoRec {
     return 6;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_generatedID;
   }
 

@@ -13,6 +13,8 @@ enum {
 template <unsigned int SIZE>
 class WDataStoreBuffer : public TObjectAllocMemHandle {
  public:
+  int GetSize();
+
   unsigned char buf[SIZE];
 };
 

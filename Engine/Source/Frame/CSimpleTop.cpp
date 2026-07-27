@@ -238,7 +238,7 @@ void CSimpleTop::NotifyFrameMovedOrResized(CSimpleFrame *frame) {
   }
 
   if (strata->batchDirty) {
-    strata->BuildBatches();
+    strata->BuildBatches(!m_mouseCapture);
   }
 
   RaiseFrame(m_layout.frame, 0);
@@ -557,7 +557,7 @@ void CSimpleTop::OnLayerRender() {
     }
 
     if (strata->batchDirty) {
-      strata->BuildBatches();
+      strata->BuildBatches(!m_mouseCapture);
     }
 
     strata->RenderBatches();

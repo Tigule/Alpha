@@ -12,6 +12,7 @@ class unreal {
 
   unreal() {}
   unreal(const unreal &value) : bits(value.bits) {}
+  ~unreal() {}
 
   static unreal fromBits(unsigned int value) {
     unreal result;

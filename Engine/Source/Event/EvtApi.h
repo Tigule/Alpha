@@ -212,7 +212,7 @@ struct EVENT_DATA_KEY {
   KEY          key;
   unsigned int metaKeyState;
   unsigned int repeat;
-  unsigned int time;
+  unsigned long time;
 };
 
 struct EVENT_DATA_MOUSE {
@@ -224,7 +224,7 @@ struct EVENT_DATA_MOUSE {
   float        x;
   float        y;
   int          wheelDistance;
-  unsigned int time;
+  unsigned long time;
 };
 
 struct EVENT_DATA_SIZE {

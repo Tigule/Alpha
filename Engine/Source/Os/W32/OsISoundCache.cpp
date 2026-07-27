@@ -59,9 +59,7 @@ SoundFileDataCacheBlock *AllocCacheBlock(__int64 hashKey) {
   SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCacheLRU.Head();
   s_soundFileDataCacheLRU.UnlinkNode(cacheBlock);
 
-  if (cacheBlock->m_linktoslot.IsLinked()) {
-    s_soundFileDataCache.Unlink(cacheBlock);
-  }
+  s_soundFileDataCache.Unlink(cacheBlock);
 
   s_soundFileDataCache.Insert(cacheBlock, static_cast<unsigned int>(hashKey), HASHKEY_LONGLONG(hashKey));
   s_soundFileDataCacheLRU.LinkNode(cacheBlock, LIST_TAIL, 0);

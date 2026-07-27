@@ -24,8 +24,8 @@
 void ProjectTex2dMakeMatrices(
     NTempest::C44Matrix &texmat0,
     NTempest::C44Matrix &texmat1,
-    NTempest::CAaBox    &box,
-    NTempest::C44Matrix *basis,
+    const NTempest::CAaBox &box,
+    const NTempest::C44Matrix *basis,
     float                fadeOffset,
     int                  inWorldSpace
 );
@@ -222,7 +222,7 @@ CHUNKDATA *LISTBASE::FindChunk(int id) {
   return chunk;
 }
 
-unsigned int PERSISTENTTEXTURE::MakeSpace() {
+unsigned char PERSISTENTTEXTURE::MakeSpace() {
   if (m_currentCount >= m_maxCount) {
     SPLATDATA *splat = m_splatOrder.Tail();
     if (splat) {
@@ -232,7 +232,7 @@ unsigned int PERSISTENTTEXTURE::MakeSpace() {
   return 1;
 }
 
-unsigned int TIMEDTEXTURE::MakeSpace() {
+unsigned char TIMEDTEXTURE::MakeSpace() {
   return m_currentCount < m_maxCount;
 }
 
@@ -265,7 +265,7 @@ void CHUNKDATA::Render() {
   }
 }
 
-int CHUNKDATA::GetVertCount(CWTriData::Batch &batch, int &lowest, int &highest) {
+int CHUNKDATA::GetVertCount(const CWTriData::Batch &batch, int &lowest, int &highest) {
   int indexCount = batch.GetIndexCount();
   if (!indexCount) {
     return 0;
@@ -300,7 +300,8 @@ CHUNKDATA::~CHUNKDATA() {
   Unlink();
 }
 
-SPLATDATA *CHUNKDATA::Add(CWTriData::Batch &batch, NTempest::CAaBox &box, NTempest::C44Matrix &basis) {
+SPLATDATA *CHUNKDATA::Add(
+    const CWTriData::Batch &batch, const NTempest::CAaBox &box, const NTempest::C44Matrix &basis) {
   int lowest;
   int highest;
   int vertCount = GetVertCount(batch, lowest, highest);
@@ -358,7 +359,7 @@ void CHUNKDATA::RecycleSplat(SPLATDATA *splat) {
   s_freeList.LinkNode(splat, LIST_TAIL, 0);
 }
 
-void LISTBASE::Add(NTempest::C3Vector &position, NTempest::CAaBox &box, NTempest::C44Matrix &matrix) {
+void LISTBASE::Add(const NTempest::C3Vector &position, const NTempest::CAaBox &box, const NTempest::C44Matrix &matrix) {
   if (!m_texture) {
     return;
   }

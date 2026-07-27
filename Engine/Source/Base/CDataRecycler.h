@@ -17,15 +17,24 @@ class TExtraInstanceRecyclable {
     m_recycleBytes = recycleBytes;
   }
 
-  unsigned long GetRecycleBytes() {
+  unsigned long GetRecycleBytes() const {
     return m_recycleBytes;
   }
 
+ private:
   unsigned long m_recycleBytes;
 };
 
 class CDataRecycler {
  public:
+  enum {
+    eDefaultNodesPerBlock = 16
+  };
+
+  enum {
+    eDefaultMaxNodes = 0x7FFFFFFF
+  };
+
   struct Node {
     Node         *m_next;
     void         *m_data;
@@ -37,7 +46,10 @@ class CDataRecycler {
     Node       m_nodes[1];
   };
 
-  CDataRecycler(unsigned int nodesPerBlock, long maxNodes);
+  CDataRecycler(
+      unsigned int nodesPerBlock = eDefaultNodesPerBlock,
+      long maxNodes = eDefaultMaxNodes);
+  CDataRecycler(const CDataRecycler &);
   virtual ~CDataRecycler();
 
   virtual void  Clear();
@@ -55,8 +67,14 @@ class CDataRecycler {
   void PutData(void *data, unsigned long bytes, const char *fileName, int lineNumber);
 
  private:
+  CDataRecycler &operator=(const CDataRecycler &);
+
   void  Link(void **list, void *item, int nextOffset);
+  void  Link(NodeBlock **list, NodeBlock *nodeBlock);
+  void  Link(Node **list, Node *node);
   void *Unlink(void **list, int nextOffset);
+  NodeBlock *Unlink(NodeBlock **list);
+  Node      *Unlink(Node **list);
   void  Link(Node **list, NodeBlock *nodeBlock);
 
   long         m_nodesRecyclable;
@@ -67,9 +85,16 @@ class CDataRecycler {
 };
 
 template <class T>
-class TExtraInstanceRecycler : public CDataRecycler {
+class TExtraInstanceRecycler : protected CDataRecycler {
  public:
-  TExtraInstanceRecycler(unsigned int nodesPerBlock, long maxNodes, unsigned long maxBytesPerInstance)
+  enum {
+    eDefaultMaxBytesPerInstance = -1
+  };
+
+  TExtraInstanceRecycler(
+      unsigned int nodesPerBlock = 0,
+      long maxNodes = 0,
+      unsigned long maxBytesPerInstance = eDefaultMaxBytesPerInstance)
       : CDataRecycler(nodesPerBlock, maxNodes), m_maxBytesPerInstance(maxBytesPerInstance) {
   }
 
@@ -108,6 +133,9 @@ class TExtraInstanceRecycler : public CDataRecycler {
       PutData(instance, recycleBytes, typeid(T).raw_name(), SERR_LINECODE_OBJECT);
     }
   }
+
+ private:
+  TExtraInstanceRecycler &operator=(const TExtraInstanceRecycler &);
 
   unsigned long m_maxBytesPerInstance;
 };

@@ -344,7 +344,7 @@ int ReadBinCameras(
   unsigned int count = buffer.GetUint();
   unsigned int totalRead = 4;
   data.cameras.SetCount(0);
-  data.cameras.Reserve(count);
+  data.cameras.ReserveSpace(count);
   while (totalRead < length) {
     MDLCAMERASECTION *camera = data.cameras.New();
     if (!ReadBinCamera(buffer, camera, status, totalRead)) {

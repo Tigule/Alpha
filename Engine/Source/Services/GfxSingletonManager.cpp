@@ -127,7 +127,7 @@ void ParticleSystemManager::UpdateEmitters(float elapsedTime, const NTempest::C3
   while (index) {
     CParticleEmitter *temp = deletedModelEmitters[--index];
     temp->Update(elapsedTime, cameraPos, cameraTarg);
-    if (!temp->m_alive.m_stackPointer) {
+    if (temp->m_alive.IsEmpty()) {
       deletedModelEmitters[index] = deletedModelEmitters[deletedModelEmitters.Count() - 1];
       deletedModelEmitters.SetCount(deletedModelEmitters.Count() - 1);
       temp->DecRef();
@@ -143,7 +143,7 @@ void ParticleSystemManager::UpdateEmitters(float elapsedTime, const NTempest::C3
   while (index) {
     CParticleEmitter2 *temp = deletedEmitter2s[--index];
     temp->SingletonMgrUpdate(elapsedTime, cameraPos, 1);
-    if (!temp->m_alive.m_stackPointer) {
+    if (temp->m_alive.IsEmpty()) {
       deletedEmitter2s[index] = deletedEmitter2s[deletedEmitter2s.Count() - 1];
       deletedEmitter2s.SetCount(deletedEmitter2s.Count() - 1);
       temp->DecRef();

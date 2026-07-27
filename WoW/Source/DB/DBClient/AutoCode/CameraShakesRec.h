@@ -17,7 +17,7 @@ class CameraShakesRec {
     return 32;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

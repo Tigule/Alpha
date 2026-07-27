@@ -84,7 +84,7 @@ int DataMgrGetBool(HDATAMGR__* mgr, unsigned int fieldId) {
       managed->Update(0.0f);
     }
   }
-  return static_cast<TManaged<int> *>(managed)->m_data;
+  return static_cast<TManaged<int> *>(managed)->Get();
 }
 
 void DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, NTempest::CImVector* color) {
@@ -103,7 +103,7 @@ void DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, NTempest::CImVector*
       managed->Update(0.0f);
     }
   }
-  *color = static_cast<TManaged<NTempest::CImVector> *>(managed)->m_data;
+  *color = static_cast<TManaged<NTempest::CImVector> *>(managed)->Get();
 }
 
 void DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, C3Color* color) {
@@ -122,7 +122,7 @@ void DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, C3Color* color) {
       managed->Update(0.0f);
     }
   }
-  *color = static_cast<TManaged<C3Color> *>(managed)->m_data;
+  *color = static_cast<TManaged<C3Color> *>(managed)->Get();
 }
 
 void DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3Vector *coord) {
@@ -145,7 +145,7 @@ void DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3Vector *coo
     }
   }
 
-  *coord = static_cast<TManaged<NTempest::C3Vector> *>(managed)->m_data;
+  *coord = static_cast<TManaged<NTempest::C3Vector> *>(managed)->Get();
 }
 
 void DataMgrGetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, NTempest::C33Matrix* matrix) {
@@ -164,7 +164,7 @@ void DataMgrGetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, NTempest::C33Mat
       managed->Update(0.0f);
     }
   }
-  *matrix = static_cast<TManaged<NTempest::C33Matrix> *>(managed)->m_data;
+  *matrix = static_cast<TManaged<NTempest::C33Matrix> *>(managed)->Get();
 }
 
 int DataMgrGetInt(HDATAMGR__* mgr, unsigned int fieldId) {
@@ -181,7 +181,7 @@ int DataMgrGetInt(HDATAMGR__* mgr, unsigned int fieldId) {
       managed->Update(0.0f);
     }
   }
-  return static_cast<TManaged<int> *>(managed)->m_data;
+  return static_cast<TManaged<int> *>(managed)->Get();
 }
 
 float DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId) {
@@ -202,7 +202,7 @@ float DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId) {
     }
   }
 
-  return static_cast<TManaged<float> *>(managed)->m_data;
+  return static_cast<TManaged<float> *>(managed)->Get();
 }
 
 void DataMgrGetUpdateInfo(HDATAMGR__* mgr, unsigned int fieldId, UpdateInfo* info) {

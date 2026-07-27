@@ -7,6 +7,10 @@ namespace NTempest {
 
   class C2Vector {
    public:
+    enum {
+      eComponents = 2
+    };
+
     C2Vector(float value = 0.0f) : x(value), y(value) {
     }
 
@@ -84,7 +88,7 @@ namespace NTempest {
         *this *= CMath::sqrtinv_(squaredMag);
       }
     }
-    void Scale(float magnitude) {
+    void Scale(const float magnitude) {
       SafeNormalize();
       *this *= magnitude;
     }

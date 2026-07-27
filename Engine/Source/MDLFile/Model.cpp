@@ -180,20 +180,20 @@ int ReadModelGlobals(
       + data.model.particle2Count
       + data.model.ribbonCount
       + data.model.eventCount;
-  data.objects.Reserve(objectCount);
+  data.objects.ReserveSpace(objectCount);
   if (data.pivotPoints.Count() < 500) {
-    data.pivotPoints.Reserve(objectCount);
+    data.pivotPoints.ReserveSpace(objectCount);
   }
-  data.geosets.Reserve(data.model.geosetCount);
-  data.geosetAnims.Reserve(data.model.geosetAnimCount);
-  data.bones.Reserve(data.model.boneCount);
-  data.lights.Reserve(data.model.lightCount);
-  data.helpers.Reserve(data.model.helperCount);
-  data.attachments.Reserve(data.model.attachmentCount);
-  data.particleEmitters.Reserve(data.model.particleCount);
-  data.particleEmitters2.Reserve(data.model.particle2Count);
-  data.ribbonEmitters.Reserve(data.model.ribbonCount);
-  data.events.Reserve(data.model.eventCount);
+  data.geosets.ReserveSpace(data.model.geosetCount);
+  data.geosetAnims.ReserveSpace(data.model.geosetAnimCount);
+  data.bones.ReserveSpace(data.model.boneCount);
+  data.lights.ReserveSpace(data.model.lightCount);
+  data.helpers.ReserveSpace(data.model.helperCount);
+  data.attachments.ReserveSpace(data.model.attachmentCount);
+  data.particleEmitters.ReserveSpace(data.model.particleCount);
+  data.particleEmitters2.ReserveSpace(data.model.particle2Count);
+  data.ribbonEmitters.ReserveSpace(data.model.ribbonCount);
+  data.events.ReserveSpace(data.model.eventCount);
 
   errors.Complete(status);
   return !parse.FoundError();
@@ -271,7 +271,7 @@ int ReadBinModelGlobals(
   buffer.GetFloatArray(&data.model.bounds.extent.b.x, 3);
   buffer.GetFloatArray(&data.model.bounds.extent.t.x, 3);
   data.model.flags = buffer.GetByte();
-  data.objects.Reserve(buffer.GetUint());
+  data.objects.ReserveSpace(buffer.GetUint());
   return 1;
 }
 

@@ -14,17 +14,14 @@ class CAngle : public TManaged<float> {
  public:
   CAngle();
   CAngle(float angle);
-  float Cos() const {
+  float Cos() {
     return m_cos;
   }
-  float Sin() const {
+  float Sin() {
     return m_sin;
   }
 
   friend HCAMERA CameraDuplicate(HCAMERA source);
-
-  float m_cos;
-  float m_sin;
 
  protected:
   virtual void Set_(const float &angle);
@@ -32,6 +29,8 @@ class CAngle : public TManaged<float> {
  private:
   void Calc();
   float ClampTo2Pi(float angle);
+  float m_cos;
+  float m_sin;
 };
 
 class CCamera : public CDataMgr {

@@ -273,11 +273,8 @@ CMapDoodadDef *CMap::CreateDoodadDef(
 CMapDoodadDef *CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos) {
   HASHKEY_DWORD  key;
   CMapDoodadDef *doodadDef = doodadDefHash.Ptr(smDoodadDef.uniqueId, key);
-  while (doodadDef) {
-    if (doodadDef->m_hashval == smDoodadDef.uniqueId && doodadDef->m_key == key) {
-      return doodadDef;
-    }
-    doodadDef = doodadDef->m_linktoslot.Next();
+  if (doodadDef) {
+    return doodadDef;
   }
 
   doodadDef = AllocDoodadDef();
@@ -318,11 +315,8 @@ CMapDoodadDef *CMap::CreateDoodadDef(
 ) {
   HASHKEY_DWORD  key(mapObjDefId);
   CMapDoodadDef *doodadDef = doodadDefHash.Ptr(doodadRef, key);
-  while (doodadDef) {
-    if (doodadDef->m_hashval == doodadRef && doodadDef->m_key == key) {
-      return doodadDef;
-    }
-    doodadDef = doodadDef->m_linktoslot.Next();
+  if (doodadDef) {
+    return doodadDef;
   }
 
   doodadDef = AllocDoodadDef();
@@ -580,7 +574,13 @@ void CMap::CreateMapObjDefGroupDoodads(
 
     SMODoodadDef  &smoDoodadDef = mapObj->doodadDefList[doodadRef];
     CMapDoodadDef *doodadDef =
-        CreateDoodadDef(doodadRef, smoDoodadDef, mapObj->doodadNameList + smoDoodadDef.nameIndex, mapObjDef->m_hashval + 1, mapObjDef->mat);
+        CreateDoodadDef(
+            doodadRef,
+            smoDoodadDef,
+            mapObj->doodadNameList + smoDoodadDef.nameIndex,
+            mapObjDef->GetHashValue() + 1,
+            mapObjDef->mat
+        );
     if (doodadDef) {
       CMapBaseObjLink *link = AllocBaseObjLink(doodadDef);
       link->ref = mapObjDefGroup;

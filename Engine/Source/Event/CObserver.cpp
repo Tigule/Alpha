@@ -9,21 +9,34 @@
 struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   struct EVENTCALLBACKREG;
   struct EVENTDISPATCHREG;
+  class EventIterator;
+  typedef EVENTCALLBACKREG *PEVENTCALLBACKREG;
+  typedef const EVENTCALLBACKREG *PCEVENTCALLBACKREG;
+  typedef EVENTDISPATCHREG *PEVENTDISPATCHREG;
+  typedef const EVENTDISPATCHREG *PCEVENTDISPATCHREG;
 
+ private:
+  enum {
+    LOCKED = 0x0FFFFFFF,
+    CHANGED = 0x80000000
+  };
+
+ public:
   EventReg();
   ~EventReg();
 
-  void RegisterCallback(CObserver::EVENTCALLBACK callback, void *param);
+  void RegisterCallback(EVENTCALLBACK callback, void *param);
   void RegisterEvent(int expectedEventId, CObserver *pObserver);
-  void UnregisterCallback(CObserver::EVENTCALLBACK callback);
+  void UnregisterCallback(EVENTCALLBACK callback);
   void UnregisterEvent(CObserver *pObserver);
   void CleanupCallbacks();
   void CleanupEvents();
-  int  IsCallbackRegistered(CObserver::EVENTCALLBACK callback) const;
+  int  IsCallbackRegistered(EVENTCALLBACK callback) const;
   int  IsEventRegistered(CObserver *pObserver) const;
   int  DispatchCallback(CEvent &event);
   int  DispatchEvent(CEvent &event);
 
+ private:
   void SetFlag(unsigned long flag) {
     flags |= flag;
   }
@@ -36,6 +49,7 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
     return (flags & flag) != 0;
   }
 
+ public:
   int IsEmpty() const {
     return !callbackList.Head() && !dispatchList.Head();
   }
@@ -64,14 +78,15 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
     flags &= 0x7FFFFFFF;
   }
 
-  unsigned int                                           flags;
+ private:
+  unsigned long                                          flags;
   TSList<EVENTCALLBACKREG, TSGetLink<EVENTCALLBACKREG> > callbackList;
   TSList<EVENTDISPATCHREG, TSGetLink<EVENTDISPATCHREG> > dispatchList;
 };
 
 struct EventReg::EVENTCALLBACKREG : public TSLinkedNode<EventReg::EVENTCALLBACKREG> {
-  CObserver::EVENTCALLBACK callback;
-  void                    *param;
+  EVENTCALLBACK callback;
+  void         *param;
 };
 
 struct EventReg::EVENTDISPATCHREG : public TSLinkedNode<EventReg::EVENTDISPATCHREG> {
@@ -79,8 +94,27 @@ struct EventReg::EVENTDISPATCHREG : public TSLinkedNode<EventReg::EVENTDISPATCHR
   int                   expectedEventId;
 };
 
-class EventRegistry : public TSHashTable<EventReg, HASHKEY_NONE> {
+class EventReg::EventIterator {
+  EventIterator(EventReg &);
+  EventIterator(const EventIterator &);
+  EventIterator &operator=(const EventIterator &);
+
+ public:
+  int Next(int &, CObserver *&);
+
  private:
+  EventReg         &m_reg;
+  EVENTDISPATCHREG *m_ptr;
+};
+
+class EventRegistry : public TSHashTable<EventReg, HASHKEY_NONE> {
+ public:
+  EventRegistry() {
+  }
+  EventRegistry(const EventRegistry &);
+
+ private:
+  EventRegistry &operator=(const EventRegistry &);
   virtual void      InternalDelete(EventReg *pReg);
   virtual EventReg *InternalNew(TSExplicitList<EventReg, -572662307> *list, unsigned long extrabytes, unsigned long flags);
 };
@@ -240,6 +274,7 @@ int CObserver::IsEventRegisteredBy(unsigned int id, CObserver *pObserver) {
 }
 
 void EventRegistry::InternalDelete(EventReg *pReg) {
+  FATALASSERT(!pReg->Locked());
   pReg->~EventReg();
   s_eventRegAllocator.m_critsect.Enter();
   s_eventRegAllocator.PutData(pReg, typeid(EventReg).raw_name(), SERR_LINECODE_OBJECT);
@@ -263,7 +298,7 @@ EventReg::~EventReg() {
   CleanupEvents();
 }
 
-void EventReg::RegisterCallback(CObserver::EVENTCALLBACK callback, void *param) {
+void EventReg::RegisterCallback(EVENTCALLBACK callback, void *param) {
   EVENTCALLBACKREG *entry;
   for (entry = callbackList.Head(); entry; entry = callbackList.Next(entry)) {
     if (entry->callback == callback) {
@@ -301,7 +336,7 @@ void EventReg::RegisterEvent(int expectedEventId, CObserver *pObserver) {
   entry->expectedEventId = expectedEventId;
 }
 
-void EventReg::UnregisterCallback(CObserver::EVENTCALLBACK callback) {
+void EventReg::UnregisterCallback(EVENTCALLBACK callback) {
   EVENTCALLBACKREG *entry = callbackList.Head();
   while (entry) {
     EVENTCALLBACKREG *next = callbackList.Next(entry);
@@ -377,7 +412,7 @@ void EventReg::CleanupEvents() {
   }
 }
 
-int EventReg::IsCallbackRegistered(CObserver::EVENTCALLBACK callback) const {
+int EventReg::IsCallbackRegistered(EVENTCALLBACK callback) const {
   const EVENTCALLBACKREG *entry;
   for (entry = callbackList.Head(); entry; entry = callbackList.Next(entry)) {
     if (entry->callback == callback) {

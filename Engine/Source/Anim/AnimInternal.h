@@ -6,6 +6,7 @@
 #include "Tempest/c4quaternion.h"
 #include "Tempest/c4quaternioncompressed.h"
 #include "Tempest/cmath.h"
+#include "Tempest/cirange.h"
 
 #include "Tempest/caabox.h"
 #include "Tempest/c3vector.h"
@@ -19,6 +20,7 @@ struct CAnimEventObjStatus;
 struct CAnimLayerStatus;
 struct CAnimLightObjStatus;
 struct CAnimObjBlendStatus;
+struct CAnim;
 struct CAnimObj;
 struct CAnimRibbonObjStatus;
 struct CAnimVisibleObj;
@@ -33,9 +35,14 @@ struct CAnimData;
 struct CAnimGeoset;
 struct AnimInfo;
 struct InterpInfo;
+struct MDLGEOSETANIMSECTION;
 class C3Color;
 template <class T, class U>
 class CKeyFrameTrack;
+namespace {
+  template <class T, class U>
+  static const T *AnimKeyValue(const CKeyFrameTrack<T, U> &track, unsigned int key);
+}
 namespace NTempest {
   class CImVector;
   class C4Quaternion;
@@ -146,23 +153,26 @@ struct CKeySeq {
   unsigned int count;
 };
 
-namespace NTempest {
-#ifndef MDL_CIRANGE_DEFINED
-#define MDL_CIRANGE_DEFINED
-  class CiRange {
-   public:
-    long l;
-    long h;
-  };
-#endif
-}  // namespace NTempest
-
 #ifndef MDL_COMMON_TYPES_DEFINED
 #define MDL_COMMON_TYPES_DEFINED
 
 template <unsigned int Size>
 class CMdlString {
  public:
+  CMdlString() {
+  }
+
+  CMdlString(const CMdlString<Size> &source) {
+    memcpy(m_string, source.m_string, sizeof(m_string));
+  }
+
+  CMdlString<Size> &operator=(const CMdlString<Size> &source) {
+    if (this != &source) {
+      memcpy(m_string, source.m_string, sizeof(m_string));
+    }
+    return *this;
+  }
+
   operator char *() {
     return m_string;
   }
@@ -179,11 +189,22 @@ class CMdlString {
     return m_string[index];
   }
 
+  char &operator[](int index) {
+    return m_string[index];
+  }
+
+  char operator[](int index) const {
+    return m_string[index];
+  }
+
  private:
   char m_string[Size];
 };
 
 struct CMdlBounds {
+  CMdlBounds() {
+  }
+
   NTempest::CAaBox extent;
   float            radius;
 };
@@ -191,6 +212,20 @@ struct CMdlBounds {
 #endif
 
 struct CAnimSequence {
+  CAnimSequence() {
+  }
+
+  CAnimSequence(const CAnimSequence &source)
+      : name(source.name),
+        time(source.time),
+        moveSpeed(source.moveSpeed),
+        flags(source.flags),
+        randPickChance(source.randPickChance),
+        replay(source.replay),
+        bounds(source.bounds),
+        blendTime(source.blendTime) {
+  }
+
   CMdlString<80>    name;
   NTempest::CiRange time;
   float             moveSpeed;
@@ -215,25 +250,60 @@ struct CSeqOrdering {
 };
 
 class CKeyFrameTrackBase {
+  template <class T, class U>
+  friend const T *AnimKeyValue(const CKeyFrameTrack<T, U> &, unsigned int);
+
   friend void SetGeosetColor(
       const InterpInfo &, CAnimGeoset *, CAnimGeosetObjStatus *, NTempest::CImVector *
   );
   friend void SetGeosetAlpha(const InterpInfo &, CAnimGeoset *, CAnimGeosetObjStatus *, CGeosetColor *);
   friend void AnimateAllMaterialLayers(AnimInfo *, unsigned int *);
+  friend unsigned char *AddKeyFramesType(
+      unsigned char *, unsigned int, unsigned long, CAnimData *,
+      CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector> *, MDLTRACKTYPE
+  );
+  friend unsigned char *AddKeyFramesType(
+      unsigned char *, unsigned int, unsigned long, CAnimData *, CKeyFrameTrack<float, float> *, MDLTRACKTYPE
+  );
+  friend unsigned char *AnimObjectSetEventTrack(unsigned char *, unsigned int, CAnimData *, CAnimEventObj *);
+  friend unsigned char *AnimObjectSetTranslation(unsigned char *, unsigned int, CAnimData *, CAnimObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetRotation(unsigned char *, unsigned int, CAnimData *, CAnimObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetScaling(unsigned char *, unsigned int, CAnimData *, CAnimObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetAttenuation(unsigned char *, unsigned int, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetColor(unsigned char *, unsigned int, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetIntensity(unsigned char *, unsigned int, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetAmbColor(unsigned char *, unsigned int, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetAmbIntensity(unsigned char *, unsigned int, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetVisibilityTrack(unsigned char *, unsigned int, CAnimData *, CAnimVisibleObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetParticleEmissionRate2(
+      unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE
+  );
+  friend unsigned char *AnimObjectSetParticleGravity2(unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetParticleVariation2(unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetEmitterLongitude2(unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetEmitterLatitude2(unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetParticleSpeed2(unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetParticleLength2(unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetParticleWidth2(unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetParticleZsource2(unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetParticleLifeSpan2(unsigned char *, unsigned int, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetRibbonHeightAbove(unsigned char *, unsigned int, CAnimData *, CAnimRibbonObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetRibbonHeightBelow(unsigned char *, unsigned int, CAnimData *, CAnimRibbonObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetRibbonSlot(unsigned char *, unsigned int, CAnimData *, CAnimRibbonObj *);
+  friend unsigned char *AnimObjectSetRibbonColor(unsigned char *, unsigned int, CAnimData *, CAnimRibbonObj *, MDLTRACKTYPE);
+  friend unsigned char *AnimObjectSetRibbonAlpha(unsigned char *, unsigned int, CAnimData *, CAnimRibbonObj *, MDLTRACKTYPE);
+  friend void AnimAddMaterialLayers(unsigned char *, unsigned int, CAnim *, CAnimData *, MDLTRACKTYPE);
+  friend void AnimAddTextureAnims(unsigned char *, unsigned int, CAnim *, CAnimData *, MDLTRACKTYPE);
+  friend void AnimAddGeosets(unsigned char *, unsigned int, CAnimData *, MDLTRACKTYPE);
+  friend void AnimAddGeoset(CAnimData *, const MDLGEOSETANIMSECTION &, MDLTRACKTYPE);
 
  public:
-  CKeyFrameTrackBase() : m_keyFrames(0), m_numKeyFrames(0), m_indices(), m_globalSeqId(static_cast<unsigned int>(-1)) {
+  CKeyFrameTrackBase() : m_keyFrames(0), m_numKeyFrames(0), m_indices(), m_globalSeqId(-1) {
   }
   ~CKeyFrameTrackBase() {
     if (m_keyFrames)
       SMemFree(m_keyFrames, __FILE__, __LINE__, 0);
   }
-
-  CKeyFrame      *m_keyFrames;
-  unsigned int    m_numKeyFrames;
-  unsigned int    m_keyFrameSize;
-  CArray<CKeySeq> m_indices;
-  unsigned int    m_globalSeqId;
 
   unsigned int TotalKeys() const {
     return m_numKeyFrames;
@@ -249,7 +319,7 @@ class CKeyFrameTrackBase {
     return m_indices[sequence].count;
   }
 
-  unsigned int NumKeysThisSeqSafe(unsigned int sequence) {
+  unsigned int NumKeysThisSeqSafe(unsigned int sequence) const {
     if (SequenceNeverChanges()) {
       return TotalKeys();
     }
@@ -299,6 +369,9 @@ class CKeyFrameTrackBase {
              ) const;
 
  protected:
+  CKeyFrame   *m_keyFrames;
+  unsigned int m_numKeyFrames;
+
   unsigned int LastKeyId(unsigned int sequence) const {
     ASSERT(sequence < m_indices.Count());
     return m_indices[sequence].start + m_indices[sequence].count - 1;
@@ -329,6 +402,10 @@ class CKeyFrameTrackBase {
                    ) const;
 
  private:
+  unsigned int    m_keyFrameSize;
+  CArray<CKeySeq> m_indices;
+  unsigned int    m_globalSeqId;
+
   void         ISetAnimTime(unsigned char sequenceId, int seqIsNew, int milliseconds, int endtime, CKeyTrackStatus *keyStat);
   void         ISetAnimTimeConstSeq(int milliseconds, int endtime, CKeyTrackStatus *keyStat);
   unsigned int FindKeyForTime(unsigned int currSeq, unsigned int currKeyId, int targettime);
@@ -382,11 +459,11 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
   int InterpolateVolatile(const InterpInfo &info, const CBaseStatus &base, CKeyTrackStatus *keyStatus, const U &fallback, U *transform);
   int InterpolateRetained(const InterpInfo &info, const CBaseStatus &base, CKeyTrackStatus *keyStatus, const U &fallback, U *transform);
 
-  unsigned int Bytes() {
+  unsigned int Bytes() const {
     return CKeyFrameTrackBase::Bytes();
   }
 
-  KEYTYPE GetTrackType() {
+  KEYTYPE GetTrackType() const {
     return m_trackType;
   }
 
@@ -476,6 +553,7 @@ void CKeyFrameTrack<C3Color, C3Color>::Interpolate(
 
 struct CAnimTransform {
   int Animates();
+  unsigned int Bytes() const;
 
   CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector>                   translation;
   CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion> rotation;
@@ -503,6 +581,9 @@ struct CAnimBoneObj : public CAnimObj {
 };
 
 struct CAnimVisibleObj {
+  int Animates();
+  unsigned int Bytes() const;
+
   CKeyFrameTrack<float, float> visibility;
 };
 
@@ -531,12 +612,19 @@ struct CAnimEventObj : public CAnimObj {
   CAnimEventObj() : CAnimObj(OBJ_TYPE_EVENT) {
   }
 
+  int Animates() {
+    return CAnimTransform::Animates();
+  }
+
   CKeyFrameTrackBase events;
 };
 
 struct CAnimRibbonObj : public CAnimObj, public CAnimVisibleObj {
   CAnimRibbonObj() : CAnimObj(OBJ_TYPE_RIBBON) {
   }
+
+  int          Animates();
+  unsigned int Bytes() const;
 
   CKeyFrameTrack<float, float>               heightAbove;
   CKeyFrameTrack<float, float>               heightBelow;
@@ -549,6 +637,9 @@ struct CAnimMaterialLayer : public CAnimVisibleObj {
   CAnimMaterialLayer() : layerId(0) {
   }
 
+  int          Animates();
+  unsigned int Bytes() const;
+
   CKeyFrameTrack<unsigned int, unsigned int> flip;
   unsigned int                               layerId;
 };
@@ -556,6 +647,9 @@ struct CAnimMaterialLayer : public CAnimVisibleObj {
 struct CAnimEmitter2Obj : public CAnimObj, public CAnimVisibleObj {
   CAnimEmitter2Obj() : CAnimObj(OBJ_TYPE_EMITTER2), squirts(0) {
   }
+
+  int          Animates();
+  unsigned int Bytes() const;
 
   CKeyFrameTrack<float, float> particleSpeed;
   CKeyFrameTrack<float, float> emissionRate;
@@ -573,6 +667,9 @@ struct CAnimEmitter2Obj : public CAnimObj, public CAnimVisibleObj {
 struct CAnimLightObj : public CAnimObj, public CAnimVisibleObj {
   CAnimLightObj() : CAnimObj(OBJ_TYPE_LIGHT) {
   }
+
+  int          Animates();
+  unsigned int Bytes() const;
 
   CKeyFrameTrack<float, float>     attenstart;
   CKeyFrameTrack<float, float>     attenend;
@@ -593,6 +690,9 @@ struct CSeqInfo {
     memset(this, 0, sizeof(*this));
     seqTimeScale = 1.0f;
   }
+
+  void Reset();
+  void ResetCallback();
 
   int                                     elapsed;
   unsigned int                            useCount : 16;

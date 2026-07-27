@@ -17,10 +17,6 @@ class TRefCnt {
     }
   }
 
-  TRefCnt &operator=(const TRefCnt &) {
-    return *this;
-  }
-
  protected:
   TRefCnt() : m_refcnt(0) {
   }

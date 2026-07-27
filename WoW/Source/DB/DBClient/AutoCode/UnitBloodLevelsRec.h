@@ -17,7 +17,7 @@ class UnitBloodLevelsRec {
     return 16;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

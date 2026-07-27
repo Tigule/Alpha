@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stpl.h>
+#include <string.h>
 
 #include "Base/Base.h"
 #include "Component/Component.h"
@@ -21,7 +22,25 @@ struct CustomizationSelections {
 };
 
 struct CHARCREATEINFO {
-  void Initialize();
+  CHARCREATEINFO() {
+    Initialize();
+  }
+
+  ~CHARCREATEINFO() {
+    Shutdown();
+  }
+
+  void Initialize() {
+    memset(selections, 0, sizeof(selections));
+    memset(currentGeosets, 0, sizeof(currentGeosets));
+
+    for (uint sex = 0; sex < 2; ++sex) {
+      characterModel[sex] = 0;
+      geosetHandle[sex] = 0;
+      characterComponent[sex] = 0;
+    }
+  }
+
   void Shutdown();
   void UpdateOutfit(int increment, uint race, uint sex);
   void ResetOutfitSelection(uint raceID, uint sex);

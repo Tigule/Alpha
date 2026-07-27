@@ -6,7 +6,7 @@
 
 class CSimpleScrollFrame : public CSimpleFrame {
  public:
-  CSimpleScrollFrame(CSimpleFrame *parent);
+  CSimpleScrollFrame(CSimpleFrame *parent = 0);
   virtual ~CSimpleScrollFrame();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
@@ -18,11 +18,11 @@ class CSimpleScrollFrame : public CSimpleFrame {
   void SetHorizontalScroll(float offset);
   void SetVerticalScroll(float offset);
 
-  float GetHorizontalScroll() {
+  float GetHorizontalScroll() const {
     return m_scrollOffset.x;
   }
 
-  float GetVerticalScroll() {
+  float GetVerticalScroll() const {
     return m_scrollOffset.y;
   }
 
@@ -40,6 +40,8 @@ class CSimpleScrollFrame : public CSimpleFrame {
 
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();
+
+  void SetScrollChild(CSimpleFrame *frame);
 
   void SetOnHorizontalScrollScript(const char *source) {
     char description[1024];
@@ -85,7 +87,6 @@ class CSimpleScrollFrame : public CSimpleFrame {
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);
 
-  void SetScrollChild(CSimpleFrame *frame);
   void UpdateScrollChildRect(float w, float h);
   void UpdateScrollChild();
   static void RenderScrollChild(void *param);

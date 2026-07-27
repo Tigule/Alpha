@@ -61,19 +61,19 @@ class CGWorldMap {
   static void ProcessClick(float x, float y);
   static int GetMapHighlight(float x, float y);
   static void RunNearestPortLoc(float x, float y);
+  static void GetPOIPosition(const AreaPOIRec *rec, float &x, float &y);
+  static void GetPortLocPosition(const WorldSafeLocsRec *rec, float &x, float &y);
   static void GetPlayerPosition(unsigned __int64 guid, float &x, float &y);
   static void GetBindPosition(float &x, float &y);
   static unsigned int GetNumLandmarks() {
     return m_numLandmarks;
   }
-  static WorldMapLandmarkInfo *GetLandmarkInfo(unsigned int index) {
+  static const WorldMapLandmarkInfo *GetLandmarkInfo(unsigned int index) {
     return index < m_numLandmarks ? &m_landmarks[index] : 0;
   }
-  static int GetMapAreaFromPos(float x, float y);
 
  private:
-  static void GetPOIPosition(const AreaPOIRec *rec, float &x, float &y);
-  static void GetPortLocPosition(const WorldSafeLocsRec *rec, float &x, float &y);
+  static int GetMapAreaFromPos(float x, float y);
   static int GetWorldLocFromPos(float x, float y, NTempest::C2Vector &loc, int &mapID);
   static void GetWorldPosition(const NTempest::C2Vector &pos, int mapID, float &x, float &y);
 
@@ -723,7 +723,7 @@ static int Script_GetMapLandmarkInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetMapLandmarkInfo(index)");
   }
-  WorldMapLandmarkInfo *info = CGWorldMap::GetLandmarkInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const WorldMapLandmarkInfo *info = CGWorldMap::GetLandmarkInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   if (!info) {
     return 0;
   }

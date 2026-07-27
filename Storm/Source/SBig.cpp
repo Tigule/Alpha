@@ -25,7 +25,11 @@ class BigBuffer {
 
 class BigStack {
  private:
-  BigBuffer m_buffer[0x10];
+  enum {
+    SIZE = 16
+  };
+
+  BigBuffer m_buffer[SIZE];
   UINT      m_used;
 
  public:

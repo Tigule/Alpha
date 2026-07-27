@@ -17,7 +17,7 @@ class HelmetGeosetVisDataRec {
     return 388;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

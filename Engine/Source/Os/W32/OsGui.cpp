@@ -24,7 +24,21 @@ struct WINDOWINFO_TIGULE {
 extern "C" BOOL WINAPI GetWindowInfo(HWND hwnd, WINDOWINFO_TIGULE *windowInfo);
 
 #pragma pack(push, 2)
-struct CBasicDlgTemplate {
+class CBasicDlgTemplate {
+ public:
+  CBasicDlgTemplate(WORD width, WORD height) {
+    header.style = 0x80C00004;
+    header.dwExtendedStyle = 0;
+    header.cdit = 0;
+    header.x = 0;
+    header.y = 0;
+    header.cx = width;
+    header.cy = height;
+    noMenu = 0;
+    noClass = 0;
+    noTitle = 0;
+  }
+
   DLGTEMPLATE header;
   WORD        noMenu;
   WORD        noClass;
@@ -585,7 +599,7 @@ static int CALLBACK sDlgProc(HWND__* hdlg, unsigned int msg, unsigned int wParam
   return 0;
 }
 
-static int sDisableWindow(HWND__* hwnd, long param) {
+static int CALLBACK sDisableWindow(HWND__* hwnd, long param) {
   TSGrowableArray<void *> *windows = reinterpret_cast<TSGrowableArray<void *> *>(param);
   if (reinterpret_cast<HINSTANCE>(GetWindowLongA(hwnd, GWL_HINSTANCE)) == sAppInstance && IsWindowEnabled(hwnd)) {
     EnableWindow(hwnd, FALSE);
@@ -594,8 +608,8 @@ static int sDisableWindow(HWND__* hwnd, long param) {
   return 1;
 }
 
-static int sEditBoxProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam);
-static int sDividerProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam);
+static int CALLBACK sEditBoxProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam);
+static int CALLBACK sDividerProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam);
 
 COsControl::COsControl(COsDialog *inDialog, int inType, short inID, unsigned int inFlags) : mDialog(inDialog) {
   Initialize(inDialog->GetHandle(), inType, inID, inFlags);
@@ -1153,11 +1167,7 @@ COsDialog::COsDialog(void *inWindowHandle, unsigned int inFlags) {
   mContextMenuEnabled = 1;
   mFlags = inFlags;
 
-  CBasicDlgTemplate dlgTemplate;
-  memset(&dlgTemplate, 0, sizeof(dlgTemplate));
-  dlgTemplate.header.style = 0x80C00004;
-  dlgTemplate.header.cx = 10;
-  dlgTemplate.header.cy = 10;
+  CBasicDlgTemplate dlgTemplate(10, 10);
   if (inFlags & 0x2) {
     dlgTemplate.header.style = 0x00CF0000;
   }
@@ -2723,7 +2733,7 @@ void COsStaticImage::ClearImage() {
   SetSize(width, height);
 }
 
-static int sEditBoxProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam) {
+static int CALLBACK sEditBoxProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam) {
   COsEditBox *editBox = static_cast<COsEditBox *>(sGetOsGuiPointer(hwnd));
   if (editBox &&
       ((msg >= WM_KEYDOWN && msg <= WM_KEYUP) ||
@@ -2858,7 +2868,7 @@ int COsDialog::OnEvent(int inItemID, int inNotifyCode, int inCode) {
   return 1;
 }
 
-static int sTreeViewProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam) {
+static int CALLBACK sTreeViewProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam) {
   COsTreeView *tree = static_cast<COsTreeView *>(sGetOsGuiPointer(hwnd));
   if (tree) {
     if (msg == WM_LBUTTONDOWN && tree->OnMouseDown()) {
@@ -3643,7 +3653,7 @@ void *COsTreeView::GetEditControl() {
   return reinterpret_cast<void *>(SendMessageA(static_cast<HWND>(mHandle), 0x110F, 0, 0));
 }
 
-static int sSpinButtonProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam) {
+static int CALLBACK sSpinButtonProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam) {
   COsSpinButton *spin = static_cast<COsSpinButton *>(sGetOsGuiPointer(hwnd));
   if (spin && msg == WM_LBUTTONUP) {
     spin->OnSpinMouseUp();
@@ -3909,7 +3919,7 @@ void COsDivider::SetPositionRange(int inMin, int inMax) {
   mMaxPos = inMax;
 }
 
-static int sDividerProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam) {
+static int CALLBACK sDividerProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam) {
   COsDivider *divider = static_cast<COsDivider *>(sGetOsGuiPointer(hwnd));
   if (divider) {
     switch (msg) {

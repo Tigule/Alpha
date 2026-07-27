@@ -96,11 +96,11 @@ void CGSpellBook::ClearSpells() {
   m_selectedSlot = -1;
 }
 
-unsigned int CGSpellBook::IsSpellKnown(int spellID) {
-  return m_knownSpellBits.IsSet(spellID);
+unsigned char CGSpellBook::IsSpellKnown(int spellID) {
+  return m_knownSpellBits.IsBitSet(spellID);
 }
 
-unsigned int CGSpellBook::IsPetSpellKnown(int spellID) {
+unsigned char CGSpellBook::IsPetSpellKnown(int spellID) {
   for (unsigned int i = 0; i < 1024; ++i) {
     if (m_petSpells[i] == spellID) {
       return 1;
@@ -728,8 +728,8 @@ static int Script_GetShapeshiftFormInfo(lua_State *L) {
     return luaL_error(L, "Usage: GetShapeshiftFormInfo(index)");
   }
   unsigned int          index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
-  TSGrowableArray<int> &forms = CGSpellBook::GetShapeshiftForms();
-  SpellRec             *spell = index < forms.Count() ? g_spellDB.GetRecord(forms[index]) : 0;
+  TSGrowableArray<int> forms = CGSpellBook::GetShapeshiftForms();
+  SpellRec            *spell = index < forms.Count() ? g_spellDB.GetRecord(forms[index]) : 0;
   SpellIconRec         *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
   if (icon) {
     lua_pushstring(L, icon->m_textureFilename);
@@ -766,7 +766,7 @@ static int Script_CastShapeshiftForm(lua_State *L) {
     return luaL_error(L, "Usage: CastShapeshiftForm(index)");
   }
   unsigned int          index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
-  TSGrowableArray<int> &forms = CGSpellBook::GetShapeshiftForms();
+  TSGrowableArray<int> forms = CGSpellBook::GetShapeshiftForms();
   if (index < forms.Count()) {
     SpellRec *spell = g_spellDB.GetRecord(forms[index]);
     if (spell) {
@@ -797,8 +797,8 @@ static int Script_GetShapeshiftFormCooldown(lua_State *L) {
     return luaL_error(L, "Usage: GetShapeshiftFormCooldown(index)");
   }
   unsigned int          index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
-  TSGrowableArray<int> &forms = CGSpellBook::GetShapeshiftForms();
-  unsigned int          duration = 0;
+  TSGrowableArray<int> forms = CGSpellBook::GetShapeshiftForms();
+  unsigned int         duration = 0;
   unsigned long         startTime = 0;
   unsigned int          enable = 1;
   if (index < forms.Count()) {

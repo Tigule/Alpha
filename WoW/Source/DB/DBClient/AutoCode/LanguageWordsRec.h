@@ -17,7 +17,7 @@ class LanguageWordsRec {
     return 12;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

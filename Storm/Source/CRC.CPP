@@ -67,7 +67,7 @@ static DWORD crctable[256] = {
   0xB40BBE37UL, 0xC30C8EA1UL, 0x5A05DF1BUL, 0x2D02EF8DUL
 };
 
-DWORD __fastcall CrcBuffer(const void *buffer, DWORD len, DWORD *pcrc, DWORD stage) {
+DWORD CrcBuffer(const void *buffer, DWORD len, DWORD *pcrc, DWORD stage) {
   DWORD crc;
 
   crc = 0;

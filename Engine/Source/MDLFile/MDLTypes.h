@@ -4,6 +4,7 @@
 #include "Tempest/caabox.h"
 #include "Tempest/c2vector.h"
 #include "Tempest/c4quaternion.h"
+#include "Tempest/cirange.h"
 
 #include <stpl.h>
 
@@ -133,9 +134,9 @@ struct MDLMATERIALSECTION {
 
 struct MDLPRIMITIVES {
   void ReserveSpace(unsigned int numPrimitives, unsigned int numVertices) {
-    types.Reserve(numPrimitives);
-    counts.Reserve(numPrimitives);
-    vertices.Reserve(numVertices);
+    types.ReserveSpace(numPrimitives);
+    counts.ReserveSpace(numPrimitives);
+    vertices.ReserveSpace(numVertices);
   }
 
   void SetCount(unsigned int numPrimitives, unsigned int numVertices) {
@@ -255,16 +256,6 @@ struct MDLCOLLISION {
   TSGrowableArray<unsigned short>     triIndices;
   TSGrowableArray<NTempest::C3Vector> facetNormals;
 };
-
-namespace NTempest {
-#ifndef MDL_CIRANGE_DEFINED
-#define MDL_CIRANGE_DEFINED
-struct CiRange {
-  int l;
-  int h;
-};
-#endif
-}
 
 struct MDLSEQUENCESSECTION {
   CMdlString<80>    name;

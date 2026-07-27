@@ -15,7 +15,7 @@ struct FindItemClassData {
 
 static int GetItemTypeCountCallback(const CGItem_C *item, void *param) {
   GetItemTypeCountData *data = static_cast<GetItemTypeCountData *>(param);
-  if (item->GetEntryID() == data->entryID) {
+  if (item->GetEntryID() == data->entryID || data->entryID == -1) {
     data->count += item->GetStackCount();
   }
   return 0;

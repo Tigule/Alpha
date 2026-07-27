@@ -180,7 +180,7 @@ static int Script_ItemTextGetMaterial(lua_State *L) {
   if (object) {
     if (object->GetType() & TYPE_ITEM) {
       const unsigned __int64 noGuid = 0;
-      const ItemStats_C     *stats = g_itemDBCache.GetRecord(*object->GetData(3), noGuid, 0, 0);
+      const ItemStats_C     *stats = g_itemDBCache.GetRecord(object->GetEntryID(), noGuid, 0, 0);
       if (stats) {
         material = stats->m_pageMaterial;
       }

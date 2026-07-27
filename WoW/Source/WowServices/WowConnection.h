@@ -48,13 +48,8 @@ class WowConnection;
 
 class WowConnectionResponse {
  public:
-  WowConnectionResponse() {
-  }
-  WowConnectionResponse(const WowConnectionResponse &response);
   virtual ~WowConnectionResponse() {
   }
-
-  WowConnectionResponse &operator=(const WowConnectionResponse &response);
 
   virtual void WCMessageReady(WowConnection *connection, unsigned long timeStamp, CDataStore *message) = 0;
   virtual void WCConnected(WowConnection *connection, WowConnection *established, unsigned long timeStamp, const NETCONNADDR *address) = 0;

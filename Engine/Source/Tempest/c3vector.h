@@ -185,7 +185,7 @@ namespace NTempest {
         *this *= CMath::sqrtinv_(squaredMag);
       }
     }
-    void Scale(float magnitude) {
+    void Scale(const float magnitude) {
       SafeNormalize();
       *this *= magnitude;
     }

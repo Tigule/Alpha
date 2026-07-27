@@ -95,8 +95,8 @@ namespace NTempest {
     static CAaBox Intersection(const CAaBox &a, const CAaBox &b, const CAaBox &c);
     static CAaBox Intersection(const CAaBox &a, const CAaBox &b);
     static CAaBox Union(const CAaBox &a, const CAaBox &b);
-    CAaBox                  Intersect(const CAaBox &value) const;
-    CAaBox                  Unite(const CAaBox &value) const;
+    CAaBox                  Intersect(const CAaBox &value);
+    CAaBox                  Unite(const CAaBox &value);
 
     static CAaBox Bounding(const CDynTable<unsigned long> &indices, const CDynTable<C3Vector> &vectors);
     static CAaBox Bounding(const CDynTable<C3Vector> &vectors);

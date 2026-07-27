@@ -20,11 +20,11 @@ class HASHKEY_INT {
   HASHKEY_INT() {
   }
 
-  bool operator==(HASHKEY_INT &) {
+  bool operator==(const HASHKEY_INT &) const {
     return true;
   }
 
-  HASHKEY_INT &operator=(HASHKEY_INT &) {
+  HASHKEY_INT &operator=(const HASHKEY_INT &) {
     return *this;
   }
 };
@@ -55,6 +55,9 @@ class DBCache {
     TSList<DBCACHECALLBACK, TSGetLink<DBCACHECALLBACK> > m_callbacks;
     bool                                                 m_temp;
   };
+
+  typedef DBCACHEHASH       *PDBCACHEHASH;
+  typedef const DBCACHEHASH *PCDBCACHEHASH;
 
   DBCache(const DBCache<RECORD, KEY, HASHKEY> &cache);
   DBCache(unsigned long fileTag, const char *fileName, NETMESSAGE singleQuery, NETMESSAGE multiQuery, bool requireGuids, bool persistent);

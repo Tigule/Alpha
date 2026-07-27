@@ -30,7 +30,10 @@ static const float s_maxTimeStep = 0.1f;
 
 NTempest::CPriorityQ<CSortableParticleRecord, CSortableParticleRecord> CParticleEmitter2::m_pq;
 const float                                                            CParticleEmitter2::VEL_UPDATE_TIME = 1.0f / 30.0f;
+const float                                                            CParticleEmitter2::MIN_ZSOURCE = 0.001f;
 float                                                                  CParticleEmitter2::m_rndTable[128];
+unsigned int                                                           CParticleEmitter2::s_vertexNdx;
+unsigned int                                                           CParticleEmitter2::s_indexNdx;
 unsigned int                                                           CParticleEmitter2::s_renderedParticles;
 unsigned int                                                           CParticleEmitter2::s_renderedIndices;
 unsigned int                                                           CParticleEmitter2::s_maxParticles;
@@ -106,8 +109,8 @@ CParticleEmitter2::CParticleEmitter2()
       m_followVector(0.0f),
       m_stepFollowVector(0.0f),
       m_xyAxis(0.0f) {
-  m_alive.m_stackPointer = 0;
-  m_dead.m_stackPointer = 0;
+  m_alive.Clear();
+  m_dead.Clear();
   m_particleMaterial.alpha = GxBlend_Opaque;
   m_particleMaterial.enableLighting = 1;
   m_particleMaterial.enableFog = 1;
@@ -188,8 +191,8 @@ CParticleEmitter2::CParticleEmitter2(const CParticleEmitter2 &rhs, int deep)
   unsigned int loop;
   unsigned int count;
 
-  m_alive.m_stackPointer = 0;
-  m_dead.m_stackPointer = 0;
+  m_alive.Clear();
+  m_dead.Clear();
   m_randSeed.SetSeed((rand() << 16) | rand());
   m_particleKeys = rhs.m_particleKeys;
 
@@ -198,15 +201,15 @@ CParticleEmitter2::CParticleEmitter2(const CParticleEmitter2 &rhs, int deep)
     m_childEmitter[loop] = rhs.m_childEmitter[loop] ? manager->DuplicateEmitter(rhs.m_childEmitter[loop], 0) : 0;
   }
 
-  if (deep && (rhs.m_dead.m_stackPointer || rhs.m_alive.m_stackPointer)) {
+  if (deep && (rhs.m_dead.Count() || rhs.m_alive.Count())) {
     Sync();
-    count = rhs.m_dead.m_stackPointer;
+    count = rhs.m_dead.Count();
     for (loop = 0; loop < count; ++loop) {
-      m_dead.Push(rhs.m_dead.m_stack[loop]);
+      m_dead.Push(rhs.m_dead[loop]);
     }
-    count = rhs.m_alive.m_stackPointer;
+    count = rhs.m_alive.Count();
     for (loop = 0; loop < count; ++loop) {
-      unsigned int particle = rhs.m_alive.m_stack[loop];
+      unsigned int particle = rhs.m_alive[loop];
       m_alive.Push(particle);
       if (m_particleType == PT_QUAD) {
         m_particles[particle] = rhs.m_particles[particle];
@@ -276,13 +279,13 @@ void CParticleEmitter2::SyncReserve(unsigned int arraySize, unsigned int oldSize
     arraySize -= oldSize + oldReserve;
 
     if (m_particleType == PT_QUAD) {
-      m_particles.Reserve(arraySize);
+      m_particles.ReserveSpace(arraySize);
     } else {
-      m_modelParticles.Reserve(arraySize);
+      m_modelParticles.ReserveSpace(arraySize);
     }
 
-    m_alive.m_stack.Reserve(arraySize);
-    m_dead.m_stack.Reserve(arraySize);
+    m_alive.ReserveSpace(arraySize);
+    m_dead.ReserveSpace(arraySize);
   }
 }
 
@@ -295,8 +298,8 @@ void CParticleEmitter2::SyncAllocation(unsigned int arraySize) {
 
     SyncReserve(arraySize, oldSize, m_particles.Reserved());
     m_particles.SetCount(arraySize);
-    m_alive.m_stack.SetCount(arraySize);
-    m_dead.m_stack.SetCount(arraySize);
+    m_alive.SetCount(arraySize);
+    m_dead.SetCount(arraySize);
 
     for (unsigned int u = oldSize; u < arraySize; ++u) {
       m_dead.Push(u);
@@ -309,8 +312,8 @@ void CParticleEmitter2::SyncAllocation(unsigned int arraySize) {
 
     SyncReserve(arraySize, oldSize, m_modelParticles.Reserved());
     m_modelParticles.SetCount(arraySize);
-    m_alive.m_stack.SetCount(arraySize);
-    m_dead.m_stack.SetCount(arraySize);
+    m_alive.SetCount(arraySize);
+    m_dead.SetCount(arraySize);
 
     for (unsigned int u = oldSize; u < arraySize; ++u) {
       m_dead.Push(u);
@@ -558,8 +561,8 @@ void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPNCT0 *start = vertices;
   if (m_sortZ) {
     unsigned int index;
-    for (index = 0; index < m_alive.m_stackPointer; ++index) {
-      unsigned int particleIndex = m_alive.m_stack[index];
+    for (index = 0; index < m_alive.Count(); ++index) {
+      unsigned int particleIndex = m_alive[index];
       CParticle2  *particle = GetParticle(particleIndex);
       NTempest::C3Vector      viewPosition = particle->m_position * s_particleToView;
       CSortableParticleRecord record;
@@ -580,7 +583,7 @@ void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
     }
   } else {
     for (unsigned int index = 0; index < s_maxParticles; ++index) {
-      unsigned int particleIndex = m_alive.m_stack[index];
+      unsigned int particleIndex = m_alive[index];
       CParticle2  *particle = GetParticle(particleIndex);
       if (IRenderParticle(*particle, vertices)) {
         vertices += m_verticesPerParticle;
@@ -683,7 +686,7 @@ void CParticleEmitter2::RenderParticles() {
     GxRsSet(GxRs_DepthWrite, !!m_particleMaterial.enableDepthWrites);
 
     unsigned int maxParticles = Gx_MaxVertices / m_verticesPerParticle;
-    s_maxParticles = m_alive.m_stackPointer < maxParticles ? m_alive.m_stackPointer : maxParticles;
+    s_maxParticles = m_alive.Count() < maxParticles ? m_alive.Count() : maxParticles;
     CGxBuf *buf = GxBufGetDynamic(GxVBF_PNCT0);
     ASSERT(buf);
     buf->CountSet(s_maxParticles * m_verticesPerParticle, s_maxParticles * m_indicesPerParticle);
@@ -766,8 +769,8 @@ void CParticleEmitter2::RenderParticleModels() {
 
   if (m_sortZ) {
     unsigned int index;
-    for (index = 0; index < m_alive.m_stackPointer; ++index) {
-      CParticle2_Model       &particle = m_modelParticles[m_alive.m_stack[index]];
+    for (index = 0; index < m_alive.Count(); ++index) {
+      CParticle2_Model       &particle = m_modelParticles[m_alive[index]];
       NTempest::C3Vector      viewPosition = particle.m_position * s_particleToView;
       CSortableParticleRecord record;
       record.dist = viewPosition.z;
@@ -775,19 +778,19 @@ void CParticleEmitter2::RenderParticleModels() {
       m_pq.Enqueue(record);
     }
 
-    for (index = 0; index < m_alive.m_stackPointer; ++index) {
+    for (index = 0; index < m_alive.Count(); ++index) {
       CSortableParticleRecord record = m_pq.Dequeue();
       RenderParticle(*static_cast<CParticle2_Model *>(record.p));
     }
   } else {
-    for (unsigned int index = 0; index < m_alive.m_stackPointer; ++index) {
-      RenderParticle(m_modelParticles[m_alive.m_stack[index]]);
+    for (unsigned int index = 0; index < m_alive.Count(); ++index) {
+      RenderParticle(m_modelParticles[m_alive[index]]);
     }
   }
 }
 
 void CParticleEmitter2::Render() {
-  if (!m_alive.m_stackPointer) {
+  if (m_alive.IsEmpty()) {
     return;
   }
 
@@ -1012,7 +1015,7 @@ void CParticleEmitter2::Update(float elapsedTime, const NTempest::C34Matrix &mod
         float frames = m_elapsedVelUpdate / VEL_UPDATE_TIME;
         m_elapsedVelUpdate = 0.0f;
 
-        if (m_alive.m_stackPointer) {
+        if (!m_alive.IsEmpty()) {
           m_frameInstantVelLin.x = m_modelToWorld.d0 - m_prevModelToWorldTrans.x;
           m_frameInstantVelLin.y = m_modelToWorld.d1 - m_prevModelToWorldTrans.y;
           m_frameInstantVelLin.z = m_modelToWorld.d2 - m_prevModelToWorldTrans.z;
@@ -1041,7 +1044,7 @@ void CParticleEmitter2::EmitNewParticles(float elapsedTime, const NTempest::C34M
   if (m_needSquirt) {
     unsigned int numToEmit = static_cast<unsigned int>(ParticleSystemManager::GetScaler() * m_particleEmissionRate);
 
-    while (numToEmit && m_dead.m_stackPointer) {
+    while (numToEmit && !m_dead.IsEmpty()) {
       --numToEmit;
       EmitParticle(0.0f, basis);
     }
@@ -1062,7 +1065,7 @@ void CParticleEmitter2::EmitNewParticles(float elapsedTime, const NTempest::C34M
       NTempest::C34Matrix &mutableBasis = const_cast<NTempest::C34Matrix &>(basis);
       unsigned int         numNew = static_cast<unsigned int>(m_numNew);
 
-      while (numNew && m_dead.m_stackPointer) {
+      while (numNew && !m_dead.IsEmpty()) {
         --numNew;
 
         float random = NTempest::CRandom::real_(m_randSeed);
@@ -1080,7 +1083,7 @@ void CParticleEmitter2::EmitNewParticles(float elapsedTime, const NTempest::C34M
     } else {
       unsigned int numNew = static_cast<unsigned int>(m_numNew);
 
-      while (numNew && m_dead.m_stackPointer) {
+      while (numNew && !m_dead.IsEmpty()) {
         --numNew;
 
         EmitParticle(elapsedTime, basis);
@@ -1134,8 +1137,8 @@ void CParticleEmitter2::StepUpdate(float elapsedTime, int suppressNewParticles) 
     EmitNewParticles(elapsedTime, m_modelToWorld);
   }
 
-  for (unsigned int loop = 0; loop < m_alive.m_stackPointer; ++loop) {
-    unsigned int particleIndex = m_alive.m_stack[loop];
+  for (unsigned int loop = 0; loop < m_alive.Count(); ++loop) {
+    unsigned int particleIndex = m_alive[loop];
     CParticle2  *p = GetParticle(particleIndex);
 
     p->m_age += elapsedTime;
@@ -1153,9 +1156,8 @@ void CParticleEmitter2::StepUpdate(float elapsedTime, int suppressNewParticles) 
 
       if (!keepParticle) {
         DestroyParticle(*p);
-        m_dead.Push(m_alive.m_stack[loop]);
-        m_alive.m_stack[loop] = m_alive.m_stack[m_alive.m_stackPointer - 1];
-        m_alive.Pop();
+        m_dead.Push(m_alive[loop]);
+        m_alive.Remove(loop);
         --loop;
       } else {
         for (unsigned int ce = 0; ce < 4; ++ce) {
@@ -1184,9 +1186,8 @@ void CParticleEmitter2::StepUpdate(float elapsedTime, int suppressNewParticles) 
       }
     } else {
       DestroyParticle(*p);
-      m_dead.Push(m_alive.m_stack[loop]);
-      m_alive.m_stack[loop] = m_alive.m_stack[m_alive.m_stackPointer - 1];
-      m_alive.Pop();
+      m_dead.Push(m_alive[loop]);
+      m_alive.Remove(loop);
       --loop;
     }
   }
@@ -1203,10 +1204,10 @@ void CParticleEmitter2::Squirt() {
 }
 
 void CParticleEmitter2::Flush() {
-  while (m_alive.m_stackPointer) {
-    DestroyParticle(*GetParticle(m_alive.m_stack[0]));
+  while (!m_alive.IsEmpty()) {
+    DestroyParticle(*GetParticle(m_alive[0]));
 
-    m_dead.Push(m_alive.m_stack[0]);
+    m_dead.Push(m_alive[0]);
     m_alive.Remove(0);
   }
 }

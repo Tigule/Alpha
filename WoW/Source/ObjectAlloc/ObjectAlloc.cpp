@@ -23,6 +23,8 @@ class CObjectHeap {
   int   New(unsigned int objSize, unsigned int heapObjects, unsigned int *index);
   void  Delete(unsigned int index, unsigned int objSize, unsigned int heapObjects);
   void *Ptr(unsigned int index, unsigned int objSize, unsigned int heapObjects);
+  unsigned int BlocksAllocated() const;
+  int          IsFull(unsigned int heapObjects) const;
 
  private:
   CObjectHeap &operator=(const CObjectHeap &heap);
@@ -40,14 +42,26 @@ class CObjectHeapList {
   CObjectHeapList() : m_objSize(0), m_objsPerBlock(1024), m_numFullHeaps(0) {
   }
 
+  void         SetObjectSize(unsigned int objSize);
+  unsigned int GetObjectSize() const;
+  void         SetObjectsPerBlock(unsigned int objsPerBlock);
+  unsigned int GetObjectsPerBlock() const;
+  unsigned int GetHeapBytes() const;
+  unsigned int GetBytesAllocated() const;
   int          New(unsigned int *index);
   void        *Ptr(unsigned int index);
   void         Delete(unsigned int index);
+  unsigned int HeapsAvailable() const;
   unsigned int BlocksAllocated() const;
+  unsigned int TotalHeaps() const;
+  void         SetName(const char *name);
+  const char  *GetName() const;
 
  private:
   friend int CCommand_HeapUsage(const char *command, const char *arguments);
   friend unsigned int ObjectAllocAddHeap(unsigned int objectSize, unsigned int objsPerBlock, const char *name);
+
+  int IsHeapFull(unsigned int heap) const;
 
   TSGrowableArray<CObjectHeap> m_heaps;
   unsigned int                 m_objSize;

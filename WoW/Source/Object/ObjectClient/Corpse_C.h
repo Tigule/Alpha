@@ -26,10 +26,40 @@ struct CGCorpseData {
 
 class CGCorpse {
  public:
-  CGCorpse(unsigned long *storage) : m_corpse(reinterpret_cast<CGCorpseData *>(storage + 6)) {
+  static unsigned int GetDataSize();
+  static unsigned int GetBaseOffset();
+  static unsigned int TotalFields();
+  static unsigned int GetUpdateMaskBytes();
+  static unsigned int GetUpdateMaskBlocks();
+
+  unsigned char *GetData(unsigned int index);
+  void SetStorage(unsigned long *storage) {
+    m_corpse = reinterpret_cast<CGCorpseData *>(storage);
   }
 
+  unsigned __int64 GetOwner() const;
+  unsigned int GetDisplayID() const;
+  unsigned int GetItemDisplayID(unsigned int index) const;
+  unsigned int GetItemInventoryType(unsigned int index) const;
+  unsigned char GetRaceID() const;
+  unsigned char GetSex() const;
+  unsigned char GetSkinID() const;
+  unsigned char GetFaceID() const;
+  unsigned char GetHairStyleID() const;
+  unsigned char GetHairColorID() const;
+  unsigned char GetFacialHairStyleID() const;
+  void GetCorpsePosition(NTempest::C3Vector &position) const;
+  NTempest::C3Vector GetCorpsePosition() const;
+  float GetCorpseFacing() const;
+
  protected:
+  explicit CGCorpse(unsigned long *storage) {
+    SetStorage(storage);
+  }
+
+  ~CGCorpse() {
+  }
+
   CGCorpseData *m_corpse;
 };
 
@@ -66,11 +96,13 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
   virtual void OnRightClick();
   void         AddComponents();
   void         AddComponent(int displayID, unsigned int inventoryType, int slot, int commit);
-  unsigned int IsUnderWater();
+  bool         IsUnderWater() const;
   void         OnDeathAnimEnd();
   void         CommitTexture(int force);
 
  private:
+  CGCorpse_C &operator=(const CGCorpse_C &);
+
   void InitComponents();
   void InitPreferredGeosets();
 

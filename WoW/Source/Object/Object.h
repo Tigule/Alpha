@@ -7,6 +7,8 @@ struct CMovementStatus {
   CMovementStatus() : transport(0), transRelPosition(0.0f), transRelFacing(0.0f), worldPosition(0.0f), worldFacing(0.0f), pitch(0.0f), moveFlags(0) {
   }
 
+  static unsigned int Skip(CDataStore *packet);
+
   unsigned __int64   transport;
   NTempest::C3Vector transRelPosition;
   float              transRelFacing;
@@ -22,6 +24,8 @@ struct CMoveSpline {
     unsigned __int64   guid;
     float              facing;
   };
+
+  static void Skip(CDataStore *packet);
 
   unsigned int                  flags;
   SplineFaceData                face;
@@ -117,6 +121,8 @@ enum OBJECT_TYPE {
 };
 
 struct VirtualItemInfo {
+  unsigned char operator!=(const VirtualItemInfo &);
+
   unsigned char m_classID;
   unsigned char m_subclassID;
   unsigned char m_material;
@@ -129,7 +135,7 @@ struct VirtualItemInfo {
 
 struct CGObjectData {
   unsigned __int64 m_guid;
-  unsigned int     m_type;
+  OBJECT_TYPE      m_type;
   int              m_entryID;
   float            m_scale;
   unsigned int     pad;
@@ -137,39 +143,63 @@ struct CGObjectData {
 
 class CGObject {
  public:
+  static unsigned int GetDataSize();
+  static unsigned int GetBaseOffset();
+  static unsigned int TotalFields();
+  static unsigned int GetUpdateMaskBytes();
+  static unsigned int GetUpdateMaskBlocks();
+
+  unsigned char IsA(OBJECT_TYPE_ID type) const;
+  unsigned char IsA(OBJECT_TYPE type) const {
+    return (GetType() & type) != 0;
+  }
+  unsigned char IsExactlyA(OBJECT_TYPE_ID type) const;
+
   unsigned __int64 GetGUID() const {
     return *reinterpret_cast<const unsigned __int64 *>(m_obj);
   }
 
   OBJECT_TYPE GetType() const {
-    return static_cast<OBJECT_TYPE>(m_obj->m_type);
+    return m_obj->m_type;
   }
 
-  int IsA(OBJECT_TYPE type) const {
-    return GetType() & type;
+  float GetObjectScale() const {
+    return m_obj->m_scale;
   }
 
   int GetEntryID() const {
     return m_obj->m_entryID;
   }
 
-  unsigned int *GetData(unsigned int index) {
-    return reinterpret_cast<unsigned int *>(m_data + index);
+  unsigned char *GetData(unsigned int index) const {
+    return reinterpret_cast<unsigned char *>(m_data + index);
   }
 
-  const unsigned int *GetData(unsigned int index) const {
-    return reinterpret_cast<const unsigned int *>(m_data + index);
+  void SetStorage(unsigned long *storage) {
+    m_data = storage;
+    m_obj = reinterpret_cast<CGObjectData *>(storage);
   }
 
   unsigned long *GetStorage() {
     return m_data;
   }
 
-  const unsigned long *GetStorage() const {
-    return m_data;
+ protected:
+  explicit CGObject(unsigned long *storage) {
+    SetStorage(storage);
   }
 
- protected:
+  ~CGObject() {
+  }
+
+  CGObjectData *Obj() {
+    return m_obj;
+  }
+
+  const CGObjectData *Obj() const {
+    return m_obj;
+  }
+
   unsigned long *m_data;
   CGObjectData  *m_obj;
 };

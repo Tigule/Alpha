@@ -9,7 +9,9 @@ class CCritSect {
 
  public:
   CCritSect() throw();
+  CCritSect(const CCritSect &);
   ~CCritSect();
+  CCritSect &operator=(const CCritSect &);
 
   void Enter();
 

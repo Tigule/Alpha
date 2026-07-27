@@ -15,6 +15,10 @@ struct MDLDATA;
 
 class CDetailDoodadGeom {
  public:
+  enum {
+    PROP_TWOSIDED = 1
+  };
+
   void FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf);
   void FillGxBufIndex(CGxBufCommand &cmd, CGxBuf *buf);
 
@@ -41,12 +45,16 @@ class CDetailDoodadData {
   CDetailDoodadGeom *geom;
 
  private:
-  static void MdlReadCallback(unsigned int *fileData, unsigned int fileBytes, CDetailDoodadData *detailDoodad);
-  static void MdlReadCallback(MDLDATA &data, CDetailDoodadData *detailDoodad);
+  static void MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CDetailDoodadData *detailDoodad);
+  static void MdlReadCallback(const MDLDATA &data, CDetailDoodadData *detailDoodad);
 };
 
 class CDetailDoodadInst {
  public:
+  enum {
+    Flag_Shadowed = 1
+  };
+
   CDetailDoodadInst();
   ~CDetailDoodadInst();
 

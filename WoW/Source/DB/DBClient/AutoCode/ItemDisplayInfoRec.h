@@ -17,7 +17,7 @@ class ItemDisplayInfoRec {
     return 100;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

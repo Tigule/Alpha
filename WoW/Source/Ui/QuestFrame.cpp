@@ -2,7 +2,10 @@
 
 #include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/DBClient.h"
+#include "DB/DBClient/AutoCode/PageTextMaterialRec.h"
 #include "Game/GameClient/NameCache.h"
+#include "Object/ItemStats.h"
+#include "Object/ObjectClient/GameObject_C.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/Player_C.h"
@@ -29,23 +32,29 @@ enum QUEST_STATE {
   QUEST_STATE_NUM_TYPES = 4
 };
 
-struct QuestInfo {
-  int  quest;
-  int  questLevel;
-  char desc[64];
+class QuestInfo {
+ public:
+  int  id;
+  int  level;
+  char name[64];
   int  turnIn;
+
+  void Clear();
 };
 
-struct QuestItemInfo {
-  int itemReward;
-  int rewardDisplay;
+class QuestItemInfo {
+ public:
+  int rewardItemID;
+  int rewardDisplayID;
   int rewardAmount;
-  int itemChoice;
-  int choiceDisplay;
+  int choiceItemID;
+  int choiceDisplayID;
   int choiceAmount;
-  int itemRequest;
-  int requestDisplay;
-  int requestAmount;
+  int requiredItemID;
+  int requiredDisplayID;
+  int requiredAmount;
+
+  void Clear();
 };
 
 bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
@@ -141,19 +150,19 @@ class CGQuestInfo {
     return m_numInProgress;
   }
   static const char *GetQuestName(unsigned int index) {
-    return index < m_numQuests ? m_quests[index].desc : 0;
+    return index < m_numQuests ? m_quests[index].name : 0;
   }
   static const char *GetInProgressName(unsigned int index) {
-    return index < m_numInProgress ? m_inProgress[index].desc : 0;
+    return index < m_numInProgress ? m_inProgress[index].name : 0;
   }
   static int GetQuestLevel(unsigned int index) {
-    return index < m_numQuests ? m_quests[index].questLevel : 0;
+    return index < m_numQuests ? m_quests[index].level : 0;
   }
   static int GetInProgressLevel(unsigned int index) {
-    return index < m_numInProgress ? m_inProgress[index].questLevel : 0;
+    return index < m_numInProgress ? m_inProgress[index].level : 0;
   }
 
- protected:
+ private:
   static void ClearQuests() {
     memset(m_quests, 0, sizeof(m_quests));
     memset(m_inProgress, 0, sizeof(m_inProgress));
@@ -166,6 +175,7 @@ class CGQuestInfo {
     m_questTitle[0] = 0;
   }
 
+ protected:
   static unsigned __int64 m_npc;
   static QUEST_STATE      m_state;
   static int              m_currentQuest;
@@ -297,10 +307,10 @@ void CGQuestInfo::AddQuest(int quest, const char *desc, int questLevel, int turn
   FATALASSERT((m_numQuests + m_numInProgress) < 8);
 
   QuestInfo &info = m_quests[m_numQuests];
-  info.quest = quest;
-  info.questLevel = questLevel;
+  info.id = quest;
+  info.level = questLevel;
   if (desc) {
-    SStrCopy(info.desc, desc, sizeof(info.desc));
+    SStrCopy(info.name, desc, sizeof(info.name));
   }
   info.turnIn = turnIn;
   ++m_numQuests;
@@ -311,10 +321,10 @@ void CGQuestInfo::AddQuestInProgress(int quest, const char *desc, int questLevel
   FATALASSERT((m_numQuests + m_numInProgress) < 7);
 
   QuestInfo &info = m_inProgress[m_numInProgress];
-  info.quest = quest;
-  info.questLevel = questLevel;
+  info.id = quest;
+  info.level = questLevel;
   if (desc) {
-    SStrCopy(info.desc, desc, sizeof(info.desc));
+    SStrCopy(info.name, desc, sizeof(info.name));
   }
   info.turnIn = 0;
   ++m_numInProgress;
@@ -343,8 +353,8 @@ void CGQuestInfo::AddReward(
   memset(m_questItems, 0, sizeof(m_questItems));
   int i;
   for (i = 0; i < numChoice; ++i) {
-    m_questItems[i].itemChoice = itemChoice[i];
-    m_questItems[i].choiceDisplay = choiceDisplay[i];
+    m_questItems[i].choiceItemID = itemChoice[i];
+    m_questItems[i].choiceDisplayID = choiceDisplay[i];
     m_questItems[i].choiceAmount = choiceAmount[i];
   }
   for (; i < 6; ++i) {
@@ -352,8 +362,8 @@ void CGQuestInfo::AddReward(
   }
 
   for (i = 0; i < numReward; ++i) {
-    m_questItems[i].itemReward = itemReward[i];
-    m_questItems[i].rewardDisplay = itemDisplay[i];
+    m_questItems[i].rewardItemID = itemReward[i];
+    m_questItems[i].rewardDisplayID = itemDisplay[i];
     m_questItems[i].rewardAmount = itemAmount[i];
   }
   for (; i < 6; ++i) {
@@ -381,14 +391,14 @@ void CGQuestInfo::AddItemRequest(
 
   int i;
   for (i = 0; i < numItems; ++i) {
-    m_questItems[i].itemRequest = items[i];
-    m_questItems[i].requestDisplay = itemDisplay[i];
-    m_questItems[i].requestAmount = itemAmount[i];
+    m_questItems[i].requiredItemID = items[i];
+    m_questItems[i].requiredDisplayID = itemDisplay[i];
+    m_questItems[i].requiredAmount = itemAmount[i];
   }
   for (; i < 6; ++i) {
-    m_questItems[i].itemRequest = 0;
-    m_questItems[i].requestDisplay = 0;
-    m_questItems[i].requestAmount = 1;
+    m_questItems[i].requiredItemID = 0;
+    m_questItems[i].requiredDisplayID = 0;
+    m_questItems[i].requiredAmount = 1;
   }
 
   if (title) {
@@ -428,8 +438,8 @@ int CGQuestInfo::IsCompletable() {
     return 0;
   }
   unsigned int index;
-  for (index = 0; index < 6 && m_questItems[index].itemRequest; ++index) {
-    if (player->GetBag()->GetItemTypeCount(m_questItems[index].itemRequest, 0) < static_cast<unsigned int>(m_questItems[index].requestAmount)) {
+  for (index = 0; index < 6 && m_questItems[index].requiredItemID; ++index) {
+    if (player->GetBag()->GetItemTypeCount(m_questItems[index].requiredItemID, 0) < static_cast<unsigned int>(m_questItems[index].requiredAmount)) {
       return 0;
     }
   }
@@ -443,9 +453,9 @@ void CGQuestInfo::QueryQuest(unsigned int index) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     if (m_quests[index].turnIn) {
-      player->CompleteQuest(m_npc, m_quests[index].quest);
+      player->CompleteQuest(m_npc, m_quests[index].id);
     } else {
-      player->QueryQuest(m_npc, m_quests[index].quest);
+      player->QueryQuest(m_npc, m_quests[index].id);
     }
   }
 }
@@ -456,7 +466,7 @@ void CGQuestInfo::CompleteQuest(unsigned int index) {
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->CompleteQuest(m_npc, m_inProgress[index].quest);
+    player->CompleteQuest(m_npc, m_inProgress[index].id);
   }
 }
 
@@ -502,7 +512,7 @@ int CGQuestInfo::GetReward(int choice) {
     return 1;
   }
   if (numChoices) {
-    m_lastChosenItem = m_questItems[choice].itemChoice;
+    m_lastChosenItem = m_questItems[choice].choiceItemID;
   }
   player->GetQuestReward(m_npc, m_currentQuest, choice > 0 ? choice : 0);
   return 1;
@@ -510,21 +520,21 @@ int CGQuestInfo::GetReward(int choice) {
 
 unsigned int CGQuestInfo::GetNumQuestRewards() {
   unsigned int index;
-  for (index = 0; index < 6 && m_questItems[index].itemReward; ++index) {
+  for (index = 0; index < 6 && m_questItems[index].rewardItemID; ++index) {
   }
   return index;
 }
 
 unsigned int CGQuestInfo::GetNumQuestChoices() {
   unsigned int index;
-  for (index = 0; index < 6 && m_questItems[index].itemChoice; ++index) {
+  for (index = 0; index < 6 && m_questItems[index].choiceItemID; ++index) {
   }
   return index;
 }
 
 unsigned int CGQuestInfo::GetNumQuestItems() {
   unsigned int index;
-  for (index = 0; index < 6 && m_questItems[index].itemRequest; ++index) {
+  for (index = 0; index < 6 && m_questItems[index].requiredItemID; ++index) {
   }
   return index;
 }
@@ -551,17 +561,17 @@ int CGQuestInfo::GetQuestItemInfo(
   int itemID = 0;
   int displayID = 0;
   if (!SStrCmpI(type, "reward", 0x7FFFFFFF)) {
-    itemID = m_questItems[index].itemReward;
-    displayID = m_questItems[index].rewardDisplay;
+    itemID = m_questItems[index].rewardItemID;
+    displayID = m_questItems[index].rewardDisplayID;
     amount = m_questItems[index].rewardAmount;
   } else if (!SStrCmpI(type, "choice", 0x7FFFFFFF)) {
-    itemID = m_questItems[index].itemChoice;
-    displayID = m_questItems[index].choiceDisplay;
+    itemID = m_questItems[index].choiceItemID;
+    displayID = m_questItems[index].choiceDisplayID;
     amount = m_questItems[index].choiceAmount;
   } else if (!SStrCmpI(type, "required", 0x7FFFFFFF)) {
-    itemID = m_questItems[index].itemRequest;
-    displayID = m_questItems[index].requestDisplay;
-    amount = m_questItems[index].requestAmount;
+    itemID = m_questItems[index].requiredItemID;
+    displayID = m_questItems[index].requiredDisplayID;
+    amount = m_questItems[index].requiredAmount;
   } else {
     return 0;
   }
@@ -586,13 +596,13 @@ int CGQuestInfo::GetQuestItemID(const char *type, unsigned int index) {
     return 0;
   }
   if (!SStrCmpI(type, "reward", 0x7FFFFFFF)) {
-    return m_questItems[index].itemReward;
+    return m_questItems[index].rewardItemID;
   }
   if (!SStrCmpI(type, "choice", 0x7FFFFFFF)) {
-    return m_questItems[index].itemChoice;
+    return m_questItems[index].choiceItemID;
   }
   if (!SStrCmpI(type, "required", 0x7FFFFFFF)) {
-    return m_questItems[index].itemRequest;
+    return m_questItems[index].requiredItemID;
   }
   return 0;
 }
@@ -794,14 +804,22 @@ static int Script_ConfirmAcceptQuest(lua_State *__formal) {
 }
 
 static int Script_GetQuestBackgroundMaterial(lua_State *L) {
-  const CGObject_C *object = ClntObjMgrObjectPtr(CGQuestInfo::GetQuestGiver(), __FILE__, __LINE__);
-  if (object && object->IsA(TYPE_GAMEOBJECT)) {
-    lua_pushstring(L, "Stone");
-  } else if (object && object->IsA(TYPE_ITEM)) {
-    lua_pushstring(L, "Marble");
-  } else {
-    lua_pushstring(L, "Parchment");
+  CGObject_C *object = ClntObjMgrObjectPtr(CGQuestInfo::GetQuestGiver(), __FILE__, __LINE__);
+  int material = 0;
+  if (object) {
+    if (object->GetType() & TYPE_ITEM) {
+      const unsigned __int64 noGuid = 0;
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(object->GetEntryID(), noGuid, 0, 0);
+      if (stats) {
+        material = stats->m_pageMaterial;
+      }
+    } else if (object->GetType() & TYPE_GAMEOBJECT) {
+      material = static_cast<CGGameObject_C *>(object)->GetPageTextMaterial();
+    }
   }
+
+  const PageTextMaterialRec *rec = material > 0 ? g_pageTextMaterialDB.GetRecord(material) : 0;
+  lua_pushstring(L, rec ? rec->m_name : 0);
   return 1;
 }
 

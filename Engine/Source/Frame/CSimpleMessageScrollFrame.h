@@ -44,7 +44,7 @@ class CSimpleMessageScrollFrameDisplayNode : public TRefCnt {
 
 class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
  public:
-  CSimpleMessageScrollFrame(CSimpleFrame *parent, int maxLines);
+  CSimpleMessageScrollFrame(CSimpleFrame *parent = 0, int maxLines = 8);
   virtual ~CSimpleMessageScrollFrame();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
@@ -54,15 +54,6 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   void                               SetTextLength(int size);
   void SetFont(const char *font, float fontHeight, int fontFlags) {
     m_attrib.SetFont(font, fontHeight, fontFlags);
-  }
-  unsigned char HasFont() const {
-    return m_attrib.HasFont();
-  }
-  const char *GetFontName() const {
-    return m_attrib.GetFontName();
-  }
-  unsigned int GetFontFlags() const {
-    return m_attrib.GetFontFlags();
   }
   void SetHorizontalAlignment(unsigned int alignment) {
     m_attrib.SetHorizontalAlignment(alignment);
@@ -75,9 +66,6 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   }
   void SetSpacing(float spacing) {
     m_attrib.SetSpacing(spacing);
-  }
-  void SetStyleFlags(unsigned int flags) {
-    m_attrib.SetStyleFlags(flags);
   }
   const CSimpleFontStringAttributes *GetTextAttributes() const {
     return &m_attrib;
@@ -96,17 +84,17 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   void         Clear();
   int          ScrollUp();
   int          ScrollDown();
-  int          CanScroll() const {
+  int          CanScroll() {
     return m_numMessages > m_numDisplayed;
   }
   void         PageUp();
   void         PageDown();
   void         ScrollToTop();
   void         ScrollToBottom();
-  int          GetNumDisplayLines() const {
+  int          GetNumDisplayLines() {
     return m_numDisplayed;
   }
-  int          AtBottom() const {
+  int          AtBottom() {
     return m_atBottom;
   }
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);

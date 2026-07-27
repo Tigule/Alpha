@@ -10,6 +10,7 @@ class CGItemText {
   static void EnterWorld();
   static void LeaveWorld();
   static void SetItem(const unsigned __int64 &item, int callback);
+  static void DisplayText(const unsigned __int64 &item, int useSkill);
 
   static const unsigned __int64 &GetItem() {
     return m_itemGUID;
@@ -28,7 +29,6 @@ class CGItemText {
 
  private:
   static void ItemTextCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
-  static void DisplayText(const unsigned __int64 &item, int useSkill);
   static unsigned __int64     m_itemGUID;
   static unsigned int         m_currentPage;
   static TSGrowableArray<int> m_pages;

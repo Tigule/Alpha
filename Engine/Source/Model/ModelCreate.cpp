@@ -82,12 +82,29 @@ class CHashKeyFilePath {
     path[0] = 0;
   }
 
+  CHashKeyFilePath(const char *value) {
+    SStrCopy(path, value, sizeof(path));
+  }
+
+  CHashKeyFilePath(const CHashKeyFilePath &source) {
+    SStrCopy(path, source.path, sizeof(path));
+  }
+
   bool operator==(const char *value) const {
     return SStrCmpI(path, value, 0x7FFFFFFF) == 0;
   }
 
+  bool operator==(const CHashKeyFilePath &source) const {
+    return operator==(source.path);
+  }
+
   CHashKeyFilePath &operator=(const char *value) {
     SStrCopy(path, value, sizeof(path));
+    return *this;
+  }
+
+  CHashKeyFilePath &operator=(const CHashKeyFilePath &source) {
+    SStrCopy(path, source.path, sizeof(path));
     return *this;
   }
 

@@ -17,7 +17,7 @@ class SpellVisualAnimNameRec {
     return 8;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_generatedID;
   }
 

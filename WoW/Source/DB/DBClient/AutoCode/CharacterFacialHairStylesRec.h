@@ -17,7 +17,7 @@ class CharacterFacialHairStylesRec {
     return 24;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_generatedID;
   }
 

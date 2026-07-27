@@ -26,6 +26,23 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
     m_texture = 0;
   }
 
+  int IsInUse() {
+    return GetRefCount() > 1;
+  }
+
+  void LoadData(const char *fileName) {
+    char    altFileName[0x104];
+    CStatus status;
+
+    m_texture = TextureLoadImage(fileName);
+    if (!m_texture) {
+      TEXFILETYPE fileType = TextureDiscoverFileType(fileName);
+
+      TexturePickAlternateFilename(fileName, fileType, altFileName, sizeof(altFileName));
+      m_texture = TextureLoadImage(altFileName);
+    }
+  }
+
   TSLink<CACHEENTRY> m_cacheLink;
   HTEXTURE           m_texture;
   TEXTUREINFO        m_textureInfo;
@@ -66,7 +83,7 @@ void CACHEOBJECT::PurgeTextureCache() {
       while (curr && m_currentCacheSize > m_cacheSize) {
         next = m_LRUList.Prev(curr);
 
-        if (curr->GetRefCount() <= 1) {
+        if (!curr->IsInUse()) {
           m_currentCacheSize -= curr->m_size;
           ASSERT(curr->m_selfReference);
           HandleClose(curr->m_selfReference);
@@ -83,7 +100,7 @@ void CACHEOBJECT::PurgeTextureCache() {
       while (curr && m_currentCacheSize > m_cacheSize) {
         next = m_LRUList.Next(curr);
 
-        if (curr->GetRefCount() <= 1) {
+        if (!curr->IsInUse()) {
           if (entriesFound < m_cacheEntries) {
             ++entriesFound;
           } else {
@@ -106,7 +123,7 @@ void CACHEOBJECT::PurgeTextureCache() {
       while (curr && m_currentCacheSize > m_cacheSize) {
         next = m_LRUList.Next(curr);
 
-        if (curr->GetRefCount() <= 1 && currentTime >= curr->m_expireTime) {
+        if (!curr->IsInUse() && currentTime >= curr->m_expireTime) {
           m_currentCacheSize -= curr->m_size;
           ASSERT(curr->m_selfReference);
           HandleClose(curr->m_selfReference);
@@ -156,16 +173,7 @@ HMIPPEDTEXTURE CACHEOBJECT::GetTexture(const char *fileName, TEXTUREINFO *info) 
 
   object = m_cacheTable.New(fileName, 0, 0);
 
-  char    altFileName[0x104];
-  CStatus status;
-
-  object->m_texture = TextureLoadImage(fileName);
-  if (!object->m_texture) {
-    TEXFILETYPE fileType = TextureDiscoverFileType(fileName);
-
-    TexturePickAlternateFilename(fileName, fileType, altFileName, sizeof(altFileName));
-    object->m_texture = TextureLoadImage(altFileName);
-  }
+  object->LoadData(fileName);
 
   if (!object->m_texture) {
     m_cacheTable.Delete(fileName);

@@ -222,15 +222,16 @@ if(MSVC_VERSION EQUAL 1200)
         Source/regex/regexec.c
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1")
 
+    # looks like these files don't include debug info?
     set_source_files_properties(
         Source/FrameXML/FrameXML.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /Zd")
     set_source_files_properties(
         Source/FrameXML/XMLTree.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob0 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob0 /Oy- /Zd")
     set_source_files_properties(
         Source/FrameXML/LoadXML.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob0 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob0 /Oy- /Zd")
 
     set_source_files_properties(
         Source/Gxu/GxuFont.cpp

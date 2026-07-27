@@ -2148,8 +2148,7 @@ static void SpellStart(unsigned __int64 casterGUID, unsigned __int64 casterUnit,
   FATALASSERT(caster->GetType() & TYPE_UNIT);
   caster->ClearRangedStandTimer();
   if (ammoDisplayID) {
-    caster->m_ammoDisplayID = ammoDisplayID;
-    caster->m_ammoInvType = ammoInventoryType;
+    caster->SetAmmoDisplay(ammoDisplayID, ammoInventoryType);
   }
 
   if (caster->GetGUID() == ClntObjMgrGetActivePlayer()) {

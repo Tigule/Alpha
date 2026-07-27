@@ -89,7 +89,7 @@ void CGxDeviceOpenGl::DeviceOverride(EGxOverride override, unsigned long value) 
 
   if (override == GxOverride_PixelShader) {
     ASSERT(value >= CGxPixelShader::Target_nvrc && value <= CGxPixelShader::Target_arbfp1);
-    m_caps.m_pixelShaderTarget = value;
+    m_caps.m_pixelShaderTarget = static_cast<CGxPixelShader::Target>(value);
   }
 }
 
@@ -240,7 +240,7 @@ void CGxDeviceOpenGl::ISetGlCaps() {
   m_caps.m_texFmtDxt = glExtTextureCompressionS3tc;
   m_caps.m_generateMipMaps = glSGISGenerateMipmap;
 
-  m_caps.m_pixelShaderTarget = -1;
+  m_caps.m_pixelShaderTarget = CGxPixelShader::Target_gx;
   if (glARBFragmentProgram) {
     m_caps.m_pixelShaderTarget = CGxPixelShader::Target_arbfp1;
   } else if (glATIFragmentShader) {

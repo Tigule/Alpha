@@ -22,6 +22,11 @@ class CStringRep : public TRefCnt, public TSHashObject<CStringRep, HASHKEY_STR> 
   static CStringRep s_nullRep;
 
  public:
+  CStringRep() {
+  }
+
+  CStringRep(const CStringRep &);
+
   virtual void DecrRef();
 
   int IsString(const char *str) const;
@@ -42,6 +47,11 @@ class CStringManager : public TSHashTable<CStringRep, HASHKEY_STR> {
   static CStringManager            *s_stringManager;
 
  public:
+  CStringManager() {
+  }
+
+  CStringManager(const CStringManager &);
+
   virtual ~CStringManager();
 
   CStringRep &Add(const char *str);
@@ -96,6 +106,7 @@ class RCString : public TRefCnt {
 
   void Get(char *buf, RCStringIndex bufSize) const;
 
+ private:
   TRefCntPtr<CStringRep> m_rep;
 };
 

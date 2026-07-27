@@ -9,6 +9,10 @@ namespace NTempest {
 
   class C33Matrix {
    public:
+    enum {
+      eComponents = 9
+    };
+
     C33Matrix() : a0(1.0f), a1(0.0f), a2(0.0f), b0(0.0f), b1(1.0f), b2(0.0f), c0(0.0f), c1(0.0f), c2(1.0f) {
     }
 
@@ -20,6 +24,9 @@ namespace NTempest {
     }
     C33Matrix(const C3Vector &a, const C3Vector &b, const C3Vector &c)
         : a0(a.x), a1(a.y), a2(a.z), b0(b.x), b1(b.y), b2(b.z), c0(c.x), c1(c.y), c2(c.z) {
+    }
+
+    ~C33Matrix() {
     }
 
     C33Matrix asC33Matrix() const {
@@ -119,10 +126,12 @@ namespace NTempest {
       return a0 + b1 + c2;
     }
 
+   protected:
     static float Det(float a, float b, float c, float d) {
       return a * d - b * c;
     }
 
+   public:
     static C33Matrix Rotation(float angle, const C3Vector &axis, bool unit);
     static C33Matrix Rotation(float angle);
     float                       Determinant() const;

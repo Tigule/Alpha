@@ -83,8 +83,8 @@ static void ResolveStatusPtrs(CAnim *unique, CAnimData *shared) {
 
 CAnimObj *AnimObjectCreateHelper(CAnimData *shared) {
   ASSERT(shared);
-  unsigned int index = shared->baseObjs.m_count++;
-  CAnimObj    *newobj = &shared->baseObjs.m_data[index];
+  unsigned int index = shared->baseObjs.Count();
+  CAnimObj    *newobj = shared->baseObjs.New();
   ASSERT(newobj);
   newobj->splitIndex = index;
   return newobj;
@@ -92,8 +92,8 @@ CAnimObj *AnimObjectCreateHelper(CAnimData *shared) {
 
 CAnimLightObj *AnimObjectCreateLight(CAnimData *shared) {
   ASSERT(shared);
-  unsigned int   index = shared->lightObjs.m_count++;
-  CAnimLightObj *newobj = &shared->lightObjs.m_data[index];
+  unsigned int   index = shared->lightObjs.Count();
+  CAnimLightObj *newobj = shared->lightObjs.New();
   ASSERT(newobj);
   newobj->splitIndex = index;
   return newobj;
@@ -101,8 +101,8 @@ CAnimLightObj *AnimObjectCreateLight(CAnimData *shared) {
 
 CAnimModelObj *AnimObjectCreateAttachment(CAnimData *shared) {
   ASSERT(shared);
-  unsigned int   index = shared->modelObjs.m_count++;
-  CAnimModelObj *newobj = &shared->modelObjs.m_data[index];
+  unsigned int   index = shared->modelObjs.Count();
+  CAnimModelObj *newobj = shared->modelObjs.New();
   ASSERT(newobj);
   newobj->splitIndex = index;
   return newobj;
@@ -110,8 +110,8 @@ CAnimModelObj *AnimObjectCreateAttachment(CAnimData *shared) {
 
 CAnimBoneObj *AnimObjectCreateBone(CAnimData *shared) {
   ASSERT(shared);
-  unsigned int  index = shared->boneObjs.m_count++;
-  CAnimBoneObj *newobj = &shared->boneObjs.m_data[index];
+  unsigned int  index = shared->boneObjs.Count();
+  CAnimBoneObj *newobj = shared->boneObjs.New();
   ASSERT(newobj);
   newobj->splitIndex = index;
   return newobj;
@@ -119,8 +119,8 @@ CAnimBoneObj *AnimObjectCreateBone(CAnimData *shared) {
 
 CAnimEmitter2Obj *AnimObjectCreateEmitter2(CAnimData *shared) {
   ASSERT(shared);
-  unsigned int      index = shared->emitter2Objs.m_count++;
-  CAnimEmitter2Obj *newobj = &shared->emitter2Objs.m_data[index];
+  unsigned int      index = shared->emitter2Objs.Count();
+  CAnimEmitter2Obj *newobj = shared->emitter2Objs.New();
   ASSERT(newobj);
   newobj->splitIndex = index;
   return newobj;
@@ -128,8 +128,8 @@ CAnimEmitter2Obj *AnimObjectCreateEmitter2(CAnimData *shared) {
 
 CAnimRibbonObj *AnimObjectCreateRibbon(CAnimData *shared) {
   ASSERT(shared);
-  unsigned int    index = shared->ribbonObjs.m_count++;
-  CAnimRibbonObj *newobj = &shared->ribbonObjs.m_data[index];
+  unsigned int    index = shared->ribbonObjs.Count();
+  CAnimRibbonObj *newobj = shared->ribbonObjs.New();
   ASSERT(newobj);
   newobj->splitIndex = index;
   return newobj;
@@ -137,8 +137,8 @@ CAnimRibbonObj *AnimObjectCreateRibbon(CAnimData *shared) {
 
 CAnimEventObj *AnimObjectCreateEvent(CAnimData *shared) {
   ASSERT(shared);
-  unsigned int   index = shared->eventObjs.m_count++;
-  CAnimEventObj *newobj = &shared->eventObjs.m_data[index];
+  unsigned int   index = shared->eventObjs.Count();
+  CAnimEventObj *newobj = shared->eventObjs.New();
   ASSERT(newobj);
   newobj->splitIndex = index;
   return newobj;
@@ -746,14 +746,14 @@ CAnim *AnimCreate(unsigned int *const objectCounts, unsigned int numGeosets, uns
     numObjects += objectCounts[type];
   }
   shared->obj.ReserveSpace(numObjects);
-  shared->obj.m_count = numObjects;
-  memset(shared->obj.m_data, 0, numObjects * sizeof(CAnimObj *));
+  shared->obj.SetCount(numObjects);
+  shared->obj.Zero();
   shared->geo.ReserveSpace(numGeosets);
-  shared->geoIdToGeoAnimId.Reserve(numGeosets);
+  shared->geoIdToGeoAnimId.ReserveSpace(numGeosets);
   shared->cameraObjs.ReserveSpace(numCameras);
   shared->layers.ReserveSpace(numMaterialLayers);
   shared->objectOrder.ReserveSpace(numObjects);
-  shared->objectOrder.m_count = numObjects;
+  shared->objectOrder.SetCount(numObjects);
   for (unsigned int index = 0; index < numObjects; ++index) {
     shared->objectOrder[index] = index;
   }
@@ -766,27 +766,27 @@ CAnim *AnimCreate(unsigned int *const objectCounts, unsigned int numGeosets, uns
   CAnim *unique = new (uniqueMemory) CAnim(0);
 
   unique->baseStatus.ReserveSpace(objectCounts[0]);
-  unique->baseStatus.m_count = objectCounts[0];
+  unique->baseStatus.SetCount(objectCounts[0]);
   unique->boneStatus.ReserveSpace(objectCounts[3]);
-  unique->boneStatus.m_count = objectCounts[3];
+  unique->boneStatus.SetCount(objectCounts[3]);
   unique->lightStatus.ReserveSpace(objectCounts[1]);
-  unique->lightStatus.m_count = objectCounts[1];
+  unique->lightStatus.SetCount(objectCounts[1]);
   unique->modelStatus.ReserveSpace(objectCounts[2]);
-  unique->modelStatus.m_count = objectCounts[2];
+  unique->modelStatus.SetCount(objectCounts[2]);
   unique->emitter2Status.ReserveSpace(objectCounts[4]);
-  unique->emitter2Status.m_count = objectCounts[4];
+  unique->emitter2Status.SetCount(objectCounts[4]);
   unique->ribbonStatus.ReserveSpace(objectCounts[5]);
-  unique->ribbonStatus.m_count = objectCounts[5];
+  unique->ribbonStatus.SetCount(objectCounts[5]);
   unique->eventStatus.ReserveSpace(objectCounts[6]);
-  unique->eventStatus.m_count = objectCounts[6];
+  unique->eventStatus.SetCount(objectCounts[6]);
   unique->status.ReserveSpace(numObjects);
-  unique->status.m_count = numObjects;
+  unique->status.SetCount(numObjects);
   unique->geosetStatus.ReserveSpace(numGeosets);
-  unique->geosetStatus.m_count = numGeosets;
+  unique->geosetStatus.SetCount(numGeosets);
   unique->cameraStatus.ReserveSpace(numCameras);
-  unique->cameraStatus.m_count = numCameras;
+  unique->cameraStatus.SetCount(numCameras);
   unique->layerStatus.ReserveSpace(numMaterialLayers);
-  unique->layerStatus.m_count = numMaterialLayers;
+  unique->layerStatus.SetCount(numMaterialLayers);
   unique->hdata = static_cast<HANIMDATA>(HandleCreate(shared, "HANIMDATA"));
   return unique;
 }
@@ -839,7 +839,7 @@ void AnimAddMaterialLayer(CAnimData* shared, const MDLTEXLAYER& layerData, unsig
     return;
   }
 
-  CAnimMaterialLayer &layer = shared->layers.m_data[shared->layers.m_count++];
+  CAnimMaterialLayer &layer = *shared->layers.New();
   layer.layerId = layerId;
   AnimObjectSetVisibilityTrack(shared, &layer, layerData.alphaKeys, forceType);
 
@@ -873,9 +873,9 @@ void AnimAddMaterialLayers(unsigned char *fileData, unsigned int fileBytes, CAni
   unsigned char *data = section + 12;
 
   unique->layerStatus.ReserveSpace(numLayers);
-  unique->layerStatus.m_count = numLayers;
+  unique->layerStatus.SetCount(numLayers);
   shared->layers.ReserveSpace(numLayers);
-  shared->layers.m_count = 0;
+  shared->layers.Clear();
 
   unsigned int layerId = 0;
   for (unsigned int material = 0; material < numMaterials; ++material) {
@@ -888,7 +888,7 @@ void AnimAddMaterialLayers(unsigned char *fileData, unsigned int fileBytes, CAni
       unsigned char *layerDone = data + *reinterpret_cast<unsigned int *>(data);
       data += 28;
       if (data != layerDone) {
-        CAnimMaterialLayer &layer = shared->layers.m_data[shared->layers.m_count++];
+        CAnimMaterialLayer &layer = *shared->layers.New();
         layer.layerId = layerId;
         data = AddKeyFramesType(data, fileData + fileBytes - data, 0x41544D4B, shared, &layer.visibility, forceType);
 
@@ -934,8 +934,8 @@ void AnimAddGeosets(unsigned char *fileData, unsigned int fileBytes, CAnimData *
   unsigned char *dataDone = section + *reinterpret_cast<unsigned int *>(section) + 4;
   unsigned char *data = section + 8;
   shared->geo.ReserveSpace(numGeosetAnims);
-  shared->geo.m_count = numGeosetAnims;
-  shared->geoIdToGeoAnimId.Reserve(numGeosets);
+  shared->geo.SetCount(numGeosetAnims);
+  shared->geoIdToGeoAnimId.ReserveSpace(numGeosets);
   shared->geoIdToGeoAnimId.SetCount(numGeosets);
   if (numGeosets) {
     memset(shared->geoIdToGeoAnimId.Ptr(), 0xFF, numGeosets * sizeof(unsigned int));
@@ -960,8 +960,8 @@ void AnimAddGeosets(unsigned char *fileData, unsigned int fileBytes, CAnimData *
 
 void AnimAddGeoset(CAnimData* shared, const MDLGEOSETANIMSECTION& geodata, MDLTRACKTYPE forceType) {
   ASSERT(shared);
-  unsigned int geoAnimId = shared->geo.m_count++;
-  CAnimGeoset &geo = shared->geo.m_data[geoAnimId];
+  unsigned int geoAnimId = shared->geo.Count();
+  CAnimGeoset &geo = *shared->geo.New();
   unsigned int oldCount = shared->geoIdToGeoAnimId.Count();
   if (geodata.geosetId >= oldCount) {
     shared->geoIdToGeoAnimId.SetCount(geodata.geosetId + 1);
@@ -983,7 +983,7 @@ void AnimAddCameras(unsigned char *fileData, unsigned int fileBytes, CAnimData *
   unsigned char *dataDone = section + *reinterpret_cast<unsigned int *>(section) + 4;
   unsigned char *data = section + 8;
   shared->cameraObjs.ReserveSpace(numCameras);
-  shared->cameraObjs.m_count = numCameras;
+  shared->cameraObjs.SetCount(numCameras);
 
   for (unsigned int i = 0; i < numCameras; ++i) {
     data += sizeof(unsigned int);
@@ -1010,7 +1010,7 @@ void AnimAddCameras(unsigned char *fileData, unsigned int fileBytes, CAnimData *
 
 void AnimAddCamera(CAnimData* shared, const MDLCAMERASECTION& cameraData, MDLTRACKTYPE forceType) {
   ASSERT(shared);
-  CAnimCameraObj &camera = shared->cameraObjs.m_data[shared->cameraObjs.m_count++];
+  CAnimCameraObj &camera = *shared->cameraObjs.New();
   SStrCopy(camera.name, cameraData.name, sizeof(camera.name));
   camera.pivot = cameraData.pivot;
   AddKeyFrames(shared, cameraData.transkeys, &camera.translation, forceType);
@@ -1057,7 +1057,7 @@ void AnimAddSequences(unsigned char *fileData, unsigned int fileBytes, CAnim *un
   }
 
   shared->seq.ReserveSpace(numSequences);
-  shared->seq.m_count = numSequences;
+  shared->seq.SetCount(numSequences);
   for (unsigned int i = 0; i < numSequences; ++i) {
     CAnimSequence &sequence = shared->seq[i];
     SStrCopy(reinterpret_cast<char *>(&sequence.name), reinterpret_cast<const char *>(data), 80);
@@ -1092,7 +1092,7 @@ void AnimAddSequences(unsigned char *fileData, unsigned int fileBytes, CAnim *un
   ASSERT(seqDataDone == data);
 
   unique->seq.ReserveSpace(numSequences);
-  unique->seq.m_count = numSequences;
+  unique->seq.SetCount(numSequences);
 
   unsigned char *globalSection = MDLFileBinarySeek(fileData, fileBytes, 0x53424C47);
   unsigned int   numGlobalSequences = 0;
@@ -1108,9 +1108,9 @@ void AnimAddSequences(unsigned char *fileData, unsigned int fileBytes, CAnim *un
 
   unique->seqLastTime = IAnimGetCurrTimeMs();
   unique->globalSeqElapsed.ReserveSpace(numGlobalSequences);
-  unique->globalSeqElapsed.m_count = numGlobalSequences;
+  unique->globalSeqElapsed.SetCount(numGlobalSequences);
   if (numGlobalSequences) {
-    memset(unique->globalSeqElapsed.m_data, 0, numGlobalSequences * sizeof(unsigned int));
+    unique->globalSeqElapsed.Zero();
   }
   shared->globalSeqLength.Set(numGlobalSequences, reinterpret_cast<unsigned int *>(globalData));
   ASSERT(globalData + numGlobalSequences * sizeof(unsigned int) == globalDataDone);
@@ -1128,7 +1128,7 @@ void AnimAddSequences(
   ASSERT(globalSeqs.Count() <= static_cast<unsigned char>(0xFF));
 
   shared->seq.ReserveSpace(sequences.Count());
-  shared->seq.m_count = sequences.Count();
+  shared->seq.SetCount(sequences.Count());
   for (unsigned int i = 0; i < sequences.Count(); ++i) {
     const MDLSEQUENCESSECTION &source = sequences[i];
     CAnimSequence &sequence = shared->seq[i];
@@ -1149,15 +1149,15 @@ void AnimAddSequences(
   }
 
   unique->seq.ReserveSpace(sequences.Count());
-  unique->seq.m_count = sequences.Count();
+  unique->seq.SetCount(sequences.Count());
   unique->seqLastTime = IAnimGetCurrTimeMs();
   unique->globalSeqElapsed.ReserveSpace(globalSeqs.Count());
-  unique->globalSeqElapsed.m_count = globalSeqs.Count();
+  unique->globalSeqElapsed.SetCount(globalSeqs.Count());
   if (globalSeqs.Count()) {
-    memset(unique->globalSeqElapsed.m_data, 0, globalSeqs.Count() * sizeof(unsigned int));
+    unique->globalSeqElapsed.Zero();
   }
   shared->globalSeqLength.ReserveSpace(globalSeqs.Count());
-  shared->globalSeqLength.m_count = globalSeqs.Count();
+  shared->globalSeqLength.SetCount(globalSeqs.Count());
   for (unsigned int global = 0; global < globalSeqs.Count(); ++global) {
     shared->globalSeqLength[global] = globalSeqs[global].length;
   }
@@ -1175,7 +1175,7 @@ void AnimAddTextureAnims(unsigned char *fileData, unsigned int fileBytes, CAnim 
   unsigned int   numTexAnims = *reinterpret_cast<unsigned int *>(section + 4);
   unsigned char *data = section + 8;
   shared->tex.ReserveSpace(numTexAnims);
-  shared->tex.m_count = numTexAnims;
+  shared->tex.SetCount(numTexAnims);
 
   for (unsigned int i = 0; i < numTexAnims; ++i) {
     unsigned char *animDone = data + *reinterpret_cast<unsigned int *>(data);
@@ -1213,7 +1213,7 @@ void AnimAddTextureAnims(unsigned char *fileData, unsigned int fileBytes, CAnim 
   ASSERT(dataDone == data);
 
   unique->textureStatus.ReserveSpace(numTexAnims);
-  unique->textureStatus.m_count = numTexAnims;
+  unique->textureStatus.SetCount(numTexAnims);
 }
 
 void AnimAddTextureAnim(
@@ -1226,7 +1226,7 @@ void AnimAddTextureAnim(
   ASSERT(shared);
 
   shared->tex.ReserveSpace(textureAnims.Count());
-  shared->tex.m_count = textureAnims.Count();
+  shared->tex.SetCount(textureAnims.Count());
   for (unsigned int i = 0; i < textureAnims.Count(); ++i) {
     CAnimTransform &transform = shared->tex[i];
     AddKeyFrames(shared, textureAnims[i].transkeys, &transform.translation, forceType);
@@ -1257,7 +1257,7 @@ void AnimAddTextureAnim(
   }
 
   unique->textureStatus.ReserveSpace(textureAnims.Count());
-  unique->textureStatus.m_count = textureAnims.Count();
+  unique->textureStatus.SetCount(textureAnims.Count());
 }
 
 #undef ADD_KEY_FRAMES_TYPE

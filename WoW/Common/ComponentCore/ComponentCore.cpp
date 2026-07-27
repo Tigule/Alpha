@@ -15,6 +15,23 @@
 #include <string.h>
 #include <storm.h>
 
+struct NULLSTATUS : public CStatus {
+  virtual void Add(STATUS_TYPE severity, const char *format, ...);
+  virtual void Add(const CStatus &source);
+  virtual void Prepend(STATUS_TYPE severity, const char *format, ...);
+};
+
+void NULLSTATUS::Add(STATUS_TYPE, const char *, ...) {
+}
+
+void NULLSTATUS::Add(const CStatus &) {
+}
+
+void NULLSTATUS::Prepend(STATUS_TYPE, const char *, ...) {
+}
+
+static NULLSTATUS s_nullStatus;
+
 static const unsigned int s_tabardSectionFlags = 0x60;
 static const char        *s_tabardSectionSuffix[NUM_TEXCOMPONENT_SECTIONS] = {0, 0, 0, 0, 0, 0, "_TU", "_TL", 0, 0};
 
@@ -23,6 +40,36 @@ static unsigned int          s_numSectionsMask;
 static const char           *s_boneNames[3] = {"$WTB", "$WTT", "$CCH"};
 static const unsigned int    NUM_UNDERWEARHIDESECTIONS = 2;
 static TEXCOMPONENT_SECTIONS s_underwearSections[2] = {TCS_UPPERTORSO, TCS_LEGUPPER};
+static const unsigned int    s_underwearSectionHideInfo[NUM_TEXCOMPONENT_SECTIONS] = {-1, -1, -1, -1, -1, 0, -1, 1, -1, -1};
+static const int             s_underwearHideSections[INDEX_NUMSLOTS][NUM_UNDERWEARHIDESECTIONS] = {
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {1, 1},
+    {1, 1},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {1, 1},
+    {1, 1},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0},
+    {0, 0}
+};
 static TEXCOMPONENT_SECTIONS s_tabardSections[2] = {TCS_UPPERTORSO, TCS_LOWERTORSO};
 
 static HMODEL ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, const ItemDisplayInfoRec *displayInfoRec);
@@ -243,6 +290,10 @@ int CTextureLayer::SetTexture(
   return m_priorities[priority].SetTexture(section, layer, priority, status, checkExistingTexture, fileName, expectedWidth, expectedHeight);
 }
 
+void CTextureLayer::SetTexture(int priority, int checkExistingTexture, const CTexturePiece &source) {
+  m_priorities[priority].SetTexture(checkExistingTexture, source);
+}
+
 int CTexturePiece::SetTexture(
     TEXCOMPONENT_SECTIONS section,
     TEXCOMPONENT_LAYERS   layer,
@@ -286,6 +337,34 @@ void CTexturePiece::SetTexture(int checkExistingTexture, HTEXTURE texture) {
   }
 
   m_textureInfo.opaque = 1;
+}
+
+void CTexturePiece::SetTexture(int checkExistingTexture, const CTexturePiece &source) {
+  if (source.m_mippedTexture) {
+    ASSERT(!checkExistingTexture || !m_mippedTexture);
+
+    if (m_mippedTexture) {
+      HandleClose(m_mippedTexture);
+      m_mippedTexture = 0;
+    }
+
+    m_textureInfo = source.m_textureInfo;
+    ClearHold(0);
+    m_mippedTexture = static_cast<HMIPPEDTEXTURE>(HandleDuplicate(source.m_mippedTexture));
+    SStrPrintf(m_fileName, sizeof(m_fileName), "%s", source.m_fileName);
+  }
+}
+
+void CTexturePiece::AllocBlankTexture(EGxTexFormat format, unsigned int width, unsigned int height, int opaque) {
+  ASSERT(0);
+  ASSERT(!m_mippedTexture);
+
+  m_mippedTexture = TextureCacheAllocUncachedImage(format, width, height, &m_textureInfo);
+  m_textureInfo.opaque = opaque;
+}
+
+int CTexturePiece::IsLoaded() const {
+  return TextureCacheGetImage(m_mippedTexture) != 0;
 }
 
 void CTexturePiece::PasteOpaque(const CTexturePiece &source, NTempest::C2iVector dstPos, NTempest::C2iVector srcPos, NTempest::C2iVector size) {
@@ -690,42 +769,22 @@ void CTexComponent::UpdateUnderwearVisibility() {
 }
 
 void CTexComponent::IncUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SECTIONS sectionID) {
-  static const int sectionToUnderwear[NUM_TEXCOMPONENT_SECTIONS] = {-1, -1, -1, -1, -1, 0, -1, 1, -1, -1};
-  static const int inventoryHidesUnderwear[INDEX_NUMSLOTS][2] = {
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {1, 1},
-      {1, 1},
-      {0, 1},
-      {0, 1},
-      {0, 1},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {1, 1},
-      {1, 1},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0},
-      {0, 0}
-  };
-
-  unsigned int section = sectionToUnderwear[sectionID];
-  if (section != static_cast<unsigned int>(-1)) {
+  unsigned int section = s_underwearSectionHideInfo[sectionID];
+  if (section != -1) {
     ASSERT(section < NUM_UNDERWEARHIDESECTIONS);
-    if (inventoryHidesUnderwear[itemInventoryType][section]) {
+    if (s_underwearHideSections[itemInventoryType][section]) {
       ++m_underwearHideCounts[section];
+    }
+  }
+}
+
+void CTexComponent::DecUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SECTIONS sectionID) {
+  unsigned int section = s_underwearSectionHideInfo[sectionID];
+  if (section != -1) {
+    ASSERT(section < NUM_UNDERWEARHIDESECTIONS);
+    if (s_underwearHideSections[itemInventoryType][section]) {
+      ASSERT(m_underwearHideCounts[section]);
+      --m_underwearHideCounts[section];
     }
   }
 }
@@ -826,7 +885,7 @@ void TexComponentAdd(
 
   unsigned int i;
   for (i = 0; i < numTextureComponents; ++i) {
-    if (!sectionArt.fileName[i][0]) {
+    if (!sectionArt.path[i][0]) {
       continue;
     }
 
@@ -838,7 +897,7 @@ void TexComponentAdd(
     int success = CompUtilGetSectionDimensions(section, &width, &height);
     FATALASSERT(success);
 
-    CompDecorateTexName(sectionArt.fileName[i], section, buffer, sizeof(buffer), playerSex, 1);
+    CompDecorateTexName(sectionArt.path[i], section, buffer, sizeof(buffer), playerSex, 1);
     if (buffer[0]) {
       componentptr->SetTexture(status, checkForExistingTexture, buffer, section, layerList[i], priorityList[i], width, height);
     }
@@ -1009,7 +1068,8 @@ static HMODEL ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, cons
   ModelSetSequence(subCompModel, 0, 0);
 
   if (subComponent->textureName && *subComponent->textureName) {
-    HTEXTURE texture = TextureCreate(subComponent->textureName, CGxTexFlags(GxTex_LinearMipLinear, 0, 0, 0, 0, 0, 1), &status, 0);
+    HTEXTURE texture =
+        TextureCreate(subComponent->textureName, CGxTexFlags(GxTex_LinearMipLinear, 0, 0, 0, 0, 0, 1), &s_nullStatus, 0);
     if (!texture) {
       SysMsgPrintf(SYSMSG_ERROR, 2, "TEXCOMPONENTNOTEXTURE|%d:%s!", displayInfoRec->m_ID, subComponent->textureName);
       return subCompModel;

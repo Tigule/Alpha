@@ -12,15 +12,20 @@ enum BAG_RESULT {
 
 class CGBag {
  public:
-  CGBag(unsigned __int64 guid, unsigned int *slotCount, unsigned __int64 *slots, unsigned int isInventory)
+  CGBag(unsigned __int64 guid, unsigned int *slotCount, unsigned __int64 *slots, unsigned char isInventory)
       : m_slotCount(slotCount), m_slots(slots), m_guid(guid), m_isInventory(isInventory) {
   }
 
   unsigned __int64 GetItem(unsigned int slot) const {
     return slot < *m_slotCount ? m_slots[slot] : 0;
   }
+  int GetIndexOfObject(unsigned __int64 guid) const;
+  unsigned int NumItems() const;
   unsigned int NumSlots() const {
     return *m_slotCount;
+  }
+  int IsInventory() const {
+    return m_isInventory;
   }
   unsigned __int64 GetGUID() const {
     return m_guid;
@@ -30,13 +35,15 @@ class CGBag {
   unsigned int     *m_slotCount;
   unsigned __int64 *m_slots;
   unsigned __int64  m_guid;
-  unsigned int      m_isInventory;
+  unsigned char     m_isInventory;
 };
 
 class CGBag_C : public CGBag {
  public:
-  CGBag_C(unsigned __int64 guid, unsigned int *slotCount, unsigned __int64 *slots, unsigned int isInventory)
+  CGBag_C(unsigned __int64 guid, unsigned int *slotCount, unsigned __int64 *slots, unsigned char isInventory)
       : CGBag(guid, slotCount, slots, isInventory) {
+  }
+  ~CGBag_C() {
   }
 
   int                               GetItemTypeCount(int entryID, unsigned int flags) const;

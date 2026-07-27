@@ -470,7 +470,7 @@ bool CWorld::QueryMountAllowed(unsigned long hWorldObject, bool &allowed) {
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup = 0;
   FATALASSERT(entity->GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup));
-  allowed = (mapObjGroup->flags & 0x8000) != 0;
+  allowed = (mapObjGroup->GetFlags() & 0x8000) != 0;
   return true;
 }
 
@@ -761,14 +761,14 @@ bool CWorld::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plan
   return result;
 }
 
-unsigned int CWorld::GetTris(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags) {
+bool CWorld::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags) {
   ActivityBegin(ACTIVITY_WORLD);
   unsigned int result = CMap::GetTris(aaBox, triData, queryFlags);
   ActivityEnd(ACTIVITY_WORLD);
   return result;
 }
 
-int CWorld::QueryLiquidStatus(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir) {
+int CWorld::QueryLiquidStatus(const NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir) {
   int deep;
   return CMap::QueryLiquidStatus(point, liquid, surface, waterDir, deep);
 }
@@ -777,7 +777,7 @@ unsigned int CWorld::SceneCamLiquidStatus() {
   return CWorldScene::camLiquid;
 }
 
-void CWorld::WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
+void CWorld::WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
   CMap::WaterRipple(pos, len, time, amp, vel, freq);
 }
 
@@ -795,17 +795,17 @@ float CWorld::GetFramerate() {
   return elapsed >= 0.01f ? 1.0f / elapsed : 100.0f;
 }
 
-void CWorld::GetCounts(int *const counts) {
+void CWorld::GetCounts(int counts[]) {
   CMap::GetCounts(counts);
 }
 
-void CWorld::GetFacets(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags) {
+void CWorld::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags) {
   ActivityBegin(ACTIVITY_WORLD);
   CMap::GetFacets(aaBox, facetData, queryFlags);
   ActivityEnd(ACTIVITY_WORLD);
 }
 
-void CWorld::GetFacets(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags) {
+void CWorld::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags) {
   ActivityBegin(ACTIVITY_WORLD);
   CMap::GetFacets(frustum, facetData, queryFlags);
   ActivityEnd(ACTIVITY_WORLD);

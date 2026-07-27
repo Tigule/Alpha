@@ -21,7 +21,7 @@ public:
   RECTF rect;
   RECTF visible;
   float zorder;
-  unsigned int flags;
+  unsigned long flags;
   void *param;
   void (__fastcall *paintfunc)(void *, const RECTF *, const RECTF *, float);
   TSLink<CILayer> zorderlink;

@@ -590,6 +590,16 @@ class NetClient : public WowConnectionResponse {
  private:
   friend class NetClientRedirect;
 
+  static int __stdcall ClientRedirectEventHandler(
+      HNETCONN__        *conn,
+      const NETCONNADDR *connAddr,
+      NETNOTE            note,
+      void              *user,
+      const void        *data,
+      unsigned long      bytes,
+      unsigned long     *bytesProcessed
+  );
+
   int  Connect(const char *hostName, unsigned short port);
   void CancelRedirect();
   void ProcessMessage(unsigned long timeStamp, CDataStore *msg);

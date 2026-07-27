@@ -51,6 +51,8 @@ class CGPartyInfo {
   }
   static unsigned int NumMembers();
   static RemoteStats *GetRemoteStats(unsigned __int64 guid);
+  static RemoteStats *GetRemoteStatsByIndex(int index);
+  static void OnNameCacheCallback();
   static unsigned __int64        GetMember(unsigned int index) {
     FATALASSERT(index < 4);
     return m_members[index];

@@ -6,6 +6,20 @@ class PetAction {
   PetAction(unsigned int action = 0) : m_action(action) {
   }
 
+  void SetAction(unsigned int);
+  unsigned int GetAction() const;
+  void SetActionTypeAndID(unsigned int, unsigned int);
+  unsigned int GetActionTypeAndID() const;
+  void SetActionType(unsigned int);
+  int GetActionType() const;
+  void SetActionID(unsigned int);
+  int GetActionID() const;
+  void SetAutocastAllowed(unsigned char);
+  unsigned char GetAutocastAllowed() const;
+  void SetAutocastEnabled(unsigned char);
+  unsigned char GetAutocastEnabled() const;
+  unsigned char operator==(const PetAction &) const;
+
   operator unsigned int &() {
     return m_action;
   }
@@ -44,8 +58,8 @@ class CGPetInfo {
   static void ClearActions();
   static void SetAction(unsigned int index, PetAction &action, int save);
   static void UpdateCooldowns();
-  static PetAction      *GetAction(unsigned int index) {
-    return index < 10 ? &m_actions[index] : 0;
+  static const PetAction *GetAction(unsigned int index) {
+    return m_pet && index < 10 ? &m_actions[index] : 0;
   }
   static void ToggleAutocast(unsigned int index);
   static void            PutSpellInSlot(int spell, unsigned int slot) {
@@ -59,7 +73,7 @@ class CGPetInfo {
   static const char *GetModeToken(unsigned int id);
   static const char *GetOrdersToken(unsigned int id);
   static void ShowGrid();
-  static void SendPetAction(PetAction &action, const unsigned __int64 &target);
+  static void SendPetAction(const PetAction &action, const unsigned __int64 &target);
   static void PetPassiveMode();
   static void PetDefensiveMode();
   static void PetAggressiveMode();

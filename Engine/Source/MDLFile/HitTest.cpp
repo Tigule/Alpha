@@ -283,7 +283,7 @@ int ReadBinHitTests(
   unsigned int count = buffer.GetUint();
   unsigned int totalRead = 4;
   data.hitTestShapes.SetCount(0);
-  data.hitTestShapes.Reserve(count);
+  data.hitTestShapes.ReserveSpace(count);
   while (totalRead < length) {
     MDLHITTESTSHAPE *section = data.hitTestShapes.New();
     if (!section) {

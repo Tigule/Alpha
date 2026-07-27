@@ -36,7 +36,7 @@ class HASHKEY_TEXTUREFILE {
     FREEIFUSED(m_filename);
   }
 
-  HASHKEY_TEXTUREFILE &operator=(HASHKEY_TEXTUREFILE &source) {
+  HASHKEY_TEXTUREFILE &operator=(const HASHKEY_TEXTUREFILE &source) {
     if (this != &source) {
       FREEIFUSED(m_filename);
       m_filename = SStrDupA(source.m_filename, __FILE__, __LINE__);
@@ -46,8 +46,8 @@ class HASHKEY_TEXTUREFILE {
     return *this;
   }
 
-  unsigned int operator==(HASHKEY_TEXTUREFILE &source) {
-    return *reinterpret_cast<unsigned int *>(&m_flags) == *reinterpret_cast<const unsigned int *>(&source.m_flags) &&
+  bool operator==(const HASHKEY_TEXTUREFILE &source) const {
+    return *reinterpret_cast<const unsigned int *>(&m_flags) == *reinterpret_cast<const unsigned int *>(&source.m_flags) &&
            SStrCmpI(m_filename, source.m_filename, 0x104) == 0;
   }
 
@@ -112,6 +112,9 @@ CSolidTextureHash::CSolidTextureHash() : CTextureItem(1) {
 class CGxTexCache {
  public:
   CGxTexCache() : gxTex(0), timeStamp(0) {
+  }
+
+  ~CGxTexCache() {
   }
 
   CGxTex             *gxTex;
@@ -346,8 +349,8 @@ static unsigned int LoadPredrawnMips(const CTgaFile &mipZero, const char *filema
   ASSERT(filemask);
   ASSERT(buffer);
 
-  width = mipZero.m_header.wWidth;
-  height = mipZero.m_header.wHeight;
+  width = mipZero.Width();
+  height = mipZero.Height();
   levels = TextureCalcMipCount(width, height);
   ASSERT(levels > 0);
 
@@ -363,11 +366,11 @@ static unsigned int LoadPredrawnMips(const CTgaFile &mipZero, const char *filema
     }
 
     CTgaFile mipTga;
-    if (!mipTga.Open(pathName) || width != mipTga.m_header.wWidth || height != mipTga.m_header.wHeight || !mipTga.LoadImageData(2)) {
+    if (!mipTga.Open(pathName) || width != mipTga.Width() || height != mipTga.Height() || !mipTga.LoadImageData(2)) {
       return index;
     }
 
-    if (!(mipTga.m_header.bImageDescriptor & 0xF)) {
+    if (!mipTga.AlphaBits()) {
       mipTga.AddAlphaChannel(0);
     }
 
@@ -467,7 +470,7 @@ LoadTgaMips(const char *fileName, unsigned int *width, unsigned int *height, EGx
   }
 
   if (isOpaque) {
-    *isOpaque = (texFile.m_header.bImageDescriptor & 0xF) == 0;
+    *isOpaque = texFile.AlphaBits() == 0;
   }
 
   if (!texFile.LoadImageData(3)) {
@@ -476,8 +479,8 @@ LoadTgaMips(const char *fileName, unsigned int *width, unsigned int *height, EGx
 
   texFile.SetTopDown(1);
 
-  unsigned int imageWidth = texFile.m_header.wWidth;
-  unsigned int imageHeight = texFile.m_header.wHeight;
+  unsigned int imageWidth = texFile.Width();
+  unsigned int imageHeight = texFile.Height();
   unsigned int levels = TextureCalcMipCount(imageWidth, imageHeight);
   MipBits     *buffer = TextureAllocMippedImg(GxTex_Argb8888, imageWidth, imageHeight);
   TGA32Pixel  *source = texFile.ImageTGA32Pixel();
@@ -512,7 +515,7 @@ LoadTgaMips(const char *fileName, unsigned int *width, unsigned int *height, EGx
   }
 
   if (alphaBits) {
-    *alphaBits = texFile.m_header.bImageDescriptor & 0xF;
+    *alphaBits = texFile.AlphaBits();
   }
 
   return buffer;
@@ -584,13 +587,13 @@ static HTEXTURE CreateTgaTexture(const char *file, CGxTexFlags flags, CStatus *s
     return 0;
   }
 
-  texture->alphaBits = image.m_header.bImageDescriptor & 0xF;
+  texture->alphaBits = image.AlphaBits();
   if (!texture->alphaBits) {
     texture->flags |= 1;
   }
 
   SStrCopy(texture->filename, file, sizeof(texture->filename));
-  texture->gxTex = TextureAllocGxTex(image.m_header.wWidth, image.m_header.wHeight, GxTex_Argb8888, flags, texture, UpdateTgaTexture, GxTex_Argb8888);
+  texture->gxTex = TextureAllocGxTex(image.Width(), image.Height(), GxTex_Argb8888, flags, texture, UpdateTgaTexture, GxTex_Argb8888);
   ASSERT(texture->gxTex);
 
   HTEXTURE handle = reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));

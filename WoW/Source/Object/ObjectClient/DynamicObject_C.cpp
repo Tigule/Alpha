@@ -21,11 +21,11 @@ void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &p
 
 void CGDynamicObject_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
-  m_dynamicObj = reinterpret_cast<CGDynamicObjectData *>(storage + 6);
+  CGDynamicObject::SetStorage(storage + 6);
 }
 
 CGDynamicObject_C::CGDynamicObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGDynamicObject(storage), m_blizzardObject(0), m_sound(0) {
+    : CGObject_C(storage, eventTime, init), CGDynamicObject(storage + 6), m_blizzardObject(0), m_sound(0) {
   m_dynamicScale = 1.0f;
   m_dynamicObj->m_position = init->move.status.worldPosition;
   m_dynamicObj->m_facing = init->move.status.worldFacing;
@@ -62,7 +62,7 @@ int CGDynamicObject_C::UpdateModelLoadStatus() {
     if (bounds.r > 0.001f) {
       m_dynamicScale = m_dynamicObj->m_radius / bounds.r;
     } else {
-      SpellVisualEffectNameRec *effectRec = GetVisualEffectNameRec();
+      const SpellVisualEffectNameRec *effectRec = GetVisualEffectNameRec();
       if (effectRec && effectRec->m_areaEffectSize > 0.0f) {
         m_dynamicScale = m_dynamicObj->m_radius / effectRec->m_areaEffectSize;
       }
@@ -173,7 +173,7 @@ unsigned int CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
   return 24;
 }
 
-SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() {
+const SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() const {
   SpellRec *spellRec = g_spellDB.GetRecord(m_dynamicObj->m_spellID);
   if (!spellRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", m_dynamicObj->m_spellID);
@@ -191,7 +191,7 @@ SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() {
     return 0;
   }
 
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(visualRec->m_areaModel);
+  const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(visualRec->m_areaModel);
   if (!effectRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTIDNOTFOUND|%d", visualRec->m_areaModel);
   }
@@ -199,7 +199,7 @@ SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() {
 }
 
 const char *CGDynamicObject_C::GetModelFileName() const {
-  SpellVisualEffectNameRec *effectRec = const_cast<CGDynamicObject_C *>(this)->GetVisualEffectNameRec();
+  const SpellVisualEffectNameRec *effectRec = GetVisualEffectNameRec();
   if (effectRec) {
     return effectRec->m_fileName;
   }

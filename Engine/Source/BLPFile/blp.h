@@ -64,20 +64,20 @@ struct BlpPalPixel {
 };
 
 struct BLPHeader {
-  unsigned int  magic;
-  unsigned int  formatVersion;
+  unsigned long magic;
+  unsigned long formatVersion;
   unsigned char colorEncoding;
   unsigned char alphaSize;
   unsigned char preferredFormat;
   unsigned char hasMips;
-  unsigned int  width;
-  unsigned int  height;
-  unsigned int  mipOffsets[16];
-  unsigned int  mipSizes[16];
+  unsigned long width;
+  unsigned long height;
+  unsigned long mipOffsets[16];
+  unsigned long mipSizes[16];
   union {
     BlpPalPixel palette[256];
     struct {
-      unsigned int  headerSize;
+      unsigned long headerSize;
       unsigned char headerData[1020];
     } jpeg;
   } extended;
@@ -96,9 +96,20 @@ class CBLPFile {
   friend int PumpBlpTextureAsync(CTexture *texture);
 
  public:
+  enum {
+    m_firstBuildIndex = 0,
+    m_numColorsToBuild = 256,
+    m_noColorTrimming = 0,
+    m_firstMapIndex = 0,
+    m_lastMapIndex = 255,
+    m_versionMagic = 0x32504C42
+  };
+
   CBLPFile() : m_images(0), m_quality(100) {
     SharedInit();
   }
+
+  CBLPFile(CBLPFile &source);
 
   ~CBLPFile() {
     Close();
@@ -157,7 +168,7 @@ class CBLPFile {
   PIXEL_FORMAT GetPreferredFormat() const {
     return static_cast<PIXEL_FORMAT>(m_header.preferredFormat);
   }
-  unsigned int GetNumLevels() const {
+  unsigned int GetNumLevels() {
     return m_numLevels;
   }
   void SetQuality(unsigned int quality) {
@@ -177,7 +188,7 @@ class CBLPFile {
   int GenerateMipLevel(unsigned int sourceLevel, unsigned int destinationLevel);
   int GenerateMipLevels(const char *name, CStatus *status);
   int GenerateMipLevels(CStatus *status);
-  void FlushFromReadCache(const char *name);
+  static void FlushFromReadCache(const char *name);
   int SetImages(CBLPFile &source);
   int Write(const char *name, COLOR_FILE_FORMAT format);
 
@@ -220,6 +231,8 @@ class CBLPFile {
   static unsigned short s_oneBitAlphaShort[2];
 
  private:
+  CBLPFile &operator=(CBLPFile &source);
+
   void SharedInit() {
     memset(&m_header, 0, sizeof(m_header));
     m_header.magic = 0x32504C42;

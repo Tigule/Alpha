@@ -19,7 +19,7 @@ class GameObjectStats {
     }
   }
 
-  int Version() {
+  static int Version() {
     return 1;
   }
   void Pack(CDataStore *msg);

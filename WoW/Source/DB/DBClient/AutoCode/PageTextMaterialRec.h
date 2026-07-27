@@ -17,7 +17,7 @@ class PageTextMaterialRec {
     return 8;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

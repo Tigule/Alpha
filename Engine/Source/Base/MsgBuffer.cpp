@@ -19,7 +19,7 @@ void CMsgBuffer::Reset() {
   m_write = 0;
 }
 
-int CMsgBuffer::Bytes() {
+int CMsgBuffer::Bytes() const {
   return m_write - m_read;
 }
 

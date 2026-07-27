@@ -57,8 +57,11 @@ class COsMenu {
  protected:
   void AddHotkey(int inPos);
   void RemoveHotkey(int inPos);
+
+ public:
   static void AppendHotkeyText(char *inText, const OsGuiMenuHotkey &inHotkey);
 
+ protected:
   unsigned char                      mID;
   void                              *mMenuHandle;
   char                               mTitle[32];

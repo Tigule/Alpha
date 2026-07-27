@@ -163,7 +163,7 @@ static void DestroySchedulerThread(unsigned int hThread) {
     s_threadSlotCritsects[hThread].Leave();
 
     queue = &thread->m_contextQueue;
-    contextArray.Reserve(queue->Count());
+    contextArray.ReserveSpace(queue->Count());
     while ((context = queue->Dequeue()) != 0) {
       contextArray.Add(1, &context);
     }

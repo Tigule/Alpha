@@ -21,6 +21,9 @@ class CSimpleDoodadMat {
     PROP_TRANSPARENT = 0x2
   };
 
+  CSimpleDoodadMat() : nTextures(0), props(0) {
+  }
+
   unsigned int texture[4];
   unsigned int nTextures;
   unsigned int props;
@@ -28,6 +31,10 @@ class CSimpleDoodadMat {
 
 class CSimpleDoodadGeoset {
  public:
+  CSimpleDoodadGeoset() : material(0) {
+  }
+  CSimpleDoodadGeoset(const CSimpleDoodadGeoset &geoset);
+
   TSGrowableArray<NTempest::C3Vector> vertexList;
   TSGrowableArray<NTempest::C3Vector> normalList;
   TSGrowableArray<NTempest::C2Vector> tVertexList;

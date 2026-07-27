@@ -1316,10 +1316,10 @@ void CGWorldFrame::OnWorldUpdate() {
 
   CGInputControl *inputControl = CGInputControl::GetActive();
   FATALASSERT(inputControl);
-  if (!(inputControl->m_controlFlags & INPUT_PLAYER_MOVED) && static_cast<int>(OsGetAsyncTimeMs() - inputControl->m_initializeTime - 90000) >= 0) {
+  if (!inputControl->HasPlayerMoved() && static_cast<int>(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - 90000) >= 0) {
     CGTutorial::TriggerTutorial(TUTORIAL_MOVEMENT);
   }
-  if (!(inputControl->m_controlFlags & INPUT_CAMERA_MOVED) && static_cast<int>(OsGetAsyncTimeMs() - inputControl->m_initializeTime - 120000) >= 0) {
+  if (!inputControl->HasCameraMoved() && static_cast<int>(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - 120000) >= 0) {
     CGTutorial::TriggerTutorial(TUTORIAL_CAMERA);
   }
 

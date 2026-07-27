@@ -55,13 +55,12 @@ struct PENDINGTEXTEMOTE : public TSLinkedNode<PENDINGTEXTEMOTE> {
 
 class HASHKEY_LANGUAGE {
  public:
-  HASHKEY_LANGUAGE() : m_languageID(0), m_length(0) {
+  HASHKEY_LANGUAGE(unsigned int languageID = 0, unsigned int length = 0);
+
+  HASHKEY_LANGUAGE(const HASHKEY_LANGUAGE &key) : m_languageID(key.m_languageID), m_length(key.m_length) {
   }
 
-  HASHKEY_LANGUAGE(unsigned int languageID, unsigned int length) : m_languageID(languageID), m_length(length) {
-  }
-
-  unsigned int operator==(const HASHKEY_LANGUAGE &key) const {
+  unsigned char operator==(const HASHKEY_LANGUAGE &key) const {
     return m_languageID == key.m_languageID && m_length == key.m_length;
   }
 
@@ -75,6 +74,10 @@ class HASHKEY_LANGUAGE {
   unsigned int m_languageID;
   unsigned int m_length;
 };
+
+inline HASHKEY_LANGUAGE::HASHKEY_LANGUAGE(unsigned int languageID, unsigned int length)
+    : m_languageID(languageID), m_length(length) {
+}
 
 struct WORDLIST : public TSHashObject<WORDLIST, HASHKEY_LANGUAGE> {
   TSGrowableArray<const LanguageWordsRec *> m_words;

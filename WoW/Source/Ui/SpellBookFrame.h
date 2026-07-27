@@ -16,8 +16,8 @@ class CGSpellBook {
   static void InitializeGame();
   static void ShutdownGame();
   static void ClearSpells();
-  static unsigned int IsSpellKnown(int spellID);
-  static unsigned int IsPetSpellKnown(int spellID);
+  static unsigned char IsSpellKnown(int spellID);
+  static unsigned char IsPetSpellKnown(int spellID);
   static void ClearPetSpells();
   static void AddPetSpell(int spellID);
   static void                    SetKnowsPetSpells() {
@@ -39,14 +39,13 @@ class CGSpellBook {
 
   static void AddKnownSpell(int spellID, int slot, int learned);
   static void DelKnownSpell(int spellID);
-  static void SetSpell(int slot, int spellID, UI_SPELL_TYPE type);
-  static void SendSpellSlot(int slot, UI_SPELL_TYPE type);
   static void PickupSpell(int slot, UI_SPELL_TYPE type);
   static void CastSpell(int slot, UI_SPELL_TYPE type);
   static int GetSpell(unsigned int slot, UI_SPELL_TYPE type);
   static int IsSelectedSlot(int slot, UI_SPELL_TYPE type);
   static int IsToggledSpell(int slot, UI_SPELL_TYPE type);
-  static TSGrowableArray<int> &GetShapeshiftForms() {
+  static const TSGrowableArray<int> &GetUnlockSpells();
+  static const TSGrowableArray<int> &GetShapeshiftForms() {
     return m_shapeshiftForms;
   }
   static int KnowsSpells() {
@@ -70,6 +69,10 @@ class CGSpellBook {
   static UI_SPELL_TYPE        m_selectedType;
   static int                  m_knowsSpells;
   static int                  m_knowsPetSpells;
+
+ protected:
+  static void SetSpell(int slot, int spellID, UI_SPELL_TYPE type);
+  static void SendSpellSlot(int slot, UI_SPELL_TYPE type);
 };
 
 #endif

@@ -4,8 +4,8 @@
 #include "Base/Base.h"
 #include "SoundInterface/SoundInterface.h"
 
-int                                          CMap::counts[12];
-int                                          CMap::freeCounts[12];
+int                                          CMap::counts[Cnt_Num];
+int                                          CMap::freeCounts[Cnt_Num];
 TSExplicitList<CMapObjGroup, 0x1AC>          CMap::mapObjGroupFreeList;
 TSExplicitList<CMapChunk, 8>                 CMap::chunkList;
 TSExplicitList<CMapLight, 8>                 CMap::lightList;
@@ -257,9 +257,7 @@ void CMap::FreeDoodadDef(CMapDoodadDef *doodadDef) {
   FATALASSERT(doodadDef->model == 0);
 
   doodadDef->lameAssLink.Unlink();
-  if (doodadDef->m_linktoslot.IsLinked()) {
-    doodadDefHash.Unlink(doodadDef);
-  }
+  doodadDefHash.Unlink(doodadDef);
   doodadDefFreeList.LinkNode(doodadDef, LIST_TAIL, 0);
 
   --counts[1];
@@ -401,9 +399,7 @@ void CMap::FreeMapObjDef(CMapObjDef *mapObjDef) {
   FATALASSERT(mapObjDef->groupLinkList.Head() == 0);
 
   mapObjDef->lameAssLink.Unlink();
-  if (mapObjDef->m_linktoslot.IsLinked()) {
-    mapObjDefHash.Unlink(mapObjDef);
-  }
+  mapObjDefHash.Unlink(mapObjDef);
   mapObjDefFreeList.LinkNode(mapObjDef, LIST_TAIL, 0);
 
   --counts[5];
@@ -438,7 +434,7 @@ CMapSoundEmitter *CMap::AllocSoundEmitter() {
     FATALASSERT(soundEmitter);
   }
 
-  soundEmitter->link.Unlink();
+  soundEmitter->lameAssLink.Unlink();
   return soundEmitter;
 }
 

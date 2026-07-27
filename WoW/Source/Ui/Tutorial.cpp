@@ -50,7 +50,7 @@ int CGTutorial::OnTutorialFlags(void *__formal, NETMESSAGE msgId, unsigned long 
   void        *data;
 
   msg->GetDataInSitu(data, byteCount);
-  m_tutorialFlags.SetData(data, byteCount);
+  m_tutorialFlags.Load(data, byteCount);
   return 1;
 }
 

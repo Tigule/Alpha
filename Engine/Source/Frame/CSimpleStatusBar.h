@@ -11,12 +11,11 @@ namespace NTempest {
 
 class CSimpleStatusBar : public CSimpleFrame {
  public:
-  CSimpleStatusBar(CSimpleFrame *parent);
+  CSimpleStatusBar(CSimpleFrame *parent = 0);
   virtual ~CSimpleStatusBar();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
-  virtual float GetAnimValue() const;
   virtual void  OnLayerUpdate(float elapsedSec);
 
   void         SetBarTexture(CSimpleTexture *texture, int layer);
@@ -37,6 +36,7 @@ class CSimpleStatusBar : public CSimpleFrame {
   }
 
   virtual void SetStatusBarColor(const NTempest::CImVector &color);
+  virtual float GetAnimValue() const;
 
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();

@@ -56,7 +56,7 @@ class CGCraftInfo {
   static int GetNumCrafts() {
     return m_filteredSkills;
   }
-  static CraftInfo *GetCraftInfo(unsigned int index) {
+  static const CraftInfo *GetCraftInfo(unsigned int index) {
     return index < m_filteredSkills ? m_skills[index] : 0;
   }
   static unsigned int GetNumSkillLines() {
@@ -142,7 +142,7 @@ void CGCraftInfo::SetCraftType(SPELL_CAST_UI_TYPE type) {
 }
 
 void CGCraftInfo::SetSelection(int index) {
-  CraftInfo *info = GetCraftInfo(index);
+  const CraftInfo *info = GetCraftInfo(index);
   m_currentSelection = info && info->spellID > 0 ? info->spellID : 0;
 }
 
@@ -374,7 +374,7 @@ void CGCraftInfo::FilterAndSortSkills() {
 }
 
 int CGCraftInfo::GetSkillLineIndexFromCraft(unsigned int index) {
-  CraftInfo *info = GetCraftInfo(index);
+  const CraftInfo *info = GetCraftInfo(index);
   if (!info || info->spellID >= 0) {
     return -1;
   }
@@ -424,7 +424,7 @@ static int Script_GetCraftInfo(lua_State *L) {
     return luaL_error(L, "Usage: GetCraftInfo(index)");
   }
   unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
-  CraftInfo   *info = CGCraftInfo::GetCraftInfo(index);
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(index);
   if (info && info->spellID != -1) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
     if (spell) {
@@ -471,7 +471,7 @@ static int Script_GetCraftIcon(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillIcon(index)");
   }
-  CraftInfo          *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   const SpellRec     *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
   const SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
   lua_pushstring(L, icon ? icon->m_textureFilename : 0);
@@ -482,7 +482,7 @@ static int Script_GetCraftSkillLine(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftSkillLine(index)");
   }
-  CraftInfo          *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   const SkillLineRec *line = info ? g_skillLineDB.GetRecord(info->skillLine) : 0;
   lua_pushstring(L, line ? line->m_displayName_lang[CURRENT_LANGUAGE] : 0);
   return 1;
@@ -492,7 +492,7 @@ static int Script_GetCraftNumReagents(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftNumReagents(index)");
   }
-  CraftInfo      *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   const SpellRec *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
   int             count = 0;
   if (spell) {
@@ -510,7 +510,7 @@ static int Script_GetCraftReagentInfo(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: GetCraftReagentInfo(index, reagentIndex)");
   }
-  CraftInfo      *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   int             reagentIndex = static_cast<int>(lua_tonumber(L, 2));
   const SpellRec *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
   unsigned int    slot = 0;
@@ -552,7 +552,7 @@ static int Script_GetCraftSpellFocus(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillSpellFocus(index)");
   }
-  CraftInfo      *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   const SpellRec *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
   unsigned int    count = 0;
   if (spell) {
@@ -579,7 +579,7 @@ static int Script_GetCraftDescription(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftDescription(index)");
   }
-  CraftInfo      *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   const SpellRec *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
   if (spell) {
     char buf[1024];
@@ -641,7 +641,7 @@ static int Script_DoCraft(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: DoCraft(index)");
   }
-  CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   if (info) {
     Spell_C_CastSpell(info->spellID, 0);
   }

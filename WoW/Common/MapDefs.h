@@ -4,8 +4,18 @@
 #include "Tempest/cimvector.h"
 
 struct SMOFog {
+  enum EFlags {
+    F_IEBLEND = 1
+  };
+
+  enum EFogs {
+    FOG = 0,
+    UWFOG = 1,
+    NUM_FOGS = 2
+  };
+
   struct Fog {
-    void Blend(Fog &fog, float t) {
+    void Blend(const Fog &fog, float t) {
       end += (fog.end - end) * t;
       startScalar += (fog.startScalar - startScalar) * t;
 
@@ -33,7 +43,7 @@ struct SMOFog {
 
   class Fogs {
    public:
-    void Blend(Fogs &fogs, float t) {
+    void Blend(const Fogs &fogs, float t) {
       for (unsigned int i = 0; i < 2; ++i) {
         fog[i].Blend(fogs.fog[i], t);
       }
@@ -59,6 +69,15 @@ struct SMOFog {
 };
 
 struct SMOPoly {
+  enum {
+    F_NOCAMCOLLIDE = 2,
+    F_DETAIL = 4,
+    F_COLLISION = 8,
+    F_HINT = 16,
+    F_RENDER = 32,
+    F_COLLIDE_HIT = 128
+  };
+
   unsigned char flags;
   unsigned char lightmapTex;
   unsigned char mtlId;

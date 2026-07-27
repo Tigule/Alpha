@@ -7,7 +7,8 @@ enum CURSORITEMTYPE {
   CURSOR_EMPTY = 0,
   CURSOR_ITEM = 1,
   CURSOR_MONEY = 2,
-  CURSOR_SPELL = 3
+  CURSOR_SPELL = 3,
+  NUM_CURSOR_ITEM_TYPES = 4
 };
 
 enum CURSORANIMATIONS {
@@ -20,6 +21,7 @@ enum CURSORANIMATIONS {
   RANGED_CURSOR = 6,
   PICKUP_CURSOR = 7,
   TAXI_CURSOR = 8,
+  ERROR_CURSORS = 9,
   POINT_ERROR_CURSOR = 9,
   CAST_ERROR_CURSOR = 10,
   BUY_ERROR_CURSOR = 11,
@@ -38,6 +40,7 @@ class CGCursor {
   CGCursor() : m_model(0), m_heldItem(CURSOR_EMPTY), m_cursorMode(POINT_CURSOR), m_mouseOver(NO_CURSOR) {
   }
 
+  CGCursor(const CGCursor &);
   ~CGCursor();
 
   void SetArt(const char *art);
@@ -58,6 +61,8 @@ class CGCursor {
   void ResetCursor();
 
  private:
+  CGCursor &operator=(const CGCursor &);
+
   HMODEL           m_model;
   CURSORITEMTYPE   m_heldItem;
   CURSORANIMATIONS m_cursorMode;

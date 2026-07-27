@@ -27,6 +27,26 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 void ClntObjMgrHideObject(unsigned __int64 guid);
 void ClntObjMgrShowObject(unsigned __int64 guid);
 
+int CGItem::GetStackCount() const {
+  return m_item->m_stackCount;
+}
+
+unsigned __int64 CGItem::GetOwner() const {
+  return m_item->m_owner;
+}
+
+unsigned __int64 CGItem::GetContainedIn() const {
+  return m_item->m_containedIn;
+}
+
+bool CGItem::IsTranslated() const {
+  return (m_item->m_dynamicFlags & ITEM_DFLAG_TRANSLATED) != 0;
+}
+
+bool CGItem::IsUnlocked() const {
+  return (m_item->m_dynamicFlags & ITEM_DFLAG_BOUND) == 0;
+}
+
 class CGContainerInfo {
  public:
   static void UpdateContents(unsigned __int64 guid);
@@ -154,13 +174,11 @@ static const char *GetInventoryArtHash(unsigned int displayID) {
 
 void CGItem_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
-  m_item = reinterpret_cast<CGItemData *>(storage + 6);
+  CGItem::SetStorage(storage + 6);
 }
 
 CGItem_C::CGItem_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), m_flags(0), m_expirationTime(0), m_soundsRec(0) {
-  m_item = reinterpret_cast<CGItemData *>(storage + 6);
-
+    : CGObject_C(storage, eventTime, init), CGItem(storage + 6), m_flags(0), m_expirationTime(0), m_soundsRec(0) {
   if (m_item->m_owner) {
     ClntObjMgrHideObject(GetGUID());
   } else {
@@ -395,7 +413,7 @@ void CGItem_C::SetTranslated() {
   m_item->m_dynamicFlags |= 2;
 }
 
-void CGItem_C::UpdateEnchantments() {
+void CGItem_C::UpdateEnchantments() const {
   CGUnit_C *owner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_item->m_owner, __FILE__, __LINE__));
   if (owner) {
     owner->UpdateObjComponentVisuals(this, m_item->m_enchantment, 5);
@@ -476,7 +494,7 @@ int CGItem_C::GetDisplayID() const {
 
 int CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
   const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
   return stats && (stats->m_flags & flags) == flags;
 }
 
@@ -495,9 +513,9 @@ int CGItem_C::IsMetal(unsigned int material) {
   return rec && (rec->m_flags & 1);
 }
 
-ItemStats *CGItem_C::GetStats() {
+const ItemStats *CGItem_C::GetStats() const {
   const unsigned __int64 noGuid = 0;
-  return const_cast<ItemStats_C *>(g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0));
+  return g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
 }
 
 int CGItem_C::SetBlock(unsigned int i, unsigned long data) {
@@ -548,20 +566,20 @@ void CGItem_C::OnRightClick() {
 int CGItem_C::GetPageTextID(
     void(*func)(int, const unsigned __int64 &, void *, bool)
 ) const {
-  unsigned __int64 guid = GetGUID();
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), guid, func, 0);
+  unsigned __int64 guid = m_obj->m_guid;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, guid, func, 0);
   return stats ? stats->m_pageText : 0;
 }
 
 const char *CGItem_C::GetObjectName() const {
   const unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
   return stats ? stats->m_displayName[0] : 0;
 }
 
 int CGItem_C::GetMaxCount() const {
   const unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
   return stats ? stats->m_maxCount : 1;
 }
 
@@ -579,6 +597,6 @@ int CGItem_C::GetSheatheInvisible() const {
 
 bool CGItem_C::IsWrapper() const {
   const unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
   return stats && (stats->m_flags & ITEM_FLAG_IS_WRAPPER) != 0;
 }

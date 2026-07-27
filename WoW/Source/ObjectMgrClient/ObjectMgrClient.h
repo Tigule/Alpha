@@ -6,8 +6,15 @@
 #include <stpl.h>
 
 class CGObject_C;
+class CGWorldFrame;
 class ClientConnection;
 class NameCache;
+struct FADEOUTHASHOBJ;
+struct ITEMEXPIRATION;
+struct NAMEPLATEDESC;
+struct PLAYERPORTRAIT;
+struct UNITHASHOBJ;
+struct UNITONESHOTEFFECTDESC;
 struct C_OBJECTHASH;
 struct CMirrorHandler;
 
@@ -18,21 +25,32 @@ static C_OBJECTHASH *FindActiveObj(unsigned __int64 guid);
 
 class CHashKeyGUID {
   friend class TSHashObject<C_OBJECTHASH, CHashKeyGUID>;
+  friend class TSHashObject<FADEOUTHASHOBJ, CHashKeyGUID>;
+  friend class TSHashObject<ITEMEXPIRATION, CHashKeyGUID>;
+  friend class TSHashObject<NAMEPLATEDESC, CHashKeyGUID>;
+  friend class TSHashObject<PLAYERPORTRAIT, CHashKeyGUID>;
+  friend class TSHashObject<UNITHASHOBJ, CHashKeyGUID>;
+  friend class TSHashObject<UNITONESHOTEFFECTDESC, CHashKeyGUID>;
+  friend class CGWorldFrame;
   friend C_OBJECTHASH *FindActiveObj(unsigned __int64 guid);
   friend class DBCache<NameCache, unsigned __int64, CHashKeyGUID>;
-
- public:
-  CHashKeyGUID(unsigned __int64 guid) : m_guid(guid) {
-  }
-  CHashKeyGUID(const CHashKeyGUID &key) : m_guid(key.m_guid) {
-  }
-
-  CHashKeyGUID() : m_guid(0) {
-  }
 
  private:
   CHashKeyGUID(int guid);
 
+ public:
+  CHashKeyGUID(unsigned __int64 guid) : m_guid(guid) {
+  }
+
+ private:
+  CHashKeyGUID(const CHashKeyGUID &key) : m_guid(key.m_guid) {
+  }
+
+ public:
+  CHashKeyGUID() : m_guid(0) {
+  }
+
+ private:
   unsigned __int64 m_guid;
 
  public:
@@ -40,10 +58,10 @@ class CHashKeyGUID {
     m_guid = key.m_guid;
     return *this;
   }
-  unsigned char operator==(const CHashKeyGUID &key) {
+  unsigned char operator==(const CHashKeyGUID &key) const {
     return m_guid == key.m_guid;
   }
-  unsigned __int64 GetGUID() {
+  unsigned __int64 GetGUID() const {
     return m_guid;
   }
 };

@@ -40,23 +40,23 @@ struct LISTBASE {
   int                                      m_flags;
 
   LISTBASE(int m, int f);
-  virtual ~LISTBASE();
+  ~LISTBASE();
   void                 Render();
-  void                 Add(NTempest::C3Vector &position, NTempest::CAaBox &box, NTempest::C44Matrix &matrix);
+  void                 Add(const NTempest::C3Vector &position, const NTempest::CAaBox &box, const NTempest::C44Matrix &matrix);
   void                 SetTexture(const char *n);
   CHUNKDATA           *FindChunk(int id);
-  virtual unsigned int MakeSpace() = 0;
+  virtual unsigned char MakeSpace() = 0;
 };
 
 struct TIMEDTEXTURE : public LISTBASE {
   TIMEDTEXTURE() : LISTBASE(128, 0) {
   }
-  unsigned int MakeSpace();
+  unsigned char MakeSpace();
 };
 
 struct PERSISTENTTEXTURE : public LISTBASE {
   PERSISTENTTEXTURE();
-  unsigned int MakeSpace();
+  unsigned char MakeSpace();
 };
 
 struct CHUNKDATA : public TSLinkedNode<CHUNKDATA> {
@@ -71,8 +71,8 @@ struct CHUNKDATA : public TSLinkedNode<CHUNKDATA> {
   CHUNKDATA() : m_sourceID(0), m_flags(0), m_vertCount(0), m_indexCount(0), m_numSplats(0) {
   }
   ~CHUNKDATA();
-  SPLATDATA *Add(CWTriData::Batch &batch, NTempest::CAaBox &box, NTempest::C44Matrix &basis);
+  SPLATDATA *Add(const CWTriData::Batch &batch, const NTempest::CAaBox &box, const NTempest::C44Matrix &basis);
   void       RecycleSplat(SPLATDATA *splat);
   void       Render();
-  int        GetVertCount(CWTriData::Batch &batch, int &lowest, int &highest);
+  int        GetVertCount(const CWTriData::Batch &batch, int &lowest, int &highest);
 };

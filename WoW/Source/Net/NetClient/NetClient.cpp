@@ -27,6 +27,9 @@ void WowConnectionResponse::WCWriteReady(WowConnection *conn) {
 }
 
 struct NETCLIENTNODE : public TSLinkedNode<NETCLIENTNODE> {
+  NETCLIENTNODE() {
+  }
+
   NetClient *client;
 };
 

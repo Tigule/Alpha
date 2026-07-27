@@ -6,9 +6,9 @@
 class CAsyncObject {
  public:
   SFile       *file;
-  unsigned int offset;
+  unsigned long offset;
   void        *buffer;
-  unsigned int size;
+  unsigned long size;
   void        *userArg;
   void(*userPostloadCallback)(void *);
   SCritSect           *critSect;

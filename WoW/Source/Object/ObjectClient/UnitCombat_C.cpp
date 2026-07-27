@@ -752,7 +752,7 @@ unsigned int CGUnit_C::DetermineParrySequence() const {
 
   const VirtualItemInfo *itemInfo = GetVirtualItem(0, 0);
   if (!itemInfo || itemInfo->m_classID != 2) {
-    SysMsgPrintf(SYSMSG_ERROR, 2, "NOWEAPONPARRY|%d|0x%016I64X", 0, GetGUID());
+    SysMsgPrintf(SYSMSG_WARNING, 2, "NOWEAPONPARRY|%d|0x%016I64X", m_obj->m_entryID, m_obj->m_guid);
     return 20;
   }
 
@@ -1410,12 +1410,6 @@ void UnitCombatClientShutdown() {
   ClientServices_ClearMessageHandler(SMSG_DEBUG_PLAYER_RANGE);
   UnitCombatLogShutdown();
   s_animKitTable.Destroy();
-}
-
-void LOGBASE::PI(CDataStore &, int) {
-}
-
-void LOGBASE::UI(CDataStore &) {
 }
 
 void CGUnit_C::OnCombatModeTimer() {

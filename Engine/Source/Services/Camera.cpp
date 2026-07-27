@@ -14,12 +14,12 @@ void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, unsign
   NTempest::C44Matrix mProj;
   const float         aspect = (projectionRect.r - projectionRect.l) / (projectionRect.b - projectionRect.t);
 
-  GxuXformCreateProjection(m_fov.m_data, aspect, m_zNear.m_data, m_zFar.m_data, mProj);
+  GxuXformCreateProjection(m_fov.Get(), aspect, m_zNear.Get(), m_zFar.Get(), mProj);
   GxXformSetProjection(mProj);
 
-  const NTempest::C3Vector cameraVector = m_target.m_data - m_position.m_data;
+  const NTempest::C3Vector cameraVector = m_target.Get() - m_position.Get();
   const NTempest::C3Vector cameraPos(0.0f);
-  const NTempest::C3Vector upVector(m_rotation.m_sin * m_roll.m_sin, -m_rotation.m_cos * m_roll.m_sin, m_roll.m_cos);
+  const NTempest::C3Vector upVector(m_rotation.Sin() * m_roll.Sin(), -m_rotation.Cos() * m_roll.Sin(), m_roll.Cos());
   NTempest::C44Matrix      mView;
 
   GxuXformCreateLookAtSgCompat(cameraPos, cameraVector, upVector, mView);
@@ -31,10 +31,10 @@ void CameraCalcPosFromTarg(HCAMERA__* camera, NTempest::C3Vector* position) {
   FATALASSERT(cameraPtr);
   FATALASSERT(position);
 
-  const float distance = cameraPtr->m_distance.m_data;
-  position->x = cameraPtr->m_target.m_data.x - cameraPtr->m_rotation.m_cos * cameraPtr->m_aoa.m_cos * distance;
-  position->y = cameraPtr->m_target.m_data.y - cameraPtr->m_rotation.m_sin * cameraPtr->m_aoa.m_cos * distance;
-  position->z = cameraPtr->m_target.m_data.z - cameraPtr->m_aoa.m_sin * distance;
+  const float distance = cameraPtr->m_distance.Get();
+  position->x = cameraPtr->m_target.Get().x - cameraPtr->m_rotation.Cos() * cameraPtr->m_aoa.Cos() * distance;
+  position->y = cameraPtr->m_target.Get().y - cameraPtr->m_rotation.Sin() * cameraPtr->m_aoa.Cos() * distance;
+  position->z = cameraPtr->m_target.Get().z - cameraPtr->m_aoa.Sin() * distance;
 }
 
 void CameraCalcTargFromPos(HCAMERA__* camera, NTempest::C3Vector* target) {
@@ -42,10 +42,10 @@ void CameraCalcTargFromPos(HCAMERA__* camera, NTempest::C3Vector* target) {
   FATALASSERT(cameraPtr);
   FATALASSERT(target);
 
-  const float distance = cameraPtr->m_distance.m_data;
-  target->x = cameraPtr->m_position.m_data.x + cameraPtr->m_rotation.m_cos * cameraPtr->m_aoa.m_cos * distance;
-  target->y = cameraPtr->m_position.m_data.y + cameraPtr->m_rotation.m_sin * cameraPtr->m_aoa.m_cos * distance;
-  target->z = cameraPtr->m_position.m_data.z + cameraPtr->m_aoa.m_sin * distance;
+  const float distance = cameraPtr->m_distance.Get();
+  target->x = cameraPtr->m_position.Get().x + cameraPtr->m_rotation.Cos() * cameraPtr->m_aoa.Cos() * distance;
+  target->y = cameraPtr->m_position.Get().y + cameraPtr->m_rotation.Sin() * cameraPtr->m_aoa.Cos() * distance;
+  target->z = cameraPtr->m_position.Get().z + cameraPtr->m_aoa.Sin() * distance;
 }
 
 HCAMERA CameraCreate() {
@@ -65,47 +65,47 @@ HCAMERA CameraDuplicate(HCAMERA source) {
   cameraPtr->m_position.m_updateFcn = 0;
   cameraPtr->m_position.m_updateData = 0;
   cameraPtr->m_position.m_updatePriority = 0.0f;
-  cameraPtr->m_position.Set_(srcPtr->m_position.m_data);
+  cameraPtr->m_position.Set_(srcPtr->m_position.Get());
 
   cameraPtr->m_target.m_updateFcn = 0;
   cameraPtr->m_target.m_updateData = 0;
   cameraPtr->m_target.m_updatePriority = 0.0f;
-  cameraPtr->m_target.Set_(srcPtr->m_target.m_data);
+  cameraPtr->m_target.Set_(srcPtr->m_target.Get());
 
   cameraPtr->m_distance.m_updateFcn = 0;
   cameraPtr->m_distance.m_updateData = 0;
   cameraPtr->m_distance.m_updatePriority = 0.0f;
-  cameraPtr->m_distance.Set_(srcPtr->m_distance.m_data);
+  cameraPtr->m_distance.Set_(srcPtr->m_distance.Get());
 
   cameraPtr->m_zNear.m_updateFcn = 0;
   cameraPtr->m_zNear.m_updateData = 0;
   cameraPtr->m_zNear.m_updatePriority = 0.0f;
-  cameraPtr->m_zNear.Set_(srcPtr->m_zNear.m_data);
+  cameraPtr->m_zNear.Set_(srcPtr->m_zNear.Get());
 
   cameraPtr->m_zFar.m_updateFcn = 0;
   cameraPtr->m_zFar.m_updateData = 0;
   cameraPtr->m_zFar.m_updatePriority = 0.0f;
-  cameraPtr->m_zFar.Set_(srcPtr->m_zFar.m_data);
+  cameraPtr->m_zFar.Set_(srcPtr->m_zFar.Get());
 
   cameraPtr->m_aoa.m_updateFcn = 0;
   cameraPtr->m_aoa.m_updateData = 0;
   cameraPtr->m_aoa.m_updatePriority = 0.0f;
-  cameraPtr->m_aoa.Set_(srcPtr->m_aoa.m_data);
+  cameraPtr->m_aoa.Set_(srcPtr->m_aoa.Get());
 
   cameraPtr->m_fov.m_updateFcn = 0;
   cameraPtr->m_fov.m_updateData = 0;
   cameraPtr->m_fov.m_updatePriority = 0.0f;
-  cameraPtr->m_fov.Set_(srcPtr->m_fov.m_data);
+  cameraPtr->m_fov.Set_(srcPtr->m_fov.Get());
 
   cameraPtr->m_roll.m_updateFcn = 0;
   cameraPtr->m_roll.m_updateData = 0;
   cameraPtr->m_roll.m_updatePriority = 0.0f;
-  cameraPtr->m_roll.Set_(srcPtr->m_roll.m_data);
+  cameraPtr->m_roll.Set_(srcPtr->m_roll.Get());
 
   cameraPtr->m_rotation.m_updateFcn = 0;
   cameraPtr->m_rotation.m_updateData = 0;
   cameraPtr->m_rotation.m_updatePriority = 0.0f;
-  cameraPtr->m_rotation.Set_(srcPtr->m_rotation.m_data);
+  cameraPtr->m_rotation.Set_(srcPtr->m_rotation.Get());
 
   return reinterpret_cast<HCAMERA>(HandleCreate(cameraPtr, "HCAMERA"));
 }

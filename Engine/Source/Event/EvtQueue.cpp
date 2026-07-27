@@ -99,7 +99,7 @@ void IEvtQueueInitialize() {
 }
 
 void IEvtQueueDestroy() {
-  s_messageRecycler.CDataRecycler::Clear();
+  s_messageRecycler.Clear();
 }
 
 int IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {

@@ -153,23 +153,12 @@ static const INVHOLDINFO s_itemTypeTextureHolds[INDEX_NUMSLOTS] = {
 
 class CharGeosetInfo {
  public:
-  CharGeosetInfo() {
-    Clear();
-  }
+  CharGeosetInfo();
+  CharGeosetInfo(const CharGeosetInfo &rhs);
 
   void Clear();
 
-  int ShowingSameGeosetsAs(const CharGeosetInfo &rhs) const {
-    unsigned int group;
-    for (group = 0; group < 9; ++group) {
-      if ((flags[group] & 1) != (rhs.flags[group] & 1) || ((flags[group] ^ rhs.flags[group]) & 2) != 0 ||
-          (!(flags[group] & 1) && currentGeosets[group] != rhs.currentGeosets[group]))
-      {
-        return 0;
-      }
-    }
-    return 1;
-  }
+  int ShowingSameGeosetsAs(const CharGeosetInfo &rhs);
 
   void ShowInventoryTypeTextureHolds(HTEXCOMPONENT component, unsigned int inventoryType, int adding) {
     FATALASSERT(component);
@@ -368,6 +357,38 @@ class CharGeosetInfo {
   unsigned int flags[9];
   unsigned int inventoryTypeGeosets[9][INDEX_NUMSLOTS];
 };
+
+CharGeosetInfo::CharGeosetInfo() {
+  Clear();
+}
+
+CharGeosetInfo::CharGeosetInfo(const CharGeosetInfo &rhs) {
+  unsigned int group;
+  for (group = 0; group < 9; ++group) {
+    highestPriority[group] = rhs.highestPriority[group];
+    currentGeosets[group] = rhs.currentGeosets[group];
+    geosetCurrentlyUsedBy[group] = rhs.geosetCurrentlyUsedBy[group];
+    disabledByFlags[group] = rhs.disabledByFlags[group];
+    flags[group] = 0;
+
+    unsigned int inventoryType;
+    for (inventoryType = 0; inventoryType < INDEX_NUMSLOTS; ++inventoryType) {
+      inventoryTypeGeosets[group][inventoryType] = rhs.inventoryTypeGeosets[group][inventoryType];
+    }
+  }
+}
+
+int CharGeosetInfo::ShowingSameGeosetsAs(const CharGeosetInfo &rhs) {
+  unsigned int group;
+  for (group = 0; group < 9; ++group) {
+    if ((flags[group] & 1) != (rhs.flags[group] & 1) || ((flags[group] ^ rhs.flags[group]) & 2) != 0 ||
+        (!(flags[group] & 1) && currentGeosets[group] != rhs.currentGeosets[group]))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
 
 void CharGeosetInfo::Clear() {
   unsigned int group;

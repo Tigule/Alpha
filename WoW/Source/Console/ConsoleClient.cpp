@@ -7,6 +7,7 @@
 #include <Base/Handle.h>
 #include <DB/DBClient/AutoCode/VideoHardwareRec.h>
 #include <Event/EvtApi.h>
+#include <Gx/CGxDevice.h>
 #include <Gx/Gx.h>
 #include <Gxu/IGxuFont.h>
 #include <Os/W32/OsClipboard.h>

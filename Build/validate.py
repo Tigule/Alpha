@@ -183,20 +183,79 @@ def procedure_identity(name: str) -> str:
         anonymous = "`anonymous namespace'::"
         if prefix.startswith("??0"):
             class_name = prefix[3:]
-            return f"{anonymous}{class_name}::{class_name}"
-        if prefix.startswith("??1"):
+            identity = f"{anonymous}{class_name}::{class_name}"
+        elif prefix.startswith("??1"):
             class_name = prefix[3:]
-            return f"{anonymous}{class_name}::~{class_name}"
-        if prefix.startswith("?"):
+            identity = f"{anonymous}{class_name}::~{class_name}"
+        elif prefix.startswith("?"):
             components = prefix[1:].split("@")
             function = components[0]
             scopes = list(reversed(components[1:]))
-            return anonymous + "::".join(scopes + [function])
-    if name.startswith("?"):
+            identity = anonymous + "::".join(scopes + [function])
+        else:
+            identity = name
+    elif name.startswith("?"):
         end = name.find("@@")
-        return name[:end + 2] if end >= 0 else name
-    match = re.fullmatch(r"(_[^@]+)@\d+", name)
-    return match.group(1) if match else name
+        identity = name[:end + 2] if end >= 0 else name
+    else:
+        match = re.fullmatch(r"(_[^@]+)@\d+", name)
+        identity = match.group(1) if match else name
+    return normalize_line_template_arguments(identity)
+
+
+LINE_TEMPLATE_ARGUMENTS = {
+    "TSFixedArray_": 2,
+    "TSGrowableArray_": 2,
+}
+
+
+def normalize_line_template_arguments(name: str) -> str:
+    replacements = []
+    for template_name, argument_index in LINE_TEMPLATE_ARGUMENTS.items():
+        search_from = 0
+        marker = template_name + "<"
+        while True:
+            marker_start = name.find(marker, search_from)
+            if marker_start < 0:
+                break
+            args_start = marker_start + len(marker)
+            depth = 0
+            args_end = -1
+            separators = []
+            for position in range(args_start, len(name)):
+                char = name[position]
+                if char == "<":
+                    depth += 1
+                elif char == ">":
+                    if depth == 0:
+                        args_end = position
+                        break
+                    depth -= 1
+                elif char == "," and depth == 0:
+                    separators.append(position)
+            if args_end < 0:
+                break
+            bounds = [args_start] + [position + 1 for position in separators]
+            ends = separators + [args_end]
+            if argument_index < len(bounds):
+                value_start = bounds[argument_index]
+                value_end = ends[argument_index]
+                value = name[value_start:value_end]
+                stripped = value.strip()
+                if re.fullmatch(r"-?\d+", stripped):
+                    leading = value[:len(value) - len(value.lstrip())]
+                    trailing = value[len(value.rstrip()):]
+                    replacements.append(
+                        (value_start, value_end, leading + "__LINE__" + trailing)
+                    )
+            # Advance only past this marker's start so nested occurrences of
+            # the same template name are discovered independently.
+            search_from = marker_start + len(marker)
+    for value_start, value_end, replacement in sorted(
+        replacements, reverse=True
+    ):
+        name = name[:value_start] + replacement + name[value_end:]
+    return name
 
 
 def pascal_string(data: bytes, offset: int) -> tuple[str, int]:
@@ -380,6 +439,16 @@ class TypeTable:
 
     def canonical(self, type_index: int, active: frozenset[int] = frozenset()) -> Any:
         if type_index < TYPE_INDEX_BEGIN:
+            # CodeView can encode a 32-bit near pointer either as a simple
+            # T_32P* type (0x04xx) or as an LF_POINTER with ptrtype=near32 and
+            # size=4 (attributes 0x040a). VC6 emits both forms for equivalent
+            # source declarations, including array parameters.
+            if type_index & 0xF00 == 0x400:
+                return (
+                    "pointer",
+                    0x40A,
+                    ("primitive", f"{type_index & 0xFF:#06x}"),
+                )
             return ("primitive", f"{type_index:#06x}")
         if type_index in self._canonical_cache:
             return self._canonical_cache[type_index]
@@ -492,6 +561,7 @@ class TypeTable:
             size = 0
             position = 12
         name, _ = pascal_string(data, position)
+        name = normalize_line_template_arguments(name)
         return kind, name, count, properties, size
 
     def named_layouts(self) -> dict[tuple[str, str], Any]:
@@ -632,6 +702,7 @@ class TypeTable:
                     count = struct.unpack_from("<H", data, position)[0]
                     method_list = struct.unpack_from("<I", data, position + 2)[0]
                     name, position = pascal_string(data, position + 6)
+                    name = normalize_line_template_arguments(name)
                     result.append(
                         ("methods", name, count, self._method_list(method_list))
                     )
@@ -645,6 +716,7 @@ class TypeTable:
                         vtable_offset = struct.unpack_from("<i", data, position)[0]
                         position += 4
                     name, position = pascal_string(data, position)
+                    name = normalize_line_template_arguments(name)
                     result.append(
                         (
                             "method",
@@ -666,8 +738,10 @@ class TypeTable:
                         ("nested", name, self.canonical(nested_type))
                     )
                 elif leaf == LF_VFUNCTAB:
-                    table_type = struct.unpack_from("<I", data, position)[0]
-                    position += 4
+                    # VC6 emits two reserved bytes before the 32-bit type
+                    # index in an LF_VFUNCTAB field-list record.
+                    table_type = struct.unpack_from("<I", data, position + 2)[0]
+                    position += 6
                     result.append(("vfunctab", self.canonical(table_type)))
                 elif leaf == LF_VFUNCOFF:
                     table_type, offset = struct.unpack_from("<Ii", data, position)

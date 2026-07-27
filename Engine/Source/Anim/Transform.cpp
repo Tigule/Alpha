@@ -925,7 +925,7 @@ int AnimMatchSequence(HANIM anim, unsigned int objectId, unsigned int sameAsObje
 void AnimResetGlobalSequenceTimes(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
-  memset(unique->globalSeqElapsed.m_data, 0, unique->globalSeqElapsed.Count() * sizeof(unsigned int));
+  unique->globalSeqElapsed.Zero();
 }
 
 int AnimAdvanceTime(HANIM anim, unsigned int currentFrame) {

@@ -310,7 +310,7 @@ class CGTabardCreationFrame {
 
 class CGGuildRegistrar {
  public:
-  static void SetRegistrar(unsigned __int64 registrar, PetitionVendorItem *petition);
+  static void SetRegistrar(unsigned __int64 registrar, const PetitionVendorItem *petition);
 };
 
 class CGPetitionInfo {
@@ -2804,17 +2804,17 @@ int CGPlayer_C::ShouldRender(unsigned long worldStatus) {
 }
 
 int CGPlayer_C::ShouldRenderUnitName(unsigned int mode) const {
-  if ((m_unit->flags & 0x18000) && CGGameUI::GetLockedTarget() != GetGUID()) {
+  if ((m_unit->flags & 0x18000) && CGGameUI::GetLockedTarget() != m_obj->m_guid) {
     return 0;
   }
-  if (GetGUID() == ClntObjMgrGetActivePlayer() && !s_namePlateRenderOwn->GetInt()) {
+  if (m_obj->m_guid == ClntObjMgrGetActivePlayer() && !s_namePlateRenderOwn->GetInt()) {
     return 0;
   }
   switch (mode) {
     case 1:
-      return CGGameUI::GetLockedTarget() == GetGUID();
+      return CGGameUI::GetLockedTarget() == m_obj->m_guid;
     case 2:
-      return (GetType() & TYPE_PLAYER) || CGGameUI::GetLockedTarget() == GetGUID();
+      return (m_obj->m_type & TYPE_PLAYER) || CGGameUI::GetLockedTarget() == m_obj->m_guid;
     case 3:
       return 1;
     default:
@@ -4554,7 +4554,7 @@ unsigned int CGPlayer_C::CanTrack(CGUnit_C *unit) {
 
 unsigned int CGPlayer_C::CanTrack(CGGameObject_C *object) {
   unsigned int trackMask = GetResourceTracking();
-  LockRec            *lock = object->GetLockRec();
+  const LockRec      *lock = object->GetLockRec();
   if (!lock) {
     return 0;
   }
@@ -4983,7 +4983,7 @@ int QuestUpdateProc(unsigned __int64 guid, void *__formal) {
   if (object) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player && (object->IsA(TYPE_UNIT) || object->IsA(TYPE_GAMEOBJECT)) && !object->IsA(TYPE_ITEM) &&
-        (!object->IsA(TYPE_GAMEOBJECT) || ((static_cast<CGGameObject_C *>(object)->GetGameObjectData()->m_data[1] & 4) &&
+        (!object->IsA(TYPE_GAMEOBJECT) || ((static_cast<CGGameObject_C *>(object)->GameObject()->m_flags & 4) &&
                                            static_cast<CGGameObject_C *>(object)->ObjectReaction(player) != UNIT_REACTION_HOSTILE)) &&
         (!object->IsA(TYPE_UNIT) || ((static_cast<CGUnit_C *>(object)->GetUnitData()->npcFlags & 2) &&
                                      static_cast<CGUnit_C *>(object)->UnitReaction(player) > UNIT_REACTION_HOSTILE)))
@@ -5327,7 +5327,7 @@ void CGPlayer_C::AttachObjComponent(unsigned __int64 item, unsigned int slot, bo
     showHidden = 1;
   }
 
-  ItemStats             *stats = itemptr->GetStats();
+  const ItemStats       *stats = itemptr->GetStats();
   const ItemSubClassRec *subclass = stats ? SDBItemSubclassGetSubClassRec(stats->m_class, stats->m_subclass) : 0;
   unsigned int           forceAlternate = subclass && (subclass->m_flags & 0x20);
   AddObjectComponentBySlot(
@@ -6410,7 +6410,7 @@ unsigned int CGPlayer_C::UpdateUnitNameString(
     unsigned int bufferSize
 ) const {
   unsigned int flags =
-      GetGUID() == ClntObjMgrGetActivePlayer() ? localPlayerFlags : otherUnitsFlags;
+      m_obj->m_guid == ClntObjMgrGetActivePlayer() ? localPlayerFlags : otherUnitsFlags;
   return CGUnit_C::UpdateUnitNameString(flags, flags, buffer, bufferSize);
 }
 
@@ -6612,7 +6612,7 @@ void CGPlayer_C::UpdateObjComponentVisuals(const CGItem_C *itemPtr, const ItemEn
     return;
   }
 
-  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+  if (m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
     CGTradeSkillInfo::RefreshList(0);
     CGActionBar::UpdateItem(itemPtr->GetEntryID());
     CGTradeInfo::UpdatePlayerItem(itemPtr->GetGUID());
@@ -6728,7 +6728,7 @@ void CGPlayer_C::SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec
 }
 
 void CGPlayer_C::ItemReceived(const ItemStats *stats) const {
-  if (!stats || GetGUID() != ClntObjMgrGetActivePlayer()) {
+  if (!stats || m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
     return;
   }
 

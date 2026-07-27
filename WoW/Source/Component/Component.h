@@ -45,7 +45,7 @@ class CStatus;
 class ItemDisplayInfoRec;
 
 struct CSectionFileNames {
-  char fileName[6][MAX_PATH];
+  char path[6][MAX_PATH];
 };
 
 struct SUBCOMPONENTDESC {
@@ -122,9 +122,13 @@ class CTexturePiece : public CHandleObject {
     return m_mippedTexture != 0;
   }
 
+  int IsLoaded() const;
+
   int HasHolds() const {
     return m_holds != 0;
   }
+
+  int HasHold(unsigned int hold) const;
 
   void SetHold(unsigned int hold) {
     m_holds |= 1 << hold;
@@ -144,7 +148,11 @@ class CTexturePiece : public CHandleObject {
       unsigned int          expectedWidth,
       unsigned int          expectedHeight
   );
+  void SetTexture(int checkExistingTexture, const CTexturePiece &source);
   void SetTexture(int checkExistingTexture, HTEXTURE texture);
+  void AllocBlankTexture(EGxTexFormat format, unsigned int width, unsigned int height, int opaque);
+  void SetOpaque(int opaque);
+  int  UpdateInfo(int force);
   int  Paste(const CTexturePiece &source, int x, int y);
   int  Paste(const CTexturePiece &source, int x, int y, int width, int height);
   void PasteOpaque(const CTexturePiece &source, NTempest::C2iVector dstPos, NTempest::C2iVector srcPos, NTempest::C2iVector size);
@@ -169,6 +177,8 @@ class CTextureLayer {
  public:
   CTextureLayer &operator=(const CTextureLayer &rhs);
   int            IsOpaque() const;
+  void           SetTexture(int priority, int checkExistingTexture, HTEXTURE texture);
+  void           SetTexture(int priority, int checkExistingTexture, const CTexturePiece &source);
   void           AllocBlankTexture(
       TEXCOMPONENT_SECTIONS section,
       CStatus              *status,
@@ -188,13 +198,63 @@ class CTextureLayer {
       unsigned int          expectedWidth,
       unsigned int          expectedHeight
   );
+  void PasteOpaque(
+      const CTexturePiece   &source,
+      NTempest::C2iVector   dstPos,
+      NTempest::C2iVector   srcPos,
+      unsigned int          width,
+      unsigned int          height,
+      LAYERPRIORITY         priority
+  );
+  void SetHold(int priority, unsigned int hold);
+  void ClearHold(int priority, unsigned int hold);
+  int  HasHold(int priority, unsigned int hold) const;
+  int  HasHolds(int priority) const;
+  int  HasImage(int priority) const;
 
   CTexturePiece m_priorities[4];
 };
 
 class CSection {
  public:
-  CSection     &operator=(const CSection &rhs);
+  CSection &operator=(const CSection &rhs);
+  void      SetHold(int layer, int priority, unsigned int hold);
+  void      ClearHold(int layer, int priority, unsigned int hold);
+  int       HasHold(int layer, int priority, unsigned int hold) const;
+  int       HasHolds(int layer, int priority) const;
+  int       HasImage(int layer, int priority) const;
+  int       IsLayerOpaque(unsigned int layer);
+  void      SetTexture(int layer, int priority, int checkExistingTexture, HTEXTURE texture);
+  void      SetTexture(int layer, int priority, int checkExistingTexture, const CTexturePiece &texture);
+  int       SetTexture(
+            CStatus              *status,
+            TEXCOMPONENT_SECTIONS section,
+            TEXCOMPONENT_LAYERS   layer,
+            LAYERPRIORITY         priority,
+            int                   checkExistingTexture,
+            const char           *fileName,
+            unsigned int          expectedWidth,
+            unsigned int          expectedHeight
+  );
+  void AllocBlankTexture(
+      TEXCOMPONENT_SECTIONS section,
+      CStatus              *status,
+      TEXCOMPONENT_LAYERS   layer,
+      EGxTexFormat          format,
+      unsigned int          width,
+      unsigned int          height,
+      int                   opaque
+  );
+  void PasteOpaque(
+      int                  layer,
+      const CTexturePiece &source,
+      NTempest::C2iVector  dstPos,
+      NTempest::C2iVector  srcPos,
+      unsigned int         width,
+      unsigned int         height,
+      LAYERPRIORITY        priority
+  );
+
   CTextureLayer m_layers[4];
 };
 
@@ -208,8 +268,29 @@ class CTexComponent : public CTexturePiece {
     m_underwearHideCounts[1] = 0;
   }
 
+  virtual ~CTexComponent() {
+    if (m_texture) {
+      HandleClose(m_texture);
+    }
+  }
+
   CTexComponent &operator=(const CTexComponent &rhs);
 
+  bool AnySectionsDirty() const {
+    return m_dirtyFlags != 0;
+  }
+
+  void MarkSectionDirty(TEXCOMPONENT_SECTIONS section) {
+    m_dirtyFlags |= 1 << section;
+  }
+
+  void MarkDirty() {
+    for (unsigned int section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
+      m_dirtyFlags |= 1 << section;
+    }
+  }
+
+  void SetIgnoreExistingTexture(int ignore);
   bool IsTabardSectionLayerAndPriority(TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, LAYERPRIORITY priority) const;
   int  CheckPastingRules(TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, LAYERPRIORITY priority);
   bool HasTabard() const;
@@ -240,6 +321,7 @@ class CTexComponent : public CTexturePiece {
   void RemoveHold(INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
   void RemoveHolds();
   void IncUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SECTIONS sectionID);
+  void DecUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SECTIONS sectionID);
   void SetUpperHeadTexture(const char *upperHead);
   void SetLowerHeadTexture(const char *lowerHead);
 

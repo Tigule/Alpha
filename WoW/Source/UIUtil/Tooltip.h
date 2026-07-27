@@ -68,7 +68,7 @@ class CGTooltip : public CSimpleFrame {
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();
 
-  CLayoutFrame *GetOwner() const {
+  CLayoutFrame *GetOwner() {
     return m_owner;
   }
   void SetOwner(CLayoutFrame *owner, TOOLTIP_ANCHORPOINT anchorpoint, float yoffset);
@@ -78,7 +78,7 @@ class CGTooltip : public CSimpleFrame {
   void AddLine(const char *leftText, const char *rightText, const NTempest::CImVector &leftColor, const NTempest::CImVector &rightColor, int wrapped);
   void AddLine(const char *leftText, const char *rightText, int wrapped);
   void AddLine(const char *text, const NTempest::CImVector &color, int wrapped);
-  unsigned int NumLines() const {
+  unsigned int NumLines() {
     return m_lines;
   }
   void AppendText(const char *text);
@@ -112,13 +112,10 @@ class CGTooltip : public CSimpleFrame {
   const unsigned __int64 &GetDebugUnit() const {
     return m_debugUnit;
   }
-  unsigned __int64 GetUnit() const {
+  unsigned __int64 GetUnit() {
     return m_unit;
   }
   void FadeOut();
-  void SetReposition(int reposition) {
-    m_reposition = reposition;
-  }
 
   virtual void PostLoadXML(const XMLNode *node, CStatus *status);
   virtual void OnLayerUpdate(float elapsedSec);
@@ -132,6 +129,9 @@ class CGTooltip : public CSimpleFrame {
   virtual int ShowThis();
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
+
+ private:
+  static unsigned int m_spellID;
 
   CLayoutFrame                     *m_owner;
   TOOLTIP_ANCHORPOINT               m_anchorPoint;

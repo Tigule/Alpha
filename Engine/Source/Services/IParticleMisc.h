@@ -18,6 +18,13 @@ typedef int(*PARTICLEPROJECTCALLBACK)(const NTempest::C3Segment &segment, float 
 
 class CParticleStack {
  public:
+  CParticleStack() : m_stackPointer(0) {
+  }
+
+  CParticleStack(const CParticleStack &source)
+      : m_stack(source.m_stack), m_stackPointer(source.m_stackPointer) {
+  }
+
   void Push(unsigned int u) {
     ASSERT(m_stackPointer < m_stack.Count());
     m_stack[m_stackPointer++] = u;
@@ -28,17 +35,53 @@ class CParticleStack {
     return m_stack[--m_stackPointer];
   }
 
+  unsigned int Top() {
+    ASSERT(m_stackPointer != 0);
+    return m_stack[m_stackPointer - 1];
+  }
+
   void Remove(unsigned int index) {
     m_stack[index] = m_stack[m_stackPointer - 1];
     Pop();
   }
 
+  int IsEmpty() {
+    return m_stackPointer == 0;
+  }
+
+  void Clear() {
+    m_stackPointer = 0;
+  }
+
+  unsigned int Count() const {
+    return m_stackPointer;
+  }
+
+  void SetCount(unsigned int count) {
+    m_stack.SetCount(count);
+  }
+
+  void ReserveSpace(unsigned int count) {
+    m_stack.ReserveSpace(count);
+  }
+
+  unsigned int operator[](unsigned int index) {
+    return m_stack[index];
+  }
+
+  unsigned int operator[](unsigned int index) const {
+    return m_stack[index];
+  }
+
+ private:
   TSGrowableArray<unsigned int> m_stack;
   unsigned int                  m_stackPointer;
 };
 
 class ParticleSystemManager {
  public:
+  typedef PARTICLEPROJECTCALLBACK ProjectCallback;
+
   ~ParticleSystemManager();
 
   static void Destroy();

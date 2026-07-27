@@ -102,7 +102,7 @@ int ReadTextures(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   long count = parse.GetOptionalInt(&savedToken, &tokenText, 0);
   parse.Expect('{', savedToken, tokenText);
   if (count > 0) {
-    data.textures.Reserve(count);
+    data.textures.ReserveSpace(count);
   }
 
   long actual = 0;

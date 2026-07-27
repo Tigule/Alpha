@@ -34,6 +34,11 @@ struct TGAFooter {
 #pragma pack(pop)
 
 struct TGA32Pixel {
+  TGA32Pixel();
+  TGA32Pixel(unsigned int color);
+  TGA32Pixel(unsigned char b, unsigned char g, unsigned char r, unsigned char a);
+  operator unsigned int();
+
   unsigned char b;
   unsigned char g;
   unsigned char r;
@@ -42,8 +47,12 @@ struct TGA32Pixel {
 
 class CTgaFile {
  public:
+  CTgaFile(const CTgaFile &source);
+
   CTgaFile() : m_file(0), m_image(0), m_addlHeaderData(0), m_imageBytes(0), m_colorMap(0) {
   }
+
+  CTgaFile &operator=(const CTgaFile &source);
 
   ~CTgaFile() {
     Close();
@@ -117,7 +126,7 @@ class CTgaFile {
     return m_header.wColorMapEntries;
   }
 
-  unsigned int ColorMapEntryBytes() {
+  unsigned int ColorMapEntryBytes() const {
     int componentBits = m_header.bColorMapEntrySize / 3;
 
     if (componentBits >= 8) {
@@ -127,7 +136,7 @@ class CTgaFile {
     return componentBits * 3 / 8;
   }
 
-  unsigned int ColorMapBytes() {
+  unsigned int ColorMapBytes() const {
     return m_header.wColorMapEntries * ColorMapEntryBytes();
   }
 
@@ -155,7 +164,7 @@ class CTgaFile {
   int           CountRun(unsigned char *pImage, int nMax);
   int           RleCompressLine(unsigned char **uncompressed, unsigned char **compressed);
 
- public:
+ private:
   SFile         *m_file;
   unsigned char *m_image;
   TGAHeader      m_header;

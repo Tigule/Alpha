@@ -8,9 +8,18 @@ class CSplineParticleEmitter;
 
 class C24Matrix {
  public:
+  enum {
+    eComponents = 8
+  };
+
   C24Matrix()
       : a0(0.0f), a1(0.0f), b0(0.0f), b1(0.0f),
         c0(0.0f), c1(0.0f), d0(0.0f), d1(0.0f) {
+  }
+
+  C24Matrix(float value)
+      : a0(value), a1(value), b0(value), b1(value),
+        c0(value), c1(value), d0(value), d1(value) {
   }
 
   C24Matrix(
@@ -21,7 +30,22 @@ class C24Matrix {
         c0(c0), c1(c1), d0(d0), d1(d1) {
   }
 
+  ~C24Matrix() {
+  }
+
+  const float *Access() const {
+    return &a0;
+  }
+
+  float *Access() {
+    return &a0;
+  }
+
   const float *operator[](unsigned int row) const {
+    return &a0 + row * 2;
+  }
+
+  float *operator[](unsigned int row) {
     return &a0 + row * 2;
   }
 
@@ -44,7 +68,12 @@ namespace NTempest {
    public:
     enum EvalType {
       EVAL_PARAMETRIC = 0,
-      EVAL_ARCLENGTH = 1
+      EVAL_ARCLENGTH = 1,
+      EVAL_COUNT = 2
+    };
+
+    enum {
+      DEFAULT_STEPS = 20
     };
 
     C3Spline() : cachedLength(0.0f) {
@@ -153,14 +182,6 @@ namespace NTempest {
     C3Spline_CatmullRom(const C3Spline_CatmullRom &spline)
         : C3Spline(spline), splineMode(spline.splineMode) {
     }
-    unsigned int NumPoints() const {
-      return points.Count();
-    }
-
-    const C3Vector &Point(unsigned int index) const {
-      return points[index];
-    }
-
     void SetSplineMode(SPLINE_MODE mode) {
       splineMode = mode;
     }
@@ -188,6 +209,7 @@ namespace NTempest {
     void  EvaluateDer2(unsigned int segment, float t, C3Vector &der) const;
     float SegLength(unsigned int segment) const;
 
+   protected:
     SPLINE_MODE splineMode;
   };
 

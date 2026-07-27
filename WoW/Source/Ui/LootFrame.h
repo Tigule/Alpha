@@ -3,6 +3,10 @@
 
 class CGObject_C;
 
+#ifdef GetObject
+#undef GetObject
+#endif
+
 enum LOOT_ACQUIRE {
   LOOT_ACQUIRE_FAILED = 0,
   LOOT_ACQUIRE_NORMAL = 1,
@@ -28,7 +32,7 @@ class CGLootInfo {
   static const unsigned __int64 &GetObject() {
     return m_object;
   }
-  static void ClearSlot(unsigned int _slot);
+  static void ClearSlot(unsigned char _slot);
   static int GetNumItems();
   static int GetLootItem(unsigned int slot);
   static int GetLootQuantity(unsigned int slot);

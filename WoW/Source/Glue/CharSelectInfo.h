@@ -34,8 +34,10 @@ struct CHARINFO {
 class CCharSelectInfo {
  public:
   static void ClearCharacterModel();
+  static void ClearCharacterList();
   static void ClearPetModel();
   static int GetNumCharacters();
+  static int GetSelectionIndex();
   static CHARACTER_INFO *GetSelectedCharacterInfo();
   static void GuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
   static void Initialize();

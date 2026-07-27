@@ -17,7 +17,7 @@ class AreaTableRec {
     return 88;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

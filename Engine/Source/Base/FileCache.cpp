@@ -56,8 +56,7 @@ static PrefetchNode* IBaseFileStartLoad(const char* fileName) {
   PrefetchNode *theFile = s_activeFiles.Ptr(fileName);
 
   if (theFile) {
-    s_activeFiles.m_fulllist.UnlinkNode(theFile);
-    s_activeFiles.m_fulllist.LinkNode(theFile, LIST_TAIL, 0);
+    s_activeFiles.Insert(theFile, fileName);
     return theFile;
   }
 
@@ -223,7 +222,7 @@ void BaseFileDumpStats() {
     int count = 0;
     int bytes = 0;
     for (PrefetchNode *theFile = s_activeFiles.Head(); theFile; theFile = s_activeFiles.Next(theFile)) {
-      SLogWrite(log, "%8d: %s (%d)", theFile->size, theFile->m_key.GetString(), theFile->refCount);
+      SLogWrite(log, "%8d: %s (%d)", theFile->size, theFile->GetString(), theFile->refCount);
       bytes += theFile->size;
       ++count;
     }

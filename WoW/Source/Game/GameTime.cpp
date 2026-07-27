@@ -239,7 +239,7 @@ void CGameTime::PerformCallbacks(int minutes) {
   unsigned int     slot = minutes & m_callbackLists.m_slotmask;
   TIMESTAMPSTRUCT *timestamp = m_callbackLists.m_slotlistarray[slot].Head();
 
-  while (reinterpret_cast<long>(timestamp) > 0 && timestamp->m_hashval != static_cast<unsigned int>(minutes)) {
+  while (reinterpret_cast<long>(timestamp) > 0 && timestamp->GetHashValue() != minutes) {
     timestamp = m_callbackLists.m_slotlistarray[slot].RawNext(timestamp);
   }
 

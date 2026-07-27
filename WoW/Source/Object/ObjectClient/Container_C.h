@@ -11,10 +11,33 @@ struct CGContainerData {
 
 class CGContainer {
  public:
-  CGContainer(unsigned long *storage) : m_cont(reinterpret_cast<CGContainerData *>(storage + 36)) {
+  static unsigned int GetDataSize();
+  static unsigned int GetBaseOffset();
+  static unsigned int TotalFields();
+  static unsigned int GetUpdateMaskBytes();
+  static unsigned int GetUpdateMaskBlocks();
+
+  unsigned char *GetData(unsigned int index);
+  void SetStorage(unsigned long *storage) {
+    m_cont = reinterpret_cast<CGContainerData *>(storage);
   }
 
  protected:
+  explicit CGContainer(unsigned long *storage) {
+    SetStorage(storage);
+  }
+
+  ~CGContainer() {
+  }
+
+  CGContainerData *Container() {
+    return m_cont;
+  }
+
+  const CGContainerData *Container() const {
+    return m_cont;
+  }
+
   CGContainerData *m_cont;
 };
 
@@ -46,4 +69,7 @@ class CGContainer_C : public CGItem_C, public CGContainer {
 
  protected:
   CGBag_C m_bag;
+
+ private:
+  CGContainer_C &operator=(const CGContainer_C &);
 };

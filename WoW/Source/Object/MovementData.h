@@ -20,7 +20,7 @@ struct CRedirect {
   NTempest::C3Vector hitPoint;
   NTempest::C3Vector surfaceNorm[2];
   unsigned __int64   gameObjHit;
-  unsigned int       flags;
+  unsigned char      flags;
 };
 
 struct CMoveState {
@@ -116,25 +116,94 @@ struct CPlayerMoveEvent : public TSLinkedNode<CPlayerMoveEvent> {
 
 class CPlayerMoveQueue {
  public:
+  void              Enqueue(CPlayerMoveEvent *event);
+  CPlayerMoveEvent *Root();
+  void              Dequeue();
+  unsigned char     HasEntries();
+  void              DiscardAll();
+
+ protected:
+  friend class CMovement;
+  friend void MovementDestroy();
+  friend void DisconnectLocalMover(CMovement *);
+
   TSList<CPlayerMoveEvent, TSGetLink<CPlayerMoveEvent> > m_events;
 };
 
 class CMovementData {
  public:
+  CMovementData(const unsigned __int64 &guid);
   CMovementData(const NTempest::C3Vector &position, float facing, const unsigned __int64 &guid);
   ~CMovementData();
-  NTempest::C3Vector GetPosition() const;
+  NTempest::C3Vector GetPosition() const {
+    return GetPosition(m_position);
+  }
   NTempest::C3Vector GetPosition(const NTempest::C3Vector &position) const;
+  NTempest::C3Vector GetRawPosition() const;
+  float              GetFacing() const;
   float              GetFacing(float facing) const;
+  float              GetRawFacing() const;
+  float              GetPitch() const;
+  NTempest::C3Vector GetAnchorPosition() const;
+  float              GetAnchorFacing() const;
+  float              GetAnchorPitch() const;
+  NTempest::C3Vector GetGroundNormal() const;
+  NTempest::C3Vector GetRedirection() const;
+  NTempest::C3Vector GetLastSentRedirection() const;
   unsigned long      GetMoveStartTime() const {
     return m_moveStartTime;
   }
+  float GetRunSpeed() const;
+  float GetWalkSpeed() const;
+  float GetSwimSpeed() const;
+  float GetTurnRate() const;
   unsigned int GetMoveFlags() const {
     return m_moveFlags;
   }
-  float              GetCollisionBoxHeight() {
+  unsigned __int64 GetGUID() const;
+  int              IsInMotion() const;
+  int              IsMovingOrTurning() const;
+  int              IsMovingAndTurning() const;
+  int              IsMovingOrFalling() const;
+  int              IsMovingOrStrafing() const;
+  int              IsMovingStrafingOrFalling() const;
+  int              IsMovingAndStrafing() const;
+  int              IsMovingTurningOrStrafing() const;
+  int              IsMoving() const;
+  int              IsMovingForward() const;
+  int              IsMovingBackwards() const;
+  int              IsTurning() const;
+  int              IsTurningOrFalling() const;
+  int              IsTurningLeft() const;
+  int              IsTurningRight() const;
+  int              IsTurningOrPitching() const;
+  int              IsTurningAndPitching() const;
+  int              IsStrafingLeft() const;
+  int              IsStrafingRight() const;
+  int              IsStrafing() const;
+  int              IsFalling() const;
+  int              IsJumping() const;
+  int              HasFallenFar() const;
+  int              IsWalking() const;
+  int              Moved() const;
+  int              TimeIsValid() const;
+  int              IsImmobilized() const;
+  int              IsRooted() const;
+  int              IsSwimming() const;
+  int              IsSwimmingOrFalling() const;
+  int              IsPitching() const;
+  int              IsPitchingUp() const;
+  int              IsPitchingDown() const;
+  int              IsMovingStrafingOrSwimming() const;
+  int              IsMovingStrafingFallingOrSwimming() const;
+  int              IsSplineMover() const;
+  int              IgnoresCollision() const;
+  int              IsHalted() const;
+  int              WasNudged() const;
+  float              GetCollisionBoxHeight() const {
     return m_collisionBoxHeight;
   }
+  void               SetWaterSurfaceElevation(float elevation);
   int                ForceSetTransport(unsigned __int64 guid);
   int                SetTransport(unsigned __int64 guid);
   void               RemoveFromMoversList();
@@ -143,6 +212,7 @@ class CMovementData {
   friend class CGUnit_C;
   friend class CGPlayer_C;
   friend class CGInputControl;
+  friend class CGGameObject_C_Type_Chair;
   friend class CGGameObject_C_Type_MapObjTransport;
   friend class CGGameObject_C_Type_Transport;
 
@@ -154,6 +224,10 @@ class CMovementData {
   void RemoveSpline();
   int  IsLocalPlayer();
 
+ private:
+  CMovementData &operator=(const CMovementData &);
+
+ protected:
   NTempest::C3Vector      m_position;
   float                   m_facing;
   float                   m_pitch;
@@ -186,8 +260,7 @@ class CMovementData {
   float                   m_waterSurfaceElev;
 };
 
-class CMovementGlobals {
- public:
+struct CMovementGlobals {
   CMovementGlobals() : movementLog(0), fallingLog(0), numMovers(0), ignoreObstacles(0), currentLoading(0), m_localMover(0), m_lastUpdateTime(0) {
   }
 
@@ -211,13 +284,13 @@ class CMovementGlobals {
   CMovement                       *currentLoading;
   CMovement                       *m_localMover;
   CPlayerMoveQueue                 m_localMoveQueue;
-  unsigned int                     m_lastUpdateTime;
+  unsigned long                    m_lastUpdateTime;
 };
 
 class CMovement : public CMovementData {
  public:
   CMovement(const NTempest::C3Vector &position, float facing, const unsigned __int64 &guid);
-  void SetUpdateInfo(unsigned long eventTime, CClientMoveUpdate &init, int localPlayer);
+  void SetUpdateInfo(unsigned long eventTime, const CClientMoveUpdate &init, int localPlayer);
   void GetMoveStatus(CMovementStatus *status) const;
   void UpdateTransportStatus(const CMovementStatus &update);
   void UpdateStatus(unsigned long eventTime, const CMovementStatus &update);
@@ -291,46 +364,103 @@ class CMovement : public CMovementData {
   int                    OnWalkSpeedChange(unsigned long eventTime, float speed);
   int                    OnSwimSpeedChange(unsigned long eventTime, float speed);
   int                    OnTurnRateChange(unsigned long eventTime, float rate);
-  void                   StartSwimLocal(unsigned long eventTime);
-  void                   StopSwimLocal(unsigned long eventTime);
+  void                   OnCollideRedirServer(
+      unsigned long eventTime, const NTempest::C3Vector &position, float facing, const NTempest::C3Vector &redirection
+  );
+  void                   OnStuckServer(unsigned long eventTime);
+  float                  GetCurrentSpeed();
+  unsigned int           GetExportMoveFlags() const;
+  unsigned int           GetLocalMoveFlags() const;
+  int                    IsSplineFlyer() const;
+  float                  FallDistance() const;
+  unsigned int           FallTime() const;
+  float                  GetFallStartElevation() const;
+  void                   BuildMovementUpdate(CDataStore *msg) const;
+  void                   SetRawPosition(const NTempest::C3Vector &position);
+  void                   SetRawFacing(const float facing);
+  void                   Mobilize();
+  void                   Immobilize();
+  void                   Root();
+  void                   UnRoot();
+  void                   ToggleCollision(unsigned long eventTime);
+  int                    IsSpline() const;
+  void                   GetUpdateInfo(CClientMoveUpdate *init) const;
+  void                   BuildFullZoneUpdate(CDataStore *msg);
+  void                   UnpackFullZoneUpdate(CDataStore *msg);
+  static int             SkipFullZoneUpdate(CDataStore *msg);
+  void                   PutHandoffData(CDataStore *msg);
+  void                   GetHandoffData(CDataStore *msg);
+  static void            SkipHandoffData(CDataStore *msg);
+  void                   SetIdleUpdates();
+  int                    CollideRequestMove(
+      unsigned long lastUpdateTime, unsigned int timeElapsed, const NTempest::C3Vector &moveVector
+  );
+  int                    GetMoveEventMsgId(unsigned int oldMoveFlags, int wasJumping);
+  void                   UpdateLastSentRedirection();
 
  private:
   friend class CGUnit_C;
 
+  CMovement &operator=(const CMovement &);
   void AddPlayerMoveEvent(unsigned long eventTime, int eventType, float facing);
   int  UpdatePlayerMovement(unsigned long timeNow);
   void ApplyMovement(unsigned long eventTime, unsigned int fallTime, unsigned int moveTime, unsigned int elapsed);
   int  PlotUnitMovement(unsigned int moveTime, NTempest::C3Vector *move);
   int  PlotUnitSplineMovement(unsigned long eventTime, NTempest::C3Vector *move);
-  void GetMovingDirection(NTempest::C3Vector *direction);
-  void GetStrafingDirection(NTempest::C3Vector *direction);
-  void GetDiagonalDirection(NTempest::C3Vector *direction);
-  void GetMovingDirection2d(NTempest::C2Vector *direction);
-  void GetStrafingDirection2d(NTempest::C2Vector *direction);
-  void GetDiagonalDirection2d(NTempest::C2Vector *direction);
-  void PlotLinearPosition(NTempest::C3Vector &direction, float secsElapsed, NTempest::C3Vector *totalMove);
-  void PlotHorzCircularPosition(NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove);
-  void PlotVertCircularPosition(NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove);
-  void PlotSpiralPosition(NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove);
+  void GetMovingDirection(NTempest::C3Vector *direction) const;
+  void GetStrafingDirection(NTempest::C3Vector *direction) const;
+  void GetDiagonalDirection(NTempest::C3Vector *direction) const;
+  void GetMovingDirection2d(NTempest::C2Vector *direction) const;
+  void GetStrafingDirection2d(NTempest::C2Vector *direction) const;
+  void GetDiagonalDirection2d(NTempest::C2Vector *direction) const;
+  void GetDirection(NTempest::C3Vector *direction) const;
+  void PlotLinearPosition(const NTempest::C3Vector &direction, float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotHorzCircularPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotVertCircularPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotSpiralPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove);
   void PlotUnitRotation(float elapsedSec);
   void PlotUnitPitch(float elapsedSec);
-  int  CheckInvalidPositionOrMove(NTempest::C3Vector &move, unsigned int moveTime);
-  void ApplyAdjustedMove(unsigned long timeStemp, NTempest::C3Vector &moveWanted, int wasAdjusted, unsigned int oldMoveFlags);
-  void SimpleRequestMove(unsigned int fallTime, NTempest::C3Vector &moveVector);
-  int  CollideRequestMove(unsigned long lastUpdateTime, unsigned int timeElapsed, NTempest::C3Vector &moveVector);
+  void PlotNormalLinearPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotStrafeLinearPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotDiagonalLinearPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotNormalCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotStrafeCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotDiagonalCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotNormalPitchingCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotDiagonalPitchingCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotNormalSpiralPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  void PlotDiagonalSpiralPosition(float secsElapsed, NTempest::C3Vector *totalMove);
+  int  CheckInvalidPositionOrMove(const NTempest::C3Vector &move, unsigned int moveTime);
+  void ApplyAdjustedMove(unsigned long timeStemp, const NTempest::C3Vector &moveWanted, int wasAdjusted, unsigned int oldMoveFlags);
+  void SimpleRequestMove(unsigned int fallTime, const NTempest::C3Vector &moveVector);
   void CallMoveEventHandlers(unsigned long eventTime, int moveAdjusted, unsigned int oldMoveFlags, int wasJumping);
-  int  GetMoveEventMsgId(unsigned int oldMoveFlags, int wasJumping);
-  void SaveMoveState(CMoveState *state);
-  void RestoreMoveState(CMoveState &state);
+  void SaveMoveState(CMoveState *state) const;
+  void RestoreMoveState(const CMoveState &state);
+  void LogUpdateInfo(const CClientMoveUpdate &init);
   void
-  Redirect(unsigned long timeStamp, NTempest::C3Vector &unitMoveVector, NTempest::C3Vector &platformNorm, CRedirect &hitInfoX, CRedirect &hitInfoY);
-  void  Redirect(unsigned long timeStamp, NTempest::C3Vector &unitMoveVector, NTempest::C3Vector &platformNorm, CRedirect &hitInfo);
-  void  AttemptRedirect(unsigned long timeStamp, NTempest::C3Vector &unitMove, NTempest::C3Vector &newDirection);
-  void  Obstruct(unsigned long timeStamp, NTempest::C3Vector &unitMove, NTempest::C3Vector &platformNorm, NTempest::C3Vector &facetNormHit);
+  Redirect(
+      unsigned long timeStamp,
+      const NTempest::C3Vector &unitMoveVector,
+      const NTempest::C3Vector &platformNorm,
+      const CRedirect &hitInfoX,
+      const CRedirect &hitInfoY
+  );
+  void  Redirect(
+      unsigned long timeStamp,
+      const NTempest::C3Vector &unitMoveVector,
+      const NTempest::C3Vector &platformNorm,
+      const CRedirect &hitInfo
+  );
+  void  AttemptRedirect(unsigned long timeStamp, const NTempest::C3Vector &unitMove, const NTempest::C3Vector &newDirection);
+  void  Obstruct(
+      unsigned long timeStamp,
+      const NTempest::C3Vector &unitMove,
+      const NTempest::C3Vector &platformNorm,
+      const NTempest::C3Vector &facetNormHit
+  );
   void  Halt(unsigned long eventTime);
   void  UpdateAnchors(unsigned long eventTime);
   void  UpdateCurrentSpeed();
-  float GetCurrentSpeed();
   int   StartMove(unsigned long eventTime, int forward);
   int   StartStrafe(unsigned long eventTime, int left);
   int   StopMove(unsigned long eventTime);
@@ -347,36 +477,100 @@ class CMovement : public CMovementData {
   void  Teleport(unsigned long eventTime, const NTempest::C3Vector &position, float facing);
   void  StartSwim(unsigned long eventTime);
   void  StopSwim(unsigned long eventTime);
+  void  StartSwimLocal(unsigned long eventTime);
+  void  StopSwimLocal(unsigned long eventTime);
+  void  ForceStopStrafe(unsigned long eventTime);
+  int   ForceJump(unsigned long eventTime);
   void  OnDisableGravity(unsigned long eventTime);
   void  OnEnableGravity(unsigned long eventTime);
   void  CollisionStateChanged();
+  void  CollisionStateChangedLocal(unsigned long eventTime);
   void  StartFalling(unsigned long eventTime);
   void  StopFalling();
   void  ProcessFallReset(unsigned long eventTime);
   void  CheckFallenFar(unsigned long eventTime);
   void  ProcessFalling(unsigned long eventTime);
   int   HandlePendingActions(unsigned long eventTime);
-  void  GetMoveFacets(float distance, unsigned int timeToFall, NTempest::C3Vector &unitMove);
-  void  ShowCollisionBox(NTempest::C3Vector &unitMove, unsigned int oldMoveFlags);
+  void  GetMoveFacets(float distance, unsigned int timeToFall, const NTempest::C3Vector &unitMove);
+  void  ShowCollisionBox(const NTempest::C3Vector &unitMove, unsigned int oldMoveFlags);
   void  SetOrientation();
-  NTempest::C3Vector CalcAverageSurfaceNormal(NTempest::C4Plane *box);
-  unsigned int       Swim(unsigned long eventTime, unsigned int timeToMove, NTempest::C3Vector &moveWanted, NTempest::C3Vector &unitMoveWanted);
-  float              CollideWithWaterSurface(NTempest::C3Vector &unitMove, NTempest::C3Vector &unitMoveWanted, float distanceWanted);
-  float              ExtrudeFlyBoxUp(NTempest::C3Vector &unitMove, NTempest::C3Vector &unitMoveWanted, float distanceWanted);
-  float              ExtrudeFlyBoxDown(NTempest::C3Vector &unitMove, NTempest::C3Vector &unitMoveWanted, float distanceWanted);
-  void               FlyRedirect(NTempest::C3Vector &unitMoveWanted, CRedirect &hitInfoX, CRedirect &hitInfoY, CRedirect &hitInfoZ);
-  void               FlyRedirect(NTempest::C3Vector &unitMoveWanted, CRedirect &hitInfoX, CRedirect &hitInfoY);
-  unsigned int ProjectileFall(unsigned long eventTime, unsigned int timeToMove, NTempest::C3Vector &moveWanted, NTempest::C2Vector &unitMoveWanted);
-  float        ExtrudeProjectileBoxUpHill(NTempest::C3Vector &unitMove, float distanceWanted, unsigned __int64 *gameObjHit);
+  NTempest::C3Vector CalcAverageSurfaceNormal(const NTempest::C4Plane *box, unsigned int count);
+  unsigned int       Swim(
+      unsigned long eventTime,
+      unsigned int timeToMove,
+      const NTempest::C3Vector &moveWanted,
+      const NTempest::C3Vector &unitMoveWanted
+  );
+  float              CollideWithWaterSurface(
+      const NTempest::C3Vector &unitMove, const NTempest::C3Vector &unitMoveWanted, float distanceWanted
+  );
+  float              ExtrudeFlyBoxUp(
+      const NTempest::C3Vector &unitMove, const NTempest::C3Vector &unitMoveWanted, float distanceWanted
+  );
+  float              ExtrudeFlyBoxDown(
+      const NTempest::C3Vector &unitMove, const NTempest::C3Vector &unitMoveWanted, float distanceWanted
+  );
+  void               FlyRedirect(
+      const NTempest::C3Vector &unitMoveWanted,
+      const CRedirect &hitInfoX,
+      const CRedirect &hitInfoY,
+      const CRedirect &hitInfoZ
+  );
+  void               FlyRedirect(
+      const NTempest::C3Vector &unitMoveWanted, const CRedirect &hitInfoX, const CRedirect &hitInfoY
+  );
+  unsigned int ProjectileFall(
+      unsigned long eventTime,
+      unsigned int timeToMove,
+      const NTempest::C3Vector &moveWanted,
+      const NTempest::C2Vector &unitMoveWanted
+  );
+  float        ExtrudeProjectileBoxUpHill(
+      const NTempest::C3Vector &unitMove, float distanceWanted, unsigned __int64 *gameObjHit
+  );
   float        ExtrudeProjectileBoxDownHill(
       unsigned long       timeStamp,
-      NTempest::C3Vector &unitMove,
+      const NTempest::C3Vector &unitMove,
       float               distanceWanted,
-      NTempest::C2Vector &unitMoveWanted,
+      const NTempest::C2Vector &unitMoveWanted,
       unsigned __int64   *gameObjHit
   );
+  float        ExtrudeAlignedDownHill(
+      unsigned long timeStamp,
+      const NTempest::C3Vector &moveVector,
+      float distanceWanted,
+      const NTempest::C2Vector &unitMoveWanted,
+      const NTempest::C3Vector &platformNorm
+  );
+  float        ExtrudeAlignedUpHill(
+      unsigned long timeStamp,
+      const NTempest::C3Vector &moveVector,
+      float distanceWanted,
+      const NTempest::C2Vector &unitMoveWanted,
+      const NTempest::C3Vector &platformNorm
+  );
+  float        ExtrudeUnalignedDownHill(
+      unsigned long timeStamp,
+      const NTempest::C3Vector &moveVector,
+      float distanceWanted,
+      const NTempest::C2Vector &unitMoveWanted,
+      const NTempest::C3Vector &platformNorm
+  );
+  float        ExtrudeUnalignedUpHill(
+      unsigned long timeStamp,
+      const NTempest::C3Vector &moveVector,
+      float distanceWanted,
+      const NTempest::C2Vector &unitMoveWanted,
+      const NTempest::C3Vector &platformNorm
+  );
   unsigned int
-  TraceSurface(unsigned long eventTime, unsigned int timeToMove, float distance, NTempest::C2Vector &unitMove, NTempest::C2Vector &unitMoveWanted);
+  TraceSurface(
+      unsigned long eventTime,
+      unsigned int timeToMove,
+      float distance,
+      const NTempest::C2Vector &unitMove,
+      const NTempest::C2Vector &unitMoveWanted
+  );
   unsigned int Slide(unsigned int fallenSoFar, unsigned int timeIncrement);
   unsigned int Fall(unsigned int fallenSoFar, unsigned int timeIncrement);
   float        FindCeilingDistanceAbove(float distanceToJump);
@@ -385,39 +579,45 @@ class CMovement : public CMovementData {
   void         ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
   void         ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
   void         ExtrudeDownPosYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
-  float        ExtrudeSlideBoxDownHill(NTempest::C3Vector &unitMove, float distanceWanted, CRedirect *hitInfo);
-  void         ExtrudeBoxSideZ(NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides);
-  void         ExtrudeBoxSideY(NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides);
-  void         ExtrudeBoxSideX(NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides);
-  int          ExtrudePyramidSideX(NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides);
-  int          ExtrudePyramidSideY(NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides);
+  float        ExtrudeSlideBoxDownHill(const NTempest::C3Vector &unitMove, float distanceWanted, CRedirect *hitInfo);
+  void         ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides);
+  void         ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides);
+  void         ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides);
+  int          ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides);
+  int          ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides);
   float        ExtrudeCollisionShape(
       unsigned long       timeStamp,
-      NTempest::C3Vector &moveVector,
+      const NTempest::C3Vector &moveVector,
       float               distanceWanted,
-      NTempest::C2Vector &unitMoveWanted,
-      NTempest::C3Vector &platformNorm
+      const NTempest::C2Vector &unitMoveWanted,
+      const NTempest::C3Vector &platformNorm
   );
-  int   TestStepUp(NTempest::C3Vector &destination);
+  int   TestStepUp(const NTempest::C3Vector &destination);
   float AttemptMove(
       unsigned long       eventTime,
-      NTempest::C3Vector &move,
+      const NTempest::C3Vector &move,
       float               distance2d,
-      NTempest::C2Vector &unitMove,
-      NTempest::C2Vector &unitMoveWanted,
-      NTempest::C4Plane  &ground
+      const NTempest::C2Vector &unitMove,
+      const NTempest::C2Vector &unitMoveWanted,
+      const NTempest::C4Plane  &ground
   );
   float CalcFallSurfaceProjection(
-      NTempest::C3Vector &position,
+      const NTempest::C3Vector &position,
       unsigned long       moveStartTime,
       unsigned int        timeLeft,
       NTempest::C3Vector  hitPoint,
       float               distanceAway,
-      NTempest::C3Vector &moveNormal,
+      const NTempest::C3Vector &moveNormal,
       NTempest::C4Plane  *platform
   );
-  int  IsTooLow(NTempest::C3Vector &position, unsigned long moveStartTime, CWalkableSurface *surface, float distanceMoved, float currSpeedInv);
-  void ClipFacetsWithOneAnother(NTempest::C4Plane &startPlane, TSGrowableArray<CWalkableSurface> *surfacePool);
+  int  IsTooLow(
+      const NTempest::C3Vector &position,
+      unsigned long moveStartTime,
+      CWalkableSurface *surface,
+      float distanceMoved,
+      float currSpeedInv
+  );
+  void ClipFacetsWithOneAnother(const NTempest::C4Plane &startPlane, TSGrowableArray<CWalkableSurface> *surfacePool);
   int  NextSurfaceIsWalkable(
       CWalkableSurface                  *surface,
       unsigned long                      eventTime,
@@ -426,12 +626,12 @@ class CMovement : public CMovementData {
       TSGrowableArray<CWalkableSurface> *surfacePool
   );
   CWalkableSurface *GetNextSurface(
-      NTempest::C3Vector                &position,
+      const NTempest::C3Vector          &position,
       unsigned int                       surfaceId,
       unsigned long                      eventTime,
       float                              distanceMoved,
       float                              currSpeedInv,
-      NTempest::C4Plane                 &currentCeiling,
+      const NTempest::C4Plane           &currentCeiling,
       TSGrowableArray<CWalkableSurface> *surfacePool
   );
   void CheckSurfaceObstacles(
@@ -444,24 +644,30 @@ class CMovement : public CMovementData {
       CRedirect                         *hitInfo
   );
   void FindObstacles(
-      NTempest::C3Vector &unitMoveVector,
+      const NTempest::C3Vector &unitMoveVector,
       NTempest::C4Plane  *box,
       unsigned int        numSides,
-      NTempest::C4Plane  &startPlane,
+      const NTempest::C4Plane &startPlane,
       int                 hitType,
       float              *closestDist,
       CRedirect          *hitInfo
   );
-  int          DetermineHitType(int hitType, NTempest::C3Vector &unitMove, float distance, unsigned int facetId, CRedirect *hitInfo);
-  void         DeterminePyramidHitType(NTempest::C3Vector &unitMove, float distance, unsigned int facetId, CRedirect *hitInfo);
-  int          DetermineBoxHitType(NTempest::C3Vector &unitMove, float distance, unsigned int facetId, float baseHeight, CRedirect *hitInfo);
+  int          DetermineHitType(
+      int hitType, const NTempest::C3Vector &unitMove, float distance, unsigned int facetId, CRedirect *hitInfo
+  );
+  void         DeterminePyramidHitType(
+      const NTempest::C3Vector &unitMove, float distance, unsigned int facetId, CRedirect *hitInfo
+  );
+  int          DetermineBoxHitType(
+      const NTempest::C3Vector &unitMove, float distance, unsigned int facetId, float baseHeight, CRedirect *hitInfo
+  );
   int          IsJumpingUp(unsigned long eventTime);
+  int          IsRedirected() const;
+  int          IsSliding() const;
   int          FallFromTransport();
   float        RelDistanceFallen(unsigned long currentTime, float updateFallTimeSecs);
   float        RelDistanceFallen(unsigned int fallTimeMS);
-  unsigned int FallTime() const;
   void         UpdateStatusInternal(unsigned long eventTime, const CMovementStatus &update);
-  void         SetIdleUpdates();
   void         AddToMoversList();
   void         AddSpline();
   float        CalcFallStartElevation(unsigned int timeFallen);

@@ -829,7 +829,7 @@ void UnitDebugCombatLogOnEnable(int enable) {
     CloseDebugLogHandle();
     SLogCreate("PlayerCombatLog.txt", 0, &s_logHandle);
     s_charArray.SetChunkSize(256);
-    s_charArray.Reserve(256);
+    s_charArray.ReserveSpace(256);
     ClearUnitDataStructs();
     s_flags &= ~1U;
     s_logStartTime = OsGetAsyncTimeMs();

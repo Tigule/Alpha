@@ -13,19 +13,17 @@
 const float CMapEntity::ambLightScaleRate = 2.0f;
 const float CMapEntity::dirLightScaleRate = 3.3333333f;
 
-struct FogQ {
-  FogQ() {
+class FogQ {
+ public:
+  FogQ(float pDist, int pSubscript) : dist(pDist), subscript(pSubscript) {
   }
 
-  FogQ(float pDist, unsigned int pFogId) : dist(pDist), fogId(pFogId) {
-  }
-
-  static unsigned int HasHigherPriority(FogQ &a, FogQ &b) {
+  static bool HasHigherPriority(const FogQ &a, const FogQ &b) {
     return a.dist >= b.dist;
   }
 
-  float        dist;
-  unsigned int fogId;
+  float dist;
+  int   subscript;
 };
 
 int CMapStaticEntity::GetMapObjDef(CMapObjDef *&mapObjDef) {
@@ -140,7 +138,7 @@ int CMapEntity::QueryMapObjSubzoneName(const char *&subzoneName, unsigned int &s
   }
 
   if (!mapObjDefGroup->subzoneName) {
-    mapObjDefGroup->subzoneName = SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, mapObjGroup->uniqueID);
+    mapObjDefGroup->subzoneName = SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, mapObjGroup->GetUniqueID());
   }
 
   subzoneName = mapObjDefGroup->subzoneName;
@@ -214,7 +212,7 @@ unsigned int CMapEntity::QueryMapObjIDs(unsigned int &wmoID, unsigned int &insta
   }
 
   wmoID = mapObj->GetWmoID();
-  instanceID = mapObj->m_hashval;
+  instanceID = mapObj->GetHashValue();
   groupID = mapObjDefGroup->groupNum;
   return 1;
 }
@@ -266,7 +264,7 @@ void CMapEntity::UpdateMapObjLiquid() {
   lqDirection.z = direction.x * mapObjDef->mat.a2 + direction.y * mapObjDef->mat.b2 + direction.z * mapObjDef->mat.c2;
 }
 
-float ComputeFogBlend(SMOFog &fog, float dist) {
+float ComputeFogBlend(const SMOFog &fog, float dist) {
   FATALASSERT(dist < fog.end);
   if (dist >= fog.start) {
     return 1.0f - (dist - fog.start) / (fog.end - fog.start);
@@ -290,12 +288,12 @@ int CMapEntity::QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct) {
   unsigned int                            ieBlendFogId = 0;
   float                                   ieDist = 0.0f;
   for (int i = 0; i < 4; ++i) {
-    unsigned int fogId = mapObjGroup->fogIds[i];
+    unsigned int fogId = mapObjGroup->GetFogId(i);
     if (!fogId) {
       continue;
     }
 
-    SMOFog            &fog = mapObj->GetFog(fogId);
+    const SMOFog      &fog = mapObj->GetFog(fogId);
     NTempest::C3Vector delta = fog.pos - localPos;
     float              dist = delta.Mag();
     if (dist < fog.end) {
@@ -310,12 +308,12 @@ int CMapEntity::QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct) {
 
   while (fogq.HasEntries()) {
     FogQ    entry = fogq.Dequeue();
-    SMOFog &fog = mapObj->GetFog(entry.fogId);
+    const SMOFog &fog = mapObj->GetFog(entry.subscript);
     oFog.Blend(fog.fogs, ComputeFogBlend(fog, entry.dist));
   }
 
   if (ieBlendFogId) {
-    SMOFog &fog = mapObj->GetFog(ieBlendFogId);
+    const SMOFog &fog = mapObj->GetFog(ieBlendFogId);
     oPct = 1.0f - ComputeFogBlend(fog, ieDist);
   } else {
     oPct = 1.0f;
@@ -327,7 +325,8 @@ int CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
   CMapObjDef   *mapObjDef = CWorldScene::camMapObjDef;
   CMapObj      *mapObj = CWorldScene::camMapObj;
   CMapObjGroup *mapObjGroup = CWorldScene::camMapObjGroup;
-  if (!mapObjDef || !mapObj || !mapObjGroup || (mapObjGroup->flags & 0x40) || mapObjGroup->groupLiquid != 15 || mapObj->fogCount == 1) {
+  if (!mapObjDef || !mapObj || !mapObjGroup || (mapObjGroup->GetFlags() & 0x40) || mapObjGroup->GetGroupLiquid() != 15 ||
+      mapObj->fogCount == 1) {
     return 0;
   }
 
@@ -338,12 +337,12 @@ int CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
   unsigned int                            ieBlendFogId = 0;
   float                                   ieDist = 0.0f;
   for (int i = 0; i < 4; ++i) {
-    unsigned int fogId = mapObjGroup->fogIds[i];
+    unsigned int fogId = mapObjGroup->GetFogId(i);
     if (!fogId) {
       continue;
     }
 
-    SMOFog            &fog = mapObj->GetFog(fogId);
+    const SMOFog      &fog = mapObj->GetFog(fogId);
     NTempest::C3Vector delta = fog.pos - localPos;
     float              dist = delta.Mag();
     if (dist < fog.end) {
@@ -358,12 +357,12 @@ int CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
 
   while (fogq.HasEntries()) {
     FogQ    entry = fogq.Dequeue();
-    SMOFog &fog = mapObj->GetFog(entry.fogId);
+    const SMOFog &fog = mapObj->GetFog(entry.subscript);
     oFog.Blend(fog.fogs, ComputeFogBlend(fog, entry.dist));
   }
 
   if (ieBlendFogId) {
-    SMOFog &fog = mapObj->GetFog(ieBlendFogId);
+    const SMOFog &fog = mapObj->GetFog(ieBlendFogId);
     oPct = 1.0f - ComputeFogBlend(fog, ieDist);
   } else {
     oPct = 1.0f;
@@ -460,12 +459,12 @@ void CMap::LinkEntity(CMapStaticEntity *entity) {
   }
 }
 
-unsigned int CMap::LinkIntersectMapObjs(
-    NTempest::C3Vector &lCen,
-    NTempest::C3Vector &lEnd,
-    float              &hitT,
-    CMapObjDef        *&hitMapObjDef,
-    CMapObjDefGroup   *&hitMapObjDefGroup
+bool CMap::LinkIntersectMapObjs(
+    const NTempest::C3Vector &lCen,
+    const NTempest::C3Vector &lEnd,
+    float                    &hitT,
+    CMapObjDef              *&hitMapObjDef,
+    CMapObjDefGroup         *&hitMapObjDefGroup
 ) {
   hitMapObjDef = 0;
   hitMapObjDefGroup = 0;
@@ -473,7 +472,7 @@ unsigned int CMap::LinkIntersectMapObjs(
 
   CMapObjDef *mapObjDef = mapObjDefHash.Head();
   while (mapObjDef) {
-    if (CWorldMath::VectorIntersectAABox2(mapObjDef->aaBox, lCen, lEnd)) {
+    if (mapObjDef->TestAABox(lCen, lEnd)) {
       CMapObj *mapObj = mapObjDef->mapObj;
       if (mapObj) {
         NTempest::C3Vector  v0 = lCen * mapObjDef->invMat;

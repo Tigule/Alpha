@@ -417,7 +417,7 @@ static void GeosetHandlerAnim(
     MDLTRACKTYPE forceType
 ) {
   shared->geo.ReserveSpace(geosets.Count());
-  shared->geo.m_count = 0;
+  shared->geo.Clear();
   for (unsigned int i = 0; i < geosets.Count(); ++i) {
     AnimAddGeoset(shared, geosets[i], forceType);
   }
@@ -429,7 +429,7 @@ static void CameraHandlerAnim(
     MDLTRACKTYPE forceType
 ) {
   shared->cameraObjs.ReserveSpace(cameras.Count());
-  shared->cameraObjs.m_count = 0;
+  shared->cameraObjs.Clear();
   for (unsigned int i = 0; i < cameras.Count(); ++i) {
     AnimAddCamera(shared, cameras[i], forceType);
   }

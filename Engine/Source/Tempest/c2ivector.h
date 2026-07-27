@@ -9,6 +9,10 @@ namespace NTempest {
 
   class C2iVector {
    public:
+    enum {
+      eComponents = 2
+    };
+
     C2iVector(long value = 0) : x(value), y(value) {
     }
 
@@ -19,6 +23,9 @@ namespace NTempest {
     }
 
     C2iVector(const C2Vector &vector);
+
+    ~C2iVector() {
+    }
 
     void Get(long &xValue, long &yValue) const {
       xValue = x;
@@ -66,7 +73,7 @@ namespace NTempest {
     long SumC() const { return x + y; }
     bool IsUnit() const { return SquaredMag() == 1; }
     void Normalize() { *this /= Mag(); }
-    void Scale(long magnitude) { Normalize(); *this *= magnitude; }
+    void Scale(const long magnitude) { Normalize(); *this *= magnitude; }
     void Minimize(const C2iVector &a) { if (a.x < x) x = a.x; if (a.y < y) y = a.y; }
     void Maximize(const C2iVector &a) { if (a.x > x) x = a.x; if (a.y > y) y = a.y; }
 

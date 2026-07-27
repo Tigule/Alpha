@@ -167,7 +167,7 @@ int ReadBinBone(
   unsigned int count = buffer.GetUint();
   unsigned int totalRead = 4;
   data.bones.SetCount(0);
-  data.bones.Reserve(count);
+  data.bones.ReserveSpace(count);
   while (totalRead < length) {
     MDLBONESECTION *bone = data.bones.New();
     if (!bone) {

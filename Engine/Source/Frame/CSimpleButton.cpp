@@ -12,7 +12,7 @@
 
 class CSimpleButtonClickEvent : public CEvent {
  public:
-  CSimpleButtonClickEvent(unsigned int id) : CEvent(id) {
+  CSimpleButtonClickEvent(unsigned int id = -1) : CEvent(id) {
   }
 
   MOUSEBUTTON button;

@@ -232,7 +232,7 @@ void CGxDeviceD3d::ISetCaps() {
       m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_1_1;
       break;
     default:
-      m_caps.m_pixelShaderTarget = -1;
+      m_caps.m_pixelShaderTarget = CGxPixelShader::Target_gx;
       break;
   }
 
@@ -378,7 +378,7 @@ void CGxDeviceD3d::ISetPresentParms(D3DPRESENT_PARAMETERS &d3dpp, const CGxForma
 void CGxDeviceD3d::IReleaseD3dResources(int freeTextures) {
   for (unsigned int i = 0; i < 8; ++i) {
     StateD3dLight state;
-    state.which = static_cast<unsigned long>(-1);
+    state.which = -1;
     state.chkSum = 0;
     m_d3dStatesLight[i] = state;
   }
@@ -639,7 +639,9 @@ void CGxDeviceD3d::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, unsign
   }
   m_d3dDevice->SetRenderTarget(0, colorSurface);
 
-  XformSetViewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3], m_viewport[4], m_viewport[5]);
+  XformSetViewport(
+      m_viewport.x.l, m_viewport.x.h, m_viewport.y.l, m_viewport.y.h, m_viewport.z.l, m_viewport.z.h
+  );
 }
 
 void CGxDeviceD3d::DeviceOverride(EGxOverride override, unsigned long value) {
@@ -647,6 +649,6 @@ void CGxDeviceD3d::DeviceOverride(EGxOverride override, unsigned long value) {
 
   if (override == GxOverride_PixelShader) {
     ASSERT(value >= CGxPixelShader::Target_ps_1_1 && value <= CGxPixelShader::Target_ps_2_0);
-    m_caps.m_pixelShaderTarget = value;
+    m_caps.m_pixelShaderTarget = static_cast<CGxPixelShader::Target>(value);
   }
 }

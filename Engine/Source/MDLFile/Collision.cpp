@@ -33,7 +33,7 @@ static void IReadTriangleIndices(Parser &parse, TSGrowableArray<unsigned short> 
   const char *tokenText;
   long count = parse.GetOptionalInt(&token, &tokenText, 0);
   if (count > 0) {
-    indices->Reserve(3 * count);
+    indices->ReserveSpace(3 * count);
   }
   parse.Expect('{', token, tokenText);
   long actual = 0;

@@ -1,9 +1,15 @@
 #ifndef WOW_COMMON_WOWTIME_H
 #define WOW_COMMON_WOWTIME_H
 
+#include <string.h>
+
 class WowTime {
  public:
   WowTime();
+  WowTime(const WowTime &time) {
+    memcpy(this, &time, sizeof(*this));
+  }
+  WowTime(int, int);
   WowTime(unsigned int value);
 
   int  GetDaysSinceEpoch() const;
@@ -23,6 +29,7 @@ class WowTime {
   bool operator>=(const WowTime &cmpTime) const;
   bool operator==(const WowTime &cmpTime) const;
   bool operator!=(const WowTime &cmpTime) const;
+  operator unsigned int() const;
 
   static void WowEncodeTime(unsigned int &value, const WowTime *time);
   static void WowEncodeTime(unsigned int &value, int minute, int hour, int weekday, int monthday, int month, int year, int flags);

@@ -3,6 +3,7 @@
 #include "Gx.h"
 #include "CGxStateBom.h"
 #include <Tempest/cirect.h>
+#include <Tempest/crange.h>
 #include <stpl.h>
 
 struct CGxBatch;
@@ -15,6 +16,13 @@ class SFile;
 struct HSLOG__;
 typedef struct HSLOG__ *HSLOG;
 
+class CBoundingBox {
+ public:
+  NTempest::CRange x;
+  NTempest::CRange y;
+  NTempest::CRange z;
+};
+
 namespace NTempest {
   class C34Matrix;
 }
@@ -24,25 +32,25 @@ class CGxShaderParam {
   friend class CGxDeviceD3d;
   friend class CGxDeviceOpenGl;
 
-  static const unsigned int TypeCountTable[3];
+  static const unsigned int TypeCountTable[];
 
  public:
   enum Type {
     Type_Vector4 = 0,
     Type_Matrix34 = 1,
     Type_Matrix44 = 2,
-    Type_Force32Bit = 0xFF
+    Type_Force32Bit = -1
   };
 
   enum {
     NAME_LEN = 0x20
   };
 
-  const char *GetName() {
+  const char *GetName() const {
     return name;
   }
 
-  Type GetType() {
+  Type GetType() const {
     return type;
   }
 
@@ -80,6 +88,8 @@ class CGxShader {
     unsigned int count;
   };
 
+  typedef TSExplicitList<CGxShaderParam, 108> ParamList;
+
   void Read(SFile *file);
 
   unsigned int                        apiSpecific;
@@ -110,13 +120,16 @@ class CGxShader {
 class CGxPixelShader : public CGxShader, public TSHashObject<CGxPixelShader, HASHKEY_STRI> {
  public:
   enum {
-    Magic = 0x47585053,
+    Magic = 0x47585053
+  };
+
+  enum {
     Version = 0x10001
   };
 
   enum Target {
-    Target_default = 0xFE,
-    Target_gx = 0xFF,
+    Target_default = -2,
+    Target_gx = -1,
     Target_ps_1_1 = 0,
     Target_ps_1_2 = 1,
     Target_ps_1_3 = 2,
@@ -135,18 +148,44 @@ class CGxPixelShader : public CGxShader, public TSHashObject<CGxPixelShader, HAS
 class CGxVertexShader : public CGxShader, public TSHashObject<CGxVertexShader, HASHKEY_STRI> {
  public:
   enum {
-    Magic = 0x47585653,
+    Magic = 0x47585653
+  };
+
+  enum {
     Version = 0x10001
   };
 
   enum Target {
-    Target_default = 0xFE,
-    Target_gx = 0xFF,
+    Target_default = -2,
+    Target_gx = -1,
     Target_vs_1_1 = 0,
     Target_vs_2_0 = 1,
     Target_arbvp1 = 2,
     Targets_Last = 3
   };
+};
+
+class CGxCaps {
+ public:
+  unsigned int              m_numTmus;
+  int                       m_pixelCenterOnEdge;
+  int                       m_texelCenterOnEdge;
+  unsigned int              m_maxTextureSize;
+  int                       m_texOpAdd;
+  int                       m_texOpMod2X;
+  EGxColorFormat            m_colorFormat;
+  int                       m_texFmtDxt;
+  unsigned int              m_maxIndex;
+  int                       m_generateMipMaps;
+  int                       m_rttFormat[8];
+  int                       m_rttOriginUpperLeft;
+  CGxPixelShader::Target    m_pixelShaderTarget;
+  CGxVertexShader::Target   m_vertexShaderTarget;
+  int                       m_texFilterTrilinear;
+  int                       m_texFilterAnisotropic;
+  unsigned int              m_maxTexAnisotropy;
+  int                       m_depthBias;
+  int                       m_mipMapLodBias;
 };
 
 struct CGxBuf {
@@ -358,10 +397,16 @@ class CGxMatrixStack {
   void                       Push();
   void                       Pop();
   NTempest::C44Matrix       &Top();
-  const NTempest::C44Matrix &TopConst() {
+  const NTempest::C44Matrix &TopConst() const {
     return m_mtx[m_level];
   }
-  const NTempest::C44Matrix &Get() const;
+
+ private:
+  friend class CGxDevice;
+  friend class CGxDeviceD3d;
+  friend class CGxDeviceOpenGl;
+
+  unsigned int Flags();
 
   unsigned int        m_level;
   unsigned char       m_dirty;
@@ -382,6 +427,18 @@ class CGxStateRegister {
 
 class CGxDevice {
  public:
+  enum {
+    PrimMask_Vertex = 1,
+    PrimMask_TexCoord = 2,
+    PrimMask_Normal = 32,
+    PrimMask_Color = 64
+  };
+
+  enum {
+    MinD3dBufVertices = 256,
+    MinD3dBufIndices = 768
+  };
+
   struct TextureTarget {
     CGxTex      *m_texture;
     unsigned int m_plane;
@@ -646,7 +703,7 @@ class CGxDevice {
   CGxGammaRamp                                       m_gammaRamp;
   CGxGammaRamp                                       m_systemGammaRamp;
   GXWINDOWPROC                                       m_windowProc;
-  float                                              m_viewport[6];
+  CBoundingBox                                       m_viewport;
   NTempest::C44Matrix                                m_projection;
   const NTempest::C34Matrix                         *m_bones;
   unsigned int                                       m_boneCount;

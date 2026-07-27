@@ -411,7 +411,7 @@ namespace ProfileInternal {
     TSGrowableArray<char> buffer;
     SECTION              *section;
 
-    buffer.Reserve(4096);
+    buffer.ReserveSpace(4096);
     buffer.SetChunkSize(4096);
 
     section = profile->sectionTable.Head();

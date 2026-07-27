@@ -70,6 +70,10 @@ struct BlizzardObject : public TSLinkedNode<BlizzardObject> {
 struct LightningObject : public TSLinkedNode<LightningObject> {
  public:
   struct Bolt {
+    enum {
+      NULL_SUB = 0xFFFF
+    };
+
     unsigned short srcGuidSub;
     unsigned short dstGuidSub;
     unsigned int   birthTime;
@@ -122,7 +126,7 @@ struct FishingLineObject : public TSLinkedNode<FishingLineObject> {
 static void ShardEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
 static void FreeBlizzard(BlizzardObject *bliz);
 static inline void             RenderFishingLines();
-static unsigned int GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos);
+static bool GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos);
 int GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID);
 void GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position);
 int Spell_C_GetCastTime(int id, int isPet);
@@ -274,16 +278,16 @@ void BlizzardObject::Render(const NTempest::C44Matrix &mtx) {
   }
 }
 
-static unsigned int GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos) {
+static bool GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos) {
   FATALASSERT(model);
 
   HMODEL       attached = 0;
   unsigned int size = 1;
   if (!ModelGetLinkPoint(model, 1, &attached, &size) || !attached) {
-    return 0;
+    return false;
   }
 
-  unsigned int result = ModelGetObjectPosition(attached, 0, &pos) != 0;
+  bool result = ModelGetEventObjectPosition(attached, 2, 0, &pos) != 0;
   HandleClose(attached);
   return result;
 }
@@ -293,38 +297,38 @@ void FishingLineObject::Render() {
     return;
   }
 
-  CGObject_C *casterObject = ClntObjMgrObjectPtr(caster, __FILE__, __LINE__);
-  if (!casterObject || !casterObject->ObjectIsRendering()) {
-    return;
-  }
-
   CGObject_C *gameObject = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
-  if (!gameObject) {
+  if (!gameObject || !gameObject->IsObjectModelLoaded()) {
     return;
   }
 
-  HMODEL casterModel = casterObject->GetCharacterModel(0);
-  if (!casterModel) {
+  CGObject_C *casterObject = ClntObjMgrObjectPtr(caster, __FILE__, __LINE__);
+  if (!casterObject) {
     return;
   }
 
   HMODEL objectModel = gameObject->GetCharacterModel(0);
   if (!objectModel) {
-    HandleClose(casterModel);
+    return;
+  }
+
+  HMODEL casterModel = casterObject->GetCharacterModel(0);
+  if (!casterModel) {
+    HandleClose(objectModel);
     return;
   }
 
   NTempest::C3Vector casterAnchorPos;
   NTempest::C3Vector objectAnchorPos;
-  if (GetFishingLineStartPos(objectModel, objectAnchorPos)) {
-    if (!ModelGetObjectPosition(casterModel, 0, &casterAnchorPos)) {
-      casterAnchorPos = CGWorldFrame::GetActiveCamera()->Position();
+  if (GetFishingLineStartPos(casterModel, casterAnchorPos)) {
+    if (!ModelGetEventObjectPosition(objectModel, 2, 0, &objectAnchorPos)) {
+      objectAnchorPos = gameObject->GetPosition() - CGWorldFrame::GetActiveCamera()->Position();
     }
-    RenderLine(objectAnchorPos, casterAnchorPos, color);
+    RenderLine(casterAnchorPos, objectAnchorPos, color);
   }
 
-  HandleClose(casterModel);
   HandleClose(objectModel);
+  HandleClose(casterModel);
 }
 
 void FishingLineObject::RenderLine(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, const NTempest::CImVector &color) {
@@ -400,8 +404,8 @@ void UnitEffectOneShot(
     CGObject_C                     *object,
     UNITEFFECTATTACHPPOINT          attachPoint,
     int                             spellID,
-    unsigned int                    isCastEffect,
-    unsigned int                    forceEffectOnMount
+    bool                            isCastEffect,
+    bool                            forceEffectOnMount
 );
 void UnitEffectOneShot(
     const SpellVisualEffectNameRec *effect,
@@ -1037,6 +1041,7 @@ FishingLineObject* SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec
 void SpellVisualsFishingLineDestroy(FishingLineObject* object) {
   if (object) {
     s_fishingLineObjects.UnlinkNode(object);
+    object->~FishingLineObject();
     s_freeFishingObjects.PutData(object, 0, 0);
   }
 }

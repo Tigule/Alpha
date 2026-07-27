@@ -72,7 +72,7 @@ static int IReadFlipbook(
   UTokenData tokenData;
   long expected = parse.GetOptionalInt(&token, &tokenText, &tokenData);
   if (expected > 0) {
-    layer->flipKeys.keys.Reserve(expected);
+    layer->flipKeys.keys.ReserveSpace(expected);
   }
   parse.Expect('{', token, tokenText);
   token = ReadIntTrackHeader(
@@ -232,7 +232,7 @@ int ReadMaterials(
   UTokenData tokenData;
   long expected = parse.GetOptionalInt(&token, &tokenText, &tokenData);
   if (expected > 0) {
-    data.materials.Reserve(expected);
+    data.materials.ReserveSpace(expected);
   }
   parse.Expect('{', token, tokenText);
   token = parse.Token(&tokenText, 0);
@@ -460,7 +460,7 @@ int ReadBinMaterials(
   buffer.GetUint();
   unsigned int bytesRead = 8;
   data.materials.SetCount(0);
-  data.materials.Reserve(numMaterials);
+  data.materials.ReserveSpace(numMaterials);
   while (bytesRead < length) {
     MDLMATERIALSECTION *material = data.materials.New();
     unsigned int sectionLength = buffer.GetUint();

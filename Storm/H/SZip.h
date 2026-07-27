@@ -28,12 +28,14 @@ class WowFile {
     return m_provider->Close(this);
   }
 
+ private:
   WowFileSystemProvider *m_provider;
 };
 
 class TestFile : public WowFile {
  public:
   TestFile(WowFileSystemProvider *provider, FILE *file);
+  ~TestFile();
 
   FILE *m_f;
 };
@@ -57,6 +59,7 @@ class WowFileSystem {
   void     UnregisterProvider(WowFileSystemProvider &provider);
   WowFile *Open(const char *filename);
 
+ private:
   WowFileSystemProvider *m_providerList;
 };
 

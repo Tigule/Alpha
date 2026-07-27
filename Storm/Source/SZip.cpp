@@ -73,31 +73,33 @@ struct DataDescriptor {
 struct ZipFileArchive;
 struct ZipFileDirEntry;
 
-struct Flags {
-  DWORD m_value;
-
+class Flags {
+ public:
   Flags();
   void Set(unsigned int bit);
   void Clear(unsigned int bit);
   int  IsSet(unsigned int bit);
   int  IsClear(unsigned int bit);
+
+ private:
+  unsigned int m_value;
 };
 
 struct ZipFileDirEntry : TSHashObject<ZipFileDirEntry, HASHKEY_CONSTSTRI> {
   ZipFileArchive *archive;
   char            filename[0x100];
-  DWORD           startOffset;
-  DWORD           compressedSize;
-  DWORD           uncompressedSize;
-  DWORD           compressionMethod;
+  unsigned int    startOffset;
+  unsigned int    compressedSize;
+  unsigned int    uncompressedSize;
+  unsigned int    compressionMethod;
   ZipFileDirEntry();
   ~ZipFileDirEntry();
 };
 
 struct ZipFileArchive : TSLinkedNode<ZipFileArchive> {
-  FILE *file;
-  char  filename[0x100];
-  DWORD openFileCount;
+  FILE         *file;
+  char          filename[0x100];
+  unsigned int  openFileCount;
 
   ZipFileArchive();
   ~ZipFileArchive();
@@ -110,9 +112,9 @@ struct ZipFileArchive : TSLinkedNode<ZipFileArchive> {
 struct ZipFileFCB {
   ZipFileDirEntry *dirEntry;
   Flags            flags;
-  DWORD            targetPosition;
-  DWORD            compressedPosition;
-  DWORD            uncompressedPosition;
+  unsigned int     targetPosition;
+  unsigned int     compressedPosition;
+  unsigned int     uncompressedPosition;
   z_stream         zlibStream;
   BYTE             compressedData[ZIP_READ_CHUNK];
 
@@ -131,11 +133,6 @@ static const char                                         centralDirectoryHeader
 static WowFileSystem                                      s_fileSystem;
 static TestFileSystemProvider                             s_testProvider;
 static TSList<ZipFileArchive, TSGetLink<ZipFileArchive> > s_archives;
-
-template <>
-TSBaseArray<ZipDirList>::TSBaseArray() {
-  Constructor();
-}
 
 template <>
 TSFixedArray<ZipDirList>::~TSFixedArray() {
@@ -871,12 +868,12 @@ int ZipFileList(unsigned long archive, int(*cb)(const char *, void *), void *par
   ZipFileArchive  *archiveptr = (ZipFileArchive *)archive;
   ZipFileDirEntry *entry;
 
-  entry = s_directory.m_fulllist.Head();
+  entry = s_directory.Head();
   while ((LONG)entry > 0) {
     if (entry->archive == archiveptr && !cb(entry->filename, param)) {
       break;
     }
-    entry = entry->m_linktofull.Next();
+    entry = s_directory.RawNext(entry);
   }
   return 1;
 }

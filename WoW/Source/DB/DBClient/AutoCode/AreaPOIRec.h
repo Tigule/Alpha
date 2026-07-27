@@ -17,7 +17,7 @@ class AreaPOIRec {
     return 72;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

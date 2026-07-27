@@ -13,10 +13,11 @@ class CGSimpleHealthBar : public CSimpleStatusBar {
   void         SetUnit(CGUnit_C *unit);
   virtual void SetValue(float value);
   virtual void SetStatusBarColor(const NTempest::CImVector &color);
-  void         InstallMirrorHandlers();
-  void         RemoveMirrorHandlers();
 
  private:
+  void InstallMirrorHandlers();
+  void RemoveMirrorHandlers();
+
   unsigned __int64 m_unitGUID;
   int              m_scaleColor;
 };

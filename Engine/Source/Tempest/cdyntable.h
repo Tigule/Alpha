@@ -19,6 +19,9 @@ namespace NTempest {
       return expandf;
     }
 
+    void SetPrealloc(unsigned long);
+    void SetExpandF(unsigned long);
+
    protected:
     unsigned long prealloc;
     unsigned long expandf;
@@ -28,6 +31,18 @@ namespace NTempest {
   class CDynTable : public CMemBlockT<T> {
    public:
     using CMemBlockT<T>::IsValid;
+
+    typedef long (__cdecl *TSort)(const T *, const T *);
+
+    enum {
+      eLessThan = -1,
+      eEqualTo = 0,
+      eGreaterThan = 1
+    };
+
+    static long __cdecl MemSortP(const T *, const T *);
+    static long __cdecl Int32SortP(const long *, const long *);
+    static long __cdecl UInt32SortP(const unsigned long *, const unsigned long *);
 
     CDynTable(const CDynTable &other)
         : CMemBlockT<T>(other), expand(other.expand), iallocated(other.iallocated), iused(other.iused) {
@@ -44,23 +59,23 @@ namespace NTempest {
       return *this;
     }
 
-    unsigned long Expansion() {
+    unsigned long Expansion() const {
       return expand;
     }
 
-    unsigned long OutIndex() {
-      return static_cast<unsigned long>(-1);
+    unsigned long OutIndex() const {
+      return -1;
     }
 
-    unsigned long EntrySize() {
+    unsigned long EntrySize() const {
       return sizeof(T);
     }
 
-    unsigned long Allocated() {
+    unsigned long Allocated() const {
       return iallocated;
     }
 
-    unsigned long Unused() {
+    unsigned long Unused() const {
       return iallocated - iused;
     }
 
@@ -110,11 +125,11 @@ namespace NTempest {
       return reinterpret_cast<T *>(this->mem)[i];
     }
 
-    T *GetEntry(unsigned long i) {
+    T *GetEntry(unsigned long i) const {
       return i < iused ? &reinterpret_cast<T *>(this->mem)[i] : 0;
     }
 
-    void SetEntry(unsigned long at, const T *entry, unsigned long count = 1) {
+    void SetEntry(unsigned long at, const T *entry, unsigned long count = 1) const {
       ASSERT(entry);
       ASSERT(at + count <= iused);
       while (count--) {
@@ -122,19 +137,19 @@ namespace NTempest {
       }
     }
 
-    void SetEntry(unsigned long at, const T &entry, unsigned long count = 1) {
+    void SetEntry(unsigned long at, const T &entry, unsigned long count = 1) const {
       SetEntry(at, &entry, count);
     }
 
-    void SetAllEntries(const T *entry) {
+    void SetAllEntries(const T *entry) const {
       SetEntry(0, entry, iused);
     }
 
-    void SetAllEntries(const T &entry) {
+    void SetAllEntries(const T &entry) const {
       SetAllEntries(&entry);
     }
 
-    bool SwapEntries(unsigned long a, unsigned long b) {
+    bool SwapEntries(unsigned long a, unsigned long b) const {
       if (a >= iused || b >= iused) {
         return false;
       }
@@ -144,12 +159,12 @@ namespace NTempest {
       return true;
     }
 
-    long CompareEntries(unsigned long a, unsigned long b, long (*compare)(const T *, const T *)) {
+    long CompareEntries(unsigned long a, unsigned long b, const TSort compare) const {
       ASSERT(a < iused && b < iused && compare);
       return compare(&(*this)[a], &(*this)[b]);
     }
 
-    long CompareEntries(const T *a, const T *b, long (*compare)(const T *, const T *)) {
+    long CompareEntries(const T *a, const T *b, const TSort compare) const {
       ASSERT(a && b && compare);
       return compare(a, b);
     }
@@ -250,23 +265,23 @@ namespace NTempest {
     }
 
     unsigned long Optimize();
-    bool Search(const T *entry, unsigned long &at, long (*compare)(const T *, const T *));
-    bool Search(const T &entry, unsigned long &at, long (*compare)(const T *, const T *));
-    bool Sort(long (*compare)(const T *, const T *));
+    bool Search(const T *entry, unsigned long &at, const TSort compare);
+    bool Search(const T &entry, unsigned long &at, const TSort compare);
+    bool Sort(const TSort compare);
     bool BeginScan(CIterator &iterator);
     T   *Current(CIterator &iterator);
     unsigned long CurrentIndex(CIterator &iterator);
     bool Goto(unsigned long at, CIterator &iterator);
     bool Previous(CIterator &iterator);
     bool Next(CIterator &iterator);
-    bool SearchBackwards(const T *entry, CIterator &iterator, long (*compare)(const T *, const T *));
-    bool SearchBackwards(const T &entry, CIterator &iterator, long (*compare)(const T *, const T *));
-    bool SearchForward(const T *entry, CIterator &iterator, long (*compare)(const T *, const T *));
-    bool SearchForward(const T &entry, CIterator &iterator, long (*compare)(const T *, const T *));
+    bool SearchBackwards(const T *entry, CIterator &iterator, const TSort compare);
+    bool SearchBackwards(const T &entry, CIterator &iterator, const TSort compare);
+    bool SearchForward(const T *entry, CIterator &iterator, const TSort compare);
+    bool SearchForward(const T &entry, CIterator &iterator, const TSort compare);
     void EndScan(CIterator &iterator);
 
    protected:
-    T *Item_(unsigned long i) {
+    T *Item_(unsigned long i) const {
       return GetEntry(i);
     }
 

@@ -18,7 +18,7 @@ void ReadEventKeyframes(
   UTokenData value;
   long expected = parse.GetOptionalInt(&token, &tokenText, 0);
   if (expected > 0 && track) {
-    track->keys.Reserve(expected);
+    track->keys.ReserveSpace(expected);
   }
   parse.Expect('{', token, tokenText);
   token = parse.Token(&tokenText, &value);
@@ -214,7 +214,7 @@ int ReadBinEventObjects(
   unsigned int totalRead = 4;
   unsigned int count = buffer.GetUint();
   data.events.SetCount(0);
-  data.events.Reserve(count);
+  data.events.ReserveSpace(count);
   while (totalRead < length) {
     MDLEVENTSECTION *eventObject = data.events.New();
     if (!eventObject) {

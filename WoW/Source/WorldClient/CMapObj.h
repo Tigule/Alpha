@@ -28,10 +28,17 @@ class CMapObj;
 class CMapObjDef;
 class CMapObjGroup;
 class SFile;
+namespace NTempest {
+  class CAaSphere;
+}
 struct CGxBuf;
 struct CGxBufCommand;
 struct HTEXTURE__;
 struct SMOBatch {
+  enum {
+    F_RENDERED = 0xF0
+  };
+
   unsigned char  lightMap;
   unsigned char  texture;
   short          bx;
@@ -45,7 +52,7 @@ struct SMOBatch {
   unsigned short minIndex;
   unsigned short maxIndex;
   unsigned char  flags;
-  unsigned char  pad;
+  unsigned char  pad[1];
 };
 struct SMODoodadDef {
   unsigned long          nameIndex;
@@ -73,6 +80,13 @@ struct SMOHeader {
   unsigned char       pad[28];
 };
 struct SMOLight {
+  enum LightType {
+    OMNI_LGT = 0,
+    SPOT_LGT = 1,
+    DIRECT_LGT = 2,
+    AMBIENT_LGT = 3
+  };
+
   unsigned char       type;
   unsigned char       useAtten;
   unsigned char       pad[2];
@@ -83,13 +97,58 @@ struct SMOLight {
   float               attenEnd;
 };
 struct SMOLightmap;
+#define LIQUID_NONE 15
+
 struct SMOLTile {
-  unsigned char flags;
+  enum {
+    SHARED_MASK = 0x80,
+    SHARED_SHIFT = 7,
+    FISHABLE_MASK = 0x40,
+    FISHABLE_SHIFT = 6
+  };
+
+  unsigned int GetLiquid() const {
+    return liquid & 0xF;
+  }
+
+  int GetShared() const {
+    return (liquid & SHARED_MASK) >> SHARED_SHIFT;
+  }
+
+  __forceinline int GetFishable() const {
+    return (liquid & FISHABLE_MASK) >> FISHABLE_SHIFT;
+  }
+  void SetLiquid(unsigned int);
+  void SetShared(int);
+  void SetFishable(int);
+
+  int IsLiquid() const {
+    return GetLiquid() != LIQUID_NONE;
+  }
+
+ private:
+  unsigned char liquid;
+};
+
+struct SMOWVert {
+  unsigned char flow1;
+  unsigned char flow2;
+  unsigned char flow1Pct;
+  unsigned char filler;
+  float         height;
+};
+
+struct SMOMVert {
+  short s;
+  short t;
+  float height;
 };
 
 struct SMOLVert {
-  unsigned int color;
-  float        height;
+  union {
+    SMOWVert waterVert;
+    SMOMVert magmaVert;
+  };
 };
 struct SMOPoly;
 struct SMOPortal {
@@ -106,13 +165,19 @@ struct SMOPortalRef {
 };
 
 struct SIffChunk {
-  unsigned int token;
-  unsigned int size;
+  SIffChunk() {
+  }
+
+  SIffChunk(unsigned long token, unsigned long size) : token(token), size(size) {
+  }
+
+  unsigned long token;
+  unsigned long size;
 };
 
 struct CMapObjHeader {
   SIffChunk    iffChunkVersion;
-  unsigned int version;
+  unsigned long version;
   SIffChunk    iffChunkHeader;
 };
 
@@ -141,14 +206,19 @@ struct SMOGroupHeader {
 };
 
 struct SMOGroupInfo {
-  unsigned int     offset;
-  unsigned int     size;
-  unsigned int     flags;
+  unsigned long    offset;
+  unsigned long    size;
+  unsigned long    flags;
   NTempest::CAaBox aaBox;
-  unsigned int     nameIndex;
+  unsigned long    nameIndex;
 };
 
 struct SPortalExt {
+  enum {
+    F_SCREEN_CULLED = 1,
+    F_INTERSECT_NEAR = 2
+  };
+
   unsigned short  flags;
   unsigned short  rLevel;
   NTempest::CRect sRect;
@@ -157,6 +227,17 @@ struct SPortalExt {
 };
 
 struct SMOMaterial {
+  enum {
+    F_UNLIT = 1,
+    F_UNFOGGED = 2,
+    F_UNCULLED = 4,
+    F_EXTLIGHT = 8,
+    F_SIDN = 16,
+    F_WINDOW = 32,
+    F_CLAMP_S = 64,
+    F_CLAMP_T = 128
+  };
+
   unsigned long       version;
   unsigned long       flags;
   unsigned long       blendMode;
@@ -183,18 +264,61 @@ struct SMOLightmapTex {
 
 class CMapObjGroup {
  public:
+  CMapObjGroup();
   ~CMapObjGroup();
   void         Init();
   void         InitPtrs();
   void         Clear();
+  bool IsLoaded() {
+    return bLoaded != 0;
+  }
+  bool IsLoading() {
+    return asyncObject != 0;
+  }
+  void SetFlushTime(float time) {
+    flushTime = time;
+  }
+  unsigned int GetFlags() {
+    return flags;
+  }
+  unsigned int GetGroupLiquid() const {
+    return groupLiquid;
+  }
+  unsigned int GetDoodadRefCount() {
+    return doodadRefCount;
+  }
+  unsigned int GetDoodadRef(unsigned int index) {
+    return doodadRefList[index];
+  }
+  unsigned int GetLightRefCount() {
+    return lightRefCount;
+  }
+  unsigned int GetLightRef(unsigned int index) {
+    return lightRefList[index];
+  }
+  long GetUniqueID() {
+    return uniqueID;
+  }
+  unsigned char GetFogId(unsigned int index) {
+    return fogIds[index];
+  }
+  SMOPoly *GetPoly(unsigned short index) {
+    return &polyList[index];
+  }
   bool         QueryLightmap(const NTempest::C3Vector &point, unsigned short polyIdx, NTempest::CImVector &color);
   bool         QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color);
-  unsigned int QueryLiquidStatus(NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);
+  bool QueryLiquidStatus(const NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);
+  bool         QueryLiquidFishable(const NTempest::C3Vector &pos, int &fishable);
   void         QueryLiquidSounds(const NTempest::C3Vector &pos, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared);
-  void         QueryMinimap(unsigned int groupID, NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
+  bool         QueryMtlId(const NTempest::C3Segment &seg, unsigned int &mtlId);
   bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, unsigned int queryFlags);
   bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, unsigned int queryFlags);
   bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, unsigned int queryFlags);
+
+ private:
+  friend class CMap;
+  friend class CMapObj;
+
   unsigned int flags;
   NTempest::CAaBox     aaBox;
   unsigned int         portalStart;
@@ -243,21 +367,39 @@ class CMapObjGroup {
   unsigned int         lightmapVertexCount;
   unsigned int         lightmapCount;
   unsigned int         lightmapTexCount;
-  int                  uniqueID;
+  long                 uniqueID;
   unsigned char       *data;
   CMapObj             *parent;
   float                flushTime;
   CAsyncObject        *asyncObject;
   unsigned char        bLoaded;
+
+ public:
   TSLink<CMapObjGroup> lameAssLink;
 
  private:
-  friend class CMapObj;
-
   void CreateLightmapPointers(unsigned char *&pData);
   void CreateDataPointers(unsigned char *pData);
   void CreateOptionalDataPointers(unsigned char *pData);
   void Create(unsigned char *rawData);
+  unsigned int SphereIntersectPoly(
+      const NTempest::CAaSphere &sphere,
+      const unsigned int         numVerts,
+      const unsigned short      *indicies
+  );
+  bool PointInPoly(
+      const NTempest::C3Vector *p,
+      const unsigned int        numIndicies,
+      const unsigned short     *indicies,
+      const NTempest::C3Vector *n
+  );
+  void QueryMinimap(
+      unsigned int                         groupID,
+      const NTempest::CAaBox              &localBox,
+      TSStackArray<CWorld::MinimapQuad>   &quads
+  );
+  void FreeData();
+  void GenTexture(SMOLightmap *lightmap, const NTempest::CImVector *source, NTempest::CImVector *texture);
 
   static void UpdateLightmapTex(
       EGxTexCommand cmd,
@@ -286,7 +428,8 @@ class CMapObjGroup {
 
   static TSCArray<CGxBuf *, 512> extGxBufFreeList;
   static TSCArray<CGxBuf *, 512> intGxBufFreeList;
-  static SMOGxBatch             *sLockGxBatch;
+  static const EGxTexFormat      LIGHTMAP_FORMAT;
+  static const SMOGxBatch       *sLockGxBatch;
   static unsigned int            rDrawSharedLiquidFirst;
   static unsigned int            rDrawSharedLiquidToggle;
 };
@@ -305,13 +448,46 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   void Init();
   void InitPtrs();
   void Clear();
-  void CreateDataPointers();
-  void CreateMaterials();
-  void CreateData();
-  int  Read(const char *fileName);
   void ReadGroup(unsigned int index);
 
+  unsigned int GetId() {
+    return header->wmoID;
+  }
+  NTempest::CImVector GetAmbientColor() {
+    return ambColor;
+  }
+  const SMOMaterial *GetMaterial(unsigned int index) {
+    return &materialList[index];
+  }
+  bool IsLoaded() {
+    return bLoaded;
+  }
+  bool IsLoading() {
+    return asyncObject != 0;
+  }
+  const char *GetFileName() {
+    return name;
+  }
+  unsigned int GetNumGroups() {
+    return groupCount;
+  }
+  SMODoodadDef *GetDoodadDef(unsigned int index) {
+    return &doodadDefList[index];
+  }
+  const char *GetDoodadName(unsigned int index) {
+    return &doodadNameList[index];
+  }
+  unsigned int GetLightCount() {
+    return lightCount;
+  }
+  SMOLight *GetLight(unsigned int index) {
+    return &lightList[index];
+  }
   bool         IsGroupLoaded(unsigned int index);
+  bool         IsGroupLoading(unsigned int index);
+  void         SetFlushTime(float time) {
+    flushTime = time;
+  }
   void         WaitLoad();
   void         WaitLoadGroup(unsigned int index);
   unsigned int GetWmoID() {
@@ -326,10 +502,24 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   void          GetGroupBounds(NTempest::CAaSphere &aaSphere, unsigned int index);
   unsigned int  GetGroupFlags(unsigned int index);
   unsigned int  GetDoodadSet(unsigned int doodadIndex);
-  SMOFog       &GetFog(unsigned int index) {
+  const SMOFog &GetFog(unsigned int index) {
     FATALASSERT(index < fogCount);
     return fogList[index];
   }
+  unsigned int GetFogCount() {
+    return fogCount;
+  }
+  NTempest::C3Vector *GetMin() {
+    return &aaBox.b;
+  }
+  NTempest::C3Vector *GetMax() {
+    return &aaBox.t;
+  }
+  NTempest::CAaBox &GetAaBox() {
+    return aaBox;
+  }
+  bool TestBounds(const NTempest::C3Vector &point);
+  bool TestBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1);
   bool TestBounds(const NTempest::CAaBox &box);
   bool TestConvexVolume(const NTempest::C3Vector &point);
   bool VectorIntersect(
@@ -343,14 +533,19 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
       SMOPoly                    **poly
   );
   bool VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT, unsigned int *groupIDs);
+  bool VectorIntersectPortal(
+      const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, unsigned int fromGroup, unsigned int &toGroup
+  );
   bool TestGroupBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, unsigned int index);
-  bool TestGroupBounds(const NTempest::CAaBox &box, unsigned int index);
+  bool TestGroupBounds(const NTempest::C3Vector &point, const unsigned int index);
+  bool TestGroupBounds(const NTempest::CAaBox &box, const unsigned int index);
   bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, unsigned int queryFlags);
   bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, unsigned int queryFlags);
   bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, unsigned int queryFlags);
   bool QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color, float *t);
-  unsigned int
-  QueryLiquidStatus(unsigned int ignoreGroupFlags, NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);
+  bool
+  QueryLiquidStatus(unsigned int ignoreGroupFlags, const NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);
+  bool QueryLiquidFishable(unsigned int ignoreGroupFlags, const NTempest::C3Vector &pos, int &fishable);
   void QueryLiquidSounds(
       unsigned int              groupIdx,
       unsigned int              parentIdx,
@@ -361,13 +556,24 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
       NTempest::C3Vector       *ldelta,
       float                    *ldsquared
   );
-  unsigned int QueryMapObjMinimap(unsigned int groupID, NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
+  bool QueryMapObjMinimap(unsigned int groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
 
   static void PrepareUpdate();
   void                   LocateViewer(NTempest::C44Matrix &im, TSGrowableArray<unsigned int> &inGroups);
+  unsigned int           StabPortals(
+      unsigned int fromGroupIndex, unsigned int groupIndex, NTempest::C3Vector &rayOrig, NTempest::C3Vector &rayDir
+  );
+  unsigned int           StabPortals(
+      unsigned int groupIndex, const NTempest::C3Vector &start, const NTempest::C3Vector &end
+  );
   void                   IntRender(NTempest::C44Matrix &mat, TSGrowableArray<unsigned int> &inGroups);
-  void                   ExtRender(NTempest::C44Matrix &mat, NTempest::CRect &rect);
-  void RenderGroup(unsigned int groupNum, int rDrawSharedLiquidToggle, NTempest::C44Matrix &invMat, TSExplicitList<CWFrustum, 244> &frustumList);
+  void                   ExtRender(NTempest::C44Matrix &mat, const NTempest::CRect &rect);
+  void RenderGroup(
+      unsigned int groupNum,
+      int rDrawSharedLiquidToggle,
+      const NTempest::C44Matrix &invMat,
+      const TSExplicitList<CWFrustum, 244> &frustumList
+  );
 
   static TSCArray<NTempest::CRect, 16> extViewList;
   static TSCArray<SPortalExt, 2048>    portalExtList;
@@ -387,10 +593,15 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   static void AsyncPostloadCallbackHeader(void *userArg);
   static void AsyncPostloadCallback(void *userArg);
   static void AsyncPostloadCallbackAll(void *userArg);
+  int                    Read(const char *fileName);
+  void                   CreateData();
+  void                   AllocGroups();
   void                   CreateAllGroups();
   void                   ReadExtGroups();
-  SIffChunk             *ReadChunkHeader(unsigned int *&pData, unsigned long expectedToken);
+  SIffChunk             *ReadChunkHeader(unsigned char *&pData, unsigned long expectedToken);
   SIffChunk             *ReadOptionalChunkHeader(unsigned char *&pData, unsigned long expectedToken);
+  void                   CreateDataPointers();
+  void                   CreateMaterials();
   void                   CreateMaterial(unsigned int materialId);
   void                   CreateGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo);
   void                   ReadGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo, int preLoad);
@@ -398,28 +609,30 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   void                   RenderAlways(unsigned int groupIdx);
   void                   RRenderThruPortals(unsigned int groupIdx, unsigned int parentIdx, NTempest::CRect &viewRect, unsigned int level);
   void                   RTransformPortal(SMOPortal *portal, SPortalExt *portalExt, int cpIgnore);
-  unsigned int           CullBatch(SMOBatch *batch);
-  void                   RenderGroupLightTex(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupLightmapTex_Int(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupLightmapTex_Ext(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupLightmapTex(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupColorTex_Int(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupColorTex_Ext(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupColorTex(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupLightmap(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupTex(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroup_Ext(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroup_Int(CMapObjGroup *group, unsigned int frustumCount);
+  bool                   CullBatch(const SMOBatch *batch);
+  void                   RenderGroupLightTex(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroupLightmapTex_Int(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroupLightmapTex_Ext(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroupLightmapTex(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroupColorTex_Int(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroupColorTex_Ext(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroupColorTex(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroupLightmap(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroupTex(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroup_Ext(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroup_Int(const CMapObjGroup *group, unsigned int frustumCount);
   void                   RenderPortals(CMapObjGroup *group);
   void                   RenderPortals();
-  void                   RenderGroupBsp(CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupNormals(CMapObjGroup *group);
-  void                   RenderWaterIndices_0(CMapObjGroup *group, unsigned short *idxBase, unsigned int vtxSub, unsigned int &idxSub);
-  void                   RenderLiquid_0(CMapObjGroup *group);
-  void                   RenderInteriorWater_0(CMapObjGroup *group, unsigned int liquid);
-  void                   RenderExteriorWater_0(CMapObjGroup *group, unsigned int liquid);
-  void                   RenderMagma(CMapObjGroup *group, unsigned int liquid);
-  void QueryMapObjMinimapGroup(unsigned int groupID, unsigned int parentID, NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
+  void                   RenderGroupBsp(const CMapObjGroup *group, unsigned int frustumCount);
+  void                   RenderGroupNormals(const CMapObjGroup *group);
+  void                   RenderWaterIndices_0(const CMapObjGroup *group, unsigned short *idxBase, unsigned int vtxSub, unsigned int &idxSub);
+  void                   RenderLiquid_0(const CMapObjGroup *group);
+  void                   RenderInteriorWater_0(const CMapObjGroup *group, unsigned int liquid);
+  void                   RenderExteriorWater_0(const CMapObjGroup *group, unsigned int liquid);
+  void                   RenderMagma(const CMapObjGroup *group, unsigned int liquid);
+  void QueryMapObjMinimapGroup(
+      unsigned int groupID, unsigned int parentID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads
+  );
 
   char                name[260];
   SMOHeader          *header;
@@ -457,12 +670,12 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
 
  private:
   CMapObjHeader                       fileHeader;
-  unsigned int                       *data;
+  unsigned char                      *data;
   unsigned long                       dataBytes;
   int                                 refCount;
   float                               flushTime;
   CAsyncObject                       *asyncObject;
-  unsigned int                        bLoaded;
+  unsigned char                       bLoaded;
   SMOMaterial                        *materialList;
   unsigned int                        materialCount;
   unsigned int                        nGroupsRead;

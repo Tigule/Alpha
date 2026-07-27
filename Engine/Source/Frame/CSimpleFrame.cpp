@@ -278,7 +278,7 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
     if (!SStrCmpI(childName, "TitleRegion", 0x7FFFFFFF)) {
       CSimpleTitleRegion *titleRegion = NEW(CSimpleTitleRegion);
 
-      titleRegion->m_parent = this;
+      titleRegion->SetParent(this);
       titleRegion->LoadXML(child, status);
       SetTitleRegion(titleRegion);
     } else if (!SStrCmpI(childName, "Backdrop", 0x7FFFFFFF)) {

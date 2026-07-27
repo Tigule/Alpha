@@ -125,7 +125,7 @@ unsigned int ReadFloatTrackHeader(
     UTokenData readTokenData;                                                           \
     long readExpected = (parse).GetOptionalInt(&readToken, &readTokenText, &readTokenData); \
     if (readExpected > 0 && (track)) {                                                  \
-      (track)->keys.Reserve(readExpected);                                              \
+      (track)->keys.ReserveSpace(readExpected);                                              \
     }                                                                                   \
     (parse).Expect('{', readToken, readTokenText);                                      \
     READ_FLOAT_TRACK_HEADER((parse), (track), &readTokenText, &readTokenData, readToken); \
@@ -288,7 +288,7 @@ static void IReadDontInherit(
     long objectTrackExpected =                                                      \
         (parse).GetOptionalInt(&objectTrackToken, &objectTrackTokenText, &objectTrackTokenData); \
     if (objectTrackExpected > 0) {                                                  \
-      (track).keys.Reserve(objectTrackExpected);                                    \
+      (track).keys.ReserveSpace(objectTrackExpected);                                    \
     }                                                                               \
     (parse).Expect('{', objectTrackToken, objectTrackTokenText);                    \
     objectTrackToken =                                                             \

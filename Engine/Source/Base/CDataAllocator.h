@@ -13,24 +13,28 @@ class CDataAllocator {
   };
 
   CDataAllocator(unsigned long bytesPerData, unsigned long dataPerBlock);
+  CDataAllocator(const CDataAllocator &source);
   ~CDataAllocator();
 
   void  Clear(const char *fileName, int lineNumber);
   void *GetData(int zero, const char *fileName, int lineNumber);
   void  PutData(void *data, const char *fileName, int lineNumber);
-  unsigned long BytesPerData() {
+  unsigned long BytesPerData() const {
     return m_bytesPerData;
   }
-  unsigned long DataPerBlock() {
+  unsigned long DataPerBlock() const {
     return m_dataPerBlock;
   }
-  unsigned long DataUsed() {
+  unsigned long DataUsed() const {
     return m_dataUsed;
   }
 
-  unsigned int m_bytesPerData;
-  unsigned int m_dataPerBlock;
-  unsigned int m_dataUsed;
+ private:
+  CDataAllocator &operator=(const CDataAllocator &source);
+
+  unsigned long m_bytesPerData;
+  unsigned long m_dataPerBlock;
+  unsigned long m_dataUsed;
   Block       *m_blockList;
   Data        *m_dataList;
 };

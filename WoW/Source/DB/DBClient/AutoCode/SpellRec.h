@@ -17,7 +17,7 @@ class SpellRec {
     return 540;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

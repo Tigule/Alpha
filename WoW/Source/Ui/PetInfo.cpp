@@ -190,7 +190,7 @@ void CGPetInfo::UpdateCooldowns() {
   FrameScript_SignalEvent(334);
 }
 
-void CGPetInfo::SendPetAction(PetAction &action, const unsigned __int64 &target) {
+void CGPetInfo::SendPetAction(const PetAction &action, const unsigned __int64 &target) {
   unsigned __int64 actionTarget = target ? target : CGGameUI::GetLockedTarget();
   unsigned int     rawAction = action;
   unsigned int     actionType = rawAction >> 24 & 0x3F;
@@ -313,10 +313,10 @@ static int Script_PetHasActionBar(lua_State *L) {
 static int Script_GetPetActionInfo(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetPetActionInfo(index)");
-  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
-  PetAction   *action = CGPetInfo::GetAction(index);
-  unsigned int raw = action ? static_cast<unsigned int &>(*action) : 0;
-  unsigned int type = raw >> 24 & 0x3F;
+  unsigned int     index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  const PetAction *action = CGPetInfo::GetAction(index);
+  unsigned int     raw = action ? *action : 0;
+  unsigned int     type = raw >> 24 & 0x3F;
   if (!CGPetInfo::GetPet() || !raw) {
     for (int i = 0; i < 7; ++i)
       lua_pushnil(L);
@@ -368,9 +368,9 @@ static int Script_GetPetActionInfo(lua_State *L) {
 static int Script_GetPetActionCooldown(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetPetActionCooldown(index)");
-  PetAction    *action = CGPetInfo::GetAction(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  unsigned int  duration = 0, enable = 0;
-  unsigned long startTime = 0;
+  const PetAction *action = CGPetInfo::GetAction(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  unsigned int     duration = 0, enable = 0;
+  unsigned long    startTime = 0;
   if (action) {
     unsigned int raw = *action;
     unsigned int type = raw >> 24 & 0x3F;
@@ -404,11 +404,14 @@ static int Script_PickupPetAction(lua_State *L) {
     return 0;
   }
 
-  PetAction *action = CGPetInfo::GetAction(index);
-  if (!action || !static_cast<unsigned int &>(*action)) {
+  const PetAction *action = CGPetInfo::GetAction(index);
+  if (!action) {
     return 0;
   }
   unsigned int raw = *action;
+  if (!raw) {
+    return 0;
+  }
   unsigned int type = raw >> 24 & 0x3F;
   if (type == 1) {
     CGGameUI::SetCursorVirtualItem(raw & 0xFFFF, 0, index, UICURSOR_PET_SPELL);
@@ -455,7 +458,7 @@ static int Script_CastPetAction(lua_State *L) {
   } else if (cursorAction) {
     CGPetInfo::PutActionInSlot(cursorAction, index);
   } else {
-    PetAction *action = CGPetInfo::GetAction(index);
+    const PetAction *action = CGPetInfo::GetAction(index);
     if (action) {
       const unsigned __int64 noTarget = 0;
       CGPetInfo::SendPetAction(*action, noTarget);

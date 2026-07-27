@@ -16,8 +16,9 @@ class CGReputationInfo {
   static int IndexToFaction(int index);
   static unsigned int GetNumFactions();
   static int GetFactionFromSortIndex(unsigned int index);
-  static void SetAtWar(int faction, unsigned int state);
+  static void SetAtWar(int faction, unsigned char state);
   static bool IsAtWar(int faction);
+  static unsigned char IsVisible(int faction);
   static int GetFactionStanding(int faction);
   static UNIT_REACTION GetFactionStandingReaction(int faction);
   static void SetFactionFlags(int index, unsigned char flags);
@@ -25,7 +26,7 @@ class CGReputationInfo {
 
  protected:
   static unsigned int m_numFactions;
-  static unsigned int m_factionFlags[64];
+  static unsigned char m_factionFlags[64];
   static int          m_factionBase[64];
   static int          m_factionStandings[64];
   static int          m_factionMap[64];

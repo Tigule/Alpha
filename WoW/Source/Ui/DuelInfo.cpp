@@ -25,13 +25,14 @@ class CGDuelInfo {
   static void AcceptDuel();
   static void CancelDuel();
 
- protected:
+ private:
   static int OnDuelRequested(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
   static int OnDuelOutOfBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
   static int OnDuelInBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
   static int OnDuelComplete(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
   static int OnDuelWinner(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
 
+ protected:
   static unsigned __int64 m_arbiter;
 };
 

@@ -517,7 +517,7 @@ int ReadBinParticleEmitters(
   unsigned int totalRead = 4;
   unsigned int count = buffer.GetUint();
   data.particleEmitters.SetCount(0);
-  data.particleEmitters.Reserve(count);
+  data.particleEmitters.ReserveSpace(count);
   while (totalRead < length) {
     MDLPARTICLEEMITTER *emitter = data.particleEmitters.New();
     if (!emitter) {

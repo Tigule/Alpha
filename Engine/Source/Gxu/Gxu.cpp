@@ -1,4 +1,4 @@
-#include <Gx/Gx.h>
+#include <Gx/CGxDevice.h>
 #include <Tempest/caabox.h>
 #include <Tempest/c33matrix.h>
 #include <Tempest/c34matrix.h>

@@ -62,7 +62,7 @@ class CGClassTrainer {
   static int GetSelectionIndex();
   static void RefreshList();
   static void FilterAndSortServices();
-  static TrainerServiceInfo *GetService(unsigned int index);
+  static const TrainerServiceInfo *GetService(unsigned int index);
   static int GetNumServices() {
     return m_filteredServices;
   }

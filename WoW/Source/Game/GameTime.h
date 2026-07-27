@@ -21,6 +21,8 @@ class CGameTime : public WowTime {
  public:
   CGameTime();
 
+  int   GetTimeBias() const;
+  int   GetDateBias() const;
   void  Destroy();
   void  SetTimeDateBias(int timeBias, int dateBias, bool update);
   void  GameTimeSetTime(const WowTime &time);
@@ -29,9 +31,12 @@ class CGameTime : public WowTime {
   void  GameTimeSync(bool reset);
   float GameTimeSetMinutesPerSecond(float minutesPerSecond);
   float GameTimeGetMinutesPerSecond();
+  bool  IsDayTime();
+  bool  IsNightTime();
   float GameTimeGetDayProgression();
   HGAMETIMECALLBACK GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, void *), void *user);
   void  GameTimeUnregisterCallback(HGAMETIMECALLBACK callbackHandle);
+  unsigned int MinutesSinceBoot();
 
   unsigned long m_lastTick;
 

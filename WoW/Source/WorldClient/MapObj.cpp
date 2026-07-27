@@ -176,6 +176,15 @@ bool CMapObj::IsGroupLoaded(unsigned int index) {
   return groupPtrList[index]->bLoaded;
 }
 
+bool CMapObj::IsGroupLoading(unsigned int index) {
+  if (!bLoaded) {
+    return false;
+  }
+
+  FATALASSERT(groupPtrList[index]);
+  return groupPtrList[index]->asyncObject != 0;
+}
+
 void CMapObj::GetBounds(NTempest::CAaBox &aaBox) {
   if (bLoaded) {
     aaBox = this->aaBox;
@@ -193,12 +202,32 @@ bool CMapObj::TestBounds(const NTempest::CAaBox &box) {
   return box.b <= aaBox.t && box.t >= aaBox.b;
 }
 
-bool CMapObj::TestGroupBounds(const NTempest::CAaBox &box, unsigned int index) {
+bool CMapObj::TestBounds(const NTempest::C3Vector &point) {
+  if (!bLoaded) {
+    return false;
+  }
+
+  return point >= aaBox.b && point <= aaBox.t;
+}
+
+bool CMapObj::TestBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1) {
+  return bLoaded && CWorldMath::VectorIntersectAABox2(aaBox, v0, v1);
+}
+
+bool CMapObj::TestGroupBounds(const NTempest::CAaBox &box, const unsigned int index) {
   if (!bLoaded || !IsGroupLoaded(index)) {
     return false;
   }
 
   return box.b <= groupInfoList[index].aaBox.t && box.t >= groupInfoList[index].aaBox.b;
+}
+
+bool CMapObj::TestGroupBounds(const NTempest::C3Vector &point, const unsigned int index) {
+  if (!bLoaded || !IsGroupLoaded(index)) {
+    return false;
+  }
+
+  return point >= groupInfoList[index].aaBox.b && point <= groupInfoList[index].aaBox.t;
 }
 
 bool CMapObj::TestGroupBounds(
@@ -409,6 +438,42 @@ bool CMapObj::VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT
   return hit;
 }
 
+bool CMapObj::VectorIntersectPortal(
+    const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, unsigned int fromGroup, unsigned int &toGroup
+) {
+  CMapObjGroup *group = GetGroup(fromGroup, 0);
+  if (!group) {
+    toGroup = 0xFFFF;
+    return false;
+  }
+
+  NTempest::C3Vector rayOrig = v0;
+  NTempest::C3Vector rayDir = v1 - v0;
+  float              dist = FLT_MAX;
+  SMOPortalRef      *portalRef = &portalRefList[group->portalStart];
+  for (unsigned int i = 0; i < group->portalCount; ++i, ++portalRef) {
+    const SMOPortal *portal = &portalList[portalRef->portalIndex];
+    for (unsigned int j = 1; j < portal->count - 1; ++j) {
+      if (CWorldMath::RayIntersectTri(
+              rayOrig,
+              rayDir,
+              portalVertexList[portal->startVertex],
+              portalVertexList[portal->startVertex + j],
+              portalVertexList[portal->startVertex + j + 1],
+              dist
+          ) &&
+          dist >= 0.0f && dist <= 1.0f)
+      {
+        toGroup = portalRef->groupIndex;
+        return true;
+      }
+    }
+  }
+
+  toGroup = 0xFFFF;
+  return false;
+}
+
 bool CMapObj::GetTris(
     CWTriData                 &triData,
     const NTempest::CAaBox    &aaBox,
@@ -567,8 +632,10 @@ bool CMapObj::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector 
   return true;
 }
 
-unsigned int
-CMapObj::QueryLiquidStatus(unsigned int ignoreGroupFlags, NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir) {
+bool
+CMapObj::QueryLiquidStatus(
+    unsigned int ignoreGroupFlags, const NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir
+) {
   for (unsigned int grouplp = 0; grouplp < groupCount; ++grouplp) {
     SMOGroupInfo *groupInfo = &groupInfoList[grouplp];
     if ((ignoreGroupFlags & groupInfo->flags) || pos.x <= groupInfo->aaBox.b.x || pos.y <= groupInfo->aaBox.b.y || pos.z <= groupInfo->aaBox.b.z ||
@@ -584,6 +651,25 @@ CMapObj::QueryLiquidStatus(unsigned int ignoreGroupFlags, NTempest::C3Vector &po
   }
 
   return 0;
+}
+
+bool CMapObj::QueryLiquidFishable(unsigned int ignoreGroupFlags, const NTempest::C3Vector &pos, int &fishable) {
+  for (unsigned int grouplp = 0; grouplp < groupCount; ++grouplp) {
+    const SMOGroupInfo *groupInfo = GetGroupInfo(grouplp);
+    if ((ignoreGroupFlags & groupInfo->flags) || pos.x <= groupInfo->aaBox.b.x || pos.y <= groupInfo->aaBox.b.y ||
+        pos.z <= groupInfo->aaBox.b.z || pos.x >= groupInfo->aaBox.t.x || pos.y >= groupInfo->aaBox.t.y ||
+        pos.z >= groupInfo->aaBox.t.z || !IsGroupLoaded(grouplp))
+    {
+      continue;
+    }
+
+    CMapObjGroup *group = GetGroup(grouplp, 0);
+    if (group && group->QueryLiquidFishable(pos, fishable)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 unsigned int CMapObj::GetDoodadSet(unsigned int doodadIndex) {
@@ -612,7 +698,7 @@ CWorldMinimapQuad::~CWorldMinimapQuad() {
 void CMapObj::QueryMapObjMinimapGroup(
     unsigned int                       groupID,
     unsigned int                       parentID,
-    NTempest::CAaBox                  &localBox,
+    const NTempest::CAaBox            &localBox,
     TSStackArray<CWorld::MinimapQuad> &quads
 ) {
   CMapObjGroup *group = GetGroup(groupID, 0);
@@ -659,7 +745,9 @@ void CMapObj::QueryMapObjMinimapGroup(
   }
 }
 
-unsigned int CMapObj::QueryMapObjMinimap(unsigned int groupID, NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads) {
+bool CMapObj::QueryMapObjMinimap(
+    unsigned int groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads
+) {
   ++sMinimapTag;
   if (!bLoaded) {
     return 0;
@@ -676,7 +764,7 @@ unsigned int CMapObj::QueryMapObjMinimap(unsigned int groupID, NTempest::CAaBox 
   return 1;
 }
 
-void CMapObjGroup::QueryMinimap(unsigned int groupID, NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads) {
+void CMapObjGroup::QueryMinimap(unsigned int groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads) {
   if (flags & 0x88) {
     return;
   }

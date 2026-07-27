@@ -25,7 +25,7 @@ void CMapObj::AsyncPostloadCallbackHeader(void *userArg) {
 
   FATALASSERT(mapObj->fileHeader.iffChunkHeader.token == 'MOMO');
   mapObj->dataBytes = mapObj->fileHeader.iffChunkHeader.size + sizeof(mapObj->fileHeader);
-  mapObj->data = static_cast<unsigned int *>(SMemAlloc(mapObj->dataBytes, __FILE__, __LINE__, 0));
+  mapObj->data = static_cast<unsigned char *>(SMemAlloc(mapObj->dataBytes, __FILE__, __LINE__, 0));
   FATALASSERT(mapObj->data);
 
   mapObj->asyncObject = AsyncFileReadCreateObject();
@@ -83,7 +83,7 @@ int CMapObj::Read(const char *fileName) {
   if (CMap::bPreload) {
     dataBytes = SFile::GetFileSize(file, 0);
     if (dataBytes < 0x500000) {
-      data = static_cast<unsigned int *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
+      data = static_cast<unsigned char *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
       FATALASSERT(data);
       SFile::Read(file, data, dataBytes, &bRead, 0, 0);
       SFile::Close(file);
@@ -112,7 +112,7 @@ int CMapObj::Read(const char *fileName) {
 
     FATALASSERT(fileHeader.iffChunkHeader.token == 'MOMO');
     dataBytes = fileHeader.iffChunkHeader.size + sizeof(fileHeader);
-    data = static_cast<unsigned int *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
+    data = static_cast<unsigned char *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
     FATALASSERT(data);
     SFile::SetFilePointer(file, 0, 0, FILE_BEGIN);
     SFile::Read(file, data, dataBytes, &bRead, 0, 0);
@@ -127,7 +127,7 @@ int CMapObj::Read(const char *fileName) {
   asyncObject->userArg = this;
   dataBytes = SFile::GetFileSize(file, 0);
   if (dataBytes < 0x500000) {
-    data = static_cast<unsigned int *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
+    data = static_cast<unsigned char *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
     FATALASSERT(data);
     asyncObject->buffer = data;
     asyncObject->size = dataBytes;
@@ -139,6 +139,15 @@ int CMapObj::Read(const char *fileName) {
   }
   AsyncFileReadObject(asyncObject);
   return 1;
+}
+
+void CMapObj::AllocGroups() {
+  FATALASSERT(groupPtrList.Count() == 0);
+  groupPtrList.SetCount(groupCount);
+  for (unsigned int n = 0; n < groupCount; ++n) {
+    groupPtrList[n] = CMap::AllocMapObjGroup();
+    FATALASSERT(groupPtrList[n]);
+  }
 }
 
 void CMapObj::CreateData() {
@@ -168,12 +177,7 @@ void CMapObj::CreateData() {
       aaBox.t.z = groupInfoList[n].aaBox.t.z;
   }
 
-  FATALASSERT(groupPtrList.Count() == 0);
-  groupPtrList.SetCount(groupCount);
-  for (n = 0; n < groupCount; ++n) {
-    groupPtrList[n] = CMap::AllocMapObjGroup();
-    FATALASSERT(groupPtrList[n]);
-  }
+  AllocGroups();
   bLoaded = 1;
 }
 
@@ -191,16 +195,16 @@ void CMapObj::ReadExtGroups() {
   }
 }
 
-SIffChunk *CMapObj::ReadChunkHeader(unsigned int *&pData, unsigned long expectedToken) {
+SIffChunk *CMapObj::ReadChunkHeader(unsigned char *&pData, unsigned long expectedToken) {
   SIffChunk *pIffChunk = reinterpret_cast<SIffChunk *>(pData);
   FATALASSERT(pIffChunk->token == expectedToken);
-  pData += sizeof(SIffChunk) / sizeof(*pData);
+  pData += sizeof(SIffChunk);
   return pIffChunk;
 }
 
 SIffChunk *CMapObj::ReadOptionalChunkHeader(unsigned char *&pData, unsigned long expectedToken) {
   SIffChunk *pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  if (reinterpret_cast<unsigned char *>(pData) >= reinterpret_cast<unsigned char *>(data) + dataBytes) {
+  if (pData >= data + dataBytes) {
     return 0;
   }
   if (pIffChunk->token != expectedToken) {
@@ -211,74 +215,74 @@ SIffChunk *CMapObj::ReadOptionalChunkHeader(unsigned char *&pData, unsigned long
 }
 
 void CMapObj::CreateDataPointers() {
-  unsigned int *pData = data + 5;
-  SIffChunk    *pIffChunk;
+  unsigned char *pData = data + sizeof(fileHeader);
+  SIffChunk     *pIffChunk;
 
   pIffChunk = ReadChunkHeader(pData, 'MOHD');
   header = reinterpret_cast<SMOHeader *>(pData);
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOTX');
   textureNameList = reinterpret_cast<char *>(pData);
   textureNameCount = pIffChunk->size;
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOMT');
   materialList = reinterpret_cast<SMOMaterial *>(pData);
   materialCount = pIffChunk->size / sizeof(*materialList);
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOGN');
   groupNameList = reinterpret_cast<char *>(pData);
   groupNameCount = pIffChunk->size;
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOGI');
   groupInfoList = reinterpret_cast<SMOGroupInfo *>(pData);
   groupCount = pIffChunk->size / sizeof(*groupInfoList);
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOPV');
   portalVertexList = reinterpret_cast<NTempest::C3Vector *>(pData);
   portalVertexCount = pIffChunk->size / sizeof(*portalVertexList);
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOPT');
   portalList = reinterpret_cast<SMOPortal *>(pData);
   portalCount = pIffChunk->size / 20;
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOPR');
   portalRefList = reinterpret_cast<SMOPortalRef *>(pData);
   portalRefCount = pIffChunk->size / 8;
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOLT');
   lightList = reinterpret_cast<SMOLight *>(pData);
   lightCount = pIffChunk->size / 32;
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MODS');
   doodadSetList = reinterpret_cast<SMODoodadSet *>(pData);
   doodadSetCount = pIffChunk->size / 32;
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MODN');
   doodadNameList = reinterpret_cast<char *>(pData);
   doodadNameCount = pIffChunk->size;
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MODD');
   doodadDefList = reinterpret_cast<SMODoodadDef *>(pData);
   doodadDefCount = pIffChunk->size / 40;
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MFOG');
   fogList = reinterpret_cast<SMOFog *>(pData);
   fogCount = pIffChunk->size / 48;
-  pData += pIffChunk->size / sizeof(*pData);
+  pData += pIffChunk->size;
 
-  pIffChunk = ReadOptionalChunkHeader(reinterpret_cast<unsigned char *&>(pData), 'MCVP');
+  pIffChunk = ReadOptionalChunkHeader(pData, 'MCVP');
   if (pIffChunk) {
     convexVolumePlanes = reinterpret_cast<NTempest::C4Plane *>(pData);
     volumePlaneCount = pIffChunk->size / sizeof(*convexVolumePlanes);
@@ -317,7 +321,7 @@ void CMapObj::CreateGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo) {
 
   group->data = 0;
   group->parent = this;
-  group->Create(reinterpret_cast<unsigned char *>(data) + groupInfo->offset);
+  group->Create(data + groupInfo->offset);
 }
 
 void CMapObj::ReadGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo, int preLoad) {

@@ -17,7 +17,7 @@ class WorldSafeLocsRec {
     return 56;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

@@ -61,7 +61,7 @@ void WindowDestroy(HWND &window) {
 void CGxDeviceOpenGl::DeviceCreatePbuffer() {
   if (wglARBPbuffer) {
     int                       pixelFormat = GetPixelFormat(m_hdc);
-    PixelFormatAttribute<int> createAttribsi = {0, 0};
+    PixelFormatAttribute<int> createAttribsi(0, 0);
     m_hPbuffer = wglCreatePbufferARB(m_hdc, pixelFormat, m_caps.m_maxTextureSize, m_caps.m_maxTextureSize, &createAttribsi.attribute);
     m_hPbufferDC = wglGetPbufferDCARB(m_hPbuffer);
 
@@ -385,7 +385,9 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, uns
     hglrc = m_hPbufferRC;
   }
   wglMakeCurrent(hdc, hglrc);
-  XformSetViewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3], m_viewport[4], m_viewport[5]);
+  XformSetViewport(
+      m_viewport.x.l, m_viewport.x.h, m_viewport.y.l, m_viewport.y.h, m_viewport.z.l, m_viewport.z.h
+  );
   XformSetProjection(m_projection);
 }
 

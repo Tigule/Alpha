@@ -17,7 +17,7 @@ class FactionGroupRec {
     return 48;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

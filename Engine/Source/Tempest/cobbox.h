@@ -17,6 +17,8 @@ namespace NTempest {
         : c(center), e(extent), b(basis) {
     }
 
+    ~CObBox();
+
     C3Vector c;
     C3Vector e;
     C33Matrix b;

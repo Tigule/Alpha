@@ -298,10 +298,6 @@ static unsigned char *CreateParticleMaterial(
     CParticleEmitter2       *emitter
 ) {
   CParticleMat newMat;
-  newMat.alpha = GxBlend_Opaque;
-  newMat.enableLighting = 1;
-  newMat.enableFog = 1;
-  newMat.enableDepthWrites = 1;
 
   SetMaterialBlendMode(*reinterpret_cast<unsigned int *>(emitterData), &newMat);
   emitterData += 4;
@@ -334,10 +330,6 @@ static void CreateParticleMaterial(
     CParticleEmitter2 *emitter
 ) {
   CParticleMat newMat;
-  newMat.alpha = GxBlend_Opaque;
-  newMat.enableLighting = 1;
-  newMat.enableFog = 1;
-  newMat.enableDepthWrites = 1;
 
   SetMaterialBlendMode(emitterData.blendMode, &newMat);
   const MDLTEXTURESECTION &texture = textures[emitterData.textureId];

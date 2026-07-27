@@ -94,7 +94,7 @@ void CGLootInfo::SetObject(CGObject_C *object, int coins, LOOT_ACQUIRE lootType)
   }
 }
 
-void CGLootInfo::ClearSlot(unsigned int _slot) {
+void CGLootInfo::ClearSlot(unsigned char _slot) {
   unsigned int index;
 
   for (index = 0; index < 16; ++index) {

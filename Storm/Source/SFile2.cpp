@@ -33,9 +33,9 @@ class ASYNCREAD : public TSLinkedNode<ASYNCREAD> {
 };
 
 struct NoPaqCompHdr {
-  DWORD uncompressedSize;
-  char  signature[4];
-  MD5   md5;
+  unsigned int uncompressedSize;
+  char         signature[4];
+  MD5          md5;
 };
 
 struct FILEMAP : TSHashObject<FILEMAP, HASHKEY_STRI> {
@@ -437,12 +437,12 @@ void SFile::DoAsyncRead(ASYNCREAD *ptr) {
 
     case 2:
     case 3:
-      savedOffset = SFileSetFilePointer(ptr->fileptr->m_hsfile, 0, NULL, FILE_CURRENT);
+      savedOffset = SFileSetFilePointer((HSFILE)ptr->fileptr->m_hsfile, 0, NULL, FILE_CURRENT);
       if (ptr->overlapped->Offset) {
-        SFileSetFilePointer(ptr->fileptr->m_hsfile, (LONG)ptr->overlapped->Offset, NULL, FILE_BEGIN);
+        SFileSetFilePointer((HSFILE)ptr->fileptr->m_hsfile, (LONG)ptr->overlapped->Offset, NULL, FILE_BEGIN);
       }
-      SFileReadFileEx2(ptr->fileptr->m_hsfile, ptr->buffer, ptr->bytestoread, NULL, NULL, 0, NULL);
-      SFileSetFilePointer(ptr->fileptr->m_hsfile, (LONG)savedOffset, NULL, FILE_BEGIN);
+      SFileReadFileEx2((HSFILE)ptr->fileptr->m_hsfile, ptr->buffer, ptr->bytestoread, NULL, NULL, 0, NULL);
+      SFileSetFilePointer((HSFILE)ptr->fileptr->m_hsfile, (LONG)savedOffset, NULL, FILE_BEGIN);
       break;
 
     case 4:
@@ -604,7 +604,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, const char *filename, DWORD flag
         (*file)->m_md5 = header.md5;
         (*file)->m_haveMD5 = TRUE;
         (*file)->m_curOffset = 0;
-        (*file)->m_zbuffer = (DWORD *)ALLOC(0x1000);
+        (*file)->m_zbuffer = (BYTE *)ALLOC(0x1000);
         ASSERT(!(*file)->m_zstream);
         (*file)->m_zstream = (z_stream *)ALLOC(sizeof(z_stream));
         (*file)->m_zstream->avail_in = 0;
@@ -623,13 +623,13 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, const char *filename, DWORD flag
         }
         basename = SStrChrR(filename, '\\');
         basename = basename ? basename + 1 : filename;
-        if (!SFileOpenFileEx((HSARCHIVE)archiveData->m_archive, basename, 0, &(*file)->m_hsfile)) {
+        if (!SFileOpenFileEx((HSARCHIVE)archiveData->m_archive, basename, 0, (HSFILE *)&(*file)->m_hsfile)) {
           SFileCloseArchive((HSARCHIVE)archiveData->m_archive);
           goto open_failed;
         }
         (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
         if (flags & 0x10000) {
-          if (SFileGetFileMD5((*file)->m_hsfile, (DWORD *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
+          if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (DWORD *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
             (*file)->m_haveMD5 = TRUE;
           } else {
             (*file)->m_haveMD5 = FALSE;
@@ -638,12 +638,12 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, const char *filename, DWORD flag
         return TRUE;
 
       case SFILE_OLD_SFILE:
-        if (!SFileOpenFileEx(NULL, filename, flags, &(*file)->m_hsfile)) {
+        if (!SFileOpenFileEx(NULL, filename, flags, (HSFILE *)&(*file)->m_hsfile)) {
           goto open_failed;
         }
         (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
         if (flags & 0x10000) {
-          if (SFileGetFileMD5((*file)->m_hsfile, (DWORD *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
+          if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (DWORD *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
             (*file)->m_haveMD5 = TRUE;
           } else {
             (*file)->m_haveMD5 = FALSE;
@@ -683,7 +683,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, const char *filename, DWORD flag
     (*file)->m_hsfile = sfile;
     (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
     if (flags & 0x10000) {
-      if (SFileGetFileMD5((*file)->m_hsfile, (DWORD *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
+      if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (DWORD *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
         (*file)->m_haveMD5 = TRUE;
       } else {
         (*file)->m_haveMD5 = FALSE;
@@ -762,7 +762,7 @@ SFile::Read(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread, S
         DWORD localBytesRead;
 
         localBytesRead = 0;
-        result = SFileReadFileEx2(fileptr->m_hsfile, buffer, bytestoread, &localBytesRead, NULL, 0, NULL) || localBytesRead > 0;
+        result = SFileReadFileEx2((HSFILE)fileptr->m_hsfile, buffer, bytestoread, &localBytesRead, NULL, 0, NULL) || localBytesRead > 0;
         if (bytesread) {
           *bytesread = localBytesRead;
         }
@@ -845,7 +845,7 @@ DWORD APIENTRY SFile::Close(SFile *file) {
     fclose((FILE *)file->m_fileptr);
   }
   if (file->m_hsfile) {
-    SFileCloseFile(file->m_hsfile);
+    SFileCloseFile((HSFILE)file->m_hsfile);
   }
   if (file->m_zipFile) {
     ZipFileCloseFile((ZipFileFCB *)file->m_zipFile);
@@ -888,7 +888,7 @@ DWORD APIENTRY SFile::GetFileSize(SFile *file, DWORD *filesizehigh) {
 
     case SFILE_PAQ:
     case SFILE_OLD_SFILE:
-      return SFileGetFileSize(file->m_hsfile, filesizehigh);
+      return SFileGetFileSize((HSFILE)file->m_hsfile, filesizehigh);
 
     case SFILE_ZIP_FILE:
       return ZipFileGetFileSize((ZipFileFCB *)file->m_zipFile);
@@ -1009,7 +1009,7 @@ DWORD APIENTRY SFile::SetFilePointer(SFile *file, LONG distancetomove, LONG *dis
 
     case SFILE_PAQ:
     case SFILE_OLD_SFILE:
-      result = SFileSetFilePointer(file->m_hsfile, distancetomove, distancetomovehigh, movemethod);
+      result = SFileSetFilePointer((HSFILE)file->m_hsfile, distancetomove, distancetomovehigh, movemethod);
       break;
 
     case SFILE_ZIP_FILE:

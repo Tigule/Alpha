@@ -8,11 +8,11 @@
 #define PRINTF_DEFAULT_LIMIT 0x100000
 
 enum ArgumentSize {
-  ARGUMENT_SIZE_DWORD = 0,
-  ARGUMENT_SIZE_POINTER = 1,
-  ARGUMENT_SIZE_QWORD = 2,
-  ARGUMENT_SIZE_DOUBLE = 3,
-  ARGUMENT_SIZE_NO_ARGUMENT = 4
+  e_intSized = 0,
+  e_pointerSized = 1,
+  e_longLongSized = 2,
+  e_doubleSized = 3,
+  e_takesNoSpace = 4
 };
 
 struct SpecifierRange {
@@ -32,7 +32,7 @@ static int ParseFormatSpecifier(const char **specifierPtr, ArgumentSize *size, i
 
   specifier = *specifierPtr;
   currentNumber = 0;
-  *size = ARGUMENT_SIZE_DWORD;
+  *size = e_intSized;
 
   for (;;) {
     int ch;
@@ -53,13 +53,13 @@ static int ParseFormatSpecifier(const char **specifierPtr, ArgumentSize *size, i
       case 'l':
         if (*specifier == 'l') {
           specifier++;
-          *size = ARGUMENT_SIZE_QWORD;
+          *size = e_longLongSized;
         }
         break;
       case 'I':
         if (specifier[0] == '6' && specifier[1] == '4') {
           specifier += 2;
-          *size = ARGUMENT_SIZE_QWORD;
+          *size = e_longLongSized;
         }
         break;
       case 'C':
@@ -79,19 +79,19 @@ static int ParseFormatSpecifier(const char **specifierPtr, ArgumentSize *size, i
       case 'e':
       case 'f':
       case 'g':
-        *size = ARGUMENT_SIZE_DOUBLE;
+        *size = e_doubleSized;
         *specifierPtr = specifier;
         return TRUE;
       case 'P':
       case 'S':
       case 'p':
       case 's':
-        *size = ARGUMENT_SIZE_POINTER;
+        *size = e_pointerSized;
         *specifierPtr = specifier;
         return TRUE;
       case '%':
       case '\0':
-        *size = ARGUMENT_SIZE_NO_ARGUMENT;
+        *size = e_takesNoSpace;
         *specifierPtr = specifier;
         return FALSE;
       default:
@@ -175,16 +175,16 @@ int __cdecl vsnoprintf(char *out, int outSize, const char *format, char *argumen
 
   for (argumentIndex = 0; argumentIndex < argumentCount; ++argumentIndex) {
     switch (argumentSizeList[argumentIndex]) {
-      case ARGUMENT_SIZE_DWORD:
-      case ARGUMENT_SIZE_POINTER:
+      case e_intSized:
+      case e_pointerSized:
         orderedArgumentList[argumentIndex].integer = *(DWORD *)argumentList;
         argumentList += sizeof(DWORD);
         break;
-      case ARGUMENT_SIZE_QWORD:
+      case e_longLongSized:
         orderedArgumentList[argumentIndex].integer = *(unsigned __int64 *)argumentList;
         argumentList += sizeof(unsigned __int64);
         break;
-      case ARGUMENT_SIZE_DOUBLE:
+      case e_doubleSized:
         orderedArgumentList[argumentIndex].real = *(double *)argumentList;
         argumentList += sizeof(double);
         break;
@@ -202,21 +202,21 @@ int __cdecl vsnoprintf(char *out, int outSize, const char *format, char *argumen
       individualFormatSpecifier[range->length] = 0;
       RemoveOrderingFromFormatSpecifier(individualFormatSpecifier);
       ordering = range->ordering;
-      if (argumentSizeList[ordering] == ARGUMENT_SIZE_QWORD) {
+      if (argumentSizeList[ordering] == e_longLongSized) {
         FixUpLongLongFormatSpecifier(individualFormatSpecifier);
       }
 
       written = 0;
       switch (argumentSizeList[ordering]) {
-        case ARGUMENT_SIZE_DWORD:
-        case ARGUMENT_SIZE_POINTER:
+        case e_intSized:
+        case e_pointerSized:
           written = _snprintf(out, end - out + 1, individualFormatSpecifier, (DWORD)orderedArgumentList[ordering].integer);
           break;
-        case ARGUMENT_SIZE_QWORD:
-        case ARGUMENT_SIZE_DOUBLE:
+        case e_longLongSized:
+        case e_doubleSized:
           written = _snprintf(out, end - out + 1, individualFormatSpecifier, orderedArgumentList[ordering].integer);
           break;
-        case ARGUMENT_SIZE_NO_ARGUMENT:
+        case e_takesNoSpace:
           written = _snprintf(out, end - out + 1, individualFormatSpecifier);
           break;
       }

@@ -37,11 +37,11 @@ static int DrownAnimCallback(void *param) {
 
 void CGCorpse_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
-  m_corpse = reinterpret_cast<CGCorpseData *>(storage + 6);
+  CGCorpse::SetStorage(storage + 6);
 }
 
 CGCorpse_C::CGCorpse_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGCorpse(storage), m_animData(0) {
+    : CGObject_C(storage, eventTime, init), CGCorpse(storage + 6), m_animData(0) {
   m_corpse->m_position = init->move.status.worldPosition;
   m_corpse->m_facing = init->move.status.worldFacing;
   InitComponents();
@@ -316,7 +316,7 @@ void CGCorpse_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
   );
 }
 
-unsigned int CGCorpse_C::IsUnderWater() {
+bool CGCorpse_C::IsUnderWater() const {
   NTempest::C3Vector waterDir(0.0f);
   int                deep;
   unsigned int       liquidStatus = 15;

@@ -17,7 +17,7 @@ class LockTypeRec {
     return 112;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

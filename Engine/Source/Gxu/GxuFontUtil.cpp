@@ -1,7 +1,7 @@
 #include "IGxuFont.h"
 
 #include <Base/ConvertUTF.h>
-#include <Gx/Gx.h>
+#include <Gx/CGxDevice.h>
 
 #include <freetype/freetype.h>
 
@@ -542,10 +542,10 @@ void CGxString::InitializeTextLine(
 
   for (i = 0; i < newLine->m_texturePages.Count(); ++i) {
     unsigned int vertexCount = charsInTexturePage[i] * 4;
-    newLine->m_texturePages[i]->m_vert.Reserve(vertexCount);
+    newLine->m_texturePages[i]->m_vert.ReserveSpace(vertexCount);
 
     if (!(m_flags & 0x8)) {
-      newLine->m_texturePages[i]->m_colors.Reserve(vertexCount);
+      newLine->m_texturePages[i]->m_colors.ReserveSpace(vertexCount);
     }
   }
 

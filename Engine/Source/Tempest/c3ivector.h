@@ -10,6 +10,10 @@ namespace NTempest {
 
   class C3iVector {
    public:
+    enum {
+      eComponents = 3
+    };
+
     C3iVector(long value = 0) : x(value), y(value), z(value) {
     }
 
@@ -20,6 +24,9 @@ namespace NTempest {
     }
 
     C3iVector(const C3Vector &vector);
+
+    ~C3iVector() {
+    }
 
     void Get(long &xValue, long &yValue, long &zValue) const {
       xValue = x;
@@ -74,7 +81,7 @@ namespace NTempest {
     long SumC() const { return x + y + z; }
     bool IsUnit() const { return SquaredMag() == 1; }
     void Normalize() { *this /= Mag(); }
-    void Scale(long magnitude) { Normalize(); *this *= magnitude; }
+    void Scale(const long magnitude) { Normalize(); *this *= magnitude; }
     void Minimize(const C3iVector &a) { if (a.x < x) x = a.x; if (a.y < y) y = a.y; if (a.z < z) z = a.z; }
     void Maximize(const C3iVector &a) { if (a.x > x) x = a.x; if (a.y > y) y = a.y; if (a.z > z) z = a.z; }
 

@@ -194,7 +194,7 @@ void CWorldScene::PrepareRenderLiquid() {
   CMap::oceanDiffTexUpdated = false;
 }
 
-void CWorldScene::PrepareRender(NTempest::C3Vector &position, NTempest::C3Vector &target) {
+void CWorldScene::PrepareRender(const NTempest::C3Vector &position, const NTempest::C3Vector &target) {
   NTempest::C3Vector camPlaneVectXY;
 
   camPos = position;
@@ -371,7 +371,12 @@ void CWorldScene::AddMapEntity(CMapEntity *entity) {
   sortTable.table[sortIndex].entityList.LinkNode(entity, LIST_TAIL, 0);
 }
 
-void CWorldScene::ClipBufferUpdate(NTempest::C3Vector *vertices, const int *indicies, int nVertices, NTempest::C3Vector &corner) {
+void CWorldScene::ClipBufferUpdate(
+    const NTempest::C3Vector *vertices,
+    const int                *indicies,
+    const int                 nVertices,
+    const NTempest::C3Vector &corner
+) {
   FATALASSERT(vertices);
   FATALASSERT(indicies);
   int i;
@@ -499,6 +504,9 @@ void CWorldScene::AddViewerGroup2(unsigned int groupNum) {
   viewerMapObjGroups.Add(&groupNum);
 }
 
+void CWorldScene::LocateViewer2() {
+}
+
 void CWorldScene::LocateViewer3() {
   viewerMapObjDef = 0;
   viewerMapObjGroups.SetCount(0);
@@ -559,7 +567,14 @@ void CWorldScene::FrustumPush() {
   ++frustumIndex;
 }
 
-void CWorldScene::FrustumSet(NTempest::CRect &sRect) {
+void CWorldScene::FrustumSet(const NTempest::CRect &sRect) {
+  enum {
+    FRUST_BL = 0,
+    FRUST_TL = 1,
+    FRUST_TR = 2,
+    FRUST_BR = 3
+  };
+
   NTempest::C3Vector newCorners[8];
   NTempest::C3Vector tr;
   NTempest::C3Vector tl;
@@ -571,28 +586,28 @@ void CWorldScene::FrustumSet(NTempest::CRect &sRect) {
   NTempest::C3Vector bl;
 
   for (unsigned int i = 0; i < 8; i += 4) {
-    td = camFrustumCorners[i + 2] - camFrustumCorners[i + 1];
-    tl = camFrustumCorners[i + 1] + td * sRect.l;
-    tr = camFrustumCorners[i + 1] + td * sRect.r;
-    bd = camFrustumCorners[i + 3] - camFrustumCorners[i];
-    bl = camFrustumCorners[i] + bd * sRect.l;
-    br = camFrustumCorners[i] + bd * sRect.r;
+    td = camFrustumCorners[i + FRUST_TR] - camFrustumCorners[i + FRUST_TL];
+    tl = camFrustumCorners[i + FRUST_TL] + td * sRect.l;
+    tr = camFrustumCorners[i + FRUST_TL] + td * sRect.r;
+    bd = camFrustumCorners[i + FRUST_BR] - camFrustumCorners[i + FRUST_BL];
+    bl = camFrustumCorners[i + FRUST_BL] + bd * sRect.l;
+    br = camFrustumCorners[i + FRUST_BL] + bd * sRect.r;
     ld = tl - bl;
     rd = tr - br;
-    newCorners[i] = bl + ld * sRect.t;
-    newCorners[i + 1] = bl + ld * sRect.b;
-    newCorners[i + 2] = br + rd * sRect.b;
-    newCorners[i + 3] = br + rd * sRect.t;
+    newCorners[i + FRUST_BL] = bl + ld * sRect.t;
+    newCorners[i + FRUST_TL] = bl + ld * sRect.b;
+    newCorners[i + FRUST_TR] = br + rd * sRect.b;
+    newCorners[i + FRUST_BR] = br + rd * sRect.t;
   }
 
   FrustumGet().CalcPlanesFromCorners(newCorners);
 }
 
-void CWorldScene::FrustumSet(NTempest::C3Vector *corners) {
+void CWorldScene::FrustumSet(const NTempest::C3Vector *corners) {
   FrustumGet().CalcPlanesFromCorners(corners);
 }
 
-void CWorldScene::FrustumSet(NTempest::C3Vector *corners, NTempest::CRect &sRect) {
+void CWorldScene::FrustumSet(const NTempest::C3Vector *corners, const NTempest::CRect &sRect) {
   NTempest::C3Vector n;
   NTempest::C3Vector newCorners[8];
   NTempest::C3Vector tl;
@@ -629,7 +644,7 @@ void CWorldScene::FrustumSet(NTempest::C3Vector *corners, NTempest::CRect &sRect
   }
 }
 
-void CWorldScene::FrustumSet(CWFrustum &frustum) {
+void CWorldScene::FrustumSet(const CWFrustum &frustum) {
   FrustumGet() = frustum;
 }
 
@@ -637,19 +652,19 @@ CWFrustum &CWorldScene::FrustumGet() {
   return frustumStack[frustumIndex];
 }
 
-void CWorldScene::FrustumXform(NTempest::C44Matrix &mat) {
+void CWorldScene::FrustumXform(const NTempest::C44Matrix &mat) {
   FrustumGet().Transform(mat);
 }
 
-int CWorldScene::FrustumCull(NTempest::C3Vector &center, float radius) {
+int CWorldScene::FrustumCull(const NTempest::C3Vector &center, float radius) {
   return FrustumGet().Cull(center, radius) == WorldCull_outside;
 }
 
-int CWorldScene::FrustumCull(NTempest::CAaBox &aaBox) {
+int CWorldScene::FrustumCull(const NTempest::CAaBox &aaBox) {
   return FrustumGet().Cull(aaBox) == WorldCull_outside;
 }
 
-int CWorldScene::FrustumCull(NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
+int CWorldScene::FrustumCull(const NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
   return FrustumGet().Cull(aaBox, basis, pos) == WorldCull_outside;
 }
 
@@ -658,7 +673,7 @@ void CWorldScene::FrustumPop() {
   --frustumIndex;
 }
 
-void CWorldScene::CullSortTable(NTempest::CRect &sRect) {
+void CWorldScene::CullSortTable(const NTempest::CRect &sRect) {
   FrustumPush();
   FrustumSet(sRect);
   for (unsigned int index = 0; index < 26; ++index) {
@@ -675,7 +690,7 @@ void CWorldScene::CullSortTable(NTempest::CRect &sRect) {
   CullHorizon(sRect);
 }
 
-void CWorldScene::CullHorizon(NTempest::CRect &sRect) {
+void CWorldScene::CullHorizon(const NTempest::CRect &sRect) {
   NTempest::C3Vector  corners[8];
   NTempest::C44Matrix projMat;
   NTempest::C44Matrix viewMat;
@@ -809,8 +824,8 @@ void CWorldScene::CullChunkLiquid(CSortEntry *sortEntry, unsigned int type) {
     CChunkLiquid *next = sortEntry->liquidList[type].Next(liquid);
     aaBox.b = liquid->chunk->aaBox.b;
     aaBox.t = liquid->chunk->aaBox.t;
-    aaBox.b.z = liquid->height.min;
-    aaBox.t.z = liquid->height.max;
+    aaBox.b.z = liquid->height.l;
+    aaBox.t.z = liquid->height.h;
     if (!FrustumCull(aaBox) && !ClipBufferCull(aaBox, 0)) {
       sortEntry->liquidList[type].UnlinkNode(liquid);
       sortTable.visLiquidList[type].LinkNode(liquid, LIST_TAIL, 0);
@@ -1001,7 +1016,7 @@ void CWorldScene::RenderChunks() {
   }
 }
 
-int CWorldScene::ClipBufferCull(NTempest::C3Vector &center, float radius, unsigned int cullFlags) {
+int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, unsigned int cullFlags) {
   NTempest::C4Vector v(center.x, center.y, center.z, 1.0f);
   NTempest::C4Vector vr(radius, radius, 0.0f, 0.0f);
   if (!(CWorld::enables & CWorld::Enable_Culling) || NTempest::CMath::fabs_(radius) < 2.38418579e-7f) {
@@ -1032,7 +1047,7 @@ int CWorldScene::ClipBufferCull(NTempest::C3Vector &center, float radius, unsign
   return first > last;
 }
 
-int CWorldScene::ClipBufferCull(NTempest::CAaBox &aaBox, unsigned int cullFlags) {
+int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, unsigned int cullFlags) {
   NTempest::C3Vector  aaBoxMin = aaBox.b;
   NTempest::C3Vector  aaBoxMax = aaBox.t;
   NTempest::C3Vector *aaBoxMinMax[2] = {&aaBoxMin, &aaBoxMax};
@@ -1235,7 +1250,7 @@ void CWorldScene::RenderMagma() {
   GxRsPop();
 }
 
-void CWorldScene::CullMapObjDefs(CSortEntry *sortEntry, NTempest::CRect &sRect) {
+void CWorldScene::CullMapObjDefs(CSortEntry *sortEntry, const NTempest::CRect &sRect) {
   NTempest::C44Matrix mapObjM;
   CMapObj            *mapObj;
   CMapObjDef         *mapObjDefnext_node;
@@ -1340,17 +1355,14 @@ void CWorldScene::ClipBufferClear() {
   }
 }
 
-CWFrustum::CWFrustum() {
-}
-
 CWFrustum::CWFrustum(
-    NTempest::C3Vector &lPos,
-    NTempest::C3Vector &lAt,
-    NTempest::C3Vector &lUp,
-    float               p_fovy,
-    float               p_aspect,
-    float               p_minz,
-    float               p_maxz
+    const NTempest::C3Vector &lPos,
+    const NTempest::C3Vector &lAt,
+    const NTempest::C3Vector &lUp,
+    float                     p_fovy,
+    float                     p_aspect,
+    float                     p_minz,
+    float                     p_maxz
 )
     : lookPos(lPos), lookAt(lAt), lookUp(lUp), fovy(p_fovy), aspect(p_aspect), minz(p_minz), maxz(p_maxz) {
   NTempest::C44Matrix viewMat;
@@ -1361,11 +1373,11 @@ CWFrustum::CWFrustum(
   CalcPlanesFromCorners();
 }
 
-CWFrustum::CWFrustum(NTempest::C3Vector *c) {
+CWFrustum::CWFrustum(const NTempest::C3Vector *c) {
   CalcPlanesFromCorners(c);
 }
 
-void CWFrustum::CalcPlanesFromCorners(NTempest::C3Vector *c) {
+void CWFrustum::CalcPlanesFromCorners(const NTempest::C3Vector *c) {
   for (unsigned int i = 0; i < 8; ++i) {
     corners[i] = c[i];
   }
@@ -1381,21 +1393,7 @@ void CWFrustum::CalcPlanesFromCorners() {
   planes[5].Set(corners[2], corners[0], corners[1]);
 }
 
-NTempest::C3Vector *CWFrustum::Corners() {
-  return corners;
-}
-
-NTempest::C3Vector &CWFrustum::Corner(unsigned int index) {
-  FATALASSERT(index < 8);
-  return corners[index];
-}
-
-NTempest::C4Plane &CWFrustum::Plane(unsigned int index) {
-  FATALASSERT(index < 6);
-  return planes[index];
-}
-
-void CWFrustum::Translate(NTempest::C3Vector &t) {
+void CWFrustum::Translate(const NTempest::C3Vector &t) {
   for (unsigned int i = 0; i < 8; ++i) {
     corners[i] = corners[i] + t;
   }
@@ -1406,7 +1404,7 @@ void CWFrustum::Translate(NTempest::C3Vector &t) {
   lookAt = lookAt + t;
 }
 
-void CWFrustum::Transform(NTempest::C44Matrix &mat) {
+void CWFrustum::Transform(const NTempest::C44Matrix &mat) {
   for (unsigned int i = 0; i < 8; ++i) {
     corners[i] = corners[i] * mat;
   }
@@ -1416,8 +1414,8 @@ void CWFrustum::Transform(NTempest::C44Matrix &mat) {
   lookUp = lookUp * mat;
 }
 
-WorldCullStatus CWFrustum::Cull(NTempest::CAaBox &aabox) {
-  float *corner[2] = {&aabox.t.x, &aabox.b.x};
+WorldCullStatus CWFrustum::Cull(const NTempest::CAaBox &aabox) const {
+  const float *corner[2] = {&aabox.t.x, &aabox.b.x};
   for (unsigned int p = 0; p < 6; ++p) {
     NTempest::C3Vector point(corner[planes[p].n.x < 0.0f][0], corner[planes[p].n.y < 0.0f][1], corner[planes[p].n.z < 0.0f][2]);
     if (planes[p].DistSigned(point) < -0.019444443f) {
@@ -1427,7 +1425,7 @@ WorldCullStatus CWFrustum::Cull(NTempest::CAaBox &aabox) {
   return WorldCull_notOutside;
 }
 
-WorldCullStatus CWFrustum::Cull(NTempest::CAaBox &box, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
+WorldCullStatus CWFrustum::Cull(const NTempest::CAaBox &box, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
   NTempest::C33Matrix m = basis.Transpose();
   for (int p = 0; p < 6; ++p) {
     NTempest::C3Vector wv = m * planes[p].n;
@@ -1440,14 +1438,14 @@ WorldCullStatus CWFrustum::Cull(NTempest::CAaBox &box, NTempest::C33Matrix &basi
   return WorldCull_notOutside;
 }
 
-WorldCullStatus CWFrustum::Cull(NTempest::C3Vector &center, float radius) {
+WorldCullStatus CWFrustum::Cull(const NTempest::C3Vector &center, float radius) const {
   NTempest::CAaSphere sphere;
   sphere.c = center;
   sphere.r = radius;
   return Cull(sphere);
 }
 
-WorldCullStatus CWFrustum::Cull(NTempest::CAaSphere &sphere) {
+WorldCullStatus CWFrustum::Cull(const NTempest::CAaSphere &sphere) const {
   for (unsigned int p = 0; p < 6; ++p) {
     if (planes[p].DistSigned(sphere.c) < -sphere.r) {
       return WorldCull_outside;
@@ -1456,7 +1454,7 @@ WorldCullStatus CWFrustum::Cull(NTempest::CAaSphere &sphere) {
   return WorldCull_notOutside;
 }
 
-WorldCullStatus CWFrustum::Cull(NTempest::C3Vector &point) {
+WorldCullStatus CWFrustum::Cull(const NTempest::C3Vector &point) const {
   for (unsigned int p = 0; p < 6; ++p) {
     if (planes[p].DistSigned(point) < -0.019444443f) {
       return WorldCull_outside;
@@ -1465,7 +1463,7 @@ WorldCullStatus CWFrustum::Cull(NTempest::C3Vector &point) {
   return WorldCull_notOutside;
 }
 
-void CWFrustum::Cull(NTempest::C3Vector &point, unsigned int &cullFlags) {
+void CWFrustum::Cull(const NTempest::C3Vector &point, unsigned int &cullFlags) const {
   cullFlags = 0;
   for (unsigned int p = 0; p < 6; ++p) {
     if (planes[p].DistSigned(point) < -0.019444443f) {
@@ -1474,7 +1472,7 @@ void CWFrustum::Cull(NTempest::C3Vector &point, unsigned int &cullFlags) {
   }
 }
 
-WorldCullStatus CWFrustum::Cull(NTempest::C4Plane &plane) {
+WorldCullStatus CWFrustum::Cull(const NTempest::C4Plane &plane) const {
   unsigned int outside = 0;
   unsigned int inside = 0;
   for (unsigned int i = 0; i < 8; ++i) {

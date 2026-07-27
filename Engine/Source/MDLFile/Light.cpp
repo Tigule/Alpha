@@ -438,7 +438,7 @@ int ReadBinLights(
   unsigned int count = buffer.GetUint();
   unsigned int totalRead = 4;
   data.lights.SetCount(0);
-  data.lights.Reserve(count);
+  data.lights.ReserveSpace(count);
   while (totalRead < length) {
     MDLLIGHTSECTION *light = data.lights.New();
     if (!light) {

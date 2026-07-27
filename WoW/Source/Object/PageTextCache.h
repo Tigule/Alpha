@@ -11,7 +11,7 @@ class PageTextCache {
     m_text[0] = 0;
   }
 
-  int Version() {
+  static int Version() {
     return 1;
   }
   void Pack(CDataStore *msg);

@@ -17,7 +17,7 @@ class CreatureTypeRec {
     return 40;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

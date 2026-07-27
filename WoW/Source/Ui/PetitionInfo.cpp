@@ -31,16 +31,17 @@ class CGPetitionInfo {
   static unsigned int GetNumSignatures() {
     return m_numSignatures;
   }
-  static PetitionSignerInfo *GetSignature(unsigned int index) {
+  static const PetitionSignerInfo *GetSignature(unsigned int index) {
     return index < m_numSignatures ? &m_signatures[index] : 0;
   }
   static const CGPetition *GetPetitionStats() {
     return m_petition;
   }
 
- protected:
+ private:
   static void ClearSignatures();
 
+ protected:
   static unsigned __int64                    m_petitionGUID;
   static int                                 m_petitionID;
   static TSGrowableArray<PetitionSignerInfo> m_signatures;
@@ -177,7 +178,7 @@ static int Script_GetPetitionNameInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetPetitionNameInfo(index)");
   }
-  PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   const NameCache    *name = signer ? g_nameDBCache.GetRecord(signer->signer, signer->signer, 0, 0) : 0;
   lua_pushstring(L, name ? name->m_name : 0);
   return 1;

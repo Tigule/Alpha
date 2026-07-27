@@ -26,7 +26,7 @@ class CGGuildRegistrar {
  public:
   static void EnterWorld();
   static void LeaveWorld();
-  static void SetRegistrar(unsigned __int64 registrar, PetitionVendorItem *petition);
+  static void SetRegistrar(unsigned __int64 registrar, const PetitionVendorItem *petition);
   static void CloseRegistrar();
   static unsigned __int64 GetRegistrar();
   static unsigned int GetGuildCharterCost();
@@ -48,7 +48,7 @@ void CGGuildRegistrar::LeaveWorld() {
   CloseRegistrar();
 }
 
-void CGGuildRegistrar::SetRegistrar(unsigned __int64 registrar, PetitionVendorItem *petition) {
+void CGGuildRegistrar::SetRegistrar(unsigned __int64 registrar, const PetitionVendorItem *petition) {
   CGGameUI::SetInteractTarget(registrar, 0.0f);
   m_registrar = registrar;
   m_petition = *petition;

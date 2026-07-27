@@ -21,6 +21,9 @@ namespace NTempest {
 
     CMemBlock &operator=(const CMemBlock &m);
 
+    static char *Allocate(unsigned long size, const char *filen, long linen);
+    static void  Dispose(char *mem, const char *filen, long linen);
+
     unsigned long Copy(const CMemBlock &from);
     long          Compare(const CMemBlock &to) const;
     unsigned long Copy_(const CMemBlock &from);
@@ -30,43 +33,43 @@ namespace NTempest {
     bool IsValid() const {
       return mem_ != 0;
     }
-    char *Get() {
+    char *Get() const {
       return mem;
     }
-    unsigned long Size() {
+    unsigned long Size() const {
       return size;
-    }
-    void Set(char *dst, unsigned char value, unsigned long bytes) {
-      SetM_(dst, value, bytes);
     }
     void Set(unsigned char value) {
       SetM_(mem, value, size);
     }
-    void Set32(unsigned long *dst, unsigned long value, unsigned long bytes) {
+    static void Set(char *dst, unsigned char value, unsigned long bytes) {
       SetM_(dst, value, bytes);
     }
     void Set32(unsigned long value) {
       SetM_(reinterpret_cast<unsigned long *>(mem), value, size);
     }
-    void Zero(char *dst, unsigned long bytes) {
-      SetM_(dst, 0, bytes);
+    static void Set32(unsigned long *dst, unsigned long value, unsigned long bytes) {
+      SetM_(dst, value, bytes);
     }
     void Zero() {
       SetM_(mem, 0, size);
     }
-    void Copy(char *dst, char *src, unsigned long bytes) {
+    static void Zero(char *dst, unsigned long bytes) {
+      SetM_(dst, 0, bytes);
+    }
+    static void Copy(char *dst, char * const src, unsigned long bytes) {
       memmove(dst, src, bytes);
     }
-    long Compare(char *a, char *b, unsigned long bytes) {
+    static long Compare(char * const a, char * const b, unsigned long bytes) {
       return memcmp(a, b, bytes);
     }
-    char *Get_() {
+    char *Get_() const {
       return mem_;
     }
-    unsigned long Size_() {
+    unsigned long Size_() const {
       return size_;
     }
-    unsigned long Prologue_() {
+    unsigned long Prologue_() const {
       return size_ - size;
     }
     void Set_(unsigned char value) {
@@ -114,11 +117,11 @@ namespace NTempest {
         : CMemBlock(count * sizeof(T), prologue, filen ? filen : typeid(T).raw_name(), filen ? linen : SERR_LINECODE_OBJECT) {
     }
 
-    T *Get() {
+    T *Get() const {
       return reinterpret_cast<T *>(CMemBlock::Get());
     }
 
-    T &operator[](unsigned long index) {
+    T &operator[](unsigned long index) const {
       ASSERT(index < CMemBlock::Size() / sizeof(T));
       return Get()[index];
     }

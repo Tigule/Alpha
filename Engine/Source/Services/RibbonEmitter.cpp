@@ -330,7 +330,7 @@ void CRibbonEmitter::SetMats(
   DuplicateTextureArray(textures, &m_textures);
 }
 
-void CRibbonEmitter::SetColor(float r, float g, float b) {
+void CRibbonEmitter::SetColor(const float r, const float g, const float b) {
   m_diffuseClr.Set(
       m_diffuseClr.a,
       NTempest::CMath::fuint_n(r * 255.0f),
@@ -339,7 +339,7 @@ void CRibbonEmitter::SetColor(float r, float g, float b) {
   );
 }
 
-void CRibbonEmitter::SetAlpha(float a) {
+void CRibbonEmitter::SetAlpha(const float a) {
   m_diffuseClr.a = NTempest::CMath::fuint_n(a * 255.0f);
 }
 

@@ -15,6 +15,7 @@ class CGChat {
   static void ShutdownGame();
   static void EnterWorld();
   static void LeaveWorld();
+  static int IsPaused();
   static int ChatHandler(CDataStore *msg);
   static void ChannelList(CDataStore *msg);
   static void ChannelNotify(CDataStore *msg);

@@ -1,5 +1,6 @@
 #include "WorldClient/CMapObj.h"
 #include "WorldClient/World.h"
+#include "WorldCommon/WorldMath.h"
 
 #include "Gx/Gx.h"
 #include "Images/blit.h"
@@ -7,6 +8,7 @@
 #include "Services/AsyncFileRead.h"
 #include "Services/Texture.h"
 #include "Tempest/c3ray.h"
+#include "Tempest/caasphere.h"
 #include "Tempest/cfacet.h"
 #include "Tempest/tempest_intersect.h"
 
@@ -15,9 +17,12 @@
 
 TSCArray<CGxBuf *, 512> CMapObjGroup::extGxBufFreeList;
 TSCArray<CGxBuf *, 512> CMapObjGroup::intGxBufFreeList;
-SMOGxBatch             *CMapObjGroup::sLockGxBatch;
+const SMOGxBatch       *CMapObjGroup::sLockGxBatch;
 unsigned int            CMapObjGroup::rDrawSharedLiquidFirst;
 unsigned int            CMapObjGroup::rDrawSharedLiquidToggle;
+
+static float *t[16];
+static const float OOSMOLTILE_SIZE = 1.0f / 4.1666665f;
 
 void CMapObjGroup::UpdateLightmapTex(
     EGxTexCommand cmd,
@@ -54,13 +59,16 @@ void CMapObjGroup::CreateLightmaps() {
 
 class BspQuery {
  public:
+  ~BspQuery() {
+  }
+
   enum {
-    MaxFaces = 0x1000
+    MAX_FACES = 0x1000
   };
 
-  static unsigned short testFaces[MaxFaces];
+  static unsigned short testFaces[MAX_FACES];
   static unsigned int   testFaceSub;
-  static unsigned short hitFaces[MaxFaces];
+  static unsigned short hitFaces[MAX_FACES];
   static unsigned int   hitFaceSub;
 };
 
@@ -70,8 +78,11 @@ unsigned char QueryCull(const CWFrustum &frustum, const NTempest::C3Vector *vert
 template <class VOLUME>
 class BspQuery_Volume : public BspQuery {
  public:
-  BspQuery_Volume(SMOPoly *faces, NTempest::C3Vector *vertexList, const VOLUME &volume, unsigned short faceIgnoreFlags)
+  BspQuery_Volume(SMOPoly *faces, const NTempest::C3Vector *vertexList, const VOLUME &volume, unsigned short faceIgnoreFlags)
       : faces(faces), vertexList(vertexList), volume(volume), faceIgnoreFlags(faceIgnoreFlags) {
+  }
+
+  ~BspQuery_Volume() {
   }
 
   void operator()(unsigned short faceIndex) {
@@ -79,30 +90,34 @@ class BspQuery_Volume : public BspQuery {
       return;
     }
 
-    FATALASSERT(testFaceSub < MaxFaces);
+    FATALASSERT(testFaceSub < MAX_FACES);
     testFaces[testFaceSub++] = faceIndex;
     faces[faceIndex].flags |= 0x80;
 
     if (!QueryCull(volume, &vertexList[3 * faceIndex])) {
-      FATALASSERT(hitFaceSub < MaxFaces);
+      FATALASSERT(hitFaceSub < MAX_FACES);
       hitFaces[hitFaceSub++] = faceIndex;
     }
   }
 
-  SMOPoly             *faces;
-  NTempest::C3Vector  *vertexList;
-  const VOLUME        &volume;
-  unsigned short       faceIgnoreFlags;
+ private:
+  void operator=(const BspQuery_Volume &);
+
+  SMOPoly                    *faces;
+  const NTempest::C3Vector   *vertexList;
+  const VOLUME               &volume;
+  unsigned short              faceIgnoreFlags;
 };
 
-unsigned short BspQuery::testFaces[BspQuery::MaxFaces];
+unsigned short BspQuery::testFaces[BspQuery::MAX_FACES];
 unsigned int   BspQuery::testFaceSub;
-unsigned short BspQuery::hitFaces[BspQuery::MaxFaces];
+unsigned short BspQuery::hitFaces[BspQuery::MAX_FACES];
 unsigned int   BspQuery::hitFaceSub;
 
 class BspQuery_Segment : public BspQuery {
  public:
-  BspQuery_Segment(SMOPoly *faces, NTempest::C3Vector *vertexList, const NTempest::C3Segment &seg, float *hitT, unsigned short faceIgnoreFlags)
+  BspQuery_Segment(
+      SMOPoly *faces, const NTempest::C3Vector *vertexList, const NTempest::C3Segment &seg, float *hitT, unsigned short faceIgnoreFlags)
       : faces(faces), vertexList(vertexList), hitT(hitT), origHitT(*hitT), faceIgnoreFlags(faceIgnoreFlags) {
     ray.origin = seg.start;
     NTempest::C3Vector delta = seg.end - seg.start;
@@ -114,6 +129,9 @@ class BspQuery_Segment : public BspQuery {
     maxT = segMag * *hitT;
   }
 
+  ~BspQuery_Segment() {
+  }
+
 
 
 
@@ -123,7 +141,7 @@ class BspQuery_Segment : public BspQuery {
       return;
     }
 
-    FATALASSERT(testFaceSub < MaxFaces);
+    FATALASSERT(testFaceSub < MAX_FACES);
     testFaces[testFaceSub++] = faceIndex;
     faces[faceIndex].flags |= 0x80;
 
@@ -141,14 +159,18 @@ class BspQuery_Segment : public BspQuery {
     }
   }
 
-  SMOPoly            *faces;
-  NTempest::C3Vector *vertexList;
-  float              *hitT;
-  float               origHitT;
-  NTempest::C3Ray     ray;
-  float               oosegMag;
-  float               maxT;
-  unsigned short      faceIgnoreFlags;
+ private:
+  void operator=(const BspQuery_Segment &);
+
+ public:
+  SMOPoly                   *faces;
+  const NTempest::C3Vector  *vertexList;
+  float                     *hitT;
+  float                      origHitT;
+  NTempest::C3Ray            ray;
+  float                      oosegMag;
+  float                      maxT;
+  unsigned short             faceIgnoreFlags;
 };
 
 CGxBuf *CMapObjGroup::AllocExtGxBuf(unsigned int nVerts, unsigned int nIndices) {
@@ -223,7 +245,82 @@ void CMapObjGroup::Destroy() {
   intGxBufFreeList.SetCount(0);
 }
 
+CMapObjGroup::CMapObjGroup() {
+}
+
 CMapObjGroup::~CMapObjGroup() {
+}
+
+unsigned int CMapObjGroup::SphereIntersectPoly(
+    const NTempest::CAaSphere &sphere,
+    const unsigned int         numVerts,
+    const unsigned short      *indicies
+) {
+  NTempest::C3Vector origin = vertexList[indicies[0]];
+  unsigned int       numTris = numVerts - 2;
+
+  for (unsigned int i = 0; i < numTris; ++i) {
+    NTempest::C3Vector edge0 = vertexList[indicies[i + 1]] - origin;
+    NTempest::C3Vector edge1 = vertexList[indicies[i + 2]] - origin;
+    if (CWorldMath::TriSqrDistance(sphere.c, origin, edge0, edge1) < sphere.r * sphere.r) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+bool CMapObjGroup::PointInPoly(
+    const NTempest::C3Vector *p,
+    const unsigned int        numIndicies,
+    const unsigned short     *indicies,
+    const NTempest::C3Vector *n
+) {
+  ASSERT(p);
+  ASSERT(indicies);
+
+  NTempest::C3Vector *verts = vertexList;
+  ASSERT(verts);
+
+  unsigned int i;
+  for (i = 0; i < numIndicies; ++i) {
+    t[i] = &verts[indicies[i]].x;
+  }
+
+  float        maxNormal = fabs(n->y);
+  float        normalSign = n->y;
+  unsigned int axis0 = 0;
+  unsigned int axis1 = 2;
+  float        nx = fabs(n->x);
+  if (nx > maxNormal) {
+    maxNormal = nx;
+    normalSign = n->x;
+    axis0 = 2;
+    axis1 = 1;
+  }
+
+  if (fabs(n->z) > maxNormal) {
+    normalSign = -n->z;
+    axis0 = 0;
+    axis1 = 1;
+  }
+
+  unsigned int next = 1;
+  for (i = 0; i < numIndicies; ++i) {
+    if (next == numIndicies) {
+      next = 0;
+    }
+
+    if (((t[next][axis0] - t[i][axis0]) * ((*p)[axis1] - t[next][axis1])
+         - (t[next][axis1] - t[i][axis1]) * ((*p)[axis0] - t[next][axis0]))
+        * normalSign > 0.019444443f) {
+      return false;
+    }
+
+    ++next;
+  }
+
+  return true;
 }
 
 void CMapObjGroup::GetTrisFromQuery(CWTriData &triData, BspQuery &q, const CMapObjDef *mapObjDef) {
@@ -444,7 +541,7 @@ void CMapObjGroup::Clear() {
   bLoaded = 0;
 }
 
-unsigned int CMapObjGroup::QueryLiquidStatus(NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir) {
+bool CMapObjGroup::QueryLiquidStatus(const NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir) {
   if (groupLiquid != 15) {
     liquid = groupLiquid;
     surface = FLT_MAX;
@@ -469,8 +566,8 @@ unsigned int CMapObjGroup::QueryLiquidStatus(NTempest::C3Vector &pos, unsigned i
     return 0;
   }
 
-  unsigned int tile = liquidTileList[subi.y * liquidTiles.x + subi.x].flags & 0xF;
-  if (tile == 0xF) {
+  unsigned int tile = liquidTileList[subi.y * liquidTiles.x + subi.x].GetLiquid();
+  if (tile == LIQUID_NONE) {
     return 0;
   }
 
@@ -483,9 +580,11 @@ unsigned int CMapObjGroup::QueryLiquidStatus(NTempest::C3Vector &pos, unsigned i
   frac.y = subf.y - static_cast<float>(subi.y);
 
   unsigned int vertex = subi.y * liquidVerts.x + subi.x;
-  float        h0 = liquidVertexList[vertex].height + (liquidVertexList[vertex + 1].height - liquidVertexList[vertex].height) * frac.x;
+  float        h0 = liquidVertexList[vertex].waterVert.height
+             + (liquidVertexList[vertex + 1].waterVert.height - liquidVertexList[vertex].waterVert.height) * frac.x;
   vertex += liquidVerts.x;
-  float h1 = liquidVertexList[vertex].height + (liquidVertexList[vertex + 1].height - liquidVertexList[vertex].height) * frac.x;
+  float h1 = liquidVertexList[vertex].waterVert.height
+           + (liquidVertexList[vertex + 1].waterVert.height - liquidVertexList[vertex].waterVert.height) * frac.x;
   float height = h0 + (h1 - h0) * frac.y;
   if (height <= pos.z) {
     return 0;
@@ -497,6 +596,23 @@ unsigned int CMapObjGroup::QueryLiquidStatus(NTempest::C3Vector &pos, unsigned i
   dir.z = 0.0f;
   liquid = tile & 3;
   return 1;
+}
+
+bool CMapObjGroup::QueryLiquidFishable(const NTempest::C3Vector &pos, int &fishable) {
+  if (!(flags & 0x1000)) {
+    fishable = 0;
+    return true;
+  }
+
+  float x = OOSMOLTILE_SIZE * (pos.y - liquidCorner.y);
+  float y = OOSMOLTILE_SIZE * -(pos.x - liquidCorner.x);
+  int   tileX = floor(x);
+  int   tileY = floor(y);
+  if (tileX >= 0 && tileY >= 0 && tileX < liquidTiles.x && tileY < liquidTiles.y) {
+    fishable = liquidTileList[tileY * liquidTiles.x + tileX].GetFishable();
+  }
+
+  return true;
 }
 
 bool CMapObjGroup::QueryLightmap(const NTempest::C3Vector &point, unsigned short polyIdx, NTempest::CImVector &color) {
@@ -668,8 +784,8 @@ unsigned char QueryCull(const NTempest::CAaBox& aaBox, const NTempest::C3Vector*
 
 unsigned char QueryCull(const CWFrustum& frustum, const NTempest::C3Vector* verts) {
   unsigned int cc[3];
-  const_cast<CWFrustum &>(frustum).Cull(const_cast<NTempest::C3Vector &>(verts[0]), cc[0]);
-  const_cast<CWFrustum &>(frustum).Cull(const_cast<NTempest::C3Vector &>(verts[1]), cc[1]);
-  const_cast<CWFrustum &>(frustum).Cull(const_cast<NTempest::C3Vector &>(verts[2]), cc[2]);
+  frustum.Cull(verts[0], cc[0]);
+  frustum.Cull(verts[1], cc[1]);
+  frustum.Cull(verts[2], cc[2]);
   return (cc[0] & cc[1] & cc[2]) != 0;
 }

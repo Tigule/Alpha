@@ -5,11 +5,11 @@
 
 void CGContainer_C::SetStorage(unsigned long *storage) {
   CGItem_C::SetStorage(storage);
-  m_cont = reinterpret_cast<CGContainerData *>(storage + 36);
+  CGContainer::SetStorage(storage + 36);
 }
 
 CGContainer_C::CGContainer_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGItem_C(storage, eventTime, init), CGContainer(storage), m_bag(GetGUID(), &m_cont->m_numSlots, m_cont->m_slots, 0) {
+    : CGItem_C(storage, eventTime, init), CGContainer(storage + 36), m_bag(GetGUID(), &m_cont->m_numSlots, m_cont->m_slots, 0) {
 }
 
 CGContainer_C::~CGContainer_C() {

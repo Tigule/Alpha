@@ -21,6 +21,9 @@ namespace NTempest {
         : C4Vector(vector.x, vector.y, vector.z, vector.w) {
     }
 
+    ~C4Quaternion() {
+    }
+
     C3Vector Vector() const {
       return C3Vector(x, y, z);
     }

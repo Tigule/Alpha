@@ -17,7 +17,7 @@ class SoundProviderPreferencesRec {
     return 104;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

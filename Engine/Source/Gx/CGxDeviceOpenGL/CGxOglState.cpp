@@ -309,7 +309,7 @@ void CGxDeviceOpenGl::IStateSyncLights() {
         ((app.m_isOmni != hw.m_isOmni || app.m_dir.x != hw.m_dir.x || app.m_dir.y != hw.m_dir.y || app.m_dir.z != hw.m_dir.z) && updateNeeded))
     {
       if (!haveSetView) {
-        IXformSetModelView(m_xforms[GxXform_View].Get());
+        IXformSetModelView(m_xforms[GxXform_View].TopConst());
         haveSetView = 1;
       }
 
@@ -377,7 +377,7 @@ void CGxDeviceOpenGl::IStateSyncLights() {
   }
 
   if (m_worldViewChange || haveSetView) {
-    mwv = m_xforms[GxXform_World].Get() * m_xforms[GxXform_View].Get();
+    mwv = m_xforms[GxXform_World].TopConst() * m_xforms[GxXform_View].TopConst();
     IXformSetModelView(mwv);
     m_worldViewChange = 0;
     m_xforms[GxXform_World].m_dirty = 0;
@@ -422,7 +422,7 @@ void CGxDeviceOpenGl::IStateSyncTexTransform(unsigned int tmu) {
   RsGet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), ts);
   if (ts) {
     if (ts == GxTS_Affine || ts == GxTS_Proj) {
-      concatMat = m_texGen[tmu].Get() * m_xforms[tmu].Get();
+      concatMat = m_texGen[tmu].TopConst() * m_xforms[tmu].TopConst();
       glLoadMatrixf(&concatMat.a0);
     } else {
       FATALASSERT(0);
@@ -459,7 +459,7 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, &opaqueBlack.x);
   glLightModeli(0x81F8, 0x81FA);
   glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, 1);
-  IXformSetModelView(m_xforms[GxXform_View].Get());
+  IXformSetModelView(m_xforms[GxXform_View].TopConst());
 
   for (unsigned int which = 0; which < 8; ++which) {
     const CGxLight &light = m_hwState.m_lights[which];
@@ -498,7 +498,7 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
     glLightf(glLight, GL_QUADRATIC_ATTENUATION, m_hwState.m_lightQuadraticFalloff);
   }
 
-  mwv = m_xforms[GxXform_World].Get() * m_xforms[GxXform_View].Get();
+  mwv = m_xforms[GxXform_World].TopConst() * m_xforms[GxXform_View].TopConst();
   IXformSetModelView(mwv);
   m_worldViewChange = 0;
   glEnableClientState(GL_VERTEX_ARRAY);
@@ -587,7 +587,7 @@ void CGxDeviceOpenGl::ISetTexGen(unsigned int tmu, EGxTexGen texGen) {
 
   if (texGen == GxTexGen_World) {
     NTempest::C44Matrix &texMat = m_texGen[tmu].Top();
-    IXformGLModelView(m_xforms[GxXform_View].Get(), texMat);
+    IXformGLModelView(m_xforms[GxXform_View].TopConst(), texMat);
     float               b0 = texMat.b0;
     float               c0 = texMat.c0;
     float               c1 = texMat.c1;

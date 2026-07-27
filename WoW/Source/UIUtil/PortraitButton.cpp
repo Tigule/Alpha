@@ -78,8 +78,8 @@ static TSFixedArray<unsigned char> &GetAlphaMask(unsigned int size) {
     }
 
     if (alpha.Open(alphaFile)) {
-      ASSERT(alpha.m_header.wWidth == size);
-      ASSERT(alpha.m_header.wHeight == size);
+      ASSERT(alpha.Width() == size);
+      ASSERT(alpha.Height() == size);
       if (alpha.LoadImageData(0)) {
         memcpy(mask.Ptr(), alpha.Image(), mask.Count());
         alpha.Close();

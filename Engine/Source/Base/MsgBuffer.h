@@ -13,7 +13,7 @@ class CMsgBuffer {
     ~CMsgBuffer();
 
     void Reset();
-    int Bytes();
+    int Bytes() const;
     unsigned int GetReadPosition();
     void SetReadPosition(unsigned int position);
     unsigned int GetWritePosition();

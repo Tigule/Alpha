@@ -18,6 +18,8 @@
 #include <typeinfo>
 
 struct LODIndexFix {
+  void Set(unsigned short, unsigned short);
+
   unsigned short from;
   unsigned short to;
 };
@@ -51,6 +53,8 @@ CGxTex                           *CMap::riverDiffTexid;
 CGxTex                           *CMap::oceanDiffTexid;
 const unsigned int                CMap::SKYTEX_HEIGHT = 64;
 const unsigned int                CMap::WATERTEX_HEIGHT = 64;
+const float                       CMap::LIQUID_TEX_PURGE_TIME = 20.0f;
+const float                       CMap::WATER_SPEC_EXP = 6.0f;
 TSFixedArray<NTempest::CImVector> CMap::skyTexels;
 HTEXTURE__                       *CMap::liquidTex[LIQUID_COUNT][LIQUID_TEXTURE_COUNT];
 bool                              CMap::liquidTexLoaded[LIQUID_COUNT];
@@ -105,14 +109,17 @@ unsigned int Particulate::s_tcSub[4][8] = {
 TSList<WaterRadWave, TSGetLink<WaterRadWave> > CMap::waterRipplesFree;
 TSList<WaterRadWave, TSGetLink<WaterRadWave> > CMap::waterRipplesActive;
 CGxPixelShader                                *CMap::psOcean0;
+static NTempest::C2Vector                      oceanfft[4096];
+static float                                  phase;
+static float                                  phase2;
 
-void WaterRadWave::Init(NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq) {
+void WaterRadWave::Init(const NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq) {
   pos = p_pos;
   length = len;
-  timeLength = time;
   amplitude = amp;
-  velocity = vel;
+  timeLength = time;
   frequency = freq;
+  velocity = vel;
   curTime = 0.0f;
   rb = 0.0f;
   ooLength = 1.0f / len;
@@ -286,14 +293,19 @@ void CMapObjGroup::QueryLiquidSounds(
 ) {
   for (int y = 0; y < liquidTiles.y; ++y) {
     for (int x = 0; x < liquidTiles.x; ++x) {
-      unsigned int tile = liquidTileList[y * liquidTiles.x + x].flags & 0xF;
-      if (tile == 0xF) {
+      unsigned int tile = liquidTileList[y * liquidTiles.x + x].GetLiquid();
+      if (tile == LIQUID_NONE) {
         continue;
       }
 
       unsigned int liquidType = tile & 3;
-      ASSERT(liquidType != 1);
-      float height = liquidType == 1 ? 0.0f : liquidVertexList[y * liquidVerts.x + x].height;
+      float height;
+      if (liquidType == 1) {
+        ASSERT(!"CMapObjGroup::QueryLiquidSounds()\n");
+        height = 0.0f;
+      } else {
+        height = liquidVertexList[y * liquidVerts.x + x].waterVert.height;
+      }
       NTempest::C3Vector delta;
       delta.x = liquidCorner.x - static_cast<float>(x) * 4.1666665f - pos.x;
       delta.y = liquidCorner.y + static_cast<float>(y) * 4.1666665f - pos.y;
@@ -643,7 +655,36 @@ static void fft2(float* data, unsigned long* nn, int ndim, float isign) {
   }
 }
 
-void CMap::WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
+void CMap::OceanFFT() {
+  memset(oceanfft, 0, sizeof(oceanfft));
+
+  phase += CWorld::tickTimeSec * 0.2f;
+  phase2 += CWorld::tickTimeSec * 0.92000002f;
+
+  float c = cos(phase);
+  float s = sin(phase);
+  float c2 = cos(phase2);
+  float s2 = sin(phase2);
+
+  oceanfft[770] = NTempest::C2Vector(2.2f * c, 2.2f * s);
+  oceanfft[896] = NTempest::C2Vector(2.02f * c2, 2.1f * s2);
+  oceanfft[180] = NTempest::C2Vector(2.1f * c2, 2.1f * s2);
+  oceanfft[3846] = NTempest::C2Vector(2.0f * c, 2.0f * s);
+  oceanfft[1403] = NTempest::C2Vector(1.3f * c, 1.2f * s);
+  oceanfft[3797] = NTempest::C2Vector(1.5f * c, 1.4f * s);
+  oceanfft[1424] = NTempest::C2Vector(1.4f * c2, 1.4f * s2);
+  oceanfft[254] = NTempest::C2Vector(1.6f * c2, 1.6f * s2);
+
+  unsigned long nn[2] = {64, 64};
+  fft2(reinterpret_cast<float *>(oceanfft) - 1, nn - 1, 2, -1.0f);
+
+  for (unsigned int i = 0; i < 4096; ++i) {
+    oceanfft[i].x *= 0.015625f;
+    oceanfft[i].y *= 0.015625f;
+  }
+}
+
+void CMap::WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
   if (!CMapArea::ccWaterRipples || waterRipplesFree.IsEmpty()) {
     return;
   }
@@ -1074,8 +1115,8 @@ void CChunkLiquid::Render(unsigned int type) {
 
 void CChunkLiquid::GetAaBox(NTempest::CAaBox &aaBox) {
   aaBox = chunk->aaBox;
-  aaBox.b.z = height.min;
-  aaBox.t.z = height.max;
+  aaBox.b.z = height.l;
+  aaBox.t.z = height.h;
 }
 
 void Particulate::InitMovement() {
@@ -1256,7 +1297,7 @@ void Particulate::Render() {
         vtx[i].p.x = vp.x + s_vcv[i].x * particle.scale;
         vtx[i].p.y = vp.y + s_vcv[i].y * particle.scale;
         vtx[i].p.z = vp.z;
-        vtx[i].c = static_cast<unsigned long>(-1);
+        vtx[i].c = -1;
         vtx[i].tc[0] = s_tc[tcSub][i];
       }
 

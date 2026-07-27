@@ -8,7 +8,9 @@
 #include <stpl.h>
 #include <math.h>
 
-typedef TSGrowableArray<NTempest::CRect> GRIDRECTLIST;
+struct GRIDRECTLIST {
+  TSGrowableArray<NTempest::CRect> rectList;
+};
 
 class CLayoutFrame;
 
@@ -60,8 +62,8 @@ static int RectCollides(SCREENRECTGRIDS grid, NTempest::CRect& rect, TEST_DIRECT
   ASSERT(offset);
   ASSERT(grid < NUM_SRECTGRIDS);
   ASSERT(rect.t >= rect.b && rect.r >= rect.l);
-  for (unsigned int i = 0; i < s_gridRectList[grid].Count(); ++i) {
-    const NTempest::CRect &other = s_gridRectList[grid][i];
+  for (unsigned int i = 0; i < s_gridRectList[grid].rectList.Count(); ++i) {
+    const NTempest::CRect &other = s_gridRectList[grid].rectList[i];
     ASSERT(other.t >= other.b && other.r >= other.l);
     if (rect.r > other.l && rect.l < other.r && rect.t > other.b && rect.b < other.t) {
       switch (direction) {
@@ -149,7 +151,7 @@ static int CalculateMaxTraversals(const NTempest::CRect& rect) {
 static void MarkRect(SCREENRECTGRIDS grid, const NTempest::CRect& rect) {
   ASSERT(grid < NUM_SRECTGRIDS);
   ASSERT(CheckRect(rect, 1));
-  s_gridRectList[grid].Add(&rect);
+  s_gridRectList[grid].rectList.Add(&rect);
 }
 
 static void ClipRect(NTempest::CRect& rect) {
@@ -298,7 +300,7 @@ void SmartScreenRectClearAllGrids() {
   unsigned int grid;
 
   for (grid = 0; grid < 2; ++grid) {
-    s_gridRectList[grid].SetCount(0);
+    s_gridRectList[grid].rectList.SetCount(0);
   }
 }
 

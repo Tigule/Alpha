@@ -17,7 +17,7 @@ class SpellEffectNamesRec {
     return 40;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_generatedID;
   }
 

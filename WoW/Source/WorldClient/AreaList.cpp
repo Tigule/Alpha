@@ -20,25 +20,17 @@ static int                                      s_indoors = -1;
 static unsigned int                             s_currentChunkID;
 
 static AREAHASHOBJECT *GetZone(unsigned int cont, unsigned int zName, unsigned int subZone) {
-  AREAHASHKEY key;
-
-  key.cont = cont;
-  key.area = zName;
-  key.subArea = subZone;
+  AREAHASHKEY key(cont, zName, subZone);
 
   return s_areaHash.Ptr(zName, key);
 }
 
 AREAHASHOBJECT *AREAHASHOBJECT::GetParent() const {
-  AREAHASHKEY key;
-
   if (!subArea) {
     return 0;
   }
 
-  key.cont = continent;
-  key.area = area;
-  key.subArea = 0;
+  AREAHASHKEY key(continent, area, 0);
 
   return s_areaHash.Ptr(area, key);
 }
@@ -101,11 +93,7 @@ static void LoadAreaTable() {
     unsigned int        continentID = rec->m_ContinentID;
     unsigned int        areaID = rec->m_AreaNumber >> 16;
     unsigned int        subArea = rec->m_AreaNumber & 0xFFFF;
-    AREAHASHKEY         key;
-
-    key.cont = continentID;
-    key.area = areaID;
-    key.subArea = subArea;
+    AREAHASHKEY         key(continentID, areaID, subArea);
 
     AREAHASHOBJECT *area = s_areaHash.Ptr(areaID, key);
     if (!area) {

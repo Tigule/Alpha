@@ -42,8 +42,8 @@ CGxTex *ProjectTex2dGetFade() {
 void ProjectTex2dMakeMatrices(
     NTempest::C44Matrix &texmat0,
     NTempest::C44Matrix &texmat1,
-    NTempest::CAaBox    &box,
-    NTempest::C44Matrix *basis,
+    const NTempest::CAaBox &box,
+    const NTempest::C44Matrix *basis,
     float                fadeOffset,
     int                  inWorldSpace
 ) {

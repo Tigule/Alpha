@@ -83,7 +83,7 @@ const TSGrowableArray<CGxFormat> *GxEnumFormats(EGxApi api) {
   ASSERT(api < GxApis_Last);
 
   s_formats.SetCount(0);
-  s_formats.Reserve(0x100);
+  s_formats.ReserveSpace(0x100);
 
   switch (api) {
     case GxApi_OpenGl:

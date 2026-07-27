@@ -51,7 +51,7 @@ void CMapObjDefGroup::UpdateLights() {
   }
 }
 
-void CMapObjDefGroup::Update(NTempest::C44Matrix &newMat) {
+void CMapObjDefGroup::Update(const NTempest::C44Matrix &newMat) {
   flags |= CMapBaseObj::Flag_LightUpdate;
 
   CMapBaseObjLink *link = doodadDefLinkList.Head();

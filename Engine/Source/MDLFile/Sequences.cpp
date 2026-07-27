@@ -145,7 +145,7 @@ int ReadSequences(
   UTokenData value;
   long expected = parse.GetOptionalInt(&token, &tokenText, 0);
   if (expected > 0) {
-    data.sequences.Reserve(expected);
+    data.sequences.ReserveSpace(expected);
   }
   parse.Expect('{', token, tokenText);
   long actual = 0;
@@ -289,7 +289,7 @@ int ReadGlobalSequences(
   UTokenData value;
   long count = parse.GetOptionalInt(&token, &tokenText, 0);
   if (count > 0) {
-    data.globalSeqs.Reserve(count);
+    data.globalSeqs.ReserveSpace(count);
   }
   parse.Expect('{', token, tokenText);
   token = parse.Token(&tokenText, &value);

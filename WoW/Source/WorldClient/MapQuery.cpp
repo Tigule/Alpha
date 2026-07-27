@@ -3,63 +3,12 @@
 
 #include "Base/Base.h"
 
-bool CMap::LocateViewerMapObjs(
-    const NTempest::C3Vector &lCen,
-    const NTempest::C3Vector &lEnd,
-    float                    &maxT,
-    CMapObjDef              *&hitMapObjDef,
-    unsigned int             *hitGroupIDs
-) {
-  hitMapObjDef = 0;
-  hitGroupIDs[0] = 0xFFFF;
-  hitGroupIDs[1] = 0xFFFF;
+#include "DB/DBClient/AutoCode/GroundEffectTextureRec.h"
 
-  CMapObjDef *mapObjDef = mapObjDefHash.Head();
-  while (mapObjDef) {
-    if (!(mapObjDef->flags & CMapBaseObj::Flag_NoCollision) && mapObjDef->TestAABox(lCen, lEnd)) {
-      CMapObj *mapObj = mapObjDef->mapObj;
-      if (mapObj) {
-        NTempest::C3Vector v0 = lCen * mapObjDef->invMat;
-        NTempest::C3Vector v1 = lEnd * mapObjDef->invMat;
+extern unsigned int g_holeMask[4][4];
 
-        CMapBaseObjLink *link = mapObjDef->groupLinkList.Head();
-        while (reinterpret_cast<long>(link) > 0) {
-          CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
-          if (mapObj->TestGroupBounds(v0, v1, mapObjDefGroup->groupNum)) {
-            CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
-            if (mapObjGroup) {
-              CWTriData triData;
-              if (mapObjGroup->GetTris(triData, NTempest::C3Segment(v0, v1), maxT, mapObjDef, 0)) {
-                hitMapObjDef = mapObjDef;
-                hitGroupIDs[0] = mapObjDefGroup->groupNum;
-                hitGroupIDs[1] = 0xFFFF;
-              }
-            }
-          }
-          link = mapObjDef->groupLinkList.RawNext(link);
-        }
-
-        float        portalT = 1.0f;
-        unsigned int portalGroups[2];
-        if (mapObj->VectorIntersectPortals(NTempest::C3Segment(v0, v1), portalT, portalGroups) && portalT - maxT < 0.0001f) {
-          maxT = portalT;
-          if (!(mapObj->GetGroupInfo(portalGroups[0])->flags & 8)) {
-            hitMapObjDef = mapObjDef;
-            hitGroupIDs[0] = portalGroups[0];
-            hitGroupIDs[1] = mapObj->GetGroupInfo(portalGroups[1])->flags & 8 ? 0xFFFF : portalGroups[1];
-          }
-        }
-
-        if (hitMapObjDef == mapObjDef && mapObj->GetGroupInfo(hitGroupIDs[0])->flags & 8) {
-          hitMapObjDef = 0;
-        }
-      }
-    }
-    mapObjDef = mapObjDefHash.Next(mapObjDef);
-  }
-
-  return hitMapObjDef != 0;
-}
+unsigned short g_2bitSplatMask[8] = {0x0003, 0x000C, 0x0030, 0x00C0, 0x0300, 0x0C00, 0x3000, 0xC000};
+unsigned long  g_2bitSplatShft[8] = {0, 2, 4, 6, 8, 10, 12, 14};
 
 unsigned int CMap::QueryAreaId(float x, float y) {
   float mx = -(y - 17066.666f);
@@ -82,7 +31,53 @@ unsigned int CMap::QueryAreaId(float x, float y) {
   return chunk ? chunk->zoneId : 0;
 }
 
-unsigned int CMap::QueryShadow(NTempest::C3Vector &pos) {
+bool CMap::QueryGroundType(const NTempest::C3Vector &pos, unsigned int &groundType) {
+  float mx = -(pos.y - 17066.666f);
+  float my = -(pos.x - 17066.666f);
+
+  ASSERT(mx >= 0.0f && my >= 0.0f);
+  ASSERT(mx < ((64*16)*((150.0f/36.0f)*8)) && my < ((64*16)*((150.0f/36.0f)*8)));
+
+  float msx = mx * 0.24f;
+  float msy = my * 0.24f;
+  int   sx = static_cast<int>(msx - 0.5f);
+  int   sy = static_cast<int>(msy - 0.5f);
+
+  CMapArea *area = areaTable[64 * ((sy >> 7) & 0x3F) + ((sx >> 7) & 0x3F)];
+  if (!area) {
+    return false;
+  }
+
+  CMapChunk *chunk = area->chunkTable[((sy >> 3) & 0xF) * 16 + ((sx >> 3) & 0xF)];
+  if (!chunk) {
+    return false;
+  }
+
+  int lx = sx & 7;
+  int ly = sy & 7;
+  if (chunk->holes & g_holeMask[ly >> 1][lx >> 1]) {
+    return false;
+  }
+  if (!chunk->layerList[0]) {
+    return false;
+  }
+
+  unsigned int layer = (chunk->predTex[ly] & g_2bitSplatMask[lx]) >> g_2bitSplatShft[lx];
+  unsigned int effectId = chunk->layerList[layer]->effectId;
+  if (effectId == 0xFFFF || effectId >= g_groundEffectTextureDB.GetNumRecords()) {
+    return false;
+  }
+
+  const GroundEffectTextureRec *effect = g_groundEffectTextureDB.GetRecordByIndex(effectId);
+  if (!effect) {
+    return false;
+  }
+
+  groundType = effect->m_sound;
+  return true;
+}
+
+bool CMap::QueryShadow(const NTempest::C3Vector &pos) {
   float mx = -(pos.y - 17066.666f);
   float my = -(pos.x - 17066.666f);
   if (mx < 0.0f || my < 0.0f || mx >= 34133.332f || my >= 34133.332f) {
@@ -106,11 +101,66 @@ unsigned int CMap::QueryShadow(NTempest::C3Vector &pos) {
   return (chunk->shadowBits[sy] & (1 << sx)) != 0;
 }
 
-unsigned int CMap::QueryLiquidStatusMapObjsExt(
-    NTempest::C3Vector &point,
-    unsigned int       &liquid,
-    float              &surface,
-    NTempest::C3Vector &waterDir
+bool CMap::QueryLiquidFishableMapObjsExt(const NTempest::C3Vector &point, int &fishable) {
+  for (CMapObjDef *mapObjDef = mapObjDefHash.Head(); mapObjDef; mapObjDef = mapObjDefHash.Next(mapObjDef)) {
+    NTempest::C3Vector p = point * mapObjDef->invMat;
+    CMapObj            *mapObj = mapObjDef->mapObj;
+    FATALASSERT(mapObj);
+    if (mapObj->QueryLiquidFishable(0x2000, p, fishable)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool CMap::QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable) {
+  if (QueryLiquidFishableMapObjsExt(point, fishable)) {
+    return true;
+  }
+
+  float mx = -(point.y - 17066.666f);
+  float my = -(point.x - 17066.666f);
+  FATALASSERT(mx >= 0.0f && my >= 0.0f);
+  FATALASSERT(mx < ((64*16)*((150.0f/36.0f)*8)) && my < ((64*16)*((150.0f/36.0f)*8)));
+
+  float msx = mx * 0.24f;
+  float msy = my * 0.24f;
+  int   sx = static_cast<int>(msx - 0.5f);
+  int   sy = static_cast<int>(msy - 0.5f);
+
+  CMapArea *area = areaTable[64 * ((sy >> 7) & 0x3F) + ((sx >> 7) & 0x3F)];
+  if (!area) {
+    return false;
+  }
+
+  CMapChunk *chunk = area->chunkTable[((sy >> 3) & 0xF) * 16 + ((sx >> 3) & 0xF)];
+  if (!chunk) {
+    return false;
+  }
+
+  int lx = sx & 7;
+  int ly = sy & 7;
+  for (unsigned int i = 0; i < 4; ++i) {
+    CChunkLiquid *liquid = chunk->liquids[i];
+    if (!liquid) {
+      continue;
+    }
+
+    unsigned char tile = liquid->tiles.flags[lx + 8 * ly];
+    if ((tile & 0xF) != 0xF) {
+      fishable = (tile >> 6) & 1;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool CMap::QueryLiquidStatusMapObjsExt(
+    const NTempest::C3Vector &point,
+    unsigned int             &liquid,
+    float                    &surface,
+    NTempest::C3Vector       &waterDir
 ) {
   CMapObjDef *mapObjDef = CMap::mapObjDefHash.Head();
   while (mapObjDef) {
@@ -128,12 +178,12 @@ unsigned int CMap::QueryLiquidStatusMapObjsExt(
 }
 
 static void GetHeightFlow(
-    CChunkLiquid        *cl,
-    NTempest::C3Vector  &point,
-    NTempest::C2Vector  &frac,
-    NTempest::C2iVector &lsub,
-    float               &surface,
-    NTempest::C3Vector  &flow
+    const CChunkLiquid         *cl,
+    const NTempest::C3Vector   &point,
+    const NTempest::C2Vector   &frac,
+    const NTempest::C2iVector  &lsub,
+    float                      &surface,
+    NTempest::C3Vector         &flow
 ) {
   int   index = lsub.x + 9 * lsub.y;
   float h0 = cl->verts[index].waterVert.height + (cl->verts[index + 1].waterVert.height - cl->verts[index].waterVert.height) * frac.x;
@@ -172,12 +222,12 @@ static void GetHeightFlow(
   }
 }
 
-unsigned int CMap::QueryLiquidStatus(
-    NTempest::C3Vector &point,
-    unsigned int       &liquid,
-    float              &surface,
-    NTempest::C3Vector &waterDir,
-    int                &deep
+bool CMap::QueryLiquidStatus(
+    const NTempest::C3Vector &point,
+    unsigned int             &liquid,
+    float                    &surface,
+    NTempest::C3Vector       &waterDir,
+    int                      &deep
 ) {
   if (QueryLiquidStatusMapObjsExt(point, liquid, surface, waterDir)) {
     deep = 0;

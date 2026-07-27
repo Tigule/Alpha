@@ -58,6 +58,19 @@ int CAnimTransform::Animates() {
   return translation.TotalKeys() || rotation.TotalKeys() || scale.TotalKeys();
 }
 
+unsigned int CAnimTransform::Bytes() const {
+  return translation.CKeyFrameTrackBase::Bytes() + rotation.CKeyFrameTrackBase::Bytes() +
+         scale.CKeyFrameTrackBase::Bytes();
+}
+
+int CAnimVisibleObj::Animates() {
+  return visibility.TotalKeys() != 0;
+}
+
+unsigned int CAnimVisibleObj::Bytes() const {
+  return visibility.CKeyFrameTrackBase::Bytes();
+}
+
 int CAnimData::Moves() {
   for (unsigned int index = 0; index < boneObjs.Count(); ++index) {
     CAnimBoneObj &bone = boneObjs[index];
@@ -422,12 +435,13 @@ void AnimSetObjectOrdering(HANIM anim, const char **boneNames, unsigned int numB
   CAnimNameHashTable objNameHashTable;
   HashNameList(boneNames, numBones, &objNameHashTable);
 
-  delete[] shared->objectOrder.m_data;
-  shared->objectOrder.m_data = new unsigned int[numBones];
-  shared->objectOrder.m_count = numBones;
-  memset(shared->objectOrder.m_data, 0xFF, numBones * sizeof(unsigned int));
+  shared->objectOrder.ReserveSpace(numBones);
+  shared->objectOrder.SetCount(numBones);
+  memset(shared->objectOrder.Ptr(), 0xFF, shared->objectOrder.Bytes());
 
-  SetObjectIndexOrdering(objNameHashTable, shared->objectOrder.m_data, shared->obj.m_data, shared->obj.m_count);
+  SetObjectIndexOrdering(
+      objNameHashTable, shared->objectOrder.Ptr(), shared->obj.Ptr(), shared->obj.Count()
+  );
 }
 
 void AnimResetObjectOrdering(HANIM__* anim) {
@@ -436,9 +450,8 @@ void AnimResetObjectOrdering(HANIM__* anim) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  delete[] shared->objectOrder.m_data;
-  shared->objectOrder.m_data = shared->obj.Count() ? new unsigned int[shared->obj.Count()] : 0;
-  shared->objectOrder.m_count = shared->obj.Count();
+  shared->objectOrder.ReserveSpace(shared->obj.Count());
+  shared->objectOrder.SetCount(shared->obj.Count());
   for (unsigned int i = 0; i < shared->obj.Count(); ++i) {
     shared->objectOrder[i] = i;
   }
@@ -465,7 +478,7 @@ void AnimSetSequenceOrderingDefault(HANIM anim) {
   CSeqOrdering *sequenceOrder = shared->seqOrder.New();
   sequenceOrder->nameListUsed = 0;
   sequenceOrder->order.ReserveSpace(shared->seq.Count());
-  sequenceOrder->order.m_count = shared->seq.Count();
+  sequenceOrder->order.SetCount(shared->seq.Count());
 
   for (i = 0; i < shared->seq.Count(); ++i) {
     sequenceOrder->order[i].primary = i;
@@ -501,7 +514,7 @@ void AnimSetSequenceOrdering(HANIM anim, const char **sequenceNames, unsigned in
 
   CSeqOrdering *sequenceOrder = shared->seqOrder.New();
   sequenceOrder->order.ReserveSpace(numSequences);
-  sequenceOrder->order.m_count = numSequences;
+  sequenceOrder->order.SetCount(numSequences);
   sequenceOrder->nameListUsed = sequenceNames;
 
   SetSeqIndexOrdering(seqNameHashTable, &sequenceOrder->order, shared->seq);
@@ -526,7 +539,9 @@ void AnimSetCameraOrdering(HANIM anim, const char **cameraNames, unsigned int nu
   cameraOrder->SetCount(numCameras);
   memset(cameraOrder->Ptr(), 0xFF, numCameras * sizeof(unsigned int));
 
-  SetCameraIndexOrdering(objNameHashTable, cameraOrder->Ptr(), shared->cameraObjs.m_data, shared->cameraObjs.m_count);
+  SetCameraIndexOrdering(
+      objNameHashTable, cameraOrder->Ptr(), shared->cameraObjs.Ptr(), shared->cameraObjs.Count()
+  );
 }
 
 void AnimResetCameraOrdering(HANIM anim, TSFixedArray<unsigned int> *cameraOrder) {
@@ -629,7 +644,7 @@ BOOL AnimIsAttachmentEnabled(HANIM anim, unsigned int index) {
 
   unsigned int geosetId = shared->modelObjs[index].geosetId;
 
-  if (unique->modelStatus[index].visible <= 0.0f) {
+  if (!unique->modelStatus[index].IsVisible()) {
     return 0;
   }
 
@@ -637,7 +652,7 @@ BOOL AnimIsAttachmentEnabled(HANIM anim, unsigned int index) {
     return 1;
   }
 
-  if (unique->geosetStatus[geosetId].base.flags & 1) {
+  if (unique->geosetStatus[geosetId].IsVisible()) {
     return 1;
   }
 
@@ -650,7 +665,7 @@ int AnimIsCameraEnabled(HANIM anim, unsigned int index) {
   ASSERT(unique);
   ASSERT(index < unique->cameraStatus.Count());
 
-  return unique->cameraStatus[index].visible > 0.0f;
+  return unique->cameraStatus[index].IsVisible();
 }
 
 void AnimSetSeqFinishedHandler(HANIM anim, ANIMSEQFINISHEDHANDLER callback, void *param) {
@@ -677,7 +692,7 @@ void AnimSetSeqFinishedHandler(HANIM anim, unsigned int sequence, ANIMSEQFINISHE
   unique->seq[sequences.primary].finished.callback = callback;
   unique->seq[sequences.primary].finished.param = param;
   unsigned int   numVariations = sequences.variation.Count();
-  unsigned char *variation = sequences.variation.m_data;
+  unsigned char *variation = sequences.variation.Ptr();
   while (numVariations) {
     unique->seq[*variation].finished.callback = callback;
     unique->seq[*variation].finished.param = param;
@@ -801,11 +816,11 @@ void AnimEnableBlending(HANIM anim, int enable) {
     unique->flags |= 0x10;
     unsigned int numObjects = unique->status.Count();
     unique->blendStatus.ReserveSpace(numObjects);
-    unique->blendStatus.m_count = numObjects;
+    unique->blendStatus.SetCount(numObjects);
   } else {
     unique->flags &= ~0x10;
     unique->blendStatus.ReserveSpace(0);
-    unique->blendStatus.m_count = 0;
+    unique->blendStatus.Clear();
   }
 }
 

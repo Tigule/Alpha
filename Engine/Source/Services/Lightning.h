@@ -55,34 +55,34 @@ class CLightning {
   void SetDuration(float duration) {
     mDuration = duration;
   }
-  void GetSrcPos(NTempest::C3Vector &position) const {
+  void GetSrcPos(NTempest::C3Vector &position) {
     position = mSrcPos;
   }
-  void GetDstPos(NTempest::C3Vector &position) const {
+  void GetDstPos(NTempest::C3Vector &position) {
     position = mDstPos;
   }
-  void GetAvgSegLen(float &length) const {
+  void GetAvgSegLen(float &length) {
     length = mAvgSegLen;
   }
-  void GetWidth(float &width) const {
+  void GetWidth(float &width) {
     width = mWidth;
   }
-  void GetColor(NTempest::CImVector &color) const {
+  void GetColor(NTempest::CImVector &color) {
     color = mColor;
   }
-  void GetNoiseScale(float &scale) const {
+  void GetNoiseScale(float &scale) {
     scale = mNoiseScale;
   }
-  void GetTexCoordScale(float &scale) const {
+  void GetTexCoordScale(float &scale) {
     scale = mTexCoordScale;
   }
-  void GetTexture(HTEXTURE &texture) const {
+  void GetTexture(HTEXTURE &texture) {
     texture = mTexture;
   }
-  void GetCoordUpdateData(LightningCoordUpdateData &data) const {
+  void GetCoordUpdateData(LightningCoordUpdateData &data) {
     data = mCoordUpdateData;
   }
-  void GetDuration(float &duration) const {
+  void GetDuration(float &duration) {
     duration = mDuration;
   }
 
@@ -111,7 +111,6 @@ class CLightning {
 
 class CLightningManager {
  public:
-  CLightningManager();
   ~CLightningManager();
 
   BoltID Add(
@@ -141,6 +140,12 @@ class CLightningManager {
   void Remove(BoltID boltId);
 
  private:
+  friend void SpellVisualsInitialize();
+
+  CLightningManager();
+  CLightningManager(const CLightningManager &);
+  CLightningManager &operator=(const CLightningManager &);
+
   TSGrowableArray<CLightning *> mLiveBolts;
   TSGrowableArray<int>          mDeadBolts;
 };

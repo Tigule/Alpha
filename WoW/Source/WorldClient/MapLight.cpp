@@ -21,6 +21,9 @@ unsigned int                       CMapLight::maxLights = 4;
 float                              CMapLight::bucketSize = 33.33f;
 float                              CMapLight::halfBucketSize = 16.665f;
 
+void CMap::ProjectLights() {
+}
+
 void CMap::SetLightFuncs() {
   GxuLightFuncsSet(
       CMap::GxuLightInitialize, CMap::GxuLightShutdown, CMap::GxuLightCreate, CMap::GxuLightDestroy, CMap::GxuLightLock, CMap::GxuLightUnlock,
@@ -168,9 +171,9 @@ void CMap::DestroyLight(CMapLight *light) {
     CMapBaseObjLink *next = light->parentLinkList.Next(link);
 
     if (link->ref) {
-      if (link->ref->type == CMapBaseObj::Type_Chunk) {
+      if (link->ref->GetType() == CMapBaseObj::Type_Chunk) {
         static_cast<CMapChunk *>(link->ref)->UpdateLights();
-      } else if (link->ref->type == CMapBaseObj::Type_MapObjDefGroup) {
+      } else if (link->ref->GetType() == CMapBaseObj::Type_MapObjDefGroup) {
         static_cast<CMapObjDefGroup *>(link->ref)->UpdateLights();
       }
     }

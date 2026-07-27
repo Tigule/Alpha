@@ -25,6 +25,8 @@ namespace NTempest {
 
 class CGObject_C : public CGObject {
   friend class CGCamera;
+  friend class CGPlayer_C;
+  friend class CGUnit_C;
 
  public:
   CGObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
@@ -34,7 +36,7 @@ class CGObject_C : public CGObject {
   void         SetTypeID(OBJECT_TYPE_ID typeID);
   void         PostInit(const CClientObjCreate &init);
   void         PostMovementUpdate();
-  int          IsPostInited();
+  int          IsPostInited() const;
 
   static void Initialize();
   static void Shutdown();
@@ -63,14 +65,11 @@ class CGObject_C : public CGObject {
     return m_model;
   }
   void SetObjectModel(HMODEL__ *model);
-  int  IsObjectModelLoaded();
+  int  IsObjectModelLoaded() const;
   int  AreAttachmentsLoaded() const;
-  int  ObjectModelSetSequence(HMODEL__ *model, unsigned int sequence, unsigned int flags, const char *modelName);
-  int  ObjectModelSetBoneSequence(HMODEL__ *model, unsigned int sequence, unsigned int objectID, unsigned int flags);
   int  AddAttachment(HMODEL__ *parent, unsigned int parentIndex, HMODEL__ *child, float scale);
-  int  ObjectIsRendering();
-  int  IsDisabled();
-  int  IsInReenable();
+  int  IsDisabled() const;
+  int  IsInReenable() const;
 
   int                            SetBlock(unsigned int i, unsigned long data);
   void                           SetData(const void *data, unsigned int bytes);
@@ -89,18 +88,21 @@ class CGObject_C : public CGObject {
   }
 
  protected:
-  virtual const char *GetModelFileName() const;
+  virtual const char *GetModelFileName() const = 0;
   int                 InitModelFileName(char *modelFileName, unsigned int size);
   void                ReportMissingAnimation(unsigned int sequence, const char *modelName) const;
-  void                ReportMissingAnimObj(const char *message, unsigned int objectID, const char *modelName) const;
   void                ReportMissingBone(unsigned int objectID, const char *modelName) const;
   void                ReportMissingAttachment(unsigned int objectID, const char *modelName) const;
   void                ReportNoAnimation(const char *modelName);
+  int                 ObjectModelSetSequence(HMODEL__ *model, unsigned int sequence, unsigned int flags, const char *modelName);
+  int                 ObjectModelSetBoneSequence(HMODEL__ *model, unsigned int sequence, unsigned int objectID, unsigned int flags);
+  int                 ObjectIsRendering() const;
 
- protected:
-  void        UpdateObjectHeight(HMODEL__ *model);
+ public:
+  void UpdateObjectHeight(HMODEL__ *model);
 
  private:
+  void        ReportMissingAnimObj(const char *message, unsigned int objectID, const char *modelName) const;
   virtual int GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
 
  public:
@@ -150,20 +152,19 @@ class CGObject_C : public CGObject {
   void                ReportMissingEventObject(unsigned int objectID, const char *modelName) const;
   virtual int         GetPageTextID(void(*func)(int, const unsigned __int64 &, void *, bool)) const;
   void                DoFade(unsigned char alpha, unsigned int fadeTimeMs);
-  unsigned int        GetAlpha() const {
+  unsigned char       GetAlpha() const {
     return m_alpha;
   }
-  void SetMaxAlpha(unsigned int alpha) {
-    m_maxAlpha = static_cast<unsigned char>(alpha);
+  void SetMaxAlpha(unsigned char alpha) {
+    m_maxAlpha = alpha;
   }
 
  private:
-  float        m_renderScale;
+  CGObject_C &operator=(const CGObject_C &object);
 
- protected:
+  float        m_renderScale;
   HMODEL__    *m_model;
 
- private:
   unsigned int m_highlightTypes;
   float        m_objectHeight;
 

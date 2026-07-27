@@ -29,11 +29,17 @@ class CMatrixStack {
     *m_stack.Top() = value;
   }
 
+  void Mult(const T &value);
+  void Remove(unsigned int removeFlags);
+  void Identity();
+
   T &Get() {
     return *m_stack.Top();
   }
 
-  void Get(T *value) {
+  const T &Get() const;
+
+  void Get(T *value) const {
     *value = *m_stack.Top();
   }
 

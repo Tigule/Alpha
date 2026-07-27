@@ -31,6 +31,8 @@
 
 class CGBuffDesc {
  public:
+  __forceinline ~CGBuffDesc() {
+  }
   int GetAuraSpell() const {
     return m_auraSpell;
   }
@@ -225,6 +227,7 @@ static FrameScript_Method CGTooltipMethods[26] = {
 };
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CGTooltip::s_scriptMethods;
+unsigned int                                         CGTooltip::m_spellID;
 static int s_nameOnly;
 static int s_showComparison;
 static int s_itemsWaiting;
@@ -1490,7 +1493,7 @@ int CGTooltip_SetTrainerService(lua_State *L) {
     );
   }
   unsigned int        index = static_cast<unsigned int>(lua_tonumber(L, 2) - 1.0);
-  TrainerServiceInfo *service = CGClassTrainer::GetService(index);
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(index);
   const SpellRec *spell = service ? g_spellDB.GetRecord(service->spellID) : 0;
   if (!service || !spell) {
     return luaL_error(

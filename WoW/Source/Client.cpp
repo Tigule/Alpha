@@ -1106,9 +1106,9 @@ static bool InitializeGlobal() {
   if (shm.Initialize("WowData", 0, 1)) {
     memset(&s_loginData, 0, sizeof(s_loginData));
   } else {
-    memcpy(&s_loginData, shm.m_data, sizeof(s_loginData));
-    memset(shm.m_data, 0, sizeof(s_loginData));
-    static_cast<BYTE *>(shm.m_data)[sizeof(s_loginData)] = 1;
+    memcpy(&s_loginData, shm.Data(), sizeof(s_loginData));
+    memset(shm.Data(), 0, sizeof(s_loginData));
+    static_cast<BYTE *>(shm.Data())[sizeof(s_loginData)] = 1;
     shm.Destroy();
   }
 

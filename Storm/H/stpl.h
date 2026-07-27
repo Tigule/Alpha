@@ -23,6 +23,13 @@ class TSStackArray {
     }
   }
 
+  TSStackArray<T> &operator=(const TSStackArray<T> &source) {
+    if (this != &source) {
+      Set(source.Count(), source.Ptr());
+    }
+    return *this;
+  }
+
   const T &operator[](unsigned int index) const {
     if (index >= m_count) {
       FatalArrayBounds();
@@ -147,6 +154,17 @@ class TSCArray {
   TSCArray() : m_count(MAXCOUNT) {
   }
 
+  TSCArray(const TSCArray<T, MAXCOUNT> &source) {
+    Set(source.Count(), source.Ptr());
+  }
+
+  TSCArray<T, MAXCOUNT> &operator=(const TSCArray<T, MAXCOUNT> &source) {
+    if (this != &source) {
+      Set(source.Count(), source.Ptr());
+    }
+    return *this;
+  }
+
   const T &operator[](unsigned int index) const {
     if (index >= m_count) {
       FatalArrayBounds();
@@ -163,6 +181,10 @@ class TSCArray {
 
   unsigned int Count() const {
     return m_count;
+  }
+
+  unsigned int Bytes() const {
+    return m_count * sizeof(T);
   }
 
   void SetCount(unsigned int count) {
@@ -182,7 +204,19 @@ class TSCArray {
     m_count = count;
   }
 
-  unsigned int MaxCount() {
+  void Set(unsigned int count, int, const T *data) {
+    Set(count, data);
+  }
+
+  void Zero() {
+    memset(m_data, 0, Bytes());
+  }
+
+  unsigned int SizeOfElement() const {
+    return sizeof(T);
+  }
+
+  unsigned int MaxCount() const {
     return MAXCOUNT;
   }
 
@@ -201,11 +235,6 @@ class TSCArray {
 
 template <class T>
 class TSBaseArray {
- public:
-  TSBaseArray() {
-    Constructor();
-  }
-
  protected:
   void Constructor() {
     m_alloc = 0;
@@ -230,6 +259,10 @@ class TSBaseArray {
     return sizeof(T);
   }
 
+  unsigned int Bytes() const {
+    return m_count * sizeof(T);
+  }
+
   T *Ptr() {
     return m_data;
   }
@@ -239,6 +272,10 @@ class TSBaseArray {
   }
 
   T *Top() {
+    return m_count ? &m_data[m_count - 1] : 0;
+  }
+
+  const T *Top() const {
     return m_count ? &m_data[m_count - 1] : 0;
   }
 
@@ -272,18 +309,25 @@ template <class T>
 class TSFixedArray : public TSBaseArray<T> {
  public:
   TSFixedArray() {
+    this->Constructor();
   }
 
+  TSFixedArray(const TSBaseArray<T> &source);
   TSFixedArray(const TSFixedArray<T> &source);
 
+  inline TSFixedArray<T> &operator=(const TSBaseArray<T> &source);
   inline TSFixedArray<T> &operator=(const TSFixedArray<T> &source);
 
   ~TSFixedArray();
 
   void Clear();
   void Detach(T **data, unsigned int *count, unsigned int *alloc);
+  void Exchange(TSFixedArray<T> *array);
   void Set(unsigned int count, const T *data);
+  void Set(unsigned int count, int, const T *data);
   void SetCount(unsigned int count);
+  void SetOptional(unsigned int count, const T *data);
+  void Zero();
 
  protected:
   void ReallocAndClearData(unsigned int count);
@@ -311,6 +355,15 @@ class TSGrowableArray : public TSFixedArray<T> {
     return value;
   }
 
+  T *New(const T &source) {
+    Reserve(1, 1);
+    T *value = &this->m_data[this->m_count++];
+    if (value) {
+      new (value) T(source);
+    }
+    return value;
+  }
+
   unsigned int Reserved() const {
     ASSERT(m_alloc >= m_count);
     return m_alloc - m_count;
@@ -333,10 +386,6 @@ class TSGrowableArray : public TSFixedArray<T> {
     this->m_count = count;
   }
 
-  void Reserve(unsigned int count) {
-    Reserve(count, 0);
-  }
-
   void ReserveSpace(unsigned int count) {
     Reserve(count, 0);
   }
@@ -356,6 +405,17 @@ class TSGrowableArray : public TSFixedArray<T> {
   }
 
   unsigned int Add(unsigned int count, const T *data);
+  unsigned int Add(unsigned int count, int, const T *data) {
+    return Add(count, data);
+  }
+
+  unsigned int AddElement(const T *data) {
+    return Add(data);
+  }
+
+  unsigned int AddElements(unsigned int count, const T *data) {
+    return Add(count, data);
+  }
 
   T *NewElement() {
     return New();
@@ -379,6 +439,17 @@ class TSGrowableArray : public TSFixedArray<T> {
 
 template <class T, unsigned int TAG, int LINE>
 class TSFixedArray_ : public TSFixedArray<T> {
+ public:
+  TSFixedArray_<T, TAG, LINE> &operator=(const TSFixedArray<T> &source) {
+    TSFixedArray<T>::operator=(source);
+    return *this;
+  }
+
+  TSFixedArray_<T, TAG, LINE> &operator=(const TSFixedArray_<T, TAG, LINE> &source) {
+    TSFixedArray<T>::operator=(source);
+    return *this;
+  }
+
  protected:
   virtual const char *MemFileName() const {
     return s_name;
@@ -400,6 +471,17 @@ char TSFixedArray_<T, TAG, LINE>::s_name[5] = {
 
 template <class T, unsigned int TAG, int LINE>
 class TSGrowableArray_ : public TSGrowableArray<T> {
+ public:
+  TSGrowableArray_<T, TAG, LINE> &operator=(const TSGrowableArray<T> &source) {
+    TSGrowableArray<T>::operator=(source);
+    return *this;
+  }
+
+  TSGrowableArray_<T, TAG, LINE> &operator=(const TSGrowableArray_<T, TAG, LINE> &source) {
+    TSGrowableArray<T>::operator=(source);
+    return *this;
+  }
+
  protected:
   virtual const char *MemFileName() const {
     return s_name;
@@ -420,7 +502,14 @@ char TSGrowableArray_<T, TAG, LINE>::s_name[5] = {
 };
 
 template <class T>
+TSFixedArray<T>::TSFixedArray(const TSBaseArray<T> &source) {
+  this->Constructor();
+  Set(source.Count(), source.Ptr());
+}
+
+template <class T>
 TSFixedArray<T>::TSFixedArray(const TSFixedArray<T> &source) {
+  this->Constructor();
   unsigned int count = source.m_count;
   const T     *data = source.m_data;
   unsigned int index;
@@ -433,6 +522,14 @@ TSFixedArray<T>::TSFixedArray(const TSFixedArray<T> &source) {
     }
   }
   this->m_count = count;
+}
+
+template <class T>
+inline TSFixedArray<T> &TSFixedArray<T>::operator=(const TSBaseArray<T> &source) {
+  if (this != &source) {
+    Set(source.Count(), source.Ptr());
+  }
+  return *this;
 }
 
 template <class T>
@@ -465,6 +562,20 @@ void TSFixedArray<T>::Clear() {
 }
 
 template <class T>
+void TSFixedArray<T>::Exchange(TSFixedArray<T> *array) {
+  T *data = this->m_data;
+  unsigned int count = this->m_count;
+  unsigned int alloc = this->m_alloc;
+
+  this->m_data = array->m_data;
+  this->m_count = array->m_count;
+  this->m_alloc = array->m_alloc;
+  array->m_data = data;
+  array->m_count = count;
+  array->m_alloc = alloc;
+}
+
+template <class T>
 void TSFixedArray<T>::Set(unsigned int count, const T *data) {
   unsigned int index;
 
@@ -476,6 +587,25 @@ void TSFixedArray<T>::Set(unsigned int count, const T *data) {
     }
   }
   this->m_count = count;
+}
+
+template <class T>
+void TSFixedArray<T>::Set(unsigned int count, int, const T *data) {
+  Set(count, data);
+}
+
+template <class T>
+void TSFixedArray<T>::SetOptional(unsigned int count, const T *data) {
+  if (data) {
+    Set(count, data);
+  } else {
+    SetCount(count);
+  }
+}
+
+template <class T>
+void TSFixedArray<T>::Zero() {
+  memset(this->m_data, 0, this->Bytes());
 }
 
 template <class T>
@@ -634,13 +764,22 @@ unsigned int TSGrowableArray<T>::RoundToChunk(unsigned int count, unsigned int c
 }
 
 class CSBasePriority {
+ private:
+  void Construct() {
+    m_queue = 0;
+    m_index = 0;
+  }
+
  public:
-  CSBasePriority() : m_queue(0), m_index(0) {
+  CSBasePriority() {
+    Construct();
   }
 
   ~CSBasePriority();
 
   virtual int Compare(CSBasePriority *priority) const = 0;
+
+  CSBasePriority &operator=(const CSBasePriority &);
 
   int IsLinked() const {
     return m_queue != 0;
@@ -655,6 +794,7 @@ class CSBasePriority {
 
   void Unlink();
 
+ private:
   CSBasePriorityQueue *m_queue;
   unsigned int         m_index;
 };
@@ -681,11 +821,14 @@ class TSTimerPriority : public CSBasePriority {
     }
   }
 
+ private:
   T m_val;
 };
 
 class CSBasePriorityQueue : public TSGrowableArray<void *> {
  private:
+  friend class CSBasePriority;
+
   unsigned int Child(unsigned int index) const {
     return index * 2 + 1;
   }
@@ -794,6 +937,7 @@ class CSBasePriorityQueue : public TSGrowableArray<void *> {
     SetLink(index);
   }
 
+ private:
   unsigned int m_linkOffset;
 };
 
@@ -1069,6 +1213,8 @@ class TSList {
     CopyConstructor(source);
   }
 
+  TSList<T, GETLINK> &operator=(const TSList<T, GETLINK> &);
+
   TSList(int linkoffset) {
     Constructor();
     SetLinkOffset(linkoffset);
@@ -1295,11 +1441,11 @@ class HASHKEY_DWORD {
   HASHKEY_DWORD(const HASHKEY_DWORD &key) : m_key(key.m_key) {
   }
 
-  int operator==(const HASHKEY_DWORD &key) {
+  int operator==(const HASHKEY_DWORD &key) const {
     return m_key == key.m_key;
   }
 
-  unsigned long GetDword() {
+  unsigned long GetDword() const {
     return m_key;
   }
 
@@ -1307,8 +1453,21 @@ class HASHKEY_DWORD {
   unsigned long m_key;
 };
 
+struct SoundFileDataCacheBlock;
+class SoundFileCache;
+template <class T, class KEY>
+class TSHashObject;
+template <class T, class KEY>
+class TSHashTable;
+
 class HASHKEY_LONGLONG {
- public:
+ private:
+  friend class TSHashObject<SoundFileDataCacheBlock, HASHKEY_LONGLONG>;
+
+  friend void DataCacheInitialize(int cacheSizeMB);
+  friend SoundFileDataCacheBlock *AllocCacheBlock(__int64 hashKey);
+  friend class SoundFileCache;
+
   HASHKEY_LONGLONG() : m_key(0) {
   }
 
@@ -1321,16 +1480,17 @@ class HASHKEY_LONGLONG {
   HASHKEY_LONGLONG(const HASHKEY_LONGLONG &key) : m_key(key.m_key) {
   }
 
+ public:
   HASHKEY_LONGLONG &operator=(const HASHKEY_LONGLONG &key) {
     m_key = key.m_key;
     return *this;
   }
 
-  int operator==(const HASHKEY_LONGLONG &key) {
+  int operator==(const HASHKEY_LONGLONG &key) const {
     return m_key == key.m_key;
   }
 
-  __int64 GetLongLong() {
+  __int64 GetLongLong() const {
     return m_key;
   }
 
@@ -1415,10 +1575,15 @@ class HASHKEY_CONSTSTR {
     return SStrCmp(m_str, str, 0x7FFFFFFF) == 0;
   }
 
+  bool operator==(const HASHKEY_CONSTSTR &key) const {
+    return operator==(key.m_str);
+  }
+
   const char *GetString() const {
     return m_str;
   }
 
+ protected:
   const char *m_str;
 };
 
@@ -1432,6 +1597,10 @@ class HASHKEY_CONSTSTRI : public HASHKEY_CONSTSTR {
 
   bool operator==(const char *str) const {
     return m_str == str || SStrCmpI(m_str, str, 0x7FFFFFFF) == 0;
+  }
+
+  bool operator==(const HASHKEY_CONSTSTRI &key) const {
+    return operator==(key.m_str);
   }
 };
 
@@ -1451,19 +1620,28 @@ class HASHKEY_PTR {
     return *this;
   }
 
-  int operator==(const HASHKEY_PTR &key) {
+  int operator==(const HASHKEY_PTR &key) const {
     return m_key == key.m_key;
   }
 
-  void *GetPtr() {
+  void *GetPtr() const {
     return m_key;
   }
 
+ private:
   void *m_key;
 };
 
 template <class T, class KEY>
 class TSHashObject {
+  friend class TSHashTable<T, KEY>;
+
+ private:
+  unsigned int m_hashval;
+  TSLink<T>    m_linktoslot;
+  TSLink<T>    m_linktofull;
+  KEY          m_key;
+
  public:
   TSHashObject() {
   }
@@ -1479,15 +1657,22 @@ class TSHashObject {
     return m_key.GetString();
   }
 
-  unsigned int m_hashval;
-  TSLink<T>    m_linktoslot;
-  TSLink<T>    m_linktofull;
-  KEY          m_key;
+  KEY GetKey() const {
+    return m_key;
+  }
+
+  const void *GetData() const;
+
+  unsigned int GetHashValue() const {
+    return m_hashval;
+  }
 };
 
 template <class T, class KEY>
 class TSHashTable {
  private:
+  friend class CGameTime;
+
   virtual void InternalDelete(T *ptr);
   virtual T   *InternalNew(TSExplicitList<T, -572662307> *list, unsigned long extrabytes, unsigned long flags);
 
@@ -1518,6 +1703,7 @@ class TSHashTable {
 
  public:
   TSHashTable();
+  TSHashTable<T, KEY> &operator=(const TSHashTable<T, KEY> &);
   virtual ~TSHashTable();
 
   void Clear() {
@@ -1553,6 +1739,9 @@ class TSHashTable {
     GrowListArray(tableSize);
   }
 
+  float GetAverageBinDepth() const;
+  unsigned int GetPeakBinDepth() const;
+
   void Delete(const char *key) {
     Delete(Hash(key), key);
   }
@@ -1565,7 +1754,7 @@ class TSHashTable {
     Delete(ptr);
   }
 
-  void Delete(unsigned int hashval, KEY &key) {
+  void Delete(unsigned int hashval, const KEY &key) {
     T *ptr = Ptr(hashval, key);
 
     FATALASSERT(ptr);
@@ -1600,7 +1789,7 @@ class TSHashTable {
     ptr->m_key = key;
   }
 
-  void Insert(T *ptr, unsigned int hashval, KEY &key) {
+  void Insert(T *ptr, unsigned int hashval, const KEY &key) {
     InternalLinkNode(ptr, hashval);
     ptr->m_key = key;
   }
@@ -1615,7 +1804,7 @@ class TSHashTable {
     return ptr;
   }
 
-  T *New(unsigned int hashval, KEY &key, unsigned long extrabytes, unsigned long flags) {
+  T *New(unsigned int hashval, const KEY &key, unsigned long extrabytes, unsigned long flags) {
     T *ptr = InternalNewNode(hashval, extrabytes, flags);
     ptr->m_key = key;
     return ptr;
@@ -1664,9 +1853,11 @@ class TSHashTable {
 
   T *Ptr(unsigned int hashval, const char *key);
 
-  T *Ptr(unsigned int hashval, KEY &key);
+  const T *Ptr(unsigned int hashval, const char *key) const;
 
-  const T *Ptr(unsigned int hashval, KEY &key) const {
+  T *Ptr(unsigned int hashval, const KEY &key);
+
+  const T *Ptr(unsigned int hashval, const KEY &key) const {
     return NonConst().Ptr(hashval, key);
   }
 
@@ -1692,7 +1883,10 @@ class TSHashTable {
     return SStrHashHT(key);
   }
 
-  TSExplicitList<T, -572662307>                   m_fulllist;
+ protected:
+  TSExplicitList<T, -572662307> m_fulllist;
+
+ private:
   unsigned int                                    m_fullnessIndicator;
   TSGrowableArray<TSExplicitList<T, -572662307> > m_slotlistarray;
   unsigned int                                    m_slotmask;
@@ -1708,8 +1902,6 @@ class TSHashObjectChunk {
 template <class T, class KEY, int REUSE>
 class TSHashTableReuse : public TSHashTable<T, KEY> {
  private:
-  typedef TSHashObjectChunk<T, KEY> Chunk;
-
   void         Destructor();
   virtual void InternalDelete(T *ptr);
   virtual T   *InternalNew(TSExplicitList<T, -572662307> *list, unsigned long extrabytes, unsigned long flags);
@@ -1722,7 +1914,7 @@ class TSHashTableReuse : public TSHashTable<T, KEY> {
  private:
   TSExplicitList<T, -572662307> m_reuseList;
   unsigned long                 m_chunkSize;
-  TSExplicitList<Chunk, 20>     m_chunkList;
+  TSExplicitList<TSHashObjectChunk<T, KEY>, 20> m_chunkList;
 };
 
 template <class T, class HANDLE, int REUSE>
@@ -1758,6 +1950,7 @@ class TSExportTableSync : public TSExportTableSimple<T, HANDLE, REUSE> {
   void Delete(HANDLE handle);
   void DeleteUnlock(T *ptr, LOCKED lockedhandle);
   T   *Lock(HANDLE handle, LOCKED *lockedhandle, int forwriting);
+  void New(HANDLE *handle);
   T   *NewLock(HANDLE *handle, LOCKED *lockedhandle);
   void Unlock(LOCKED lockedhandle);
 };
@@ -1885,7 +2078,7 @@ T *TSHashTable<T, KEY>::Ptr(unsigned int hashval, const char *key) {
 }
 
 template <class T, class KEY>
-T *TSHashTable<T, KEY>::Ptr(unsigned int hashval, KEY &key) {
+T *TSHashTable<T, KEY>::Ptr(unsigned int hashval, const KEY &key) {
   unsigned int slot;
   T           *ptr;
 
@@ -1995,7 +2188,7 @@ void TSHashTableReuse<T, KEY, REUSE>::InternalDelete(T *ptr) {
 template <class T, class KEY, int REUSE>
 T *TSHashTableReuse<T, KEY, REUSE>::InternalNew(TSExplicitList<T, -572662307> *list, unsigned long extrabytes, unsigned long flags) {
   T     *ptr;
-  Chunk *chunk;
+  TSHashObjectChunk<T, KEY> *chunk;
 
   ASSERT(!extrabytes);
   ptr = m_reuseList.Head();

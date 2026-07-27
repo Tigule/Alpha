@@ -136,7 +136,7 @@ class ONESHOTEFFECTNODE : public NODEBASE {
   unsigned int     objectModelAttachmentPoint;
   unsigned __int64 objectGUID;
   int              spellID;
-  unsigned int     isCastEffect;
+  unsigned char    isCastEffect;
 };
 
 class ONESHOTSTANDALONEEFFECTNODE : public NODEBASE {
@@ -785,8 +785,8 @@ void UnitEffectOneShot(
     CGObject_C                     *object,
     UNITEFFECTATTACHPPOINT          attachPoint,
     int                             spellID,
-    unsigned int                    isCastEffect,
-    unsigned int                    forceEffectOnMount
+    bool                            isCastEffect,
+    bool                            forceEffectOnMount
 ) {
   if (!effect) {
     return;

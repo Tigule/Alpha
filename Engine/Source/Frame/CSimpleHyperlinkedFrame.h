@@ -29,7 +29,7 @@ class CSimpleHyperlinkButton : public CSimpleButton {
 
 class CSimpleHyperlinkedFrame : public CSimpleFrame {
  public:
-  CSimpleHyperlinkedFrame(CSimpleFrame *parent);
+  CSimpleHyperlinkedFrame(CSimpleFrame *parent = 0);
   virtual ~CSimpleHyperlinkedFrame();
 
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);

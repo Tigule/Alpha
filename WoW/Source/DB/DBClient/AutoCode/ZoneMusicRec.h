@@ -17,7 +17,7 @@ class ZoneMusicRec {
     return 64;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

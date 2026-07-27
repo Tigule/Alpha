@@ -380,7 +380,7 @@ struct CGxFormat {
   };
 
  private:
-  mutable unsigned int apiSpecificModeID;
+  mutable unsigned long apiSpecificModeID;
 
  public:
   bool                hwTnL;
@@ -412,28 +412,7 @@ struct CGxMonitorMode {
   unsigned int        refreshRate;
 };
 
-class CGxCaps {
- public:
-  unsigned int   m_numTmus;
-  int            m_pixelCenterOnEdge;
-  int            m_texelCenterOnEdge;
-  unsigned int   m_maxTextureSize;
-  int            m_texOpAdd;
-  int            m_texOpMod2X;
-  EGxColorFormat m_colorFormat;
-  int            m_texFmtDxt;
-  unsigned int   m_maxIndex;
-  int            m_generateMipMaps;
-  int            m_rttFormat[8];
-  int            m_rttOriginUpperLeft;
-  int            m_pixelShaderTarget;
-  int            m_vertexShaderTarget;
-  int            m_texFilterTrilinear;
-  int            m_texFilterAnisotropic;
-  unsigned int   m_maxTexAnisotropy;
-  int            m_depthBias;
-  int            m_mipMapLodBias;
-};
+class CGxCaps;
 
 struct CGxGammaRamp {
   enum {

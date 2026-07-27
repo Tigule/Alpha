@@ -12,11 +12,16 @@ enum SLIDER_ORIENTATION {
 
 class CSimpleSlider : public CSimpleFrame {
  public:
-  CSimpleSlider(CSimpleFrame *parent);
+  CSimpleSlider(CSimpleFrame *parent = 0);
   virtual ~CSimpleSlider();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
+  virtual void OnLayerUpdate(float elapsedSec);
+  virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
+  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
+  virtual int  OnLayerMouseDown(CMouseEvent &evt);
+  virtual int  OnLayerMouseUp(CMouseEvent &evt);
 
   void SetThumbTexture(CSimpleTexture *texture, int layer);
   void SetOrientation(SLIDER_ORIENTATION orientation);
@@ -69,11 +74,6 @@ class CSimpleSlider : public CSimpleFrame {
 
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);
-  virtual void OnLayerUpdate(float elapsedSec);
-  virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
-  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
-  virtual int  OnLayerMouseDown(CMouseEvent &evt);
-  virtual int  OnLayerMouseUp(CMouseEvent &evt);
   float StepValue(float value) {
     if (m_valueStep != 0.0f) {
       float delta = value - m_baseValue;

@@ -11,8 +11,7 @@ namespace NTempest {
 
   class CRndSeed {
    public:
-    CRndSeed() : rndacc(0), rndvls(0) {}
-    explicit CRndSeed(unsigned long seed) { SetSeed(seed); }
+    explicit CRndSeed(unsigned long seed = 0);
     explicit CRndSeed(char *password) { SetSeed(password); }
     ~CRndSeed() {}
 
@@ -25,6 +24,10 @@ namespace NTempest {
 
     friend class CRandom;
   };
+
+  inline CRndSeed::CRndSeed(unsigned long seed) {
+    SetSeed(seed);
+  }
 
   class CRandom {
    public:

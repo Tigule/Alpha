@@ -372,7 +372,7 @@ void CGxDeviceD3d::ISetTexGen(unsigned int tmu, EGxTexGen texGen) {
   }
 
   if (texGen == GxTexGen_Object || texGen == GxTexGen_World) {
-    NTempest::C44Matrix texMat = m_xforms[GxXform_View].Get();
+    NTempest::C44Matrix texMat = m_xforms[GxXform_View].TopConst();
     float               b0 = texMat.b0;
     float               c0 = texMat.c0;
     float               c1 = texMat.c1;
@@ -386,7 +386,7 @@ void CGxDeviceD3d::ISetTexGen(unsigned int tmu, EGxTexGen texGen) {
     texMat.d1 = -texMat.d1;
     texMat.d2 = -texMat.d2;
     if (texGen == GxTexGen_Object) {
-      const NTempest::C44Matrix &world = m_xforms[GxXform_World].Get();
+      const NTempest::C44Matrix &world = m_xforms[GxXform_World].TopConst();
       NTempest::C44Matrix        mat = world.Inverse(world.Determinant());
       texMat = texMat * mat;
     }

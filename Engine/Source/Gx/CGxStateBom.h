@@ -6,6 +6,14 @@ class CGxDevice;
 
 class CGxStateBom {
  public:
+  int                 operator!=(const CGxStateBom &value);
+  CGxStateBom         operator~();
+  int                 GetAsInt();
+  float               GetAsFloat();
+  NTempest::CImVector GetAsCArgb();
+  NTempest::C3Vector  GetAsC3Vector();
+  void               *GetAsPointer();
+
   const CGxStateBom &operator=(int value) {
     mData[0] = value;
     mData[1] = value;

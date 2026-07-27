@@ -1,6 +1,8 @@
 #ifndef WOW_SOURCE_GAME_GAMECLIENT_PETNAMECACHE_H
 #define WOW_SOURCE_GAME_GAMECLIENT_PETNAMECACHE_H
 
+#include <storm.h>
+
 class CDataStore;
 
 class PetNameCache {
@@ -11,11 +13,18 @@ class PetNameCache {
     m_timestamp = 0;
   }
 
-  int Version() {
+  static int Version() {
     return 1;
   }
   void Pack(CDataStore *msg);
   void Unpack(CDataStore *msg);
+
+  PetNameCache &operator=(const PetNameCache &rhs) {
+    m_ID = rhs.m_ID;
+    SStrCopy(m_name, rhs.m_name, 0x30);
+    m_timestamp = rhs.m_timestamp;
+    return *this;
+  }
 
   char         m_name[0x30];
   unsigned int m_ID;

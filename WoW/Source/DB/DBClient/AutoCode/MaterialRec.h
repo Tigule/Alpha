@@ -17,7 +17,7 @@ class MaterialRec {
     return 12;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_materialID;
   }
 

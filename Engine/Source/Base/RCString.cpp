@@ -59,7 +59,7 @@ void CStringRep::DecrRef() {
 }
 
 int CStringRep::IsString(const char *str) const {
-  const char *thisString = m_key.GetString();
+  const char *thisString = GetString();
 
   if (!thisString) {
     return str == 0;
@@ -77,7 +77,7 @@ int CStringRep::operator==(const CStringRep &r) const {
     return 1;
   }
 
-  return IsString(r.m_key.GetString());
+  return IsString(r.GetString());
 }
 
 RCString::~RCString() {
@@ -118,7 +118,7 @@ int RCString::operator==(const char *str) const {
 }
 
 const char *RCString::GetString() const {
-  return m_rep ? m_rep->m_key.GetString() : 0;
+  return m_rep ? m_rep->GetString() : 0;
 }
 
 RCString::operator const char *() const {

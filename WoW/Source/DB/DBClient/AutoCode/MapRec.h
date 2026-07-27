@@ -17,7 +17,7 @@ class MapRec {
     return 52;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

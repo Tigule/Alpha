@@ -36,6 +36,9 @@ class CLayoutFrame {
     unsigned int  dep;
   };
 
+  typedef FRAMENODE       *PFRAMENODE;
+  typedef const FRAMENODE *PCFRAMENODE;
+
   CLayoutFrame();
 
  protected:
@@ -90,19 +93,19 @@ class CLayoutFrame {
     return m_points[whichPoint];
   }
 
-  float GetLayoutScale() {
+  float GetLayoutScale() const {
     return m_layoutScale;
   }
 
-  int IsResizeDeferred() {
+  int IsResizeDeferred() const {
     return (m_flags & 0x2) != 0;
   }
 
-  int IsRectValid() {
+  int IsRectValid() const {
     return (m_flags & 0x1) != 0;
   }
 
-  int HasPoints() const {
+  int HasPoints() {
     return m_points.Count() != 0;
   }
 
@@ -111,8 +114,8 @@ class CLayoutFrame {
   static void RemoveFromResizeList(CLayoutFrame *pFrame);
 
  private:
-  float GetFirstPointX(const FRAMEPOINT *const pointarray, int elements);
-  float GetFirstPointY(const FRAMEPOINT *const pointarray, int elements);
+  float GetFirstPointX(const FRAMEPOINT *pointarray, int elements);
+  float GetFirstPointY(const FRAMEPOINT *pointarray, int elements);
   void  FreePoints();
 
   TSFixedArray<CFramePoint *> m_points;

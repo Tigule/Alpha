@@ -17,7 +17,7 @@ class CinematicCameraRec {
     return 28;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

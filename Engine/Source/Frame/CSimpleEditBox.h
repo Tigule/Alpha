@@ -12,7 +12,7 @@ class CSimpleMessageFrame;
 
 class CSimpleEditBox : public CSimpleFrame {
  public:
-  CSimpleEditBox(CSimpleFrame *parent);
+  CSimpleEditBox(CSimpleFrame *parent = 0);
   virtual ~CSimpleEditBox();
 
   static void RegisterScriptMethods();

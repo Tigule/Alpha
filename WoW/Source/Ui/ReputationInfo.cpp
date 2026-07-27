@@ -19,7 +19,7 @@
 void UnitCombatLogFactionChanged(int faction, int delta);
 
 unsigned int CGReputationInfo::m_numFactions;
-unsigned int CGReputationInfo::m_factionFlags[64];
+unsigned char CGReputationInfo::m_factionFlags[64];
 int          CGReputationInfo::m_factionBase[64];
 int          CGReputationInfo::m_factionStandings[64];
 int          CGReputationInfo::m_factionMap[64];
@@ -165,7 +165,7 @@ void CGReputationInfo::SetFactionFlags(int index, unsigned char flags) {
   m_factionFlags[index] = flags;
 }
 
-void CGReputationInfo::SetAtWar(int faction, unsigned int state) {
+void CGReputationInfo::SetAtWar(int faction, unsigned char state) {
   int          index = FactionToIndex(faction);
   unsigned int flags = m_factionFlags[index];
   if (state) {

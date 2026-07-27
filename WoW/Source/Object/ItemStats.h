@@ -22,8 +22,8 @@ class ItemStats {
     FREEIFUSED(m_description);
   }
 
-  int Version() {
-    return 1;
+  static int Version() {
+    return 5;
   }
   void Pack(CDataStore *msg);
 

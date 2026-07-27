@@ -249,9 +249,9 @@ int CompUtilItemSectionInfo(
     if (fileNameList) {
       const char *fileName = CompUtilGetTextureSectionName(displayInfoRec, section);
       if (fileName && *fileName) {
-        SStrCopy(fileNameList->fileName[numSections], fileName, MAX_PATH);
+        SStrCopy(fileNameList->path[numSections], fileName, MAX_PATH);
       } else {
-        fileNameList->fileName[numSections][0] = 0;
+        fileNameList->path[numSections][0] = 0;
       }
     }
 

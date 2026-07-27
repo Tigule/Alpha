@@ -327,7 +327,7 @@ void SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, const CGItem_C *itemPtr)
   ASSERT(soundType < NUM_ITEMSOUNDS);
   ASSERT(itemPtr);
 
-  ItemGroupSoundsRec *sounds = itemPtr->GetGroupSoundRec();
+  const ItemGroupSoundsRec *sounds = itemPtr->GetGroupSoundRec();
   if (sounds) {
     SndInterfacePlaySound(sounds->m_sound[soundType], -1);
   }

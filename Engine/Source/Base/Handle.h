@@ -31,7 +31,7 @@ class CHandleObject {
     ++m_refcount;
   }
 
-  int GetRefCount() {
+  int GetRefCount() const {
     return m_refcount;
   }
 

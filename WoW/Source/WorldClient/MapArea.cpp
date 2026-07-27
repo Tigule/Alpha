@@ -7,29 +7,29 @@
 static SCritSect                        s_fileCritSect;
 static TSCArray<unsigned char, 163840>  s_asyncLoadBuffers[4];
 static TSExplicitList<CAsyncObject, 32> s_asyncLoadList;
-static unsigned int                    *s_freeAsyncBuffer;
+static unsigned char                   *s_freeAsyncBuffer;
 static unsigned int                     s_asyncBuffersInitialized;
 
-void CMapArea::FreeAsyncLoadBuffer(unsigned int *buffer) {
-  *reinterpret_cast<unsigned int **>(buffer) = s_freeAsyncBuffer;
+void CMapArea::FreeAsyncLoadBuffer(unsigned char *buffer) {
+  *reinterpret_cast<unsigned char **>(buffer) = s_freeAsyncBuffer;
   s_freeAsyncBuffer = buffer;
 }
 
 void CMapArea::InitAsyncLoadBuffers() {
   for (unsigned int index = 0; index < 4; ++index) {
-    FreeAsyncLoadBuffer(reinterpret_cast<unsigned int *>(s_asyncLoadBuffers[index].Ptr()));
+    FreeAsyncLoadBuffer(s_asyncLoadBuffers[index].Ptr());
   }
 }
 
-unsigned int *CMapArea::AllocAsyncLoadBuffer() {
+unsigned char *CMapArea::AllocAsyncLoadBuffer() {
   if (!s_asyncBuffersInitialized) {
     InitAsyncLoadBuffers();
     s_asyncBuffersInitialized = 1;
   }
 
-  unsigned int *buffer = s_freeAsyncBuffer;
+  unsigned char *buffer = s_freeAsyncBuffer;
   if (buffer) {
-    s_freeAsyncBuffer = *reinterpret_cast<unsigned int **>(buffer);
+    s_freeAsyncBuffer = *reinterpret_cast<unsigned char **>(buffer);
   }
 
   return buffer;
@@ -46,7 +46,7 @@ void CMapArea::AsyncPollHandler() {
   CAsyncObject *object = s_asyncLoadList.Head();
 
   while (object) {
-    unsigned int *buffer = AllocAsyncLoadBuffer();
+    unsigned char *buffer = AllocAsyncLoadBuffer();
     if (!buffer) {
       break;
     }
@@ -84,7 +84,7 @@ void CMapArea::Load(SMAreaInfo *areaInfo) {
     s_fileCritSect.Enter();
     SFile::SetFilePointer(CMap::wdtFile, areaInfo->offset, 0, FILE_BEGIN);
     SFile::Read(CMap::wdtFile, s_asyncLoadBuffers[0].Ptr(), areaInfo->size, 0, 0, 0);
-    Create(reinterpret_cast<unsigned int *>(s_asyncLoadBuffers[0].Ptr()));
+    Create(s_asyncLoadBuffers[0].Ptr());
     s_fileCritSect.Leave();
   } else {
     asyncObject = AsyncFileReadCreateObject();
@@ -129,14 +129,14 @@ void CMapArea::PrepareLocalRect() {
   }
 }
 
-void CMapArea::Create(unsigned int *data) {
+void CMapArea::Create(unsigned char *data) {
   FATALASSERT(data);
   FATALASSERT(CMap::bActive);
 
   SIffChunk *mIffChunk = reinterpret_cast<SIffChunk *>(data);
   FATALASSERT(mIffChunk->token == 'MHDR');
 
-  unsigned int *areaData = data + 2;
+  unsigned int *areaData = reinterpret_cast<unsigned int *>(data) + 2;
 
   mIffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(areaData) + reinterpret_cast<SMAreaHeader *>(areaData)->offsInfo);
   FATALASSERT(mIffChunk->token == 'MCIN');
@@ -201,8 +201,8 @@ void CMapArea::AsyncCallback(void *userArg) {
   CMapArea *area = static_cast<CMapArea *>(userArg);
   FATALASSERT(area);
 
-  area->Create(static_cast<unsigned int *>(area->asyncObject->buffer));
-  FreeAsyncLoadBuffer(static_cast<unsigned int *>(area->asyncObject->buffer));
+  area->Create(static_cast<unsigned char *>(area->asyncObject->buffer));
+  FreeAsyncLoadBuffer(static_cast<unsigned char *>(area->asyncObject->buffer));
   area->asyncObject->buffer = 0;
   AsyncFileReadDestroyObject(area->asyncObject);
   area->asyncObject = 0;

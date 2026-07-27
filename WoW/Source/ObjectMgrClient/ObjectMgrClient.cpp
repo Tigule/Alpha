@@ -1285,7 +1285,7 @@ int ClntObjMgrEnumVisibleObjects(int(*handler)(unsigned __int64, void *), void *
 
   int success = 1;
   for (C_OBJECTHASH *object = s_curMgr->m_visibleObjects.Head(); object; object = s_curMgr->m_visibleObjects.Next(object)) {
-    if (!handler(object->m_key.GetGUID(), param)) {
+    if (!handler(object->GetKey().GetGUID(), param)) {
       success = 0;
       break;
     }

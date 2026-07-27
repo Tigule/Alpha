@@ -10,8 +10,6 @@ class CGPlayer_C;
 
 class CGTabardModelFrame : public CGCharacterModelBase {
  public:
-  virtual ~CGTabardModelFrame();
-
   static CSimpleFrame *Create(CSimpleFrame *parent) {
     return NEW(CGTabardModelFrame)(parent);
   }
@@ -24,25 +22,27 @@ class CGTabardModelFrame : public CGCharacterModelBase {
   void CycleVariation(unsigned int index, int delta);
 
   virtual void         InitializeModel(HMODEL model);
-  virtual unsigned int GetUniquePaperDollModel() {
-    return 1;
+  virtual bool GetUniquePaperDollModel() {
+    return true;
   }
 
-  int GetVariation(unsigned int index) const {
+  int GetVariation(unsigned int index) {
     FATALASSERT(index < 5);
     return m_variations[index];
   }
 
  protected:
+  virtual ~CGTabardModelFrame();
   virtual int LookupScriptMethod(lua_State *L, const char *name);
   void        UpdateTabard();
+
+  CGTabardModelFrame(const CGTabardModelFrame &);
+  CGTabardModelFrame(CSimpleFrame *parent);
+  void InitializeTabardColors(const CGPlayer_C *playerPtr);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
  private:
-  CGTabardModelFrame(CSimpleFrame *parent);
-  void InitializeTabardColors(const CGPlayer_C *playerPtr);
-
   int              m_variations[5];
   HTEXCOMPONENT__ *m_charComponent;
 };

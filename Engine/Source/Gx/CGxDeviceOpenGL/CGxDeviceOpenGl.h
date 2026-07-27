@@ -17,7 +17,6 @@ class CGxMemBuffer_VAR : public CGxMemBuffer {
 
  private:
   CGxMemBuffer_VAR(const CGxMemBuffer_VAR &);
-  const CGxMemBuffer_VAR &operator=(const CGxMemBuffer_VAR &);
 
   void Fence();
 
@@ -29,9 +28,18 @@ class CGxDeviceOpenGl : public CGxDevice {
  public:
   template <class T>
   struct PixelFormatAttribute {
+    PixelFormatAttribute() {
+    }
+
+    PixelFormatAttribute(int attribute, T value) : attribute(attribute), value(value) {
+    }
+
     int attribute;
     T   value;
   };
+
+  typedef PixelFormatAttribute<int>   PixelFormatAttributei;
+  typedef PixelFormatAttribute<float> PixelFormatAttributef;
 
   enum EDeviceState {
     Ds_DepthMask = 0,
@@ -96,7 +104,6 @@ class CGxDeviceOpenGl : public CGxDevice {
 
   };
 
-  CGxDeviceOpenGl();
   static long CALLBACK WindowProcGl(HWND window, unsigned int message, unsigned int wparam, long lparam);
   void                 DeviceCreatePbuffer();
   void                 DeviceQueryPbuffer();
@@ -175,6 +182,9 @@ class CGxDeviceOpenGl : public CGxDevice {
  private:
   friend class CGxDevice;
 
+  static const unsigned int kNullTmu;
+
+  CGxDeviceOpenGl();
   CGxDeviceOpenGl(const CGxDeviceOpenGl &);
   const CGxDeviceOpenGl &operator=(const CGxDeviceOpenGl &);
 
@@ -193,7 +203,6 @@ class CGxDeviceOpenGl : public CGxDevice {
   void IAllocBuffers();
   void IAllocVAR();
   void IAllocVertexBufferVAR(EGxBufWriteFreq freq, unsigned int bytes);
-  void IBufSetBuffers(CGxBufOgl *buf);
   void IFreeVAR();
   void ITexForceRecreation();
   void BindTexture(CGxTex *texId, unsigned int tmu);
@@ -225,6 +234,7 @@ class CGxDeviceOpenGl : public CGxDevice {
   void IXformGLModelView(const NTempest::C44Matrix &gxm, NTempest::C44Matrix &oglm);
   void IXformSetModelView(const NTempest::C44Matrix &m);
   void IXformSetProjection(const NTempest::C44Matrix &m);
+  void IXformSet(EGxXform xform);
   void LockArrays(unsigned int count);
   int  SetFormatMode(const CGxFormat &format);
   void UnlockArrays();
@@ -242,6 +252,8 @@ class CGxDeviceOpenGl : public CGxDevice {
   int              m_bufRealloc;
 
  protected:
+  void IBufSetBuffers(CGxBufOgl *buf);
+
   static unsigned int s_convertMinFilterToOgl[5];
   static unsigned int s_convertMagFilterToOgl[5];
   static int          s_convertTexFmt[8];
@@ -259,7 +271,7 @@ class CGxDeviceOpenGl : public CGxDevice {
       unsigned int texelStrideInBytes,
       const void  *texels
   );
-  void         ITexMarkAsUpdated(CGxTex *texId, unsigned int tmu);
+  virtual void ITexMarkAsUpdated(CGxTex *texId, unsigned int tmu);
   void         ITexSetFlags(CGxTex *texId);
   virtual void ITexMarkAsUpdated(CGxTex *texId);
 

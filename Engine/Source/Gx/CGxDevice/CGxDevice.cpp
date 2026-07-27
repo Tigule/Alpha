@@ -169,10 +169,6 @@ NTempest::C44Matrix &CGxMatrixStack::Top() {
   return m_mtx[m_level];
 }
 
-const NTempest::C44Matrix &CGxMatrixStack::Get() const {
-  return m_mtx[m_level];
-}
-
 CGxBuf::CGxBuf() {
   m_numVertices = 0;
   m_vertexStatus = S_INVALID_DISCARD;
@@ -317,12 +313,9 @@ CGxDevice::CGxDevice() {
   m_baseMipLevel = 0;
   m_force32BitTextures = 0;
   m_clearColor = NTempest::CImVector(0xFF000000);
-  m_viewport[0] = 0.0f;
-  m_viewport[1] = 1.0f;
-  m_viewport[2] = 0.0f;
-  m_viewport[3] = 1.0f;
-  m_viewport[4] = 0.0f;
-  m_viewport[5] = 1.0f;
+  m_viewport.x.Set(0.0f, 1.0f);
+  m_viewport.y.Set(0.0f, 1.0f);
+  m_viewport.z.Set(0.0f, 1.0f);
   m_bones = 0;
   m_boneCount = 0;
   m_vertexShader = GxVS_PassThru;
@@ -540,12 +533,9 @@ void CGxDevice::SceneClear(unsigned int mask) {
 }
 
 void CGxDevice::XformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
-  m_viewport[0] = minX;
-  m_viewport[1] = maxX;
-  m_viewport[2] = minY;
-  m_viewport[3] = maxY;
-  m_viewport[4] = minZ;
-  m_viewport[5] = maxZ;
+  m_viewport.x.Set(minX, maxX);
+  m_viewport.y.Set(minY, maxY);
+  m_viewport.z.Set(minZ, maxZ);
 }
 
 void CGxDevice::XformSetProjection(const NTempest::C44Matrix &matrix) {
@@ -562,12 +552,9 @@ void CGxDevice::XformSetBones(unsigned int numBones, const NTempest::C34Matrix *
 }
 
 void CGxDevice::XformViewport(float &minX, float &maxX, float &minY, float &maxY, float &minZ, float &maxZ) {
-  minX = m_viewport[0];
-  maxX = m_viewport[1];
-  minY = m_viewport[2];
-  maxY = m_viewport[3];
-  minZ = m_viewport[4];
-  maxZ = m_viewport[5];
+  m_viewport.x.Get(minX, maxX);
+  m_viewport.y.Get(minY, maxY);
+  m_viewport.z.Get(minZ, maxZ);
 }
 
 void CGxDevice::XformProjection(NTempest::C44Matrix &matrix) {

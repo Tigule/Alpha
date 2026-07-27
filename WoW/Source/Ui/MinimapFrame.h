@@ -49,10 +49,10 @@ class CGMinimapFrame : public CSimpleFrame {
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);
 
-  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
+ static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
  private:
-  CGMinimapFrame(CGMinimapFrame &);
+  CGMinimapFrame(const CGMinimapFrame &);
   CGMinimapFrame(CSimpleFrame *parent);
 
   enum {
@@ -65,7 +65,13 @@ class CGMinimapFrame : public CSimpleFrame {
   void RenderObjectBlips(const DNInfo *dnInfo);
 
   static int ObjectEnumProc(unsigned __int64 object, void *param);
-  static NTempest::C2Vector WorldPosToMinimapFrameCoords(NTempest::C3Vector centerPoint, float radius, float x, float y, float scale);
+  static NTempest::C2Vector WorldPosToMinimapFrameCoords(
+      const NTempest::C3Vector centerPoint,
+      float                     radius,
+      float                     x,
+      float                     y,
+      float                     scale
+  );
   static void MinimapTextureCallback(
       EGxTexCommand cmd,
       unsigned int  w,

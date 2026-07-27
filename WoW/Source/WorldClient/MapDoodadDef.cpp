@@ -14,11 +14,11 @@ const float              CMapStaticEntity::dirLightScaleAmount = 0.5f;
 const NTempest::C3Vector CMapStaticEntity::interiorSunDir(-0.30822f, -0.30822f, -0.9f);
 
 void CMapStaticEntity::AdjustLightmap(
-    NTempest::CImVector &lmColor,
-    NTempest::CImVector &dirColor,
-    unsigned int         minDir,
-    NTempest::CImVector &ambColor,
-    unsigned int         maxAmbient
+    const NTempest::CImVector &lmColor,
+    NTempest::CImVector       &dirColor,
+    unsigned char              minDir,
+    NTempest::CImVector       &ambColor,
+    unsigned char              maxAmbient
 ) {
   unsigned int maxMag = lmColor.r;
   if (lmColor.g > maxMag) {

@@ -17,7 +17,7 @@ class ChrProficiencyRec {
     return 260;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

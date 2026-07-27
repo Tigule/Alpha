@@ -450,8 +450,8 @@ void UnitEffectOneShot(
     CGObject_C                     *object,
     UNITEFFECTATTACHPPOINT          attachPoint,
     int                             spellID,
-    unsigned int                    isCastEffect,
-    unsigned int                    forceEffectOnMount
+    bool                            isCastEffect,
+    bool                            forceEffectOnMount
 );
 
 struct AuraDecayNode : public TSLinkedNode<AuraDecayNode> {
@@ -3620,7 +3620,7 @@ int CGPlayer_C::GetSpellCastingTime(int spellID) const {
   if (spell->m_attributes & 2) {
     CGItem_C *rangedItem = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(17), __FILE__, __LINE__));
     if (rangedItem) {
-      const ItemStats_C *stats = g_itemDBCache.GetRecord(rangedItem->GetEntryID(), GetGUID(), 0, 0);
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(rangedItem->GetEntryID(), m_obj->m_guid, 0, 0);
       if (stats) {
         result += stats->m_delay;
       }
@@ -3691,13 +3691,13 @@ const VirtualItemInfo *CGPlayer_C::GetVirtualItem(unsigned int slot, unsigned ch
 }
 
 int CGUnit_C::ShouldRenderUnitName(unsigned int mode) const {
-  if ((m_unit->flags & 0x18000) && CGGameUI::GetLockedTarget() != GetGUID()) {
+  if ((m_unit->flags & 0x18000) && CGGameUI::GetLockedTarget() != m_obj->m_guid) {
     return 0;
   }
   switch (mode) {
     case 1:
     case 2:
-      return CGGameUI::GetLockedTarget() == GetGUID();
+      return CGGameUI::GetLockedTarget() == m_obj->m_guid;
     case 3:
       return 1;
     default:
@@ -4677,7 +4677,7 @@ bool CGUnit_C::IsTurningState() const {
 
 int CGUnit_C::ShouldShuffle() const {
   unsigned __int64 unitBeingLooted = 0;
-  if (GetType() & TYPE_PLAYER) {
+  if (m_obj->m_type & TYPE_PLAYER) {
     unitBeingLooted = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetUnitBeingLooted();
   }
 
@@ -5215,7 +5215,7 @@ unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
     case 26:
       return 7;
     case 27: {
-      if (GetType() & TYPE_PLAYER) {
+      if (m_obj->m_type & TYPE_PLAYER) {
         return static_cast<const CGPlayer_C *>(this)->CGPlayer_C::DetermineWoundSequence();
       }
       return CGUnit_C::DetermineWoundSequence();
@@ -6165,7 +6165,7 @@ int CGUnit_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
     *outPtr = (m_flags & 0x200) ? s_targetFlashColor : reactionTypeColors[reaction];
   } else if (m_flags & 0x200) {
     *outPtr = s_targetFlashColor;
-  } else if (GetGUID() == currentPlayer->GetGUID() || !CGPartyInfo::IsMember(GetGUID())) {
+  } else if (m_obj->m_guid == currentPlayer->GetGUID() || !CGPartyInfo::IsMember(m_obj->m_guid)) {
     *outPtr = playerReactionColor;
   } else {
     *outPtr = partyReactionColor;
@@ -6305,7 +6305,7 @@ bool CGUnit_C::CanAssist(const CGUnit_C *unit) const {
     player2 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner2, __FILE__, __LINE__));
   }
 
-  if (player1 && (player1->GetType() & TYPE_PLAYER) && player2 && (player2->GetType() & TYPE_PLAYER)) {
+  if (player1 && (player1->m_obj->m_type & TYPE_PLAYER) && player2 && (player2->m_obj->m_type & TYPE_PLAYER)) {
     const CGPlayer_C *playerObject1 = static_cast<const CGPlayer_C *>(player1);
     const CGPlayer_C *playerObject2 = static_cast<const CGPlayer_C *>(player2);
     unsigned int      duelTeam1 = playerObject1->GetDuelTeam();
@@ -6343,7 +6343,7 @@ bool CGUnit_C::CanAttack(const CGUnit_C *unit) const {
     player2 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner2, __FILE__, __LINE__));
   }
 
-  if (player1 && (player1->GetType() & TYPE_PLAYER) && player2 && (player2->GetType() & TYPE_PLAYER)) {
+  if (player1 && (player1->m_obj->m_type & TYPE_PLAYER) && player2 && (player2->m_obj->m_type & TYPE_PLAYER)) {
     const CGPlayer_C *playerObject1 = static_cast<const CGPlayer_C *>(player1);
     const CGPlayer_C *playerObject2 = static_cast<const CGPlayer_C *>(player2);
     unsigned int      duelTeam1 = playerObject1->GetDuelTeam();
@@ -6484,7 +6484,7 @@ UNIT_REACTION CGUnit_C::UnitReaction(int factionID, const CGUnit_C *unit, int tr
     if (owner) {
       ownerUnit = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner, __FILE__, __LINE__));
     }
-    if (ownerUnit && ownerUnit->GetGUID() == ClntObjMgrGetActivePlayer()) {
+    if (ownerUnit && ownerUnit->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
       return CGReputationInfo::GetFactionStandingReaction(source->m_faction);
     }
   }
@@ -6537,7 +6537,7 @@ UNIT_REACTION CGUnit_C::UnitReaction(const CGUnit_C *unit) const {
     player2 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner2, __FILE__, __LINE__));
   }
 
-  if (player1 && (player1->GetType() & TYPE_PLAYER) && player2 && (player2->GetType() & TYPE_PLAYER)) {
+  if (player1 && (player1->m_obj->m_type & TYPE_PLAYER) && player2 && (player2->m_obj->m_type & TYPE_PLAYER)) {
     const CGPlayer_C *playerObject1 = static_cast<const CGPlayer_C *>(player1);
     const CGPlayer_C *playerObject2 = static_cast<const CGPlayer_C *>(player2);
     unsigned int      duelTeam1 = playerObject1->GetDuelTeam();
@@ -6550,10 +6550,10 @@ UNIT_REACTION CGUnit_C::UnitReaction(const CGUnit_C *unit) const {
       return UNIT_REACTION_HATED;
     }
 
-    if (player1->GetGUID() == ClntObjMgrGetActivePlayer() && CGGameUI::IsPartyMember(player2->GetGUID())) {
+    if (player1->m_obj->m_guid == ClntObjMgrGetActivePlayer() && CGGameUI::IsPartyMember(player2->m_obj->m_guid)) {
       return UNIT_REACTION_FRIENDLY;
     }
-    if (player2->GetGUID() == ClntObjMgrGetActivePlayer() && CGGameUI::IsPartyMember(player1->GetGUID())) {
+    if (player2->m_obj->m_guid == ClntObjMgrGetActivePlayer() && CGGameUI::IsPartyMember(player1->m_obj->m_guid)) {
       return UNIT_REACTION_FRIENDLY;
     }
 
@@ -6577,7 +6577,7 @@ UNIT_REACTION CGUnit_C::UnitReaction(const CGUnit_C *unit) const {
       if (owner1) {
         ownerUnit = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner1, __FILE__, __LINE__));
       }
-      if (ownerUnit && ownerUnit->GetGUID() == ClntObjMgrGetActivePlayer()) {
+      if (ownerUnit && ownerUnit->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         return CGReputationInfo::IsAtWar(targetFaction->m_faction) ? UNIT_REACTION_HOSTILE : UNIT_REACTION_FRIENDLY;
       }
     }
@@ -7976,7 +7976,7 @@ void CGUnit_C::InitializeNPCItems() {
 }
 
 void CGUnit_C::SignalDisplayHealthUpdate() const {
-  unsigned __int64 guid = GetGUID();
+  unsigned __int64 guid = m_obj->m_guid;
   Script_SendUnitSignal(guid, 16);
 }
 
@@ -7988,7 +7988,7 @@ void CGUnit_C::UpdateDisplayHealth() {
 }
 
 bool CGUnit_C::IsSpellKnown(int spellID) const {
-  return GetGUID() == ClntObjMgrGetActivePlayer() ? CGSpellBook::IsSpellKnown(spellID) : CGSpellBook::IsPetSpellKnown(spellID);
+  return m_obj->m_guid == ClntObjMgrGetActivePlayer() ? CGSpellBook::IsSpellKnown(spellID) : CGSpellBook::IsPetSpellKnown(spellID);
 }
 
 const SkillLineAbilityRec *CGUnit_C::LookupAbility(int spellID) const {
@@ -8334,7 +8334,7 @@ UNITAFFILIATION CGUnit_C::GetGUIDAffiliation(unsigned __int64 unit) const {
   if (unit == pet) {
     return AFFILIATION_YOURPET;
   }
-  if (unit == GetGUID()) {
+  if (unit == m_obj->m_guid) {
     return AFFILIATION_YOURSELF;
   }
   return AFFILIATION_OTHER;
@@ -8798,17 +8798,17 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
   CGUnit_C *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   char      labelString[64] = "";
   if (activePlayer) {
-    if (activePlayer->GetGUID() == GetGUID()) {
+    if (activePlayer->GetGUID() == m_obj->m_guid) {
       SStrPrintf(labelString, sizeof(labelString), " (Local Player)");
     } else {
-      if (static_cast<CGPlayer_C *>(activePlayer)->CGPlayer_C::GetLocalTarget() == GetGUID()) {
+      if (static_cast<CGPlayer_C *>(activePlayer)->CGPlayer_C::GetLocalTarget() == m_obj->m_guid) {
         SStrPrintf(labelString, sizeof(labelString), " (Local Player's Target)");
       }
     }
   }
 
   DDGenerateLogString(handle, stringBuffer, "======================================");
-  DDGenerateLogString(handle, stringBuffer, "Death Holds for unit %s%s (0x%016I64X)", GetUnitName(), labelString, GetGUID());
+  DDGenerateLogString(handle, stringBuffer, "Death Holds for unit %s%s (0x%016I64X)", GetUnitName(), labelString, m_obj->m_guid);
 
   NTempest::C3Vector pos;
   GetPosition(pos);
@@ -10000,7 +10000,7 @@ void CGUnit_C::ClearTrackingTarget(bool snapToTargetOnClear) {
 }
 
 unsigned __int64 CGUnit_C::GetTrackingTarget() const {
-  return GetGUID() == ClntObjMgrGetActivePlayer() ? s_trackingTarget : 0;
+  return m_obj->m_guid == ClntObjMgrGetActivePlayer() ? s_trackingTarget : 0;
 }
 
 void CGUnit_C::HandleFollowTarget() {
@@ -10161,7 +10161,7 @@ unsigned int CGUnit_C::UpdateUnitNameString(
     added = 1;
   }
 
-  if ((GetType() & TYPE_PLAYER) && (otherUnitsFlags & 2)) {
+  if ((m_obj->m_type & TYPE_PLAYER) && (otherUnitsFlags & 2)) {
     const CGPlayer_C *player = static_cast<const CGPlayer_C *>(this);
     unsigned int guildID = player->GetGuildID();
     if (guildID) {

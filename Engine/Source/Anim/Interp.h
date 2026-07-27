@@ -12,7 +12,7 @@ class CArray {
   CArray() : m_data(0), m_count(0) {
   }
 
-  CArray(CArray<T> &source) : m_data(0), m_count(0) {
+  CArray(const CArray<T> &source) : m_data(0), m_count(0) {
     Set(source.m_count, source.m_data);
   }
 
@@ -27,7 +27,7 @@ class CArray {
     return *this;
   }
 
-  CArray<T> &operator=(TSFixedArray<T> &source) {
+  CArray<T> &operator=(const TSFixedArray<T> &source) {
     Set(source.Count(), source.Ptr());
     return *this;
   }
@@ -57,6 +57,34 @@ class CArray {
     return m_count;
   }
 
+  unsigned int Bytes() const {
+    return m_count * sizeof(T);
+  }
+
+  void Clear() {
+    m_count = 0;
+  }
+
+  T *New() {
+    return &m_data[m_count++];
+  }
+
+  T *Ptr() {
+    return m_data;
+  }
+
+  const T *Ptr() const {
+    return m_data;
+  }
+
+  void SetCount(unsigned int count) {
+    m_count = count;
+  }
+
+  void Zero() {
+    memset(m_data, 0, Bytes());
+  }
+
   T &operator[](unsigned int index) {
     ASSERT(index < m_count);
     return m_data[index];
@@ -67,6 +95,7 @@ class CArray {
     return m_data[index];
   }
 
+ private:
   T           *m_data;
   unsigned int m_count;
 };
@@ -82,6 +111,9 @@ struct CBaseStatus {
 struct CKeyTrackStatus {
   CKeyTrackStatus() : currKey(0), nextKey(0), timepastkey(0) {
   }
+  CKeyTrackStatus(const CKeyTrackStatus &source)
+      : currKey(source.currKey), nextKey(source.nextKey), timepastkey(source.timepastkey) {
+  }
 
   unsigned int currKey;
   unsigned int nextKey;
@@ -92,6 +124,13 @@ struct CAnimObjStatus {
   CAnimObjStatus() {
     memset(this, 0, sizeof(*this));
     base.flags = 0x10;
+  }
+  CAnimObjStatus(const CAnimObjStatus &source)
+      : translation(source.translation),
+        rotation(source.rotation),
+        scale(source.scale),
+        base(source.base),
+        lookAtId(source.lookAtId) {
   }
 
   CKeyTrackStatus translation;
@@ -116,6 +155,10 @@ struct CAnimModelObjStatus : public CAnimObjStatus {
     memset(this, 0, sizeof(*this));
     base.flags = 0x10;
     visible = 1.0f;
+  }
+
+  int IsVisible() const {
+    return visible > 0.0f;
   }
 
   CKeyTrackStatus visibility;
@@ -147,6 +190,10 @@ struct CAnimCameraObjStatus {
     memset(this, 0, sizeof(*this));
     visible = 1.0f;
     base.flags = 0x10;
+  }
+
+  int IsVisible() const {
+    return visible > 0.0f;
   }
 
   float           visible;
@@ -212,6 +259,10 @@ struct CAnimGeosetObjStatus {
   CAnimGeosetObjStatus() {
     memset(this, 0, sizeof(*this));
     base.flags = 0x11;
+  }
+
+  int IsVisible() const {
+    return base.flags & 1;
   }
 
   CKeyTrackStatus color;

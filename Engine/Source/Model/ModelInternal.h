@@ -196,17 +196,7 @@ struct CModelTexture {
 
 class CModelBase {
  public:
-  CModelBase(unsigned int flags)
-      : m_PickLights(GxuLightSelectCallback),
-        m_pickLightsParm(0),
-        m_flags(flags),
-        m_modelToWorld(),
-        m_texBones(GetInvalidMatrixId()),
-        m_anim(0),
-        m_boundsModel(0),
-        m_aaBoxCustGeoId(static_cast<unsigned int>(-1)),
-        m_collideModel(0) {
-  }
+  CModelBase(unsigned int flags = 0);
   ~CModelBase();
 
   void(*m_PickLights)(void *, NTempest::C3Vector, const NTempest::C3Vector &, unsigned int);
@@ -225,6 +215,18 @@ class CModelBase {
  private:
   CModelBase &operator=(const CModelBase &source);
 };
+
+inline CModelBase::CModelBase(unsigned int flags)
+    : m_PickLights(GxuLightSelectCallback),
+      m_pickLightsParm(0),
+      m_flags(flags),
+      m_modelToWorld(),
+      m_texBones(GetInvalidMatrixId()),
+      m_anim(0),
+      m_boundsModel(0),
+      m_aaBoxCustGeoId(-1),
+      m_collideModel(0) {
+}
 
 class CModelSimple : public CModelBase {
  public:
@@ -367,8 +369,7 @@ class CModelComplex : public CModelBase {
   void           CopyRibbons(const CModelComplex &source);
 };
 
-class CModelModItem : public TSLinkedNode<CModelModItem> {
- public:
+struct CModelModItem : public TSLinkedNode<CModelModItem> {
   EModelModQ    action;
   unsigned char paramData[16];
 };

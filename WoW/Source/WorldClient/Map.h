@@ -2,6 +2,7 @@
 #define WOW_SOURCE_WORLDCLIENT_MAP_H
 
 #include "MapDefs.h"
+#include "Tempest/crange.h"
 #include "Gx/CGxDevice.h"
 #include "Tempest/c2ivector.h"
 #include "Tempest/c3vector.h"
@@ -31,18 +32,9 @@ class CWFrustum;
 class SFile;
 class WMOAreaTableRec;
 struct CGxBuf;
+struct CGxBufCommand;
 struct HMODEL__;
 struct HTEXTURE__;
-
-namespace NTempest {
-
-  class CRange {
-   public:
-    float min;
-    float max;
-  };
-
-}  // namespace NTempest
 
 struct CWorldMinimapQuad {
   unsigned int        groupNum;
@@ -107,9 +99,10 @@ class CWSoundEmitter {
   unsigned long      interSoundGapMax;
 };
 
-class CMapSoundEmitter : public CWSoundEmitter {
+class CMapSoundEmitter {
  public:
-  TSLink<CMapSoundEmitter> link;
+  CWSoundEmitter           data;
+  TSLink<CMapSoundEmitter> lameAssLink;
 };
 
 struct SWFlowv {
@@ -186,6 +179,10 @@ class CMapCacheLight {
 
 class CMapAreaLow {
  public:
+  static NTempest::C3Vector s_vertexBuffer[65535];
+  static unsigned short     s_indexBuffer[65535];
+  static unsigned int       s_vertexBufferIndex;
+  static unsigned int       s_indexBufferIndex;
 
   NTempest::CAaBox    aaBox;
   NTempest::CAaSphere aaSphere;
@@ -238,11 +235,14 @@ class CMapBaseObj {
 
   int TestAABox(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1);
 
-  unsigned int GetType() const {
+  unsigned int GetType() {
     return type;
   }
 
-  unsigned int                        type;
+ protected:
+  unsigned long                       type;
+
+ public:
   TSLink<CMapBaseObj>                 lameAssLink;
   TSExplicitList<CMapBaseObjLink, 16> parentLinkList;
   NTempest::C3Vector                  pos;
@@ -265,6 +265,12 @@ class CMapLight : public CMapBaseObj {
   static void DestroyPointAtten();
   static CGxTex *GetPointAttenTex();
 
+  void SetAtten(float attenStart, float attenEnd);
+  void SetConstantAtten(float attenuation);
+  void SetLinearAtten(float attenuation);
+  void SetQuadraticAtten(float attenuation);
+  void Project();
+
   static TSExplicitList<CMapBaseObjLink, 8> dirLightLinkList;
   static unsigned int                       maxLights;
   static float                              bucketSize;
@@ -274,9 +280,10 @@ class CMapLight : public CMapBaseObj {
   float        attenStart;
   float        attenEnd;
   float        attenDenom;
-  unsigned int dynamic;
+  unsigned char dynamic;
 
  private:
+  static void ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf);
   static HTEXTURE__ *s_hPointAttenTex;
 };
 
@@ -286,11 +293,11 @@ class CMapStaticEntity : public CMapBaseObj {
   virtual void QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup) = 0;
 
   void AdjustLightmap(
-      NTempest::CImVector &lmColor,
-      NTempest::CImVector &dirColor,
-      unsigned int         minDir,
-      NTempest::CImVector &ambColor,
-      unsigned int         maxAmbient
+      const NTempest::CImVector &lmColor,
+      NTempest::CImVector       &dirColor,
+      unsigned char              minDir,
+      NTempest::CImVector       &ambColor,
+      unsigned char              maxAmbient
   );
   int  GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapObj, CMapObjDefGroup *&mapObjDefGroup, CMapObjGroup *&mapObjGroup);
   int  GetMapObjDef(CMapObjDef *&mapObjDef);
@@ -316,8 +323,7 @@ class CMapStaticEntity : public CMapBaseObj {
   static const NTempest::C3Vector interiorSunDir;
 };
 
-class CMapEntity : public CMapStaticEntity {
- public:
+struct CMapEntity : public CMapStaticEntity {
   static const float ambLightScaleRate;
   static const float dirLightScaleRate;
 
@@ -384,11 +390,11 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
 
   NTempest::C44Matrix                mat;
   NTempest::C44Matrix                invMat;
-  unsigned int                       nameId;
+  unsigned long                      nameId;
   CMapObj                           *mapObj;
   unsigned short                     tDoodadRefs;
   unsigned short                     firstDoodadRef;
-  unsigned int                       doodadSet;
+  unsigned long                      doodadSet;
   unsigned short                     nameSet;
   const char                        *zoneName;
   TSExplicitList<CMapBaseObjLink, 8> groupLinkList;
@@ -406,11 +412,11 @@ class CMapObjDefGroup : public CMapBaseObj {
 
   virtual void SelectLights();
   void         UpdateLights();
-  void         Update(NTempest::C44Matrix &newMat);
+  void         Update(const NTempest::C44Matrix &newMat);
 
   unsigned int                       groupNum;
-  unsigned int                       doodadRefStart;
-  unsigned int                       nDoodadRefs;
+  unsigned long                      doodadRefStart;
+  unsigned long                      nDoodadRefs;
   NTempest::CImVector                ambient;
   const char                        *subzoneName;
   unsigned int                       level;
@@ -457,26 +463,42 @@ struct SMMapObjDef {
 };
 
 struct SMChunkInfo {
-  unsigned int offset;
-  unsigned int size;
-  unsigned int flags;
+  enum {
+    FLAG_LOADED = 1
+  };
+
+  unsigned long offset;
+  unsigned long size;
+  unsigned long flags;
   union {
     unsigned char pad[4];
-    unsigned int  asyncId;
+    unsigned long asyncId;
   };
 };
 
 struct SMAreaInfo {
-  unsigned int offset;
-  unsigned int size;
-  unsigned int flags;
+  enum {
+    FLAG_LOADED = 1
+  };
+
+  unsigned long offset;
+  unsigned long size;
+  unsigned long flags;
   union {
     unsigned char pad[4];
-    unsigned int  asyncId;
+    unsigned long asyncId;
   };
 };
 
 struct SMChunk {
+  enum {
+    FLAG_SHADOW = 1,
+    FLAG_IMPASS = 2,
+    FLAG_LQ_RIVER = 4,
+    FLAG_LQ_OCEAN = 8,
+    FLAG_LQ_MAGMA = 16
+  };
+
   unsigned long  flags;
   unsigned long  indexX;
   unsigned long  indexY;
@@ -533,36 +555,23 @@ class CMapChunk : public CMapBaseObj {
   ~CMapChunk();
 
   void Load(SMChunkInfo *chunkInfo);
-  void Create(unsigned int *data);
+  void Create(unsigned char *data);
 
   static void Initialize();
   static void AsyncPollHandler();
   static void Destroy();
   static void FreeLists();
+  static void SetSoundEmitterHandlers(void(*create)(CWSoundEmitter &), void(*destroy)(unsigned long));
 
   virtual void SelectLights();
   void         UpdateLights();
   void         Update();
   void         UpdateClipBuffer();
-  void         SyncLoadLayer(CChunkLayer *layer);
-  void         SyncLoadShadow();
-  void         SyncLoadShader();
-  void         FindLights();
-  void         CreateVertices(float *heights);
-  void         CreateNormals(int *normals);
-  void         CreateFacePlanes();
-  void         CreateLayer(CMapArea *area, SMLayer *layer, unsigned int *alphaTex);
-  void         CreateShadow(unsigned int *shadowTex);
-  void         CreateAlphaShadow();
-  void         CreateRefs(CMapArea *area, unsigned int *ref, unsigned int doodadCnt, unsigned int mapObjCnt);
-  void         CreateChunkShadowTex();
-  void         CreateChunkLayerTex(CChunkLayer *layer);
-  void         CreateChunkShaderTex();
   void         Render();
   void         CreateDetailDoodads();
   void         Purge();
 
-  unsigned int                         infoIndex;
+  unsigned long                        infoIndex;
   unsigned short                       holes;
   unsigned short                       pad;
   unsigned int                         lod;
@@ -585,7 +594,7 @@ class CMapChunk : public CMapBaseObj {
   unsigned int                         nLayers;
   CChunkTex                           *shadowTexture;
   CGxTex                              *shadowGxTexture;
-  unsigned int                        *shadowOffs;
+  unsigned char                       *shadowOffs;
   unsigned long                        shadowSize;
   CGxBuf                              *gxBuf;
   CChunkTex                           *shaderTexture;
@@ -603,6 +612,23 @@ class CMapChunk : public CMapBaseObj {
   unsigned long                        shadowBits[32];
 
  private:
+  void         SyncLoadLayer(CChunkLayer *layer);
+  void         SyncLoadShadow();
+  void         SyncLoadShader();
+  void         FindLights();
+  void         CreateVertices(float *heights);
+  void         CreateVertices2(float *heights);
+  void         CreateNormals(signed char *normals);
+  void         CreateFacePlanes();
+  void         CreateLayer(CMapArea *area, SMLayer *layer, unsigned char *alphaTex);
+  void         CreateShadow(unsigned char *shadowTex);
+  void         CreateAlphaShadow();
+  void         CreateRefs(CMapArea *area, unsigned int *ref, unsigned int doodadCnt, unsigned int mapObjCnt);
+  void         CreateChunkShadowTex();
+  void         CreateChunkLayerTex(CChunkLayer *layer);
+  void         CreateChunkShaderTex();
+  void         RemapVertices();
+  void         RemapVerticesDyn();
   void                      PurgeLayer(CChunkLayer *layer);
   static CGxBuf *AllocGxBuf(unsigned int indexCount);
   static void FreeGxBuf(CGxBuf *gxBuf);
@@ -617,9 +643,9 @@ class CMapChunk : public CMapBaseObj {
   );
   static void FreeShadowGxTex(CGxTex *gxTex);
   static void
-  UnpackAlphaShadowBits(NTempest::CImVector *texels, unsigned long *bits, const unsigned int *const *alpha, const unsigned int *shadow);
-  static void UnpackAlphaBits(unsigned long *pixels, const unsigned int *alphaPixels);
-  static void UnpackShadowBits(unsigned long *pixels, unsigned long *shadowBits, const unsigned int *shadow);
+  UnpackAlphaShadowBits(NTempest::CImVector *texels, unsigned long *bits, const unsigned char *const *alpha, const unsigned char *shadow);
+  static void UnpackAlphaBits(unsigned long *pixels, const unsigned char *alphaPixels);
+  static void UnpackShadowBits(unsigned long *pixels, unsigned long *shadowBits, const unsigned char *shadow);
   static void UpdateLayerGxTexture(
       EGxTexCommand cmd,
       unsigned int  w,
@@ -672,13 +698,13 @@ class CMapChunk : public CMapBaseObj {
   void                            RenderLayersDyn();
   void                            RenderLayersColor();
   void                            RenderLayersColorDyn();
-  static void FreeAsyncLoadBuffer(unsigned int *buffer);
+  static void FreeAsyncLoadBuffer(unsigned char *buffer);
   static void InitAsyncLoadBuffers();
-  static unsigned int *AllocAsyncLoadBuffer();
+  static unsigned char *AllocAsyncLoadBuffer();
   static void AsyncCallback(void *userArg);
-  void                            SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, unsigned int *&shadowTex, unsigned int *&alphaTex);
+  void                            SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, unsigned char *&shadowTex, unsigned char *&alphaTex);
 
-  static unsigned int       syncLoadBuffer[15000];
+  static unsigned char      syncLoadBuffer[15000];
   static NTempest::C2Vector texCoordList[145];
   static NTempest::C2Vector texCoordList2[145];
   static NTempest::C2Vector rmTexCoordList[4][145];

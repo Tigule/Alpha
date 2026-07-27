@@ -396,11 +396,91 @@ class Sha1 {
 class BigNum {
  public:
   BigNum();
+  BigNum(const char *value);
+  BigNum(unsigned int value);
+  BigNum(const BigNum &copy);
   ~BigNum();
 
-  void    FromBinary(const void *data, unsigned int bytes);
-  void   *ToBinaryBuffer(void *data, unsigned int bytes) const;
+  BigNum &operator=(const char *value);
+  BigNum &operator=(unsigned int value);
+  BigNum &operator=(const BigNum &copy);
+
+  BigNum &Add(const BigNum &a, const BigNum &b);
+  BigNum &Sub(const BigNum &a, const BigNum &b);
+  BigNum &Mul(const BigNum &a, const BigNum &b);
+  BigNum &Div(const BigNum &a, const BigNum &b);
+  BigNum &Mod(const BigNum &a, const BigNum &b);
+  BigNum &And(const BigNum &a, const BigNum &b);
+  BigNum &Or(const BigNum &a, const BigNum &b);
+  BigNum &Xor(const BigNum &a, const BigNum &b);
+  BigNum &Not(const BigNum &a);
+  BigNum &Dec(const BigNum &a);
+  BigNum &Inc(const BigNum &a);
+  BigNum &Shl(const BigNum &a, unsigned int bits);
+  BigNum &Shr(const BigNum &a, unsigned int bits);
+
+  BigNum operator+(const BigNum &value);
+  BigNum operator-(const BigNum &value);
+  BigNum operator*(const BigNum &value);
+  BigNum operator/(const BigNum &value);
+  BigNum operator%(const BigNum &value);
+  BigNum operator&(const BigNum &value);
+  BigNum operator|(const BigNum &value);
+  BigNum operator^(const BigNum &value);
+  BigNum operator<<(unsigned int bits);
+  BigNum operator>>(unsigned int bits);
+  BigNum operator~();
+  BigNum &operator--();
+  BigNum  operator--(int);
+  BigNum &operator++();
+  BigNum  operator++(int);
+  BigNum &operator+=(const BigNum &value);
+  BigNum &operator-=(const BigNum &value);
+  BigNum &operator*=(const BigNum &value);
+  BigNum &operator/=(const BigNum &value);
+  BigNum &operator%=(const BigNum &value);
+  BigNum &operator&=(const BigNum &value);
+  BigNum &operator|=(const BigNum &value);
+  BigNum &operator^=(const BigNum &value);
+  BigNum &operator<<=(unsigned int bits);
+  BigNum &operator>>=(unsigned int bits);
+
+  int Compare(const BigNum &value);
+  int operator==(const BigNum &value);
+  int operator!=(const BigNum &value);
+  int operator<=(const BigNum &value);
+  int operator>=(const BigNum &value);
+  int operator<(const BigNum &value);
+  int operator>(const BigNum &value);
+
+  BigNum &FindPrime(unsigned int bits, const BigNum &seed);
+  BigNum &FindPrime(unsigned int bits, const BigNum &minimum, const BigNum &maximum);
+  BigNum &Gcd(const BigNum &value);
+  BigNum &Gcd(const BigNum &a, const BigNum &b);
+  BigNum &InvMod(const BigNum &value);
+  BigNum &InvMod(const BigNum &a, const BigNum &b);
+  BigNum &MulMod(const BigNum &a, const BigNum &b);
+  BigNum &MulMod(const BigNum &a, const BigNum &b, const BigNum &modulus);
+  BigNum &Pow(unsigned int exponent);
+  BigNum &Pow(const BigNum &value, unsigned int exponent);
+  BigNum &PowMod(const BigNum &value, const BigNum &modulus);
   BigNum &PowMod(const BigNum &b, const BigNum &c, const BigNum &d);
+  BigNum &Rand(const BigNum &maximum, BigNum *seed);
+  BigNum &Square();
+  BigNum &Square(const BigNum &value);
+
+  char        *ToStr(char *buffer, unsigned int bytes) const;
+  void        *ToBinaryBuffer(void *data, unsigned int bytes) const;
+  operator unsigned int();
+  void         FromBinary(const void *data, unsigned int bytes);
+  int          IsEven();
+  int          IsOdd();
+  int          IsOne();
+  int          IsPrime();
+  int          IsZero();
+  BigNum      &Set2Exp(unsigned int exponent);
+  BigNum      &SetOne();
+  BigNum      &SetZero();
 
  private:
   BigData *m_data;
@@ -411,8 +491,18 @@ BigNum::BigNum() {
   SBigNew(&m_data);
 }
 
+BigNum::BigNum(const BigNum &copy) {
+  SBigNew(&m_data);
+  SBigCopy(m_data, copy.m_data);
+}
+
 BigNum::~BigNum() {
   SBigDel(m_data);
+}
+
+BigNum &BigNum::operator=(const BigNum &copy) {
+  SBigCopy(m_data, copy.m_data);
+  return *this;
 }
 #endif
 
@@ -629,9 +719,10 @@ void SInterlockedSubNonAtomic(__int64 *valuePtr, const __int64 &delta);
 // --------------------------------
 
 class SCritSect {
- public:
+ private:
   unsigned char m_opaqueData[0x18];
 
+ public:
   SCritSect();
   ~SCritSect();
   void Enter();
@@ -643,26 +734,27 @@ class SCritSect {
   SCritSect &operator=(const SCritSect &);
 };
 
-class CDebugSCritSect : public SCritSect {
- public:
+class CDebugSCritSect : private SCritSect {
+ private:
   unsigned char m_debugData[0x0C];
 
   CDebugSCritSect();
-  ~CDebugSCritSect();
-  void                   Enter(const char *fileName, unsigned long line);
-  void                   Leave(const char *fileName, unsigned long line);
-  int                    TryEnter(const char *fileName, unsigned long line);
-  static void DumpAllEntries();
-
- private:
   CDebugSCritSect(const CDebugSCritSect &);
   CDebugSCritSect &operator=(const CDebugSCritSect &);
+
+ public:
+  ~CDebugSCritSect();
+  void        Enter(const char *fileName, unsigned long line);
+  void        Leave(const char *fileName, unsigned long line);
+  int         TryEnter(const char *fileName, unsigned long line);
+  static void DumpAllEntries();
 };
 
 class CSRWLock {
- public:
+ private:
   unsigned char m_opaqueData[0x0C];
 
+ public:
   CSRWLock();
   ~CSRWLock();
   void Enter(int forwriting);
@@ -674,26 +766,26 @@ class CSRWLock {
   CSRWLock &operator=(const CSRWLock &);
 };
 
-class CDebugSRWLock : public CSRWLock {
- public:
+class CDebugSRWLock : private CSRWLock {
+ private:
   unsigned char m_debugData[0x0C];
 
   CDebugSRWLock();
-  ~CDebugSRWLock();
-  void                   Enter(int forwriting, const char *fileName, unsigned long line);
-  void                   Leave(int fromwriting, const char *fileName, unsigned long line);
-  int                    TryEnter(int forwriting, const char *fileName, unsigned long line);
-  static void DumpAllEntries();
-
- private:
   CDebugSRWLock(const CDebugSRWLock &);
   CDebugSRWLock &operator=(const CDebugSRWLock &);
+
+ public:
+  ~CDebugSRWLock();
+  void        Enter(int forwriting, const char *fileName, unsigned long line);
+  void        Leave(int fromwriting, const char *fileName, unsigned long line);
+  int         TryEnter(int forwriting, const char *fileName, unsigned long line);
+  static void DumpAllEntries();
 };
 
 class SSyncObject {
- public:
-  unsigned char m_opaqueData[0x04];
+  friend unsigned long WaitMultiplePtr(unsigned int, SSyncObject **const, int, unsigned long);
 
+ public:
   SSyncObject();
   SSyncObject(const SSyncObject &rhs);
   ~SSyncObject();
@@ -703,12 +795,14 @@ class SSyncObject {
   unsigned long Wait(unsigned long timeoutMs);
 
  protected:
+  unsigned char m_opaqueData[0x04];
+
   void Copy(const SSyncObject &rhs);
 };
 
 class SInitCritSect {
  private:
-  volatile LONG m_spinLock;
+  LONG          m_spinLock;
   SCritSect    *m_critsect;
   unsigned char m_critsectData[0x18];
 
@@ -722,6 +816,7 @@ class SEvent : public SSyncObject {
   SEvent(int manualReset = 0, int initialValue = 0);
   ~SEvent() {
   }
+  SEvent &operator=(const SEvent &rhs);
   int Set();
   int Reset();
 };
@@ -729,6 +824,9 @@ class SEvent : public SSyncObject {
 class SSemaphore : public SSyncObject {
  public:
   SSemaphore(unsigned int initialCount, unsigned int maximumCount);
+  ~SSemaphore() {
+  }
+  SSemaphore &operator=(const SSemaphore &rhs);
   int Signal(unsigned int count);
 };
 
@@ -737,6 +835,8 @@ class SMutex : public SSyncObject {
   SMutex();
   SMutex(int initialOwner, const char *name);
   SMutex(const char *name);
+  ~SMutex();
+  SMutex &operator=(const SMutex &rhs);
   void Create(int initialOwner, const char *name);
   void Open(const char *name);
   int  Release();
@@ -762,6 +862,7 @@ class SThread : public SSyncObject {
   ~SThread();
 #endif
 
+  SThread &operator=(const SThread &rhs);
   static int Create(STHREADPROC proc, void *param, SThread &thread, char *name);
 };
 
@@ -883,6 +984,7 @@ enum SARCHIVE_TYPE {
 class SArchive {
   friend class SFile;
 
+ public:
   SARCHIVE_TYPE m_type;
   void         *m_archive;
 };
@@ -896,7 +998,9 @@ typedef struct SOVERLAPPED {
 
 class SFile {
   SFile(SFILE_TYPE type);
+  SFile(const SFile &);
   ~SFile();
+  SFile &operator=(const SFile &);
 
   static void DoAsyncRead(ASYNCREAD *ptr);
   static unsigned int APIENTRY ReadProc(void *__formal);
@@ -909,19 +1013,23 @@ class SFile {
   SArchive   *m_archive;
   char       *m_filename;
   char       *m_actualname;
-  DWORD       m_size;
-  DWORD      *m_zbuffer;
+  unsigned int m_size;
+  BYTE        *m_zbuffer;
   z_stream_s *m_zstream;
-  DWORD       m_curOffset;
+  unsigned int m_curOffset;
   SCritSect   m_lock;
-  HSFILE      m_hsfile;
+  void       *m_hsfile;
   ZipFileFCB *m_zipFile;
   MD5         m_md5;
   int         m_haveMD5;
   int         m_closeAfterLoad;
-  DWORD       m_asyncCount;
+  unsigned int m_asyncCount;
 
  public:
+  SFILE_TYPE GetDiskType();
+  DWORD      GetFileSize();
+  int        GetMD5(MD5 &sum);
+
   static DWORD APIENTRY Open(const char *filename, SFile **file);
   static DWORD APIENTRY OpenEx(SArchive *archive, const char *filename, DWORD flags, SFile **file);
   static DWORD APIENTRY Close(SFile *file);
@@ -941,6 +1049,7 @@ class SFile {
   static int APIENTRY      FileExists(const char *filename);
   static int APIENTRY      EnableDirectAccess(DWORD access);
   static void APIENTRY     DisableSFileCheckDisk();
+  static void APIENTRY     DisableSFileCritSection();
   static void APIENTRY     EnableHash(bool enable);
   static void APIENTRY     RebuildHash();
   static void Destroy();

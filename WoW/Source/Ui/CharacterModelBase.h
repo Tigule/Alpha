@@ -12,21 +12,23 @@ class CGCharacterModelBase : public CSimpleModel {
   static void UnregisterScriptMethods();
 
   virtual void UpdateModel();
-  virtual int  LookupScriptMethod(lua_State *L, const char *name);
   virtual void InitializeModel(HMODEL model) {
   }
-  virtual unsigned int GetUniquePaperDollModel() {
-    return 0;
+  virtual bool GetUniquePaperDollModel() {
+    return false;
   }
   void SetUnit(unsigned __int64 unitGUID);
   void SetRotationScale(float rotationScale) {
     m_rotationScale = rotationScale;
   }
 
- private:
+ protected:
+  virtual int LookupScriptMethod(lua_State *L, const char *name);
   void ConfigureCamera();
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
+
+ private:
   unsigned __int64                                            m_unit;
   float                                                       m_rotationScale;
 };

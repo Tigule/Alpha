@@ -25,6 +25,14 @@ namespace RegisterCombiners {
   };
 
   struct CombinerPortion {
+    enum {
+      VarA = 0,
+      VarB = 1,
+      VarC = 2,
+      VarD = 3,
+      Var_Count = 4
+    };
+
     CombinerVariable variable[4];
     CombinerOutput   output;
 
@@ -32,6 +40,12 @@ namespace RegisterCombiners {
   };
 
   struct GeneralCombiner {
+    enum {
+      Portion_Rgb = 0,
+      Portion_Alpha = 1,
+      Portion_Count = 2
+    };
+
     CombinerPortion    portion[2];
     NTempest::C4Vector constants[2];
 
@@ -39,6 +53,17 @@ namespace RegisterCombiners {
   };
 
   struct FinalCombiner {
+    enum {
+      VarA = 0,
+      VarB = 1,
+      VarC = 2,
+      VarD = 3,
+      VarE = 4,
+      VarF = 5,
+      VarG = 6,
+      Var_Count = 7
+    };
+
     CombinerVariable variable[7];
 
     void Realize();

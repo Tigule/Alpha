@@ -5,13 +5,15 @@
 
 namespace NTempest {
 
+  struct CFacet;
+
   class C4Plane {
    public:
-    C4Plane() : n(0.0f, 0.0f, 1.0f), d(0.0f) {
-    }
+    enum {
+      eComponents = 4
+    };
 
-    C4Plane(const C3Vector &n, float d) : n(n), d(d) {
-    }
+    C4Plane(const C3Vector &n = C3Vector(0.0f, 0.0f, 1.0f), float d = 0.0f);
 
     C4Plane(const C3Vector &normal, const C3Vector &point) : n(normal), d(-C3Vector::Dot(normal, point)) {
     }
@@ -23,12 +25,16 @@ namespace NTempest {
     C4Plane(float x, float y, float z, float distance) : n(x, y, z), d(distance) {
     }
 
+   protected:
+    friend struct CFacet;
+
     void From3Pos(const C3Vector &a, const C3Vector &b, const C3Vector &c) {
       n = C3Vector::Cross(b - a, c - a);
       n.Normalize();
       d = -C3Vector::Dot(n, a);
     }
 
+   public:
     const float *Access() const {
       return &n.x;
     }
@@ -108,5 +114,8 @@ namespace NTempest {
     C3Vector n;
     float    d;
   };
+
+  inline C4Plane::C4Plane(const C3Vector &n, float d) : n(n), d(d) {
+  }
 
 }  // namespace NTempest

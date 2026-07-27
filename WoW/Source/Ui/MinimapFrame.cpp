@@ -104,11 +104,11 @@ NTempest::C2Vector CGMinimapFrame::m_pingPosition;
 MinimapTexParams   CGMinimapFrame::s_minimapTexParams;
 
 NTempest::C2Vector CGMinimapFrame::WorldPosToMinimapFrameCoords(
-    NTempest::C3Vector centerPoint,
-    float              radius,
-    float              x,
-    float              y,
-    float              layoutScale
+    const NTempest::C3Vector centerPoint,
+    float                    radius,
+    float                    x,
+    float                    y,
+    float                    layoutScale
 ) {
   const float halfSize = 0.108f * layoutScale * 0.5f;
   const float ooRadius = 1.0f / radius;

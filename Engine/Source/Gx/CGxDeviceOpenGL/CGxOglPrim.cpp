@@ -33,6 +33,7 @@ class CGxBufOgl : public CGxBuf {
   void           *vertexPtr[GxVertexMembers_Last];
   unsigned short *indexPtr;
 
+ public:
   CGxBufOgl();
   int  LockVB();
   int  LockIB();

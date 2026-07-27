@@ -123,5 +123,5 @@ const char *FontFaceGetFontName(HFACE__ *handle) {
   FATALASSERT(handle);
 
   dataPtr = reinterpret_cast<FACEDATA *>(handle);
-  return dataPtr->m_key.GetString();
+  return dataPtr->GetString();
 }

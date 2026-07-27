@@ -47,17 +47,9 @@ class CCharEvent : public CEvent, public EVENT_DATA_CHAR {
     return *this;
   }
 
-  int IsShiftDown() {
-    return metaKeyState & (1 << KEY_SHIFT);
-  }
-
-  int IsControlDown() {
-    return metaKeyState & (1 << KEY_CONTROL);
-  }
-
-  int IsAltDown() {
-    return metaKeyState & (1 << KEY_ALT);
-  }
+  static int IsShiftDown();
+  static int IsControlDown();
+  static int IsAltDown();
 
   virtual ~CCharEvent() {
   }
@@ -113,17 +105,9 @@ class CKeyEvent : public CEvent, public EVENT_DATA_KEY {
     return *this;
   }
 
-  int IsShiftDown() {
-    return metaKeyState & (1 << KEY_SHIFT);
-  }
-
-  int IsControlDown() {
-    return metaKeyState & (1 << KEY_CONTROL);
-  }
-
-  int IsAltDown() {
-    return metaKeyState & (1 << KEY_ALT);
-  }
+  static int IsShiftDown();
+  static int IsControlDown();
+  static int IsAltDown();
 
   virtual ~CKeyEvent() {
   }

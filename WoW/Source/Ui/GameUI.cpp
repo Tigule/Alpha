@@ -3391,9 +3391,9 @@ static int Script_ToggleRun(lua_State *L) {
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   if (mover) {
-    unsigned int moveFlags = mover->m_move.GetMoveFlags();
-    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->m_move.GetMoveStartTime()) < 0) {
-      eventTime = mover->m_move.GetMoveStartTime();
+    unsigned int moveFlags = mover->GetMoveFlags();
+    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
+      eventTime = mover->GetMoveStartTime();
     }
 
     const CGUnitData *unitData = mover->GetUnitData();
@@ -3413,9 +3413,9 @@ static int Script_Jump(lua_State *L) {
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   if (mover) {
-    unsigned int moveFlags = mover->m_move.GetMoveFlags();
-    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->m_move.GetMoveStartTime()) < 0) {
-      eventTime = mover->m_move.GetMoveStartTime();
+    unsigned int moveFlags = mover->GetMoveFlags();
+    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
+      eventTime = mover->GetMoveStartTime();
     }
 
     const CGUnitData *unitData = mover->GetUnitData();
@@ -3951,7 +3951,7 @@ static int Script_GetCurrentPosition(lua_State *L) {
 static int Script_GetCursorPosition(lua_State *L) {
   NTempest::C2Vector pos;
   CSimpleTop        *top = CSimpleTop::GetInstance();
-  NDCToDDC(top->m_mousePosition.x, top->m_mousePosition.y, &pos.x, &pos.y);
+  top->GetMousePosition(pos);
   lua_pushnumber(L, pos.x * 1024.0f * 1.25f);
   lua_pushnumber(L, pos.y * 1024.0f * 1.25f);
   return 2;

@@ -12,7 +12,14 @@ class CSimpleModel : public CSimpleFrame {
   friend class CGMinimapFrame;
 
  public:
-  CSimpleModel(CSimpleFrame *parent);
+  enum {
+    MODEL_LOADED = 0x1,
+    MODEL_FOGGED = 0x2,
+    MODEL_CAMERA_WAITING = 0x4,
+    MODEL_USER_FLAG = 0x8
+  };
+
+  CSimpleModel(CSimpleFrame *parent = 0);
   virtual ~CSimpleModel();
 
   static void RegisterScriptMethods();
@@ -110,15 +117,14 @@ class CSimpleModel : public CSimpleFrame {
     return (m_flags & 0x4) ? 0 : m_camera;
   }
 
-  int HasFog() {
+  int HasFog() const {
     return (m_flags & 0x2) != 0;
   }
 
-  int IsModelLoaded();
-  int IsUserFlagSet(unsigned int flag);
+  int IsModelLoaded() const;
+  int IsUserFlagSet(unsigned int flag) const;
   void SetUserFlag(unsigned int flag, int set);
-  void SetModelLoaded(int loaded);
-  int IsWaitingForCamera();
+  int IsWaitingForCamera() const;
   void SetWaitingForCamera(int waiting);
 
   const NTempest::CImVector &GetFogColor() {
@@ -142,6 +148,7 @@ class CSimpleModel : public CSimpleFrame {
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);
 
+  void SetModelLoaded(int loaded);
   void FinishLoadingModel();
 
  private:

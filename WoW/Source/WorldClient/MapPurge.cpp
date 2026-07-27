@@ -109,7 +109,7 @@ void CMap::PurgeChunk(CMapChunk *chunk) {
 
 void CMapArea::Purge() {
   if (asyncObject) {
-    unsigned int *buffer = static_cast<unsigned int *>(asyncObject->buffer);
+    unsigned char *buffer = static_cast<unsigned char *>(asyncObject->buffer);
     AsyncFileReadDestroyObject(asyncObject);
     asyncObject = 0;
     if (buffer) {
@@ -159,7 +159,7 @@ void CMapArea::PurgeChunks() {
 
 void CMapChunk::Purge() {
   if (asyncObject) {
-    unsigned int *buffer = static_cast<unsigned int *>(asyncObject->buffer);
+    unsigned char *buffer = static_cast<unsigned char *>(asyncObject->buffer);
     AsyncFileReadDestroyObject(asyncObject);
     asyncObject = 0;
     if (buffer) {
@@ -236,7 +236,7 @@ void CMapChunk::Purge() {
   while (reinterpret_cast<long>(soundEmitter) > 0) {
     CMapSoundEmitter *next = soundEmitterList.RawNext(soundEmitter);
     if (soundEmitterDestroyHandler) {
-      soundEmitterDestroyHandler(*reinterpret_cast<unsigned long *>(soundEmitter));
+      soundEmitterDestroyHandler(soundEmitter->data.soundPointID);
     }
     CMap::FreeSoundEmitter(soundEmitter);
     soundEmitter = next;

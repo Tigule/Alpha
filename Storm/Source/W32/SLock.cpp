@@ -5,13 +5,13 @@ void __cdecl SOutputDebugString(const char *format, ...);
 
 namespace SRWLock {
   struct SUNNLOCK {
-    volatile long m_state;
-    volatile long m_event;
+    long m_state;
+    long m_event;
   };
 
   struct SURWLOCK {
-    SUNNLOCK      m_mutex;
-    volatile long m_readerEvent;
+    SUNNLOCK m_mutex;
+    long      m_readerEvent;
   };
 
   void IInitialize();
@@ -69,7 +69,7 @@ static long          s_freeTail[SRW_EVENT_TYPES];
 static long          s_freeCount[SRW_EVENT_TYPES];
 
 template <class T>
-class CDebugLock {
+class CDebugLock : public T {
  public:
   static void Construct(CDebugLockData *lock);
   static void Destruct(CDebugLockData *lock);
@@ -85,10 +85,23 @@ class CDebugLock {
   static void IEnterEntry(DWORD e);
 
  private:
+  CDebugLock(const CDebugLock &);
+  CDebugLock &operator=(const CDebugLock &);
+
+  enum {
+    MAX_ENTRIES = 256
+  };
+  enum {
+    LOCKENTERED = 0x80000000
+  };
+  enum {
+    FORWRITING = 0x40000000
+  };
+
   static void IRepairBadEntry(CDebugLockData *lock, DWORD e, CDebugLockEntry *eptr, const char *fileName, DWORD line);
 
   static CInitCritSect   s_critsect;
-  static CDebugLockEntry s_entries[256];
+  static CDebugLockEntry s_entries[MAX_ENTRIES];
   static DWORD           s_freeEntries;
   static CDebugLockData *s_locks;
 };
@@ -665,7 +678,7 @@ void CDebugLock<T>::Destruct(CDebugLockData *lock) {
 template <class T>
 CInitCritSect CDebugLock<T>::s_critsect;
 template <class T>
-CDebugLockEntry CDebugLock<T>::s_entries[256];
+CDebugLockEntry CDebugLock<T>::s_entries[CDebugLock<T>::MAX_ENTRIES];
 template <class T>
 DWORD CDebugLock<T>::s_freeEntries;
 template <class T>

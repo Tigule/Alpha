@@ -17,7 +17,7 @@ class CreatureSoundDataRec {
     return 108;
   }
 
-  int GetID() {
+  int GetID() const {
     return m_ID;
   }
 

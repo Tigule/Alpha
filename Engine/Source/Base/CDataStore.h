@@ -7,7 +7,74 @@ class unreal;
 
 class CDataStore {
  public:
-  unsigned char *Alloc(unsigned int bytes, const char *fileName, int lineNumber) {
+  template <class T>
+  struct Space {
+    unsigned int m_pos;
+
+    Space();
+    unsigned int GetDifferenceInclusive(const CDataStore &) const;
+    unsigned int GetDifferenceExclusive(const CDataStore &) const;
+    void Set(CDataStore &, T);
+    void SetDifferenceInclusive(CDataStore &);
+    void SetDifferenceExclusive(CDataStore &);
+  };
+
+  template <class T, unsigned int MAXSIZE>
+  struct FixedString {
+    T m_data[MAXSIZE];
+
+    FixedString();
+    FixedString(const T *);
+    FixedString &operator=(const T *);
+    unsigned int MaxSize() const;
+    int Compare(const T *) const;
+    int CompareI(const T *) const;
+    void Copy(const T *);
+    void Reset();
+  };
+
+  template <class SIZET, unsigned int MAXSIZE>
+  struct FixedBuffer {
+    SIZET         m_size;
+    unsigned char m_data[MAXSIZE];
+
+    FixedBuffer();
+    FixedBuffer(const FixedBuffer &);
+    FixedBuffer &operator=(const FixedBuffer &);
+    FixedBuffer &operator=(const CDataStore &);
+    operator void *();
+    operator const void *() const;
+    unsigned int MaxSize() const;
+    unsigned int Size() const;
+    unsigned int MaxBytes() const;
+    unsigned int Bytes() const;
+    int Compare(const FixedBuffer &) const;
+    void Copy(const FixedBuffer &);
+    void Copy(const void *, SIZET);
+    void Copy(const CDataStore &);
+    void Reset();
+  };
+
+  template <class SIZET, class T, unsigned int MAXSIZE>
+  struct FixedArray {
+    SIZET m_size;
+    T     m_data[MAXSIZE];
+
+    FixedArray();
+    FixedArray(const FixedArray &);
+    FixedArray &operator=(const FixedArray &);
+    unsigned int MaxSize() const;
+    unsigned int Size() const;
+    unsigned int MaxBytes() const;
+    unsigned int Bytes() const;
+    void Copy(const FixedArray &);
+    void Copy(const T *, SIZET);
+    void Reset();
+    void PutFast(CDataStore &) const;
+    void GetFast(CDataStore &);
+  };
+
+  static unsigned char *Alloc(unsigned int bytes, const char *fileName, int lineNumber) {
     if (!bytes) {
       return 0;
     }
@@ -20,7 +87,7 @@ class CDataStore {
     return static_cast<unsigned char *>(SMemAlloc(bytes, fileName, lineNumber, 0));
   }
 
-  void Free(unsigned char *data, const char *fileName, int lineNumber) {
+  static void Free(unsigned char *data, const char *fileName, int lineNumber) {
     if (!fileName) {
       fileName = __FILE__;
       lineNumber = __LINE__;
@@ -29,7 +96,7 @@ class CDataStore {
     SMemFree(data, fileName, lineNumber, 0);
   }
 
-  unsigned char *Realloc(unsigned char *data, unsigned int bytes, const char *fileName, int lineNumber) {
+  static unsigned char *Realloc(unsigned char *data, unsigned int bytes, const char *fileName, int lineNumber) {
     if (!fileName) {
       fileName = __FILE__;
       lineNumber = __LINE__;
@@ -125,15 +192,13 @@ class CDataStore {
     return m_read <= m_size;
   }
 
-  int IsReadOnly() {
+  int IsReadOnly() const {
     return m_alloc == static_cast<unsigned int>(-1);
   }
 
-  operator void *() {
-    return IsValid() ? this : 0;
-  }
+  operator void *() const;
 
-  int operator!() {
+  int operator!() const {
     return !IsValid();
   }
 
@@ -325,6 +390,7 @@ class CDataStore {
   CDataStore &GetFloat(float &val) { return Get(val); }
   CDataStore &GetCharString(char *val, unsigned int maxChars) { return GetString(val, maxChars); }
   CDataStore &GetWcharString(unsigned short *val, unsigned int maxChars) { return GetString(val, maxChars); }
+  CDataStore &GetTcharString(char *val, unsigned int maxChars);
   CDataStore &GetUcharArray(unsigned char *val, unsigned int count) { return GetArray(val, count); }
   CDataStore &GetUshortArray(unsigned short *val, unsigned int count) { return GetArray(val, count); }
   CDataStore &GetUlongArray(unsigned long *val, unsigned int count) { return GetArray(val, count); }

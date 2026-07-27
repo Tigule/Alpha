@@ -37,7 +37,7 @@ static void IReadTextureAnim(
       UTokenData tokenData;
       long expected = parse.GetOptionalInt(&token, &tokenText, &tokenData);
       if (expected > 0) {
-        track.keys.Reserve(expected);
+        track.keys.ReserveSpace(expected);
       }
       parse.Expect('{', token, tokenText);
       token = ReadFloatTrackHeader(
@@ -86,7 +86,7 @@ int ReadTextureAnims(
   const char *tokenText;
   long expected = parse.GetOptionalInt(&token, &tokenText, 0);
   if (expected > 0) {
-    data.textureanims.Reserve(expected);
+    data.textureanims.ReserveSpace(expected);
   }
   parse.Expect('{', token, tokenText);
   token = parse.Token(&tokenText, 0);
@@ -293,7 +293,7 @@ int ReadBinTextureAnims(
   unsigned int count = buffer.GetUint();
   unsigned int totalRead = 4;
   data.textureanims.SetCount(0);
-  data.textureanims.Reserve(count);
+  data.textureanims.ReserveSpace(count);
   while (totalRead < length) {
     MDLTEXANIMSECTION *section = data.textureanims.New();
     if (!section) {

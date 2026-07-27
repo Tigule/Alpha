@@ -12,15 +12,19 @@ DECLARE_DERIVED_HANDLE(HMATERIALSHARED, HOBJECT);
 struct CModelTexture;
 
 struct CTmuPassUnique {
-  CTmuPassUnique() : combiner(GxTexBlend_Mod), textureId(static_cast<unsigned int>(-1)) {
+  CTmuPassUnique() : combiner(GxTexBlend_Mod), textureId(-1) {
   }
+
+  static int Compare(
+      const CModelTexture *, const CModelTexture *, const CTmuPassUnique &, const CTmuPassUnique &
+  );
 
   EGxTexBlend  combiner;
   unsigned int textureId;
 };
 
 struct CTmuPassShared {
-  CTmuPassShared() : transformId(static_cast<unsigned int>(-1)), coordId(0), textureShader(GxTS_PassThru), flags(0) {
+  CTmuPassShared() : transformId(-1), coordId(0), textureShader(GxTS_PassThru), flags(0) {
   }
 
   unsigned int     transformId;

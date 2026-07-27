@@ -42,25 +42,28 @@ float OrganicSmooth(float from, float to, float progress);
 class RangeList {
  public:
   struct range {
-    float min;
-    float max;
+    float m_min;
+    float m_max;
   };
 
   RangeList(float min, float max) : m_numranges(1) {
-    m_ranges[0].min = min;
-    m_ranges[0].max = max;
+    m_ranges[0].m_min = min;
+    m_ranges[0].m_max = max;
   }
 
   int GetNumRanges() const {
     return m_numranges;
   }
 
-  range GetRange(int index) const {
+  int GetRange(int index, float &min, float &max) {
+    min = 0.0f;
+    max = 0.0f;
     if (index >= 0 && index < m_numranges) {
-      return m_ranges[index];
+      min = m_ranges[index].m_min;
+      max = m_ranges[index].m_max;
+      return 1;
     }
-    range empty = {0.0f, 0.0f};
-    return empty;
+    return 0;
   }
 
   void RemoveRange(float iMin, float iMax);
@@ -75,10 +78,10 @@ void RangeList::RemoveRange(float iMin, float iMax) {
     int numranges = m_numranges;
     int i = 0;
     while (i < numranges) {
-      if (iMax <= m_ranges[i].min) {
+      if (iMax <= m_ranges[i].m_min) {
         return;
       }
-      if (iMin < m_ranges[i].max) {
+      if (iMin < m_ranges[i].m_max) {
         break;
       }
       ++i;
@@ -88,20 +91,20 @@ void RangeList::RemoveRange(float iMin, float iMax) {
       return;
     }
 
-    if (iMin <= m_ranges[i].min) {
-      if (iMax < m_ranges[i].max) {
-        m_ranges[i].min = iMax;
+    if (iMin <= m_ranges[i].m_min) {
+      if (iMax < m_ranges[i].m_max) {
+        m_ranges[i].m_min = iMax;
         return;
       }
 
-      iMin = m_ranges[i].max;
+      iMin = m_ranges[i].m_max;
       --m_numranges;
       memmove(&m_ranges[i], &m_ranges[i + 1], sizeof(range) * (m_numranges - i));
       if (iMin >= iMax) {
         return;
       }
     } else {
-      if (iMax < m_ranges[i].max) {
+      if (iMax < m_ranges[i].m_max) {
         if (i < 3) {
           if (i < m_numranges - 1) {
             memmove(&m_ranges[i + 2], &m_ranges[i + 1], sizeof(range) * (m_numranges - (i + 1)));
@@ -111,15 +114,15 @@ void RangeList::RemoveRange(float iMin, float iMax) {
           }
         }
         if (i < 4) {
-          m_ranges[i + 1].min = iMax;
-          m_ranges[i + 1].max = m_ranges[i].max;
+          m_ranges[i + 1].m_min = iMax;
+          m_ranges[i + 1].m_max = m_ranges[i].m_max;
         }
-        m_ranges[i].max = iMin;
+        m_ranges[i].m_max = iMin;
         return;
       }
 
-      float oldmax = m_ranges[i].max;
-      m_ranges[i].max = iMin;
+      float oldmax = m_ranges[i].m_max;
+      m_ranges[i].m_max = iMin;
       iMin = oldmax;
       if (iMin >= iMax) {
         return;
@@ -640,9 +643,11 @@ float CGCamera::GetCameraDistance(float cameraDist, const NTempest::C3Vector &ta
     float normalizedCameraBump = 0.11111111f / normalizedDist;
     float boxLength = 1.0f;
     for (int i = 0; i < boxRange.GetNumRanges(); ++i) {
-      RangeList::range range = boxRange.GetRange(i);
-      if (range.max - range.min > normalizedCameraBump) {
-        boxLength = range.min + normalizedCameraBump;
+      float min;
+      float max;
+      boxRange.GetRange(i, min, max);
+      if (max - min > normalizedCameraBump) {
+        boxLength = min + normalizedCameraBump;
         break;
       }
     }

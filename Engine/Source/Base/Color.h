@@ -8,6 +8,9 @@ class C3Color {
   C3Color(float r, float g, float b) : b(b), g(g), r(r) {
   }
 
+  C3Color(const C3Color &x) : b(x.b), g(x.g), r(x.r) {
+  }
+
   C3Color &operator+=(const C3Color &x) {
     b += x.b;
     g += x.g;
@@ -50,11 +53,11 @@ class C3Color {
     return *this;
   }
 
-  int operator==(const C3Color &x) {
+  int operator==(const C3Color &x) const {
     return b == x.b && g == x.g && r == x.r;
   }
 
-  int operator!=(const C3Color &x) {
+  int operator!=(const C3Color &x) const {
     return !(*this == x);
   }
 

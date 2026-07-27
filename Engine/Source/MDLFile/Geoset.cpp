@@ -21,7 +21,7 @@ void ReadVertices(
   const char *tokenText;
   long count = parse.GetOptionalInt(&token, &tokenText, 0);
   if (count > 0) {
-    vertices->Reserve(count);
+    vertices->ReserveSpace(count);
   }
   parse.Expect('{', token, tokenText);
 
@@ -164,7 +164,7 @@ static void IReadTVertices(
   const char *tokenText;
   long count = parse.GetOptionalInt(&token, &tokenText, 0);
   if (count > 0) {
-    texcoords->Reserve(count);
+    texcoords->ReserveSpace(count);
   }
   parse.Expect('{', token, tokenText);
   long actual = 0;
@@ -542,9 +542,9 @@ static void IReadGroups(
     estimatedMatrices = parse.GetOptionalInt(
         token, &tokenData, &token, &tokenText
     );
-    geoset->groupMatrixCounts.Reserve(estimatedGroups);
+    geoset->groupMatrixCounts.ReserveSpace(estimatedGroups);
     if (estimatedMatrices > 0) {
-      geoset->matrices.Reserve(estimatedMatrices);
+      geoset->matrices.ReserveSpace(estimatedMatrices);
     }
   }
   parse.Expect('{', token, tokenText);
@@ -588,7 +588,7 @@ static void IReadGroups(
 
 static void IReadBoneWeights(Parser &parse, MDLGEOSETSECTION *geoset) {
   unsigned int count = parse.ExpectInt();
-  geoset->boneWeights.Reserve(count);
+  geoset->boneWeights.ReserveSpace(count);
   parse.Expect('{');
   for (unsigned int i = 0; i < count; ++i) {
     *geoset->boneWeights.New() = parse.ExpectInt();
@@ -599,7 +599,7 @@ static void IReadBoneWeights(Parser &parse, MDLGEOSETSECTION *geoset) {
 
 static void IReadBoneIndices(Parser &parse, MDLGEOSETSECTION *geoset) {
   unsigned int count = parse.ExpectInt();
-  geoset->boneIndices.Reserve(count);
+  geoset->boneIndices.ReserveSpace(count);
   parse.Expect('{');
   for (unsigned int i = 0; i < count; ++i) {
     *geoset->boneIndices.New() = parse.ExpectInt();
@@ -612,7 +612,7 @@ static void IReadVertexGroupIds(
     Parser &parse,
     MDLGEOSETSECTION *geoset
 ) {
-  geoset->vertGroupIndices.Reserve(geoset->vertices.Count());
+  geoset->vertGroupIndices.ReserveSpace(geoset->vertices.Count());
   parse.Expect('{');
   const char *tokenText;
   UTokenData tokenData;
@@ -974,7 +974,7 @@ int ReadGeoset(
     geosetAnim->geosetId = data.geosets.Count() - 1;
     IGeosetAnimAddErrors(geosetAnimErrors);
   }
-  geoset->seqBounds.Reserve(data.sequences.Count());
+  geoset->seqBounds.ReserveSpace(data.sequences.Count());
 
   TSet errors;
   IGeosetAddErrors(errors);
@@ -1246,7 +1246,7 @@ int ReadBinGeosetAnim(
 ) {
   unsigned int totalRead = 4;
   unsigned int count = buffer.GetUint();
-  data.geosetAnims.Reserve(count);
+  data.geosetAnims.ReserveSpace(count);
   while (totalRead < length) {
     MDLGEOSETANIMSECTION *section = data.geosetAnims.New();
     if (!section) {
@@ -1550,7 +1550,7 @@ int ReadBinGeosets(
   unsigned int totalRead = 4;
   unsigned int count = buffer.GetUint();
   data.geosets.SetCount(0);
-  data.geosets.Reserve(count);
+  data.geosets.ReserveSpace(count);
   while (totalRead < length) {
     MDLGEOSETSECTION *section = data.geosets.New();
     if (!ReadBinGeoset(buffer, section, status, totalRead)) {

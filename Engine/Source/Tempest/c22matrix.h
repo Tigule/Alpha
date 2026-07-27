@@ -6,6 +6,10 @@ namespace NTempest {
 
   class C22Matrix {
    public:
+    enum {
+      eComponents = 4
+    };
+
     C22Matrix() : a0(1.0f), a1(0.0f), b0(0.0f), b1(1.0f) {}
     explicit C22Matrix(float value) : a0(value), a1(value), b0(value), b1(value) {}
     C22Matrix(float a0, float a1, float b0, float b1) : a0(a0), a1(a1), b0(b0), b1(b1) {}

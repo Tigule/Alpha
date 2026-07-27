@@ -20,7 +20,8 @@ class CGTaxiMap {
   static void EnterWorld();
   static void LeaveWorld();
   static void
-  SetupMap(const unsigned __int64 &unit, unsigned int node, __int64 destNodes, __int64 knownNodes, NTempest::CRect &visibleArea);
+  SetupMap(const unsigned __int64 &unit, unsigned int node, __int64 destNodes, __int64 knownNodes, const NTempest::CRect &visibleArea);
+  static void BuildTaxiNodeLines(__int64 nodes, const NTempest::CRect &visibleArea);
   static void CloseMap();
   static unsigned int NumTaxiNodes() {
     return m_nodes.Count();

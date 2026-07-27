@@ -91,7 +91,7 @@ namespace Storm {
       void          *sectorfile;
       DWORD          sectorlocation;
       DWORD          sectorsize;
-      DWORD         *sectorbuffer;
+      BYTE          *sectorbuffer;
       DWORD          sectorbytesread;
       DWORD          startinglocation;
       DWORD          endinglocation;
@@ -150,7 +150,7 @@ namespace Storm {
       IDirectSoundBuffer *soundbuffer;
       DWORD               soundbuffersize;
       int                 soundbufferlocal;
-      DWORD               fillvalue;
+      BYTE                fillvalue;
       LONG                refcount;
     };
 
@@ -162,7 +162,7 @@ namespace Storm {
       DWORD s_dataChunkSize;
       int   s_seekOptimize;
       DWORD WAVECHUNKSIZE;
-      DWORD s_asyncBudget;
+      unsigned int s_asyncBudget;
       DWORD s_directaccess;
       char  s_basepath[260];
       void(APIENTRY *s_loadNotifyProc)(const char *, void *);
@@ -170,7 +170,7 @@ namespace Storm {
     };
 
     struct ArchivePtr {
-      ArchivePtr(HSARCHIVE hArchive);
+      ArchivePtr(HSARCHIVE hArchive = 0);
       ~ArchivePtr();
       void        Enter();
       void        Leave();
@@ -3305,7 +3305,7 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
   FREE(archivebuffer);
 
   archiveptr->sectorsize = 0x200 << archiveptr->header.sectorsizeid;
-  archiveptr->sectorbuffer = (DWORD *)ALLOC(archiveptr->sectorsize);
+  archiveptr->sectorbuffer = (BYTE *)ALLOC(archiveptr->sectorsize);
 
   bufferbytes = archiveptr->header.hashcount << 4;
   archiveptr->hashtable = (SFileHashEntryData *)ALLOC(bufferbytes);

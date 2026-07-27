@@ -11,17 +11,33 @@ namespace NTempest {
 
   class CImVector {
    public:
-    CImVector() {
-      *reinterpret_cast<unsigned long *>(this) = 0;
-    }
+    enum {
+      eTransparent = 0,
+      eOpaque8bit = 255,
+      eOpaque = 256
+    };
+    enum {
+      eBlueMask = 0x000000FF,
+      eGreenMask = 0x0000FF00,
+      eRedMask = 0x00FF0000,
+      eAlphaMask = 0xFF000000,
+      eNotBlueMask = ~eBlueMask,
+      eNotGreenMask = ~eGreenMask,
+      eNotRedMask = ~eRedMask,
+      eNotAlphaMask = ~eAlphaMask
+    };
+    enum {
+      eAlphaS = 24,
+      eRedS = 16,
+      eGreenS = 8,
+      eBlueS = 0
+    };
 
     CImVector(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
       Set(alpha, red, green, blue);
     }
 
-    CImVector(unsigned long n) {
-      *reinterpret_cast<unsigned long *>(this) = n;
-    }
+    CImVector(unsigned long n = 0);
 
     CImVector(unsigned char red, unsigned char green, unsigned char blue) {
       Set(0, red, green, blue);
@@ -76,11 +92,47 @@ namespace NTempest {
       *IV_() = *c.IV_();
       return *this;
     }
+    static unsigned long MakeRGB(unsigned char red, unsigned char green, unsigned char blue);
+    static unsigned long A_(unsigned long value);
+    unsigned long A_() const;
+    static unsigned long R_(unsigned long value);
+    unsigned long R_() const;
+    static unsigned long G_(unsigned long value);
+    unsigned long G_() const;
+    static unsigned long B_(unsigned long value);
+    unsigned long B_() const;
+    static void Get_(unsigned long value, float &alpha, float &red, float &green, float &blue);
+    static void Get_(
+        unsigned long value,
+        unsigned long &alpha,
+        unsigned long &red,
+        unsigned long &green,
+        unsigned long &blue);
+    static void Get_(unsigned long value, unsigned long &red, unsigned long &green, unsigned long &blue);
+    static unsigned long Neg(unsigned long value);
+    void Neg();
+    static unsigned long NegRGB(unsigned long value);
+    void NegRGB();
+    static unsigned long Desaturate(unsigned long value);
+    void Desaturate();
+    static unsigned long NegA(unsigned long value);
+    void NegA();
+    static unsigned long NegR(unsigned long value);
+    void NegR();
+    static unsigned long NegG(unsigned long value);
+    void NegG();
+    static unsigned long NegB(unsigned long value);
+    void NegB();
+    static unsigned char Gray(unsigned long value);
+    unsigned char Gray() const;
     CImVector &operator=(const C3Vector &c);
                operator C3Vector() const;
 
    protected:
-    unsigned long SetC_(unsigned long value, unsigned long mask, unsigned long shift);
+    unsigned long SetC_(unsigned long value, unsigned long mask, unsigned long shift) const;
+    static unsigned char ScaleC(unsigned long value, unsigned long scale);
+    static unsigned char ScaleC255(unsigned long value, unsigned long scale);
+    static unsigned char BlendC(unsigned long alpha, unsigned long source, unsigned long destination);
     void Scale_(unsigned long scale);
     void ScaleRGB_(unsigned long scale);
     void Scale255RGB_(unsigned long scale);
@@ -208,26 +260,43 @@ namespace NTempest {
       return (&b)[index];
     }
 
+   protected:
+    static unsigned char s_a1Table[];
+    static unsigned char s_a4Table[];
+
+   public:
     unsigned char b;
     unsigned char g;
     unsigned char r;
     unsigned char a;
   };
 
+  inline CImVector::CImVector(unsigned long n) {
+    *reinterpret_cast<unsigned long *>(this) = n;
+  }
+
   class CRgb565 {
    public:
+    enum {
+      eBlueMask = 0x001F,
+      eGreenMask = 0x07C0,
+      eRedMask = 0xF800
+    };
+    enum {
+      eNotBlueMask = ~eBlueMask,
+      eNotGreenMask = ~eGreenMask,
+      eNotRedMask = ~eRedMask
+    };
+
     CRgb565() {
     }
 
     CRgb565(unsigned short value) {
-      *Value() = value;
+      *reinterpret_cast<unsigned short *>(this) = value;
     }
 
     CRgb565(unsigned char r5, unsigned char g6, unsigned char b5) {
       From565(r5, g6, b5);
-    }
-
-    ~CRgb565() {
     }
 
     void From565(unsigned char r5, unsigned char g6, unsigned char b5) {
@@ -235,6 +304,12 @@ namespace NTempest {
       g = g6;
       b = b5;
     }
+    void From888(unsigned int red, unsigned int green, unsigned int blue);
+    void From555(unsigned char red, unsigned char green, unsigned char blue);
+    void From444(unsigned char red, unsigned char green, unsigned char blue);
+    void FromARGB(unsigned char alpha, const CRgb565 &rgb);
+    CImVector MakeArgb() const;
+    static CRgb565 Blend(unsigned long alpha, const CRgb565 &source, const CRgb565 &destination);
 
     CRgb565 &operator=(const CImVector &c) {
       r = c.r >> 3;
@@ -244,22 +319,23 @@ namespace NTempest {
     }
 
     CRgb565 &operator=(unsigned short value) {
-      *Value() = value;
+      *reinterpret_cast<unsigned short *>(this) = value;
       return *this;
     }
+    CRgb565 &operator=(const CRgb565 &value) {
+      return *this = static_cast<unsigned short>(value);
+    }
+    CRgb565 &operator=(const CArgb1555 &value);
+    CRgb565 &operator=(const CArgb4444 &value);
 
     operator unsigned short() const {
-      return *Value();
+      return *reinterpret_cast<const unsigned short *>(this);
     }
 
-    unsigned short *Value() {
-      return reinterpret_cast<unsigned short *>(this);
-    }
+   private:
+    static unsigned char BlendC(unsigned long alpha, unsigned long source, unsigned long destination);
 
-    const unsigned short *Value() const {
-      return reinterpret_cast<const unsigned short *>(this);
-    }
-
+   public:
     unsigned short b : 5;
     unsigned short g : 6;
     unsigned short r : 5;
@@ -267,11 +343,24 @@ namespace NTempest {
 
   class CArgb1555 {
    public:
+    enum {
+      eBlueMask = 0x001F,
+      eGreenMask = 0x03E0,
+      eRedMask = 0x7C00,
+      eAlphaMask = 0x8000
+    };
+    enum {
+      eNotBlueMask = ~eBlueMask,
+      eNotGreenMask = ~eGreenMask,
+      eNotRedMask = ~eRedMask,
+      eNotAlphaMask = ~eAlphaMask
+    };
+
     CArgb1555() {
     }
 
     CArgb1555(unsigned short value) {
-      *Value() = value;
+      *reinterpret_cast<unsigned short *>(this) = value;
     }
 
     CArgb1555(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
@@ -281,15 +370,20 @@ namespace NTempest {
       b = blue;
     }
 
-    ~CArgb1555() {
-    }
-
     void From565(unsigned char r5, unsigned char g6, unsigned char b5) {
       a = 1;
       r = r5;
       g = g6 >> 1;
       b = b5;
     }
+    void From1555(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
+    void From4444(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
+    void From8888(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
+    void FromARGB(unsigned char alpha, const CArgb1555 &rgb);
+    CArgb1555 &operator=(const CArgb1555 &value) {
+      return *this = static_cast<unsigned short>(value);
+    }
+    CArgb1555 &operator=(const CArgb4444 &value);
 
     CArgb1555 &operator=(const CRgb565 &c) {
       From565(c.r, c.g, c.b);
@@ -305,20 +399,12 @@ namespace NTempest {
     }
 
     CArgb1555 &operator=(unsigned short value) {
-      *Value() = value;
+      *reinterpret_cast<unsigned short *>(this) = value;
       return *this;
     }
 
     operator unsigned short() const {
-      return *Value();
-    }
-
-    unsigned short *Value() {
-      return reinterpret_cast<unsigned short *>(this);
-    }
-
-    const unsigned short *Value() const {
-      return reinterpret_cast<const unsigned short *>(this);
+      return *reinterpret_cast<const unsigned short *>(this);
     }
 
     unsigned short b : 5;
@@ -329,11 +415,24 @@ namespace NTempest {
 
   class CArgb4444 {
    public:
+    enum {
+      eBlueMask = 0x000F,
+      eGreenMask = 0x00F0,
+      eRedMask = 0x0F00,
+      eAlphaMask = 0xF000
+    };
+    enum {
+      eNotBlueMask = ~eBlueMask,
+      eNotGreenMask = ~eGreenMask,
+      eNotRedMask = ~eRedMask,
+      eNotAlphaMask = ~eAlphaMask
+    };
+
     CArgb4444() {
     }
 
     CArgb4444(unsigned short value) {
-      *Value() = value;
+      *reinterpret_cast<unsigned short *>(this) = value;
     }
 
     CArgb4444(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
@@ -343,15 +442,20 @@ namespace NTempest {
       b = blue;
     }
 
-    ~CArgb4444() {
-    }
-
     void From565(unsigned char r5, unsigned char g6, unsigned char b5) {
       a = 15;
       r = r5 >> 1;
       g = g6 >> 2;
       b = b5 >> 1;
     }
+    void From1555(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
+    void From4444(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
+    void From8888(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
+    void FromARGB(unsigned char alpha, const CArgb4444 &rgb);
+    CArgb4444 &operator=(const CArgb4444 &value) {
+      return *this = static_cast<unsigned short>(value);
+    }
+    CArgb4444 &operator=(const CArgb1555 &value);
 
     CArgb4444 &operator=(const CRgb565 &c) {
       From565(c.r, c.g, c.b);
@@ -366,23 +470,19 @@ namespace NTempest {
       return *this;
     }
 
-    CArgb4444 &operator=(unsigned short value) {
-      *Value() = value;
+    CArgb4444 &operator=(const unsigned short value) {
+      *reinterpret_cast<unsigned short *>(this) = value;
       return *this;
     }
 
     operator unsigned short() const {
-      return *Value();
+      return *reinterpret_cast<const unsigned short *>(this);
     }
 
-    unsigned short *Value() {
-      return reinterpret_cast<unsigned short *>(this);
-    }
+   protected:
+    static unsigned char s_a1Table[];
 
-    const unsigned short *Value() const {
-      return reinterpret_cast<const unsigned short *>(this);
-    }
-
+   public:
     unsigned short b : 4;
     unsigned short g : 4;
     unsigned short r : 4;

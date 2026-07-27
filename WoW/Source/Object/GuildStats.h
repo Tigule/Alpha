@@ -8,8 +8,8 @@ class GuildStats {
   GuildStats() {
   }
 
-  int Version() {
-    return 1;
+  static int Version() {
+    return 0;
   }
   void Pack(CDataStore *msg);
 

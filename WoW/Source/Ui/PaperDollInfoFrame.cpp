@@ -405,7 +405,7 @@ int CGCharacterInfo::GetSkillOffsetFromString(const char *string, int &offset) {
   return 0;
 }
 
-SkillInfo *CGCharacterInfo::GetSkillInfoByIndex(int index) {
+const SkillInfo *CGCharacterInfo::GetSkillInfoByIndex(int index) {
   return index >= 0 && static_cast<unsigned int>(index) < m_numSkills ? &m_skillInfoList[index] : 0;
 }
 
@@ -601,7 +601,7 @@ static int Script_GetSkillByIndex(lua_State *L) {
       !lua_isnumber(L, 2)) {
     return luaL_error(L, "Invalid skill index in GetSkillByIndex(\"skillType\", index)");
   }
-  SkillInfo *info =
+  const SkillInfo *info =
       CGCharacterInfo::GetSkillInfoByIndex(static_cast<int>(lua_tonumber(L, 2)) + offset);
   if (!info) {
     return luaL_error(L, "Invalid skill index in GetSkillByIndex(\"skillType\", index)");

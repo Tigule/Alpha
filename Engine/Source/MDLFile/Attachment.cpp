@@ -43,7 +43,7 @@ static void IReadAttachment(
         UTokenData tokenData;
         long expected = parse.GetOptionalInt(&token, &tokenText, &tokenData);
         if (expected > 0) {
-          track.keys.Reserve(expected);
+          track.keys.ReserveSpace(expected);
         }
         parse.Expect('{', token, tokenText);
         token = parse.Token(&tokenText, &tokenData);
@@ -314,7 +314,7 @@ int ReadBinAttachments(
   unsigned int count = buffer.GetUint();
   buffer.GetUint();
   data.attachments.SetCount(0);
-  data.attachments.Reserve(count);
+  data.attachments.ReserveSpace(count);
   while (totalRead < length) {
     MDLATTACHMENTSECTION *attachment = data.attachments.New();
     if (!attachment) {

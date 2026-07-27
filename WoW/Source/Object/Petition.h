@@ -1,6 +1,8 @@
 #ifndef WOW_SOURCE_OBJECT_PETITION_H
 #define WOW_SOURCE_OBJECT_PETITION_H
 
+#include <storm.h>
+
 class CDataStore;
 
 class CGPetition {
@@ -32,7 +34,35 @@ class CGPetition {
     m_muid = 0;
   }
 
-  int Version() {
+  CGPetition &operator=(const CGPetition &petition) {
+    int index;
+
+    m_petitionID = petition.m_petitionID;
+    m_petitioner = petition.m_petitioner;
+    SStrCopy(m_title, petition.m_title, sizeof(m_title));
+    SStrCopy(m_bodyText, petition.m_bodyText, sizeof(m_bodyText));
+    m_flags = petition.m_flags;
+    m_minSignatures = petition.m_minSignatures;
+    m_maxSignatures = petition.m_maxSignatures;
+    m_deadLine = petition.m_deadLine;
+    m_issueDate = petition.m_issueDate;
+    m_allowedGuildID = petition.m_allowedGuildID;
+    m_allowedClasses = petition.m_allowedClasses;
+    m_allowedRaces = petition.m_allowedRaces;
+    m_allowedGender = petition.m_allowedGender;
+    m_allowedMaxLevel = petition.m_allowedMaxLevel;
+    m_allowedMinLevel = petition.m_allowedMinLevel;
+    m_muid = petition.m_muid;
+
+    for (index = 0; index < 10; ++index) {
+      SStrCopy(m_choicetext[index], petition.m_choicetext[index], sizeof(m_choicetext[index]));
+    }
+
+    m_numChoices = petition.m_numChoices;
+    return *this;
+  }
+
+  static int Version() {
     return 1;
   }
   void Pack(CDataStore *msg);

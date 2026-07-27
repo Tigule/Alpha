@@ -29,7 +29,8 @@ enum UNIT_UNITNAME_SHOWTYPE {
   UNIT_UNITNAME_SHOWTYPE_SUMMONED_BY
 };
 
-struct PLAYERNAMEDESC : public CHandleObject {
+class PLAYERNAMEDESC : public CHandleObject {
+ public:
   PLAYERNAMEDESC();
   virtual ~PLAYERNAMEDESC();
 
@@ -40,6 +41,8 @@ struct PLAYERNAMEDESC : public CHandleObject {
   void UpdateWorldText();
   void MoveGeoset(const NTempest::C3Vector &pos);
   void Render(const NTempest::C44Matrix &basis);
+  void SetStringColor(const NTempest::CImVector &color);
+  NTempest::CImVector GetStringColor() const;
 
   TSLink<PLAYERNAMEDESC> m_link;
   CGxString             *m_string;
@@ -75,7 +78,7 @@ static unsigned int                      s_lastRenderFrame;
 
 PLAYERNAMEDESC::PLAYERNAMEDESC()
     : m_string(0),
-      m_customGeosetID(static_cast<unsigned int>(-1)),
+      m_customGeosetID(-1),
       m_stringColor(0ul),
       m_lastUpdateTime(OsGetAsyncTimeMs()),
       m_basePos(0.0f),
@@ -93,7 +96,7 @@ PLAYERNAMEDESC::~PLAYERNAMEDESC() {
   if (m_unitPtr) {
     HMODEL model = m_unitPtr->GetCharacterModel(0);
     if (model) {
-      if (m_customGeosetID != static_cast<unsigned int>(-1)) {
+      if (m_customGeosetID != -1) {
         ModelCustGeosetRemove(model, m_customGeosetID);
       }
       HandleClose(model);
@@ -173,6 +176,13 @@ void PLAYERNAMEDESC::Render(const NTempest::C44Matrix &basis) {
   m_basePos.y = basis.d1;
   m_basePos.z = basis.d2;
   UpdateWorldPos();
+}
+
+void PLAYERNAMEDESC::SetStringColor(const NTempest::CImVector &color) {
+  m_stringColor = color;
+  if (m_string) {
+    GxuFontSetStringColor(m_string, color);
+  }
 }
 
 void PLAYERNAMEDESC::RenderWorldText() {
@@ -366,7 +376,7 @@ void PlayerNameChangeLocation(HPLAYERNAME__* name, const NTempest::C3Vector& nam
 
 void PLAYERNAMEDESC::MoveGeoset(const NTempest::C3Vector &pos) {
   if (m_unitPtr &&
-      m_customGeosetID != static_cast<unsigned int>(-1)) {
+      m_customGeosetID != -1) {
     HMODEL model = m_unitPtr->GetCharacterModel(0);
     FATALASSERT(model);
     ModelCustGeosetMove(model, m_customGeosetID, pos);

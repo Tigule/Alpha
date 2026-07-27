@@ -58,8 +58,11 @@ struct DamageData {
 };
 
 struct LOGBASE {
-  virtual void PI(CDataStore &msg, int debug);
-  virtual void UI(CDataStore &msg);
+  ~LOGBASE() {
+  }
+
+  virtual void PI(CDataStore &msg, int debug) = 0;
+  virtual void UI(CDataStore &msg) = 0;
 };
 
 struct DAMAGELOGBASE : public LOGBASE {
@@ -178,6 +181,11 @@ struct MIRRORTIMERDAMAGE : public LOGBASE {
 };
 
 struct PARTYKILLLOG : public LOGBASE {
+  PARTYKILLLOG(unsigned __int64 killer = 0, unsigned __int64 victim = 0);
+
+  PARTYKILLLOG(const PARTYKILLLOG &other) : killer(other.killer), victim(other.victim) {
+  }
+
   unsigned __int64 killer;
   unsigned __int64 victim;
 
@@ -185,14 +193,20 @@ struct PARTYKILLLOG : public LOGBASE {
   virtual void UI(CDataStore &msg);
 };
 
+inline PARTYKILLLOG::PARTYKILLLOG(unsigned __int64 killer, unsigned __int64 victim) : killer(killer), victim(victim) {
+}
+
 struct ANIMQUEUENODE : public TSLinkedNode<ANIMQUEUENODE> {
   ANIMQUEUETYPE   type;
   ATTACKROUNDINFO roundInfo;
 };
 
 class CCombat {
-  friend class CGUnit_C;
+ friend class CGUnit_C;
  public:
+  CCombat() : m_victim(0) {
+  }
+
   unsigned __int64 IsAttacking() const;
   void             SetAttacking(unsigned __int64 victim);
   void             StopAttack() {
@@ -206,13 +220,19 @@ class CCombat {
 };
 
 class CCombatClient : public CCombat {
-  friend class CGUnit_C;
+ friend class CGUnit_C;
  public:
+  CCombatClient() : m_attackSent(0), m_stopSent(0) {
+  }
+
   int AttackBeenSent() const {
     return m_attackSent;
   }
 
   void SetAttackSent(unsigned __int64 victim);
+  void SetAttacking(unsigned __int64 victim) {
+    CCombat::SetAttacking(victim);
+  }
   void StopAttack() {
     CCombat::StopAttack();
     m_attackSent = 0;

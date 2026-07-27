@@ -14,8 +14,8 @@ class NPCText {
     FREEIFUSED(m_text);
   }
 
-  int Version() {
-    return 1;
+  static int Version() {
+    return 6;
   }
   void Pack(CDataStore *msg);
   void Unpack(CDataStore *msg);

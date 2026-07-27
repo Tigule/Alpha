@@ -2013,7 +2013,7 @@ namespace OsNet {
 
     do {
       eventProcUserLock = m_eventProcUserLock & ~1;
-    } while (SInterlockedCompareExchange(reinterpret_cast<long *>(&m_eventProcUserLock), eventProcUserLock | 1, eventProcUserLock) !=
+    } while (SInterlockedCompareExchange(&m_eventProcUserLock, eventProcUserLock | 1, eventProcUserLock) !=
              eventProcUserLock);
 
     m_eventProc = eventProc;
@@ -2026,7 +2026,7 @@ namespace OsNet {
 
     do {
       eventProcUserLock = m_eventProcUserLock & ~1;
-    } while (SInterlockedCompareExchange(reinterpret_cast<long *>(&m_eventProcUserLock), eventProcUserLock | 1, eventProcUserLock) !=
+    } while (SInterlockedCompareExchange(&m_eventProcUserLock, eventProcUserLock | 1, eventProcUserLock) !=
              eventProcUserLock);
 
     ++*reinterpret_cast<volatile int *>(&m_eventProcUserLock);
@@ -2038,7 +2038,7 @@ namespace OsNet {
 
     do {
       eventProcUserLock = m_eventProcUserLock & ~1;
-    } while (SInterlockedCompareExchange(reinterpret_cast<long *>(&m_eventProcUserLock), eventProcUserLock | 1, eventProcUserLock) !=
+    } while (SInterlockedCompareExchange(&m_eventProcUserLock, eventProcUserLock | 1, eventProcUserLock) !=
              eventProcUserLock);
 
     ++*reinterpret_cast<volatile int *>(&m_eventProcUserLock);
@@ -2309,7 +2309,7 @@ namespace OsNet {
     while (INPUT *pinput = loopConn->m_inputList.Head()) {
       DEL(pinput);
     }
-    if (loopConn->m_list == CONNLIST_LOOP_CONNECTED) {
+    if (loopConn->ConnList() == CONNLIST_LOOP_CONNECTED) {
       m_net->m_loopDisconnectList.LinkNode(loopConn, LIST_TAIL, 0);
     }
 
@@ -2317,7 +2317,7 @@ namespace OsNet {
     while (INPUT *pinput = m_inputList.Head()) {
       DEL(pinput);
     }
-    if (m_list == CONNLIST_LOOP_CONNECTED) {
+    if (ConnList() == CONNLIST_LOOP_CONNECTED) {
       m_net->m_loopDisconnectList.LinkNode(this, LIST_TAIL, 0);
     }
 

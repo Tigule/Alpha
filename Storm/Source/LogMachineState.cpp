@@ -11,13 +11,14 @@ typedef DWORD(WINAPI *PFN_SYMSETOPTIONS)(DWORD options);
 typedef BOOL(WINAPI *PFN_SYMINITIALIZE)(HANDLE process, LPSTR searchPath, BOOL invadeProcess);
 typedef BOOL(WINAPI *PFN_SYMCLEANUP)(HANDLE process);
 typedef BOOL(WINAPI *PFN_SYMENUMERATEMODULES)(HANDLE process, PSYM_ENUMMODULES_CALLBACK callback, PVOID userContext);
+typedef BOOL(WINAPI *PFN_READPROCESSMEMORY)(HANDLE process, DWORD address, PVOID buffer, DWORD size, PDWORD bytesRead);
 typedef BOOL(WINAPI *PFN_STACKWALK)(
     DWORD                          machineType,
     HANDLE                         process,
     HANDLE                         thread,
     LPSTACKFRAME                   stackFrame,
     LPVOID                         contextRecord,
-    PREAD_PROCESS_MEMORY_ROUTINE   readMemoryRoutine,
+    PFN_READPROCESSMEMORY          readMemoryRoutine,
     PFUNCTION_TABLE_ACCESS_ROUTINE functionTableAccessRoutine,
     PGET_MODULE_BASE_ROUTINE       getModuleBaseRoutine,
     PTRANSLATE_ADDRESS_ROUTINE     translateAddress

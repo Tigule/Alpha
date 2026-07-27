@@ -10,6 +10,10 @@ namespace NTempest {
 
   class C4iVector {
    public:
+    enum {
+      eComponents = 4
+    };
+
     C4iVector(long value = 0) : x(value), y(value), z(value), w(value) {
     }
     C4iVector(long x, long y, long z, long w) : x(x), y(y), z(z), w(w) {
@@ -19,6 +23,9 @@ namespace NTempest {
     C4iVector(const C3iVector &a) : x(a.x), y(a.y), z(a.z), w(0) {
     }
     C4iVector(const C4Vector &a);
+
+    ~C4iVector() {
+    }
 
     static C4iVector Min(const C4iVector &a, const C4iVector &b) {
       return C4iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w);
@@ -55,7 +62,7 @@ namespace NTempest {
       long magnitude = Mag();
       x /= magnitude; y /= magnitude; z /= magnitude; w /= magnitude;
     }
-    void Scale(long magnitude) { Normalize(); *this *= magnitude; }
+    void Scale(const long magnitude) { Normalize(); *this *= magnitude; }
     void Minimize(const C4iVector &a) { if (a.x < x) x = a.x; if (a.y < y) y = a.y; if (a.z < z) z = a.z; if (a.w < w) w = a.w; }
     void Maximize(const C4iVector &a) { if (a.x > x) x = a.x; if (a.y > y) y = a.y; if (a.z > z) z = a.z; if (a.w > w) w = a.w; }
 

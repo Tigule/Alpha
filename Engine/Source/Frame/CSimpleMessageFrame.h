@@ -34,6 +34,10 @@ class CSimpleMessageFrameLine {
   CSimpleMessageFrameLine() : offsetX(0.0f), offsetY(0.0f), stringNode(NEW(CSimpleMessageFrameLineNode)) {
     stringNode->IncrRef();
   }
+  CSimpleMessageFrameLine(const CSimpleMessageFrameLine &line)
+      : offsetX(line.offsetX), offsetY(line.offsetY), stringNode(line.stringNode) {
+    stringNode->IncrRef();
+  }
   ~CSimpleMessageFrameLine() {
     stringNode->DecrRef();
   }
@@ -52,7 +56,7 @@ class CSimpleMessageFrame : public CSimpleFrame {
     INSERT_AT_BOTTOM = 1
   };
 
-  CSimpleMessageFrame(CSimpleFrame *parent);
+  CSimpleMessageFrame(CSimpleFrame *parent = 0);
   virtual ~CSimpleMessageFrame();
 
   static void RegisterScriptMethods();
@@ -65,6 +69,21 @@ class CSimpleMessageFrame : public CSimpleFrame {
 
   void SetMessageFrameInsets(float right, float left, float top, float bottom);
   void SetTextLength(int size);
+  void SetFont(const char *font, float fontHeight, int fontFlags) {
+    m_attrib.SetFont(font, fontHeight, fontFlags);
+  }
+  void SetHorizontalAlignment(unsigned int alignment) {
+    m_attrib.SetHorizontalAlignment(alignment);
+  }
+  void SetColor(const NTempest::CImVector &color) {
+    m_attrib.SetColor(color);
+  }
+  void AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
+    m_attrib.AddShadow(color, offset);
+  }
+  void SetSpacing(float spacing) {
+    m_attrib.SetSpacing(spacing);
+  }
   void SetInsertMode(SimpleMessageFrameInsertMode mode);
   void SetFadeDuration(float duration) {
     m_fadeDuration = duration;

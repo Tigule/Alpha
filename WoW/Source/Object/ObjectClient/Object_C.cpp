@@ -267,7 +267,7 @@ int CGObject_C::InitModelFileName(char *modelFileName, unsigned int size) {
   switch (GetType()) {
     case HIER_TYPE_ITEM:
     case HIER_TYPE_CONTAINER:
-      name = static_cast<CGItem_C *>(this)->GetModelFileName();
+      name = static_cast<CGItem_C *>(this)->CGItem_C::GetModelFileName();
       if (name) {
         SStrPrintf(modelFileName, size, "%s\\%s", "Item\\GroundObjects", name);
       }
@@ -324,7 +324,8 @@ CGObject_C::~CGObject_C() {
 }
 
 CGObject_C::CGObject_C(unsigned long *storage, unsigned long, CClientObjCreate *)
-    : m_renderScale(1.0f),
+    : CGObject(storage),
+      m_renderScale(1.0f),
       m_model(0),
       m_highlightTypes(0),
       m_objectHeight(1.0f),
@@ -336,8 +337,6 @@ CGObject_C::CGObject_C(unsigned long *storage, unsigned long, CClientObjCreate *
       m_startAlpha(0),
       m_endAlpha(0),
       m_maxAlpha(255) {
-  SetStorage(storage);
-
   char modelFileName[260] = {0};
   if (!InitModelFileName(modelFileName, sizeof(modelFileName))) {
     return;
@@ -562,10 +561,6 @@ void CGObject_C::ShowHighlightType(HIGHLIGHTTYPE type) {
       *reinterpret_cast<NTempest::CImVector *>(&DayNightGetInfo()->unitSelect),
       1
   );
-}
-
-const char *CGObject_C::GetModelFileName() const {
-  return 0;
 }
 
 int CGObject_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
@@ -815,7 +810,7 @@ void CGObject_C::Animate(const NTempest::C34Matrix &camRelativeMatrix) {
 void CGObject_C::UpdateRenderFacing() {
 }
 
-int CGObject_C::IsObjectModelLoaded() {
+int CGObject_C::IsObjectModelLoaded() const {
   return m_flags & 0x20;
 }
 
@@ -882,7 +877,7 @@ void CGObject_C::PostReenable() {
   m_flags &= ~4U;
 }
 
-int CGObject_C::IsPostInited() {
+int CGObject_C::IsPostInited() const {
   return m_flags & 8;
 }
 
@@ -1046,15 +1041,15 @@ const char *g_animationNames[] = {
     "BowRelease"
 };
 
-int CGObject_C::ObjectIsRendering() {
+int CGObject_C::ObjectIsRendering() const {
   return m_flags & 0x10;
 }
 
-int CGObject_C::IsDisabled() {
+int CGObject_C::IsDisabled() const {
   return m_flags & 2;
 }
 
-int CGObject_C::IsInReenable() {
+int CGObject_C::IsInReenable() const {
   return m_flags & 4;
 }
 

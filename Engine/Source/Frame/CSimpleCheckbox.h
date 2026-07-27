@@ -7,7 +7,7 @@ class CSimpleTexture;
 
 class CSimpleCheckbox : public CSimpleButton {
  public:
-  CSimpleCheckbox(CSimpleFrame *parent);
+  CSimpleCheckbox(CSimpleFrame *parent = 0);
   virtual ~CSimpleCheckbox();
 
   static void RegisterScriptMethods();

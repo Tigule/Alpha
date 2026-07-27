@@ -67,7 +67,7 @@ namespace OsNet {
     LOCKEDLONG(long value = 0) : m_value(value) {
     }
 
-    operator long() {
+    operator long() const {
       return m_value;
     }
 
@@ -83,7 +83,8 @@ namespace OsNet {
     volatile long m_value;
   };
 
-  struct CEventLock {
+  class CEventLock {
+   public:
     CEventLock() : m_event(CreateEventA(0, FALSE, TRUE, 0)) {
     }
 
@@ -174,7 +175,11 @@ namespace OsNet {
   class NETCONN : public NETSELSOCK {
    public:
     NETCONN(TCPNET *net, unsigned int sock, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
+
+   protected:
     virtual void CloseAndUnlock() = 0;
+
+   public:
     virtual ~NETCONN() {
     }
     virtual void IncIo();
@@ -196,21 +201,23 @@ namespace OsNet {
     int  NoteFileOperation(void *data, unsigned long bytes, unsigned long offset, unsigned long offsetHigh, void *operationId, NETNOTE note);
     void ConnAddr(NETCONNADDR *connAddr);
 
+   private:
     TSLink<NETCONN> m_link;
     unsigned char   m_list;
     unsigned char   m_listSlot;
     unsigned short  m_reserved;
     LOCKEDLONG      m_refCount;
     NETCONNADDR     m_connAddr;
-    int             m_eventProcUserLock;
+    long            m_eventProcUserLock;
     NETEVENTPROC    m_eventProc;
     void           *m_user;
+
+   protected:
     CCritSect       m_lock;
     unsigned long   m_time;
     TCPNET         *m_net;
 
-   protected:
-    CONNLIST ConnList() {
+    CONNLIST ConnList() const {
       return static_cast<CONNLIST>(m_list);
     }
     void Disconnect(int notify);
@@ -530,6 +537,8 @@ namespace OsNet {
      private:
       Iterator(TSSlottedListEx<T, LINKOFFSET, SLOTS> &slottedList) : m_slottedList(slottedList), m_curr(0), m_next(0), m_mark(0), m_slot(SLOTS - 1) {
       }
+      Iterator(const Iterator &);
+      Iterator &operator=(const Iterator &);
 
       void Advance();
 
@@ -545,7 +554,7 @@ namespace OsNet {
     TSSlottedListEx();
     virtual ~TSSlottedListEx();
 
-    long Slots() {
+    static long Slots() {
       return SLOTS;
     }
 
@@ -590,6 +599,9 @@ namespace OsNet {
     TSExplicitList<T, LINKOFFSET> &UnlinkAll(TSExplicitList<T, LINKOFFSET> &list);
 
    private:
+    TSSlottedListEx(const TSSlottedListEx &);
+    TSSlottedListEx &operator=(const TSSlottedListEx &);
+
     TSExplicitList<T, LINKOFFSET> m_lists[SLOTS];
     CCritSect                     m_locks[SLOTS];
     LOCKEDLONG                    m_linkSlot;
@@ -622,7 +634,7 @@ namespace OsNet {
     virtual void AddToSelectSets(NETSELECTSETS *selectSets);
 
     TSLink<TCPLISTEN>                        m_link;
-    unsigned int                             m_portAddr;
+    unsigned long                            m_portAddr;
     NETEVENTPROC                             m_eventProc;
     void                                    *m_user;
     int                                      m_enabled;
@@ -650,6 +662,12 @@ namespace OsNet {
   };
 
   struct TCPHOSTADDRTHREAD {
+    TCPHOSTADDRTHREAD() {
+    }
+
+    ~TCPHOSTADDRTHREAD() {
+    }
+
     TCPNET        *m_net;
     unsigned long  m_infoId;
     void          *m_event;

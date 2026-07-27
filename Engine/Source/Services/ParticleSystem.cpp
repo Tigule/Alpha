@@ -79,8 +79,8 @@ void CParticleEmitter::SyncAllocation() {
   }
 
   m_particles.SetCount(count);
-  m_alive.m_stack.SetCount(count);
-  m_dead.m_stack.SetCount(count);
+  m_alive.SetCount(count);
+  m_dead.SetCount(count);
   for (unsigned int u = oldCount; u < count; ++u) {
     m_dead.Push(u);
   }
@@ -177,7 +177,7 @@ void CParticleEmitter::Update(float elapsedTime, const NTempest::C3Vector &camer
   if (m_enabled && m_enabled2) {
     m_numNew += ParticleSystemManager::GetScaler() * m_particleEmissionRate * elapsedTime;
     numNew = static_cast<unsigned int>(m_numNew);
-    while (numNew && m_dead.m_stackPointer) {
+    while (numNew && !m_dead.IsEmpty()) {
       --numNew;
       unsigned int particle = m_dead.Pop();
       m_alive.Push(particle);
@@ -187,12 +187,12 @@ void CParticleEmitter::Update(float elapsedTime, const NTempest::C3Vector &camer
     m_numNew -= static_cast<float>(numEmitted);
   }
 
-  for (unsigned int index = 0; index < m_alive.m_stackPointer; ++index) {
-    CParticle &particle = m_particles[m_alive.m_stack[index]];
+  for (unsigned int index = 0; index < m_alive.Count(); ++index) {
+    CParticle &particle = m_particles[m_alive[index]];
     particle.m_timeToLive -= elapsedTime;
     if (particle.m_timeToLive <= 0.0f) {
       DestroyParticle(particle);
-      unsigned int deadParticle = m_alive.m_stack[index];
+      unsigned int deadParticle = m_alive[index];
       m_dead.Push(deadParticle);
       m_alive.Remove(index);
       --index;
@@ -209,9 +209,9 @@ void CParticleEmitter::Update(float elapsedTime, const NTempest::C3Vector &camer
 
 void CParticleEmitter::AddToModelScene() {
   ActivityBegin(ACTIVITY_PARTICLE);
-  unsigned int numAlive = m_alive.m_stackPointer;
+  unsigned int numAlive = m_alive.Count();
   for (unsigned int loop = 0; loop < numAlive; ++loop) {
-    CParticle &particle = m_particles[m_alive.m_stack[loop]];
+    CParticle &particle = m_particles[m_alive[loop]];
     ASSERT(particle.m_timeToLive >= 0.0f);
     if (particle.m_timeToLive != 0.0f) {
       ModelAddToScene(particle.m_hmodel, 0);
@@ -222,9 +222,9 @@ void CParticleEmitter::AddToModelScene() {
 
 void CParticleEmitter::Render() {
   ActivityBegin(ACTIVITY_PARTICLE);
-  unsigned int numAlive = m_alive.m_stackPointer;
+  unsigned int numAlive = m_alive.Count();
   for (unsigned int loop = 0; loop < numAlive; ++loop) {
-    CParticle &particle = m_particles[m_alive.m_stack[loop]];
+    CParticle &particle = m_particles[m_alive[loop]];
     ASSERT(particle.m_timeToLive >= 0.0f);
     if (particle.m_timeToLive != 0.0f) {
       ModelRender(particle.m_hmodel, 0, 0);

@@ -12,14 +12,41 @@
 
 DECLARE_DERIVED_HANDLE(HDATAMGR, HOBJECT);
 
+namespace NTempest {
+  bool operator==(const CImVector &left, const CImVector &right);
+  bool operator!=(const CImVector &left, const CImVector &right);
+  bool operator==(const C33Matrix &left, const C33Matrix &right);
+  bool operator!=(const C33Matrix &left, const C33Matrix &right);
+}
+
 struct UpdateInfo {
   void(*updateFcn)(float, void *, void *);
   void *updateData;
   float updatePriority;
+
+  UpdateInfo();
 };
 
 class CBaseManaged {
  public:
+  enum ManagedTypeIds {
+    UNKNOWN,
+    ALPHACOLOR,
+    COLOR,
+    COORD,
+    C33MATRIX,
+    INT,
+    FLOAT,
+    DATATYPEIDS
+  };
+
+  enum {
+    ALWAYSUPDATE = 0x1,
+    READONLY = 0x2,
+    REQUIRESUPDATE = 0x4,
+    UPDATED = 0x8
+  };
+
   CBaseManaged() : m_dataTypeId(0), m_flags(0), m_updateFcn(0), m_updateData(0), m_updatePriority(0.0f) {
   }
   virtual ~CBaseManaged() {
@@ -28,6 +55,7 @@ class CBaseManaged {
   }
   virtual void UpdateR(float __formal) {
   }
+  void GetInfo(UpdateInfo *info);
   void SetUpdate(void(*fcn)(float, void *, void *), void *data, float priority) {
     m_updateFcn = fcn;
     m_updateData = data;
@@ -41,6 +69,8 @@ class CBaseManaged {
   void *m_updateData;
   float m_updatePriority;
 };
+
+class CAngle;
 
 template <class T>
 class TManaged : public CBaseManaged {
@@ -58,6 +88,39 @@ class TManaged : public CBaseManaged {
     }
   }
 
+  virtual void Update(float elapsedSec) {
+    if (m_updateFcn) {
+      T data = m_data;
+      m_updateFcn(elapsedSec, m_updateData, &data);
+      Set_(data);
+    }
+    m_flags &= ~REQUIRESUPDATE;
+  }
+
+  virtual void UpdateR(float elapsedSec) {
+    if (m_updateFcn) {
+      T data = m_data;
+      T saved = data;
+      m_updateFcn(elapsedSec, m_updateData, &data);
+      ASSERT(data == saved);
+    }
+    m_flags &= ~REQUIRESUPDATE;
+  }
+
+  TManaged<T> &operator+=(const T &data);
+  TManaged<T> &operator-=(const T &data);
+  TManaged<T> &operator*=(const T &data);
+  TManaged<T> &operator/=(const T &data);
+
+  T &Get() {
+    return m_data;
+  }
+
+  void Set(const T &data);
+
+ private:
+  friend class CAngle;
+
   T m_data;
 };
 
@@ -70,24 +133,8 @@ inline void TManaged<NTempest::C3Vector>::Set_(const NTempest::C3Vector &val) {
 }
 
 template <>
-inline void TManaged<NTempest::CImVector>::Set_(const NTempest::CImVector &val) {
-  if (*m_data.IV_() != *val.IV_()) {
-    m_data = val;
-    m_flags |= 0x8;
-  }
-}
-
-template <>
 inline void TManaged<C3Color>::Set_(const C3Color &val) {
   if (m_data.r != val.r || m_data.g != val.g || m_data.b != val.b) {
-    m_data = val;
-    m_flags |= 0x8;
-  }
-}
-
-template <>
-inline void TManaged<NTempest::C33Matrix>::Set_(const NTempest::C33Matrix &val) {
-  if (memcmp(&m_data, &val, sizeof(val))) {
     m_data = val;
     m_flags |= 0x8;
   }

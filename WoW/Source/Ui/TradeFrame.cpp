@@ -67,8 +67,10 @@ class CGTradeInfo {
   static void Update(TradeItemData *items);
   static void PlayerAccept(int accept);
   static void TargetAccept(int accept);
+  static void ClearAccept();
   static void HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
   static int SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot);
+  static unsigned __int64 GetPlayerTradeSlot(int index);
   static void RemovePlayerItem(unsigned __int64 guid);
   static void UpdatePlayerItem(unsigned __int64 guid);
   static void UnlockTradeItems();

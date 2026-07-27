@@ -9,6 +9,7 @@
 #include "Tempest/c34matrix.h"
 #include "Tempest/c3spline.h"
 #include "Tempest/c4plane.h"
+#include "Tempest/c4quaternion.h"
 #include "Tempest/caabox.h"
 #include "Ui/GameUI.h"
 #include "Object/MovementData.h"
@@ -27,20 +28,68 @@ struct WorldObjCollisionHandlerData;
 int ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldObjCollisionHandlerData *data);
 
 struct CGGameObjectData {
-  unsigned int       m_data[8];
-  NTempest::C3Vector m_position;
-  float              m_facing;
-  unsigned int       m_dynamicFlags;
-  int                m_factionTemplate;
+  int                    m_displayID;
+  unsigned int           m_flags;
+  NTempest::C4Quaternion m_rotation;
+  int                    m_state;
+  unsigned int           m_timestamp;
+  NTempest::C3Vector     m_position;
+  float                  m_facing;
+  unsigned int           m_dynamicFlags;
+  int                    m_factionTemplate;
 };
 
 class CGGameObject {
   friend class CGGameObject_C_TypeBase;
 
  public:
+  enum {
+    STATE_OPENING,
+    STATE_CLOSING,
+    STATE_DESTROYED,
+    NUM_STATES
+  };
+
+  static unsigned int GetDataSize();
+  static unsigned int GetBaseOffset();
+  static unsigned int TotalFields();
+  static unsigned int GetUpdateMaskBytes();
+  static unsigned int GetUpdateMaskBlocks();
+
+  unsigned char *GetData(unsigned int index);
+  void SetStorage(unsigned long *storage) {
+    m_gameObj = reinterpret_cast<CGGameObjectData *>(storage);
+  }
+
+  CGGameObjectData *GameObject() {
+    return m_gameObj;
+  }
+
+  const CGGameObjectData *GameObject() const {
+    return m_gameObj;
+  }
+
+  int GetDisplayID() const;
+  const NTempest::C4Quaternion &GetRotation() const;
   int GetState() const;
+  unsigned int GetTimeStamp() const;
+  unsigned int GetGameObjectFlags() const;
+  void GetObjectPosition(NTempest::C3Vector &position) const;
+  NTempest::C3Vector GetObjectPosition() const;
+  float GetObjectFacing() const;
+  int GetFactionTemplate() const;
+  bool GetDisabled() const;
+  bool GetLocked() const;
+  bool GetQuestOnly() const;
 
  protected:
+  explicit CGGameObject(unsigned long *storage) {
+    SetStorage(storage);
+  }
+
+  ~CGGameObject() {
+  }
+
   CGGameObjectData *m_gameObj;
 };
 
@@ -52,11 +101,11 @@ class CGGameObject_C_TypeBase {
   CGGameObject_C *m_owner;
 
   virtual ~CGGameObject_C_TypeBase();
-  virtual unsigned int       CanHighlight();
-  virtual unsigned int       CanChangeCursor();
-  virtual unsigned int       CanUse();
-  virtual unsigned int       CanUseNow(GAME_ERROR_TYPE *reason);
-  virtual unsigned int       Use(const unsigned __int64 &activator);
+  virtual bool               CanHighlight() const;
+  virtual bool               CanChangeCursor() const;
+  virtual bool               CanUse() const;
+  virtual bool               CanUseNow(GAME_ERROR_TYPE *reason) const;
+  virtual bool               Use(const unsigned __int64 &activator);
   virtual void               UpdateState(int oldState, int newState);
   virtual void               HandleAnimEvent(const char *eventName, const NTempest::C3Vector &position);
   virtual void               HandleAnimFinished();
@@ -82,8 +131,8 @@ class CGGameObject_C_TypeBase {
 
 class CGGameObject_C_Type_Null : public CGGameObject_C_TypeBase {
  public:
-  virtual unsigned int CanUse();
-  virtual unsigned int CanUseNow(GAME_ERROR_TYPE *reason);
+  virtual bool        CanUse() const;
+  virtual bool        CanUseNow(GAME_ERROR_TYPE *reason) const;
   virtual const char  *DebugStatus();
 };
 
@@ -115,11 +164,11 @@ class CGGameObject_C_TypeAnimated : public CGGameObject_C_TypeBase {
 class CGGameObject_C_Type_Door : public CGGameObject_C_TypeAnimated {
  public:
   CGGameObject_C_Type_Door(CGGameObject_C *owner);
-  virtual unsigned int CanUseNow(GAME_ERROR_TYPE *reason);
-  virtual void         UpdateAnimState(unsigned int newState);
-  unsigned int         IsAtRest();
-  unsigned int         GetStartOpen();
-  unsigned int         GetAutoClose();
+  virtual bool CanUseNow(GAME_ERROR_TYPE *reason) const;
+  virtual void UpdateAnimState(unsigned int newState);
+  bool         IsAtRest() const;
+  unsigned int GetStartOpen() const;
+  unsigned int GetAutoClose() const;
 };
 
 class CGGameObject_C_Type_Button : public CGGameObject_C_TypeAnimated {
@@ -158,16 +207,16 @@ class CGGameObject_C_Type_Binder : public CGGameObject_C_TypeBase {
 class CGGameObject_C_Type_Generic : public CGGameObject_C_TypeBase {
  public:
   CGGameObject_C_Type_Generic(CGGameObject_C *owner);
-  virtual unsigned int CanHighlight();
-  virtual unsigned int CanUse();
+  virtual bool CanHighlight() const;
+  virtual bool CanUse() const;
 };
 
 class CGGameObject_C_Type_MapObj : public CGGameObject_C_TypeBase {
  public:
   CGGameObject_C_Type_MapObj(CGGameObject_C *owner);
   virtual ~CGGameObject_C_Type_MapObj();
-  virtual unsigned int CanHighlight();
-  virtual unsigned int CanUse();
+  virtual bool CanHighlight() const;
+  virtual bool CanUse() const;
   virtual void         PostInit();
 
  protected:
@@ -197,10 +246,10 @@ class CGGameObject_C_Type_MapObjTransport : public CGGameObject_C_Type_MapObj {
 class CGGameObject_C_Type_Chair : public CGGameObject_C_TypeBase {
  public:
   CGGameObject_C_Type_Chair(CGGameObject_C *owner);
-  virtual unsigned int CanUseNow(GAME_ERROR_TYPE *reason);
-  virtual void         PostInit();
-  unsigned int         GetNumSlots();
-  unsigned int         GetHeight();
+  virtual bool CanUseNow(GAME_ERROR_TYPE *reason) const;
+  virtual void PostInit();
+  unsigned int GetNumSlots() const;
+  unsigned int GetHeight() const;
 
  protected:
   NTempest::C3Vector m_slotPositions[5];
@@ -209,14 +258,14 @@ class CGGameObject_C_Type_Chair : public CGGameObject_C_TypeBase {
 class CGGameObject_C_Type_SpellFocus : public CGGameObject_C_TypeAnimated {
  public:
   CGGameObject_C_Type_SpellFocus(CGGameObject_C *owner);
-  virtual unsigned int CanHighlight();
-  virtual unsigned int CanUse();
+  virtual bool CanHighlight() const;
+  virtual bool CanUse() const;
 };
 
 class CGGameObject_C_Type_Text : public CGGameObject_C_TypeAnimated {
  public:
   CGGameObject_C_Type_Text(CGGameObject_C *owner);
-  virtual unsigned int Use(const unsigned __int64 &activator);
+  virtual bool Use(const unsigned __int64 &activator);
   virtual void         PostInit();
   virtual void         StartInteraction();
   virtual void         CloseInteraction();
@@ -233,7 +282,7 @@ class CGGameObject_C_Type_Transport : public CGGameObject_C_TypeAnimated {
   virtual NTempest::C3Vector GetPosition() const;
   virtual void               AddPassenger(CMovementData *passenger);
   virtual NTempest::C3Vector GetCurrentMoveVector() const;
-  virtual unsigned int       CanUse();
+  virtual bool               CanUse() const;
   virtual int                IsPointInside(const NTempest::C3Vector &point) const;
   virtual void               Reenable();
   virtual void               Disable(int shutdown);
@@ -243,7 +292,7 @@ class CGGameObject_C_Type_Transport : public CGGameObject_C_TypeAnimated {
  protected:
   NTempest::C3Vector GetMovement(unsigned int time);
   int                FindAnimData(CGGameObject_C *owner);
-  unsigned int       NextKeyID();
+  unsigned int       NextKeyID() const;
 
   TSExplicitList<CMovementData, 8>  m_passengers;
   const TransportAnimationRec      *m_keys;
@@ -263,20 +312,20 @@ class CGGameObject_C_Type_Camera : public CGGameObject_C_TypeBase {
 class CGGameObject_C_Type_DuelArbiter : public CGGameObject_C_TypeBase {
  public:
   CGGameObject_C_Type_DuelArbiter(CGGameObject_C *owner);
-  virtual unsigned int CanHighlight();
-  virtual unsigned int CanUse();
+  virtual bool CanHighlight() const;
+  virtual bool CanUse() const;
 };
 
 class CGGameObject_C_Type_FishingNode : public CGGameObject_C_TypeAnimated {
  public:
   CGGameObject_C_Type_FishingNode(CGGameObject_C *owner);
-  virtual unsigned int CanUse();
+  virtual bool CanUse() const;
 };
 
 class CGGameObject_C_Type_Ritual : public CGGameObject_C_TypeAnimated {
  public:
   CGGameObject_C_Type_Ritual(CGGameObject_C *owner);
-  virtual unsigned int CanUseNow(GAME_ERROR_TYPE *reason);
+  virtual bool CanUseNow(GAME_ERROR_TYPE *reason) const;
 };
 
 class CGGameObject_C : public CGObject_C, public CGGameObject {
@@ -322,6 +371,9 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   int           GetPageTextLanguage() const;
   int           GetPageTextMaterial() const;
   void          LoadBaseObject(const GameObjectStats *stats);
+  void          PostMovementUpdate();
+  void          UpdateMovement(unsigned long eventTime, float elapsed);
+  void          AddPassenger(CMovementData *passenger);
   unsigned int  CreateWorldObject(unsigned __int64 guid);
   void          SetMirrorHandlers();
   void          UnsetMirrorHandlers();
@@ -331,22 +383,28 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   const char   *GetName() const;
   const char   *GetTypeName() const;
   const char   *GetDebugStatus() const;
-  int           CanChangeCursor() const;
-  int           CanUse() const;
-  int           CanUseNow() const;
+  bool          CanChangeCursor() const;
+  bool          CanUse() const;
+  bool          CanUseNow() const;
   int           GetType() const;
   unsigned int  GetPropertyValue(unsigned int index) const;
-  LockRec      *GetLockRec() const;
+  const LockRec *GetLockRec() const;
+  bool          IsFriend(const CGUnit_C *unit) const;
+  bool          IsPeaceful(const CGUnit_C *unit) const;
+  bool          IsEnemy(const CGUnit_C *unit) const;
+  unsigned int  GetServerTimeOffset();
+  void          SetSolid(bool solid);
   bool          IsLocked(int *spellID, int *spellSkill, int *lockSkill, CGItem_C **itemPtr, int *openIndex) const;
-  unsigned int  IsValidOpenAction(int action) const;
+  bool          IsValidOpenAction(int action) const;
   void          StartInteraction();
   void          CloseInteraction();
   UNIT_REACTION ObjectReaction(const CGUnit_C *unit) const;
-  unsigned int  IsValidTargetForSpell(const unsigned __int64 &caster, int spellID) const;
-
-  const CGGameObjectData *GetGameObjectData() const {
-    return m_gameObj;
-  }
+  bool          IsValidTargetForSpell(const unsigned __int64 &caster, int spellID) const;
+  bool          IsQuestObjectForMe();
+  HCOLLISIONDATA__ *GetCollideData() const;
+  NTempest::C3Vector GetCollideMin() const;
+  NTempest::C3Vector GetCollideMax() const;
+  NTempest::CAaBox GetCollideExtents() const;
 
   static void Initialize();
   static void Shutdown();
@@ -356,8 +414,9 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   CGGameObject_C_TypeBase *m_baseObj;
 
  private:
+  CGGameObject_C &operator=(const CGGameObject_C &);
   const char         *GetModelFileNameInternal() const;
-  GameObjectStats    *m_stats;
+  const GameObjectStats *m_stats;
   NTempest::C34Matrix m_matrix;
   HMODEL__           *m_collideModel;
   HCOLLISIONDATA__   *m_collideData;
@@ -365,8 +424,6 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   unsigned int        m_serverTimeOffset;
   int                 m_isSolid : 1;
   int                 m_isQuestChestForMe : 1;
-
-  static CGGameObject_C_Type_Null s_nullBaseObj;
 };
 
 #endif

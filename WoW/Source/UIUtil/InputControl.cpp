@@ -49,7 +49,7 @@ static int Script_ToggleAutoRun(lua_State *L) {
   FATALASSERT(control);
 
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
-  control->SetControlBit(INPUT_MOVE_PLAYER_AUTORUN, !(control->m_controlFlags & INPUT_MOVE_PLAYER_AUTORUN), eventTime, 0);
+  control->SetControlBit(INPUT_MOVE_PLAYER_AUTORUN, !control->IsAutoRunning(), eventTime, 0);
   return 0;
 }
 
@@ -269,10 +269,10 @@ CGInputControl *CGInputControl::GetActive() {
 }
 
 void CGInputControl::OnUpdate(float elapsedSec) {
-  struct {
+  static struct {
     int   absvalue;
     float speed[2];
-  } static deltas[16] = {
+  } deltas[16] = {
       {0x0000,                                                           {0.0f, 0.0f}},
       {0x07FF,                                                           {0.0f, 0.0f}},
       {0x0FFF,                                                           {0.0f, 0.0f}},

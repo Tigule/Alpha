@@ -4,10 +4,31 @@
 #include "Object/ObjectClient/Object_C.h"
 
 struct ItemEnchantment {
+  ItemEnchantment(int id = 0, int expiration = 0, int chargesRemaining = 0);
+
+  ItemEnchantment &operator=(const ItemEnchantment &other) {
+    id = other.id;
+    expiration = other.expiration;
+    chargesRemaining = other.chargesRemaining;
+    return *this;
+  }
+
+  unsigned char operator==(const ItemEnchantment &other) {
+    return id == other.id && expiration == other.expiration && chargesRemaining == other.chargesRemaining;
+  }
+
+  unsigned char operator!=(const ItemEnchantment &other) {
+    return !(*this == other);
+  }
+
   int id;
   int expiration;
   int chargesRemaining;
 };
+
+inline ItemEnchantment::ItemEnchantment(int id, int expiration, int chargesRemaining)
+    : id(id), expiration(expiration), chargesRemaining(chargesRemaining) {
+}
 
 struct CGItemData {
   unsigned __int64 m_owner;
@@ -45,16 +66,66 @@ enum ITEM_STATIC_FLAGS {
   MAX_ITEM_FLAG = 32768
 };
 
+enum ITEM_DYNAMIC_FLAGS {
+  ITEM_DFLAG_BOUND = 1,
+  ITEM_DFLAG_TRANSLATED = 2,
+  ITEM_DFLAG_UNLOCKED = 4,
+  ITEM_DFLAG_WRAPPED = 8
+};
+
 class CGItem {
   friend class CGItemText;
   friend class CGPlayer_C;
 
  public:
-  unsigned __int64 GetCreator() {
+  static unsigned int GetDataSize();
+  static unsigned int GetBaseOffset();
+  static unsigned int TotalFields();
+  static unsigned int GetUpdateMaskBytes();
+  static unsigned int GetUpdateMaskBlocks();
+
+  int GetStackCount() const;
+  unsigned __int64 GetOwner() const;
+  unsigned __int64 GetContainedIn() const;
+  unsigned __int64 GetCreator() const {
     return m_item->m_creator;
+  }
+  unsigned int GetItemStaticFlags() const;
+  unsigned int GetItemDynamicFlags() const;
+  bool IsBound() const;
+  bool IsTranslated() const;
+  bool IsUnlocked() const;
+  bool IsWrapped() const;
+  unsigned int GetExpiration() const;
+  int GetItemDynamicFlag(ITEM_DYNAMIC_FLAGS flag) const;
+  int GetSpellCharges(int index) const;
+  const ItemEnchantment *GetEnchantment(int index) const;
+  int GetEnchantmentID(int index) const;
+  int GetEnchantmentExpiration(int index) const;
+  int GetEnchantmentCharges(int index) const;
+  int GetPetitionID() const;
+  int GetNumPetitionSignatures() const;
+  unsigned char *GetData(unsigned int index);
+  void SetStorage(unsigned long *storage) {
+    m_item = reinterpret_cast<CGItemData *>(storage);
   }
 
  protected:
+  explicit CGItem(unsigned long *storage) {
+    SetStorage(storage);
+  }
+
+  ~CGItem() {
+  }
+
+  CGItemData *Item() {
+    return m_item;
+  }
+
+  const CGItemData *Item() const {
+    return m_item;
+  }
+
   CGItemData *m_item;
 };
 
@@ -73,8 +144,8 @@ class CGItem_C : public CGObject_C, public CGItem {
   virtual void Reenable();
   static void Initialize();
   static void Shutdown();
-  static const char *GetInventoryArt(int displayID);
   const char                   *GetInventoryArt() const;
+  static const char *GetInventoryArt(int displayID);
   virtual const char           *GetModelFileName() const;
   int                           GetDisplayID() const;
   int                           CanBeUsed();
@@ -86,27 +157,13 @@ class CGItem_C : public CGObject_C, public CGItem {
   static int IsMetal(unsigned int material);
   int                           GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const;
   int                           GetMaterial() const;
-  ItemStats                    *GetStats();
-  int                           GetStackCount() const {
-    return m_item->m_stackCount;
-  }
-  unsigned __int64 GetOwner() {
-    return m_item->m_owner;
-  }
-  unsigned __int64 GetContainedIn() {
-    return m_item->m_containedIn;
-  }
-  unsigned char IsTranslated() {
-    return (m_item->m_dynamicFlags & 2) != 0;
-  }
-  unsigned int IsUnlocked() const {
-    return (m_item->m_dynamicFlags & 1) == 0;
-  }
+  const ItemStats              *GetStats() const;
   void Lock() {
     m_flags |= 1U;
   }
   void         SetTranslated();
-  void         UpdateEnchantments();
+  void         UpdateEnchantments() const;
+  void         PostMovementUpdate();
   void         UpdateExpirationTime(int timeLeft);
   int          GetExpirationTimeLeft();
   void         UpdateEnchantmentTime(int slot, int timeLeft);
@@ -130,24 +187,29 @@ class CGItem_C : public CGObject_C, public CGItem {
   ) const;
   virtual const char *GetObjectName() const;
 
-  ItemGroupSoundsRec *GetGroupSoundRec() const {
+  const ItemGroupSoundsRec *GetGroupSoundRec() const {
     return m_soundsRec;
   }
+
+  const VirtualItemInfo *GetVirtualInfo();
+  int IsLocked();
 
   void Unlock() {
     m_flags &= ~1U;
   }
 
- private:
+ protected:
   void InstallObjMirrorHandlers();
   void InstallItemIDMirrorHandler();
   void UninstallItemIDMirrorHandler();
 
+ private:
+  CGItem_C &operator=(const CGItem_C &);
   unsigned int        m_flags;
   VirtualItemInfo     m_itemInfo;
   unsigned long       m_expirationTime;
   unsigned long       m_enchantmentExpiration[5];
-  ItemGroupSoundsRec *m_soundsRec;
+  const ItemGroupSoundsRec *m_soundsRec;
 };
 
 #endif

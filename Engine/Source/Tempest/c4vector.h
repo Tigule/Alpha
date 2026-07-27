@@ -9,6 +9,10 @@ namespace NTempest {
 
   class C4Vector {
    public:
+    enum {
+      eComponents = 4
+    };
+
     C4Vector(float value = 0.0f) : x(value), y(value), z(value), w(value) {
     }
 
@@ -25,6 +29,9 @@ namespace NTempest {
     C4Vector(const C4iVector &vector)
         : x(static_cast<float>(vector.x)), y(static_cast<float>(vector.y)),
           z(static_cast<float>(vector.z)), w(static_cast<float>(vector.w)) {
+    }
+
+    ~C4Vector() {
     }
 
     C4Vector asC4Vector() const { return *this; }
@@ -77,7 +84,7 @@ namespace NTempest {
         *this *= CMath::sqrtinv_(squaredMag);
       }
     }
-    void Scale(float magnitude) { SafeNormalize(); *this *= magnitude; }
+    void Scale(const float magnitude) { SafeNormalize(); *this *= magnitude; }
     void Minimize(const C4Vector &a) {
       if (a.x < x) x = a.x; if (a.y < y) y = a.y;
       if (a.z < z) z = a.z; if (a.w < w) w = a.w;

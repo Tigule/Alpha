@@ -14,20 +14,7 @@ class CStatus {
  public:
   struct STATUSENTRY;
 
-  CStatus() {
-  }
-  CStatus(const CStatus &source) {
-    Add(source);
-  }
   virtual ~CStatus();
-
-  CStatus &operator=(const CStatus &source) {
-    if (this != &source) {
-      Clear();
-      Add(source);
-    }
-    return *this;
-  }
 
   virtual void Display() const;
   virtual void Add(STATUS_TYPE severity, const char *format, ...);
@@ -45,7 +32,10 @@ class CStatus {
   TSExplicitList<STATUSENTRY, 8> statusList;
 };
 
-class CNullStatus : public CStatus {};
+struct CNullStatus : public CStatus {
+  void Add(int, const char *, ...) {
+  }
+};
 
 struct CStatus::STATUSENTRY {
   ~STATUSENTRY() {

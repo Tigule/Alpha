@@ -53,7 +53,7 @@ void CGTaxiMap::SetupMap(
     unsigned int            node,
     __int64                 destNodes,
     __int64                 knownNodes,
-    NTempest::CRect        &visibleArea
+    const NTempest::CRect  &visibleArea
 ) {
   FATALASSERT(unit);
   if (m_unit) {

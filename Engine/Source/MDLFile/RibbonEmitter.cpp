@@ -74,7 +74,7 @@ static void IReadRibbonEmitterKeyFrames(
       UTokenData tokenData;
       long expected = parse.GetOptionalInt(&token, &text, &tokenData);
       if (expected > 0) {
-        emitter->textureSlot.keys.Reserve(expected);
+        emitter->textureSlot.keys.ReserveSpace(expected);
       }
       parse.Expect('{', token, text);
       token = ReadIntTrackHeader(
@@ -473,7 +473,7 @@ int ReadBinRibbonEmitters(
   unsigned int count = buffer.GetUint();
   unsigned int totalRead = 4;
   data.ribbonEmitters.SetCount(0);
-  data.ribbonEmitters.Reserve(count);
+  data.ribbonEmitters.ReserveSpace(count);
   while (totalRead < length) {
     MDLRIBBONEMITTER *ribbon = data.ribbonEmitters.New();
     if (!ribbon) {

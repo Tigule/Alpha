@@ -181,7 +181,7 @@ static int IWriteMdlFile(const char* path, const MDLDATA& mdldata, CMDLStatus* s
   } else {
     TSGrowableArray<char> buffer;
     buffer.SetChunkSize(0x100000);
-    buffer.Reserve(0x400000);
+    buffer.ReserveSpace(0x400000);
     if (!ModelDataToText(mdldata, buffer, status)) {
       return 0;
     }

@@ -14,7 +14,7 @@ static void IReadPivots(Parser &parse, TSGrowableArray<NTempest::C3Vector> *pivo
   const char *tokenText;
   long count = parse.GetOptionalInt(&savedToken, &tokenText, 0);
   if (count > 0) {
-    pivots->Reserve(count);
+    pivots->ReserveSpace(count);
   }
   parse.Expect('{', savedToken, tokenText);
 
@@ -72,7 +72,7 @@ int ReadBinPivotPoints(
 ) {
   unsigned int count = length / 12;
   data.pivotPoints.SetCount(0);
-  data.pivotPoints.Reserve(count);
+  data.pivotPoints.ReserveSpace(count);
 
   unsigned int totalRead = 0;
   while (totalRead < length) {

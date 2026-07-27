@@ -947,7 +947,7 @@ static unsigned int CmdMemParseNum(const char*& str) {
   return result;
 }
 
-static void CmdMemOutput(HOUTPUTCONTEXT__* hOutput, const char* str) {
+static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT__* hOutput, const char* str) {
   const char *strNum = SStrChrR(str, ' ');
   if (!strNum) {
     return;

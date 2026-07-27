@@ -97,7 +97,7 @@ int ReadBinHelpers(
   unsigned int totalRead = 4;
   unsigned int count = buffer.GetUint();
   data.helpers.SetCount(0);
-  data.helpers.Reserve(count);
+  data.helpers.ReserveSpace(count);
 
   while (totalRead < length) {
     MDLGENOBJECT *helper = data.helpers.New();

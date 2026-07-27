@@ -16,6 +16,9 @@
 
 class CMouseEvent;
 class CSizeEvent;
+class CGGameUI;
+class CGTooltip;
+class CGWorldFrame;
 
 class FRAMEPRIORITY {
  public:
@@ -180,7 +183,7 @@ class CFrameStrata {
     }
   }
 
-  int BuildBatches() {
+  int BuildBatches(int) {
     unsigned int level;
 
     batchDirty = 0;
@@ -280,6 +283,10 @@ class CFrameStrata {
 };
 
 class CSimpleTop : public CLayoutFrame {
+  friend class CGGameUI;
+  friend class CGTooltip;
+  friend class CGWorldFrame;
+  friend class CSimpleButton;
   friend class CSimpleFrame;
 
  public:
@@ -331,10 +338,10 @@ class CSimpleTop : public CLayoutFrame {
   void SetLayoutMode(int enabled) {
     m_layout.enabled = enabled;
   }
-  int IsLayoutEnabled() const {
+  int IsLayoutEnabled() {
     return m_layout.enabled;
   }
-  int IsMovingOrResizing() const {
+  int IsMovingOrResizing() {
     return m_layout.frame != 0;
   }
   void SetCursor(HMODEL cursor);
@@ -353,7 +360,7 @@ class CSimpleTop : public CLayoutFrame {
   int  StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &start, int resize);
   int  StartMoveOrResizeFrame(const CMouseEvent &start, int resize);
   void StopMoveOrResizeFrame();
-  unsigned long GetLastEventTime() const {
+  unsigned long GetLastEventTime() {
     return m_eventTime;
   }
   void UpdateEventTime(unsigned long time) {
@@ -363,6 +370,7 @@ class CSimpleTop : public CLayoutFrame {
   void UnregisterFrame(CSimpleFrame *frame);
   void ValidateDeletedFrame(CSimpleFrame *frame);
 
+ private:
   HLAYER__                                            *m_screenLayer;
   HLAYER__                                            *m_cursorLayer;
   HMODEL                                               m_cursor;
@@ -375,13 +383,12 @@ class CSimpleTop : public CLayoutFrame {
   CFrameStrata                                        *m_strata[6];
   frame_layout                                         m_layout;
   CSimpleSortedArray<FRAMEPRIORITY *>                  m_eventqueue[4][5];
-  unsigned int                                         m_eventTime;
+  unsigned long                                        m_eventTime;
   int                                                  m_checkFocus;
   EVENT_DATA_MOUSE                                     m_mousePosition;
   int(*m_mouseButtonCallback)(const CMouseEvent &event);
   int(*m_displaySizeCallback)(const CSizeEvent &event);
 
- private:
   void EnableEvents();
   void DisableEvents();
 

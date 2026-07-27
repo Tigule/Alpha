@@ -11,6 +11,10 @@ namespace NTempest {
 
   class C44Matrix {
    public:
+    enum {
+      eComponents = 16
+    };
+
     static C3Vector mul3v33m_(const C3Vector &v, const C44Matrix &m) {
       return C3Vector(
           v.x * m.a0 + v.y * m.b0 + v.z * m.c0,
@@ -207,12 +211,12 @@ namespace NTempest {
     C44Matrix AffineInverse(float scale) const;
     C44Matrix AffineInverse(const C3Vector &scale) const;
 
-    static C44Matrix Rotation(float angle, const C3Vector &axis, unsigned int unit);
+    static C44Matrix Rotation(float angle, const C3Vector &axis, bool unit);
 
     void Translate(const C3Vector &move);
     void Scale(float scale);
     void Scale(const C3Vector &scale);
-    void Rotate(float angle, const C3Vector &axis, unsigned int unit);
+    void Rotate(float angle, const C3Vector &axis, bool unit);
     void Rotate(const C4Quaternion &rotation);
 
    protected:

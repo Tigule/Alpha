@@ -24,7 +24,7 @@ class CGCharacterInfo {
   static int PutItemInBag(int slot);
   static int PutItemInBackpack();
   static int GetSkillOffsetFromString(const char *string, int &offset);
-  static SkillInfo *GetSkillInfoByIndex(int index);
+  static const SkillInfo *GetSkillInfoByIndex(int index);
   static int GetNumClassSkills() {
     return m_profOffset - 1;
   }

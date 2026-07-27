@@ -7,10 +7,10 @@ class CEvent;
 class EventRegistry;
 struct EventReg;
 
+typedef int(*EVENTCALLBACK)(const CEvent &, void *);
+
 class CObserver : public TRefCnt {
  public:
-  typedef int(*EVENTCALLBACK)(const CEvent &, void *);
-
   CObserver() : m_pEventRegistry(0) {
   }
   CObserver(const CObserver &) : TRefCnt(), m_pEventRegistry(0) {
@@ -33,6 +33,7 @@ class CObserver : public TRefCnt {
  protected:
   EventRegistry *GetRegistry(int create);
 
+ private:
   EventRegistry *m_pEventRegistry;
 };
 

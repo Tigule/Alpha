@@ -51,6 +51,7 @@ class CVertexBufferList {
   void                 Create(EGxVertexBufferFormat format, unsigned int numVerts);
   CGxVertexBuffer_D3d *Lock(void *&mem, unsigned int numVertices, unsigned int base);
   unsigned int         GetBase();
+  int                  Valid();
   unsigned int         MaxContiguousVertices() {
     return m_maxContiguousVertices;
   }
@@ -68,7 +69,6 @@ class CVertexBufferList {
 
 class CGxBufD3d : public CGxBuf {
  public:
-  CGxBufD3d();
   virtual ~CGxBufD3d();
 
   void SetVBL(CVertexBufferList *vbl);
@@ -78,12 +78,20 @@ class CGxBufD3d : public CGxBuf {
   void UnsetIB();
   void LockVB(void *&mem);
   void LockIB(void *&mem);
+  void UnlockVB();
+  void UnlockIB();
+  CGxVertexBuffer_D3d *GetVB();
+  CGxIndexBuffer_D3d  *GetIB();
   int  VBLValid();
   int  IBValid();
   void Release();
 
  private:
   friend class CGxDeviceD3d;
+
+  CGxBufD3d();
+  CGxBufD3d(const CGxBufD3d &);
+  const CGxBufD3d &operator=(const CGxBufD3d &);
 
   CVertexBufferList   *m_vbl;
   CGxVertexBuffer_D3d *m_vb;
@@ -93,6 +101,13 @@ class CGxBufD3d : public CGxBuf {
 class CGxDeviceD3d : public CGxDevice {
  public:
   struct StateD3dLight {
+    StateD3dLight() {
+    }
+
+    int          InUse();
+    int          operator!=(const _D3DLIGHT9 &light);
+    unsigned int CalcChkSum(const _D3DLIGHT9 &light);
+
     unsigned long which;
     _D3DLIGHT9    val;
     int           enabled;
@@ -137,7 +152,6 @@ class CGxDeviceD3d : public CGxDevice {
     DeviceStates_Last = 34
   };
 
-  CGxDeviceD3d();
   virtual ~CGxDeviceD3d();
 
   static CGxDeviceD3d *GetDevice() {
@@ -234,10 +248,14 @@ class CGxDeviceD3d : public CGxDevice {
   friend class CGxIndexBuffer_D3d;
   friend class CGxVertexBuffer_D3d;
 
+  CGxDeviceD3d();
   CGxDeviceD3d(const CGxDeviceD3d &);
   const CGxDeviceD3d &operator=(const CGxDeviceD3d &);
 
-  int  ICheckTextureFormat(unsigned long usage, _D3DFORMAT textureFormat);
+  int        ICheckTextureFormat(unsigned long usage, _D3DFORMAT textureFormat);
+  _D3DFORMAT IDepthStencilBitsToFormat(unsigned int depthBits, unsigned int stencilBits);
+  _D3DFORMAT IColorAlphaBitsToFormat(unsigned int colorBits, unsigned int alphaBits);
+  unsigned long DsGet(EDeviceState state);
   int  ICreateD3d();
   void IDestroyD3d();
   int  IAllocBuffers();
