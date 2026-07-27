@@ -386,7 +386,7 @@ void CGxDeviceD3d::IReleaseD3dResources(int freeTextures) {
   ITexForceRecreation(freeTextures);
   IShaderForceRecreation(freeTextures);
 
-  for (CGxBuf *buf = m_bufList.Head(); buf; buf = m_bufList.Next(buf)) {
+  ITERATELIST(CGxBuf, m_bufList, buf) {
     static_cast<CGxBufD3d *>(buf)->Release();
   }
 

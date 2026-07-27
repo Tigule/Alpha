@@ -266,7 +266,7 @@ CGxMemBuffer::CGxMemBuffer(unsigned int count) : m_count(count), m_base(0), m_ne
 }
 
 void CGxMemBuffer::InvalidateBufs(CGxBuf::Status vertexStatus, CGxBuf::Status indexStatus) {
-  for (CGxBuf *buf = m_bufList.Head(); buf; buf = m_bufList.Next(buf)) {
+  ITERATELIST(CGxBuf, m_bufList, buf) {
     buf->Invalidate(vertexStatus, indexStatus);
   }
 }

@@ -40,7 +40,7 @@ struct FrameFactoryNode : public TSHashObject<FrameFactoryNode, HASHKEY_STRI> {
   FRAMEFACTORY factory;
 };
 
-struct TREENODE : public TSLinkedNode<TREENODE> {
+NODEDECL(TREENODE) {
   TREENODE();
   ~TREENODE();
 
@@ -51,7 +51,7 @@ static TSHashTable<HashedNode, HASHKEY_STRI>       s_hashedNodes;
 static TSHashTable<FrameFactoryNode, HASHKEY_STRI> s_frameFactories;
 static CFrameXMLStatus                             s_defaultStatus;
 static int                                         s_debugLevel;
-static TSList<TREENODE, TSGetLink<TREENODE> >      s_treeList;
+static LISTDECL(TREENODE, s_treeList);
 static int                                         s_loadNesting;
 static FRAMELOADPROGRESSCALLBACK                   s_loadProgressCallback;
 

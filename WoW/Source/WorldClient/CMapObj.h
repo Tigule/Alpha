@@ -375,7 +375,7 @@ class CMapObjGroup {
   unsigned char        bLoaded;
 
  public:
-  TSLink<CMapObjGroup> lameAssLink;
+  LINKDECLEX(CMapObjGroup, lameAssLink);
 
  private:
   void CreateLightmapPointers(unsigned char *&pData);
@@ -666,7 +666,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   SFile              *file;
 
  public:
-  TSLink<CMapObj> lameAssLink;
+  LINKDECLEX(CMapObj, lameAssLink);
 
  private:
   CMapObjHeader                       fileHeader;

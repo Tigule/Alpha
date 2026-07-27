@@ -13,15 +13,15 @@ class CGxuLightLink {
   CGxuLight            *m_light;
   CLightList           *m_list;
   float                 m_fitness;
-  TSLink<CGxuLightLink> m_lightLink;
-  TSLink<CGxuLightLink> m_listLink;
+  LINKDECLEX(CGxuLightLink, m_lightLink);
+  LINKDECLEX(CGxuLightLink, m_listLink);
 };
 
 struct CLightList : public TSHashObject<CLightList, HASHKEY_DWORD> {
   CLightList() {
   }
 
-  TSExplicitList<CGxuLightLink, 20> m_links;
+  LISTDECLEX(CGxuLightLink, m_listLink, m_links);
 
   static TSHashTableReuse<CLightList, HASHKEY_DWORD, 1> s_lightHashTable;
 };

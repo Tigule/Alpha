@@ -18,14 +18,14 @@ struct ContextCall {
 };
 #pragma pack(pop)
 
-struct ContextTurn : public TSLinkedNode<ContextTurn> {
+NODEDECL(ContextTurn) {
   unsigned long m_turnId;
   unsigned long m_callBufferHead;
 };
 
 struct ContextData;
 
-struct ThreadData : public TSLinkedNode<ThreadData> {
+NODEDECL(ThreadData) {
   unsigned long m_threadId;
   void         *m_threadHandle;
   int           m_enabled;
@@ -35,7 +35,7 @@ struct ThreadData : public TSLinkedNode<ThreadData> {
   char          m_title[0x80];
 };
 
-struct ContextData : public TSLinkedNode<ContextData> {
+NODEDECL(ContextData) {
   ThreadData   *m_threadData;
   unsigned long m_checksum;
   unsigned long m_turnId;
@@ -52,8 +52,8 @@ struct ContextData : public TSLinkedNode<ContextData> {
 namespace {
 
   CInitCritSect                                s_critsect;
-  TSList<ThreadData, TSGetLink<ThreadData> >   s_threadDataList;
-  TSList<ContextData, TSGetLink<ContextData> > s_contextDataList;
+  LISTDECL(ThreadData, s_threadDataList);
+  LISTDECL(ContextData, s_contextDataList);
   unsigned long                                s_tlsIndex;
   unsigned long                                s_initCount;
   int                                          s_enable = 1;

@@ -29,14 +29,14 @@ enum TEST_DIRECTION {
   NUM_TESTDIRECTIONS = 4
 };
 
-struct BFSNODE : public TSLinkedNode<BFSNODE> {
+NODEDECL(BFSNODE) {
   NTempest::CRect nodeRect;
   TEST_DIRECTION  dontTestDirection;
 };
 
 static GRIDRECTLIST                         s_gridRectList[2];
-static TSList<BFSNODE, TSGetLink<BFSNODE> > s_activeBFSNodes;
-static TSList<BFSNODE, TSGetLink<BFSNODE> > s_freeBFSNodes;
+static LISTDECL(BFSNODE, s_activeBFSNodes);
+static LISTDECL(BFSNODE, s_freeBFSNodes);
 static CVar                                *s_showCVar;
 
 static void CleanupActiveBFSNodes() {

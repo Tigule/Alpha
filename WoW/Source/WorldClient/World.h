@@ -439,7 +439,7 @@ class CWorld {
   static int                 bShowSimpleDoodads;
 };
 
-struct WaterRadWave : public TSLinkedNode<WaterRadWave> {
+NODEDECL(WaterRadWave) {
   int                Update(float deltat);
   void               Init(const NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq);
   float              decay;
@@ -782,8 +782,8 @@ class CMap {
   static const char                                    *liquidTexBaseName[LIQUID_COUNT];
   static bool                                           riverDiffTexUpdated;
   static bool                                           oceanDiffTexUpdated;
-  static TSList<WaterRadWave, TSGetLink<WaterRadWave> > waterRipplesFree;
-  static TSList<WaterRadWave, TSGetLink<WaterRadWave> > waterRipplesActive;
+  static LISTDECL(WaterRadWave, waterRipplesFree);
+  static LISTDECL(WaterRadWave, waterRipplesActive);
   static CGxPixelShader                                *psOcean0;
   static CGxPixelShader                                *psSpecTerrain;
   static CGxShaderParam                                *psSpecTerrain_LayerMask;
@@ -820,8 +820,8 @@ class CMap {
   static TSExplicitList<CMapLight, 8>                 lightList;
   static TSExplicitList<CMapLight, 8>                 lightFreeList;
   static TSExplicitList<CMapCacheLight, 72>           cacheLightFreeList;
-  static TSList<CChunkLayer, TSGetLink<CChunkLayer> > chunkLayerFreeList;
-  static TSList<CChunkTex, TSGetLink<CChunkTex> >     chunkTexFreeList;
+  static LISTDECL(CChunkLayer, chunkLayerFreeList);
+  static LISTDECL(CChunkTex, chunkTexFreeList);
 
  private:
   friend class CWorld;
@@ -979,7 +979,7 @@ class CWFrustum {
   float              aspect;
   float              minz;
   float              maxz;
-  TSLink<CWFrustum>  sceneLink;
+  LINKDECLEX(CWFrustum, sceneLink);
 
   CWFrustum() {
   }

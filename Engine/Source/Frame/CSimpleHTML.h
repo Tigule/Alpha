@@ -50,7 +50,7 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
-  TSList<REGIONNODE, TSGetLink<REGIONNODE> >  m_content;
+  LISTDECL(REGIONNODE, m_content);
   CLayoutFrame                               *m_layoutAnchor;
   float                                       m_layoutOffset;
   CSimpleFontStringAttributes                 m_attrib[4];

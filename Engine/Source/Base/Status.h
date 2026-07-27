@@ -44,7 +44,7 @@ struct CStatus::STATUSENTRY {
 
   char               *text;
   STATUS_TYPE         severity;
-  TSLink<STATUSENTRY> link;
+  LINKDECLEX(STATUSENTRY, link);
 };
 
 CStatus &GetGlobalStatusObj();

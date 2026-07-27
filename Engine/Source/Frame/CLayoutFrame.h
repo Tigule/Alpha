@@ -28,7 +28,7 @@ class CLayoutFrame {
   friend class CSimpleTexture;
 
  public:
-  struct FRAMENODE : public TSLinkedNode<FRAMENODE> {
+  NODEDECL(FRAMENODE) {
     virtual ~FRAMENODE() {
     }
 
@@ -127,7 +127,7 @@ class CLayoutFrame {
     unsigned int centerX : 1;
     unsigned int centerY : 1;
   } m_guard;
-  TSList<FRAMENODE, TSGetLink<FRAMENODE> > m_resizeList;
+  LISTDECL(FRAMENODE, m_resizeList);
   unsigned char                            m_resizeCounter;
 
  protected:
@@ -138,7 +138,7 @@ class CLayoutFrame {
   float           m_layoutScale;
 
  public:
-  TSLink<CLayoutFrame> resizeLink;
+  LINKDECLEX(CLayoutFrame, resizeLink);
 };
 
 #endif

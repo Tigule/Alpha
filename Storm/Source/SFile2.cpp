@@ -62,7 +62,7 @@ static unsigned int                             s_readThreadInitialized;
 static SEvent                                   s_readQueueEvent(FALSE, FALSE);
 static SCritSect                                s_readQueueLock;
 static SThread                                  s_readThread;
-static TSList<ASYNCREAD, TSGetLink<ASYNCREAD> > s_readQueue;
+static LISTDECL(ASYNCREAD, s_readQueue);
 static unsigned long                            s_directaccess;
 static char                                     s_basepath[MAX_PATH];
 static char                                     s_datapath[MAX_PATH];

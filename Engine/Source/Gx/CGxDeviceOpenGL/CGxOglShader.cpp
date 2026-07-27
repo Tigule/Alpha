@@ -143,7 +143,7 @@ void CGxDeviceOpenGl::PixelShaderDestroy(CGxPixelShader *&ps) {
 }
 
 void CGxDeviceOpenGl::ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &params, int forceForBind) {
-  for (CGxShaderParam *param = params.Head(); param; param = params.Next(param)) {
+  ITERATELIST(CGxShaderParam, params, param) {
     if (param->dirty || forceForBind) {
       for (unsigned int i = 0; i < CGxShaderParam::TypeCountTable[param->type]; ++i) {
         glProgramLocalParameter4fvARB(GL_FRAGMENT_PROGRAM_ARB, param->index + i, param->f + i * 4);

@@ -29,7 +29,7 @@ struct BREAKCMD : TSLinkedNode<BREAKCMD> {
 };
 typedef BREAKCMD *BREAKCMDPTR;
 
-static TSList<BREAKCMD, TSGetLink<BREAKCMD> > s_breakcmdlist;
+static LISTDECL(BREAKCMD, s_breakcmdlist);
 static CCritSect                              s_critsect;
 static LONG                                   s_dispatchesinprogress;
 static int                                    s_modified = 1;

@@ -131,7 +131,7 @@ void RangeList::RemoveRange(float iMin, float iMax) {
   }
 }
 
-struct CameraShake : public TSLinkedNode<CameraShake> {
+NODEDECL(CameraShake) {
   int           type;
   int           direction;
   float         amplitude;
@@ -1161,13 +1161,10 @@ void CGCamera::RunShakes() {
     FATALASSERT(target);
     float yaw = target->GetSmoothFacing();
 
-    CameraShake *shake = m_shakes.Head();
-    while (shake) {
-      CameraShake *next = shake->Next();
-      float        time = (timestamp - shake->timestamp) * 0.001f + shake->phase;
+    ITERATELIST(CameraShake, m_shakes, shake) {
+      float time = (timestamp - shake->timestamp) * 0.001f + shake->phase;
       if (time >= shake->duration) {
-        shake = m_shakes.DeleteNode(shake);
-        continue;
+        ITERATE_DELETE
       }
 
       float amount = static_cast<float>(sin(time * shake->frequency * 6.2831855f)) * shake->amplitude;
@@ -1185,7 +1182,6 @@ void CGCamera::RunShakes() {
       } else if (shake->direction == 2) {
         shakeOffset.z += amount;
       }
-      shake = next;
     }
 
     m_position += shakeOffset;

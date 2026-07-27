@@ -33,8 +33,8 @@
 #include <stpl.h>
 #include <string.h>
 
-struct BlizzardObject : public TSLinkedNode<BlizzardObject> {
-  struct Shard : public TSLinkedNode<Shard> {
+NODEDECL(BlizzardObject) {
+  NODEDECL(Shard) {
     NTempest::C3Vector pos;
     HMODEL             hModel;
     unsigned long      startTime;
@@ -44,7 +44,7 @@ struct BlizzardObject : public TSLinkedNode<BlizzardObject> {
     }
   };
 
-  static TSList<Shard, TSGetLink<Shard> > shardPool;
+  static LISTDECL(Shard, shardPool);
 
   HMODEL                           shardModel;
   unsigned long                    hWorldObject;
@@ -54,7 +54,7 @@ struct BlizzardObject : public TSLinkedNode<BlizzardObject> {
   float                            emissionRate;
   unsigned int                     dead;
   NTempest::CAaSphere              boundSphere;
-  TSList<Shard, TSGetLink<Shard> > shards;
+  LISTDECL(Shard, shards);
 
   static int ShardSeqFinished(void *param);
   static Shard          *AllocShard();
@@ -67,7 +67,7 @@ struct BlizzardObject : public TSLinkedNode<BlizzardObject> {
   void                   Render(const NTempest::C44Matrix &mtx);
 };
 
-struct LightningObject : public TSLinkedNode<LightningObject> {
+NODEDECL(LightningObject) {
  public:
   struct Bolt {
     enum {
@@ -113,7 +113,7 @@ struct EclipseObject {
   void Update(unsigned int currentTime);
 };
 
-struct FishingLineObject : public TSLinkedNode<FishingLineObject> {
+NODEDECL(FishingLineObject) {
   unsigned __int64    object;
   unsigned __int64    caster;
   NTempest::CImVector color;
@@ -133,7 +133,7 @@ int Spell_C_GetCastTime(int id, int isPet);
 
 TSList<BlizzardObject::Shard, TSGetLink<BlizzardObject::Shard> > BlizzardObject::shardPool;
 
-static TSList<FishingLineObject, TSGetLink<FishingLineObject> > s_fishingLineObjects;
+static LISTDECL(FishingLineObject, s_fishingLineObjects);
 static TInstanceAllocator<FishingLineObject>                    s_freeFishingObjects(20);
 static TSCArray<unsigned short, 201>                            s_fishingLineIndices;
 static TSCArray<float, 201>                                     s_segmentPoints;
@@ -358,11 +358,11 @@ static const char *modelNames[4] = {
     "Spells\\Blizzard_Impact_Base.mdx", "Spells\\RainOfFire_Impact_Base.mdx", "Spells\\CallLightning_Impact.mdx",
     "Spells\\FlamestrikeSmall_Impact_Base.mdx"
 };
-static TSList<BlizzardObject, TSGetLink<BlizzardObject> >   s_blizzardPool;
-static TSList<BlizzardObject, TSGetLink<BlizzardObject> >   s_blizzard;
+static LISTDECL(BlizzardObject, s_blizzardPool);
+static LISTDECL(BlizzardObject, s_blizzard);
 static TSGrowableArray<const SpellAuraNamesRec *>           s_auraNames;
 static TSFixedArray<ANIMENUMERATION>                        s_precastAnimTransitions;
-static TSList<LightningObject, TSGetLink<LightningObject> > s_lightning;
+static LISTDECL(LightningObject, s_lightning);
 static CLightningManager                                   *s_lightningManager;
 static EclipseObject                                        s_eclipseObject;
 

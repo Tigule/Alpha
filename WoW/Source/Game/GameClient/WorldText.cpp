@@ -14,7 +14,7 @@
 
 #include <math.h>
 
-static TSExplicitList<WORLDTEXTSTRING, 0x180> s_textList;
+static LISTDECLEX(WORLDTEXTSTRING, link, s_textList);
 static WORLDTEXTCREATEPARAMS                  s_worldTextParams[NUM_WORLDTEXTTYPES];
 static HTEXTFONT                              s_worldTextFontHandles[NUM_WORLDTEXTTYPES];
 static CVar                                  *s_fontHeightCVar;
@@ -226,15 +226,12 @@ void WorldTextShutdown() {
 }
 
 void WorldTextClearStrings() {
-  WORLDTEXTSTRING *worldText = s_textList.Head();
-
-  while (worldText) {
+  ITERATELIST(WORLDTEXTSTRING, s_textList, worldText) {
     if (worldText->string) {
       GxuFontDestroyString(worldText->string);
     }
 
     worldText->string = 0;
-    worldText = s_textList.Next(worldText);
   }
 }
 
@@ -270,7 +267,7 @@ HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __i
 }
 
 void WorldTextUpdate(float elapsed, const NTempest::C44Matrix& matrix) {
-  for (WORLDTEXTSTRING *text = s_textList.Head(); text; text = s_textList.Next(text)) {
+  ITERATELIST(WORLDTEXTSTRING, s_textList, text) {
     if (text->object) {
       text->Update(elapsed, matrix, 0);
     }

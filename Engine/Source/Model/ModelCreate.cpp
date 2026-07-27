@@ -1649,7 +1649,7 @@ void ExecuteQueuedActions(CModel *model) {
 }
 
 void CModel::RemoveModelCommandsFromQueue() {
-  for (CModelModItem *item = modelModQueue.Head(); item; item = modelModQueue.Next(item)) {
+  ITERATELIST(CModelModItem, modelModQueue, item) {
     unsigned char *paramData = item->paramData;
     for (unsigned int i = 0; i < 4; ++i) {
       EModelParamType type = s_modelParamTypes[item->action][i];

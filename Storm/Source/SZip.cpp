@@ -124,7 +124,7 @@ struct ZipFileFCB {
 };
 
 typedef TSHashTable<ZipFileDirEntry, HASHKEY_CONSTSTRI>   ZipDirTable;
-typedef TSExplicitList<ZipFileDirEntry, -572662307>       ZipDirList;
+typedef LISTEXDYN(ZipFileDirEntry)                        ZipDirList;
 typedef TSGrowableArray<ZipDirList>                       ZipDirListArray;
 static ZipDirTable                                        s_directory;
 static const char                                         centralDirectoryFileSignature[4] = {'P', 'K', 1, 2};
@@ -132,7 +132,7 @@ static const char                                         localFileSignature[4] 
 static const char                                         centralDirectoryHeaderSignature[4] = {'P', 'K', 5, 6};
 static WowFileSystem                                      s_fileSystem;
 static TestFileSystemProvider                             s_testProvider;
-static TSList<ZipFileArchive, TSGetLink<ZipFileArchive> > s_archives;
+static LISTDECL(ZipFileArchive, s_archives);
 
 template <>
 TSFixedArray<ZipDirList>::~TSFixedArray() {

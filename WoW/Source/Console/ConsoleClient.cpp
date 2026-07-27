@@ -37,7 +37,7 @@ enum CONSOLERESIZESTATE {
   CS_STRETCH = 1
 };
 
-struct CONSOLELINE : public TSLinkedNode<CONSOLELINE> {
+NODEDECL(CONSOLELINE) {
   char        *buffer;
   unsigned int chars;
   unsigned int charsalloc;
@@ -70,7 +70,7 @@ static RECTF                                        s_rect = {0.0f, 0.0f, 1.0f, 
 static float                                        s_caretpixwidth;
 static float                                        s_caretpixheight;
 static int                                          s_caret;
-static TSList<CONSOLELINE, TSGetLink<CONSOLELINE> > s_linelist;
+static LISTDECL(CONSOLELINE, s_linelist);
 static CONSOLELINE                                 *s_currlineptr;
 static int                                          s_NumLines;
 static HLAYER__                                    *s_layerBackground;
@@ -353,7 +353,6 @@ static CONSOLELINE *GetInputLine() {
 
 static void PaintText(void *, const RECTF *, const RECTF *, float elapsedSec) {
   CONSOLELINE       *inputLine;
-  CONSOLELINE       *line;
   CGxFont           *font;
   NTempest::C3Vector caretpos;
   NTempest::C3Vector pos;
@@ -382,15 +381,16 @@ static void PaintText(void *, const RECTF *, const RECTF *, float elapsedSec) {
     DrawCaret(caretpos);
   }
 
-  line = s_currlineptr;
   pos.y += s_fontHeight;
-  while (line && pos.y < 1.0f) {
+  ITERATEPARTIALLIST(CONSOLELINE, s_linelist, s_currlineptr, line) {
+    if (pos.y >= 1.0f) {
+      break;
+    }
     if (line != inputLine) {
       GxuFontSetStringPosition(line->fontPointer, pos);
       GxuFontAddToInternalBatch(line->fontPointer);
       pos.y += s_fontHeight;
     }
-    line = s_linelist.Next(line);
   }
   GxuFontRenderInternalBatch();
 }
@@ -948,11 +948,8 @@ static void UnregisterHandlers() {
 }
 
 static void RegenerateFontStrings() {
-  CONSOLELINE *node = s_linelist.Head();
-
-  while (node) {
+  ITERATELIST(CONSOLELINE, s_linelist, node) {
     GenerateNodeString(node);
-    node = s_linelist.Next(node);
   }
 }
 
@@ -1062,7 +1059,6 @@ static int ConsoleCommand_FontColor(const char *cmd, const char *arguments) {
   unsigned int        red;
   COLOR_T             type;
   NTempest::CImVector color;
-  CONSOLELINE        *line;
 
   if (sscanf(arguments, "%s %d %d %d", colorType, &red, &green, &blue) != 4) {
     ConsoleWrite("Invalid number of parameters", ERROR_COLOR);
@@ -1101,12 +1097,10 @@ static int ConsoleCommand_FontColor(const char *cmd, const char *arguments) {
 
   color.Set(255, (unsigned char)red, (unsigned char)green, (unsigned char)blue);
   SetColor(type, color);
-  line = s_linelist.Head();
-  while (line) {
+  ITERATELIST(CONSOLELINE, s_linelist, line) {
     if (line->colorType == type && line->fontPointer) {
       GxuFontSetStringColor(line->fontPointer, color);
     }
-    line = s_linelist.Next(line);
   }
   return 1;
 }

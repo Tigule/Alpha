@@ -110,8 +110,8 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
     return glyphEndPixel - glyphStartPixel + 1;
   }
 
-  TSLink<CHARCODEDESC> textureRowLink;
-  TSLink<CHARCODEDESC> fontGlyphLink;
+  LINKDECLEX(CHARCODEDESC, textureRowLink);
+  LINKDECLEX(CHARCODEDESC, fontGlyphLink);
   int                  dataValid;
   unsigned int         textureNumber;
   unsigned int         rowNumber;
@@ -217,7 +217,7 @@ struct TEXTURECACHE {
   TSFixedArray<TEXTURECACHEROW> m_textureRows;
 };
 
-struct CGxFont : public TSLinkedNode<CGxFont> {
+NODEDECL(CGxFont) {
   CGxFont();
   ~CGxFont();
 
@@ -241,7 +241,7 @@ struct CGxFont : public TSLinkedNode<CGxFont> {
   }
 
   TSExplicitList<CGxString, 8>               m_strings;
-  TSLink<CGxFont>                            m_batchedRenderLink;
+  LINKDECLEX(CGxFont, m_batchedRenderLink);
   TSHashTable<GLYPHBITMAPDATA, HASHKEY_NONE> m_glyphBitmapData;
   TSHashTable<CHARCODEDESC, HASHKEY_NONE>    m_activeCharacters;
   TSHashTable<KERNNODE, KERNINGHASHKEY>      m_kernInfo;
@@ -283,7 +283,7 @@ struct VERT {
   NTempest::C2Vector tc;
 };
 
-struct TEXTLINETEXTURE : public TSLinkedNode<TEXTLINETEXTURE> {
+NODEDECL(TEXTLINETEXTURE) {
   TEXTLINETEXTURE() {
     m_vert.SetChunkSize(64);
     m_colors.SetChunkSize(64);
@@ -308,7 +308,7 @@ struct TEXTLINETEXTURE : public TSLinkedNode<TEXTLINETEXTURE> {
   TSGrowableArray_<unsigned short, 'GxuF', __LINE__>      m_vertIndices;
 };
 
-struct IGXUTEXTLINE : public TSLinkedNode<IGXUTEXTLINE> {
+NODEDECL(IGXUTEXTLINE) {
   ~IGXUTEXTLINE() {
     Destroy();
   }
@@ -337,7 +337,7 @@ struct IGXUTEXTBLOCK {
   TSGrowableArray<IGXUTEXTLINE *> m_lines;
 };
 
-struct CGxString : public TSLinkedNode<CGxString> {
+NODEDECL(CGxString) {
   CGxString();
   ~CGxString();
   CGxString *Duplicate() const;
@@ -406,8 +406,8 @@ struct CGxString : public TSLinkedNode<CGxString> {
   unsigned int      GetHyperLinkInfo(const GXUFONTHYPERLINKINFO *&list) const;
   static CGxString *GetNewString(int linkonList);
 
-  TSLink<CGxString>                      m_fontStringLink;
-  TSLink<CGxString>                      m_batchedStringLink;
+  LINKDECLEX(CGxString, m_fontStringLink);
+  LINKDECLEX(CGxString, m_batchedStringLink);
   float                                  m_requestedFontHeight;
   float                                  m_currentFontHeight;
   NTempest::C3Vector                     m_position;
@@ -454,7 +454,7 @@ struct BATCHEDRENDERFONTDESC : public TSHashObject<BATCHEDRENDERFONTDESC, HASHKE
   TSExplicitList<CGxString, 16> m_strings;
 };
 
-struct CGxStringBatch : public TSLinkedNode<CGxStringBatch> {
+NODEDECL(CGxStringBatch) {
   ~CGxStringBatch() {
     Clear();
   }
@@ -469,17 +469,17 @@ struct CGxStringBatch : public TSLinkedNode<CGxStringBatch> {
 };
 
 struct STRINGVIEWMATRICES : public TSHashObject<STRINGVIEWMATRICES, HASHKEY_PTR> {
-  TSLink<STRINGVIEWMATRICES> m_freeLink;
+  LINKDECLEX(STRINGVIEWMATRICES, m_freeLink);
   NTempest::C44Matrix        projection;
   NTempest::C44Matrix        view;
 };
 
 extern unsigned int                                         g_heightPixels;
 extern unsigned int                                         g_widthPixels;
-extern TSList<TEXTLINETEXTURE, TSGetLink<TEXTLINETEXTURE> > g_freeTextLineTextures;
-extern TSList<IGXUTEXTLINE, TSGetLink<IGXUTEXTLINE> >       g_freeTextLines;
-extern TSList<CGxString, TSGetLink<CGxString> >             g_freeStrings;
-extern TSList<CGxString, TSGetLink<CGxString> >             g_strings;
+extern LISTDECL(TEXTLINETEXTURE, g_freeTextLineTextures);
+extern LISTDECL(IGXUTEXTLINE, g_freeTextLines);
+extern LISTDECL(CGxString, g_freeStrings);
+extern LISTDECL(CGxString, g_strings);
 
 struct FT_LibraryRec_;
 

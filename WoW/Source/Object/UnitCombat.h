@@ -196,7 +196,7 @@ struct PARTYKILLLOG : public LOGBASE {
 inline PARTYKILLLOG::PARTYKILLLOG(unsigned __int64 killer, unsigned __int64 victim) : killer(killer), victim(victim) {
 }
 
-struct ANIMQUEUENODE : public TSLinkedNode<ANIMQUEUENODE> {
+NODEDECL(ANIMQUEUENODE) {
   ANIMQUEUETYPE   type;
   ATTACKROUNDINFO roundInfo;
 };

@@ -1426,6 +1426,89 @@ class TSExplicitList : public TSList<T, TSGetExplicitLink<T> > {
   }
 };
 
+
+#define  LINKEX(structname)              TSLink< structname >
+#define  LINKDECLEX(structname,varname)  TSLink< structname > varname
+#define  LIST(structname)                TSList< structname ,TSGetLink< structname > >
+#define  LISTDECL(structname,varname)    TSList< structname ,TSGetLink< structname > > varname
+#define  LISTPTR(structname)             TSList< structname ,TSGetLink< structname > > *
+#define  LISTPTREX(structname)           TSList< structname ,TSGetExplicitLink< structname > > *
+#define  NODEDECL(structname)            struct structname : public TSLinkedNode< structname >
+#define  NODEDECLEX(structname)          typedef struct structname : public TSExplicitNode< structname >
+
+#define  LISTEX(structname,linkname)                                     \
+  TSExplicitList< structname ,(int)&(((structname *)0)->linkname)>
+
+#define  LISTEXDYN(structname)                                           \
+  TSExplicitList< structname ,(int)0xDDDDDDDD>
+
+#define  LISTEXSETLINK(structname,listname,linkname)                     \
+  listname.ChangeLinkOffset((int)&(((structname *)0)->linkname));
+
+#define  LISTDECLEX(structname,linkname,varname)                         \
+  TSExplicitList< structname ,(int)&(((structname *)0)->linkname)> varname
+
+#define  ITERATEFORWARDTEMPLATE(structname,listname,start,ptrname,op)    \
+  for (structname *ptrname = start,                                      \
+         *iterate_delete = NULL;                                         \
+       (int)ptrname > 0;                                                 \
+       iterate_delete                                                    \
+         ? (ptrname = (listname) op DeleteNode(ptrname),                 \
+            ptrname = ((int)iterate_delete > 0) ? ptrname : NULL,        \
+            iterate_delete = NULL,                                       \
+            ptrname)                                                     \
+         : ptrname = (listname) op RawNext(ptrname))
+
+#define  ITERATEREVERSETEMPLATE(structname,listname,start,ptrname,op)    \
+  for (structname *ptrname = start,                                      \
+         *iterate_delete = NULL,                                         \
+         *iterate_delete_temp = NULL;                                    \
+       ptrname;                                                          \
+       iterate_delete                                                    \
+         ? (iterate_delete_temp = ((int)iterate_delete > 0)              \
+              ? (listname) op Prev(ptrname)                              \
+              : NULL,                                                    \
+            (listname) op DeleteNode(ptrname),                           \
+            iterate_delete = NULL,                                       \
+            ptrname        = iterate_delete_temp)                        \
+         : ptrname = (listname) op Prev(ptrname))
+
+#define  ITERATELIST(structname,listname,ptrname)                        \
+  ITERATEFORWARDTEMPLATE(structname,listname,(listname).Head(),ptrname,.)
+
+#define  ITERATELISTPTR(structname,listname,ptrname)                     \
+  ITERATEFORWARDTEMPLATE(structname,listname,(listname)->Head(),ptrname,->)
+
+#define  ITERATEPARTIALLIST(structname,listname,start,ptrname)           \
+  ITERATEFORWARDTEMPLATE(structname,listname,start,ptrname,.)
+
+#define  ITERATEPARTIALLISTPTR(structname,listname,start,ptrname)        \
+  ITERATEFORWARDTEMPLATE(structname,listname,start,ptrname,->)
+
+#define  ITERATELISTREVERSE(structname,listname,ptrname)                 \
+  ITERATEREVERSETEMPLATE(structname,listname,(listname).Tail(),ptrname,.)
+
+#define  ITERATELISTREVERSEPTR(structname,listname,ptrname)              \
+  ITERATEREVERSETEMPLATE(structname,listname,(listname)->Tail(),ptrname,->)
+
+#define  ITERATEPARTIALLISTREVERSE(structname,listname,start,ptrname)    \
+  ITERATEREVERSETEMPLATE(structname,listname,start,ptrname,.)
+
+#define  ITERATEPARTIALLISTREVERSEPTR(structname,listname,start,ptrname) \
+  ITERATEREVERSETEMPLATE(structname,listname,start,ptrname,->)
+
+#define  ITERATE_DELETE                                                  \
+  {                                                                      \
+    ++iterate_delete;                                                    \
+    continue;                                                            \
+  }
+
+#define  ITERATE_DELETEANDBREAK                                          \
+  {                                                                      \
+    --iterate_delete;                                                    \
+    continue;                                                            \
+  }
+
 class HASHKEY_NONE {
  public:
   bool operator==(const HASHKEY_NONE &__formal) const {

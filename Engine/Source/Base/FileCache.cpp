@@ -221,7 +221,7 @@ void BaseFileDumpStats() {
 
     int count = 0;
     int bytes = 0;
-    for (PrefetchNode *theFile = s_activeFiles.Head(); theFile; theFile = s_activeFiles.Next(theFile)) {
+    ITERATELIST(PrefetchNode, s_activeFiles, theFile) {
       SLogWrite(log, "%8d: %s (%d)", theFile->size, theFile->GetString(), theFile->refCount);
       bytes += theFile->size;
       ++count;

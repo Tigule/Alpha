@@ -115,7 +115,7 @@ namespace OsNet {
     OVERLAPTYPE m_type;
   };
 
-  struct OUTPUT : public TSLinkedNode<OUTPUT> {
+  NODEDECL(OUTPUT) {
     NETOVERLAP  m_overlap;
     OUTPUTSTATE m_state;
     union {
@@ -134,7 +134,7 @@ namespace OsNet {
     ~OUTPUT();
   };
 
-  struct INPUT : public TSLinkedNode<INPUT> {
+  NODEDECL(INPUT) {
     NETOVERLAP    m_overlap;
     void         *m_operationId;
     unsigned long m_bytes;
@@ -202,7 +202,7 @@ namespace OsNet {
     void ConnAddr(NETCONNADDR *connAddr);
 
    private:
-    TSLink<NETCONN> m_link;
+    LINKDECLEX(NETCONN, m_link);
     unsigned char   m_list;
     unsigned char   m_listSlot;
     unsigned short  m_reserved;
@@ -264,7 +264,7 @@ namespace OsNet {
     virtual void StartRead() = 0;
     virtual void CloseAndUnlock();
 
-    TSList<OUTPUT, TSGetLink<OUTPUT> > m_outputList;
+    LISTDECL(OUTPUT, m_outputList);
     unsigned long                      m_bytes;
     unsigned char                      m_data[1460];
 
@@ -341,8 +341,8 @@ namespace OsNet {
 
    protected:
     void                              *m_file;
-    TSList<OUTPUT, TSGetLink<OUTPUT> > m_outputList;
-    TSList<INPUT, TSGetLink<INPUT> >   m_inputList;
+    LISTDECL(OUTPUT, m_outputList);
+    LISTDECL(INPUT, m_inputList);
 
    private:
     OUTPUT *LockedEnqueue(unsigned __int64 pos, const void *data, unsigned long bytes, void *operationId);
@@ -385,7 +385,7 @@ namespace OsNet {
 
     void NoteCantConnect(NETEVENTPROC eventProc, const NETCONNADDR *pconnAddr);
 
-    TSLink<NETCONNECT> m_link;
+    LINKDECLEX(NETCONNECT, m_link);
     void              *m_user;
     void              *m_data;
     unsigned long      m_bytes;
@@ -433,8 +433,8 @@ namespace OsNet {
   class LOOPCONN : public NETCONNFULL {
    public:
     struct INPUT {
-      TSLink<INPUT> m_link;
-      TSLink<INPUT> m_linkNet;
+      LINKDECLEX(INPUT, m_link);
+      LINKDECLEX(INPUT, m_linkNet);
       LOOPCONN     *m_conn;
       unsigned long m_bytes;
       unsigned long m_dataBytes;
@@ -450,7 +450,7 @@ namespace OsNet {
     virtual int     IsClosed() const;
 
     LOOPCONN                *m_loopConn;
-    TSLink<LOOPCONN>         m_linkNet;
+    LINKDECLEX(LOOPCONN, m_linkNet);
     TSExplicitList<INPUT, 0> m_inputList;
     unsigned long            m_bytes;
     unsigned char            m_data[1460];
@@ -611,7 +611,7 @@ namespace OsNet {
     friend struct TCPNET;
   };
 
-  struct TCPACCEPT : public TSLinkedNode<TCPACCEPT> {
+  NODEDECL(TCPACCEPT) {
     TCPACCEPT(TCPLISTEN *listen);
     ~TCPACCEPT();
 
@@ -633,18 +633,18 @@ namespace OsNet {
     void         Close();
     virtual void AddToSelectSets(NETSELECTSETS *selectSets);
 
-    TSLink<TCPLISTEN>                        m_link;
+    LINKDECLEX(TCPLISTEN, m_link);
     unsigned long                            m_portAddr;
     NETEVENTPROC                             m_eventProc;
     void                                    *m_user;
     int                                      m_enabled;
-    TSList<TCPACCEPT, TSGetLink<TCPACCEPT> > m_acceptList;
+    LISTDECL(TCPACCEPT, m_acceptList);
 
    private:
     virtual void Selected(TCPNET *pnet, SELECTSET selectSet);
   };
 
-  struct TCPHOSTADDRINFO : public TSLinkedNode<TCPHOSTADDRINFO> {
+  NODEDECL(TCPHOSTADDRINFO) {
     ~TCPHOSTADDRINFO();
     void Fail() {
       m_hostAddrProc(0, 0, m_user);
@@ -787,7 +787,7 @@ namespace OsNet {
     LOCKEDLONG                                           m_hostAddrInfoCount;
     CEventLock                                           m_hostAddrInfoLock;
     unsigned long                                        m_hostAddrInfoId;
-    TSList<TCPHOSTADDRINFO, TSGetLink<TCPHOSTADDRINFO> > m_hostAddrInfoList;
+    LISTDECL(TCPHOSTADDRINFO, m_hostAddrInfoList);
 
     static CInitCritSect s_initLock;
     static unsigned long s_initCount[5];

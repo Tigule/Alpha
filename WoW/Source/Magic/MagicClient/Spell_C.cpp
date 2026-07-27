@@ -91,7 +91,7 @@ class SpellCast {
   unsigned short     flags;
 };
 
-struct SPELLHISTORY : public TSLinkedNode<SPELLHISTORY> {
+NODEDECL(SPELLHISTORY) {
   int           spellID;
   int           itemID;
   unsigned long recoveryStart;
@@ -125,8 +125,8 @@ class SpellHistory {
   void GarbageCollect(unsigned long timestamp);
 
  protected:
-  TSList<SPELLHISTORY, TSGetLink<SPELLHISTORY> > m_spellHistory;
-  TSList<SPELLHISTORY, TSGetLink<SPELLHISTORY> > m_freeList;
+  LISTDECL(SPELLHISTORY, m_spellHistory);
+  LISTDECL(SPELLHISTORY, m_freeList);
 };
 
 struct ITEMCOOLDOWNHASHNODE : public TSHashObject<ITEMCOOLDOWNHASHNODE, HASHKEY_NONE> {

@@ -234,7 +234,7 @@ int IEvtQueueDispatchNext(EvtContext *context) {
 void IEvtQueueDispatchAll(EvtContext *context) {
   FATALASSERT(context);
 
-  TSExplicitList<EvtMessage, 4> localMessageList;
+  LISTDECLEX(EvtMessage, link, localMessageList);
 
   TSExplicitList<EvtMessage, 4> &messageList = context->QueueLockMessageList();
   localMessageList.Combine(&messageList, LIST_TAIL, 0);
@@ -268,7 +268,7 @@ void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param) {
 
   ASSERT(context->IsCurrentContext());
 
-  TSExplicitList<EvtMessage, 4> localMessageList;
+  LISTDECLEX(EvtMessage, link, localMessageList);
 
   TSExplicitList<EvtMessage, 4> &messageList = context->QueueLockMessageList();
   localMessageList.Combine(&messageList, LIST_TAIL, 0);

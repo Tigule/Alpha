@@ -87,18 +87,15 @@ void DBCache<RECORD, KEY, HASHKEY>::VerifyCache(CGPlayer_C *player, DBCACHECALLB
 
 template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::DenyItem(KEY key) {
-  DBCACHEHASH     *entry;
-  DBCACHECALLBACK *callbackEntry;
+  DBCACHEHASH *entry;
 
   entry = m_table.Ptr(static_cast<unsigned int>(key), HASHKEY(key));
   if (!entry) {
     return;
   }
 
-  callbackEntry = entry->m_callbacks.Head();
-  while (callbackEntry) {
+  ITERATELIST(DBCACHECALLBACK, entry->m_callbacks, callbackEntry) {
     callbackEntry->m_callback(key, callbackEntry->m_guid, callbackEntry->m_cbArg, false);
-    callbackEntry = callbackEntry->Next();
   }
 
   m_table.Delete(entry);
@@ -106,8 +103,7 @@ void DBCache<RECORD, KEY, HASHKEY>::DenyItem(KEY key) {
 
 template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::AddItem(RECORD *item, KEY key) {
-  DBCACHEHASH     *obj;
-  DBCACHECALLBACK *callbackEntry;
+  DBCACHEHASH *obj;
 
   obj = m_table.Ptr(static_cast<unsigned int>(key), HASHKEY(key));
   if (!obj) {
@@ -118,10 +114,8 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItem(RECORD *item, KEY key) {
   obj->m_haveData = true;
   obj->m_dbkey = key;
 
-  callbackEntry = obj->m_callbacks.Head();
-  while (callbackEntry) {
+  ITERATELIST(DBCACHECALLBACK, obj->m_callbacks, callbackEntry) {
     callbackEntry->m_callback(key, callbackEntry->m_guid, callbackEntry->m_cbArg, true);
-    callbackEntry = callbackEntry->Next();
   }
 
   obj->m_callbacks.Clear();
@@ -133,7 +127,6 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
   unsigned int     invalid;
   unsigned int     count;
   DBCACHEHASH     *entry;
-  DBCACHECALLBACK *callbackEntry;
 
   if (single) {
     count = 1;
@@ -153,10 +146,8 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
     entry = m_table.Ptr(static_cast<unsigned int>(id), HASHKEY(id));
     if (invalid) {
       if (entry) {
-        callbackEntry = entry->m_callbacks.Head();
-        while (callbackEntry) {
+        ITERATELIST(DBCACHECALLBACK, entry->m_callbacks, callbackEntry) {
           callbackEntry->m_callback(id, callbackEntry->m_guid, callbackEntry->m_cbArg, false);
-          callbackEntry = callbackEntry->Next();
         }
 
         m_table.Delete(entry);
@@ -173,10 +164,8 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
     entry->m_haveData = true;
     entry->m_dbkey = id;
 
-    callbackEntry = entry->m_callbacks.Head();
-    while (callbackEntry) {
+    ITERATELIST(DBCACHECALLBACK, entry->m_callbacks, callbackEntry) {
       callbackEntry->m_callback(id, callbackEntry->m_guid, callbackEntry->m_cbArg, true);
-      callbackEntry = callbackEntry->Next();
     }
 
     entry->m_callbacks.Clear();
@@ -185,22 +174,17 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
 
 template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::CancelCallback(KEY id, DBCACHECALLBACKPROC cb, void *cbArg) {
-  DBCACHEHASH     *entry;
-  DBCACHECALLBACK *callbackEntry;
-  DBCACHECALLBACK *next;
+  DBCACHEHASH *entry;
 
   entry = m_table.Ptr(static_cast<unsigned int>(id), HASHKEY(id));
   if (!entry) {
     return;
   }
 
-  callbackEntry = entry->m_callbacks.Head();
-  while (callbackEntry) {
-    next = callbackEntry->Next();
+  ITERATELIST(DBCACHECALLBACK, entry->m_callbacks, callbackEntry) {
     if (callbackEntry->m_callback == cb && callbackEntry->m_cbArg == cbArg) {
-      entry->m_callbacks.DeleteNode(callbackEntry);
+      ITERATE_DELETE
     }
-    callbackEntry = next;
   }
 }
 

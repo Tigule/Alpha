@@ -51,7 +51,7 @@ struct ITEMPORTRAIT : public TSHashObject<ITEMPORTRAIT, HASHKEY_STR> {
   PortraitData portrait;
 };
 
-struct DIRTYFACE : public TSLinkedNode<DIRTYFACE> {
+NODEDECL(DIRTYFACE) {
   unsigned __int64 guid;
 };
 
@@ -61,8 +61,8 @@ static TSHashTable<PLAYERPORTRAIT, CHashKeyGUID> s_playerPortraits;
 static TSHashTable<UNITPORTRAIT, HASHKEY_NONE>   s_unitPortraits;
 static TSHashTable<ITEMPORTRAIT, HASHKEY_STR>    s_itemPortraits;
 static HASHKEY_NONE                              s_nullHashKey;
-static TSList<DIRTYFACE, TSGetLink<DIRTYFACE> >  s_dirtyFaces;
-static TSList<DIRTYFACE, TSGetLink<DIRTYFACE> >  s_freeDirtyFaces;
+static LISTDECL(DIRTYFACE, s_dirtyFaces);
+static LISTDECL(DIRTYFACE, s_freeDirtyFaces);
 
 static const TSFixedArray<unsigned char> &GetAlphaMask(unsigned int size) {
   CBLPFile                     image;

@@ -118,7 +118,7 @@ class NODEBASE {
   void         ClearDeathHoldTimer();
   unsigned int CheckModelLoadStatus();
 
-  TSLink<NODEBASE> node;
+  LINKDECLEX(NODEBASE, node);
   HMODEL__        *model;
   unsigned int     flags;
   unsigned int     deathHoldTimer;
@@ -155,7 +155,7 @@ class ONESHOTSTANDALONEEFFECTNODE : public NODEBASE {
   int                            expireTime;
 };
 
-struct MISSILENODE : public TSLinkedNode<MISSILENODE> {
+NODEDECL(MISSILENODE) {
   MISSILENODE()
       : model(0),
         caster(0),
@@ -199,7 +199,7 @@ struct UNITONESHOTEFFECTDESC : public TSHashObject<UNITONESHOTEFFECTDESC, CHashK
 static TSHashTable<UNITONESHOTEFFECTDESC, CHashKeyGUID> s_oneShotEffects;
 static TSExplicitList<ONESHOTSTANDALONEEFFECTNODE, 4>   s_standAloneEffects;
 static TInstanceAllocator<ONESHOTSTANDALONEEFFECTNODE>  s_freeStandaloneEffects(40);
-static TSList<MISSILENODE, TSGetLink<MISSILENODE> >     s_missiles;
+static LISTDECL(MISSILENODE, s_missiles);
 static TInstanceAllocator<MISSILENODE>                  s_freeMissiles(10);
 static CVar                                            *s_showEffectsStandalone;
 unsigned int                                            g_specialSpellIDs[43];
@@ -673,18 +673,14 @@ void UnitEffectUpdate(CGCamera *camera) {
 
   UNITONESHOTEFFECTDESC *effectDesc = s_oneShotEffects.Head();
   while (reinterpret_cast<long>(effectDesc) > 0) {
-    ONESHOTEFFECTNODE *node = effectDesc->m_effects.Head();
-    while (reinterpret_cast<long>(node) > 0) {
+    ITERATELIST(ONESHOTEFFECTNODE, effectDesc->m_effects, node) {
       node->CheckModelLoadStatus();
-      node = effectDesc->m_effects.RawNext(node);
     }
     effectDesc = s_oneShotEffects.RawNext(effectDesc);
   }
 
-  ONESHOTSTANDALONEEFFECTNODE *standalone = s_standAloneEffects.Head();
-  while (reinterpret_cast<long>(standalone) > 0) {
+  ITERATELIST(ONESHOTSTANDALONEEFFECTNODE, s_standAloneEffects, standalone) {
     standalone->CheckModelLoadStatus();
-    standalone = s_standAloneEffects.RawNext(standalone);
   }
 }
 
@@ -751,11 +747,9 @@ void UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
     return;
   }
 
-  ONESHOTEFFECTNODE *nodenext_node;
-  for (ONESHOTEFFECTNODE *node = effectDesc->m_effects.Head(); node; node = nodenext_node) {
-    nodenext_node = effectDesc->m_effects.RawNext(node);
+  ITERATELIST(ONESHOTEFFECTNODE, effectDesc->m_effects, node) {
     if (node->spellID == spellID && !node->isCastEffect) {
-      effectDesc->m_effects.DeleteNode(node);
+      ITERATE_DELETE
     }
   }
 }

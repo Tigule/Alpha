@@ -72,9 +72,9 @@ struct C_OBJECTHASH : public TSHashObject<C_OBJECTHASH, CHashKeyGUID> {
 
   unsigned int                                       memHandle;
   unsigned int                                       thisMemHandle;
-  TSList<CMirrorHandler, TSGetLink<CMirrorHandler> > mirrorHandlers[634];
-  TSLink<C_OBJECTHASH>                               link;
-  TSLink<C_OBJECTHASH>                               reenableLink;
+  LISTDECL(CMirrorHandler, mirrorHandlers[634]);
+  LINKDECLEX(C_OBJECTHASH, link);
+  LINKDECLEX(C_OBJECTHASH, reenableLink);
 };
 
 enum HANDLER_PRIORITY {
@@ -82,8 +82,8 @@ enum HANDLER_PRIORITY {
   HANDLER_PRIORITY_HIGH = 1
 };
 
-struct CMirrorHandler : public TSLinkedNode<CMirrorHandler> {
-  TSLink<CMirrorHandler> callLink;
+NODEDECL(CMirrorHandler) {
+  LINKDECLEX(CMirrorHandler, callLink);
   int(*handler)(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *data, void *param);
   void                                       *param;
   unsigned int                                blocksLeft;
@@ -95,7 +95,7 @@ struct CMirrorHandler : public TSLinkedNode<CMirrorHandler> {
 inline C_OBJECTHASH::C_OBJECTHASH() : memHandle(0) {
 }
 
-struct OBJHANDLERREQUEST : public TSLinkedNode<OBJHANDLERREQUEST> {
+NODEDECL(OBJHANDLERREQUEST) {
   unsigned __int64 guid;
   unsigned int     offset;
   unsigned int     bytes;
@@ -133,7 +133,7 @@ class ClntObjMgr {
   TSExplicitList<C_OBJECTHASH, 7648>                       m_visibleObjects;
   TSExplicitList<C_OBJECTHASH, 7656>                       m_reenabledObjects;
   int                                                      m_callingMirrorHandlers;
-  TSList<OBJHANDLERREQUEST, TSGetLink<OBJHANDLERREQUEST> > m_pendingObjHandlerRequests;
+  LISTDECL(OBJHANDLERREQUEST, m_pendingObjHandlerRequests);
   int                                                      m_allowGuidDeref;
   unsigned __int64                                         m_legalGuidDeref;
   unsigned __int64                                         m_activePlayer;

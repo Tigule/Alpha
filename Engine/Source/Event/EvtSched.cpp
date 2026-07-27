@@ -18,7 +18,7 @@ static unsigned int                             s_hThread;
 static int                                      s_netServer;
 static long                                     s_threadListContention = -1;
 static SCritSect                                s_threadListCritsect;
-static TSList<EvtThread, TSGetLink<EvtThread> > s_threadList;
+static LISTDECL(EvtThread, s_threadList);
 static SCritSect                               *s_threadSlotCritsects;
 static EvtThread                              **s_threadSlots;
 static unsigned int                             s_threadSlotCount;

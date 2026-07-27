@@ -12,8 +12,7 @@ void NETEVENTQUEUE::Poll() {
   unsigned char deleted = 0;
   m_client->AddRef();
 
-  NETEVENTQUEUENODE *event = m_eventQueue.Head();
-  while (event) {
+  ITERATELIST(NETEVENTQUEUENODE, m_eventQueue, event) {
     if (!m_client->GetDelete()) {
       switch (event->m_eventId) {
         case EVENT_ID_NET_DATA:
@@ -40,7 +39,6 @@ void NETEVENTQUEUE::Poll() {
     }
 
     m_client->DelRef();
-    event = m_eventQueue.Next(event);
   }
 
   if (!deleted) {

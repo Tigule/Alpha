@@ -28,7 +28,7 @@ class CDetailDoodadGeom {
   TSGrowableArray<NTempest::C2Vector>  tVertexList;
   TSGrowableArray<NTempest::CImVector> cVertexList;
   TSGrowableArray<unsigned short>      indexList;
-  TSLink<CDetailDoodadGeom>            lameAssLink;
+  LINKDECLEX(CDetailDoodadGeom, lameAssLink);
 };
 
 class CDetailDoodadData {
@@ -67,7 +67,7 @@ class CDetailDoodadInst {
 
   CDetailDoodadGeom        *geom[2];
   CGxBuf                   *gxBuf[2];
-  TSLink<CDetailDoodadGeom> lameAssLink;
+  LINKDECLEX(CDetailDoodadGeom, lameAssLink);
 };
 
 class CDetailDoodad {

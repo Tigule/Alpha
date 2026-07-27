@@ -145,7 +145,7 @@ void CModelComplex::CopyAttachments(const CModelComplex &source) {
   m_attached.SetCount(source.m_attached.Count());
   for (i = 0; i < source.m_attached.Count(); ++i) {
     TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &sourceList = const_cast<TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &>(source.m_attached[i]);
-    for (LINKUNIQUE *sourceLink = sourceList.Head(); sourceLink; sourceLink = sourceList.Next(sourceLink)) {
+    ITERATELIST(LINKUNIQUE, sourceList, sourceLink) {
       LINKUNIQUE *copy = NEW(LINKUNIQUE);
       ASSERT(copy);
       copy->child = ModelDuplicate(sourceLink->child, 0);
@@ -420,7 +420,7 @@ static void ComplexModelSetEmissiveColor(CModelComplex *unique, const NTempest::
   if (doLinkedModels) {
     for (unsigned int i = 0; i < unique->m_attached.Count(); ++i) {
       TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = unique->m_attached[i];
-      for (LINKUNIQUE *link = links.Head(); link; link = links.Next(link)) {
+      ITERATELIST(LINKUNIQUE, links, link) {
         ModelSetEmissiveColor(link->child, color, 1);
       }
     }
@@ -479,7 +479,7 @@ static unsigned int ComplexModelReplaceTexture(CModelComplex *unique, unsigned i
 
   if (doLinkedModels) {
     for (index = 0; index < unique->m_attached.Count(); ++index) {
-      for (LINKUNIQUE *link = unique->m_attached[index].Head(); link; link = unique->m_attached[index].Next(link)) {
+      ITERATELIST(LINKUNIQUE, unique->m_attached[index], link) {
         numReplaced += ModelReplaceTexture(link->child, replaceableId, texture, 1);
       }
     }
@@ -672,7 +672,7 @@ int ModelRemoveLink(HMODEL parent, unsigned int parentIndex, HMODEL child) {
 
   ASSERT(child);
   TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = parentptr->m_attached[attachmentIndex];
-  for (LINKUNIQUE *link = links.Head(); link; link = links.Next(link)) {
+  ITERATELIST(LINKUNIQUE, links, link) {
     if (link->child == child) {
       DEL(link);
       break;
@@ -1407,7 +1407,7 @@ void ModelSetVertexAlpha(HMODEL model, unsigned int alpha, int doLinkedModels) {
 
   unsigned int numAttachments = complex->m_attached.Count();
   for (unsigned int i = 0; i < numAttachments; ++i) {
-    for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = complex->m_attached[i].Next(link)) {
+    ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
       ModelSetVertexAlpha(link->child, alpha, 1);
     }
   }
@@ -1512,7 +1512,7 @@ void ModelSetVertexColor(HMODEL model, unsigned int red, unsigned int green, uns
 
   unsigned int numAttachments = complex->m_attached.Count();
   for (unsigned int i = 0; i < numAttachments; ++i) {
-    for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = complex->m_attached[i].Next(link)) {
+    ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
       ModelSetVertexColor(link->child, red, green, blue, 1);
     }
   }
@@ -1560,7 +1560,7 @@ void ModelShowUnselectable(HMODEL model, unsigned char red, unsigned char green,
 
     unsigned int numAttachments = complex->m_attached.Count();
     for (i = 0; i < numAttachments; ++i) {
-      for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = complex->m_attached[i].Next(link)) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         ModelShowUnselectable(link->child, red, green, blue);
       }
     }
@@ -1608,7 +1608,7 @@ void ModelHideUnselectable(HMODEL model) {
 
     unsigned int numAttachments = complex->m_attached.Count();
     for (i = 0; i < numAttachments; ++i) {
-      for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = complex->m_attached[i].Next(link)) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         ModelHideUnselectable(link->child);
       }
     }
@@ -1646,7 +1646,7 @@ int ModelIsShowingUnselectable(HMODEL model) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
     unsigned int   numAttachments = complex->m_attached.Count();
     for (unsigned int i = 0; i < numAttachments; ++i) {
-      for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = complex->m_attached[i].Next(link)) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         if (ModelIsShowingUnselectable(link->child)) {
           return 1;
         }
@@ -1721,7 +1721,7 @@ void ModelSetLightSelectCallback(
   CModelComplex *complex = static_cast<CModelComplex *>(unique);
   unsigned int   numAttachments = complex->m_attached.Count();
   for (unsigned int i = 0; i < numAttachments; ++i) {
-    for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = complex->m_attached[i].Next(link)) {
+    ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
       ModelSetLightSelectCallback(link->child, callback, parm, 1);
     }
   }
@@ -1986,7 +1986,7 @@ static void ComplexModelSetMaterialDisables(CModelComplex* unique, unsigned int 
   }
 
   for (i = 0; i < unique->m_attached.Count(); ++i) {
-    for (LINKUNIQUE *link = unique->m_attached[i].Head(); link; link = unique->m_attached[i].Next(link)) {
+    ITERATELIST(LINKUNIQUE, unique->m_attached[i], link) {
       ModelSetMaterialDisables(link->child, setMask, unsetMask, 1);
     }
   }

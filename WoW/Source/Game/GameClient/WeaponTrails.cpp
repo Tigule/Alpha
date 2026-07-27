@@ -23,7 +23,7 @@ struct VERTEX {
   NTempest::CImVector c;
 };
 
-struct SWING : public TSLinkedNode<SWING> {
+NODEDECL(SWING) {
   TSGrowableArray<VERTEX>         m_trail;
   TSGrowableArray<unsigned short> m_vertexIndices;
   unsigned int                    m_flags;
@@ -45,8 +45,8 @@ struct SWING : public TSLinkedNode<SWING> {
 
 class WTOBJECT {
  public:
-  TSLink<WTOBJECT>                 m_explicitLink;
-  TSList<SWING, TSGetLink<SWING> > m_swings;
+  LINKDECLEX(WTOBJECT, m_explicitLink);
+  LISTDECL(SWING, m_swings);
   HMODEL                           m_model;
   unsigned int                     m_geosetID;
   NTempest::C3Vector               m_bottomCoord;
@@ -276,7 +276,7 @@ void WTOBJECT::RenderVerts(const NTempest::C3Vector &cameraPos) {
   world.Translate(NTempest::C3Vector(-cameraPos.x, -cameraPos.y, -cameraPos.z));
   GxXformPush(GxXform_World, world);
 
-  for (SWING *swing = m_swings.Head(); swing; swing = m_swings.Next(swing)) {
+  ITERATELIST(SWING, m_swings, swing) {
     swing->Render();
   }
 

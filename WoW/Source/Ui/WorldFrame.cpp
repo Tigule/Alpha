@@ -42,7 +42,7 @@
 #include <string.h>
 #include <float.h>
 
-struct CModelRecord : public TSLinkedNode<CModelRecord> {
+NODEDECL(CModelRecord) {
   HMODEL           model;
   float            distance;
   float            scale;
@@ -396,7 +396,7 @@ void CGWorldFrame::ReduceToClosestModel() {
 
 void CGWorldFrame::HideObstructingModels(float maxDist) {
   unsigned __int64 fade = 0;
-  for (CModelRecord *record = m_filteredModels.Head(); record; record = record->Next()) {
+  ITERATELIST(CModelRecord, m_filteredModels, record) {
     if (record->guid == CGPlayer_C::GetActive()) {
       if (record->distance <= maxDist) {
         fade = record->guid;
@@ -699,7 +699,7 @@ void CGWorldFrame::MoveToFreeList(CModelRecord *record) {
 }
 
 void CGWorldFrame::MoveToFreeList(TSList<CModelRecord, TSGetLink<CModelRecord> > *objList) {
-  for (CModelRecord *record = objList->Head(); record; record = objList->Next(record)) {
+  ITERATELISTPTR(CModelRecord, objList, record) {
     HandleClose(record->model);
     record->model = 0;
   }

@@ -114,7 +114,7 @@ struct ITEMEXPIRATION : public TSHashObject<ITEMEXPIRATION, CHashKeyGUID> {
   int enchantmentTimeLeft[5];
 };
 
-struct DEFERREDDAMAGE : public TSLinkedNode<DEFERREDDAMAGE> {
+NODEDECL(DEFERREDDAMAGE) {
   int              normal;
   unsigned int     flags;
   unsigned int     damage;
@@ -128,7 +128,7 @@ struct DEFERREDDAMAGE : public TSLinkedNode<DEFERREDDAMAGE> {
   }
 };
 
-struct DEFERREDSPELLMISS : public TSLinkedNode<DEFERREDSPELLMISS> {
+NODEDECL(DEFERREDSPELLMISS) {
   unsigned __int64 victim;
   MISS_REASON      reason;
   int              spellID;
@@ -254,8 +254,8 @@ static GAME_ERROR_TYPE s_taxiErrors[12] = {static_cast<GAME_ERROR_TYPE>(297), st
                                            static_cast<GAME_ERROR_TYPE>(161), static_cast<GAME_ERROR_TYPE>(162), static_cast<GAME_ERROR_TYPE>(163),
                                            static_cast<GAME_ERROR_TYPE>(164), static_cast<GAME_ERROR_TYPE>(165), static_cast<GAME_ERROR_TYPE>(155)};
 static TSHashTable<ITEMEXPIRATION, CHashKeyGUID>                s_pendingItemExpirations;
-static TSList<DEFERREDDAMAGE, TSGetLink<DEFERREDDAMAGE> >       s_deferredDamage;
-static TSList<DEFERREDSPELLMISS, TSGetLink<DEFERREDSPELLMISS> > s_deferredSpellMiss;
+static LISTDECL(DEFERREDDAMAGE, s_deferredDamage);
+static LISTDECL(DEFERREDSPELLMISS, s_deferredSpellMiss);
 static int                                                      s_pendingCinematicID;
 static const int                                                CHARACTER_POINTS_PER_LEVEL[2] = {10, 1};
 static const int                                                CHARACTER_POINTS_PER_BONUS[2] = {0, 1};

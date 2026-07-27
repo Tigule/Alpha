@@ -140,7 +140,7 @@ void UnitCombatLogUnitDead(unsigned __int64 unit);
 void            UnitFootprintNewBloodSplat(UnitBloodRec *rec, unsigned int unitSize, NTempest::C3Vector &position);
 static void PlayerNameGuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
 
-struct BLOODSPLATNODE : public TSLinkedNode<BLOODSPLATNODE> {
+NODEDECL(BLOODSPLATNODE) {
   unsigned int       time;
   NTempest::C3Vector position;
 };
@@ -334,10 +334,10 @@ static INTERACTICONTYPE s_questIconInfo[5] = {
     INTERACTICON_NONE, INTERACTICON_NONE, INTERACTICON_FUTURE, INTERACTICON_COMPLETION, INTERACTICON_NORMAL
 };
 
-static TSList<BLOODSPLATNODE, TSGetLink<BLOODSPLATNODE> > s_bloodSplatList;
+static LISTDECL(BLOODSPLATNODE, s_bloodSplatList);
 
 struct NAMEPLATEDESC : public TSHashObject<NAMEPLATEDESC, CHashKeyGUID> {
-  TSLink<NAMEPLATEDESC> m_sortLink;
+  LINKDECLEX(NAMEPLATEDESC, m_sortLink);
   float                 screenSortOrder;
   CGUnit_C             *unit;
   CGNamePlateFrame     *namePlate;
@@ -346,7 +346,7 @@ struct NAMEPLATEDESC : public TSHashObject<NAMEPLATEDESC, CHashKeyGUID> {
   ~NAMEPLATEDESC();
 };
 
-struct FREENAMEPLATE : public TSLinkedNode<FREENAMEPLATE> {
+NODEDECL(FREENAMEPLATE) {
   CGNamePlateFrame *namePlate;
 
   FREENAMEPLATE() : namePlate(0) {
@@ -360,7 +360,7 @@ static int                                              s_drawNameplates = 1;
 static TSExplicitList<NAMEPLATEDESC, 32>                s_namePlateList;
 static const float                                      MAX_NAMEPLATE_DIST = 20.0f;
 static const float                                      MAX_NAMEPLATE_DIST_SQ = MAX_NAMEPLATE_DIST * MAX_NAMEPLATE_DIST;
-static TSList<FREENAMEPLATE, TSGetLink<FREENAMEPLATE> > s_freeNamePlateList;
+static LISTDECL(FREENAMEPLATE, s_freeNamePlateList);
 static TSHashTable<NAMEPLATEDESC, CHashKeyGUID>         s_monsterNamePlateList;
 static CGWorldFrame                                    *s_namePlateWorldFrame;
 
@@ -454,7 +454,7 @@ void UnitEffectOneShot(
     bool                            forceEffectOnMount
 );
 
-struct AuraDecayNode : public TSLinkedNode<AuraDecayNode> {
+NODEDECL(AuraDecayNode) {
   AuraVisual             visual;
   unsigned __int64       unit;
   UNITEFFECTATTACHPPOINT attach;
@@ -518,7 +518,7 @@ static TInstanceAllocator<ACTIVEAURAINFO>               s_auraInfoFreeList(100);
 static TInstanceAllocator<ANIMENDDATA>                  s_animEndDataPool(1024);
 static TSGrowableArray<unsigned int>                    g_unitSeqEndList;
 static TSGrowableArray<unsigned int>                    g_mountSeqEndList;
-static TSList<AuraDecayNode, TSGetLink<AuraDecayNode> > s_activeAuraDecays;
+static LISTDECL(AuraDecayNode, s_activeAuraDecays);
 static TInstanceAllocator<AuraDecayNode>                s_auraDecayFreeList(100);
 static TInstanceAllocator<SPELLEFFECTDESC>              s_spellEffectFreeList(100);
 static TInstanceAllocator<ANIMQUEUENODE>                s_animQueueFreeList(100);

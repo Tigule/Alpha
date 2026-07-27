@@ -15,7 +15,7 @@ typedef WNDREC *WNDRECPTR;
 
 static HWND                               s_defaultwindow;
 static RECT                               s_defaultwindowrect;
-static TSList<WNDREC, TSGetLink<WNDREC> > s_wndlist;
+static LISTDECL(WNDREC, s_wndlist);
 
 static void AddWindow(HWND window) {
   WNDRECPTR entry;

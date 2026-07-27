@@ -410,7 +410,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   static void Shutdown();
   static unsigned int OffsetOf(OBJECT_TYPE_ID type);
 
-  TSLink<CGGameObject_C>   moveLink;
+  LINKDECLEX(CGGameObject_C, moveLink);
   CGGameObject_C_TypeBase *m_baseObj;
 
  private:

@@ -55,7 +55,7 @@ static NTempest::C2Vector                 s_splatSizes[5] = {
     NTempest::C2Vector(2.0f)
 };
 static TInstanceAllocator<CHUNKDATA> s_freeChunks(10);
-static TSExplicitList<SPLATDATA, 76> s_freeList;
+static LISTDECLEX(SPLATDATA, normalLink, s_freeList);
 static CVar                         *s_renderSplatsCVar;
 static CVar                         *s_renderParticlesCVar;
 
@@ -129,8 +129,7 @@ static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
   }
 
   int        vertsWritten = 0;
-  SPLATDATA *splat = s_currentChunk->m_splats.Head();
-  while (splat) {
+  ITERATELIST(SPLATDATA, s_currentChunk->m_splats, splat) {
     if (!splat->skip) {
       unsigned short *idx = splat->indices.Ptr();
       for (unsigned int i = 0; i < splat->indices.Count(); ++i) {
@@ -146,7 +145,6 @@ static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
         ++vertsWritten;
       }
     }
-    splat = s_currentChunk->m_splats.RawNext(splat);
   }
 }
 
@@ -393,9 +391,11 @@ void LISTBASE::Render() {
   }
   GxRsSet(GxRs_Texture0, texture);
   s_currentList = this;
-  for (CHUNKDATA *chunk = m_chunks.Head(); chunk; chunk = m_chunks.RawNext(chunk)) {
-    chunk->m_vertCount = 0;
-    chunk->m_indexCount = 0;
+  {
+    ITERATELIST(CHUNKDATA, m_chunks, chunk) {
+      chunk->m_vertCount = 0;
+      chunk->m_indexCount = 0;
+    }
   }
   m_currentCount = 0;
   int found = 0;
@@ -410,9 +410,11 @@ void LISTBASE::Render() {
     }
     splat = newTail;
   }
-  for (CHUNKDATA *renderChunk = m_chunks.Head(); renderChunk; renderChunk = m_chunks.RawNext(renderChunk)) {
-    s_currentChunk = renderChunk;
-    renderChunk->Render();
+  {
+    ITERATELIST(CHUNKDATA, m_chunks, renderChunk) {
+      s_currentChunk = renderChunk;
+      renderChunk->Render();
+    }
   }
   s_currentChunk = 0;
   s_currentList = 0;

@@ -40,7 +40,7 @@ class CSimpleRender {
   static unsigned short     s_indices[4];
 };
 
-struct RENDERCALLBACKNODE : public TSLinkedNode<RENDERCALLBACKNODE> {
+NODEDECL(RENDERCALLBACKNODE) {
   void(*callback)(void *);
   void *param;
 };
@@ -66,10 +66,10 @@ class CRenderBatch {
   unsigned int                                               m_count;
   TSGrowableArray<CSimpleBatchedTexture>                     m_texturelist;
   CGxStringBatch                                            *m_stringbatch;
-  TSList<RENDERCALLBACKNODE, TSGetLink<RENDERCALLBACKNODE> > m_callbacks;
+  LISTDECL(RENDERCALLBACKNODE, m_callbacks);
 
  public:
-  TSLink<CRenderBatch> renderLink;
+  LINKDECLEX(CRenderBatch, renderLink);
 };
 
 class CSimpleFontStringAttributes {

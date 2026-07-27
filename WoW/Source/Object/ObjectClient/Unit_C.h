@@ -137,7 +137,7 @@ struct ANIMENDDATA {
   unsigned __int64 guid;
   ANIMENUMERATION  anim;
 };
-struct IMPACTEFFECTDESC : public TSLinkedNode<IMPACTEFFECTDESC> {
+NODEDECL(IMPACTEFFECTDESC) {
   unsigned __int64   victim;
   unsigned __int64   attacker;
   SpellVisualKitRec *impactKit;
@@ -175,7 +175,7 @@ enum PUREMOUNTFADEMODE {
   PUREMOUNTFADE_OUT = 1
 };
 
-struct SPELLEFFECTDESC : public TSLinkedNode<SPELLEFFECTDESC> {
+NODEDECL(SPELLEFFECTDESC) {
   SpellVisualKitRec  *kitPtr;
   NTempest::CImVector color;
   float               scale;
@@ -352,7 +352,7 @@ struct AuraVisual {
   };
 };
 
-struct ACTIVEAURAINFO : public TSLinkedNode<ACTIVEAURAINFO> {
+NODEDECL(ACTIVEAURAINFO) {
   int                slot;
   SpellVisualKitRec *stateKitRec;
 };
@@ -1082,7 +1082,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   const CreatureSoundDataRec                            *m_mountedSoundData;
   const UnitBloodLevelsRec                              *m_bloodRec;
   AuraVisual                                             m_auraVisual[12];
-  TSList<ACTIVEAURAINFO, TSGetLink<ACTIVEAURAINFO> >     m_activeAuraInfo;
+  LISTDECL(ACTIVEAURAINFO, m_activeAuraInfo);
   ANIMENUMERATION                                        m_pendingImpactAnim;
   HMODEL                                                 m_tempCharModel;
   TSGrowableArray<char>                                  m_deathHoldBuffer;
@@ -1091,9 +1091,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int                                                    m_nextDeathHoldCheckTime;
   TSGrowableArray<QUESTGIVEREMOTENODE>                   m_emoteQueue;
   HMODEL                                                 m_interactIconModel;
-  TSList<BLOODSPLATNODE, TSGetLink<BLOODSPLATNODE> >     m_bloodSplatNodes;
+  LISTDECL(BLOODSPLATNODE, m_bloodSplatNodes);
   unsigned int                                           m_nextAllowableBloodPool;
-  TSList<ANIMQUEUENODE, TSGetLink<ANIMQUEUENODE> >       m_animQueue;
+  LISTDECL(ANIMQUEUENODE, m_animQueue);
   CCombatClient                                          m_combat;
   ANIMQUEUENODE                                         *m_currentDamageInfo;
   unsigned int                                           m_readySequence;
@@ -1165,8 +1165,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   unsigned int                                           m_preferredGeosets[15];
   int                                                    m_displayHealth;
 
-  TSList<IMPACTEFFECTDESC, TSGetLink<IMPACTEFFECTDESC> > m_impactEffectsDesc;
-  TSList<SPELLEFFECTDESC, TSGetLink<SPELLEFFECTDESC> >   m_spellEffectLists[11];
+  LISTDECL(IMPACTEFFECTDESC, m_impactEffectsDesc);
+  LISTDECL(SPELLEFFECTDESC, m_spellEffectLists[11]);
   NTempest::C3iVector                                    m_currentEmissive;
   int                                                    m_pendingHitSpellID;
   TSGrowableArray<unsigned __int64>                      m_pendingHitAnimVictims;

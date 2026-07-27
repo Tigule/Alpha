@@ -163,9 +163,9 @@ class CGWorldFrame : public CSimpleFrame {
   static void RenderWorld(void *param);
   int                    GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
 
-  TSList<CModelRecord, TSGetLink<CModelRecord> > m_models;
-  TSList<CModelRecord, TSGetLink<CModelRecord> > m_filteredModels;
-  TSList<CModelRecord, TSGetLink<CModelRecord> > m_freeModels;
+  LISTDECL(CModelRecord, m_models);
+  LISTDECL(CModelRecord, m_filteredModels);
+  LISTDECL(CModelRecord, m_freeModels);
   unsigned int                                   m_spriteButtons;
   unsigned int                                   m_terrainButtons;
   unsigned __int64                               m_lastUnitFade;

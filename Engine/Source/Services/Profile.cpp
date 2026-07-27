@@ -24,7 +24,7 @@ namespace ProfileInternal {
   static const char TRUESTR[] = "true";
   static const char FALSESTR[] = "false";
 
-  struct STRINGBLOCK : public TSLinkedNode<STRINGBLOCK> {
+  NODEDECL(STRINGBLOCK) {
     int Contains(const char *string) const {
       return string >= m_data && string < m_data + m_dataSize;
     }
@@ -61,7 +61,7 @@ namespace ProfileInternal {
     }
 
     TSHashTable<SECTION, HASHKEY_CONSTSTRI>      sectionTable;
-    TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > stringBlockList;
+    LISTDECL(STRINGBLOCK, stringBlockList);
   };
 
   static int IReadFile(PROFILE *profile, const char *rawPath);

@@ -13,7 +13,7 @@
 #include <math.h>
 #include <string.h>
 
-static TSExplicitList<CLayoutFrame, offsetof(CLayoutFrame, resizeLink)> s_resizePendingList;
+static LISTDECLEX(CLayoutFrame, resizeLink, s_resizePendingList);
 
 CLayoutFrame *CLayoutFrame::GetLayoutFrameByName(const char *name) {
   CLayoutFrame *result = SimpleFrameRegistryGetEntry(name, 0);

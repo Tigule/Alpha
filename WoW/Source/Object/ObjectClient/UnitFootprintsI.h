@@ -24,16 +24,16 @@ struct SPLATDATA {
   unsigned int                    skip;
   NTempest::CImVector             color;
   CHUNKDATA                      *chunk;
-  TSLink<SPLATDATA>               orderLink;
-  TSLink<SPLATDATA>               normalLink;
+  LINKDECLEX(SPLATDATA, orderLink);
+  LINKDECLEX(SPLATDATA, normalLink);
 
   unsigned int Update(float progress, unsigned int &nuke);
   unsigned int Culled();
 };
 
 struct LISTBASE {
-  TSExplicitList<SPLATDATA, 68>            m_splatOrder;
-  TSList<CHUNKDATA, TSGetLink<CHUNKDATA> > m_chunks;
+  LISTDECLEX(SPLATDATA, orderLink, m_splatOrder);
+  LISTDECL(CHUNKDATA, m_chunks);
   HTEXTURE__                              *m_texture;
   int                                      m_currentCount;
   int                                      m_maxCount;
@@ -59,9 +59,9 @@ struct PERSISTENTTEXTURE : public LISTBASE {
   unsigned char MakeSpace();
 };
 
-struct CHUNKDATA : public TSLinkedNode<CHUNKDATA> {
+NODEDECL(CHUNKDATA) {
   int                           m_sourceID;
-  TSExplicitList<SPLATDATA, 76> m_splats;
+  LISTDECLEX(SPLATDATA, normalLink, m_splats);
   int                           m_flags;
   int                           m_vertCount;
   int                           m_indexCount;

@@ -128,7 +128,7 @@ void WowConnectionNet::PlatformRun() {
 
     m_connectionsLock.Enter();
 
-    for (WowConnection *conn = m_connections.Head(); conn; conn = m_connections.Next(conn)) {
+    ITERATELIST(WowConnection, m_connections, conn) {
       if (conn->m_serviceCount) {
         continue;
       }

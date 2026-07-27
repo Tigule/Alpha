@@ -51,7 +51,7 @@ void MovementRemoveTransport(CGGameObject_C *transport) {
 }
 
 void MovementMoveTransports(unsigned long eventTime, float elapsed) {
-  for (CGGameObject_C *transport = s_transports.Head(); transport; transport = s_transports.RawNext(transport)) {
+  ITERATELIST(CGGameObject_C, s_transports, transport) {
     transport->m_baseObj->UpdateMovement(eventTime, elapsed);
   }
 }

@@ -2150,7 +2150,7 @@ static void ModelComplexRender(HMODEL modelHandle, CModel *model, unsigned int r
     }
 
     if (enabled) {
-      for (LINKUNIQUE *link = modelptr->m_attached[index].Head(); link; link = modelptr->m_attached[index].Next(link)) {
+      ITERATELIST(LINKUNIQUE, modelptr->m_attached[index], link) {
         ModelRender(link->child, 0, 0);
       }
     }

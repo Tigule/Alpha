@@ -47,7 +47,7 @@ static const unsigned int s_objMirrorBlocks[8] = {
 static unsigned int                                       s_heapsAllocated;
 static unsigned int                                       s_objHeapId[7];
 static int                                                s_localPlayerUpdates;
-static TSList<CMirrorHandler, TSGetLink<CMirrorHandler> > s_mirrorHandlers[8][634];
+static LISTDECL(CMirrorHandler, s_mirrorHandlers[8][634]);
 
 static int MirrorHandlerRemoveQueued(unsigned __int64 guid, CMirrorHandler *mirror);
 static void ProcessObjHandlersQueue();
@@ -98,7 +98,7 @@ static void CallBlockMirrorHandlersIfChanged(
 ) {
   s_curMgr->m_callingMirrorHandlers = 1;
 
-  for (CMirrorHandler *mirrorHandler = handlerList->Head(); mirrorHandler; mirrorHandler = handlerList->Next(mirrorHandler)) {
+  ITERATELISTPTR(CMirrorHandler, handlerList, mirrorHandler) {
     mirrorHandler->blocksLeft = 1;
     const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
     if (memcmp(data, mirrorHandler->previous.Ptr(), mirrorHandler->previous.Count()) &&
@@ -124,7 +124,7 @@ static void CallBlockMirrorHandlers(
 ) {
   s_curMgr->m_callingMirrorHandlers = 1;
 
-  for (CMirrorHandler *mirrorHandler = handlerList->Head(); mirrorHandler; mirrorHandler = handlerList->Next(mirrorHandler)) {
+  ITERATELISTPTR(CMirrorHandler, handlerList, mirrorHandler) {
     if (!MirrorHandlerRemoveQueued(guid, mirrorHandler)) {
       FATALASSERT(mirrorHandler->handler);
       const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
@@ -146,7 +146,7 @@ static void CallBlockMirrorHandlers(
 
 static void SavePreviousValue(TSList<CMirrorHandler, TSGetLink<CMirrorHandler> > *handlerList, CGObject_C *obj) {
   FATALASSERT(obj);
-  for (CMirrorHandler *mirrorHandler = handlerList->Head(); mirrorHandler; mirrorHandler = handlerList->Next(mirrorHandler)) {
+  ITERATELISTPTR(CMirrorHandler, handlerList, mirrorHandler) {
     const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
     memcpy(mirrorHandler->previous.Ptr(), data, mirrorHandler->previous.Count());
   }
@@ -222,7 +222,7 @@ static int GetMirrorHandler(
     return 0;
   }
 
-  for (CMirrorHandler *handler = mirrorHandlers->Head(); handler; handler = mirrorHandlers->Next(handler)) {
+  ITERATELISTPTR(CMirrorHandler, mirrorHandlers, handler) {
     offDword = handler->offset & 3;
     handlerList->LinkNode(handler, handler->priority == HANDLER_PRIORITY_HIGH ? LIST_HEAD : LIST_TAIL, 0);
     handler->blocksLeft = (handler->previous.Count() + offDword + 3) >> 2;
@@ -1028,10 +1028,9 @@ static void UnassignMirrorHandler(
     int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
     void *param
 ) {
-  for (CMirrorHandler *mirror = handlerList->Head(); mirror; mirror = handlerList->Next(mirror)) {
+  ITERATELISTPTR(CMirrorHandler, handlerList, mirror) {
     if (mirror->handler == handler && mirror->param == param) {
-      DEL(mirror);
-      return;
+      ITERATE_DELETEANDBREAK
     }
   }
 }
@@ -1172,9 +1171,7 @@ void ClntObjMgrSetObjMirrorHandler(
 }
 
 static int MirrorHandlerRemoveQueued(unsigned __int64 guid, CMirrorHandler *mirror) {
-  for (OBJHANDLERREQUEST *request = s_curMgr->m_pendingObjHandlerRequests.Head(); request;
-       request = s_curMgr->m_pendingObjHandlerRequests.Next(request))
-  {
+  ITERATELIST(OBJHANDLERREQUEST, s_curMgr->m_pendingObjHandlerRequests, request) {
     if (!request->set && request->offset == mirror->offset && request->guid == guid && request->handler == mirror->handler &&
         request->param == mirror->param)
     {
@@ -1187,9 +1184,7 @@ static int MirrorHandlerRemoveQueued(unsigned __int64 guid, CMirrorHandler *mirr
 static void ProcessObjHandlersQueue() {
   FATALASSERT(!s_curMgr->m_callingMirrorHandlers);
 
-  for (OBJHANDLERREQUEST *request = s_curMgr->m_pendingObjHandlerRequests.Head(); request;
-       request = s_curMgr->m_pendingObjHandlerRequests.Next(request))
-  {
+  ITERATELIST(OBJHANDLERREQUEST, s_curMgr->m_pendingObjHandlerRequests, request) {
     if (request->set) {
       ClntObjMgrSetObjMirrorHandler(request->guid, request->offset, request->bytes, request->handler, request->param, request->priority);
     } else {

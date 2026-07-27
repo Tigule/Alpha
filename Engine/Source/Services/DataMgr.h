@@ -62,7 +62,7 @@ class CBaseManaged {
     m_updatePriority = priority;
   }
 
-  TSLink<CBaseManaged> m_link;
+  LINKDECLEX(CBaseManaged, m_link);
   unsigned char        m_dataTypeId;
   unsigned char        m_flags;
   void(*m_updateFcn)(float, void *, void *);
@@ -143,7 +143,7 @@ inline void TManaged<C3Color>::Set_(const C3Color &val) {
 class CDataMgr : public CHandleObject {
  public:
   TSFixedArray<CBaseManaged *>    m_managedArray;
-  TSExplicitList<CBaseManaged, 4> m_updateList;
+  LISTDECLEX(CBaseManaged, m_link, m_updateList);
 
  protected:
   CDataMgr(unsigned int count) {

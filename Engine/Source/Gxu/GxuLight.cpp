@@ -6,7 +6,7 @@
 #include <Tempest/cpriorityq.h>
 #include <storm.h>
 
-struct CGxuLight : public TSLinkedNode<CGxuLight> {
+NODEDECL(CGxuLight) {
   CGxuLight() : m_lockCount(0) {
   }
 
@@ -18,11 +18,11 @@ struct CGxuLight : public TSLinkedNode<CGxuLight> {
   unsigned int                      m_hwLight;
   unsigned long                     m_selectionCount;
   int                               m_lockCount;
-  TSExplicitList<CGxuLightLink, 12> m_links;
+  LISTDECLEX(CGxuLightLink, m_lightLink, m_links);
 
-  static TSList<CGxuLight, TSGetLink<CGxuLight> > s_lights;
-  static TSList<CGxuLight, TSGetLink<CGxuLight> > s_lightsFreeList;
-  static TSExplicitList<CGxuLightLink, 12>        s_linksFreeList;
+  static LISTDECL(CGxuLight, s_lights);
+  static LISTDECL(CGxuLight, s_lightsFreeList);
+  static LISTDECLEX(CGxuLightLink, m_lightLink, s_linksFreeList);
 };
 
 static void IGxuLightShutdown();
@@ -43,9 +43,9 @@ static void IGxuLightResetCache();
 static const float                                  GxuLight_BucketSizeDefault = 1024.0f;
 static float                                        s_bucketSize = GxuLight_BucketSizeDefault;
 static float                                        s_halfBucket = GxuLight_BucketSizeDefault * 0.5f;
-TSList<CGxuLight, TSGetLink<CGxuLight> >            CGxuLight::s_lights;
-TSList<CGxuLight, TSGetLink<CGxuLight> >            CGxuLight::s_lightsFreeList;
-TSExplicitList<CGxuLightLink, 12>                   CGxuLight::s_linksFreeList;
+LISTDECL(CGxuLight, CGxuLight::s_lights);
+LISTDECL(CGxuLight, CGxuLight::s_lightsFreeList);
+LISTDECLEX(CGxuLightLink, m_lightLink, CGxuLight::s_linksFreeList);
 static unsigned long                                s_lastLightsHash;
 static CLightList                                   s_dirLightList;
 static unsigned int                                 s_updateDirLights;

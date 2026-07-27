@@ -63,7 +63,7 @@ class WowConnectionResponse {
 
 class WowConnection {
  public:
-  struct SENDNODE : public TSLinkedNode<SENDNODE> {
+  NODEDECL(SENDNODE) {
     SENDNODE(const SENDNODE &node);
     SENDNODE(unsigned char *d, int s, void *p, unsigned char raw) : data(d) {
       if (!raw) {
@@ -180,8 +180,8 @@ class WowConnection {
   int            m_responseRef;
   unsigned int   m_responseRefThread;
   static bool(*m_verifyAddr)(const NETADDR *);
-  TSLink<WowConnection>                  netlink;
-  TSList<SENDNODE, TSGetLink<SENDNODE> > m_sendList;
+  LINKDECLEX(WowConnection, netlink);
+  LISTDECL(SENDNODE, m_sendList);
   int                                    m_sendDepth;
   int                                    m_sendDepthBytes;
   unsigned int                           m_serviceFlags;

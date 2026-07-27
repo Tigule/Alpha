@@ -542,7 +542,7 @@ void Sound::ProcessUpdateList() {
     return;
   }
 
-  for (Sound *sound = s_soundListUpdate.Head(); sound; sound = s_soundListUpdate.Next(sound)) {
+  ITERATELIST(Sound, s_soundListUpdate, sound) {
     if (sound->m_channel == -1) {
       continue;
     }
@@ -1272,7 +1272,7 @@ bool Sound::DupeCheckFailed(SOUNDCATEGORIES category, const char *fileName, int 
   if (flags & 0x1) {
     unsigned int filenameHash = SStrHash(fileName, 0, 0);
 
-    for (Sound *sound = s_soundListActive.Head(); sound; sound = s_soundListActive.Next(sound)) {
+    ITERATELIST(Sound, s_soundListActive, sound) {
       if (sound->m_fileNameHashed == filenameHash && (!(sound->m_flags & 0x80000000) || (sound->m_flags & 0x01000000))) {
         return true;
       }

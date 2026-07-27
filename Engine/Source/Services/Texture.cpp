@@ -1754,7 +1754,7 @@ void TextureLogTextures(HSLOG log) {
 
   ASSERT(log);
 
-  for (CTexture *texture = s_textureList.Head(); texture; texture = s_textureList.Next(texture)) {
+  ITERATELIST(CTexture, s_textureList, texture) {
     if (texture->filename[0]) {
       *textureSortList.New() = texture;
     }

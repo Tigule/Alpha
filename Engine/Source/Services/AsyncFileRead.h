@@ -14,7 +14,7 @@ class CAsyncObject {
   SCritSect           *critSect;
   unsigned char        isLoaded;
   unsigned char        canReorder;
-  TSLink<CAsyncObject> link;
+  LINKDECLEX(CAsyncObject, link);
 };
 
 void AsyncFileReadInitialize();

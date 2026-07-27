@@ -10,7 +10,7 @@
 #include <string.h>
 #include <typeinfo>
 
-struct MSGBUFFER : public TSLinkedNode<MSGBUFFER> {
+NODEDECL(MSGBUFFER) {
   MSGBUFFER() : string(0), timeVisible(0.0f), severity(SYSMSG_INFO), categoryMask(0) {
   }
 
@@ -26,7 +26,7 @@ struct MSGBUFFER : public TSLinkedNode<MSGBUFFER> {
   unsigned int categoryMask;
 };
 
-static TSList<MSGBUFFER, TSGetLink<MSGBUFFER> > s_msgBuffer;
+static LISTDECL(MSGBUFFER, s_msgBuffer);
 
 static const char s_categoryMaskLetters[7] = {'G', 'W', 'U', 'A', 'M', 'O', 'S'};
 

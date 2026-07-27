@@ -9,7 +9,7 @@
 
 void __cdecl SOutputDebugString(const char *format, ...);
 
-struct EVENTLISTENERNODE : public TSLinkedNode<EVENTLISTENERNODE> {
+NODEDECL(EVENTLISTENERNODE) {
   FrameScript_Object *object;
 };
 
@@ -20,7 +20,7 @@ class FrameScript_EventObject {
   ~FrameScript_EventObject();
 
   char                                                    *name;
-  TSList<EVENTLISTENERNODE, TSGetLink<EVENTLISTENERNODE> > list;
+  LISTDECL(EVENTLISTENERNODE, list);
 };
 
 static TSFixedArray<FrameScript_Object *>    s_objectStack;

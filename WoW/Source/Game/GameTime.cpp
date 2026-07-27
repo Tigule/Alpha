@@ -247,10 +247,8 @@ void CGameTime::PerformCallbacks(int minutes) {
     return;
   }
 
-  GAMETIMECBSTRUCT *curr = timestamp->callbackList.Head();
-  while (reinterpret_cast<long>(curr) > 0) {
+  ITERATELIST(GAMETIMECBSTRUCT, timestamp->callbackList, curr) {
     ASSERT(curr->callback);
     curr->callback(*this, curr->userData);
-    curr = curr->RawNext();
   }
 }

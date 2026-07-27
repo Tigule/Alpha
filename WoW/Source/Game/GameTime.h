@@ -8,13 +8,13 @@
 
 DECLARE_DERIVED_HANDLE(HGAMETIMECALLBACK, HOBJECT);
 
-struct GAMETIMECBSTRUCT : public TSLinkedNode<GAMETIMECBSTRUCT>, public CHandleObject {
+NODEDECL(GAMETIMECBSTRUCT), public CHandleObject {
   void *userData;
   void(__stdcall *callback)(const WowTime &, void *);
 };
 
 struct TIMESTAMPSTRUCT : public TSHashObject<TIMESTAMPSTRUCT, HASHKEY_NONE> {
-  TSList<GAMETIMECBSTRUCT, TSGetLink<GAMETIMECBSTRUCT> > callbackList;
+  LISTDECL(GAMETIMECBSTRUCT, callbackList);
 };
 
 class CGameTime : public WowTime {

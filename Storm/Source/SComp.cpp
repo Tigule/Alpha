@@ -169,8 +169,8 @@ class CHuffman {
   int                                    m_adaptive;
   DWORD                                  m_changesequence;
   HUFFNODE                               m_nodebuffer[0x203];
-  TSList<HUFFNODE, TSGetLink<HUFFNODE> > m_nodefreelist;
-  TSList<HUFFNODE, TSGetLink<HUFFNODE> > m_nodelist;
+  LISTDECL(HUFFNODE, m_nodefreelist);
+  LISTDECL(HUFFNODE, m_nodelist);
   DWORD                                  m_nodesused;
   HUFFNODE                              *m_symbol[HUFFMAN_SYMBOLS];
 };

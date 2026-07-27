@@ -22,7 +22,7 @@
 #include <lua.h>
 #include <string.h>
 
-struct PENDINGUSERLIST : public TSLinkedNode<PENDINGUSERLIST> {
+NODEDECL(PENDINGUSERLIST) {
   unsigned __int64 guid;
   unsigned int     flags;
 };
@@ -30,11 +30,11 @@ struct PENDINGUSERLIST : public TSLinkedNode<PENDINGUSERLIST> {
 struct ChatChannel {
   int                                                  localID;
   char                                                 name[128];
-  TSList<PENDINGUSERLIST, TSGetLink<PENDINGUSERLIST> > pendingNames;
+  LISTDECL(PENDINGUSERLIST, pendingNames);
   unsigned int                                         channelFlags;
 };
 
-struct PENDINGCHAT : public TSLinkedNode<PENDINGCHAT> {
+NODEDECL(PENDINGCHAT) {
   int              slashCmd;
   unsigned __int64 guid;
   char            *text;
@@ -46,7 +46,7 @@ struct PENDINGCHAT : public TSLinkedNode<PENDINGCHAT> {
   char             specialFlag[5];
 };
 
-struct PENDINGTEXTEMOTE : public TSLinkedNode<PENDINGTEXTEMOTE> {
+NODEDECL(PENDINGTEXTEMOTE) {
   unsigned __int64 sender;
   int              textEmoteID;
   char            *target;
@@ -85,8 +85,8 @@ struct WORDLIST : public TSHashObject<WORDLIST, HASHKEY_LANGUAGE> {
 
 static const unsigned int                           s_events[30] = {217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231,
                                                                     232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 338, 339, 340, 341, 342};
-static TSList<PENDINGCHAT, TSGetLink<PENDINGCHAT> > s_pendingChat;
-static TSList<PENDINGTEXTEMOTE, TSGetLink<PENDINGTEXTEMOTE> > s_pendingTextEmote;
+static LISTDECL(PENDINGCHAT, s_pendingChat);
+static LISTDECL(PENDINGTEXTEMOTE, s_pendingTextEmote);
 static TSGrowableArray<ChatChannel>                           s_channels;
 static TSHashTable<WORDLIST, HASHKEY_LANGUAGE>                s_wordLists;
 static int                                                    s_loggingEnabled;
@@ -541,7 +541,7 @@ void CGChat::DisplayPendingUserList(ChatChannel *channel) {
   char buffer[58];
   int  namesThisLine = 0;
 
-  for (PENDINGUSERLIST *user = channel->pendingNames.Head(); user; user = channel->pendingNames.Next(user)) {
+  ITERATELIST(PENDINGUSERLIST, channel->pendingNames, user) {
     NameCache *nc = const_cast<NameCache *>(g_nameDBCache.GetRecord(user->guid, user->guid, 0, 0));
     if (!nc)
       return;
@@ -609,25 +609,21 @@ void CGChat::NameQueryCallback(int, const unsigned __int64 &, void *, bool) {
 }
 
 void CGChat::TextEmoteNameQueryCallback(int, const unsigned __int64 &, void *, bool) {
-  for (PENDINGTEXTEMOTE *pending = s_pendingTextEmote.Head(); pending;) {
-    PENDINGTEXTEMOTE *next = s_pendingTextEmote.Next(pending);
+  ITERATELIST(PENDINGTEXTEMOTE, s_pendingTextEmote, pending) {
     if (g_nameDBCache.GetRecord(pending->sender, pending->sender, 0, 0)) {
       if (!m_paused) {
         AddTextEmoteMessage(pending->sender, pending->textEmoteID, pending->target);
       }
       SMemFree(pending->target, __FILE__, __LINE__, 0);
-      s_pendingTextEmote.UnlinkNode(pending);
-      s_pendingTextEmote.DeleteNode(pending);
+      ITERATE_DELETE
     }
-    pending = next;
   }
 }
 
 void CGChat::GetPendingChatMessages() {
   if (m_paused)
     return;
-  for (PENDINGCHAT *pending = s_pendingChat.Head(); pending;) {
-    PENDINGCHAT *next = s_pendingChat.Next(pending);
+  ITERATELIST(PENDINGCHAT, s_pendingChat, pending) {
     NameCache   *nc = pending->guid ? const_cast<NameCache *>(g_nameDBCache.GetRecord(pending->guid, pending->guid, 0, 0)) : 0;
     NameCache   *nc2 = pending->guid2 ? const_cast<NameCache *>(g_nameDBCache.GetRecord(pending->guid2, pending->guid2, 0, 0)) : 0;
     if ((!pending->guid || nc) && (!pending->guid2 || nc2)) {
@@ -636,10 +632,8 @@ void CGChat::GetPendingChatMessages() {
           nc2 ? nc2->m_name : 0, pending->specialFlag
       );
       SMemFree(pending->text, __FILE__, __LINE__, 0);
-      s_pendingChat.UnlinkNode(pending);
-      s_pendingChat.DeleteNode(pending);
+      ITERATE_DELETE
     }
-    pending = next;
   }
 }
 

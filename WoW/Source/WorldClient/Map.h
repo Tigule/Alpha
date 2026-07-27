@@ -102,7 +102,7 @@ class CWSoundEmitter {
 class CMapSoundEmitter {
  public:
   CWSoundEmitter           data;
-  TSLink<CMapSoundEmitter> lameAssLink;
+  LINKDECLEX(CMapSoundEmitter, lameAssLink);
 };
 
 struct SWFlowv {
@@ -143,19 +143,19 @@ class CChunkLiquid {
   unsigned int         nFlowvs;
   SWFlowv              flowvs[2];
   CMapChunk           *chunk;
-  TSLink<CChunkLiquid> sceneLink;
-  TSLink<CChunkLiquid> lameAssLink;
+  LINKDECLEX(CChunkLiquid, sceneLink);
+  LINKDECLEX(CChunkLiquid, lameAssLink);
 };
 
 class CMapBaseObj;
 
-struct CChunkTex : public TSLinkedNode<CChunkTex> {
+NODEDECL(CChunkTex) {
   ~CChunkTex();
 
   unsigned long pixels[4096];
 };
 
-struct CChunkLayer : public TSLinkedNode<CChunkLayer> {
+NODEDECL(CChunkLayer) {
   ~CChunkLayer();
 
   unsigned short props;
@@ -174,7 +174,7 @@ class CMapCacheLight {
   float                  attenStart;
   float                  attenEnd;
   float                  attenDenom;
-  TSLink<CMapCacheLight> lameAssLink;
+  LINKDECLEX(CMapCacheLight, lameAssLink);
 };
 
 class CMapAreaLow {
@@ -189,15 +189,15 @@ class CMapAreaLow {
   NTempest::C3Vector  corner;
   NTempest::C2iVector mIndex;
   float               heights[545];
-  TSLink<CMapAreaLow> sceneLink;
+  LINKDECLEX(CMapAreaLow, sceneLink);
 };
 
 class CMapBaseObjLink {
  public:
   CMapBaseObj            *owner;
   CMapBaseObj            *ref;
-  TSLink<CMapBaseObjLink> refLink;
-  TSLink<CMapBaseObjLink> ownerLink;
+  LINKDECLEX(CMapBaseObjLink, refLink);
+  LINKDECLEX(CMapBaseObjLink, ownerLink);
 };
 
 class CMapBaseObj {
@@ -243,7 +243,7 @@ class CMapBaseObj {
   unsigned long                       type;
 
  public:
-  TSLink<CMapBaseObj>                 lameAssLink;
+  LINKDECLEX(CMapBaseObj, lameAssLink);
   TSExplicitList<CMapBaseObjLink, 16> parentLinkList;
   NTempest::C3Vector                  pos;
   float                               scale;
@@ -355,7 +355,7 @@ struct CMapEntity : public CMapStaticEntity {
   unsigned int          lqWhich;
   NTempest::CImVector   ambientTarget;
   float                 dirLightScaleTarget;
-  TSLink<CMapDoodadDef> sceneLink;
+  LINKDECLEX(CMapDoodadDef, sceneLink);
 };
 
 class CMapDoodadDef : public CMapStaticEntity, public TSHashObject<CMapDoodadDef, HASHKEY_DWORD> {
@@ -378,7 +378,7 @@ class CMapDoodadDef : public CMapStaticEntity, public TSHashObject<CMapDoodadDef
   unsigned int          rCount;
   unsigned int          cCount;
   int                   doodadSoundHandle;
-  TSLink<CMapDoodadDef> sceneLink;
+  LINKDECLEX(CMapDoodadDef, sceneLink);
   void(*RenderCB)(void *param, const NTempest::C44Matrix &matrix);
   void *renderCBParam;
 };
@@ -402,7 +402,7 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
   unsigned int                       rCount;
   NTempest::CImVector                ambient;
   unsigned __int64                   param64;
-  TSLink<CMapStaticEntity>           sceneLink;
+  LINKDECLEX(CMapStaticEntity, sceneLink);
 };
 
 class CMapObjDefGroup : public CMapBaseObj {
@@ -425,7 +425,7 @@ class CMapObjDefGroup : public CMapBaseObj {
   TSExplicitList<CMapBaseObjLink, 8> doodadDefLinkList;
   TSExplicitList<CMapBaseObjLink, 8> entityLinkList;
   TSExplicitList<CMapBaseObjLink, 8> lightLinkList;
-  TSLink<CMapObjDefGroup>            sceneLink;
+  LINKDECLEX(CMapObjDefGroup, sceneLink);
 };
 
 struct SMAreaHeader {
@@ -578,7 +578,7 @@ class CMapChunk : public CMapBaseObj {
   unsigned int                         remapLod;
   CDetailDoodadInst                   *detailDoodadInst;
   CMapChunk                           *neighbor[4];
-  TSLink<CMapChunk>                    sceneLink;
+  LINKDECLEX(CMapChunk, sceneLink);
   TSExplicitList<CMapBaseObjLink, 8>   doodadDefLinkList;
   TSExplicitList<CMapBaseObjLink, 8>   mapObjDefLinkList;
   TSExplicitList<CMapBaseObjLink, 8>   entityLinkList;

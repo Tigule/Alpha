@@ -80,7 +80,7 @@ struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
   CGxBuf                              *gxBuf;
 
  public:
-  TSLink<CSimpleDoodad> sceneLink;
+  LINKDECLEX(CSimpleDoodad, sceneLink);
   NTempest::CAaBox      extents;
   NTempest::CAaSphere   bounds;
 

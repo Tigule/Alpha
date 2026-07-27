@@ -44,7 +44,7 @@ class PLAYERNAMEDESC : public CHandleObject {
   void SetStringColor(const NTempest::CImVector &color);
   NTempest::CImVector GetStringColor() const;
 
-  TSLink<PLAYERNAMEDESC> m_link;
+  LINKDECLEX(PLAYERNAMEDESC, m_link);
   CGxString             *m_string;
   unsigned int           m_customGeosetID;
   NTempest::CImVector    m_stringColor;
@@ -69,7 +69,7 @@ struct UNITNAMESTRINGS {
 };
 
 static CGxFont                          *s_playerNameFont;
-static TSExplicitList<PLAYERNAMEDESC, 8> s_playerNames;
+static LISTDECLEX(PLAYERNAMEDESC, m_link, s_playerNames);
 static int                               s_showNames;
 static CVar                             *s_unitShowMode;
 static CVar                             *s_showTypeCVars[8];
@@ -242,7 +242,7 @@ void PLAYERNAMEDESC::UpdateWorldText() {
 }
 
 static void TriggerNameRegenerate() {
-  for (PLAYERNAMEDESC *desc = s_playerNames.Head(); desc; desc = s_playerNames.Next(desc)) {
+  ITERATELIST(PLAYERNAMEDESC, s_playerNames, desc) {
     desc->m_flags |= 1;
   }
 }
@@ -354,7 +354,7 @@ void PlayerNameUpdateEarly() {
 }
 
 void PlayerNameUpdateLate() {
-  for (PLAYERNAMEDESC *desc = s_playerNames.Head(); desc; desc = s_playerNames.Next(desc)) {
+  ITERATELIST(PLAYERNAMEDESC, s_playerNames, desc) {
     if (desc->m_lastRenderFrame != s_lastRenderFrame) {
       desc->ShowWorldText(0);
     }
@@ -390,7 +390,7 @@ unsigned int PlayerNameGetUnitNameMode() {
 }
 
 void PlayerNameRenderWorldText() {
-  for (PLAYERNAMEDESC *desc = s_playerNames.Head(); desc; desc = s_playerNames.Next(desc)) {
+  ITERATELIST(PLAYERNAMEDESC, s_playerNames, desc) {
     desc->RenderWorldText();
   }
 }

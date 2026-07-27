@@ -1606,7 +1606,7 @@ void CGxString::RemoveShadow() {
 void CGxFont::RegisterEvictNotice(unsigned int pageNumber) {
   ASSERT(pageNumber < 8);
 
-  for (CGxString *string = m_strings.Head(); string; string = m_strings.Next(string)) {
+  ITERATELIST(CGxString, m_strings, string) {
     string->TexturePageEvicted(pageNumber);
   }
 }
@@ -2242,7 +2242,7 @@ void TEXTURECACHE::TextureCallbackHandler(
 
   unsigned int count = m_textureRows.Count();
   for (unsigned int row = 0; row < count; ++row) {
-    for (CHARCODEDESC *current = m_textureRows[row].glyphList.Head(); current; current = m_textureRows[row].glyphList.Next(current)) {
+    ITERATELIST(CHARCODEDESC, m_textureRows[row].glyphList, current) {
       if (!current->bitmapData->m_dirty) {
         continue;
       }

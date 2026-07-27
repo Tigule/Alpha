@@ -284,14 +284,14 @@ namespace Storm {
     int           s_closingDirectSound = 0;
 
     CCritSect                                    s_cdlock;
-    TSList<REQUEST, TSGetLink<REQUEST> >         s_cdreqlist;
-    TSList<EVENTREC, TSGetLink<EVENTREC> >       s_signalList;
+    LISTDECL(REQUEST, s_cdreqlist);
+    LISTDECL(EVENTREC, s_signalList);
     CCritSect                                    s_streamlock;
-    TSList<AUDIOSTREAM, TSGetLink<AUDIOSTREAM> > s_streamlist;
+    LISTDECL(AUDIOSTREAM, s_streamlist);
     CCritSect                                    s_archivelock;
-    TSList<ARCHIVEREC, TSGetLink<ARCHIVEREC> >   s_archivelist;
+    LISTDECL(ARCHIVEREC, s_archivelist);
     CCritSect                                    s_filelock;
-    TSList<FILEREC, TSGetLink<FILEREC> >         s_filelist;
+    LISTDECL(FILEREC, s_filelist);
     CCritSect                                    s_lzwcrit;
     CCritSect                                    s_globcritsect;
 

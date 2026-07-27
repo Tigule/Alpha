@@ -378,8 +378,8 @@ class CSimpleTop : public CLayoutFrame {
   CSimpleFrame                                        *m_mouseFocus;
   CSimpleFrame                                        *m_mouseCapture;
   CSimpleFrame                                        *m_keydownCapture[780];
-  TSList<SIMPLEFRAMENODE, TSGetLink<SIMPLEFRAMENODE> > m_frames;
-  TSList<SIMPLEFRAMENODE, TSGetLink<SIMPLEFRAMENODE> > m_destroyed;
+  LISTDECL(SIMPLEFRAMENODE, m_frames);
+  LISTDECL(SIMPLEFRAMENODE, m_destroyed);
   CFrameStrata                                        *m_strata[6];
   frame_layout                                         m_layout;
   CSimpleSortedArray<FRAMEPRIORITY *>                  m_eventqueue[4][5];

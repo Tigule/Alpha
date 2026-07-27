@@ -24,7 +24,7 @@ class CSimpleHyperlinkButton : public CSimpleButton {
   char *m_hyperlink;
 
  public:
-  TSLink<CSimpleHyperlinkButton> m_link;
+  LINKDECLEX(CSimpleHyperlinkButton, m_link);
 };
 
 class CSimpleHyperlinkedFrame : public CSimpleFrame {

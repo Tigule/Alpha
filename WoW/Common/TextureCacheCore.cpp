@@ -43,7 +43,7 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
     }
   }
 
-  TSLink<CACHEENTRY> m_cacheLink;
+  LINKDECLEX(CACHEENTRY, m_cacheLink);
   HTEXTURE           m_texture;
   TEXTUREINFO        m_textureInfo;
   unsigned int       m_size;
@@ -64,7 +64,7 @@ class CACHEOBJECT : public CHandleObject {
   HMIPPEDTEXTURE GetTexture(const char *fileName, TEXTUREINFO *info);
 
  protected:
-  TSExplicitList<CACHEENTRY, 32>        m_LRUList;
+  LISTDECLEX(CACHEENTRY, m_cacheLink, m_LRUList);
   TSHashTable<CACHEENTRY, HASHKEY_STRI> m_cacheTable;
   unsigned int                          m_cacheSize;
   unsigned int                          m_currentCacheSize;

@@ -14,8 +14,8 @@ enum {
 static TSHashTableReuse<SoundFileObjectCacheNode, HASHKEY_NONE, 1>    s_soundFileObjectHashTable;
 static TSFixedArray<SoundFileObject>                                  s_soundFileObjects;
 static TSHashTableReuse<SoundFileDataCacheBlock, HASHKEY_LONGLONG, 1> s_soundFileDataCache;
-static TSExplicitList<SoundFileDataCacheBlock, 32>                    s_soundFileDataCacheLRU;
-static TSExplicitList<SoundFileObject, 412>                           s_freeSoundFileObjects;
+static LISTDECLEX(SoundFileDataCacheBlock, link, s_soundFileDataCacheLRU);
+static LISTDECLEX(SoundFileObject, link, s_freeSoundFileObjects);
 static SCritSect                                                      s_soundFileCacheLock;
 static unsigned int                                                   s_openRequests;
 static unsigned int                                                   s_openPhysicalFile;

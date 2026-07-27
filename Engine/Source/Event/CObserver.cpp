@@ -80,8 +80,8 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
 
  private:
   unsigned long                                          flags;
-  TSList<EVENTCALLBACKREG, TSGetLink<EVENTCALLBACKREG> > callbackList;
-  TSList<EVENTDISPATCHREG, TSGetLink<EVENTDISPATCHREG> > dispatchList;
+  LISTDECL(EVENTCALLBACKREG, callbackList);
+  LISTDECL(EVENTDISPATCHREG, dispatchList);
 };
 
 struct EventReg::EVENTCALLBACKREG : public TSLinkedNode<EventReg::EVENTCALLBACKREG> {

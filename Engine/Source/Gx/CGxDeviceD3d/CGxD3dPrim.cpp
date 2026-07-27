@@ -277,7 +277,7 @@ void CGxDeviceD3d::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format
   CGxDevice::BufReserve(freq, format, numVertices, numIndices);
 
   if (freq == GxBWF_Low || freq == GxBWF_Medium) {
-    for (CGxBuf *buf = m_bufList.Head(); buf; buf = m_bufList.Next(buf)) {
+    ITERATELIST(CGxBuf, m_bufList, buf) {
       CGxBufD3d *d3dBuf = static_cast<CGxBufD3d *>(buf);
       if (d3dBuf->m_vbFormat == format && d3dBuf->m_writeFreq == freq) {
         d3dBuf->Release();

@@ -23,8 +23,8 @@ static void *FreeTypeReallocFunction(FT_Memory memory, long currentSize, long ne
 }
 
 static FT_Library                                         s_FTLibrary;
-static TSList<CGxFont, TSGetLink<CGxFont> >               s_fonts;
-static TSList<CGxStringBatch, TSGetLink<CGxStringBatch> > s_unusedBatches;
+static LISTDECL(CGxFont, s_fonts);
+static LISTDECL(CGxStringBatch, s_unusedBatches);
 static float                                              s_pixelHeight;
 static float                                              s_pixelWidth;
 static CGxStringBatch                                     s_stringBatch;

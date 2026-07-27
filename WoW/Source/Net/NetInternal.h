@@ -7,7 +7,7 @@
 
 class NetClient;
 
-struct NETEVENTQUEUENODE : public TSLinkedNode<NETEVENTQUEUENODE> {
+NODEDECL(NETEVENTQUEUENODE) {
   ~NETEVENTQUEUENODE() {
     FREEIFUSED(m_data);
   }
@@ -35,7 +35,7 @@ class NETEVENTQUEUE {
  private:
   NetClient                                               *m_client;
   SCritSect                                                m_critsect;
-  TSList<NETEVENTQUEUENODE, TSGetLink<NETEVENTQUEUENODE> > m_eventQueue;
+  LISTDECL(NETEVENTQUEUENODE, m_eventQueue);
 };
 
 #endif

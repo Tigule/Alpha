@@ -1456,7 +1456,7 @@ namespace OsNet {
         }
 
         {
-          TSList<TCPHOSTADDRINFO, TSGetLink<TCPHOSTADDRINFO> > hostAddrInfoFailList;
+          LISTDECL(TCPHOSTADDRINFO, hostAddrInfoFailList);
           TCPHOSTADDRINFO                                     *info;
 
           net->m_hostAddrInfoLock.Lock();
@@ -1571,7 +1571,7 @@ namespace OsNet {
       }
 
       if (net->m_hostAddrInfoCount > 0) {
-        TSList<TCPHOSTADDRINFO, TSGetLink<TCPHOSTADDRINFO> > hostAddrInfoReadyList;
+        LISTDECL(TCPHOSTADDRINFO, hostAddrInfoReadyList);
         TCPHOSTADDRINFO                                     *info;
 
         net->m_hostAddrInfoLock.Lock();

@@ -107,7 +107,7 @@ enum PLAYER_MOVE_EVT {
   NUM_PMOVE_EVTS = 0x14
 };
 
-struct CPlayerMoveEvent : public TSLinkedNode<CPlayerMoveEvent> {
+NODEDECL(CPlayerMoveEvent) {
   unsigned long   timeStamp;
   PLAYER_MOVE_EVT eventType;
   unsigned int    memHandle;
@@ -127,7 +127,7 @@ class CPlayerMoveQueue {
   friend void MovementDestroy();
   friend void DisconnectLocalMover(CMovement *);
 
-  TSList<CPlayerMoveEvent, TSGetLink<CPlayerMoveEvent> > m_events;
+  LISTDECL(CPlayerMoveEvent, m_events);
 };
 
 class CMovementData {
@@ -216,8 +216,8 @@ class CMovementData {
   friend class CGGameObject_C_Type_MapObjTransport;
   friend class CGGameObject_C_Type_Transport;
 
-  TSLink<CMovementData> moveLink;
-  TSLink<CMovementData> transportLink;
+  LINKDECLEX(CMovementData, moveLink);
+  LINKDECLEX(CMovementData, transportLink);
 
  protected:
   void CalcDirection();

@@ -74,7 +74,7 @@ struct FSOUND_STREAM;
 struct FSOUND_SAMPLE;
 struct _FSOUND_REVERB_CHANNELPROPERTIES;
 
-struct Sound : public TSLinkedNode<Sound> {
+NODEDECL(Sound) {
  public:
   Sound();
   ~Sound();

@@ -72,7 +72,7 @@ class EvtContextQueue : public TSPriorityQueue<EvtContext> {
 };
 
 struct EvtHandler {
-  TSLink<EvtHandler> link;
+  LINKDECLEX(EvtHandler, link);
   EVENTHANDLER       func;
   void              *param;
   float              priority;
@@ -80,13 +80,13 @@ struct EvtHandler {
 };
 
 struct EvtMessage : public TExtraInstanceRecyclable<EvtMessage> {
-  TSLink<EvtMessage> link;
+  LINKDECLEX(EvtMessage, link);
   EVENTID            id;
   BYTE               data[4];
 };
 
 struct EvtKeyDown {
-  TSLink<EvtKeyDown> link;
+  LINKDECLEX(EvtKeyDown, link);
   KEY                key;
 };
 
@@ -119,10 +119,10 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   unsigned int                  m_schedWeight;
   unsigned int                  m_schedSmoothWeight;
   int                           m_schedRebalance;
-  TSExplicitList<EvtHandler, 0> m_queueHandlerList[EVENTIDS];
-  TSExplicitList<EvtMessage, 4> m_queueMessageList;
+  LISTDECLEX(EvtHandler, link, m_queueHandlerList[EVENTIDS]);
+  LISTDECLEX(EvtMessage, link, m_queueMessageList);
   DWORD                         m_queueSyncButtonState;
-  TSExplicitList<EvtKeyDown, 0> m_queueSyncKeyDownList;
+  LISTDECLEX(EvtKeyDown, link, m_queueSyncKeyDownList);
   EvtIdTable<EvtTimer *>        m_timerIdTable;
   EvtTimerQueue                 m_timerQueue;
   HPROPCONTEXT                  m_propContext;
@@ -345,7 +345,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   }
 };
 
-struct EvtThread : public TSLinkedNode<EvtThread> {
+NODEDECL(EvtThread) {
   DWORD           m_threadSlot;
   DWORD           m_threadCount;
   DWORD           m_weightTotal;

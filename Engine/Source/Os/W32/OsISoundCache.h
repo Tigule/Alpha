@@ -16,7 +16,7 @@ struct SoundFileObject {
   unsigned int            openInstances;
   unsigned int            bigFileCacheBlockOffset;
   SoundFileInstance       instances[16];
-  TSLink<SoundFileObject> link;
+  LINKDECLEX(SoundFileObject, link);
 };
 
 struct SoundFileObjectCacheNode : public TSHashObject<SoundFileObjectCacheNode, HASHKEY_NONE> {
@@ -24,7 +24,7 @@ struct SoundFileObjectCacheNode : public TSHashObject<SoundFileObjectCacheNode, 
 };
 
 struct SoundFileDataCacheBlock : public TSHashObject<SoundFileDataCacheBlock, HASHKEY_LONGLONG> {
-  TSLink<SoundFileDataCacheBlock> link;
+  LINKDECLEX(SoundFileDataCacheBlock, link);
   unsigned char                   data[4096];
 };
 

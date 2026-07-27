@@ -300,14 +300,14 @@ class CGxMemBuffer {
 class CGxVertexBuffer : public CGxMemBuffer {
  public:
   CGxVertexBuffer(unsigned int count) : CGxMemBuffer(count) {
-    m_bufList.ChangeLinkOffset(offsetof(CGxBuf, linkVB));
+    LISTEXSETLINK(CGxBuf, m_bufList, linkVB)
   }
 };
 
 class CGxIndexBuffer : public CGxMemBuffer {
  public:
   CGxIndexBuffer(unsigned int count) : CGxMemBuffer(count) {
-    m_bufList.ChangeLinkOffset(offsetof(CGxBuf, linkIB));
+    LISTEXSETLINK(CGxBuf, m_bufList, linkIB)
   }
 };
 

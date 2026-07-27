@@ -31,7 +31,7 @@ class HASHKEY_INT {
 
 typedef void(*DBCACHECALLBACKPROC)(int result, const unsigned __int64 &guid, void *arg, bool haveData);
 
-struct DBCACHECALLBACK : public TSLinkedNode<DBCACHECALLBACK> {
+NODEDECL(DBCACHECALLBACK) {
   DBCACHECALLBACKPROC m_callback;
   unsigned __int64    m_guid;
   void               *m_cbArg;
@@ -52,7 +52,7 @@ class DBCache {
     RECORD                                               m_record;
     KEY                                                  m_dbkey;
     bool                                                 m_haveData;
-    TSList<DBCACHECALLBACK, TSGetLink<DBCACHECALLBACK> > m_callbacks;
+    LISTDECL(DBCACHECALLBACK, m_callbacks);
     bool                                                 m_temp;
   };
 

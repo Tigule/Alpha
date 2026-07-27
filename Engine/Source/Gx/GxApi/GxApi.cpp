@@ -1075,7 +1075,7 @@ CGxShaderParam *CGxShader::GetNextParam(CGxShaderParam *p) {
 }
 
 CGxShaderParam *CGxShader::GetParam(const char *name) {
-  for (CGxShaderParam *param = params.Head(); param; param = params.Next(param)) {
+  ITERATELIST(CGxShaderParam, params, param) {
     if (!SStrCmp(param->GetName(), name, CGxShaderParam::NAME_LEN)) {
       return param;
     }

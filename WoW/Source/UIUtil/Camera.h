@@ -157,7 +157,7 @@ class CGCamera : public CSimpleCamera {
   float                                        m_previousYaw;
   int                                          m_cycleDirection;
   unsigned int                                 m_savedLiquid;
-  TSList<CameraShake, TSGetLink<CameraShake> > m_shakes;
+  LISTDECL(CameraShake, m_shakes);
 
   static int s_clipCamera;
 };

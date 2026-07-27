@@ -1272,8 +1272,7 @@ void CGGameObject_C_Type_MapObjTransport::UpdateMovement(
     CWorld::ObjectUpdate(m_objectId, m_position, m_facing, 0);
   }
 
-  for (CMovementData *passenger = m_passengers.Head(); passenger;
-       passenger = m_passengers.RawNext(passenger)) {
+  ITERATELIST(CMovementData, m_passengers, passenger) {
     CGObject_C *unit =
         ClntObjMgrObjectPtr(passenger->m_guid, __FILE__, __LINE__);
     FATALASSERT(unit);
@@ -1458,8 +1457,7 @@ void CGGameObject_C_Type_Transport::UpdateMovement(
     m_currDirection = move * (1.0f / distance);
   }
 
-  for (CMovementData *passenger = m_passengers.Head(); passenger;
-       passenger = m_passengers.RawNext(passenger)) {
+  ITERATELIST(CMovementData, m_passengers, passenger) {
     CGObject_C *unit =
         ClntObjMgrObjectPtr(passenger->m_guid, __FILE__, __LINE__);
     FATALASSERT(unit);

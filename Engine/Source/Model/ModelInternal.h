@@ -316,7 +316,7 @@ HMODEL ModelCreateSimpleMesh(
 );
 HMODEL CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode);
 
-struct LINKUNIQUE : public TSLinkedNode<LINKUNIQUE> {
+NODEDECL(LINKUNIQUE) {
   LINKUNIQUE() : child(0), scale(1.0f) {
   }
 
@@ -368,7 +368,7 @@ class CModelComplex : public CModelBase {
   void           CopyRibbons(const CModelComplex &source);
 };
 
-struct CModelModItem : public TSLinkedNode<CModelModItem> {
+NODEDECL(CModelModItem) {
   EModelModQ    action;
   unsigned char paramData[16];
 };
@@ -391,7 +391,7 @@ class CModel : public CHandleObject {
   CModelCreate                                    *createData;
   HMODELSHARED                                     shared;
   EModelLoad                                       state;
-  TSList<CModelModItem, TSGetLink<CModelModItem> > modelModQueue;
+  LISTDECL(CModelModItem, modelModQueue);
 
  private:
   void RemoveModelCommandsFromQueue();

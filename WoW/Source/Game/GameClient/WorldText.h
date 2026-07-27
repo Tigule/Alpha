@@ -81,7 +81,7 @@ struct WORLDTEXTSTRING : public CHandleObject {
   float                   textHeight;
   float                   heightScale;
   float                   zOffset;
-  TSLink<WORLDTEXTSTRING> link;
+  LINKDECLEX(WORLDTEXTSTRING, link);
   int                     hidden;
   unsigned int            m_flags;
   CGxString              *string;

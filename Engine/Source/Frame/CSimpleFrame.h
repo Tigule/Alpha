@@ -22,11 +22,11 @@ class CSimpleTop;
 
 static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect);
 
-struct REGIONNODE : public TSLinkedNode<REGIONNODE> {
+NODEDECL(REGIONNODE) {
   CSimpleRegion *region;
 };
 
-struct SIMPLEFRAMENODE : public TSLinkedNode<SIMPLEFRAMENODE> {
+NODEDECL(SIMPLEFRAMENODE) {
   CSimpleFrame *frame;
 };
 
@@ -662,16 +662,16 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   int                                                  m_onKeyUp;
   int                                                  m_drawenabled[5];
   CBackdropGenerator                                  *m_backdrop;
-  TSList<REGIONNODE, TSGetLink<REGIONNODE> >           m_regions;
-  TSList<REGIONNODE, TSGetLink<REGIONNODE> >           m_drawlayers[5];
+  LISTDECL(REGIONNODE, m_regions);
+  LISTDECL(REGIONNODE, m_drawlayers[5]);
   unsigned int                                         m_batchDirty;
   CRenderBatch                                         m_batch[5];
   TSExplicitList<CRenderBatch, 44>                     m_renderList;
-  TSList<SIMPLEFRAMENODE, TSGetLink<SIMPLEFRAMENODE> > m_children;
+  LISTDECL(SIMPLEFRAMENODE, m_children);
 
  public:
-  TSLink<CSimpleFrame> topLink;
-  TSLink<CSimpleFrame> drawLink;
+  LINKDECLEX(CSimpleFrame, topLink);
+  LINKDECLEX(CSimpleFrame, drawLink);
 };
 
 #endif

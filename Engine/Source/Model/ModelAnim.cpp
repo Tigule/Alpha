@@ -491,7 +491,7 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
     if (!enabled)
       continue;
     TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &list = unique->m_attached[attachmentIndex];
-    for (LINKUNIQUE *link = list.Head(); link; link = list.Next(link)) {
+    ITERATELIST(LINKUNIQUE, list, link) {
       ModelAnimateAttached(link->child, link->scale, transforms + attachmentIndex, normalizeNorms, cameraWorldPos, cameraVector);
     }
   }
@@ -530,7 +530,7 @@ static void IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
     }
 
     TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &attached = complex->m_attached[index];
-    for (LINKUNIQUE *link = attached.Head(); link; link = attached.Next(link)) {
+    ITERATELIST(LINKUNIQUE, attached, link) {
       CModelBase   *childModel;
       CModelShared *childShared;
       if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childModel, &childShared)) {
@@ -1019,7 +1019,7 @@ void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
 
     if (enabled) {
       TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = complex->m_attached[index];
-      for (LINKUNIQUE *link = links.Head(); link; link = links.Next(link)) {
+      ITERATELIST(LINKUNIQUE, links, link) {
         ModelSetTimeScale(link->child, timeScale, 1);
       }
     }
@@ -1058,7 +1058,7 @@ int ModelSetObjectTimeScale(HMODEL model, unsigned int objectId, float timeScale
 
     if (enabled) {
       TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = complex->m_attached[index];
-      for (LINKUNIQUE *link = links.Head(); link; link = links.Next(link)) {
+      ITERATELIST(LINKUNIQUE, links, link) {
         if (!ModelSetObjectTimeScale(link->child, objectId, timeScale, 1)) {
           return 0;
         }
@@ -1119,7 +1119,7 @@ int ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMode
 
     if (enabled) {
       TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = complex->m_attached[index];
-      for (LINKUNIQUE *link = links.Head(); link; link = links.Next(link)) {
+      ITERATELIST(LINKUNIQUE, links, link) {
         if (!ModelForceCurrentSequenceTime(link->child, timeOffset, 1)) {
           return 0;
         }
@@ -1303,7 +1303,7 @@ void ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) {
       }
 
       TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &attached = complex->m_attached[index];
-      for (LINKUNIQUE *link = attached.Head(); link; link = attached.Next(link)) {
+      ITERATELIST(LINKUNIQUE, attached, link) {
         ModelResetGlobalSequenceTimes(link->child, 0);
       }
     }

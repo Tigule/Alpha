@@ -26,7 +26,7 @@ void WowConnectionResponse::WCDataReady(WowConnection *conn, unsigned long timeS
 void WowConnectionResponse::WCWriteReady(WowConnection *conn) {
 }
 
-struct NETCLIENTNODE : public TSLinkedNode<NETCLIENTNODE> {
+NODEDECL(NETCLIENTNODE) {
   NETCLIENTNODE() {
   }
 
@@ -124,7 +124,7 @@ class NetClientRedirect : public WowConnectionResponse {
   WowConnection *m_conn;
 };
 
-static TSList<NETCLIENTNODE, TSGetLink<NETCLIENTNODE> > s_clientList;
+static LISTDECL(NETCLIENTNODE, s_clientList);
 static CLIENT_NETSTATS                                  s_stats;
 static HPROPCONTEXT                                     s_propContext;
 
@@ -162,13 +162,10 @@ NetClient::NetClient() {
 NetClient::~NetClient() {
   Destroy();
 
-  NETCLIENTNODE *node = s_clientList.Head();
-  while (node) {
+  ITERATELIST(NETCLIENTNODE, s_clientList, node) {
     if (node->client == this) {
-      s_clientList.DeleteNode(node);
-      break;
+      ITERATE_DELETEANDBREAK
     }
-    node = s_clientList.Next(node);
   }
 }
 
