@@ -10,7 +10,7 @@
 #include <float.h>
 #include <string.h>
 
-void __fastcall CMapObj::AsyncPostloadCallbackHeader(void *userArg) {
+void CMapObj::AsyncPostloadCallbackHeader(void *userArg) {
   CMapObj *mapObj = static_cast<CMapObj *>(userArg);
   FATALASSERT(mapObj);
 
@@ -39,7 +39,7 @@ void __fastcall CMapObj::AsyncPostloadCallbackHeader(void *userArg) {
   AsyncFileReadObject(mapObj->asyncObject);
 }
 
-void __fastcall CMapObj::AsyncPostloadCallback(void *userArg) {
+void CMapObj::AsyncPostloadCallback(void *userArg) {
   CMapObj *mapObj = static_cast<CMapObj *>(userArg);
   FATALASSERT(mapObj);
 
@@ -60,7 +60,7 @@ void __fastcall CMapObj::AsyncPostloadCallback(void *userArg) {
   mapObj->CreateAllGroups();
 }
 
-void __fastcall CMapObj::AsyncPostloadCallbackAll(void *userArg) {
+void CMapObj::AsyncPostloadCallbackAll(void *userArg) {
   CMapObj *mapObj = static_cast<CMapObj *>(userArg);
   FATALASSERT(mapObj);
 
@@ -348,7 +348,7 @@ void CMapObj::ReadGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo, int preLoa
   }
 }
 
-void __fastcall CMapObjGroup::AsyncPostloadCallback(void *userArg) {
+void CMapObjGroup::AsyncPostloadCallback(void *userArg) {
   CMapObjGroup *mapObjGroup = static_cast<CMapObjGroup *>(userArg);
   FATALASSERT(mapObjGroup);
 

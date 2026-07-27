@@ -133,7 +133,7 @@ struct EnumModuleData {
   ModuleData modules[0x100];
 };
 
-void __fastcall SMemGenerateReport(SMEMREPORTTYPE reporttype, SMEMREPORTPROC outputproc, HOUTPUTCONTEXT outputcontext) {
+void SMemGenerateReport(SMEMREPORTTYPE reporttype, SMEMREPORTPROC outputproc, HOUTPUTCONTEXT outputcontext) {
   StormCallService(2, reporttype, outputproc, outputcontext);
 }
 CDbgHelpDll::CDbgHelpDll() {
@@ -218,7 +218,7 @@ void CDbgHelpDll::Unload() {
     DeleteCriticalSection(&s_CrawlCritsect);
   }
 }
-static void __fastcall sLogSeparatorLine(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, char character, int longLine) {
+static void sLogSeparatorLine(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, char character, int longLine) {
   char line[80];
   int  chars;
 
@@ -227,14 +227,14 @@ static void __fastcall sLogSeparatorLine(LOGMACHINESTATEPROC logLineProc, void *
   line[chars] = 0;
   logLineProc(logLineProcParam, "%s", line);
 }
-static void __fastcall sLogHeader(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const char *headerString) {
+static void sLogHeader(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const char *headerString) {
   logLineProc(logLineProcParam, "");
   sLogSeparatorLine(logLineProc, logLineProcParam, '-', 0);
   logLineProc(logLineProcParam, "    %s", headerString);
   sLogSeparatorLine(logLineProc, logLineProcParam, '-', 0);
   logLineProc(logLineProcParam, "");
 }
-static void __fastcall
+static void
 sLogMemoryHexDump(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, unsigned char *address, unsigned long numBytes, int alignedLines) {
   char           buffer[80];
   unsigned char *row;
@@ -290,13 +290,13 @@ sLogMemoryHexDump(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, unsig
     --numLines;
   }
 }
-static void __fastcall
+static void
 sLogVerboseMessage(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const char *format, unsigned long error) {
   if (logOptions & 0x80000000) {
     logLineProc(logLineProcParam, format, error);
   }
 }
-static const char *__fastcall sGetPathLeaf(const char *path) {
+static const char *sGetPathLeaf(const char *path) {
   const char *leaf;
   const char *slash;
 
@@ -316,13 +316,13 @@ static const char *__fastcall sGetPathLeaf(const char *path) {
 
   return leaf ? leaf + 1 : path;
 }
-static void __fastcall sLogExeFile(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
+static void sLogExeFile(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
   char exeFullPath[MAX_PATH];
 
   GetModuleFileNameA(NULL, exeFullPath, sizeof(exeFullPath));
   logLineProc(logLineProcParam, "%-10s%s", "Exe:", exeFullPath);
 }
-static void __fastcall sLogDateTimeString(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const SYSTEMTIME *time) {
+static void sLogDateTimeString(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const SYSTEMTIME *time) {
   WORD hour;
   char suffix;
 
@@ -341,7 +341,7 @@ static void __fastcall sLogDateTimeString(LOGMACHINESTATEPROC logLineProc, void 
       time->wMinute, time->wSecond, time->wMilliseconds, suffix
   );
 }
-static void __fastcall sLogUserName(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
+static void sLogUserName(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
   char  userName[0x101];
   DWORD size;
 
@@ -351,7 +351,7 @@ static void __fastcall sLogUserName(LOGMACHINESTATEPROC logLineProc, void *logLi
   }
   logLineProc(logLineProcParam, "%-10s%s", "User:", userName);
 }
-static void __fastcall sLogComputerName(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
+static void sLogComputerName(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
   char  computerName[0x10];
   DWORD size;
 
@@ -361,7 +361,7 @@ static void __fastcall sLogComputerName(LOGMACHINESTATEPROC logLineProc, void *l
   }
   logLineProc(logLineProcParam, "%-10s%s", "Computer:", computerName);
 }
-static void __fastcall
+static void
 sLogMemory(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, unsigned long instructionPointr, unsigned long stackPointer) {
   sLogHeader(logLineProc, logLineProcParam, "Memory Dump");
 
@@ -408,7 +408,7 @@ static BOOL CALLBACK sEnumSymbolsCallback(LPSTR SymbolName, ULONG SymbolAddress,
       );
   return TRUE;
 }
-static void __fastcall
+static void
 sLogModule(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, unsigned long baseAddress, char *moduleName) {
   IMAGEHLP_MODULE module;
   LogLineParams   params;
@@ -436,7 +436,7 @@ sLogModule(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcPa
     logLineProc(logLineProcParam, "");
   }
 }
-static void __fastcall sGetLogicalAddress(void *addr, char *moduleName, unsigned long moduleNameSize, unsigned long *section, unsigned long *offset) {
+static void sGetLogicalAddress(void *addr, char *moduleName, unsigned long moduleNameSize, unsigned long *section, unsigned long *offset) {
   MEMORY_BASIC_INFORMATION memInfo;
   HMODULE                  module;
   PIMAGE_DOS_HEADER        dosHeader;
@@ -494,7 +494,7 @@ static void __fastcall sGetLogicalAddress(void *addr, char *moduleName, unsigned
     }
   }
 }
-static int __fastcall sDbgHelpGetStackFrameInfo(
+static int sDbgHelpGetStackFrameInfo(
     unsigned long  address,
     char          *moduleName,
     char          *symbolName,
@@ -552,7 +552,7 @@ static int __fastcall sDbgHelpGetStackFrameInfo(
 
   return err;
 }
-static void __fastcall sLogDbgHelpStackFrame(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const STACKFRAME *stackFrame) {
+static void sLogDbgHelpStackFrame(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const STACKFRAME *stackFrame) {
   char          symbolName[0x100];
   char          fileName[0x104];
   char          moduleName[0x20];
@@ -585,7 +585,7 @@ static void __fastcall sLogDbgHelpStackFrame(UINT logOptions, LOGMACHINESTATEPRO
     logLineProc(logLineProcParam, format, address, moduleName, symbolName, symbolDisplacement, fileName, lineNumber);
   }
 }
-static int __fastcall sSymInitialize(void *process) {
+static int sSymInitialize(void *process) {
   char path[0x104];
   path[0] = 0;
   GetModuleFileNameA(NULL, path, sizeof(path));
@@ -596,7 +596,7 @@ static int __fastcall sSymInitialize(void *process) {
 
   return sgDbgHelpDll.SymInitialize((HANDLE)process, path, TRUE);
 }
-int __fastcall sQuickStackWalkInit(int init) {
+int sQuickStackWalkInit(int init) {
   HANDLE process;
   int    initialized;
 
@@ -748,7 +748,7 @@ static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT hOutput, const char *str) {
   info = (SMemReportByCallerInfo *)str;
   dump->logLineProc(dump->logLineProcParam, "%5d %5d %s(%d)", info->allocatedBlocks, info->allocatedBytes, info->fileName, info->lineNumber);
 }
-static void __fastcall sShowOutOfMemory(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
+static void sShowOutOfMemory(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
   MEMDUMP dump;
 
   if (!g_memFullError) {
@@ -761,7 +761,7 @@ static void __fastcall sShowOutOfMemory(LOGMACHINESTATEPROC logLineProc, void *l
   SMemGenerateReport(SMEM_REPORT_BY_CALLER, CmdMemOutput, (HOUTPUTCONTEXT)&dump);
   sLogSeparatorLine(logLineProc, logLineProcParam, '-', 1);
 }
-static void __fastcall sLogDbgHelpStackTrace(
+static void sLogDbgHelpStackTrace(
     UINT                logOptions,
     LOGMACHINESTATEPROC logLineProc,
     void               *logLineProcParam,
@@ -851,7 +851,7 @@ static void __fastcall sLogDbgHelpStackTrace(
   sgDbgHelpDll.Unload();
   logLineProc(logLineProcParam, "");
 }
-static void __fastcall sLogX86ManualStackTrace(
+static void sLogX86ManualStackTrace(
     UINT                __formal,
     LOGMACHINESTATEPROC logLineProc,
     void               *logLineProcParam,
@@ -892,7 +892,7 @@ static void __fastcall sLogX86ManualStackTrace(
     ++i;
   }
 }
-static void __fastcall sLogX86ContextRegisters(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, CONTEXT *context) {
+static void sLogX86ContextRegisters(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, CONTEXT *context) {
   sLogHeader(logLineProc, logLineProcParam, "x86 Registers");
 
   logLineProc(
@@ -907,7 +907,7 @@ static void __fastcall sLogX86ContextRegisters(LOGMACHINESTATEPROC logLineProc, 
   );
   logLineProc(logLineProcParam, "");
 }
-int __fastcall CheckMachineStateSymbolHelper() {
+int CheckMachineStateSymbolHelper() {
   int loaded;
 
   loaded = sgDbgHelpDll.Load();
@@ -915,13 +915,13 @@ int __fastcall CheckMachineStateSymbolHelper() {
 
   return loaded;
 }
-void __fastcall LoadMachineStateSymbols() {
+void LoadMachineStateSymbols() {
   sgDbgHelpDll.Load();
 }
-void __fastcall UnloadMachineStateSymbols() {
+void UnloadMachineStateSymbols() {
   sgDbgHelpDll.Unload();
 }
-void __fastcall
+void
 LogComputerInfoHeader(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const char *headerTitleLine, SYSTEMTIME *time) {
   SYSTEMTIME currentTime;
 
@@ -959,7 +959,7 @@ LogComputerInfoHeader(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *lo
 
   InterlockedDecrement(&sgRecursionLevel);
 }
-void __fastcall LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, UINT stackFramesToSkip, CONTEXT *context) {
+void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, UINT stackFramesToSkip, CONTEXT *context) {
 #if defined(_M_IX86) || defined(_X86_)
   DWORD                 registerEip;
   DWORD                 registerEbp;
@@ -1064,7 +1064,7 @@ static DWORD WINAPI MiniDumpThreadProc(void *param) {
   sgDbgHelpDll.Unload();
   return 0;
 }
-int __fastcall LogMiniDump(void *logfile, EXCEPTION_POINTERS *exceptionPointers, UINT userStringCount, char **const userStrings) {
+int LogMiniDump(void *logfile, EXCEPTION_POINTERS *exceptionPointers, UINT userStringCount, char **const userStrings) {
   MiniDumpParam miniDumpParam;
   DWORD         threadid;
 
@@ -1088,7 +1088,7 @@ int __fastcall LogMiniDump(void *logfile, EXCEPTION_POINTERS *exceptionPointers,
   InterlockedDecrement(&sgRecursionLevel);
   return miniDumpParam.result;
 }
-int __fastcall LogMiniDumpIsAvailable() {
+int LogMiniDumpIsAvailable() {
   int loaded;
   int available;
 

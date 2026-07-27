@@ -8,10 +8,10 @@
 #include <storm.h>
 #include <stpl.h>
 
-void __fastcall WriteBounds(const CMdlBounds &, const char *, TSGrowableArray<char> &);
+void WriteBounds(const CMdlBounds &, const char *, TSGrowableArray<char> &);
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void IModelAddErrors(TSet &errors) {
@@ -158,7 +158,7 @@ static void IReadModelGlobals(
   parse.Expect('}', token, tokenText);
 }
 
-int __fastcall ReadModelGlobals(
+int ReadModelGlobals(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -225,7 +225,7 @@ static void IWriteGroundTrack(TSGrowableArray<char> &buffer, unsigned int ground
   }
 }
 
-int __fastcall WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+int WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   const MDLMODELSECTION &model = data.model;
   if (SStrLen(model.name)
       || data.helpers.Count() || data.lights.Count() || data.bones.Count()
@@ -254,7 +254,7 @@ int __fastcall WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buf
   return 1;
 }
 
-int __fastcall ReadBinModelGlobals(
+int ReadBinModelGlobals(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -275,7 +275,7 @@ int __fastcall ReadBinModelGlobals(
   return 1;
 }
 
-int __fastcall WriteBinModelGlobals(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+int WriteBinModelGlobals(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
   buffer.AddDword('LDOM');
   buffer.AddUint(373);
   buffer.AddTcharArray(data.model.name, 80, 1);

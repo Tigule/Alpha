@@ -5,9 +5,9 @@
 
 static CStatus s_errorList;
 
-static char *__fastcall FormatStatusMessage(const char *format, va_list args);
+static char *FormatStatusMessage(const char *format, va_list args);
 
-CStatus &__fastcall GetGlobalStatusObj() {
+CStatus &GetGlobalStatusObj() {
   return s_errorList;
 }
 
@@ -15,7 +15,7 @@ CStatus::~CStatus() {
   Clear();
 }
 
-static char *__fastcall FormatStatusMessage(const char *format, va_list args) {
+static char *FormatStatusMessage(const char *format, va_list args) {
   static char buffer[0x100];
   int         length = _vsnprintf(buffer, sizeof(buffer), format, args);
 

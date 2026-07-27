@@ -100,7 +100,7 @@ static DWORD            s_totalAllocated;
 BOOL                    g_memFullError;
 #define smemOptions g_opt
 
-static BOOL __fastcall CheckInitialized() {
+static BOOL CheckInitialized() {
   if (!s_initialized) {
     SLogInitialize();
     SMemInitialize();
@@ -109,13 +109,13 @@ static BOOL __fastcall CheckInitialized() {
   return s_initialized;
 }
 
-static void __fastcall FatalError(DWORD errorcode, LPCSTR filename, int linenumber) {
+static void FatalError(DWORD errorcode, LPCSTR filename, int linenumber) {
   g_memFullError = errorcode == ERROR_NOT_ENOUGH_MEMORY;
   SErrDisplayError(errorcode, filename, linenumber, NULL, FALSE, 1);
   ExitProcess(1);
 }
 
-static BLOCKPTR __fastcall GetBlockPtrByPtr(LPVOID ptr) {
+static BLOCKPTR GetBlockPtrByPtr(LPVOID ptr) {
   if (!ptr) {
     return NULL;
   }
@@ -128,12 +128,12 @@ static BLOCKPTR __fastcall GetBlockPtrByPtr(LPVOID ptr) {
   return blockptr;
 }
 
-static HSHEAP __fastcall GetHandleByBlockPtr(BLOCKPTR blockptr) {
+static HSHEAP GetHandleByBlockPtr(BLOCKPTR blockptr) {
   HEAPPTR heapptr = (HEAPPTR)((DWORD)(blockptr->heapaddr) << 16);
   return heapptr->handle;
 }
 
-static HSHEAP __fastcall GetHandleByCaller(LPCSTR filename, int linenumber) {
+static HSHEAP GetHandleByCaller(LPCSTR filename, int linenumber) {
   DWORD  chars;
   HSHEAP handle;
 
@@ -171,7 +171,7 @@ static HSHEAP __fastcall GetHandleByCaller(LPCSTR filename, int linenumber) {
   return handle;
 }
 
-static LPVOID __fastcall GetPtrByBlockPtr(BLOCKPTR blockptr) {
+static LPVOID GetPtrByBlockPtr(BLOCKPTR blockptr) {
   if (!blockptr) {
     return NULL;
   }
@@ -184,11 +184,11 @@ static LPVOID __fastcall GetPtrByBlockPtr(BLOCKPTR blockptr) {
   return ptr;
 }
 
-static DWORD __fastcall GetSlotByHandle(HSHEAP handle) {
+static DWORD GetSlotByHandle(HSHEAP handle) {
   return (DWORD)handle & (TABLESIZE - 1);
 }
 
-static HEAPPTR __fastcall LockHeapByBlockPtr(BLOCKPTR blockptr, HLOCKEDHEAP *lockedhandle) {
+static HEAPPTR LockHeapByBlockPtr(BLOCKPTR blockptr, HLOCKEDHEAP *lockedhandle) {
   HEAPPTR heapptr = (HEAPPTR)((DWORD)blockptr->heapaddr << 16);
 
   EnterCriticalSection(&s_critsect[heapptr->slot]);
@@ -197,7 +197,7 @@ static HEAPPTR __fastcall LockHeapByBlockPtr(BLOCKPTR blockptr, HLOCKEDHEAP *loc
   return heapptr;
 }
 
-static HEAPPTR __fastcall LockHeapByHandle(HSHEAP handle, HLOCKEDHEAP *lockedhandle, BOOL heapmustexist) {
+static HEAPPTR LockHeapByHandle(HSHEAP handle, HLOCKEDHEAP *lockedhandle, BOOL heapmustexist) {
   DWORD   slot = GetSlotByHandle(handle);
   HEAPPTR heapptr;
 
@@ -218,7 +218,7 @@ static HEAPPTR __fastcall LockHeapByHandle(HSHEAP handle, HLOCKEDHEAP *lockedhan
   return NULL;
 }
 
-static HEAPPTR __fastcall LockNextHeapByHandle(HSHEAP prevheap, HLOCKEDHEAP *lockedhandle) {
+static HEAPPTR LockNextHeapByHandle(HSHEAP prevheap, HLOCKEDHEAP *lockedhandle) {
   HSHEAP  lastheap;
   DWORD   slot;
   HEAPPTR heapptr;
@@ -247,14 +247,14 @@ static HEAPPTR __fastcall LockNextHeapByHandle(HSHEAP prevheap, HLOCKEDHEAP *loc
   return NULL;
 }
 
-static void __fastcall Warning(DWORD errorcode, LPCSTR filename, int linenumber) {
+static void Warning(DWORD errorcode, LPCSTR filename, int linenumber) {
   SErrSetLastError(errorcode);
   if (s_warnings) {
     SErrDisplayError(errorcode, filename, linenumber, NULL, TRUE, 1);
   }
 }
 
-static void __fastcall UnlockHeap(HLOCKEDHEAP *lockedhandle) {
+static void UnlockHeap(HLOCKEDHEAP *lockedhandle) {
   if (*(DWORD *)lockedhandle != -1) {
     DWORD slot = *(DWORD *)lockedhandle;
     LeaveCriticalSection(&s_critsect[slot]);
@@ -267,19 +267,19 @@ static void __fastcall UnlockHeap(HLOCKEDHEAP *lockedhandle) {
 // Block allocation/deallocation functions
 // --------------------------------
 
-static void __fastcall  CombineFreeBlocks(HEAPPTR heapptr);
-static void __fastcall  ComputeBlockSize(DWORD bytes, LPDWORD blockSize, LPDWORD padding, LPBOOL largeAlloc, LPBOOL boundingSig);
-static DWORD __fastcall ComputeFreeSlot(DWORD bytes);
-static void __fastcall  ComputePageSize();
-static void __fastcall  FillBlockHeaderAndSignatures(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD blockSize, DWORD padding, BYTE flags);
-static void __fastcall  FreeHeap(HEAPPTR *nextptr);
-static void __fastcall  FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block);
-static int __fastcall   GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize);
-static BOOL __fastcall  GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
-static void __fastcall  ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
-static void __fastcall  SubdivideBlock(HEAPPTR heapptr, BLOCKPTR blockptr, LPDWORD blocksize, LPDWORD padding);
+static void CombineFreeBlocks(HEAPPTR heapptr);
+static void ComputeBlockSize(DWORD bytes, LPDWORD blockSize, LPDWORD padding, LPBOOL largeAlloc, LPBOOL boundingSig);
+static DWORD ComputeFreeSlot(DWORD bytes);
+static void ComputePageSize();
+static void FillBlockHeaderAndSignatures(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD blockSize, DWORD padding, BYTE flags);
+static void FreeHeap(HEAPPTR *nextptr);
+static void FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block);
+static int GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize);
+static BOOL GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
+static void ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
+static void SubdivideBlock(HEAPPTR heapptr, BLOCKPTR blockptr, LPDWORD blocksize, LPDWORD padding);
 
-static HEAPPTR __fastcall
+static HEAPPTR
 AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWORD slot, DWORD chunksize, DWORD commitsize, DWORD reservesize) {
   BLOCK    block;
   DWORD    filenamebytes;
@@ -348,7 +348,7 @@ AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWORD slot, DWORD c
   return heapptr;
 }
 
-static LPVOID __fastcall AllocateHeapBlock(HEAPPTR heapptr, DWORD bytes, BYTE baseflags) {
+static LPVOID AllocateHeapBlock(HEAPPTR heapptr, DWORD bytes, BYTE baseflags) {
   BOOL          boundingSig;
   DWORD         prevfree;
   BOOL          largeAlloc;
@@ -495,7 +495,7 @@ static LPVOID __fastcall AllocateHeapBlock(HEAPPTR heapptr, DWORD bytes, BYTE ba
   }
 }
 
-static BOOL __fastcall CheckValidBlock(LPVOID ptr, BOOL displayerror, LPCSTR filename, int linenumber) {
+static BOOL CheckValidBlock(LPVOID ptr, BOOL displayerror, LPCSTR filename, int linenumber) {
   BLOCKPTR blockptr;
 
   if (!ptr) {
@@ -535,7 +535,7 @@ static BOOL __fastcall CheckValidBlock(LPVOID ptr, BOOL displayerror, LPCSTR fil
   return TRUE;
 }
 
-static void __fastcall CombineFreeBlocks(HEAPPTR heapptr) {
+static void CombineFreeBlocks(HEAPPTR heapptr) {
   FREEBLOCKPTR *nextfreeblock[9];
   BLOCKPTR      blockptr;
   BLOCKPTR      lastfree;
@@ -581,7 +581,7 @@ static void __fastcall CombineFreeBlocks(HEAPPTR heapptr) {
   heapptr->uncombinedfree = 0;
 }
 
-static DWORD __fastcall ComputeFreeSlot(DWORD bytes) {
+static DWORD ComputeFreeSlot(DWORD bytes) {
   bytes >>= 5;
   if (bytes >= 8) {
     return 8;
@@ -590,7 +590,7 @@ static DWORD __fastcall ComputeFreeSlot(DWORD bytes) {
   return bytes;
 }
 
-static void __fastcall ComputeBlockSize(DWORD bytes, LPDWORD blockSize, LPDWORD padding, LPBOOL largeAlloc, LPBOOL boundingSig) {
+static void ComputeBlockSize(DWORD bytes, LPDWORD blockSize, LPDWORD padding, LPBOOL largeAlloc, LPBOOL boundingSig) {
   *largeAlloc = s_guardmode || bytes > MAXALLOCSIZE;
   *boundingSig = s_debugmode && !*largeAlloc;
 
@@ -603,7 +603,7 @@ static void __fastcall ComputeBlockSize(DWORD bytes, LPDWORD blockSize, LPDWORD 
   *padding = *blockSize - bytes;
 }
 
-static void __fastcall ComputePageSize() {
+static void ComputePageSize() {
   SYSTEM_INFO sysinfo;
 
   GetSystemInfo(&sysinfo);
@@ -616,7 +616,7 @@ static void __fastcall ComputePageSize() {
   }
 }
 
-static HEAPPTR *__fastcall DestroyHeap(HEAPPTR *nextptr) {
+static HEAPPTR *DestroyHeap(HEAPPTR *nextptr) {
   HEAPPTR  heapptr;
   BLOCKPTR blockptr;
   int      preserve;
@@ -658,7 +658,7 @@ static HEAPPTR *__fastcall DestroyHeap(HEAPPTR *nextptr) {
   return nextptr;
 }
 
-static void __fastcall FillBlockHeaderAndSignatures(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD blockSize, DWORD padding, BYTE flags) {
+static void FillBlockHeaderAndSignatures(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD blockSize, DWORD padding, BYTE flags) {
   blockptr->bytes = (WORD)blockSize;
   blockptr->padding = (BYTE)padding;
   blockptr->flags = flags;
@@ -669,7 +669,7 @@ static void __fastcall FillBlockHeaderAndSignatures(HEAPPTR heapptr, BLOCKPTR bl
   }
 }
 
-static void __fastcall FreeEmptyHeaps() {
+static void FreeEmptyHeaps() {
   DWORD slot;
 
   s_lastemptyheap = NULL;
@@ -695,14 +695,14 @@ static void __fastcall FreeEmptyHeaps() {
   }
 }
 
-static void __fastcall FreeHeap(HEAPPTR *nextptr) {
+static void FreeHeap(HEAPPTR *nextptr) {
   HEAPPTR heapptr = *nextptr;
 
   *nextptr = heapptr->next;
   VirtualFree(heapptr, 0, MEM_RELEASE);
 }
 
-static void __fastcall FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block) {
+static void FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block) {
   DWORD        bytes;
   LPVOID       externalptr;
   FREEBLOCKPTR freeblock;
@@ -759,7 +759,7 @@ static void __fastcall FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block) {
   }
 }
 
-static void __fastcall GetBlockSize(BLOCKPTR blockptr, LPVOID ptr, LPDWORD bytes, LPDWORD overhead) {
+static void GetBlockSize(BLOCKPTR blockptr, LPVOID ptr, LPDWORD bytes, LPDWORD overhead) {
   if (blockptr->flags & BF_LARGEALLOC) {
     *bytes = *(DWORD *)((LPBYTE)ptr - 0x10);
     *overhead = blockptr->padding + 0x1C;
@@ -774,7 +774,7 @@ static void __fastcall GetBlockSize(BLOCKPTR blockptr, LPVOID ptr, LPDWORD bytes
   *bytes = blockptr->bytes - *overhead;
 }
 
-static int __fastcall GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize) {
+static int GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize) {
   newheapsize -= heapptr->committedbytes;
   if (newheapsize & (heapptr->chunksize - 1)) {
     newheapsize += heapptr->chunksize - (newheapsize & (heapptr->chunksize - 1));
@@ -792,7 +792,7 @@ static int __fastcall GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize) {
   return TRUE;
 }
 
-static BOOL __fastcall GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes) {
+static BOOL GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes) {
   BOOL     boundingSig;
   BOOL     largeAlloc;
   BLOCKPTR newEndBlock;
@@ -874,7 +874,7 @@ static BOOL __fastcall GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD s
   return TRUE;
 }
 
-static LPVOID __fastcall SatisfyAllocRequest(HLOCKEDHEAP *lockedhandle, HEAPPTR heapptr, DWORD flags, DWORD bytes) {
+static LPVOID SatisfyAllocRequest(HLOCKEDHEAP *lockedhandle, HEAPPTR heapptr, DWORD flags, DWORD bytes) {
   BYTE   baseflags;
   LPVOID ptr;
 
@@ -918,7 +918,7 @@ static LPVOID __fastcall SatisfyAllocRequest(HLOCKEDHEAP *lockedhandle, HEAPPTR 
   return ptr;
 }
 
-static void __fastcall SatisfyFreeRequest(HEAPPTR heapptr, LPVOID ptr, BLOCKPTR blockptr) {
+static void SatisfyFreeRequest(HEAPPTR heapptr, LPVOID ptr, BLOCKPTR blockptr) {
   DWORD bytes;
   DWORD overhead;
 
@@ -933,7 +933,7 @@ static void __fastcall SatisfyFreeRequest(HEAPPTR heapptr, LPVOID ptr, BLOCKPTR 
   IncrementFreeCount();
 }
 
-static LPVOID __fastcall SatisfyReAllocRequest(HLOCKEDHEAP *lockedhandle, HEAPPTR heapptr, LPVOID ptr, BLOCKPTR blockptr, DWORD bytes, DWORD flags) {
+static LPVOID SatisfyReAllocRequest(HLOCKEDHEAP *lockedhandle, HEAPPTR heapptr, LPVOID ptr, BLOCKPTR blockptr, DWORD bytes, DWORD flags) {
   DWORD  sourceBytes;
   DWORD  overhead;
   LPVOID newptr;
@@ -985,7 +985,7 @@ static LPVOID __fastcall SatisfyReAllocRequest(HLOCKEDHEAP *lockedhandle, HEAPPT
   return newptr;
 }
 
-static void __fastcall ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes) {
+static void ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes) {
   BOOL  largeAlloc;
   BOOL  boundingSig;
   BYTE  flags;
@@ -1008,7 +1008,7 @@ static void __fastcall ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD
   heapptr->allocatedbytes += bytes - sourceBytes;
 }
 
-static void __fastcall SubdivideBlock(HEAPPTR heapptr, BLOCKPTR blockptr, LPDWORD blocksize, LPDWORD padding) {
+static void SubdivideBlock(HEAPPTR heapptr, BLOCKPTR blockptr, LPDWORD blocksize, LPDWORD padding) {
   DWORD    remaining;
   BLOCKPTR endblock;
 

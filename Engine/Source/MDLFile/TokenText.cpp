@@ -43,7 +43,7 @@ namespace MDL {
     "Yaw", "Unknown"
   };
 
-  void __fastcall InitializeTokenText() {
+  void InitializeTokenText() {
     unsigned int index = 256;
 
     do {
@@ -52,10 +52,10 @@ namespace MDL {
     } while (index);
   }
 
-  void __fastcall DestroyTokenText() {
+  void DestroyTokenText() {
   }
 
-  const char *__fastcall TokenText(unsigned int token) {
+  const char *TokenText(unsigned int token) {
     if (token < 256) {
       return s_singletoktbl[token];
     }

@@ -5,9 +5,9 @@
 
 #include <string.h>
 
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
-int __fastcall MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
+int MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
   ASSERT(cameras);
 
   cameras->SetCount(data.cameras.Count());
@@ -30,7 +30,7 @@ int __fastcall MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *camera
   return 1;
 }
 
-void __fastcall MdxReadCameras(unsigned char *data, unsigned int fileBytes, TSFixedArray<HCAMERA> *cameras) {
+void MdxReadCameras(unsigned char *data, unsigned int fileBytes, TSFixedArray<HCAMERA> *cameras) {
   ASSERT(data);
   ASSERT(cameras);
 

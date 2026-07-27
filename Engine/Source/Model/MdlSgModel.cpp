@@ -6,11 +6,11 @@
 #include <storm.h>
 #include <string.h>
 
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
-HTEXTURE __fastcall LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
+HTEXTURE LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
 
-static void __fastcall GetTextureFlags(const MDLTEXTURESECTION &texdata, CGxTexFlags *flags) {
+static void GetTextureFlags(const MDLTEXTURESECTION &texdata, CGxTexFlags *flags) {
   if (texdata.flags & 0x1) {
     flags->m_wrapU = 1;
   }
@@ -19,7 +19,7 @@ static void __fastcall GetTextureFlags(const MDLTEXTURESECTION &texdata, CGxTexF
   }
 }
 
-static void __fastcall
+static void
 ProcessTextures(const MDLTEXTURESECTION *texdata, unsigned int numTextures, unsigned int flags, CStatus *status, CModelTexture *textures) {
   static NTempest::CImVector s_uglyPink(0xFFFF00FFul);
 
@@ -46,7 +46,7 @@ ProcessTextures(const MDLTEXTURESECTION *texdata, unsigned int numTextures, unsi
   }
 }
 
-static unsigned int __fastcall GetTmuPassFlags(unsigned int createFlags, unsigned int layerFlags) {
+static unsigned int GetTmuPassFlags(unsigned int createFlags, unsigned int layerFlags) {
   unsigned int result = (layerFlags & 0x2) != 0;
   if (createFlags & 0x100000) {
     result |= 0x2;
@@ -54,11 +54,11 @@ static unsigned int __fastcall GetTmuPassFlags(unsigned int createFlags, unsigne
   return result;
 }
 
-static EGxTextureShader __fastcall GetTextureShader(unsigned int transformId, unsigned int createFlags) {
+static EGxTextureShader GetTextureShader(unsigned int transformId, unsigned int createFlags) {
   return transformId != static_cast<unsigned int>(-1) && !(createFlags & 0x100) ? GxTS_Affine : GxTS_PassThru;
 }
 
-static void __fastcall
+static void
 ProcessTexLayers(const MDLMATERIALSECTION &sectionData, CMaterial *unique, CMaterialShared *shared, unsigned int createFlags, unsigned int *layerId) {
   unsigned int numLayers = sectionData.texLayers.Count();
   unique->layers.SetCount(numLayers);
@@ -124,7 +124,7 @@ ProcessTexLayers(const MDLMATERIALSECTION &sectionData, CMaterial *unique, CMate
   *layerId += numLayers;
 }
 
-static unsigned int __fastcall
+static unsigned int
 ProcessMaterials(const TSGrowableArray<MDLMATERIALSECTION> &sectionData, unsigned int createFlags, HMATERIAL *materials) {
   unsigned int numMaterials = sectionData.Count();
   unsigned int layerId = 0;
@@ -142,7 +142,7 @@ ProcessMaterials(const TSGrowableArray<MDLMATERIALSECTION> &sectionData, unsigne
   return layerId;
 }
 
-static void __fastcall ProcessLayerAlpha(const TSGrowableArray<MDLMATERIALSECTION> &sectionData, HMATERIAL const *materials) {
+static void ProcessLayerAlpha(const TSGrowableArray<MDLMATERIALSECTION> &sectionData, HMATERIAL const *materials) {
   unsigned int numMaterials = sectionData.Count();
 
   for (unsigned int i = 0; i < numMaterials; ++i) {
@@ -157,7 +157,7 @@ static void __fastcall ProcessLayerAlpha(const TSGrowableArray<MDLMATERIALSECTIO
 static const EGxPrim s_mdlToGxPrim[10] = {GxPrim_Points,        GxPrim_Lines,       GxPrims_Last, GxPrim_LineStrip, GxPrim_Triangles,
                                           GxPrim_TriangleStrip, GxPrim_TriangleFan, GxPrims_Last, GxPrims_Last,     GxPrims_Last};
 
-static EGxPrim __fastcall GetPrimitiveType(unsigned char type) {
+static EGxPrim GetPrimitiveType(unsigned char type) {
   ASSERT(type < 10);
   EGxPrim gxPrim = s_mdlToGxPrim[type];
   ASSERT(gxPrim != GxPrims_Last);
@@ -166,7 +166,7 @@ static EGxPrim __fastcall GetPrimitiveType(unsigned char type) {
 
 static const int s_multiPrimType[10] = {1, 0, 0, 0, 1, 0, 0, 0, 0, 0};
 
-static unsigned int __fastcall CountNumPrimLists(const unsigned char *primTypes, unsigned int numPrimTypes) {
+static unsigned int CountNumPrimLists(const unsigned char *primTypes, unsigned int numPrimTypes) {
   unsigned int  numPrimLists = 0;
   unsigned char lastType = 10;
 
@@ -180,7 +180,7 @@ static unsigned int __fastcall CountNumPrimLists(const unsigned char *primTypes,
   return numPrimLists;
 }
 
-static void __fastcall
+static void
 LoadGeosetPrimitiveTypes(const unsigned char *primTypes, const unsigned int *primVertCounts, unsigned int numPrimTypes, CGeosetShared *geoShared) {
   unsigned int  primList = 0;
   unsigned char lastType = 10;
@@ -198,7 +198,7 @@ LoadGeosetPrimitiveTypes(const unsigned char *primTypes, const unsigned int *pri
   }
 }
 
-static unsigned char *__fastcall LoadGeosetPrimitiveData(unsigned char *data, CGeosetShared *geoShared) {
+static unsigned char *LoadGeosetPrimitiveData(unsigned char *data, CGeosetShared *geoShared) {
   ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x50595450);
   unsigned int   numPrimTypes = *reinterpret_cast<const unsigned int *>(data + 4);
   unsigned char *primTypes = data + 8;
@@ -222,7 +222,7 @@ static unsigned char *__fastcall LoadGeosetPrimitiveData(unsigned char *data, CG
   return data;
 }
 
-static unsigned char *__fastcall LoadGeosetTransformGroups(unsigned char *data, unsigned int loadFlags, CGeosetShared *geoShared) {
+static unsigned char *LoadGeosetTransformGroups(unsigned char *data, unsigned int loadFlags, CGeosetShared *geoShared) {
   if (loadFlags & 0x100) {
     geoShared->boneWeights.SetCount(1);
     geoShared->boneWeights.Ptr()[0] = 0;
@@ -273,7 +273,7 @@ static unsigned char *__fastcall LoadGeosetTransformGroups(unsigned char *data, 
   return data;
 }
 
-static void __fastcall
+static void
 LoadGeosetData(unsigned char *data, unsigned int sectionBytes, unsigned int loadFlags, unsigned int geosetId, CGeosetShared *geoShared) {
   unsigned char *sectionDone = data + sectionBytes;
   ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x58545256);
@@ -324,7 +324,7 @@ LoadGeosetData(unsigned char *data, unsigned int sectionBytes, unsigned int load
   geoShared->vertexShader = geoShared->groupMatrixCounts.Count() > 1 ? GxVS_Skin : GxVS_PassThru;
 }
 
-static void __fastcall CreateGeoset(const MDLGEOSETSECTION &geosetdata, unsigned int geosetId, unsigned int loadFlags, CGeosetShared *geoShared) {
+static void CreateGeoset(const MDLGEOSETSECTION &geosetdata, unsigned int geosetId, unsigned int loadFlags, CGeosetShared *geoShared) {
   ASSERT(geosetdata.vertices.Count() <= 0xFFFF);
 
   static_cast<TSFixedArray<NTempest::C3Vector> &>(geoShared->position) = static_cast<const TSFixedArray<NTempest::C3Vector> &>(geosetdata.vertices);
@@ -379,7 +379,7 @@ static void __fastcall CreateGeoset(const MDLGEOSETSECTION &geosetdata, unsigned
   geoShared->vertexShader = geoShared->groupMatrixCounts.Count() > 1 ? GxVS_Skin : GxVS_PassThru;
 }
 
-static void __fastcall
+static void
 CreateGeosetWithNormals(const MDLGEOSETSECTION &geoset, unsigned int geosetId, unsigned int loadFlags, CGeosetShared *geoShared) {
   unsigned int numNormals = geoset.normals.Count();
   if (!(loadFlags & 0x1) || !numNormals) {
@@ -415,7 +415,7 @@ CreateGeosetWithNormals(const MDLGEOSETSECTION &geoset, unsigned int geosetId, u
   CreateGeoset(normalLines, geosetId, loadFlags, geoShared);
 }
 
-static void __fastcall BuildAllGeosets(const MDLDATA &data, CGeosetShared *geosets, CGeosetColor *geosetColor, unsigned int loadFlags) {
+static void BuildAllGeosets(const MDLDATA &data, CGeosetShared *geosets, CGeosetColor *geosetColor, unsigned int loadFlags) {
   unsigned int numGeosets = data.geosets.Count();
   unsigned int i;
   for (i = 0; i < numGeosets; ++i) {
@@ -434,7 +434,7 @@ static void __fastcall BuildAllGeosets(const MDLDATA &data, CGeosetShared *geose
   }
 }
 
-static void __fastcall ProcessAttachments(
+static void ProcessAttachments(
     const TSGrowableArray<MDLATTACHMENTSECTION> &attachments,
     CModelComplex                               *modelptr,
     CModelShared                                *shared,
@@ -480,7 +480,7 @@ static void __fastcall ProcessAttachments(
   }
 }
 
-static void __fastcall LoadLayerData(unsigned char *materialData, CTexLayer *unique, CTexLayerShared *shared, unsigned int createFlags) {
+static void LoadLayerData(unsigned char *materialData, CTexLayer *unique, CTexLayerShared *shared, unsigned int createFlags) {
   switch (*reinterpret_cast<unsigned int *>(materialData)) {
     case TEXOP_TRANSPARENT:
       shared->blendMode = GxBlend_AlphaKey;
@@ -537,7 +537,7 @@ static void __fastcall LoadLayerData(unsigned char *materialData, CTexLayer *uni
   }
 }
 
-static HMATERIAL __fastcall LoadMaterialData(unsigned char *materialData, unsigned int createFlags, unsigned char *totalLayers) {
+static HMATERIAL LoadMaterialData(unsigned char *materialData, unsigned int createFlags, unsigned char *totalLayers) {
   CMaterial       *unique = NEW(CMaterial);
   CMaterialShared *shared = NEW(CMaterialShared);
 
@@ -558,7 +558,7 @@ static HMATERIAL __fastcall LoadMaterialData(unsigned char *materialData, unsign
   return static_cast<HMATERIAL>(HandleCreate(unique, "HMATERIAL"));
 }
 
-static unsigned int __fastcall
+static unsigned int
 LoadAttachment(unsigned char *data, unsigned int loadFlags, TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > *attachment, CStatus *status) {
   unsigned int   dataOffset = *reinterpret_cast<unsigned int *>(data);
   unsigned char *attachmentData = data + dataOffset;
@@ -588,7 +588,7 @@ LoadAttachment(unsigned char *data, unsigned int loadFlags, TSList<LINKUNIQUE, T
   return attachmentId;
 }
 
-void __fastcall MdlReadLoadGlobalProperties(const MDLDATA &data, CModelShared *shared, unsigned int *loadFlags) {
+void MdlReadLoadGlobalProperties(const MDLDATA &data, CModelShared *shared, unsigned int *loadFlags) {
   ASSERT(shared);
   shared->groundTrack = static_cast<GROUND_TRACK>(data.model.flags & GROUND_TRACK_MASK);
   if (data.model.flags & 0x4) {
@@ -596,7 +596,7 @@ void __fastcall MdlReadLoadGlobalProperties(const MDLDATA &data, CModelShared *s
   }
 }
 
-int __fastcall MdlReadLoadModel(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared, unsigned int flags, CStatus *status) {
+int MdlReadLoadModel(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared, unsigned int flags, CStatus *status) {
   ASSERT(modelptr);
   ASSERT(shared);
 
@@ -623,7 +623,7 @@ int __fastcall MdlReadLoadModel(const MDLDATA &data, CModelComplex *modelptr, CM
   return 1;
 }
 
-int __fastcall MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared *shared, unsigned int flags, CStatus *status) {
+int MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared *shared, unsigned int flags, CStatus *status) {
   ASSERT(modelptr);
   ASSERT(shared);
 
@@ -649,7 +649,7 @@ int __fastcall MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CMo
   return 1;
 }
 
-void __fastcall MdxLoadGlobalProperties(unsigned char *fileData, unsigned int fileBytes, unsigned int *loadFlags, CModelShared *modelShared) {
+void MdxLoadGlobalProperties(unsigned char *fileData, unsigned int fileBytes, unsigned int *loadFlags, CModelShared *modelShared) {
   ASSERT(modelShared);
   ASSERT(loadFlags);
   unsigned char *data = MDLFileBinarySeek(fileData, fileBytes, 0x4C444F4D);
@@ -662,7 +662,7 @@ void __fastcall MdxLoadGlobalProperties(unsigned char *fileData, unsigned int fi
   }
 }
 
-void __fastcall MdxReadTextures(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CStatus *status) {
+void MdxReadTextures(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CStatus *status) {
   ASSERT(data);
   ASSERT(modelptr);
   unsigned char *section = MDLFileBinarySeek(data, fileBytes, 0x53584554);
@@ -677,7 +677,7 @@ void __fastcall MdxReadTextures(unsigned char *data, unsigned int fileBytes, uns
   ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(section + 4), numTextures, flags, status, modelptr->m_textures.Ptr());
 }
 
-void __fastcall MdxReadTextures(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelSimple *modelptr, CStatus *status) {
+void MdxReadTextures(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelSimple *modelptr, CStatus *status) {
   ASSERT(data);
   ASSERT(modelptr);
   unsigned char *section = MDLFileBinarySeek(data, fileBytes, 0x53584554);
@@ -692,7 +692,7 @@ void __fastcall MdxReadTextures(unsigned char *data, unsigned int fileBytes, uns
   ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(section + 4), numTextures, flags, status, modelptr->m_textures.Ptr());
 }
 
-void __fastcall MdxReadMaterials(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CModelShared *shared) {
+void MdxReadMaterials(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CModelShared *shared) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x534C544D);
   if (!section) {
     return;
@@ -712,7 +712,7 @@ void __fastcall MdxReadMaterials(unsigned char *fileData, unsigned int fileBytes
   ASSERT(data == dataDone);
 }
 
-void __fastcall MdxReadMaterials(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelSimple *modelptr, CModelShared *shared) {
+void MdxReadMaterials(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelSimple *modelptr, CModelShared *shared) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x534C544D);
   if (!section) {
     return;
@@ -732,7 +732,7 @@ void __fastcall MdxReadMaterials(unsigned char *fileData, unsigned int fileBytes
   ASSERT(data == dataDone);
 }
 
-void __fastcall MdxReadGeosets(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CModelShared *shared) {
+void MdxReadGeosets(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x534F4547);
@@ -784,7 +784,7 @@ void __fastcall MdxReadGeosets(unsigned char *fileData, unsigned int fileBytes, 
   ASSERT(data == done);
 }
 
-void __fastcall MdxReadGeosets(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelSimple *modelptr, CModelShared *shared) {
+void MdxReadGeosets(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelSimple *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x534F4547);
@@ -836,7 +836,7 @@ void __fastcall MdxReadGeosets(unsigned char *fileData, unsigned int fileBytes, 
   ASSERT(data == done);
 }
 
-void __fastcall
+void
 MdxReadAttachments(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status) {
   ASSERT(modelptr);
   ASSERT(shared);

@@ -997,7 +997,7 @@ class TSLinkedNode {
 template <class T>
 class TSGetLink {
  public:
-  static TSLink<T> *__fastcall Link(const TSLinkedNode<T> *instance, int) {
+  static TSLink<T> *Link(const TSLinkedNode<T> *instance, int) {
     return &const_cast<TSLinkedNode<T> *>(instance)->m_link;
   }
 };
@@ -1005,7 +1005,7 @@ class TSGetLink {
 template <class T>
 class TSGetExplicitLink {
  public:
-  static TSLink<T> *__fastcall Link(const void *instance, int linkoffset) {
+  static TSLink<T> *Link(const void *instance, int linkoffset) {
     return reinterpret_cast<TSLink<T> *>(reinterpret_cast<BYTE *>(const_cast<void *>(instance)) + linkoffset);
   }
 };

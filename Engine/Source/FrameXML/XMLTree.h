@@ -61,8 +61,8 @@ class XMLNode {
   XMLNode      *m_next;
 };
 
-XMLTree *__fastcall       XMLTree_Load(const char *buffer, unsigned int bytes);
-void __fastcall           XMLTree_Free(XMLTree *tree);
-const XMLNode *__fastcall XMLTree_GetRoot(XMLTree *tree);
+XMLTree *XMLTree_Load(const char *buffer, unsigned int bytes);
+void XMLTree_Free(XMLTree *tree);
+const XMLNode *XMLTree_GetRoot(XMLTree *tree);
 
 #endif

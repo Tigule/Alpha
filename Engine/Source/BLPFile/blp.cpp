@@ -179,7 +179,7 @@ int CBLPFile::IsValidMip(unsigned int level) const {
   return !level || HasMips() && level < m_numLevels;
 }
 
-static BlitFormat __fastcall GetBlitFormat(PIXEL_FORMAT pixelFormat) {
+static BlitFormat GetBlitFormat(PIXEL_FORMAT pixelFormat) {
   ASSERT(pixelFormat < NUM_PIXEL_FORMATS);
   return blitFmt[pixelFormat];
 }

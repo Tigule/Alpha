@@ -8,11 +8,11 @@
 #include <storm.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 }
 
-void __fastcall ReadFloatKeyData(
+void ReadFloatKeyData(
     Parser &parse,
     float *entry,
     unsigned int elements
@@ -65,7 +65,7 @@ void __fastcall ReadFloatKeyData(
     }                                                                       \
   } while (0)
 
-unsigned int __fastcall ReadFloatTrackHeader(
+unsigned int ReadFloatTrackHeader(
     Parser &parse,
     MDLKEYTRACK<NTempest::C3Vector> *track,
     const char **tokenText,
@@ -76,7 +76,7 @@ unsigned int __fastcall ReadFloatTrackHeader(
   return token;
 }
 
-unsigned int __fastcall ReadIntTrackHeader(
+unsigned int ReadIntTrackHeader(
     Parser &parse,
     MDLSIMPLEKEYTRACK<MDLINTKEY> *track,
     const char **tokenText,
@@ -96,7 +96,7 @@ unsigned int __fastcall ReadIntTrackHeader(
   return token;
 }
 
-unsigned int __fastcall ReadFloatTrackHeader(
+unsigned int ReadFloatTrackHeader(
     Parser &parse,
     MDLKEYTRACK<NTempest::C4Quaternion> *track,
     const char **tokenText,
@@ -107,7 +107,7 @@ unsigned int __fastcall ReadFloatTrackHeader(
   return token;
 }
 
-unsigned int __fastcall ReadFloatTrackHeader(
+unsigned int ReadFloatTrackHeader(
     Parser &parse,
     MDLKEYTRACK<float> *track,
     const char **tokenText,
@@ -166,21 +166,21 @@ unsigned int __fastcall ReadFloatTrackHeader(
     }                                                                                   \
   } while (0)
 
-void __fastcall ReadObjectFloatKeyframes(
+void ReadObjectFloatKeyframes(
     Parser &parse,
     MDLKEYTRACK<NTempest::C3Vector> *track
 ) {
   READ_OBJECT_FLOAT_KEYFRAMES(parse, track, 3, NTempest::C3Vector);
 }
 
-void __fastcall ReadObjectFloatKeyframes(
+void ReadObjectFloatKeyframes(
     Parser &parse,
     MDLKEYTRACK<float> *track
 ) {
   READ_OBJECT_FLOAT_KEYFRAMES(parse, track, 1, float);
 }
 
-void __fastcall ReadObjectFloatKeyframes(
+void ReadObjectFloatKeyframes(
     Parser &parse,
     MDLKEYTRACK<C3Color> *track
 ) {
@@ -190,7 +190,7 @@ void __fastcall ReadObjectFloatKeyframes(
 #undef READ_OBJECT_FLOAT_KEYFRAMES
 #undef READ_FLOAT_TRACK_HEADER
 
-const float *__fastcall WriteKeyData(
+const float *WriteKeyData(
     TSGrowableArray<char> &buffer,
     const float *entry,
     unsigned int elements
@@ -208,7 +208,7 @@ const float *__fastcall WriteKeyData(
   return entry;
 }
 
-const unsigned int *__fastcall WriteUintKeyData(
+const unsigned int *WriteUintKeyData(
     TSGrowableArray<char> &buffer,
     const unsigned int *entry,
     unsigned int elements
@@ -226,7 +226,7 @@ const unsigned int *__fastcall WriteUintKeyData(
   return entry;
 }
 
-void __fastcall AddObjectErrors(TSet &errors) {
+void AddObjectErrors(TSet &errors) {
   errors.Add(0x187, 0, 0);
   errors.Add(0x18B, 0, 0);
   errors.Add(0x1A5, 0, 0);
@@ -239,7 +239,7 @@ void __fastcall AddObjectErrors(TSet &errors) {
   errors.Add(0x1A7, 0, 0);
 }
 
-void __fastcall ReadObjectName(Parser &parse, char *name) {
+void ReadObjectName(Parser &parse, char *name) {
   FATALASSERT(name);
   const char *value = parse.ExpectString();
   if (value) {
@@ -340,7 +340,7 @@ static void INormalizeQuats(
   }
 }
 
-int __fastcall ReadObjectBody(
+int ReadObjectBody(
     Parser &parse,
     unsigned int savedToken,
     NTempest::C3Vector *pivot,
@@ -404,7 +404,7 @@ int __fastcall ReadObjectBody(
 
 #undef READ_OBJECT_TRACK
 
-void __fastcall ReadObjectEnd(
+void ReadObjectEnd(
     TSet &errors,
     MDLDATA &data,
     MDLGENOBJECT *object,
@@ -426,7 +426,7 @@ void __fastcall ReadObjectEnd(
       reinterpret_cast<MDLGENOBJECT *>(listMask | listIndex);
 }
 
-int __fastcall IExpectAnimation(
+int IExpectAnimation(
     Parser &parse,
     unsigned int *savedToken,
     const char **tokenText
@@ -462,7 +462,7 @@ int __fastcall IExpectAnimation(
     }                                                                         \
   } while (0)
 
-void __fastcall WriteTrackHeader(
+void WriteTrackHeader(
     const char *indent,
     const MDLKEYTRACK<NTempest::C3Vector> &track,
     TSGrowableArray<char> &buffer
@@ -470,7 +470,7 @@ void __fastcall WriteTrackHeader(
   WRITE_TRACK_HEADER(indent, track.type, track.globalSeqId, buffer);
 }
 
-void __fastcall WriteTrackHeader(
+void WriteTrackHeader(
     const char *indent,
     const MDLKEYTRACK<NTempest::C4Quaternion> &track,
     TSGrowableArray<char> &buffer
@@ -478,7 +478,7 @@ void __fastcall WriteTrackHeader(
   WRITE_TRACK_HEADER(indent, track.type, track.globalSeqId, buffer);
 }
 
-void __fastcall WriteTrackHeader(
+void WriteTrackHeader(
     const char *indent,
     const MDLKEYTRACK<float> &track,
     TSGrowableArray<char> &buffer
@@ -486,7 +486,7 @@ void __fastcall WriteTrackHeader(
   WRITE_TRACK_HEADER(indent, track.type, track.globalSeqId, buffer);
 }
 
-void __fastcall WriteTrackHeader(
+void WriteTrackHeader(
     const char *indent,
     const MDLKEYTRACK<C3Color> &track,
     TSGrowableArray<char> &buffer
@@ -494,7 +494,7 @@ void __fastcall WriteTrackHeader(
   WRITE_TRACK_HEADER(indent, track.type, track.globalSeqId, buffer);
 }
 
-void __fastcall WriteFloatKeyFrames(
+void WriteFloatKeyFrames(
     unsigned int title,
     const char *indent,
     const MDLKEYTRACK<float> &keyframes,
@@ -525,7 +525,7 @@ void __fastcall WriteFloatKeyFrames(
   MDL::WriteLine(buffer, "%s}\n", indent);
 }
 
-void __fastcall WriteFloatKeyFrames(
+void WriteFloatKeyFrames(
     unsigned int title,
     const char *indent,
     const MDLKEYTRACK<C3Color> &keyframes,
@@ -556,7 +556,7 @@ void __fastcall WriteFloatKeyFrames(
   MDL::WriteLine(buffer, "%s}\n", indent);
 }
 
-void __fastcall WriteIntKeyFrames(
+void WriteIntKeyFrames(
     unsigned int title,
     const char *indent,
     const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes,
@@ -619,7 +619,7 @@ void __fastcall WriteIntKeyFrames(
     }                                                                             \
   } while (0)
 
-void __fastcall WriteObjectTrailer(
+void WriteObjectTrailer(
     const MDLGENOBJECT &object,
     TSGrowableArray<char> &buffer
 ) {
@@ -645,7 +645,7 @@ static void IWriteObjectFlags(
   }
 }
 
-void __fastcall WriteObjectHeader(
+void WriteObjectHeader(
     const MDLDATA &data,
     const MDLGENOBJECT &object,
     unsigned int title,
@@ -696,7 +696,7 @@ void __fastcall WriteObjectHeader(
   }
 }
 
-void __fastcall WriteOptionalVertex(
+void WriteOptionalVertex(
     unsigned int token,
     const char *indent,
     const NTempest::C3Vector &vertex,
@@ -712,7 +712,7 @@ void __fastcall WriteOptionalVertex(
   }
 }
 
-void __fastcall WriteOptionalFloat(
+void WriteOptionalFloat(
     unsigned int token,
     const char *indent,
     float value,
@@ -723,7 +723,7 @@ void __fastcall WriteOptionalFloat(
   }
 }
 
-void __fastcall WriteBounds(
+void WriteBounds(
     const CMdlBounds &bounds,
     const char *indent,
     TSGrowableArray<char> &buffer
@@ -733,7 +733,7 @@ void __fastcall WriteBounds(
   WriteOptionalFloat(0x134, indent, bounds.radius, buffer);
 }
 
-void __fastcall SkipUnknown(CMsgBuffer &buffer, unsigned int &totalRead) {
+void SkipUnknown(CMsgBuffer &buffer, unsigned int &totalRead) {
   unsigned int size = buffer.GetUint();
   totalRead += 4;
   unsigned int bytes = size - 4;
@@ -744,7 +744,7 @@ void __fastcall SkipUnknown(CMsgBuffer &buffer, unsigned int &totalRead) {
   totalRead += bytes;
 }
 
-unsigned int __fastcall GetBinQuatKeyFramesSize(
+unsigned int GetBinQuatKeyFramesSize(
     const MDLKEYTRACK<NTempest::C4Quaternion> &track
 ) {
   if (!track.keys.Count()) {
@@ -784,7 +784,7 @@ unsigned int __fastcall GetBinQuatKeyFramesSize(
     return 1;                                                                         \
   } while (0)
 
-void __fastcall WriteBinFloatKeyFrames(
+void WriteBinFloatKeyFrames(
     const MDLKEYTRACK<float> &track,
     unsigned long magic,
     CMsgBuffer &buffer
@@ -804,7 +804,7 @@ void __fastcall WriteBinFloatKeyFrames(
   }
 }
 
-int __fastcall ReadBinFloatKeyFrames(
+int ReadBinFloatKeyFrames(
     MDLKEYTRACK<float> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
@@ -812,7 +812,7 @@ int __fastcall ReadBinFloatKeyFrames(
   READ_BIN_FLOAT_KEYFRAMES(track, buffer, totalRead, 1, float);
 }
 
-int __fastcall ReadBinFloatKeyFrames(
+int ReadBinFloatKeyFrames(
     MDLKEYTRACK<C3Color> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
@@ -820,7 +820,7 @@ int __fastcall ReadBinFloatKeyFrames(
   READ_BIN_FLOAT_KEYFRAMES(track, buffer, totalRead, 3, C3Color);
 }
 
-int __fastcall ReadBinFloatKeyFrames(
+int ReadBinFloatKeyFrames(
     MDLKEYTRACK<NTempest::C3Vector> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
@@ -830,7 +830,7 @@ int __fastcall ReadBinFloatKeyFrames(
 
 #undef READ_BIN_FLOAT_KEYFRAMES
 
-int __fastcall ReadBinUintKeyFrames(
+int ReadBinUintKeyFrames(
     MDLSIMPLEKEYTRACK<MDLINTKEY> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
@@ -859,7 +859,7 @@ int __fastcall ReadBinUintKeyFrames(
   return 1;
 }
 
-void __fastcall WriteBinUintKeyFrames(
+void WriteBinUintKeyFrames(
     const MDLSIMPLEKEYTRACK<MDLINTKEY> &track,
     unsigned long magic,
     CMsgBuffer &buffer
@@ -878,7 +878,7 @@ void __fastcall WriteBinUintKeyFrames(
   }
 }
 
-unsigned int __fastcall GetBinGenObjectSize(const MDLGENOBJECT &object) {
+unsigned int GetBinGenObjectSize(const MDLGENOBJECT &object) {
   unsigned int size = 96;
   if (object.transkeys.keys.Count()) {
     unsigned int dataSize = object.transkeys.type > TRACK_LINEAR ? 36 : 12;
@@ -892,7 +892,7 @@ unsigned int __fastcall GetBinGenObjectSize(const MDLGENOBJECT &object) {
   return size;
 }
 
-void __fastcall WriteBinQuatKeyFrames(
+void WriteBinQuatKeyFrames(
     const MDLKEYTRACK<NTempest::C4Quaternion> &track,
     unsigned long magic,
     CMsgBuffer &buffer
@@ -928,7 +928,7 @@ void __fastcall WriteBinQuatKeyFrames(
   }
 }
 
-int __fastcall ReadBinQuatKeyFrames(
+int ReadBinQuatKeyFrames(
     MDLKEYTRACK<NTempest::C4Quaternion> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
@@ -979,7 +979,7 @@ int __fastcall ReadBinQuatKeyFrames(
   return 1;
 }
 
-int __fastcall WriteBinGenObject(
+int WriteBinGenObject(
     const MDLGENOBJECT &object,
     CMsgBuffer &buffer,
     CMDLStatus *
@@ -1018,7 +1018,7 @@ int __fastcall WriteBinGenObject(
   return 1;
 }
 
-int __fastcall ReadBinGenObject(
+int ReadBinGenObject(
     MDLGENOBJECT &object,
     CMsgBuffer &buffer,
     CMDLStatus *status,
@@ -1094,7 +1094,7 @@ int __fastcall ReadBinGenObject(
   return 1;
 }
 
-void __fastcall ReadBinObjectEnd(
+void ReadBinObjectEnd(
     MDLDATA &data,
     MDLGENOBJECT *object,
     unsigned long listIndex,
@@ -1114,7 +1114,7 @@ void __fastcall ReadBinObjectEnd(
       reinterpret_cast<MDLGENOBJECT *>(listMask | listIndex);
 }
 
-int __fastcall ReadObjectPtrs(MDLDATA *data, CMDLStatus *status) {
+int ReadObjectPtrs(MDLDATA *data, CMDLStatus *status) {
   for (unsigned int i = 0; i < data->objects.Count(); ++i) {
     unsigned int encoded = reinterpret_cast<unsigned int>(data->objects[i]);
     unsigned int index = encoded & 0x0FFFFFFF;

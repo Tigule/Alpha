@@ -52,8 +52,8 @@ class CSimpleSlider : public CSimpleFrame {
     return m_orientation == SLIDER_VERTICAL;
   }
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   void SetOnValueChangedScript(const char *source) {
     char description[1024];

@@ -41,9 +41,9 @@ enum TOOLTIP_ANCHORPOINT {
 
 class CGTooltip : public CSimpleFrame {
  public:
-  static CSimpleFrame *__fastcall Create(CSimpleFrame *parent);
-  static const char *__fastcall   GetItemQualityColorString(unsigned int quality);
-  static void __fastcall          GetSpellEffectString(
+  static CSimpleFrame *Create(CSimpleFrame *parent);
+  static const char *GetItemQualityColorString(unsigned int quality);
+  static void GetSpellEffectString(
       char           *buf,
       unsigned int    bufSize,
       const SpellRec *spell,
@@ -52,7 +52,7 @@ class CGTooltip : public CSimpleFrame {
       int             isPet,
       TOOLTIP_DETAIL  detail
   );
-  static void __fastcall GetAuraEffectString(
+  static void GetAuraEffectString(
       char           *buf,
       unsigned int    bufSize,
       const SpellRec *spell,
@@ -61,12 +61,12 @@ class CGTooltip : public CSimpleFrame {
       int             isPet,
       TOOLTIP_DETAIL  detail
   );
-  static void __fastcall
+  static void
   GetItemEnchantString(char *buf, unsigned int bufSize, const SpellItemEnchantmentRec *enchant, unsigned int effectIndex, TOOLTIP_DETAIL detail);
-  static void __fastcall GetSpellTargetString(char *buf, unsigned int bufSize, const SpellRec *spell, unsigned int effectIndex);
-  static void __fastcall GetSummonedByString(const CGUnit_C *unitPtr, char *string, unsigned int size);
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void GetSpellTargetString(char *buf, unsigned int bufSize, const SpellRec *spell, unsigned int effectIndex);
+  static void GetSummonedByString(const CGUnit_C *unitPtr, char *string, unsigned int size);
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   CLayoutFrame *GetOwner() const {
     return m_owner;
@@ -153,7 +153,7 @@ class CGTooltip : public CSimpleFrame {
   float                             m_padding;
 };
 
-inline CSimpleFrame *__fastcall CGTooltip::Create(CSimpleFrame *parent) {
+inline CSimpleFrame *CGTooltip::Create(CSimpleFrame *parent) {
   return NEW(CGTooltip)(parent);
 }
 

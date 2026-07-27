@@ -2,7 +2,7 @@
 
 #include <storm.h>
 
-unsigned int __fastcall GetBitDepth(unsigned int fourCC) {
+unsigned int GetBitDepth(unsigned int fourCC) {
   switch (fourCC) {
     case 0:
       return 4;
@@ -26,7 +26,7 @@ unsigned int __fastcall GetBitDepth(unsigned int fourCC) {
   }
 }
 
-unsigned int __fastcall CalcLevelSize(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC) {
+unsigned int CalcLevelSize(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC) {
   unsigned int levelWidth = max(width >> level, 1U);
   unsigned int levelHeight = max(height >> level, 1U);
 
@@ -38,7 +38,7 @@ unsigned int __fastcall CalcLevelSize(unsigned int level, unsigned int width, un
   return levelWidth * levelHeight * GetBitDepth(fourCC) >> 3;
 }
 
-unsigned int __fastcall CalcLevelOffset(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC) {
+unsigned int CalcLevelOffset(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC) {
   unsigned int offset = 0;
   unsigned int index;
 
@@ -49,7 +49,7 @@ unsigned int __fastcall CalcLevelOffset(unsigned int level, unsigned int width, 
   return offset;
 }
 
-unsigned int __fastcall CalcLevelCount(unsigned int width, unsigned int height) {
+unsigned int CalcLevelCount(unsigned int width, unsigned int height) {
   unsigned int levelCount = 1;
 
   while (width > 1 || height > 1) {
@@ -70,7 +70,7 @@ unsigned int __fastcall CalcLevelCount(unsigned int width, unsigned int height) 
   return levelCount;
 }
 
-MipBits *__fastcall MippedImgAllocA(unsigned int fourCC, unsigned int width, unsigned int height, const char *fileName, int lineNumber) {
+MipBits *MippedImgAllocA(unsigned int fourCC, unsigned int width, unsigned int height, const char *fileName, int lineNumber) {
   unsigned int levelCount = CalcLevelCount(width, height);
   unsigned int levelDataSize = CalcLevelOffset(levelCount, width, height, fourCC);
   MipBits     *ptr = static_cast<MipBits *>(SMemAlloc(levelDataSize + 4 * levelCount, fileName, lineNumber, 0));
@@ -84,12 +84,12 @@ MipBits *__fastcall MippedImgAllocA(unsigned int fourCC, unsigned int width, uns
   return ptr;
 }
 
-unsigned int __fastcall MippedImgCalcSize(unsigned int fourCC, unsigned int width, unsigned int height) {
+unsigned int MippedImgCalcSize(unsigned int fourCC, unsigned int width, unsigned int height) {
   unsigned int levelCount = CalcLevelCount(width, height);
   return CalcLevelOffset(levelCount, width, height, fourCC) + 4 * levelCount;
 }
 
-void __fastcall MippedImgSet(unsigned int fourCC, unsigned int width, unsigned int height, MipBits *bits) {
+void MippedImgSet(unsigned int fourCC, unsigned int width, unsigned int height, MipBits *bits) {
   unsigned int levelCount = CalcLevelCount(width, height);
   unsigned int levelDataSize = CalcLevelOffset(levelCount, width, height, fourCC);
   unsigned int offset = 0;
@@ -102,7 +102,7 @@ void __fastcall MippedImgSet(unsigned int fourCC, unsigned int width, unsigned i
   ASSERT(offset == levelDataSize);
 }
 
-void __fastcall FullShrink(
+void FullShrink(
     C4Pixel             *dest,
     unsigned int         destWidth,
     unsigned int         destHeight,

@@ -3,54 +3,54 @@
 
 class CGActionBar {
  public:
-  static void __fastcall InitializeGame();
-  static void __fastcall EnterWorld();
-  static void __fastcall ShutdownGame();
-  static void __fastcall ShowGrid();
-  static void __fastcall HideGrid();
-  static void __fastcall UpdateBonusBar();
-  static void __fastcall SetAction(int id, int action);
-  static void __fastcall RemoveAction(int id);
-  static void __fastcall ReplaceSpell(int oldSpell, int newSpell);
-  static void __fastcall RemoveSpell(int spellID);
-  static void __fastcall UpdateSelection();
-  static void __fastcall UpdateCooldowns();
-  static void __fastcall UpdateUsable();
-  static int __fastcall  IsSpell(int id) {
+  static void InitializeGame();
+  static void EnterWorld();
+  static void ShutdownGame();
+  static void ShowGrid();
+  static void HideGrid();
+  static void UpdateBonusBar();
+  static void SetAction(int id, int action);
+  static void RemoveAction(int id);
+  static void ReplaceSpell(int oldSpell, int newSpell);
+  static void RemoveSpell(int spellID);
+  static void UpdateSelection();
+  static void UpdateCooldowns();
+  static void UpdateUsable();
+  static int IsSpell(int id) {
     return id >= 0 && id < 120 && m_slotActions[id] > 0;
   }
-  static int __fastcall IsItem(int id) {
+  static int IsItem(int id) {
     return id >= 0 && id < 120 && m_slotActions[id] < 0;
   }
-  static int __fastcall GetSpell(int id) {
+  static int GetSpell(int id) {
     return IsSpell(id) ? m_slotActions[id] : 0;
   }
-  static int __fastcall GetItem(int id) {
+  static int GetItem(int id) {
     return IsItem(id) ? -m_slotActions[id] : 0;
   }
-  static int __fastcall HasAction(int id) {
+  static int HasAction(int id) {
     return id >= 0 && id < 120 && m_slotActions[id] != 0;
   }
-  static int __fastcall          IsAttackAction(int id);
-  static int __fastcall          IsUsableAction(int id, int &noMana);
-  static int __fastcall          IsCurrentAction(int id);
-  static int __fastcall          IsToggledAction(int id);
-  static void __fastcall         UpdateItem(int entryID);
-  static void __fastcall         AddAction(int action);
-  static void __fastcall         UseAction(int id, int checkCursor);
-  static void __fastcall         PickupAction(int id);
-  static void __fastcall         PutActionInSlot(int id);
-  static const char *__fastcall  GetAttackTexture();
-  static const char *__fastcall  GetTexture(int id);
-  static int __fastcall          GetCount(int id);
-  static void __fastcall         GetCooldown(int id, unsigned long &startTime, unsigned int &duration, unsigned int &enable);
-  static void __fastcall         PrecacheButtonArt(int id);
-  static unsigned int __fastcall GetBonusBarOffset() {
+  static int IsAttackAction(int id);
+  static int IsUsableAction(int id, int &noMana);
+  static int IsCurrentAction(int id);
+  static int IsToggledAction(int id);
+  static void UpdateItem(int entryID);
+  static void AddAction(int action);
+  static void UseAction(int id, int checkCursor);
+  static void PickupAction(int id);
+  static void PutActionInSlot(int id);
+  static const char *GetAttackTexture();
+  static const char *GetTexture(int id);
+  static int GetCount(int id);
+  static void GetCooldown(int id, unsigned long &startTime, unsigned int &duration, unsigned int &enable);
+  static void PrecacheButtonArt(int id);
+  static unsigned int GetBonusBarOffset() {
     return m_bonusPage;
   }
 
  private:
-  static void __fastcall SlotChanged(int id);
+  static void SlotChanged(int id);
   static int             m_slotActions[120];
   static unsigned int    m_bonusPage;
 };

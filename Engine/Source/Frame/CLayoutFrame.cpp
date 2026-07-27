@@ -29,7 +29,7 @@ CLayoutFrame *CLayoutFrame::GetLayoutFrameByName(const char *name) {
   return result;
 }
 
-static float __fastcall SynthesizeSide(float center, float opposite, float size) {
+static float SynthesizeSide(float center, float opposite, float size) {
   if (center != CFramePoint::UNDEFINED) {
     if (opposite != CFramePoint::UNDEFINED) {
       return center - opposite + center;
@@ -45,7 +45,7 @@ static float __fastcall SynthesizeSide(float center, float opposite, float size)
   return CFramePoint::UNDEFINED;
 }
 
-static float __fastcall SynthesizeCenter(float side1, float side2, float size) {
+static float SynthesizeCenter(float side1, float side2, float size) {
   if (side1 != CFramePoint::UNDEFINED) {
     if (side2 != CFramePoint::UNDEFINED) {
       return (side1 + side2) * 0.5f;
@@ -839,7 +839,7 @@ void CLayoutFrame::DestroyLayout() {
   RemoveFromResizeList(this);
 }
 
-unsigned int __fastcall CLayoutFrame::ResizePending() {
+unsigned int CLayoutFrame::ResizePending() {
   unsigned int  resized = 0;
   CLayoutFrame *frame = s_resizePendingList.Head();
 
@@ -860,10 +860,10 @@ unsigned int __fastcall CLayoutFrame::ResizePending() {
   return resized;
 }
 
-void __fastcall CLayoutFrame::RemoveFromResizeList(CLayoutFrame *pFrame) {
+void CLayoutFrame::RemoveFromResizeList(CLayoutFrame *pFrame) {
   s_resizePendingList.UnlinkNode(pFrame);
 }
 
-void __fastcall CLayoutFrame::ClearResizePendingList() {
+void CLayoutFrame::ClearResizePendingList() {
   s_resizePendingList.UnlinkAll();
 }

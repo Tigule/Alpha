@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <malloc.h>
 
-static void __fastcall FailureMessage(const char *title) {
+static void FailureMessage(const char *title) {
   char *messageBuffer;
 
   FormatMessageA(0x1300, 0, GetLastError(), 0x400, reinterpret_cast<char *>(&messageBuffer), 0, 0);
@@ -15,7 +15,7 @@ static void __fastcall FailureMessage(const char *title) {
   LocalFree(messageBuffer);
 }
 
-int __fastcall OsClipboardGetString(char *buf, unsigned int bufSize) {
+int OsClipboardGetString(char *buf, unsigned int bufSize) {
   HWND            hWnd = GetActiveWindow();
   HANDLE          clipboardData;
   char           *clipboardString;
@@ -56,7 +56,7 @@ int __fastcall OsClipboardGetString(char *buf, unsigned int bufSize) {
   return 1;
 }
 
-char *__fastcall OsClipboardGetString() {
+char *OsClipboardGetString() {
   HWND            hWnd = GetActiveWindow();
   HANDLE          clipboardData;
   char           *clipboardString;
@@ -101,11 +101,11 @@ char *__fastcall OsClipboardGetString() {
   return buffer;
 }
 
-void __fastcall OsClipboardFreeString(char *string) {
+void OsClipboardFreeString(char *string) {
   FREEIFUSED(string);
 }
 
-int __fastcall OsClipboardPutString(const char *string) {
+int OsClipboardPutString(const char *string) {
   HWND            hWnd = GetActiveWindow();
   unsigned int    stringBytes;
   HGLOBAL         clipboardData;

@@ -23,9 +23,9 @@ static _D3DTEXTUREADDRESS s_wrapModes[] = {D3DTADDRESS_CLAMP, D3DTADDRESS_WRAP};
 static _D3DTEXTUREOP      s_texColorOps[] = {D3DTOP_SELECTARG1, D3DTOP_MODULATE, D3DTOP_BLENDTEXTUREALPHA, D3DTOP_ADD, D3DTOP_MODULATE2X};
 static _D3DTEXTUREOP      s_texAlphaOps[] = {D3DTOP_SELECTARG1, D3DTOP_MODULATE, static_cast<_D3DTEXTUREOP>(3), D3DTOP_ADD, D3DTOP_MODULATE2X};
 
-static void __fastcall SetD3dColor(_D3DCOLORVALUE &dst, const NTempest::CImVector &src, float scale);
+static void SetD3dColor(_D3DCOLORVALUE &dst, const NTempest::CImVector &src, float scale);
 
-static void __fastcall SetD3dColor(_D3DCOLORVALUE &dst, const NTempest::CImVector &src, float scale) {
+static void SetD3dColor(_D3DCOLORVALUE &dst, const NTempest::CImVector &src, float scale) {
   dst.r = src.r * scale;
   dst.g = src.g * scale;
   dst.b = src.b * scale;

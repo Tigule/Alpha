@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-int bscompare(const void *e1, const void *e2) {
+static int __cdecl bscompare(const void *e1, const void *e2) {
   return static_cast<const WMOAreaTableRec *>(e1)->m_WMOID != static_cast<const WMOAreaTableRec *>(e2)->m_WMOID
              ? static_cast<const WMOAreaTableRec *>(e1)->m_WMOID - static_cast<const WMOAreaTableRec *>(e2)->m_WMOID
          : static_cast<const WMOAreaTableRec *>(e1)->m_NameSetID != static_cast<const WMOAreaTableRec *>(e2)->m_NameSetID
@@ -12,7 +12,7 @@ int bscompare(const void *e1, const void *e2) {
              : static_cast<const WMOAreaTableRec *>(e1)->m_WMOGroupID - static_cast<const WMOAreaTableRec *>(e2)->m_WMOGroupID;
 }
 
-const char *__fastcall SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID) {
+const char *SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID) {
   WMOAreaTableRec key;
   key.m_WMOID = wmoID;
   key.m_NameSetID = nameSetID;
@@ -25,7 +25,7 @@ const char *__fastcall SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGr
   return rec ? rec->m_AreaName_lang[CURRENT_LANGUAGE] : "";
 }
 
-bool __fastcall SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAreaTableRec *&rec) {
+bool SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAreaTableRec *&rec) {
   WMOAreaTableRec key;
   key.m_WMOID = wmoID;
   key.m_NameSetID = nameSetID;

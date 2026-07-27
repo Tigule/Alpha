@@ -27,7 +27,7 @@ struct FACEDATA : public CHandleObject, public TSHashObject<FACEDATA, HASHKEY_ST
 
 static TSHashTable<FACEDATA, HASHKEY_STRI> s_faceHash;
 
-HFACE__ *__fastcall FontFaceGetHandle(const char *fileName, FT_LibraryRec_ *library) {
+HFACE__ *FontFaceGetHandle(const char *fileName, FT_LibraryRec_ *library) {
   void         *data = 0;
   unsigned long size;
   FT_Face       theFace;
@@ -86,7 +86,7 @@ finallylabel:
   return handle;
 }
 
-FT_FaceRec_ *__fastcall FontFaceGetFace(HFACE__ *handle) {
+FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle) {
   FACEDATA *dataPtr;
 
   FATALASSERT(handle);
@@ -96,7 +96,7 @@ FT_FaceRec_ *__fastcall FontFaceGetFace(HFACE__ *handle) {
   return dataPtr->face;
 }
 
-void __fastcall FontFaceCloseHandle(HFACE__ *handle) {
+void FontFaceCloseHandle(HFACE__ *handle) {
   FACEDATA    *dataPtr;
   unsigned int refCount;
 
@@ -117,7 +117,7 @@ void __fastcall FontFaceCloseHandle(HFACE__ *handle) {
   }
 }
 
-const char *__fastcall FontFaceGetFontName(HFACE__ *handle) {
+const char *FontFaceGetFontName(HFACE__ *handle) {
   FACEDATA *dataPtr;
 
   FATALASSERT(handle);

@@ -6,7 +6,7 @@
 
 namespace NTempest {
 
-  C33Matrix __fastcall operator*(const C33Matrix &l, const C33Matrix &r) {
+  C33Matrix operator*(const C33Matrix &l, const C33Matrix &r) {
     return C33Matrix(
         l.a0 * r.a0 + l.a1 * r.b0 + l.a2 * r.c0, l.a0 * r.a1 + l.a1 * r.b1 + l.a2 * r.c1, l.a0 * r.a2 + l.a1 * r.b2 + l.a2 * r.c2,
         l.b0 * r.a0 + l.b1 * r.b0 + l.b2 * r.c0, l.b0 * r.a1 + l.b1 * r.b1 + l.b2 * r.c1, l.b0 * r.a2 + l.b1 * r.b2 + l.b2 * r.c2,
@@ -65,7 +65,7 @@ namespace NTempest {
     return result;
   }
 
-  C33Matrix __fastcall C33Matrix::Rotation(float angle, const C3Vector &axis, bool unit) {
+  C33Matrix C33Matrix::Rotation(float angle, const C3Vector &axis, bool unit) {
     C3Vector axis_(axis);
 
     if (!unit) {
@@ -88,7 +88,7 @@ namespace NTempest {
     );
   }
 
-  C33Matrix __fastcall C33Matrix::Rotation(float angle) {
+  C33Matrix C33Matrix::Rotation(float angle) {
     float sine = CMath::sin_(angle);
     float cosine = CMath::cos_(angle);
     return C33Matrix(

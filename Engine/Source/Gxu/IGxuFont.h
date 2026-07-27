@@ -177,7 +177,7 @@ struct TEXTURECACHE {
   void                   PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, unsigned long *dst);
   void                   PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned long *dst, int thick);
   void                   PasteGlyphOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, unsigned long *dst, int thick);
-  static void __fastcall TextureCallback(
+  static void TextureCallback(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,
@@ -487,22 +487,22 @@ extern TSList<CGxString, TSGetLink<CGxString> >             g_strings;
 
 struct FT_LibraryRec_;
 
-FT_LibraryRec_ *__fastcall GetFreeTypeLibrary();
-float __fastcall           SignOf(float value);
-HFACE__ *__fastcall        FontFaceGetHandle(const char *name, FT_LibraryRec_ *library);
-FT_FaceRec_ *__fastcall    FontFaceGetFace(HFACE__ *handle);
-void __fastcall            FontFaceCloseHandle(HFACE__ *handle);
-const char *__fastcall     FontFaceGetFontName(HFACE__ *handle);
-unsigned int __fastcall    GetScreenPixelHeight();
-unsigned int __fastcall    GetScreenPixelWidth();
-float __fastcall           ScreenToPixelHeight(int billboarded, float height);
-float __fastcall           ScreenToPixelWidth(int billboarded, float width);
-float __fastcall           GxuFontGetOneToOneHeight(CGxFont *font);
-const char *__fastcall     GxuFontGetFontName(CGxFont *fontName);
-unsigned int __fastcall    GxuFontGetFontFlags(CGxFont *fontName);
-float __fastcall
+FT_LibraryRec_ *GetFreeTypeLibrary();
+float SignOf(float value);
+HFACE__ *FontFaceGetHandle(const char *name, FT_LibraryRec_ *library);
+FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle);
+void FontFaceCloseHandle(HFACE__ *handle);
+const char *FontFaceGetFontName(HFACE__ *handle);
+unsigned int GetScreenPixelHeight();
+unsigned int GetScreenPixelWidth();
+float ScreenToPixelHeight(int billboarded, float height);
+float ScreenToPixelWidth(int billboarded, float width);
+float GxuFontGetOneToOneHeight(CGxFont *font);
+const char *GxuFontGetFontName(CGxFont *fontName);
+unsigned int GxuFontGetFontFlags(CGxFont *fontName);
+float
 GxuFontGetWrappedTextHeight(CGxFont *face, const char *text, float fontHeight, float blockWidth, float lineSpacing, unsigned int flags);
-unsigned int __fastcall GxuFontWrapText(
+unsigned int GxuFontWrapText(
     CGxFont      *font,
     const char   *text,
     unsigned int  lineBytes,
@@ -513,7 +513,7 @@ unsigned int __fastcall GxuFontWrapText(
     float         charSpacing,
     unsigned int  flags
 );
-QUOTEDCODE __fastcall GxuDetermineQuotedCode(
+QUOTEDCODE GxuDetermineQuotedCode(
     const char          *text,
     unsigned int        &advance,
     NTempest::CImVector *color,
@@ -521,7 +521,7 @@ QUOTEDCODE __fastcall GxuDetermineQuotedCode(
     unsigned int        &wide,
     unsigned int         remainingBytes
 );
-void __fastcall CalcWrapPoint(
+void CalcWrapPoint(
     CGxFont      *face,
     const char   *currentText,
     float         fontHeight,
@@ -531,7 +531,7 @@ void __fastcall CalcWrapPoint(
     const char  **pNextText,
     unsigned int  flags
 );
-int __fastcall IGxuFontGlyphRenderGlyph(
+int IGxuFontGlyphRenderGlyph(
     FT_FaceRec_ *face,
     unsigned int pixelHeight,
     unsigned int code,
@@ -541,14 +541,14 @@ int __fastcall IGxuFontGlyphRenderGlyph(
     int          monochrome
 );
 
-void __fastcall GxuFontInitialize();
-void __fastcall GxuFontShutdown();
-void __fastcall GxuFontWindowSizeChanged();
+void GxuFontInitialize();
+void GxuFontShutdown();
+void GxuFontWindowSizeChanged();
 
-int __fastcall  GxuFontCreateFont(const char *name, float fontHeight, CGxFont *&face, unsigned int flags);
-void __fastcall GxuFontDestroyFont(CGxFont *&face);
+int GxuFontCreateFont(const char *name, float fontHeight, CGxFont *&face, unsigned int flags);
+void GxuFontDestroyFont(CGxFont *&face);
 
-int __fastcall GxuFontCreateString(
+int GxuFontCreateString(
     CGxFont                   *face,
     const char                *text,
     float                      fontHeight,
@@ -563,14 +563,14 @@ int __fastcall GxuFontCreateString(
     const NTempest::CImVector &color,
     float                      charSpacing
 );
-void __fastcall         GxuFontDestroyString(CGxString *&string);
-void __fastcall         GxuFontRender(CGxString *string);
-void __fastcall         GxuFontRender(CGxString *string, const NTempest::C44Matrix &xform);
-float __fastcall        GxuFontGetStringHeight(CGxString *string);
-void __fastcall         GxuFontAddShadow(CGxString *string, const NTempest::CImVector &color, const NTempest::C2Vector &offset);
-int __fastcall          GxuFontStringSetGradient(CGxString *string, int startCharacter, int length);
-unsigned int __fastcall GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list);
-int __fastcall          GxuFontRenderString(
+void GxuFontDestroyString(CGxString *&string);
+void GxuFontRender(CGxString *string);
+void GxuFontRender(CGxString *string, const NTempest::C44Matrix &xform);
+float GxuFontGetStringHeight(CGxString *string);
+void GxuFontAddShadow(CGxString *string, const NTempest::CImVector &color, const NTempest::C2Vector &offset);
+int GxuFontStringSetGradient(CGxString *string, int startCharacter, int length);
+unsigned int GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list);
+int GxuFontRenderString(
     CGxFont                  *font,
     const char               *text,
     float                     textHeight,
@@ -585,18 +585,18 @@ int __fastcall          GxuFontRenderString(
     float                     charSpacing
 );
 
-CGxStringBatch *__fastcall GxuFontCreateBatch();
-int __fastcall             GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string);
-int __fastcall             GxuFontRemoveFromBatch(CGxString *string);
-int __fastcall             GxuFontRenderBatch(CGxStringBatch *batch);
-int __fastcall             GxuFontClearBatch(CGxStringBatch *batch);
-int __fastcall             GxuFontDestroyBatch(CGxStringBatch *batch);
-int __fastcall             GxuFontAddToInternalBatch(CGxString *string);
-void __fastcall            GxuFontRenderInternalBatch();
+CGxStringBatch *GxuFontCreateBatch();
+int GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string);
+int GxuFontRemoveFromBatch(CGxString *string);
+int GxuFontRenderBatch(CGxStringBatch *batch);
+int GxuFontClearBatch(CGxStringBatch *batch);
+int GxuFontDestroyBatch(CGxStringBatch *batch);
+int GxuFontAddToInternalBatch(CGxString *string);
+void GxuFontRenderInternalBatch();
 
-void __fastcall
+void
 GxuFontGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, float charSpacing, unsigned int flags);
-void __fastcall GxuFontGetWrapPoint(
+void GxuFontGetWrapPoint(
     CGxFont      *face,
     const char   *text,
     float         fontHeight,
@@ -607,7 +607,7 @@ void __fastcall GxuFontGetWrapPoint(
     float         spacing,
     unsigned int  flags
 );
-unsigned int __fastcall GxuFontGetMaxCharsWithinWidth(
+unsigned int GxuFontGetMaxCharsWithinWidth(
     CGxFont     *face,
     const char  *text,
     float        height,
@@ -617,7 +617,7 @@ unsigned int __fastcall GxuFontGetMaxCharsWithinWidth(
     float        charSpacing,
     unsigned int flags
 );
-unsigned int __fastcall GxuFontGetMaxCharsWithinWidthFromEnd(
+unsigned int GxuFontGetMaxCharsWithinWidthFromEnd(
     CGxFont     *font,
     const char  *text,
     float        fontHeight,
@@ -627,23 +627,23 @@ unsigned int __fastcall GxuFontGetMaxCharsWithinWidthFromEnd(
     float        charSpacing,
     unsigned int flags
 );
-const char *__fastcall
+const char *
 GxuFontStripEscapeCodes(const char *inputString, unsigned int numBytes, unsigned int flags, char *buffer, unsigned int bufferSize);
-int __fastcall        GxuFontGetLastColorCode(const char *string, unsigned int numBytes, NTempest::CImVector *color);
-int __fastcall        GxuFontGenerateColorString(char *buf, unsigned int bufSize, const NTempest::CImVector &color);
-int __fastcall        GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor);
-void __fastcall       GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos);
-void __fastcall       GxuFontSetCharSpacing(CGxString *string, float spacing);
-void __fastcall       GxuFontRemoveShadow(CGxString *string);
-CGxString *__fastcall GxuFontDuplicateString(const CGxString *rhs);
-int __fastcall        GxuFontGetStringWidth(CGxString *string, float *width);
-int __fastcall        GxuFontGetStringHeight(CGxString *string, float *height);
+int GxuFontGetLastColorCode(const char *string, unsigned int numBytes, NTempest::CImVector *color);
+int GxuFontGenerateColorString(char *buf, unsigned int bufSize, const NTempest::CImVector &color);
+int GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor);
+void GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos);
+void GxuFontSetCharSpacing(CGxString *string, float spacing);
+void GxuFontRemoveShadow(CGxString *string);
+CGxString *GxuFontDuplicateString(const CGxString *rhs);
+int GxuFontGetStringWidth(CGxString *string, float *width);
+int GxuFontGetStringHeight(CGxString *string, float *height);
 
-void __fastcall IGxuStringInitialize();
-void __fastcall IGxuStringShutdown();
-void __fastcall GxuFontSetUseAdvanceWidth(int useAdvanceWidth);
-void __fastcall InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, unsigned int flags);
-unsigned int __fastcall InternalGetMaxCharsWithinWidth(
+void IGxuStringInitialize();
+void IGxuStringShutdown();
+void GxuFontSetUseAdvanceWidth(int useAdvanceWidth);
+void InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, unsigned int flags);
+unsigned int InternalGetMaxCharsWithinWidth(
     CGxFont      *face,
     const char   *text,
     float         height,

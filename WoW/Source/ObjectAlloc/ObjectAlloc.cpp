@@ -9,7 +9,7 @@ enum {
   MAX_HEAPS = 32
 };
 
-int __fastcall CCommand_HeapUsage(const char *command, const char *arguments);
+int CCommand_HeapUsage(const char *command, const char *arguments);
 
 class CObjectHeap {
  public:
@@ -46,8 +46,8 @@ class CObjectHeapList {
   unsigned int BlocksAllocated() const;
 
  private:
-  friend int __fastcall          CCommand_HeapUsage(const char *command, const char *arguments);
-  friend unsigned int __fastcall ObjectAllocAddHeap(unsigned int objectSize, unsigned int objsPerBlock, const char *name);
+  friend int CCommand_HeapUsage(const char *command, const char *arguments);
+  friend unsigned int ObjectAllocAddHeap(unsigned int objectSize, unsigned int objsPerBlock, const char *name);
 
   TSGrowableArray<CObjectHeap> m_heaps;
   unsigned int                 m_objSize;
@@ -200,7 +200,7 @@ void *CObjectHeap::Ptr(unsigned int index, unsigned int objSize, unsigned int he
   return static_cast<char *>(m_obj) + objSize * index;
 }
 
-int __fastcall CCommand_HeapUsage(const char *command, const char *arguments) {
+int CCommand_HeapUsage(const char *command, const char *arguments) {
   OBJALLOCGLOBALS *globals = &s_globals;
   unsigned int     numHeaps;
   unsigned int     totalBytes = 0;
@@ -229,11 +229,11 @@ int __fastcall CCommand_HeapUsage(const char *command, const char *arguments) {
   return 1;
 }
 
-void __fastcall ObjectAllocInitialize() {
+void ObjectAllocInitialize() {
   ConsoleCommandRegister("HeapUsage", CCommand_HeapUsage, GAME, 0);
 }
 
-unsigned int __fastcall ObjectAllocAddHeap(unsigned int objectSize, unsigned int objsPerBlock, const char *name) {
+unsigned int ObjectAllocAddHeap(unsigned int objectSize, unsigned int objsPerBlock, const char *name) {
   OBJALLOCGLOBALS *globals = &s_globals;
   unsigned int     heapId;
   CObjectHeapList *heap;
@@ -253,7 +253,7 @@ unsigned int __fastcall ObjectAllocAddHeap(unsigned int objectSize, unsigned int
   return heapId;
 }
 
-unsigned int __fastcall ObjectAllocUsage(unsigned int heapId) {
+unsigned int ObjectAllocUsage(unsigned int heapId) {
   OBJALLOCGLOBALS *globals = &s_globals;
   unsigned int     usage;
 
@@ -265,7 +265,7 @@ unsigned int __fastcall ObjectAllocUsage(unsigned int heapId) {
   return usage;
 }
 
-int __fastcall ObjectAlloc(unsigned int heapId, unsigned int *memHandle) {
+int ObjectAlloc(unsigned int heapId, unsigned int *memHandle) {
   OBJALLOCGLOBALS *globals = &s_globals;
   unsigned int     index;
 
@@ -285,7 +285,7 @@ int __fastcall ObjectAlloc(unsigned int heapId, unsigned int *memHandle) {
   return 1;
 }
 
-void __fastcall ObjectFree(unsigned int memHandle) {
+void ObjectFree(unsigned int memHandle) {
   OBJALLOCGLOBALS *globals = &s_globals;
   unsigned int     heapId;
   unsigned int     index;
@@ -297,7 +297,7 @@ void __fastcall ObjectFree(unsigned int memHandle) {
   s_globalsLock.Leave();
 }
 
-void *__fastcall ObjectPtr(unsigned int memHandle) {
+void *ObjectPtr(unsigned int memHandle) {
   OBJALLOCGLOBALS *globals = &s_globals;
   unsigned int     heapId;
   unsigned int     index;
@@ -311,7 +311,7 @@ void *__fastcall ObjectPtr(unsigned int memHandle) {
   return object;
 }
 
-void __fastcall ObjectAllocDestroy() {
+void ObjectAllocDestroy() {
   ConsoleCommandUnregister("HeapUsage");
 
   s_globalsLock.Enter();

@@ -300,7 +300,7 @@ CGxBuf *CGxDeviceD3d::BufCreate(
     EGxVertexBufferFormat format,
     unsigned int          numVertices,
     unsigned int          numIndices,
-    void(__fastcall *userCallback)(CGxBufCommand &, CGxBuf *),
+    void(*userCallback)(CGxBufCommand &, CGxBuf *),
     void *userArg
 ) {
   CGxDevice::BufCreate(writeFreq, format, numVertices, numIndices, userCallback, userArg);
@@ -442,7 +442,7 @@ void CGxDeviceD3d::BufDestroy(CGxBuf *&b) {
   b = 0;
 }
 
-static void __fastcall IPrimSetupPos_PNT0(void *__formal) {
+static void IPrimSetupPos_PNT0(void *__formal) {
   unsigned char *dst = static_cast<unsigned char *>(__formal);
 
   for (unsigned int i = 0; i < s_vertexCount; ++i) {

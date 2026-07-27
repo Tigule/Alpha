@@ -14,7 +14,7 @@ namespace NTempest {
   class C3Segment;
 }
 
-typedef int(__fastcall *PARTICLEPROJECTCALLBACK)(const NTempest::C3Segment &segment, float &distance);
+typedef int(*PARTICLEPROJECTCALLBACK)(const NTempest::C3Segment &segment, float &distance);
 
 class CParticleStack {
  public:
@@ -41,10 +41,10 @@ class ParticleSystemManager {
  public:
   ~ParticleSystemManager();
 
-  static void __fastcall                   Destroy();
-  static void __fastcall                   SetScaler(float scaler);
-  static float __fastcall                  GetScaler();
-  static ParticleSystemManager *__fastcall GetInstance();
+  static void Destroy();
+  static void SetScaler(float scaler);
+  static float GetScaler();
+  static ParticleSystemManager *GetInstance();
 
   CPlaneParticleEmitter  *CreateQuadEmitter();
   CSphereParticleEmitter *CreateSphereEmitter();
@@ -56,16 +56,16 @@ class ParticleSystemManager {
   void                    DeleteEmitter2(CParticleEmitter2 *emitter);
   void                    RenderEmitters();
 
-  static void __fastcall SetProjectCallback(PARTICLEPROJECTCALLBACK callback, float distance) {
+  static void SetProjectCallback(PARTICLEPROJECTCALLBACK callback, float distance) {
     sm_projectCallback = callback;
     sm_projectDistance = distance;
   }
 
-  static PARTICLEPROJECTCALLBACK __fastcall GetProjectCallback() {
+  static PARTICLEPROJECTCALLBACK GetProjectCallback() {
     return sm_projectCallback;
   }
 
-  static float __fastcall GetProjectDistance() {
+  static float GetProjectDistance() {
     return sm_projectDistance;
   }
 
@@ -74,13 +74,13 @@ class ParticleSystemManager {
  private:
   friend class CWorld;
 
-  static void __fastcall RenderParticleEmitter(void *param1, int param2);
-  static void __fastcall RenderParticleEmitter2(void *param1, int param2);
+  static void RenderParticleEmitter(void *param1, int param2);
+  static void RenderParticleEmitter2(void *param1, int param2);
 
   static ParticleSystemManager *manager;
   static float                  scaler;
   static float                  sm_projectDistance;
-  static int(__fastcall *sm_projectCallback)(const NTempest::C3Segment &segment, float &distance);
+  static int(*sm_projectCallback)(const NTempest::C3Segment &segment, float &distance);
 
   TSGrowableArray<CParticleEmitter *>  modelEmitters;
   TSGrowableArray<CParticleEmitter2 *> emitter2s;
@@ -92,8 +92,8 @@ class RibbonManager {
  public:
   ~RibbonManager();
 
-  static void __fastcall           Destroy();
-  static RibbonManager *__fastcall GetInstance();
+  static void Destroy();
+  static RibbonManager *GetInstance();
   CRibbonEmitter                  *CreateEmitter();
   CRibbonEmitter                  *DuplicateEmitter(const CRibbonEmitter *emitter);
   void                             UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
@@ -102,7 +102,7 @@ class RibbonManager {
   void                             RenderEmitters();
 
  private:
-  static void __fastcall RenderEmitter(void *param1, int param2);
+  static void RenderEmitter(void *param1, int param2);
 
   static RibbonManager *manager;
 

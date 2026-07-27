@@ -11,7 +11,7 @@
 #include "Frame/CSimpleSlider.h"
 #include "Frame/CSimpleStatusBar.h"
 
-void __fastcall RegisterSimpleFrameScriptMethods() {
+void RegisterSimpleFrameScriptMethods() {
   CSimpleTexture::RegisterScriptMethods();
   CSimpleFontString::RegisterScriptMethods();
   CSimpleFrame::RegisterScriptMethods();
@@ -27,7 +27,7 @@ void __fastcall RegisterSimpleFrameScriptMethods() {
   CSimpleStatusBar::RegisterScriptMethods();
 }
 
-void __fastcall UnregisterSimpleFrameScriptMethods() {
+void UnregisterSimpleFrameScriptMethods() {
   CSimpleTexture::UnregisterScriptMethods();
   CSimpleFontString::UnregisterScriptMethods();
   CSimpleFrame::UnregisterScriptMethods();

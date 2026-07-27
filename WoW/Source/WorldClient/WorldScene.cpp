@@ -15,7 +15,7 @@
 #include <string.h>
 #include <typeinfo>
 
-void __fastcall ShadowRender(HMODEL hModel, NTempest::C44Matrix &basis, void *param);
+void ShadowRender(HMODEL hModel, NTempest::C44Matrix &basis, void *param);
 
 TSExplicitList<CWFrustum, 0xF4> CWorldScene::frustumFreeList;
 CSortTable                      CWorldScene::sortTable;
@@ -92,7 +92,7 @@ void CSortTable::Clear() {
   }
 }
 
-void __fastcall CWorldScene::Initialize() {
+void CWorldScene::Initialize() {
   vpPlanes[0].n = NTempest::C3Vector(1.0f, 0.0f, 1.0f);
   vpPlanes[1].n = NTempest::C3Vector(-1.0f, 0.0f, 1.0f);
   vpPlanes[2].n = NTempest::C3Vector(0.0f, 1.0f, 1.0f);
@@ -112,7 +112,7 @@ void __fastcall CWorldScene::Initialize() {
   vpPlanes[3].n.Normalize();
 }
 
-void __fastcall CWorldScene::Destroy() {
+void CWorldScene::Destroy() {
   while (CWFrustum *frustum = frustumFreeList.Head()) {
     frustumFreeList.UnlinkNode(frustum);
     frustum->~CWFrustum();
@@ -120,7 +120,7 @@ void __fastcall CWorldScene::Destroy() {
   }
 }
 
-CWFrustum *__fastcall CWorldScene::AllocFrustum() {
+CWFrustum *CWorldScene::AllocFrustum() {
   CWFrustum *frustum = frustumFreeList.Head();
   if (!frustum) {
     void *storage = SMemAlloc(sizeof(CWFrustum), typeid(CWFrustum).raw_name(), -2, 8);
@@ -133,13 +133,13 @@ CWFrustum *__fastcall CWorldScene::AllocFrustum() {
   return frustum;
 }
 
-void __fastcall CWorldScene::FreeFrustum(CWFrustum *frustum) {
+void CWorldScene::FreeFrustum(CWFrustum *frustum) {
   FATALASSERT(frustum);
   frustum->sceneLink.Unlink();
   frustumFreeList.LinkNode(frustum, LIST_TAIL, 0);
 }
 
-void __fastcall CWorldScene::PrepareRenderLiquid() {
+void CWorldScene::PrepareRenderLiquid() {
   NTempest::C3Vector lqDir(0.0f, 0.0f, 0.0f);
   NTempest::C3Vector camQueryPos = camPos;
   float              lqSurface;
@@ -194,7 +194,7 @@ void __fastcall CWorldScene::PrepareRenderLiquid() {
   CMap::oceanDiffTexUpdated = false;
 }
 
-void __fastcall CWorldScene::PrepareRender(NTempest::C3Vector &position, NTempest::C3Vector &target) {
+void CWorldScene::PrepareRender(NTempest::C3Vector &position, NTempest::C3Vector &target) {
   NTempest::C3Vector camPlaneVectXY;
 
   camPos = position;
@@ -218,10 +218,10 @@ void __fastcall CWorldScene::PrepareRender(NTempest::C3Vector &position, NTempes
   PrepareRenderLiquid();
 }
 
-void __fastcall CWorldScene::Update() {
+void CWorldScene::Update() {
 }
 
-void __fastcall CWorldScene::Render() {
+void CWorldScene::Render() {
   NTempest::C3Vector max;
   NTempest::C3Vector saveMin;
   NTempest::C3Vector saveMax;
@@ -277,7 +277,7 @@ void __fastcall CWorldScene::Render() {
   CMap::testQueryIndices.SetCount(0);
 }
 
-void __fastcall CWorldScene::RenderAlpha() {
+void CWorldScene::RenderAlpha() {
   NTempest::C44Matrix cMat;
 
   GxRsPush();
@@ -303,7 +303,7 @@ void __fastcall CWorldScene::RenderAlpha() {
   GxRsPop();
 }
 
-void __fastcall CWorldScene::AddDoodadDef(CMapDoodadDef *doodadDef) {
+void CWorldScene::AddDoodadDef(CMapDoodadDef *doodadDef) {
   NTempest::CAaSphere bounds;
   FATALASSERT(doodadDef);
   doodadDef->GetBounds(bounds);
@@ -318,7 +318,7 @@ void __fastcall CWorldScene::AddDoodadDef(CMapDoodadDef *doodadDef) {
   sortTable.table[sortIndex].doodadDefList.LinkNode(doodadDef, LIST_TAIL, 0);
 }
 
-void __fastcall CWorldScene::AddMapObjDef(CMapObjDef *mapObjDef) {
+void CWorldScene::AddMapObjDef(CMapObjDef *mapObjDef) {
   FATALASSERT(mapObjDef);
   mapObjDef->camDist = camPlaneXY.DistSigned(mapObjDef->aaSphere.c) - mapObjDef->aaSphere.r;
   int sortIndex = static_cast<int>(mapObjDef->camDist * 0.03f - 0.5f);
@@ -331,7 +331,7 @@ void __fastcall CWorldScene::AddMapObjDef(CMapObjDef *mapObjDef) {
   sortTable.table[sortIndex].mapObjDefList.LinkNode(mapObjDef, LIST_TAIL, 0);
 }
 
-void __fastcall CWorldScene::AddMapChunk(CMapChunk *chunk, float sortDist) {
+void CWorldScene::AddMapChunk(CMapChunk *chunk, float sortDist) {
   FATALASSERT(chunk);
 
   int sortIndex = static_cast<int>(sortDist * 0.03f - 0.5f);
@@ -345,7 +345,7 @@ void __fastcall CWorldScene::AddMapChunk(CMapChunk *chunk, float sortDist) {
   sortTable.table[sortIndex].chunkList.LinkNode(chunk, LIST_TAIL, 0);
 }
 
-void __fastcall CWorldScene::AddChunkLiquid(CChunkLiquid *liquid, unsigned int type) {
+void CWorldScene::AddChunkLiquid(CChunkLiquid *liquid, unsigned int type) {
   FATALASSERT(liquid);
   FATALASSERT(type < 4);
   int sortIndex = static_cast<int>(liquid->chunk->camDist * 0.03f - 0.5f);
@@ -358,7 +358,7 @@ void __fastcall CWorldScene::AddChunkLiquid(CChunkLiquid *liquid, unsigned int t
   sortTable.table[sortIndex].liquidList[type].LinkNode(liquid, LIST_TAIL, 0);
 }
 
-void __fastcall CWorldScene::AddMapEntity(CMapEntity *entity) {
+void CWorldScene::AddMapEntity(CMapEntity *entity) {
   FATALASSERT(entity);
   entity->camDist = camPlaneXY.DistSigned(entity->aaSphere.c) - entity->aaSphere.r;
   int sortIndex = static_cast<int>(entity->camDist * 0.03f - 0.5f);
@@ -371,7 +371,7 @@ void __fastcall CWorldScene::AddMapEntity(CMapEntity *entity) {
   sortTable.table[sortIndex].entityList.LinkNode(entity, LIST_TAIL, 0);
 }
 
-void __fastcall CWorldScene::ClipBufferUpdate(NTempest::C3Vector *vertices, const int *indicies, int nVertices, NTempest::C3Vector &corner) {
+void CWorldScene::ClipBufferUpdate(NTempest::C3Vector *vertices, const int *indicies, int nVertices, NTempest::C3Vector &corner) {
   FATALASSERT(vertices);
   FATALASSERT(indicies);
   int i;
@@ -417,7 +417,7 @@ void __fastcall CWorldScene::ClipBufferUpdate(NTempest::C3Vector *vertices, cons
   }
 }
 
-void __fastcall CWorldScene::ClipPortal(NTempest::C4Vector *inList, unsigned int &inCount) {
+void CWorldScene::ClipPortal(NTempest::C4Vector *inList, unsigned int &inCount) {
   static NTempest::C4Vector outList[16];
   NTempest::C4Plane         plane;
   unsigned int              c[2] = {inCount, 0};
@@ -458,7 +458,7 @@ void __fastcall CWorldScene::ClipPortal(NTempest::C4Vector *inList, unsigned int
   inCount = c[0];
 }
 
-void __fastcall CWorldScene::CalcFrustumCorners(NTempest::C3Vector *corners) {
+void CWorldScene::CalcFrustumCorners(NTempest::C3Vector *corners) {
   NTempest::C44Matrix lMp;
   NTempest::C44Matrix lMv;
   GxXformView(lMv);
@@ -469,7 +469,7 @@ void __fastcall CWorldScene::CalcFrustumCorners(NTempest::C3Vector *corners) {
   GxuXformCalcFrustumCorners(lMv, lMp, corners);
 }
 
-void __fastcall CWorldScene::LocateViewer() {
+void CWorldScene::LocateViewer() {
   viewerMapObjDef = 0;
   viewerMapObjGroups.SetCount(0);
   currentChunkName[0] = 0;
@@ -489,7 +489,7 @@ void __fastcall CWorldScene::LocateViewer() {
   }
 }
 
-void __fastcall CWorldScene::AddViewerGroup2(unsigned int groupNum) {
+void CWorldScene::AddViewerGroup2(unsigned int groupNum) {
   for (unsigned int i = 0; i < viewerMapObjGroups.Count(); ++i) {
     if (viewerMapObjGroups[i] == groupNum) {
       return;
@@ -499,7 +499,7 @@ void __fastcall CWorldScene::AddViewerGroup2(unsigned int groupNum) {
   viewerMapObjGroups.Add(&groupNum);
 }
 
-void __fastcall CWorldScene::LocateViewer3() {
+void CWorldScene::LocateViewer3() {
   viewerMapObjDef = 0;
   viewerMapObjGroups.SetCount(0);
   currentChunkName[0] = 0;
@@ -553,13 +553,13 @@ void __fastcall CWorldScene::LocateViewer3() {
   }
 }
 
-void __fastcall CWorldScene::FrustumPush() {
+void CWorldScene::FrustumPush() {
   FATALASSERT(frustumIndex < 15);
   frustumStack[frustumIndex + 1] = frustumStack[frustumIndex];
   ++frustumIndex;
 }
 
-void __fastcall CWorldScene::FrustumSet(NTempest::CRect &sRect) {
+void CWorldScene::FrustumSet(NTempest::CRect &sRect) {
   NTempest::C3Vector newCorners[8];
   NTempest::C3Vector tr;
   NTempest::C3Vector tl;
@@ -588,11 +588,11 @@ void __fastcall CWorldScene::FrustumSet(NTempest::CRect &sRect) {
   FrustumGet().CalcPlanesFromCorners(newCorners);
 }
 
-void __fastcall CWorldScene::FrustumSet(NTempest::C3Vector *corners) {
+void CWorldScene::FrustumSet(NTempest::C3Vector *corners) {
   FrustumGet().CalcPlanesFromCorners(corners);
 }
 
-void __fastcall CWorldScene::FrustumSet(NTempest::C3Vector *corners, NTempest::CRect &sRect) {
+void CWorldScene::FrustumSet(NTempest::C3Vector *corners, NTempest::CRect &sRect) {
   NTempest::C3Vector n;
   NTempest::C3Vector newCorners[8];
   NTempest::C3Vector tl;
@@ -629,36 +629,36 @@ void __fastcall CWorldScene::FrustumSet(NTempest::C3Vector *corners, NTempest::C
   }
 }
 
-void __fastcall CWorldScene::FrustumSet(CWFrustum &frustum) {
+void CWorldScene::FrustumSet(CWFrustum &frustum) {
   FrustumGet() = frustum;
 }
 
-CWFrustum &__fastcall CWorldScene::FrustumGet() {
+CWFrustum &CWorldScene::FrustumGet() {
   return frustumStack[frustumIndex];
 }
 
-void __fastcall CWorldScene::FrustumXform(NTempest::C44Matrix &mat) {
+void CWorldScene::FrustumXform(NTempest::C44Matrix &mat) {
   FrustumGet().Transform(mat);
 }
 
-int __fastcall CWorldScene::FrustumCull(NTempest::C3Vector &center, float radius) {
+int CWorldScene::FrustumCull(NTempest::C3Vector &center, float radius) {
   return FrustumGet().Cull(center, radius) == WorldCull_outside;
 }
 
-int __fastcall CWorldScene::FrustumCull(NTempest::CAaBox &aaBox) {
+int CWorldScene::FrustumCull(NTempest::CAaBox &aaBox) {
   return FrustumGet().Cull(aaBox) == WorldCull_outside;
 }
 
-int __fastcall CWorldScene::FrustumCull(NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
+int CWorldScene::FrustumCull(NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
   return FrustumGet().Cull(aaBox, basis, pos) == WorldCull_outside;
 }
 
-void __fastcall CWorldScene::FrustumPop() {
+void CWorldScene::FrustumPop() {
   FATALASSERT(frustumIndex > 0);
   --frustumIndex;
 }
 
-void __fastcall CWorldScene::CullSortTable(NTempest::CRect &sRect) {
+void CWorldScene::CullSortTable(NTempest::CRect &sRect) {
   FrustumPush();
   FrustumSet(sRect);
   for (unsigned int index = 0; index < 26; ++index) {
@@ -675,7 +675,7 @@ void __fastcall CWorldScene::CullSortTable(NTempest::CRect &sRect) {
   CullHorizon(sRect);
 }
 
-void __fastcall CWorldScene::CullHorizon(NTempest::CRect &sRect) {
+void CWorldScene::CullHorizon(NTempest::CRect &sRect) {
   NTempest::C3Vector  corners[8];
   NTempest::C44Matrix projMat;
   NTempest::C44Matrix viewMat;
@@ -728,7 +728,7 @@ void __fastcall CWorldScene::CullHorizon(NTempest::CRect &sRect) {
   FrustumPop();
 }
 
-void __fastcall CWorldScene::CullEntitys(CSortEntry *sortEntry) {
+void CWorldScene::CullEntitys(CSortEntry *sortEntry) {
   FATALASSERT(sortEntry);
   CMapEntity *entity = sortEntry->entityList.Head();
   while (entity) {
@@ -748,7 +748,7 @@ void __fastcall CWorldScene::CullEntitys(CSortEntry *sortEntry) {
   }
 }
 
-void __fastcall CWorldScene::CullDoodads(CSortEntry *sortEntry) {
+void CWorldScene::CullDoodads(CSortEntry *sortEntry) {
   NTempest::CAaSphere doodadSphere;
   FATALASSERT(sortEntry);
   CMapDoodadDef *doodadDef = sortEntry->doodadDefList.Head();
@@ -776,7 +776,7 @@ void __fastcall CWorldScene::CullDoodads(CSortEntry *sortEntry) {
   }
 }
 
-void __fastcall CWorldScene::CullDoodads(TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkList) {
+void CWorldScene::CullDoodads(TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkList) {
   NTempest::CAaSphere doodadSphere;
   CMapBaseObjLink    *link = doodadDefLinkList.Head();
   while (link) {
@@ -801,7 +801,7 @@ void __fastcall CWorldScene::CullDoodads(TSExplicitList<CMapBaseObjLink, 8> &doo
   }
 }
 
-void __fastcall CWorldScene::CullChunkLiquid(CSortEntry *sortEntry, unsigned int type) {
+void CWorldScene::CullChunkLiquid(CSortEntry *sortEntry, unsigned int type) {
   NTempest::CAaBox aaBox;
   FATALASSERT(sortEntry);
   CChunkLiquid *liquid = sortEntry->liquidList[type].Head();
@@ -819,7 +819,7 @@ void __fastcall CWorldScene::CullChunkLiquid(CSortEntry *sortEntry, unsigned int
   }
 }
 
-void __fastcall CWorldScene::CullChunks(CSortEntry *sortEntry) {
+void CWorldScene::CullChunks(CSortEntry *sortEntry) {
   float maxClipBufferUpdateDist = cullDistance - 33.333332f;
   FATALASSERT(sortEntry);
   CMapChunk *chunk = sortEntry->chunkList.Head();
@@ -851,7 +851,7 @@ void __fastcall CWorldScene::CullChunks(CSortEntry *sortEntry) {
   }
 }
 
-void __fastcall CWorldScene::RenderObjects() {
+void CWorldScene::RenderObjects() {
   CMapEntity *entity = sortTable.visEntityList.Head();
   while (entity) {
     CMapEntity *next = sortTable.visEntityList.Next(entity);
@@ -886,7 +886,7 @@ void __fastcall CWorldScene::RenderObjects() {
   }
 }
 
-void __fastcall CWorldScene::RenderDoodads() {
+void CWorldScene::RenderDoodads() {
   if (!(CWorld::enables & (CWorld::Enable_Doodads | CWorld::Enable_Collision | CWorld::Enable_AABoxes))) {
     return;
   }
@@ -934,7 +934,7 @@ void __fastcall CWorldScene::RenderDoodads() {
   }
 }
 
-void __fastcall CWorldScene::RenderHorizon() {
+void CWorldScene::RenderHorizon() {
   NTempest::C44Matrix cMat;
   NTempest::C44Matrix saveProjMat;
   NTempest::C44Matrix projMat;
@@ -974,7 +974,7 @@ void __fastcall CWorldScene::RenderHorizon() {
   GxXformSetProjection(saveProjMat);
 }
 
-void __fastcall CWorldScene::RenderChunks() {
+void CWorldScene::RenderChunks() {
   NTempest::C44Matrix cMat;
 
   CMapChunk *chunk = sortTable.visChunkList.Head();
@@ -1001,7 +1001,7 @@ void __fastcall CWorldScene::RenderChunks() {
   }
 }
 
-int __fastcall CWorldScene::ClipBufferCull(NTempest::C3Vector &center, float radius, unsigned int cullFlags) {
+int CWorldScene::ClipBufferCull(NTempest::C3Vector &center, float radius, unsigned int cullFlags) {
   NTempest::C4Vector v(center.x, center.y, center.z, 1.0f);
   NTempest::C4Vector vr(radius, radius, 0.0f, 0.0f);
   if (!(CWorld::enables & CWorld::Enable_Culling) || NTempest::CMath::fabs_(radius) < 2.38418579e-7f) {
@@ -1032,7 +1032,7 @@ int __fastcall CWorldScene::ClipBufferCull(NTempest::C3Vector &center, float rad
   return first > last;
 }
 
-int __fastcall CWorldScene::ClipBufferCull(NTempest::CAaBox &aaBox, unsigned int cullFlags) {
+int CWorldScene::ClipBufferCull(NTempest::CAaBox &aaBox, unsigned int cullFlags) {
   NTempest::C3Vector  aaBoxMin = aaBox.b;
   NTempest::C3Vector  aaBoxMax = aaBox.t;
   NTempest::C3Vector *aaBoxMinMax[2] = {&aaBoxMin, &aaBoxMax};
@@ -1073,7 +1073,7 @@ int __fastcall CWorldScene::ClipBufferCull(NTempest::CAaBox &aaBox, unsigned int
   return first > last;
 }
 
-void __fastcall CWorldScene::RenderMapObjDefGroups() {
+void CWorldScene::RenderMapObjDefGroups() {
   NTempest::C44Matrix mapObjM;
   CMapObjDefGroup    *mapObjDefGroupnext_node;
   NTempest::C44Matrix gxWm;
@@ -1119,7 +1119,7 @@ void __fastcall CWorldScene::RenderMapObjDefGroups() {
   FrustumPop();
 }
 
-void __fastcall CWorldScene::RenderOcean() {
+void CWorldScene::RenderOcean() {
   if (!sortTable.visLiquidList[1].Head()) {
     return;
   }
@@ -1163,7 +1163,7 @@ void __fastcall CWorldScene::RenderOcean() {
   GxRsPop();
 }
 
-void __fastcall CWorldScene::RenderWater() {
+void CWorldScene::RenderWater() {
   if (!sortTable.visLiquidList[0].Head()) {
     return;
   }
@@ -1207,7 +1207,7 @@ void __fastcall CWorldScene::RenderWater() {
   GxRsPop();
 }
 
-void __fastcall CWorldScene::RenderMagma() {
+void CWorldScene::RenderMagma() {
   if (!sortTable.visLiquidList[2].Head()) {
     return;
   }
@@ -1235,7 +1235,7 @@ void __fastcall CWorldScene::RenderMagma() {
   GxRsPop();
 }
 
-void __fastcall CWorldScene::CullMapObjDefs(CSortEntry *sortEntry, NTempest::CRect &sRect) {
+void CWorldScene::CullMapObjDefs(CSortEntry *sortEntry, NTempest::CRect &sRect) {
   NTempest::C44Matrix mapObjM;
   CMapObj            *mapObj;
   CMapObjDef         *mapObjDefnext_node;
@@ -1264,7 +1264,7 @@ void __fastcall CWorldScene::CullMapObjDefs(CSortEntry *sortEntry, NTempest::CRe
   }
 }
 
-void __fastcall CWorldScene::CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<unsigned int> &inGroups) {
+void CWorldScene::CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<unsigned int> &inGroups) {
   NTempest::C44Matrix mapObjM;
   CMapObj            *mapObj;
   NTempest::C44Matrix gxWm;
@@ -1286,7 +1286,7 @@ void __fastcall CWorldScene::CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArra
   mapObjDef->sceneLink.Unlink();
 }
 
-void __fastcall CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, const void *userParam, const int rDrawSharedLiquidToggle) {
+void CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, const void *userParam, const int rDrawSharedLiquidToggle) {
   CMapBaseObjLink *link;
   CMapObjDef      *mapObjDef = const_cast<CMapObjDef *>(static_cast<const CMapObjDef *>(userParam));
   FATALASSERT(mapObjDef);
@@ -1334,7 +1334,7 @@ void __fastcall CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, con
   }
 }
 
-void __fastcall CWorldScene::ClipBufferClear() {
+void CWorldScene::ClipBufferClear() {
   for (unsigned int i = 0; i < 128; ++i) {
     clipBuffer[i] = -1.0f;
   }
@@ -1527,7 +1527,7 @@ static NTempest::C3Vector  sPointPool[32];
 static NTempest::C3Vector *sInPointPtrs[32];
 static NTempest::C3Vector *sOutPointPtrs[32];
 
-int __fastcall CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTempest::C3Vector **&p_outVerts, unsigned int &p_outCount) {
+int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTempest::C3Vector **&p_outVerts, unsigned int &p_outCount) {
   ClipInfo  inInfo[32];
   ClipInfo  infoPool[32];
   ClipInfo *inInfoPtrs[32];
@@ -1611,7 +1611,7 @@ int __fastcall CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inC
   return 1;
 }
 
-unsigned int __fastcall CWorld::NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate) {
+unsigned int CWorld::NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate) {
   NTempest::C3Vector forward = frustum.corners[3] - frustum.corners[0];
   NTempest::C3Vector up = frustum.corners[1] - frustum.corners[0];
   NTempest::C3Vector right = frustum.corners[4] - frustum.corners[0];

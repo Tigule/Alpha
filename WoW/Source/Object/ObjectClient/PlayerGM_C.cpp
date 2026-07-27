@@ -18,18 +18,18 @@ static unsigned __int64 s_ghostTargetRequested;
 static char             s_ghostNameRequested[256];
 static unsigned __int64 s_realActivePlayer;
 
-static void __fastcall MaybeSendGhostRequest();
-int __fastcall         OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+static void MaybeSendGhostRequest();
+int OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
 
-void __fastcall CGPlayer_C::SetRealActivePlayer(unsigned __int64 guid) {
+void CGPlayer_C::SetRealActivePlayer(unsigned __int64 guid) {
   s_realActivePlayer = guid;
 }
 
-unsigned __int64 __fastcall CGPlayer_C::GetRealActivePlayer() {
+unsigned __int64 CGPlayer_C::GetRealActivePlayer() {
   return s_realActivePlayer;
 }
 
-int __fastcall OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   switch (msgId) {
     case CMSG_GHOST: {
       s_ghostRequestPending = 0;
@@ -93,19 +93,19 @@ int __fastcall OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTi
   return 1;
 }
 
-void __fastcall CGPlayer_C::InstallGMHandlers() {
+void CGPlayer_C::InstallGMHandlers() {
   ClientServices_SetMessageHandler(CMSG_GHOST, OnGMEvent, 0);
   ClientServices_SetMessageHandler(MSG_GM_SUMMON, OnGMEvent, 0);
   ClientServices_SetMessageHandler(MSG_GM_BIND_OTHER, OnGMEvent, 0);
 }
 
-void __fastcall CGPlayer_C::UninstallGMHandlers() {
+void CGPlayer_C::UninstallGMHandlers() {
   ClientServices_ClearMessageHandler(CMSG_GHOST);
   ClientServices_ClearMessageHandler(MSG_GM_SUMMON);
   ClientServices_ClearMessageHandler(MSG_GM_BIND_OTHER);
 }
 
-void __fastcall CGPlayer_C::StartGhosting(const char *name) {
+void CGPlayer_C::StartGhosting(const char *name) {
   WDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GHOST));
   msg.Put(static_cast<unsigned char>(1));
@@ -121,7 +121,7 @@ void __fastcall CGPlayer_C::StartGhosting(const char *name) {
   s_ghostRequestPending = 1;
 }
 
-void __fastcall CGPlayer_C::StartGhosting(unsigned __int64 guid) {
+void CGPlayer_C::StartGhosting(unsigned __int64 guid) {
   WDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GHOST));
   msg.Put(static_cast<unsigned char>(0));
@@ -135,7 +135,7 @@ void __fastcall CGPlayer_C::StartGhosting(unsigned __int64 guid) {
   s_ghostRequestPending = 1;
 }
 
-void __fastcall CGPlayer_C::StopGhosting() {
+void CGPlayer_C::StopGhosting() {
   WDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GHOST));
   msg.Put(static_cast<unsigned char>(0));
@@ -148,7 +148,7 @@ void __fastcall CGPlayer_C::StopGhosting() {
   s_ghostNameRequested[0] = 0;
 }
 
-static void __fastcall MaybeSendGhostRequest() {
+static void MaybeSendGhostRequest() {
   if (!s_ghostRequestPending) {
     if (s_ghostTargetRequested) {
       CGPlayer_C::StartGhosting(s_ghostTargetRequested);
@@ -158,7 +158,7 @@ static void __fastcall MaybeSendGhostRequest() {
   }
 }
 
-void __fastcall CGPlayer_C::GMIdle() {
+void CGPlayer_C::GMIdle() {
   if (!s_ghostTarget) {
     return;
   }

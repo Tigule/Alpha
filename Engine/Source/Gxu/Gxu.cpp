@@ -32,7 +32,7 @@ static void PixSnap(const CGxCaps& caps, const NTempest::C3Vector& src, NTempest
   }
 }
 
-void __fastcall GxuXformCreateProjection(float fovyInRadians, float aspect, float minZ, float maxZ, NTempest::C44Matrix &dst) {
+void GxuXformCreateProjection(float fovyInRadians, float aspect, float minZ, float maxZ, NTempest::C44Matrix &dst) {
   ASSERT(fovyInRadians > 0.0f && fovyInRadians < PI);
   ASSERT(aspect > 0.0f);
   ASSERT(minZ < maxZ);
@@ -59,7 +59,7 @@ void __fastcall GxuXformCreateProjection(float fovyInRadians, float aspect, floa
   dst.d2 = minZ * maxZ * -2.0f / depth;
 }
 
-void __fastcall GxuXformCreateOrtho(float minX, float maxX, float minY, float maxY, float minZ, float maxZ, NTempest::C44Matrix &dst) {
+void GxuXformCreateOrtho(float minX, float maxX, float minY, float maxY, float minZ, float maxZ, NTempest::C44Matrix &dst) {
   FATALASSERT(minX != maxX);
 
   FATALASSERT(minY != maxY);
@@ -87,11 +87,11 @@ void __fastcall GxuXformCreateOrtho(float minX, float maxX, float minY, float ma
   dst.d3 = 1.0f;
 }
 
-void __fastcall GxuXformCreateOrtho(const NTempest::CAaBox &bounds, NTempest::C44Matrix &dst) {
+void GxuXformCreateOrtho(const NTempest::CAaBox &bounds, NTempest::C44Matrix &dst) {
   GxuXformCreateOrtho(bounds.b.x, bounds.t.x, bounds.b.y, bounds.t.y, bounds.b.z, bounds.t.z, dst);
 }
 
-void __fastcall GxuXformCreateLookAtSgCompat(
+void GxuXformCreateLookAtSgCompat(
     const NTempest::C3Vector &eye,
     const NTempest::C3Vector &center,
     const NTempest::C3Vector &up,
@@ -122,7 +122,7 @@ void __fastcall GxuXformCreateLookAtSgCompat(
   dst.Translate(NTempest::C3Vector(-eye.x, -eye.y, -eye.z));
 }
 
-void __fastcall GxuXformCreateLookAtXXX(const NTempest::C3Vector& eye, const NTempest::C3Vector& center, const NTempest::C3Vector& up, NTempest::C44Matrix& dst) {
+void GxuXformCreateLookAtXXX(const NTempest::C3Vector& eye, const NTempest::C3Vector& center, const NTempest::C3Vector& up, NTempest::C44Matrix& dst) {
   dst = NTempest::C44Matrix();
 
   NTempest::C3Vector zv = center - eye;
@@ -147,7 +147,7 @@ void __fastcall GxuXformCreateLookAtXXX(const NTempest::C3Vector& eye, const NTe
   dst.Translate(NTempest::C3Vector(-eye.x, -eye.y, -eye.z));
 }
 
-void __fastcall GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest::C44Matrix &proj, NTempest::C3Vector *corners) {
+void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest::C44Matrix &proj, NTempest::C3Vector *corners) {
   NTempest::C44Matrix projInv = proj.Inverse(proj.Determinant());
   NTempest::C44Matrix viewInv = view.Inverse(view.Determinant());
   NTempest::C44Matrix inv = projInv * viewInv;
@@ -190,7 +190,7 @@ void __fastcall GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, cons
 #undef GXU_SET_FRUSTUM_CORNER
 }
 
-void __fastcall GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector *planes) {
+void GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector *planes) {
   planes[0] = NTempest::C4Vector(viewProj.a0 - viewProj.a3, viewProj.b0 - viewProj.b3, viewProj.c0 - viewProj.c3, viewProj.d0 - viewProj.d3);
   planes[1] = NTempest::C4Vector(-viewProj.a0 - viewProj.a3, -viewProj.b0 - viewProj.b3, -viewProj.c0 - viewProj.c3, -viewProj.d0 - viewProj.d3);
   planes[2] = NTempest::C4Vector(viewProj.a1 - viewProj.a3, viewProj.b1 - viewProj.b3, viewProj.c1 - viewProj.c3, viewProj.d1 - viewProj.d3);
@@ -208,7 +208,7 @@ void __fastcall GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, N
   }
 }
 
-void __fastcall GxuXformCalcFrustumBounds(const NTempest::C44Matrix& view, const NTempest::C44Matrix& proj, NTempest::C3Vector& minBound, NTempest::C3Vector& maxBound) {
+void GxuXformCalcFrustumBounds(const NTempest::C44Matrix& view, const NTempest::C44Matrix& proj, NTempest::C3Vector& minBound, NTempest::C3Vector& maxBound) {
   NTempest::C3Vector corners[8];
   GxuXformCalcFrustumCorners(view, proj, corners);
   minBound = corners[0];
@@ -219,7 +219,7 @@ void __fastcall GxuXformCalcFrustumBounds(const NTempest::C44Matrix& view, const
   }
 }
 
-void __fastcall GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C3Vector* src, NTempest::C3Vector* dst) {
+void GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C3Vector* src, NTempest::C3Vector* dst) {
   NTempest::CRect winRect;
   NTempest::C3Vector vpMin;
   NTempest::C3Vector vpMax;
@@ -240,7 +240,7 @@ void __fastcall GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C
   }
 }
 
-void __fastcall GxuTexScale(const void* srcPixels, EGxTexFormat srcFormat, unsigned int srcW, unsigned int srcH, unsigned int srcStrideInBytes, const void* dstPixels, EGxTexFormat dstFormat, unsigned int dstW, unsigned int dstH, unsigned int dstStrideInBytes) {
+void GxuTexScale(const void* srcPixels, EGxTexFormat srcFormat, unsigned int srcW, unsigned int srcH, unsigned int srcStrideInBytes, const void* dstPixels, EGxTexFormat dstFormat, unsigned int dstW, unsigned int dstH, unsigned int dstStrideInBytes) {
   ASSERT(srcFormat == dstFormat);
   FATALASSERT(srcPixels);
   FATALASSERT(srcFormat < GxTexFormats_Last);
@@ -270,7 +270,7 @@ void __fastcall GxuTexScale(const void* srcPixels, EGxTexFormat srcFormat, unsig
   }
 }
 
-void __fastcall GxuUpdateSingleColorTexture(
+void GxuUpdateSingleColorTexture(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -297,7 +297,7 @@ void __fastcall GxuUpdateSingleColorTexture(
   }
 }
 
-int __fastcall GxuTestRayAndSphere(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, const NTempest::C3Vector& sphereCenter, float sphereRadius, float& distance) {
+int GxuTestRayAndSphere(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, const NTempest::C3Vector& sphereCenter, float sphereRadius, float& distance) {
   using NTempest::IsUnitVector;
 
   distance = INFINITY;
@@ -314,7 +314,7 @@ int __fastcall GxuTestRayAndSphere(const NTempest::C3Vector& rayStart, const NTe
   return 1;
 }
 
-int __fastcall GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector *planes) {
+int GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector *planes) {
   for (unsigned int i = 0; i < 6; ++i) {
     if (planes[i].x * center.x + planes[i].y * center.y + planes[i].z * center.z + planes[i].w > radius) {
       return 0;
@@ -323,7 +323,7 @@ int __fastcall GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, f
   return 1;
 }
 
-int __fastcall GxuTestRayAndTriangle(
+int GxuTestRayAndTriangle(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     const NTempest::C3Vector &v0,
@@ -362,7 +362,7 @@ int __fastcall GxuTestRayAndTriangle(
   distance = NTempest::C3Vector::Dot(e2, q) * f;
   return 1;
 }
-int __fastcall GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, const NTempest::C34Matrix* modelToWorldMatrices, unsigned int matrixCount, unsigned int posCount, const NTempest::C3Vector* pos, unsigned int posStride, unsigned int boneCount, const unsigned char* bone, unsigned int boneStride, EGxPrim primType, unsigned int indexCount, const unsigned short* indices, float& distance, unsigned int& primIntersected) {
+int GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, const NTempest::C34Matrix* modelToWorldMatrices, unsigned int matrixCount, unsigned int posCount, const NTempest::C3Vector* pos, unsigned int posStride, unsigned int boneCount, const unsigned char* bone, unsigned int boneStride, EGxPrim primType, unsigned int indexCount, const unsigned short* indices, float& distance, unsigned int& primIntersected) {
   using NTempest::IsUnitVector;
 
   distance = INFINITY;
@@ -443,7 +443,7 @@ int __fastcall GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTemp
   return distance != INFINITY;
 }
 
-int __fastcall GxuTestRayAndRigidMeshInModelSpace(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, unsigned int posCount, const NTempest::C3Vector* pos, EGxPrim primType, unsigned int indexCount, const unsigned short* indices, float& distance, unsigned int& primIntersected) {
+int GxuTestRayAndRigidMeshInModelSpace(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, unsigned int posCount, const NTempest::C3Vector* pos, EGxPrim primType, unsigned int indexCount, const unsigned short* indices, float& distance, unsigned int& primIntersected) {
   using NTempest::IsUnitVector;
 
   distance = INFINITY;
@@ -493,7 +493,7 @@ int __fastcall GxuTestRayAndRigidMeshInModelSpace(const NTempest::C3Vector& rayS
   return distance != INFINITY;
 }
 
-unsigned int __fastcall GxuClipCalcCode(const NTempest::C44Matrix& viewProj, const NTempest::C3Vector& pos) {
+unsigned int GxuClipCalcCode(const NTempest::C44Matrix& viewProj, const NTempest::C3Vector& pos) {
   NTempest::C4Vector clipVert(pos.x, pos.y, pos.z, 1.0f);
   clipVert = clipVert * viewProj;
   float cc[6] = {
@@ -512,7 +512,7 @@ unsigned int __fastcall GxuClipCalcCode(const NTempest::C44Matrix& viewProj, con
   return code;
 }
 
-void __fastcall GxuSnapTexelsToPixels(const NTempest::C3Vector* pos, NTempest::C2Vector* tex, unsigned int texW, unsigned int texH) {
+void GxuSnapTexelsToPixels(const NTempest::C3Vector* pos, NTempest::C2Vector* tex, unsigned int texW, unsigned int texH) {
   unsigned int i;
   NTempest::C3Vector posScr[4];
   NTempest::C3Vector iposScr[4];

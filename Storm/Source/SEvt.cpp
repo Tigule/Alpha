@@ -37,7 +37,7 @@ static TYPEHASHENTRYPTR                      *s_typehashtable;
 static DWORD                                  s_typehashtablesize;
 static DWORD                                  s_typehashtableused;
 
-static DWORD __fastcall ComputeNewTableSize(DWORD currentused) {
+static DWORD ComputeNewTableSize(DWORD currentused) {
   DWORD needed = currentused + currentused + 2;
   DWORD result = 1;
 
@@ -48,7 +48,7 @@ static DWORD __fastcall ComputeNewTableSize(DWORD currentused) {
   return result;
 }
 
-static void __fastcall CopyIdHashTable(IDHASHTABLEPTR dest, IDHASHTABLEPTR source) {
+static void CopyIdHashTable(IDHASHTABLEPTR dest, IDHASHTABLEPTR source) {
   DWORD           id;
   IDHASHENTRYPTR  entry;
   IDHASHENTRYPTR  clone;
@@ -75,7 +75,7 @@ static void __fastcall CopyIdHashTable(IDHASHTABLEPTR dest, IDHASHTABLEPTR sourc
   }
 }
 
-static void __fastcall DeleteIdHashTable(IDHASHTABLEPTR idhashtable) {
+static void DeleteIdHashTable(IDHASHTABLEPTR idhashtable) {
   IDHASHENTRYPTR entry;
   IDHASHENTRYPTR next;
   DWORD          loop;
@@ -94,7 +94,7 @@ static void __fastcall DeleteIdHashTable(IDHASHTABLEPTR idhashtable) {
   delete idhashtable;
 }
 
-static TYPEHASHENTRYPTR __fastcall FindTypeHashEntry(DWORD type, DWORD subtype) {
+static TYPEHASHENTRYPTR FindTypeHashEntry(DWORD type, DWORD subtype) {
   TYPEHASHENTRYPTR entry;
 
   if (!s_typehashtable || !s_typehashtablesize) {

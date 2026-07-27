@@ -37,7 +37,7 @@ extern const FrameScript_Method s_CameraScriptFunctions[20];
 
 #include <lua.h>
 
-float __fastcall OrganicSmooth(float from, float to, float progress);
+float OrganicSmooth(float from, float to, float progress);
 
 class RangeList {
  public:
@@ -223,7 +223,7 @@ static const struct {
     {1.00f, 0.78539818f},
 };
 
-static bool __fastcall ValidateIsInRange(const char *strValue, float min, float max) {
+static bool ValidateIsInRange(const char *strValue, float min, float max) {
   float value = SStrToFloat(strValue);
 
   if (value >= min && value <= max) {
@@ -234,7 +234,7 @@ static bool __fastcall ValidateIsInRange(const char *strValue, float min, float 
   return false;
 }
 
-static bool __fastcall ValidateCameraDistance(CVar *cvar, const char *oldValue, const char *newValue, void *arg) {
+static bool ValidateCameraDistance(CVar *cvar, const char *oldValue, const char *newValue, void *arg) {
   float min;
 
   ASSERT(newValue);
@@ -244,13 +244,13 @@ static bool __fastcall ValidateCameraDistance(CVar *cvar, const char *oldValue, 
   return ValidateIsInRange(newValue, min, 27.777779f);
 }
 
-static bool __fastcall ValidateCameraAngle(CVar *cvar, const char *oldValue, const char *newValue, void *arg) {
+static bool ValidateCameraAngle(CVar *cvar, const char *oldValue, const char *newValue, void *arg) {
   ASSERT(newValue);
 
   return ValidateIsInRange(newValue, -90.0f, 90.0f);
 }
 
-static int __fastcall Script_CameraZoomIn(lua_State *L) {
+static int Script_CameraZoomIn(lua_State *L) {
   FATALASSERT(CGInputControl::GetActive());
   unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   float         distance = lua_isnumber(L, 2) ? static_cast<float>(lua_tonumber(L, 2)) : 1.0f;
@@ -258,7 +258,7 @@ static int __fastcall Script_CameraZoomIn(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_CameraZoomOut(lua_State *L) {
+static int Script_CameraZoomOut(lua_State *L) {
   FATALASSERT(CGInputControl::GetActive());
   unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   float         distance = lua_isnumber(L, 2) ? static_cast<float>(lua_tonumber(L, 2)) : 1.0f;
@@ -266,41 +266,41 @@ static int __fastcall Script_CameraZoomOut(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_MoveViewStart(lua_State *L, CGCameraMotion motion) {
+static int Script_MoveViewStart(lua_State *L, CGCameraMotion motion) {
   FATALASSERT(CGInputControl::GetActive());
   unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGWorldFrame::GetActiveCamera()->StartMotion(motion, timestamp, 0);
   return 0;
 }
 
-static int __fastcall Script_MoveViewStop(lua_State *L, CGCameraMotion motion) {
+static int Script_MoveViewStop(lua_State *L, CGCameraMotion motion) {
   FATALASSERT(CGInputControl::GetActive());
   unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGWorldFrame::GetActiveCamera()->StopMotion(motion, timestamp);
   return 0;
 }
 
-static int __fastcall Script_MoveViewInStart(lua_State *L) {
+static int Script_MoveViewInStart(lua_State *L) {
   return Script_MoveViewStart(L, CAMERA_MOVE_IN);
 }
 
-static int __fastcall Script_MoveViewInStop(lua_State *L) {
+static int Script_MoveViewInStop(lua_State *L) {
   return Script_MoveViewStop(L, CAMERA_MOVE_IN);
 }
 
-static int __fastcall Script_MoveViewOutStart(lua_State *L) {
+static int Script_MoveViewOutStart(lua_State *L) {
   return Script_MoveViewStart(L, CAMERA_MOVE_OUT);
 }
 
-static int __fastcall Script_MoveViewOutStop(lua_State *L) {
+static int Script_MoveViewOutStop(lua_State *L) {
   return Script_MoveViewStop(L, CAMERA_MOVE_OUT);
 }
 
-static int __fastcall Script_MoveViewRightStart(lua_State *L) {
+static int Script_MoveViewRightStart(lua_State *L) {
   return Script_MoveViewStart(L, CAMERA_MOVE_RIGHT);
 }
 
-static int __fastcall Script_MoveViewRightStop(lua_State *L) {
+static int Script_MoveViewRightStop(lua_State *L) {
   return Script_MoveViewStop(L, CAMERA_MOVE_RIGHT);
 }
 
@@ -310,36 +310,36 @@ CGCamera::~CGCamera() {
   ConsoleCommandUnregister("cameraClip");
 }
 
-static int __fastcall Script_MoveViewLeftStart(lua_State *L) {
+static int Script_MoveViewLeftStart(lua_State *L) {
   return Script_MoveViewStart(L, CAMERA_MOVE_LEFT);
 }
 
-static int __fastcall Script_MoveViewLeftStop(lua_State *L) {
+static int Script_MoveViewLeftStop(lua_State *L) {
   return Script_MoveViewStop(L, CAMERA_MOVE_LEFT);
 }
 
-static int __fastcall Script_MoveViewUpStart(lua_State *L) {
+static int Script_MoveViewUpStart(lua_State *L) {
   return Script_MoveViewStart(L, CAMERA_MOVE_UP);
 }
 
-static int __fastcall Script_MoveViewUpStop(lua_State *L) {
+static int Script_MoveViewUpStop(lua_State *L) {
   return Script_MoveViewStop(L, CAMERA_MOVE_UP);
 }
 
-static int __fastcall Script_MoveViewDownStart(lua_State *L) {
+static int Script_MoveViewDownStart(lua_State *L) {
   return Script_MoveViewStart(L, CAMERA_MOVE_DOWN);
 }
 
-static int __fastcall Script_MoveViewDownStop(lua_State *L) {
+static int Script_MoveViewDownStop(lua_State *L) {
   return Script_MoveViewStop(L, CAMERA_MOVE_DOWN);
 }
 
-static int __fastcall Script_ToggleMouseMove(lua_State *__formal) {
+static int Script_ToggleMouseMove(lua_State *__formal) {
   CGWorldFrame::GetActiveCamera()->ToggleFreeLook();
   return 0;
 }
 
-static int __fastcall Script_SetView(lua_State *L) {
+static int Script_SetView(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     int view = static_cast<int>(lua_tonumber(L, 1));
     if (view > 0 && view <= 5) {
@@ -349,7 +349,7 @@ static int __fastcall Script_SetView(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SaveView(lua_State *L) {
+static int Script_SaveView(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     int view = static_cast<int>(lua_tonumber(L, 1));
     if (view > 0 && view <= 5) {
@@ -359,7 +359,7 @@ static int __fastcall Script_SaveView(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ResetView(lua_State *L) {
+static int Script_ResetView(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     int view = static_cast<int>(lua_tonumber(L, 1));
     if (view > 0 && view <= 5) {
@@ -369,17 +369,17 @@ static int __fastcall Script_ResetView(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_NextView(lua_State *__formal) {
+static int Script_NextView(lua_State *__formal) {
   CGWorldFrame::GetActiveCamera()->NextView();
   return 0;
 }
 
-static int __fastcall Script_PrevView(lua_State *__formal) {
+static int Script_PrevView(lua_State *__formal) {
   CGWorldFrame::GetActiveCamera()->PreviousView();
   return 0;
 }
 
-void __fastcall CameraInitialize() {
+void CameraInitialize() {
   s_cameraFarZ = CVar::Lookup("farclip");
   s_cameraNearZ = CVar::Lookup("nearclip");
   s_cameraFOV = CVar::Lookup("fov");
@@ -401,19 +401,19 @@ void __fastcall CameraInitialize() {
   s_cameraDistanceD = CVar::Register("cameraDistanceD", 0, 0, "13.88", ValidateCameraDistance, DEFAULT, false, 0);
 }
 
-void __fastcall CameraRegisterScriptFunctions() {
+void CameraRegisterScriptFunctions() {
   for (int i = 0; i < 20; ++i) {
     FrameScript_RegisterFunction(s_CameraScriptFunctions[i].name, s_CameraScriptFunctions[i].method);
   }
 }
 
-void __fastcall CameraUnregisterScriptFunctions() {
+void CameraUnregisterScriptFunctions() {
   for (int i = 0; i < 20; ++i) {
     FrameScript_UnregisterFunction(s_CameraScriptFunctions[i].name);
   }
 }
 
-void __fastcall CameraDestroy() {
+void CameraDestroy() {
 }
 
 CGCamera::CGCamera()
@@ -652,7 +652,7 @@ float CGCamera::GetCameraDistance(float cameraDist, const NTempest::C3Vector &ta
   return cameraDist;
 }
 
-int __fastcall CGCamera::CCommand_CameraClip(const char *command, const char *arguments) {
+int CGCamera::CCommand_CameraClip(const char *command, const char *arguments) {
   if (arguments && *arguments) {
     s_clipCamera = SStrToInt(arguments);
   } else {
@@ -1196,7 +1196,7 @@ void CGCamera::CheckUnderwater() {
   }
 }
 
-int __fastcall CGCamera::UpdateCallback(const void *__formal, void *param) {
+int CGCamera::UpdateCallback(const void *__formal, void *param) {
   if (param) {
     CGCamera     *camera = static_cast<CGCamera *>(param);
     unsigned long timestamp = OsGetAsyncTimeMs();
@@ -1378,7 +1378,7 @@ void CGCamera::ResetModelCamera() {
 }
 
 int CGCamera::SetModelCamera(
-    const char *modelFile, const NTempest::C3Vector &origin, float facing, int(__fastcall *ModelCameraFinished)(void *), void *param
+    const char *modelFile, const NTempest::C3Vector &origin, float facing, int(*ModelCameraFinished)(void *), void *param
 ) {
   ClearModelCamera();
 

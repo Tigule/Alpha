@@ -5,7 +5,7 @@
 #include "Base/MsgBuffer.h"
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void IMaterialAddErrors(TSet &errors) {
@@ -222,7 +222,7 @@ static void IReadMaterial(
   errors.Complete(status);
 }
 
-int __fastcall ReadMaterials(
+int ReadMaterials(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -367,7 +367,7 @@ static void IWriteMaterial(
   WriteLine(buffer, "\t}\n");
 }
 
-int __fastcall WriteMaterials(
+int WriteMaterials(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -450,7 +450,7 @@ static int ReadBinMaterial(
   return 1;
 }
 
-int __fastcall ReadBinMaterials(
+int ReadBinMaterials(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -528,7 +528,7 @@ static void AddLayers(
   }
 }
 
-int __fastcall WriteBinMaterials(
+int WriteBinMaterials(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *

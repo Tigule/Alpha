@@ -2,7 +2,7 @@
 
 #include "Os/OsTime.h"
 
-int __fastcall IEvtTimerDispatch(EvtContext *context) {
+int IEvtTimerDispatch(EvtContext *context) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   DWORD                   currTime;
@@ -63,7 +63,7 @@ int __fastcall IEvtTimerDispatch(EvtContext *context) {
   return dispatched;
 }
 
-unsigned int __fastcall IEvtTimerGetNextTime(EvtContext *context, DWORD currTime) {
+unsigned int IEvtTimerGetNextTime(EvtContext *context, DWORD currTime) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   unsigned int            result = INFINITE;
@@ -79,7 +79,7 @@ unsigned int __fastcall IEvtTimerGetNextTime(EvtContext *context, DWORD currTime
   return result;
 }
 
-float __fastcall IEvtTimerGetRemaining(EvtContext *context, unsigned int id) {
+float IEvtTimerGetRemaining(EvtContext *context, unsigned int id) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
@@ -102,7 +102,7 @@ float __fastcall IEvtTimerGetRemaining(EvtContext *context, unsigned int id) {
   return remaining;
 }
 
-void __fastcall IEvtTimerKill(EvtContext *context, unsigned int id, EVENTHANDLER handlerFunction, const char *functionName) {
+void IEvtTimerKill(EvtContext *context, unsigned int id, EVENTHANDLER handlerFunction, const char *functionName) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
@@ -139,7 +139,7 @@ void __fastcall IEvtTimerKill(EvtContext *context, unsigned int id, EVENTHANDLER
   context->TimerUnlockIdTableAndQueue();
 }
 
-unsigned int __fastcall IEvtTimerSet(
+unsigned int IEvtTimerSet(
     EvtContext      *context,
     float            timeout,
     EVENTHANDLER     handler,
@@ -182,7 +182,7 @@ unsigned int __fastcall IEvtTimerSet(
   return id;
 }
 
-unsigned int __fastcall IEvtTimerSet(
+unsigned int IEvtTimerSet(
     EvtContext      *context,
     unsigned int     timeout,
     EVENTHANDLER     handler,
@@ -223,7 +223,7 @@ unsigned int __fastcall IEvtTimerSet(
   return id;
 }
 
-unsigned int __fastcall IEvtTimerSetAbsolute(
+unsigned int IEvtTimerSetAbsolute(
     EvtContext      *context,
     DWORD            triggerTime,
     EVENTHANDLER     handler,

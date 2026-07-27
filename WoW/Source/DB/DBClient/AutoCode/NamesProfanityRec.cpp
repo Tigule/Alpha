@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall NamesProfanityRec::GetFilename() {
+const char *NamesProfanityRec::GetFilename() {
   return "DBFilesClient\\NamesProfanity.dbc";
 }
 

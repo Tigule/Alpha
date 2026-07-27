@@ -181,7 +181,7 @@ static ObjDataDescriptor *const s_descriptors[8] = {
     s_playerDescriptors, s_gameObjectDescriptors, s_dynamicObjectDescriptors, s_corpseDescriptors,
 };
 
-static void __fastcall CopyAndExpandDescriptors(ObjDataDescriptor *dest, ObjDataDescriptor *source, unsigned int num, unsigned int destArraySize) {
+static void CopyAndExpandDescriptors(ObjDataDescriptor *dest, ObjDataDescriptor *source, unsigned int num, unsigned int destArraySize) {
   unsigned int d = 0;
 
   while (num--) {
@@ -196,7 +196,7 @@ static void __fastcall CopyAndExpandDescriptors(ObjDataDescriptor *dest, ObjData
   ASSERT(d == destArraySize);
 }
 
-void __fastcall MirrorInitialize() {
+void MirrorInitialize() {
   CopyAndExpandDescriptors(s_objDescriptors, s_objBaseDescriptors, 5, 6);
 
   memcpy(s_itemDescriptors, s_objDescriptors, sizeof(s_objDescriptors));
@@ -221,7 +221,7 @@ void __fastcall MirrorInitialize() {
   CopyAndExpandDescriptors(s_corpseDescriptors + 6, s_corpseBaseDescriptors, 11, 30);
 }
 
-const ObjDataDescriptor* __fastcall MirrorGetObjDataDescriptor(OBJECT_TYPE type, unsigned int blockID) {
+const ObjDataDescriptor* MirrorGetObjDataDescriptor(OBJECT_TYPE type, unsigned int blockID) {
   switch (type) {
     case HIER_TYPE_OBJECT:
       ASSERT(blockID < sizeof(s_objDescriptors) / sizeof(s_objDescriptors[0]));

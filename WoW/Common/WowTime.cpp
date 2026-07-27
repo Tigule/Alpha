@@ -151,7 +151,7 @@ bool WowTime::operator!=(const WowTime &cmpTime) const {
   return !(*this == cmpTime);
 }
 
-void __fastcall WowTime::WowEncodeTime(unsigned int &value, int minute, int hour, int weekday, int monthday, int month, int year, int flags) {
+void WowTime::WowEncodeTime(unsigned int &value, int minute, int hour, int weekday, int monthday, int month, int year, int flags) {
   ASSERT(minute == -1 || (minute >= 0 && minute < 60));
   ASSERT(hour == -1 || (hour >= 0 && hour < 24));
   ASSERT(weekday == -1 || (weekday >= 0 && weekday < 7));
@@ -164,7 +164,7 @@ void __fastcall WowTime::WowEncodeTime(unsigned int &value, int minute, int hour
           ((month & ((1 << 4) - 1)) << 20) | ((year & ((1 << 5) - 1)) << 24) | ((flags & ((1 << 2) - 1)) << 29);
 }
 
-void __fastcall WowTime::WowDecodeTime(unsigned int value, int *minute, int *hour, int *weekday, int *monthday, int *month, int *year, int *flags) {
+void WowTime::WowDecodeTime(unsigned int value, int *minute, int *hour, int *weekday, int *monthday, int *month, int *year, int *flags) {
   int decoded;
 
   if (minute) {
@@ -197,20 +197,20 @@ void __fastcall WowTime::WowDecodeTime(unsigned int value, int *minute, int *hou
   }
 }
 
-void __fastcall WowTime::WowEncodeTime(unsigned int &value, const WowTime *time) {
+void WowTime::WowEncodeTime(unsigned int &value, const WowTime *time) {
   WowEncodeTime(value, time->m_minute, time->m_hour, time->m_weekday, time->m_monthDay, time->m_month, time->m_year, time->m_flags);
 }
 
-void __fastcall WowTime::WowDecodeTime(unsigned int value, WowTime *time) {
+void WowTime::WowDecodeTime(unsigned int value, WowTime *time) {
   WowDecodeTime(value, &time->m_minute, &time->m_hour, &time->m_weekday, &time->m_monthDay, &time->m_month, &time->m_year, &time->m_flags);
 }
 
-const char *__fastcall WowTime::WowGetTimeString(unsigned int value, char *string, int maxlen) {
+const char *WowTime::WowGetTimeString(unsigned int value, char *string, int maxlen) {
   WowTime time(value);
   return WowGetTimeString(&time, string, maxlen);
 }
 
-const char *__fastcall WowTime::WowGetTimeString(WowTime *time, char *string, int maxlen) {
+const char *WowTime::WowGetTimeString(WowTime *time, char *string, int maxlen) {
   unsigned int value;
   char         buffMonth[8];
   char         buffmonthDay[8];

@@ -41,10 +41,10 @@ class CHandleObject {
   int m_refcount;
 };
 
-void __fastcall           HandleClose(HOBJECT handle);
-HOBJECT __fastcall        HandleCreate(CHandleObject *ptr, const char *handleName);
-CHandleObject *__fastcall HandleDereference(HOBJECT handle);
-void __fastcall           HandleDestroy();
-HOBJECT __fastcall        HandleDuplicate(HOBJECT handle);
-void __fastcall           HandleInitialize();
-int __fastcall            HandleObjectCompare(HOBJECT object1, HOBJECT object2);
+void HandleClose(HOBJECT handle);
+HOBJECT HandleCreate(CHandleObject *ptr, const char *handleName);
+CHandleObject *HandleDereference(HOBJECT handle);
+void HandleDestroy();
+HOBJECT HandleDuplicate(HOBJECT handle);
+void HandleInitialize();
+int HandleObjectCompare(HOBJECT object1, HOBJECT object2);

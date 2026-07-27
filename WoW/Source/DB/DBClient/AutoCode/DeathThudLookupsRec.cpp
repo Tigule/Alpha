@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall DeathThudLookupsRec::GetFilename() {
+const char *DeathThudLookupsRec::GetFilename() {
   return "DBFilesClient\\DeathThudLookups.dbc";
 }
 

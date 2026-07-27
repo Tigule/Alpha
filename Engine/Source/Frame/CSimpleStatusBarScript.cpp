@@ -20,7 +20,7 @@
   }                                                                  \
   ASSERT(object)
 
-static int __fastcall CSimpleStatusBar_SetMinMaxValues(lua_State *L) {
+static int CSimpleStatusBar_SetMinMaxValues(lua_State *L) {
   GET_SIMPLE_STATUS_BAR_THIS(L, object);
 
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -33,7 +33,7 @@ static int __fastcall CSimpleStatusBar_SetMinMaxValues(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleStatusBar_GetMinMaxValues(lua_State *L) {
+static int CSimpleStatusBar_GetMinMaxValues(lua_State *L) {
   GET_SIMPLE_STATUS_BAR_THIS(L, object);
 
   lua_pushnumber(L, object->GetMinValue());
@@ -41,7 +41,7 @@ static int __fastcall CSimpleStatusBar_GetMinMaxValues(lua_State *L) {
   return 2;
 }
 
-static int __fastcall CSimpleStatusBar_SetValue(lua_State *L) {
+static int CSimpleStatusBar_SetValue(lua_State *L) {
   GET_SIMPLE_STATUS_BAR_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -53,14 +53,14 @@ static int __fastcall CSimpleStatusBar_SetValue(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleStatusBar_GetValue(lua_State *L) {
+static int CSimpleStatusBar_GetValue(lua_State *L) {
   GET_SIMPLE_STATUS_BAR_THIS(L, object);
 
   lua_pushnumber(L, object->GetValue());
   return 1;
 }
 
-static int __fastcall CSimpleStatusBar_SetStatusBarColor(lua_State *L) {
+static int CSimpleStatusBar_SetStatusBarColor(lua_State *L) {
   GET_SIMPLE_STATUS_BAR_THIS(L, object);
 
   float red = static_cast<float>(lua_tonumber(L, 2));
@@ -89,11 +89,11 @@ static FrameScript_Method SimpleStatusBarMethods[5] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleStatusBar::s_scriptMethods;
 
-void __fastcall CSimpleStatusBar::RegisterScriptMethods() {
+void CSimpleStatusBar::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleStatusBarMethods, 5, s_scriptMethods);
 }
 
-void __fastcall CSimpleStatusBar::UnregisterScriptMethods() {
+void CSimpleStatusBar::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

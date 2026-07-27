@@ -35,7 +35,7 @@ static CategoryTranslation s_translation[8] = {
     {   SOUND,    "sound"}
 };
 
-static int __fastcall ValidateFileName(const char *arguments) {
+static int ValidateFileName(const char *arguments) {
   const char *extension;
 
   if (strstr(arguments, "..") || strstr(arguments, "\\")) {
@@ -52,7 +52,7 @@ static int __fastcall ValidateFileName(const char *arguments) {
   return 1;
 }
 
-static int __fastcall CreateWTFFilePath(char *filename, unsigned int size) {
+static int CreateWTFFilePath(char *filename, unsigned int size) {
   char  buffer[MAX_PATH] = "";
   char *extension;
 
@@ -72,7 +72,7 @@ static int __fastcall CreateWTFFilePath(char *filename, unsigned int size) {
   return 1;
 }
 
-static int __fastcall ConsoleCommand_Help(const char *command, const char *arguments) {
+static int ConsoleCommand_Help(const char *command, const char *arguments) {
   unsigned int    index;
   unsigned int    categoryCount;
   CATEGORY        category;
@@ -156,21 +156,21 @@ static int __fastcall ConsoleCommand_Help(const char *command, const char *argum
   return 1;
 }
 
-static int __fastcall ConsoleCommand_Quit(const char *command, const char *arguments) {
+static int ConsoleCommand_Quit(const char *command, const char *arguments) {
   (void)command;
   (void)arguments;
   ConsolePostClose();
   return 1;
 }
 
-static int __fastcall ConsoleCommand_Ver(const char *command, const char *arguments) {
+static int ConsoleCommand_Ver(const char *command, const char *arguments) {
   (void)command;
   (void)arguments;
   ConsoleWrite(verstr, DEFAULT_COLOR);
   return 1;
 }
 
-int __fastcall ConsoleCommand_RunExec(const char *cmd, const char *arguments) {
+int ConsoleCommand_RunExec(const char *cmd, const char *arguments) {
   char          filename[MAX_PATH];
   char          errorString[MAX_PATH];
   char          tmp[MAX_PATH];
@@ -231,7 +231,7 @@ int __fastcall ConsoleCommand_RunExec(const char *cmd, const char *arguments) {
   return 1;
 }
 
-static int __fastcall ConsoleCommand_CreateExec(const char *cmd, const char *arguments) {
+static int ConsoleCommand_CreateExec(const char *cmd, const char *arguments) {
   char  folder[MAX_PATH];
   char  filePath[MAX_PATH];
   char *lastSlash;
@@ -271,7 +271,7 @@ static int __fastcall ConsoleCommand_CreateExec(const char *cmd, const char *arg
   return 1;
 }
 
-static int __fastcall ConsoleCommand_AppendExec(const char *cmd, const char *arguments) {
+static int ConsoleCommand_AppendExec(const char *cmd, const char *arguments) {
   char errorString[MAX_PATH];
   char filePath[MAX_PATH];
 
@@ -299,7 +299,7 @@ static int __fastcall ConsoleCommand_AppendExec(const char *cmd, const char *arg
   return 1;
 }
 
-static int __fastcall ConsoleCommand_CloseExec(const char *cmd, const char *arguments) {
+static int ConsoleCommand_CloseExec(const char *cmd, const char *arguments) {
   char          filePath[MAX_PATH];
   HOSFILE__    *file;
   unsigned long count;
@@ -338,7 +338,7 @@ static int __fastcall ConsoleCommand_CloseExec(const char *cmd, const char *argu
   return 1;
 }
 
-static int __fastcall ConsoleCommand_TypeExec(const char *cmd, const char *arguments) {
+static int ConsoleCommand_TypeExec(const char *cmd, const char *arguments) {
   char          errorString[MAX_PATH];
   char          filePath[MAX_PATH];
   char          lineBuffer[128];
@@ -385,7 +385,7 @@ static int __fastcall ConsoleCommand_TypeExec(const char *cmd, const char *argum
   return 1;
 }
 
-static int __fastcall ConsoleCommand_DirWtf(const char *cmd, const char *arguments) {
+static int ConsoleCommand_DirWtf(const char *cmd, const char *arguments) {
   char          line[80];
   const char   *readBuffer;
   char          endOfLine[4] = " \r\n";
@@ -416,7 +416,7 @@ static int __fastcall ConsoleCommand_DirWtf(const char *cmd, const char *argumen
   return 1;
 }
 
-CONSOLECOMMAND *__fastcall ParseCommand(const char *commandLine, const char **command, const char **arguments) {
+CONSOLECOMMAND *ParseCommand(const char *commandLine, const char **command, const char **arguments) {
   const char *args;
 
   ASSERT(commandLine);
@@ -437,15 +437,15 @@ CONSOLECOMMAND *__fastcall ParseCommand(const char *commandLine, const char **co
   return g_consoleCommandHash.Ptr(cmd);
 }
 
-unsigned int __fastcall ConsoleCommandHistoryDepth() {
+unsigned int ConsoleCommandHistoryDepth() {
   return 32;
 }
 
-const char *__fastcall ConsoleCommandHistory(unsigned int offset) {
+const char *ConsoleCommandHistory(unsigned int offset) {
   return g_commandHistory[(g_commandHistoryIndex - offset - 1) & 0x1F];
 }
 
-int __fastcall ConsoleCommandRegister(const char *command, CONSOLECOMMANDHANDLER handler, CATEGORY category, const char *helpText) {
+int ConsoleCommandRegister(const char *command, CONSOLECOMMANDHANDLER handler, CATEGORY category, const char *helpText) {
   CONSOLECOMMAND *entry;
 
   ASSERT(command);
@@ -466,7 +466,7 @@ int __fastcall ConsoleCommandRegister(const char *command, CONSOLECOMMANDHANDLER
   return 1;
 }
 
-void __fastcall ConsoleCommandUnregister(const char *command) {
+void ConsoleCommandUnregister(const char *command) {
   CONSOLECOMMAND *entry = g_consoleCommandHash.Ptr(command);
 
   if (!entry) {
@@ -476,7 +476,7 @@ void __fastcall ConsoleCommandUnregister(const char *command) {
   g_consoleCommandHash.Delete(entry);
 }
 
-int __fastcall ConsoleCommandComplete(const char *partial, const char **previous, int direction) {
+int ConsoleCommandComplete(const char *partial, const char **previous, int direction) {
   unsigned int    partialLength;
   const char     *previousString;
   CONSOLECOMMAND *entry;
@@ -516,15 +516,15 @@ int __fastcall ConsoleCommandComplete(const char *partial, const char **previous
   return 0;
 }
 
-void __fastcall ConsoleCommandWriteHelp(const char *cmd) {
+void ConsoleCommandWriteHelp(const char *cmd) {
   ConsoleCommand_Help(cmd, "help");
 }
 
-void __fastcall ConsoleCommandRegisterDefault(CONSOLECOMMANDHANDLER handler) {
+void ConsoleCommandRegisterDefault(CONSOLECOMMANDHANDLER handler) {
   g_defaultCommand = handler;
 }
 
-void __fastcall ConsoleCommandInitialize() {
+void ConsoleCommandInitialize() {
   ConsoleCommandRegister("help", ConsoleCommand_Help, DEFAULT, 0);
   ConsoleCommandRegister("quit", ConsoleCommand_Quit, DEFAULT, 0);
   ConsoleCommandRegister("ver", ConsoleCommand_Ver, DEFAULT, 0);
@@ -536,6 +536,6 @@ void __fastcall ConsoleCommandInitialize() {
   ConsoleCommandRegister("dirwtf", ConsoleCommand_DirWtf, CONSOLE, "Lists the WTF files");
 }
 
-void __fastcall ConsoleCommandDestroy() {
+void ConsoleCommandDestroy() {
   g_consoleCommandHash.Clear();
 }

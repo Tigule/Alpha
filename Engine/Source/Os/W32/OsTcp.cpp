@@ -482,7 +482,7 @@ namespace OsNet {
     pnet->FileCompleteConnect(this);
   }
 
-  void __fastcall TCPNET::MakeConnAddr(unsigned int sock, unsigned long port, NETCONNADDR *connAddr) {
+  void TCPNET::MakeConnAddr(unsigned int sock, unsigned long port, NETCONNADDR *connAddr) {
     int peerSize = sizeof(connAddr->peerAddr);
     int selfSize = sizeof(connAddr->selfAddr);
 
@@ -497,7 +497,7 @@ namespace OsNet {
     *reinterpret_cast<unsigned long *>(&connAddr->peerAddr.data[12]) = 0;
   }
 
-  unsigned int __fastcall TCPNET::CreateListenSocket(unsigned short port) {
+  unsigned int TCPNET::CreateListenSocket(unsigned short port) {
     sockaddr_in  addr;
     int          mode = 1;
     unsigned int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -527,7 +527,7 @@ namespace OsNet {
     return sock;
   }
 
-  void *__fastcall TCPNET::IoCompletionPresent(unsigned long *pumpThreadCount) {
+  void *TCPNET::IoCompletionPresent(unsigned long *pumpThreadCount) {
     SYSTEM_INFO si;
     void       *port = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
 
@@ -543,7 +543,7 @@ namespace OsNet {
     return port;
   }
 
-  void __fastcall TCPNET::IncludeDependantParts(unsigned long *parts) {
+  void TCPNET::IncludeDependantParts(unsigned long *parts) {
     *parts |= 1;
     if (*parts & 2) {
       *parts |= 8;
@@ -553,7 +553,7 @@ namespace OsNet {
     }
   }
 
-  int __fastcall TCPNET::Initialize(unsigned long hints, unsigned long parts) {
+  int TCPNET::Initialize(unsigned long hints, unsigned long parts) {
     OSVERSIONINFOA versionInfo;
     LARGE_INTEGER  freq;
 
@@ -632,7 +632,7 @@ namespace OsNet {
     return result;
   }
 
-  void __fastcall TCPNET::Destroy(unsigned long parts) {
+  void TCPNET::Destroy(unsigned long parts) {
     IncludeDependantParts(&parts);
     s_initLock.Enter();
 
@@ -3185,15 +3185,15 @@ namespace OsNet {
 
 }  // namespace OsNet
 
-int __fastcall OsNetInitialize(unsigned long hints, unsigned long parts) {
+int OsNetInitialize(unsigned long hints, unsigned long parts) {
   return OsNet::TCPNET::Initialize(hints, parts);
 }
 
-void __fastcall OsNetDestroy(unsigned long parts) {
+void OsNetDestroy(unsigned long parts) {
   OsNet::TCPNET::Destroy(parts);
 }
 
-void __fastcall OsNetPump(unsigned long timeout) {
+void OsNetPump(unsigned long timeout) {
   OsNet::TCPNET *net = OsNet::TCPNET::s_pnet;
   if (net) {
     net->Pump(timeout);
@@ -3202,121 +3202,121 @@ void __fastcall OsNetPump(unsigned long timeout) {
   }
 }
 
-HNETCONN__ *__fastcall OsNetConnCopyHandle(HNETCONN__ *conn) {
+HNETCONN__ *OsNetConnCopyHandle(HNETCONN__ *conn) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONN *>(conn)->IncRef();
   return conn;
 }
 
-void __fastcall OsNetConnFreeHandle(HNETCONN__ *conn) {
+void OsNetConnFreeHandle(HNETCONN__ *conn) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONN *>(conn)->DecRef();
 }
 
-void __fastcall OsNetConnAddr(HNETCONN__ *conn, NETCONNADDR *connAddr) {
+void OsNetConnAddr(HNETCONN__ *conn, NETCONNADDR *connAddr) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONN *>(conn)->ConnAddr(connAddr);
 }
 
-void __fastcall OsNetConnClose(HNETCONN__ *conn) {
+void OsNetConnClose(HNETCONN__ *conn) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONN *>(conn)->Close();
 }
 
-int __fastcall OsNetConnIsClosed(HNETCONN__ *conn) {
+int OsNetConnIsClosed(HNETCONN__ *conn) {
   if (!conn) {
     return 1;
   }
   return reinterpret_cast<OsNet::NETCONN *>(conn)->IsClosed();
 }
 
-void __fastcall OsNetConnSetEventProc(HNETCONN__ *conn, NETEVENTPROC eventProc) {
+void OsNetConnSetEventProc(HNETCONN__ *conn, NETEVENTPROC eventProc) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONN *>(conn)->SetEventProc(eventProc);
 }
 
-void __fastcall OsNetConnSetUser(HNETCONN__ *conn, void *user) {
+void OsNetConnSetUser(HNETCONN__ *conn, void *user) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONN *>(conn)->SetUser(user);
 }
 
-void __fastcall OsNetConnSetEventProcAndUser(HNETCONN__ *conn, NETEVENTPROC eventProc, void *user) {
+void OsNetConnSetEventProcAndUser(HNETCONN__ *conn, NETEVENTPROC eventProc, void *user) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONN *>(conn)->SetEventProcAndUser(eventProc, user);
 }
 
-void __fastcall OsLoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, void *user, const void *data, unsigned long bytes) {
+void OsLoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, void *user, const void *data, unsigned long bytes) {
   if (OsNet::TCPNET::s_pnet) {
     OsNet::TCPNET::s_pnet->LoopConnect(eventProcSrc, eventProcDst, user, data, bytes);
   }
 }
 
-void __fastcall OsLoopConnSend(HNETCONN__ *conn, const void *data, unsigned long bytes) {
+void OsLoopConnSend(HNETCONN__ *conn, const void *data, unsigned long bytes) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::LOOPCONN *>(conn)->Send(data, bytes);
 }
 
-int __fastcall OsTcpListen(unsigned short port, NETEVENTPROC eventProc, void *user) {
+int OsTcpListen(unsigned short port, NETEVENTPROC eventProc, void *user) {
   if (OsNet::TCPNET::s_pnet) {
     return OsNet::TCPNET::s_pnet->TcpListen(port, eventProc, user);
   }
   return 0;
 }
 
-void __fastcall OsTcpListenEnable(unsigned short port, int enable) {
+void OsTcpListenEnable(unsigned short port, int enable) {
   if (OsNet::TCPNET::s_pnet) {
     OsNet::TCPNET::s_pnet->TcpListenEnable(port, enable);
   }
 }
 
-void __fastcall
+void
 OsTcpConnect(unsigned long nodeNumber, unsigned short port, NETEVENTPROC eventProc, void *user, const void *data, unsigned long bytes) {
   if (OsNet::TCPNET::s_pnet) {
     OsNet::TCPNET::s_pnet->TcpConnect(nodeNumber, port, eventProc, user, data, bytes);
   }
 }
 
-void __fastcall OsTcpConnSend(HNETCONN__ *conn, const void *data, unsigned long bytes) {
+void OsTcpConnSend(HNETCONN__ *conn, const void *data, unsigned long bytes) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONNFULL *>(conn)->Send(data, bytes);
 }
 
-OS_SEND __fastcall OsTcpConnSendSync(HNETCONN__ *conn, const void *data, unsigned long bytes, unsigned long *bytesSent, unsigned long timeout) {
+OS_SEND OsTcpConnSendSync(HNETCONN__ *conn, const void *data, unsigned long bytes, unsigned long *bytesSent, unsigned long timeout) {
   FATALASSERT(conn);
   return reinterpret_cast<OsNet::NETCONNFULL *>(conn)->SendSync(data, bytes, bytesSent, timeout);
 }
 
-void __fastcall OsTcpConnSetNagle(HNETCONN__ *conn, int enable) {
+void OsTcpConnSetNagle(HNETCONN__ *conn, int enable) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONNFULL *>(conn)->SetNagle(enable);
 }
 
-int __fastcall OsTcpConnSetWindow(HNETCONN__ *conn, unsigned long size) {
+int OsTcpConnSetWindow(HNETCONN__ *conn, unsigned long size) {
   FATALASSERT(conn);
   return reinterpret_cast<OsNet::NETCONNFULL *>(conn)->SetWindow(size);
 }
 
-void __fastcall OsTcpConnSetRecvTimeout(HNETCONN__ *conn, unsigned long timeoutMs) {
+void OsTcpConnSetRecvTimeout(HNETCONN__ *conn, unsigned long timeoutMs) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONNFULL *>(conn)->SetRecvTimeout(timeoutMs);
 }
 
-unsigned long __fastcall OsTcpAddrLoop() {
+unsigned long OsTcpAddrLoop() {
   return 0;
 }
 
-void __fastcall OsUdpConnect(const NETADDR *addr, unsigned short portMin, unsigned short portMax, NETEVENTPROC eventProc, void *user) {
+void OsUdpConnect(const NETADDR *addr, unsigned short portMin, unsigned short portMax, NETEVENTPROC eventProc, void *user) {
   if (OsNet::TCPNET::s_pnet) {
     OsNet::TCPNET::s_pnet->UdpConnect(addr, portMin, portMax, eventProc, user);
   }
 }
 
-void __fastcall OsUdpConnSendTo(HNETCONN__ *conn, const void *data, unsigned long bytes, unsigned long addrCount, const NETADDR *addrArray) {
+void OsUdpConnSendTo(HNETCONN__ *conn, const void *data, unsigned long bytes, unsigned long addrCount, const NETADDR *addrArray) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::NETCONNLESS *>(conn)->SendTo(data, bytes, addrCount, addrArray);
 }
 
-void __fastcall OsNetAddrMake(unsigned long nodeNumber, unsigned short port, NETADDR *netAddr) {
+void OsNetAddrMake(unsigned long nodeNumber, unsigned short port, NETADDR *netAddr) {
   sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(netAddr);
 
   addr->sin_family = AF_INET;
@@ -3325,7 +3325,7 @@ void __fastcall OsNetAddrMake(unsigned long nodeNumber, unsigned short port, NET
   memset(addr->sin_zero, 0, sizeof(addr->sin_zero));
 }
 
-void __fastcall OsNetAddrMakeBroadcast(unsigned short port, NETADDR *netAddr) {
+void OsNetAddrMakeBroadcast(unsigned short port, NETADDR *netAddr) {
   sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(netAddr);
 
   addr->sin_family = AF_INET;
@@ -3334,7 +3334,7 @@ void __fastcall OsNetAddrMakeBroadcast(unsigned short port, NETADDR *netAddr) {
   memset(addr->sin_zero, 0, sizeof(addr->sin_zero));
 }
 
-void __fastcall OsNetAddrMakeFromStr(const char *addrStr, unsigned short port, NETADDR *netAddr) {
+void OsNetAddrMakeFromStr(const char *addrStr, unsigned short port, NETADDR *netAddr) {
   char        tempStr[32];
   const char *colon = SStrChr(addrStr, ':');
 
@@ -3350,14 +3350,14 @@ void __fastcall OsNetAddrMakeFromStr(const char *addrStr, unsigned short port, N
   memset(reinterpret_cast<sockaddr_in *>(netAddr)->sin_zero, 0, sizeof(reinterpret_cast<sockaddr_in *>(netAddr)->sin_zero));
 }
 
-int __fastcall OsNetAddrLoopback(const NETADDR *netAddr1, const NETADDR *netAddr2) {
+int OsNetAddrLoopback(const NETADDR *netAddr1, const NETADDR *netAddr2) {
   const sockaddr_in *addr1 = reinterpret_cast<const sockaddr_in *>(netAddr1);
   const sockaddr_in *addr2 = reinterpret_cast<const sockaddr_in *>(netAddr2);
 
   return addr1->sin_addr.s_addr == addr2->sin_addr.s_addr || addr1->sin_addr.s_addr == INADDR_LOOPBACK || addr2->sin_addr.s_addr == INADDR_LOOPBACK;
 }
 
-int __fastcall OsNetAddrCompare(const NETADDR *netAddr1, const NETADDR *netAddr2, NETADDRDIFF *difflevel) {
+int OsNetAddrCompare(const NETADDR *netAddr1, const NETADDR *netAddr2, NETADDRDIFF *difflevel) {
   const unsigned short *addr1 = reinterpret_cast<const unsigned short *>(netAddr1);
   const unsigned short *addr2 = reinterpret_cast<const unsigned short *>(netAddr2);
   NETADDRDIFF           diff;
@@ -3380,7 +3380,7 @@ int __fastcall OsNetAddrCompare(const NETADDR *netAddr1, const NETADDR *netAddr2
   return diff == NETADDR_DIFF_EQUAL;
 }
 
-unsigned long __fastcall OsNetAddrGetAddress(const NETADDR *netAddr, unsigned short *port) {
+unsigned long OsNetAddrGetAddress(const NETADDR *netAddr, unsigned short *port) {
   const sockaddr_in *addr = reinterpret_cast<const sockaddr_in *>(netAddr);
 
   if (port) {
@@ -3389,7 +3389,7 @@ unsigned long __fastcall OsNetAddrGetAddress(const NETADDR *netAddr, unsigned sh
   return addr->sin_addr.s_addr;
 }
 
-const char *__fastcall OsNetAddrToStr(const NETADDR *netAddr, char *string, unsigned long length) {
+const char *OsNetAddrToStr(const NETADDR *netAddr, char *string, unsigned long length) {
   SStrPrintf(
       string, length, "%s:%u", inet_ntoa(reinterpret_cast<const sockaddr_in *>(netAddr)->sin_addr),
       ntohs(reinterpret_cast<const sockaddr_in *>(netAddr)->sin_port)
@@ -3397,11 +3397,11 @@ const char *__fastcall OsNetAddrToStr(const NETADDR *netAddr, char *string, unsi
   return string;
 }
 
-unsigned long __fastcall OsNetAddrToHostOrder(unsigned long nodeNumber) {
+unsigned long OsNetAddrToHostOrder(unsigned long nodeNumber) {
   return ntohl(nodeNumber);
 }
 
-unsigned long __fastcall OsNetGetHostAddr(const char *hostName) {
+unsigned long OsNetGetHostAddr(const char *hostName) {
   char           name[256];
   hostent       *host;
   unsigned char *addr;
@@ -3422,30 +3422,30 @@ unsigned long __fastcall OsNetGetHostAddr(const char *hostName) {
          (static_cast<unsigned long>(addr[3]) << 24);
 }
 
-int __fastcall OsNetGetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETHOSTADDRPROC hostAddrProc, void *user) {
+int OsNetGetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETHOSTADDRPROC hostAddrProc, void *user) {
   if (OsNet::TCPNET::s_pnet) {
     return OsNet::TCPNET::s_pnet->GetHostAddrs(hostNameList, defaultPort, hostAddrProc, user);
   }
   return 0;
 }
 
-void __fastcall OsFileConnCreate(const char *fileName, NETEVENTPROC eventProc, void *user, int readOnly) {
+void OsFileConnCreate(const char *fileName, NETEVENTPROC eventProc, void *user, int readOnly) {
   if (OsNet::TCPNET::s_pnet) {
     OsNet::TCPNET::s_pnet->FileConnCreate(fileName, eventProc, user, readOnly);
   }
 }
 
-int __fastcall OsFileConnRead(HNETCONN__ *conn, unsigned __int64 pos, void *buffer, unsigned long bytes, void *operationId) {
+int OsFileConnRead(HNETCONN__ *conn, unsigned __int64 pos, void *buffer, unsigned long bytes, void *operationId) {
   FATALASSERT(conn);
   return reinterpret_cast<OsNet::FILECONN *>(conn)->Read(pos, buffer, bytes, operationId);
 }
 
-int __fastcall OsFileConnWrite(HNETCONN__ *conn, unsigned __int64 pos, const void *data, unsigned long bytes, void *operationId) {
+int OsFileConnWrite(HNETCONN__ *conn, unsigned __int64 pos, const void *data, unsigned long bytes, void *operationId) {
   FATALASSERT(conn);
   return reinterpret_cast<OsNet::FILECONN *>(conn)->Write(pos, data, bytes, operationId);
 }
 
-void __fastcall OsFileConnClose(HNETCONN__ *conn) {
+void OsFileConnClose(HNETCONN__ *conn) {
   FATALASSERT(conn);
   reinterpret_cast<OsNet::FILECONN *>(conn)->Close();
 }

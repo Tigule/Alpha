@@ -5,9 +5,9 @@
 #include "Services/IParticleMisc.h"
 #include "Services/RibbonEmitter.h"
 
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
-static void __fastcall LoadRibbonMaterial(
+static void LoadRibbonMaterial(
     const CMaterial                      &uniqueMtl,
     const TSGrowableArray<CModelTexture> &modelTextures,
     TSGrowableArray<CRibbonMat>          *mats,
@@ -36,7 +36,7 @@ static void __fastcall LoadRibbonMaterial(
   }
 }
 
-static void __fastcall LoadEmitterData(unsigned char *emitterData, CModelComplex *modelptr, CRibbonEmitter *ribbon) {
+static void LoadEmitterData(unsigned char *emitterData, CModelComplex *modelptr, CRibbonEmitter *ribbon) {
   static TSGrowableArray<CRibbonMat>   mats;
   static TSGrowableArray<HTEXTURE>     textures;
   static TSGrowableArray<unsigned int> replace;
@@ -70,7 +70,7 @@ static void __fastcall LoadEmitterData(unsigned char *emitterData, CModelComplex
   ribbon->SetGravity(gravity);
 }
 
-int __fastcall MdlReadLoadRibbonEmitters(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared) {
+int MdlReadLoadRibbonEmitters(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared) {
   FATALASSERT(modelptr);
   FATALASSERT(shared);
 
@@ -131,7 +131,7 @@ int __fastcall MdlReadLoadRibbonEmitters(const MDLDATA& data, CModelComplex* mod
   return 1;
 }
 
-void __fastcall MdxReadRibbonEmitters(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr, CModelShared *shared) {
+void MdxReadRibbonEmitters(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr, CModelShared *shared) {
   ASSERT(data);
   ASSERT(modelptr);
   ASSERT(shared);

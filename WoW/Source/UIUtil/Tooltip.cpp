@@ -50,8 +50,8 @@ class CGBuffDesc {
 
 class CGBuffBar {
  public:
-  static const CGBuffDesc *__fastcall GetBuffByIndex(int buffIndex);
-  static unsigned int __fastcall GetBuffTimeLeftByIndex(int buffIndex);
+  static const CGBuffDesc *GetBuffByIndex(int buffIndex);
+  static unsigned int GetBuffTimeLeftByIndex(int buffIndex);
 };
 
 struct TradeSkillInfo {
@@ -106,7 +106,7 @@ struct VendorItem {
 
 class CGMerchantInfo {
  public:
-  static unsigned __int64 __fastcall GetMerchant();
+  static unsigned __int64 GetMerchant();
   static const VendorItem *GetItem(int index) {
     return index >= 0 && index < m_itemCount ? &m_items[index] : 0;
   }
@@ -119,8 +119,8 @@ class CGMerchantInfo {
 
 class CGTradeInfo {
  public:
-  static void __fastcall GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot);
-  static unsigned __int64 __fastcall GetTradePartner();
+  static void GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot);
+  static unsigned __int64 GetTradePartner();
   static int             GetTargetTradeItem(int index) {
     return index >= 0 && index < 8 ? m_targetItems[index] : 0;
   }
@@ -138,19 +138,19 @@ class CGTradeInfo {
   static unsigned __int64 m_targetItemCreator[8];
 };
 
-int __fastcall Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot);
+int Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot);
 
-unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
-CGUnit_C        *__fastcall Script_GetUnitFromName(const char *name);
-int __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
-int __fastcall  Spell_C_GetSpellCooldown(
+unsigned __int64 Script_GetGUIDFromName(const char *name);
+CGUnit_C        *Script_GetUnitFromName(const char *name);
+int SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
+int Spell_C_GetSpellCooldown(
     int spell,
     int isPet,
     unsigned int *duration,
     unsigned long *startTime,
     unsigned int *enable
 );
-int __fastcall  Spell_C_GetItemCooldown(
+int Spell_C_GetItemCooldown(
     int itemID,
     unsigned int *duration,
     unsigned long *startTime,
@@ -159,41 +159,41 @@ int __fastcall  Spell_C_GetItemCooldown(
 
 class CGQuestInfo {
  public:
-  static int __fastcall GetQuestItemID(const char *type, unsigned int index);
-  static const unsigned __int64 &__fastcall GetQuestGiver();
+  static int GetQuestItemID(const char *type, unsigned int index);
+  static const unsigned __int64 &GetQuestGiver();
 };
 
 class CGContainerInfo {
  public:
-  static unsigned __int64 __fastcall GetContainer(int index);
+  static unsigned __int64 GetContainer(int index);
 };
 
-int __fastcall CGTooltip_SetPadding(lua_State *L);
-int __fastcall CGTooltip_IsOwned(lua_State *L);
-int __fastcall CGTooltip_SetOwner(lua_State *L);
-int __fastcall CGTooltip_ClearLines(lua_State *L);
-int __fastcall CGTooltip_AddLine(lua_State *L);
-int __fastcall CGTooltip_SetText(lua_State *L);
-int __fastcall CGTooltip_AppendText(lua_State *L);
-int __fastcall CGTooltip_FadeOut(lua_State *L);
-int __fastcall CGTooltip_SetHyperlink(lua_State *L);
-int __fastcall CGTooltip_SetAction(lua_State *L);
-int __fastcall CGTooltip_SetPlayerBuff(lua_State *L);
-int __fastcall CGTooltip_SetSpell(lua_State *L);
-int __fastcall CGTooltip_SetInventoryItem(lua_State *L);
-int __fastcall CGTooltip_SetLootItem(lua_State *L);
-int __fastcall CGTooltip_SetQuestItem(lua_State *L);
-int __fastcall CGTooltip_SetQuestLogItem(lua_State *L);
-int __fastcall CGTooltip_SetTrainerService(lua_State *L);
-int __fastcall CGTooltip_SetTradeSkillItem(lua_State *L);
-int __fastcall CGTooltip_SetCraftItem(lua_State *L);
-int __fastcall CGTooltip_SetCraftSpell(lua_State *L);
-int __fastcall CGTooltip_SetMerchantItem(lua_State *L);
-int __fastcall CGTooltip_SetTradePlayerItem(lua_State *L);
-int __fastcall CGTooltip_SetTradeTargetItem(lua_State *L);
-int __fastcall CGTooltip_SetBagItem(lua_State *L);
-int __fastcall CGTooltip_SetUnit(lua_State *L);
-int __fastcall CGTooltip_NumLines(lua_State *L);
+int CGTooltip_SetPadding(lua_State *L);
+int CGTooltip_IsOwned(lua_State *L);
+int CGTooltip_SetOwner(lua_State *L);
+int CGTooltip_ClearLines(lua_State *L);
+int CGTooltip_AddLine(lua_State *L);
+int CGTooltip_SetText(lua_State *L);
+int CGTooltip_AppendText(lua_State *L);
+int CGTooltip_FadeOut(lua_State *L);
+int CGTooltip_SetHyperlink(lua_State *L);
+int CGTooltip_SetAction(lua_State *L);
+int CGTooltip_SetPlayerBuff(lua_State *L);
+int CGTooltip_SetSpell(lua_State *L);
+int CGTooltip_SetInventoryItem(lua_State *L);
+int CGTooltip_SetLootItem(lua_State *L);
+int CGTooltip_SetQuestItem(lua_State *L);
+int CGTooltip_SetQuestLogItem(lua_State *L);
+int CGTooltip_SetTrainerService(lua_State *L);
+int CGTooltip_SetTradeSkillItem(lua_State *L);
+int CGTooltip_SetCraftItem(lua_State *L);
+int CGTooltip_SetCraftSpell(lua_State *L);
+int CGTooltip_SetMerchantItem(lua_State *L);
+int CGTooltip_SetTradePlayerItem(lua_State *L);
+int CGTooltip_SetTradeTargetItem(lua_State *L);
+int CGTooltip_SetBagItem(lua_State *L);
+int CGTooltip_SetUnit(lua_State *L);
+int CGTooltip_NumLines(lua_State *L);
 
 static FrameScript_Method CGTooltipMethods[26] = {
     {        "SetPadding",         CGTooltip_SetPadding},
@@ -319,7 +319,7 @@ static void TooltipObjectLockItemStatsCallback(int id, const unsigned __int64&, 
   }
 }
 
-static void __fastcall TooltipItemStatsCallback(int id, const unsigned __int64&, void* arg, bool granted) {
+static void TooltipItemStatsCallback(int id, const unsigned __int64&, void* arg, bool granted) {
   if (granted) {
     CGTooltip *tooltip = static_cast<CGTooltip *>(arg);
     FATALASSERT(tooltip);
@@ -517,7 +517,7 @@ void CGTooltip::SetObject(const unsigned __int64 &object) {
   Show();
 }
 
-const char *__fastcall CGTooltip::GetItemQualityColorString(unsigned int quality) {
+const char *CGTooltip::GetItemQualityColorString(unsigned int quality) {
   static const char *colors[] = {"|cff9d9d9d", "|cffffc600", "|cff1eff00", "|cff0070dd", "|cffa335ee", "|cffff0000", "|cffff1e38"};
 
   return quality < 7 ? colors[quality] : "";
@@ -689,7 +689,7 @@ void CGTooltip::SetOwner(CLayoutFrame *owner, float x, float y) {
   m_owner = owner;
 }
 
-void __fastcall CGTooltip::GetSpellEffectString(
+void CGTooltip::GetSpellEffectString(
     char           *buf,
     unsigned int    bufSize,
     const SpellRec *spell,
@@ -709,7 +709,7 @@ void __fastcall CGTooltip::GetSpellEffectString(
   SStrPrintf(buf, bufSize, "%d", points);
 }
 
-void __fastcall CGTooltip::GetAuraEffectString(
+void CGTooltip::GetAuraEffectString(
     char           *buf,
     unsigned int    bufSize,
     const SpellRec *spell,
@@ -762,7 +762,7 @@ void CGTooltip::AddLine(const char *text, const NTempest::CImVector &color, int 
   AddLine(text, 0, color, color, wrapped);
 }
 
-void __fastcall CGTooltip::GetItemEnchantString(
+void CGTooltip::GetItemEnchantString(
     char                          *buf,
     unsigned int                   bufSize,
     const SpellItemEnchantmentRec *enchant,
@@ -781,7 +781,7 @@ void __fastcall CGTooltip::GetItemEnchantString(
   }
 }
 
-void __fastcall CGTooltip::GetSpellTargetString(char *buf, unsigned int bufSize, const SpellRec *spell, unsigned int effectIndex) {
+void CGTooltip::GetSpellTargetString(char *buf, unsigned int bufSize, const SpellRec *spell, unsigned int effectIndex) {
   if (!buf || !bufSize) {
     return;
   }
@@ -795,7 +795,7 @@ void __fastcall CGTooltip::GetSpellTargetString(char *buf, unsigned int bufSize,
   }
 }
 
-void __fastcall CGTooltip::GetSummonedByString(const CGUnit_C *unitPtr, char *string, unsigned int size) {
+void CGTooltip::GetSummonedByString(const CGUnit_C *unitPtr, char *string, unsigned int size) {
   if (!string || !size) {
     return;
   }
@@ -1025,13 +1025,13 @@ void CGTooltip::OnLayerUpdate(float elapsedSec) {
   }                                                             \
   ASSERT(tooltip)
 
-int __fastcall CGTooltip_SetPadding(lua_State *L) {
+int CGTooltip_SetPadding(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   tooltip->SetTooltipPadding(static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f * 0.8f);
   return 0;
 }
 
-int __fastcall CGTooltip_IsOwned(lua_State *L) {
+int CGTooltip_IsOwned(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   lua_pushnumber(L, 0.0);
   lua_gettable(L, 2);
@@ -1047,7 +1047,7 @@ int __fastcall CGTooltip_IsOwned(lua_State *L) {
   return 1;
 }
 
-int __fastcall CGTooltip_SetOwner(lua_State *L) {
+int CGTooltip_SetOwner(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   tooltip->Hide();
 
@@ -1079,13 +1079,13 @@ int __fastcall CGTooltip_SetOwner(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_ClearLines(lua_State *L) {
+int CGTooltip_ClearLines(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   tooltip->ClearLines();
   return 0;
 }
 
-int __fastcall CGTooltip_AddLine(lua_State *L) {
+int CGTooltip_AddLine(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   const char *leftText = 0;
   const char *rightText = 0;
@@ -1126,7 +1126,7 @@ int __fastcall CGTooltip_AddLine(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetText(lua_State *L) {
+int CGTooltip_SetText(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2)) {
     return luaL_error(L, "Usage: SetText(\"text\" [, color])");
@@ -1147,7 +1147,7 @@ int __fastcall CGTooltip_SetText(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_AppendText(lua_State *L) {
+int CGTooltip_AppendText(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2)) {
     return luaL_error(L, "Usage: AppendText(\"text\")");
@@ -1156,13 +1156,13 @@ int __fastcall CGTooltip_AppendText(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_FadeOut(lua_State *L) {
+int CGTooltip_FadeOut(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   tooltip->FadeOut();
   return 0;
 }
 
-int __fastcall CGTooltip_SetHyperlink(lua_State *L) {
+int CGTooltip_SetHyperlink(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2)) {
     return luaL_error(L, "Usage: SetHyperlink(link)");
@@ -1180,7 +1180,7 @@ int __fastcall CGTooltip_SetHyperlink(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetAction(lua_State *L) {
+int CGTooltip_SetAction(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: SetAction(slot)");
@@ -1275,7 +1275,7 @@ int __fastcall CGTooltip_SetAction(lua_State *L) {
   return 1;
 }
 
-int __fastcall CGTooltip_SetPlayerBuff(lua_State *L) {
+int CGTooltip_SetPlayerBuff(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: SetPlayerBuff(buffIndex)");
@@ -1303,7 +1303,7 @@ int __fastcall CGTooltip_SetPlayerBuff(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetSpell(lua_State *L) {
+int CGTooltip_SetSpell(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2) || !lua_isstring(L, 3)) {
     return luaL_error(L, "Invalid spell slot in SetSpell");
@@ -1352,7 +1352,7 @@ int __fastcall CGTooltip_SetSpell(lua_State *L) {
   return 1;
 }
 
-int __fastcall CGTooltip_SetInventoryItem(lua_State *L) {
+int CGTooltip_SetInventoryItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
     return luaL_error(L, "Usage: SetInventoryItem(\"unit\", slot)");
@@ -1418,7 +1418,7 @@ int __fastcall CGTooltip_SetInventoryItem(lua_State *L) {
   return 2;
 }
 
-int __fastcall CGTooltip_SetLootItem(lua_State *L) {
+int CGTooltip_SetLootItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Invalid loot slot in SetInventoryItem");
@@ -1434,7 +1434,7 @@ int __fastcall CGTooltip_SetLootItem(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetQuestItem(lua_State *L) {
+int CGTooltip_SetQuestItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
     return luaL_error(
@@ -1461,7 +1461,7 @@ int __fastcall CGTooltip_SetQuestItem(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetQuestLogItem(lua_State *L) {
+int CGTooltip_SetQuestLogItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
     return luaL_error(
@@ -1481,7 +1481,7 @@ int __fastcall CGTooltip_SetQuestLogItem(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetTrainerService(lua_State *L) {
+int CGTooltip_SetTrainerService(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(
@@ -1537,7 +1537,7 @@ int __fastcall CGTooltip_SetTrainerService(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetTradeSkillItem(lua_State *L) {
+int CGTooltip_SetTradeSkillItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(
@@ -1584,7 +1584,7 @@ int __fastcall CGTooltip_SetTradeSkillItem(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetCraftItem(lua_State *L) {
+int CGTooltip_SetCraftItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
     return luaL_error(
@@ -1624,7 +1624,7 @@ int __fastcall CGTooltip_SetCraftItem(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetCraftSpell(lua_State *L) {
+int CGTooltip_SetCraftSpell(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Invalid craft in SetCraftSpell(index)");
@@ -1638,7 +1638,7 @@ int __fastcall CGTooltip_SetCraftSpell(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetMerchantItem(lua_State *L) {
+int CGTooltip_SetMerchantItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Invalid merchant slot in SetMerchantItem");
@@ -1654,7 +1654,7 @@ int __fastcall CGTooltip_SetMerchantItem(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetTradePlayerItem(lua_State *L) {
+int CGTooltip_SetTradePlayerItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Invalid trade slot in SetTradePlayerItem");
@@ -1688,7 +1688,7 @@ int __fastcall CGTooltip_SetTradePlayerItem(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetTradeTargetItem(lua_State *L) {
+int CGTooltip_SetTradeTargetItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Invalid trade slot in SetTradeTargetItem");
@@ -1723,7 +1723,7 @@ int __fastcall CGTooltip_SetTradeTargetItem(lua_State *L) {
   return 0;
 }
 
-int __fastcall CGTooltip_SetBagItem(lua_State *L) {
+int CGTooltip_SetBagItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -1790,7 +1790,7 @@ int __fastcall CGTooltip_SetBagItem(lua_State *L) {
   return 1;
 }
 
-int __fastcall CGTooltip_SetUnit(lua_State *L) {
+int CGTooltip_SetUnit(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2)) {
     return luaL_error(L, "Usage: SetUnit(\"unit\")");
@@ -1804,17 +1804,17 @@ int __fastcall CGTooltip_SetUnit(lua_State *L) {
   return 1;
 }
 
-int __fastcall CGTooltip_NumLines(lua_State *L) {
+int CGTooltip_NumLines(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   lua_pushnumber(L, static_cast<double>(tooltip->NumLines()));
   return 1;
 }
 
-void __fastcall CGTooltip::RegisterScriptMethods() {
+void CGTooltip::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(CGTooltipMethods, 26, s_scriptMethods);
 }
 
-void __fastcall CGTooltip::UnregisterScriptMethods() {
+void CGTooltip::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

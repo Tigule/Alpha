@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall PageTextMaterialRec::GetFilename() {
+const char *PageTextMaterialRec::GetFilename() {
   return "DBFilesClient\\PageTextMaterial.dbc";
 }
 

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellShapeshiftFormRec::GetFilename() {
+const char *SpellShapeshiftFormRec::GetFilename() {
   return "DBFilesClient\\SpellShapeshiftForm.dbc";
 }
 

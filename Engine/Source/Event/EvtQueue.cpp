@@ -11,18 +11,18 @@ const float OO_TWO_PI = 1.0f / TWO_PI;
 
 static TExtraInstanceRecycler<EvtMessage> s_messageRecycler(0x40, 0x40, 0x100);
 
-EvtMessage *__fastcall MessageAlloc(unsigned long bytes) {
+EvtMessage *MessageAlloc(unsigned long bytes) {
   if (bytes <= 4) {
     bytes = 4;
   }
   return s_messageRecycler.Get(bytes + 0x10);
 }
 
-void __fastcall MessageFree(EvtMessage *message) {
+void MessageFree(EvtMessage *message) {
   s_messageRecycler.Put(message);
 }
 
-void __fastcall ResetSyncState(EvtContext *context) {
+void ResetSyncState(EvtContext *context) {
   context->QueueResetSyncButtonState(~0u);
 
   TSExplicitList<EvtKeyDown, 0> &keyDownList = context->QueueLockSyncKeyDownList();
@@ -36,7 +36,7 @@ void __fastcall ResetSyncState(EvtContext *context) {
   context->QueueUnlockSyncKeyDownList();
 }
 
-void __fastcall UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
+void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
   int keyDown = 0;
 
   TSExplicitList<EvtKeyDown, 0> &keyDownList = context->QueueLockSyncKeyDownList();
@@ -67,7 +67,7 @@ void __fastcall UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
   context->QueueUnlockSyncKeyDownList();
 }
 
-void __fastcall UpdateSyncMouseState(EvtContext *context, MOUSEBUTTON button, int down) {
+void UpdateSyncMouseState(EvtContext *context, MOUSEBUTTON button, int down) {
   if (down) {
     context->QueueSetSyncButtonState(button);
   } else {
@@ -75,7 +75,7 @@ void __fastcall UpdateSyncMouseState(EvtContext *context, MOUSEBUTTON button, in
   }
 }
 
-void __fastcall UpdateSyncState(EvtContext *context, EVENTID &id, const void *data) {
+void UpdateSyncState(EvtContext *context, EVENTID &id, const void *data) {
   FATALASSERT(context);
 
   switch (id) {
@@ -95,14 +95,14 @@ void __fastcall UpdateSyncState(EvtContext *context, EVENTID &id, const void *da
   }
 }
 
-void __fastcall IEvtQueueInitialize() {
+void IEvtQueueInitialize() {
 }
 
-void __fastcall IEvtQueueDestroy() {
+void IEvtQueueDestroy() {
   s_messageRecycler.CDataRecycler::Clear();
 }
 
-int __fastcall IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
+int IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
   FATALASSERT(context);
 
   int                            keyDown = 0;
@@ -120,13 +120,13 @@ int __fastcall IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
   return keyDown;
 }
 
-int __fastcall IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button) {
+int IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button) {
   FATALASSERT(context);
 
   return context->QueueGetSyncButtonState(button) != 0;
 }
 
-void __fastcall IEvtQueueDispatch(EvtContext *context, EVENTID id, const void *data) {
+void IEvtQueueDispatch(EvtContext *context, EVENTID id, const void *data) {
   FATALASSERT(context);
 
   UpdateSyncState(context, id, data);
@@ -202,7 +202,7 @@ void __fastcall IEvtQueueDispatch(EvtContext *context, EVENTID id, const void *d
   }
 }
 
-int __fastcall IEvtQueueHasMessages(EvtContext *context) {
+int IEvtQueueHasMessages(EvtContext *context) {
   FATALASSERT(context);
 
   TSExplicitList<EvtMessage, 4> &messageList = context->QueueLockMessageList();
@@ -211,7 +211,7 @@ int __fastcall IEvtQueueHasMessages(EvtContext *context) {
   return hasMessages;
 }
 
-int __fastcall IEvtQueueDispatchNext(EvtContext *context) {
+int IEvtQueueDispatchNext(EvtContext *context) {
   FATALASSERT(context);
 
   TSExplicitList<EvtMessage, 4> &messageList = context->QueueLockMessageList();
@@ -231,7 +231,7 @@ int __fastcall IEvtQueueDispatchNext(EvtContext *context) {
   return hasMore;
 }
 
-void __fastcall IEvtQueueDispatchAll(EvtContext *context) {
+void IEvtQueueDispatchAll(EvtContext *context) {
   FATALASSERT(context);
 
   TSExplicitList<EvtMessage, 4> localMessageList;
@@ -247,7 +247,7 @@ void __fastcall IEvtQueueDispatchAll(EvtContext *context) {
   }
 }
 
-void __fastcall IEvtQueuePost(EvtContext *context, EVENTID id, const void *data, unsigned int bytes) {
+void IEvtQueuePost(EvtContext *context, EVENTID id, const void *data, unsigned int bytes) {
   FATALASSERT(context);
 
   EvtMessage *message = MessageAlloc(bytes);
@@ -261,7 +261,7 @@ void __fastcall IEvtQueuePost(EvtContext *context, EVENTID id, const void *data,
   context->QueueUnlockMessageList();
 }
 
-void __fastcall IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param) {
+void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param) {
   FATALASSERT(context);
 
   FATALASSERT(scanner);
@@ -286,7 +286,7 @@ void __fastcall IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, voi
   context->QueueUnlockMessageList();
 }
 
-void __fastcall IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, float priority) {
+void IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, float priority) {
   FATALASSERT(context);
 
   TSExplicitList<EvtHandler, 0> &handlerList = context->QueueLockHandlerList(id);
@@ -306,7 +306,7 @@ void __fastcall IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER 
   context->QueueUnlockHandlerList();
 }
 
-void __fastcall IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags) {
+void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags) {
   FATALASSERT(context);
 
   for (int checkId = 0; checkId < EVENTIDS; ++checkId) {

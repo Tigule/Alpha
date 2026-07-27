@@ -486,7 +486,7 @@ struct CGxTexParms {
   EGxTexFormat format;
   CGxTexFlags  flags;
   void        *userArg;
-  void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&);
+  void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&);
 };
 
 struct CGxTexParmsEx {
@@ -501,7 +501,7 @@ struct CGxTexParmsEx {
   EGxTexFormat dataFormat;
   CGxTexFlags  flags;
   void        *userArg;
-  void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&);
+  void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&);
 };
 
 class CGxDevice;
@@ -510,28 +510,28 @@ struct CGxBuf;
 class CGxPixelShader;
 class CGxTex;
 
-typedef long(__fastcall *GXWINDOWPROC)(void *, unsigned int, unsigned int, long);
+typedef long(*GXWINDOWPROC)(void *, unsigned int, unsigned int, long);
 
-int __fastcall GxAdapterID(unsigned short &vendorID, unsigned short &deviceID, unsigned long &driverVersionHi, unsigned long &driverVersionLow);
-int __fastcall GxAdapterInfer(unsigned short &deviceID);
-int __fastcall GxAdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes);
-int __fastcall GxAdapterDesktopMode(CGxMonitorMode &mode);
-CGxDevice *__fastcall    GxDevCreate(EGxApi api, GXWINDOWPROC windowProc, const CGxFormat &format);
-void __fastcall          GxDevDestroy(CGxDevice *devicePtr);
-int __fastcall           GxDevSetFormat(const CGxFormat &format);
-void __fastcall          GxDevSetBaseMipLevel(unsigned int baseMipLevel);
-void __fastcall          GxDevSetGamma(float gamma);
-void __fastcall          GxDevSetGamma(const CGxGammaRamp &ramp);
-void __fastcall          GxDevGammaRamp(CGxGammaRamp &ramp);
-void __fastcall          GxDevSystemGammaRamp(CGxGammaRamp &ramp);
-unsigned long __fastcall GxDevWindow();
-EGxApi __fastcall        GxDevApi();
-void __fastcall          GxDevOverride(EGxOverride override, unsigned long value);
-void __fastcall          GxDevTakeScreenShot();
-void __fastcall          GxDevReadScreenShot(unsigned int &w, unsigned int &h, const NTempest::CImVector *&pixels);
-void __fastcall          GxDevClearScreenShot();
-int __fastcall           GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId);
-int __fastcall           GxTexCreate(
+int GxAdapterID(unsigned short &vendorID, unsigned short &deviceID, unsigned long &driverVersionHi, unsigned long &driverVersionLow);
+int GxAdapterInfer(unsigned short &deviceID);
+int GxAdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes);
+int GxAdapterDesktopMode(CGxMonitorMode &mode);
+CGxDevice *GxDevCreate(EGxApi api, GXWINDOWPROC windowProc, const CGxFormat &format);
+void GxDevDestroy(CGxDevice *devicePtr);
+int GxDevSetFormat(const CGxFormat &format);
+void GxDevSetBaseMipLevel(unsigned int baseMipLevel);
+void GxDevSetGamma(float gamma);
+void GxDevSetGamma(const CGxGammaRamp &ramp);
+void GxDevGammaRamp(CGxGammaRamp &ramp);
+void GxDevSystemGammaRamp(CGxGammaRamp &ramp);
+unsigned long GxDevWindow();
+EGxApi GxDevApi();
+void GxDevOverride(EGxOverride override, unsigned long value);
+void GxDevTakeScreenShot();
+void GxDevReadScreenShot(unsigned int &w, unsigned int &h, const NTempest::CImVector *&pixels);
+void GxDevClearScreenShot();
+int GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId);
+int GxTexCreate(
     EGxTexTarget target,
     unsigned int width,
     unsigned int height,
@@ -540,30 +540,30 @@ int __fastcall           GxTexCreate(
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     CGxTex *&texId
 );
-int __fastcall GxTexCreate(
+int GxTexCreate(
     unsigned int width,
     unsigned int height,
     EGxTexFormat format,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     CGxTex *&texId
 );
-void __fastcall GxTexDestroy(CGxTex *texId);
-void __fastcall GxTexUpdate(CGxTex *texId, int minX, int minY, int maxX, int maxY, int immediate);
-void __fastcall GxTexUpdate(CGxTex *texId, NTempest::CiRect &updateRect, int immediate);
-void __fastcall GxTexParametersEx(const CGxTex *texId, CGxTexParmsEx &parms);
-void __fastcall GxTexSetFlags(CGxTex *texId, CGxTexFlags flags);
-void __fastcall GxTexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat);
-void __fastcall GxTexSetUserData(
+void GxTexDestroy(CGxTex *texId);
+void GxTexUpdate(CGxTex *texId, int minX, int minY, int maxX, int maxY, int immediate);
+void GxTexUpdate(CGxTex *texId, NTempest::CiRect &updateRect, int immediate);
+void GxTexParametersEx(const CGxTex *texId, CGxTexParmsEx &parms);
+void GxTexSetFlags(CGxTex *texId, CGxTexFlags flags);
+void GxTexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat);
+void GxTexSetUserData(
     CGxTex *texId,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     void *userArg
 );
-void __fastcall GxuUpdateSingleColorTexture(
+void GxuUpdateSingleColorTexture(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -573,23 +573,23 @@ void __fastcall GxuUpdateSingleColorTexture(
     unsigned int &texelStrideInBytes,
     const void  *&texels
 );
-void __fastcall GxuXformCreateOrtho(float minX, float maxX, float minY, float maxY, float minZ, float maxZ, NTempest::C44Matrix &dst);
-void __fastcall GxuXformCreateOrtho(const NTempest::CAaBox &bounds, NTempest::C44Matrix &dst);
-void __fastcall GxuXformCreateProjection(float fovyInRadians, float aspect, float minZ, float maxZ, NTempest::C44Matrix &dst);
-void __fastcall
+void GxuXformCreateOrtho(float minX, float maxX, float minY, float maxY, float minZ, float maxZ, NTempest::C44Matrix &dst);
+void GxuXformCreateOrtho(const NTempest::CAaBox &bounds, NTempest::C44Matrix &dst);
+void GxuXformCreateProjection(float fovyInRadians, float aspect, float minZ, float maxZ, NTempest::C44Matrix &dst);
+void
 GxuXformCreateLookAtSgCompat(const NTempest::C3Vector &eye, const NTempest::C3Vector &center, const NTempest::C3Vector &up, NTempest::C44Matrix &dst);
-void __fastcall
+void
 GxuXformCreateLookAtXXX(const NTempest::C3Vector &eye, const NTempest::C3Vector &center, const NTempest::C3Vector &up, NTempest::C44Matrix &dst);
-void __fastcall GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest::C44Matrix &proj, NTempest::C3Vector *corners);
-void __fastcall GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector *planes);
-void __fastcall GxuXformCalcFrustumBounds(
+void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest::C44Matrix &proj, NTempest::C3Vector *corners);
+void GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector *planes);
+void GxuXformCalcFrustumBounds(
     const NTempest::C44Matrix &view,
     const NTempest::C44Matrix &proj,
     NTempest::C3Vector        &minBound,
     NTempest::C3Vector        &maxBound
 );
-void __fastcall GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C3Vector *src, NTempest::C3Vector *dst);
-void __fastcall GxuTexScale(
+void GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C3Vector *src, NTempest::C3Vector *dst);
+void GxuTexScale(
     const void    *srcPixels,
     EGxTexFormat   srcFormat,
     unsigned int   srcW,
@@ -601,15 +601,15 @@ void __fastcall GxuTexScale(
     unsigned int   dstH,
     unsigned int   dstStrideInBytes
 );
-int __fastcall GxuTestRayAndSphere(
+int GxuTestRayAndSphere(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     const NTempest::C3Vector &sphereCenter,
     float                     sphereRadius,
     float                    &distance
 );
-int __fastcall  GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector *planes);
-int __fastcall  GxuTestRayAndTriangle(
+int GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector *planes);
+int GxuTestRayAndTriangle(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     const NTempest::C3Vector &v0,
@@ -617,7 +617,7 @@ int __fastcall  GxuTestRayAndTriangle(
     const NTempest::C3Vector &v2,
     float                    &distance
 );
-int __fastcall  GxuTestRayAndMesh(
+int GxuTestRayAndMesh(
     const NTempest::C3Vector  &rayStart,
     const NTempest::C3Vector  &rayDirection,
     const NTempest::C34Matrix *modelToWorldMatrices,
@@ -634,7 +634,7 @@ int __fastcall  GxuTestRayAndMesh(
     float                     &distance,
     unsigned int              &primIntersected
 );
-int __fastcall GxuTestRayAndRigidMeshInModelSpace(
+int GxuTestRayAndRigidMeshInModelSpace(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     unsigned int              posCount,
@@ -645,36 +645,36 @@ int __fastcall GxuTestRayAndRigidMeshInModelSpace(
     float                    &distance,
     unsigned int             &primIntersected
 );
-unsigned int __fastcall GxuClipCalcCode(const NTempest::C44Matrix &viewProj, const NTempest::C3Vector &pos);
-void __fastcall GxuSnapTexelsToPixels(
+unsigned int GxuClipCalcCode(const NTempest::C44Matrix &viewProj, const NTempest::C3Vector &pos);
+void GxuSnapTexelsToPixels(
     const NTempest::C3Vector *pos,
     NTempest::C2Vector       *tex,
     unsigned int              texW,
     unsigned int              texH
 );
-const CGxCaps &__fastcall GxCaps();
-BlitFormat __fastcall     GxGetBlitFormat(EGxTexFormat texFormat);
-unsigned int __fastcall   GxVertexSize(EGxVertexBufferFormat format);
-unsigned int __fastcall   GxVertexMemberOffset(EGxVertexBufferFormat format, EGxVertexMember member);
-void __fastcall           GxCapsWindowSize(NTempest::CRect &dst);
-int __fastcall            GxCapsIsWindowVisible();
-unsigned int __fastcall   GxPerfCounter(EGxPerfCounter counter);
-void __fastcall           GxMasterEnableSet(EGxMasterEnables state, int enable);
-int __fastcall            GxMasterEnable(EGxMasterEnables state);
-void __fastcall           GxRsSet(EGxRenderState which, NTempest::CImVector value);
-void __fastcall           GxRsSet(EGxRenderState which, float value);
-void __fastcall           GxRsSet(EGxRenderState which, int value);
-void __fastcall           GxRsSet(EGxRenderState which, void *value);
-void __fastcall           GxRsGet(EGxRenderState which, NTempest::CImVector &value);
-void __fastcall           GxRsGet(EGxRenderState which, float &value);
-void __fastcall           GxRsGet(EGxRenderState which, int &value);
-void __fastcall           GxRsPush();
-void __fastcall           GxRsPop();
-unsigned int __fastcall   GxRsStackOffset();
-void __fastcall           GxLightSet(unsigned int whichLight, const CGxLight &lightInfo, NTempest::C3Vector cameraPos);
-void __fastcall           GxLightEnable(unsigned int whichLight, int enable);
-void __fastcall           GxVertexShaderSelect(EGxVertexShader shader);
-void __fastcall           GxPrimLockVertexPtrs(
+const CGxCaps &GxCaps();
+BlitFormat GxGetBlitFormat(EGxTexFormat texFormat);
+unsigned int GxVertexSize(EGxVertexBufferFormat format);
+unsigned int GxVertexMemberOffset(EGxVertexBufferFormat format, EGxVertexMember member);
+void GxCapsWindowSize(NTempest::CRect &dst);
+int GxCapsIsWindowVisible();
+unsigned int GxPerfCounter(EGxPerfCounter counter);
+void GxMasterEnableSet(EGxMasterEnables state, int enable);
+int GxMasterEnable(EGxMasterEnables state);
+void GxRsSet(EGxRenderState which, NTempest::CImVector value);
+void GxRsSet(EGxRenderState which, float value);
+void GxRsSet(EGxRenderState which, int value);
+void GxRsSet(EGxRenderState which, void *value);
+void GxRsGet(EGxRenderState which, NTempest::CImVector &value);
+void GxRsGet(EGxRenderState which, float &value);
+void GxRsGet(EGxRenderState which, int &value);
+void GxRsPush();
+void GxRsPop();
+unsigned int GxRsStackOffset();
+void GxLightSet(unsigned int whichLight, const CGxLight &lightInfo, NTempest::C3Vector cameraPos);
+void GxLightEnable(unsigned int whichLight, int enable);
+void GxVertexShaderSelect(EGxVertexShader shader);
+void GxPrimLockVertexPtrs(
     unsigned int               vertexCount,
     const NTempest::C3Vector  *position,
     unsigned int               positionStride,
@@ -689,87 +689,87 @@ void __fastcall           GxPrimLockVertexPtrs(
     const NTempest::C2Vector  *tex1,
     unsigned int               tex1Stride
 );
-void __fastcall    GxPrimDrawElements(EGxPrim primType, unsigned int indexCount, const unsigned short *indices);
-void __fastcall    GxPrimLockIndexPtr(EGxPrim primType, unsigned int indexCount, const unsigned short *indices);
-void __fastcall    GxPrimDrawElements();
-void __fastcall    GxPrimUnlockIndexPtr();
-void __fastcall    GxPrimUnlockVertexPtrs();
-CGxBuf *__fastcall GxBufCreate(
+void GxPrimDrawElements(EGxPrim primType, unsigned int indexCount, const unsigned short *indices);
+void GxPrimLockIndexPtr(EGxPrim primType, unsigned int indexCount, const unsigned short *indices);
+void GxPrimDrawElements();
+void GxPrimUnlockIndexPtr();
+void GxPrimUnlockVertexPtrs();
+CGxBuf *GxBufCreate(
     EGxBufWriteFreq       writeFreq,
     EGxVertexBufferFormat format,
     unsigned int          numVertices,
     unsigned int          numIndices,
-    void(__fastcall *userCallback)(CGxBufCommand &, CGxBuf *),
+    void(*userCallback)(CGxBufCommand &, CGxBuf *),
     void *userArg
 );
-void __fastcall    GxBufLock(CGxBuf *buf);
-void __fastcall    GxBufUnlock();
-void __fastcall    GxBufRender(const CGxBatch *batches, unsigned int count);
-void __fastcall    GxBufRender(const CGxBatch &batch);
-void __fastcall    GxBufDestroy(CGxBuf *&buf);
-void __fastcall    GxBufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, unsigned int numVertices, unsigned int numIndices);
-CGxBuf *__fastcall GxBufGetDynamic(EGxVertexBufferFormat format);
-void *__fastcall   GxAllocVertexMem(unsigned int nBytes);
-void *__fastcall   GxAllocIndexMem(unsigned int nBytes);
-void *__fastcall   GxAllocPixelMem(unsigned int nBytes);
-void __fastcall    GxPixelShaderCreate(CGxPixelShader *&ps, const char *filename);
-void __fastcall    GxPixelShaderDestroy(CGxPixelShader *&ps);
-void __fastcall    GxScenePresent(unsigned int mask);
-void __fastcall    GxSceneClear(unsigned int mask);
-void __fastcall    GxXformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
-void __fastcall    GxXformSetProjection(const NTempest::C44Matrix &matrix);
-void __fastcall    GxXformSetView(const NTempest::C44Matrix &matrix);
-void __fastcall    GxXformSetBones(unsigned int numBones, const NTempest::C34Matrix *matrices);
-void __fastcall    GxXformProjection(NTempest::C44Matrix &matrix);
-void __fastcall    GxXformView(NTempest::C44Matrix &matrix);
-void __fastcall    GxXform(EGxXform xf, NTempest::C44Matrix &matrix);
-void __fastcall    GxXformPush(EGxXform xf);
-void __fastcall    GxXformPush(EGxXform xf, const NTempest::C44Matrix &matrix);
-void __fastcall    GxXformPop(EGxXform xf);
-void __fastcall    GxXformSet(EGxXform xf, const NTempest::C44Matrix &matrix);
-void __fastcall    GxXformViewport(float &minX, float &maxX, float &minY, float &maxY, float &minZ, float &maxZ);
-void __fastcall    GxLogOpen();
-void __fastcall    GxLogClose();
+void GxBufLock(CGxBuf *buf);
+void GxBufUnlock();
+void GxBufRender(const CGxBatch *batches, unsigned int count);
+void GxBufRender(const CGxBatch &batch);
+void GxBufDestroy(CGxBuf *&buf);
+void GxBufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, unsigned int numVertices, unsigned int numIndices);
+CGxBuf *GxBufGetDynamic(EGxVertexBufferFormat format);
+void *GxAllocVertexMem(unsigned int nBytes);
+void *GxAllocIndexMem(unsigned int nBytes);
+void *GxAllocPixelMem(unsigned int nBytes);
+void GxPixelShaderCreate(CGxPixelShader *&ps, const char *filename);
+void GxPixelShaderDestroy(CGxPixelShader *&ps);
+void GxScenePresent(unsigned int mask);
+void GxSceneClear(unsigned int mask);
+void GxXformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
+void GxXformSetProjection(const NTempest::C44Matrix &matrix);
+void GxXformSetView(const NTempest::C44Matrix &matrix);
+void GxXformSetBones(unsigned int numBones, const NTempest::C34Matrix *matrices);
+void GxXformProjection(NTempest::C44Matrix &matrix);
+void GxXformView(NTempest::C44Matrix &matrix);
+void GxXform(EGxXform xf, NTempest::C44Matrix &matrix);
+void GxXformPush(EGxXform xf);
+void GxXformPush(EGxXform xf, const NTempest::C44Matrix &matrix);
+void GxXformPop(EGxXform xf);
+void GxXformSet(EGxXform xf, const NTempest::C44Matrix &matrix);
+void GxXformViewport(float &minX, float &maxX, float &minY, float &maxY, float &minZ, float &maxZ);
+void GxLogOpen();
+void GxLogClose();
 void __cdecl       GxLog(const char *format, ...);
 
-const TSGrowableArray<CGxFormat> *__fastcall GxEnumFormats(EGxApi api);
-CGxDevice *__fastcall                        GxDevCreate(EGxApi api, unsigned int hwnd, const CGxFormat &format);
-void __fastcall                              GxDevWM(EGxWM wm, long param1, long param2);
-void __fastcall                              GxDevSetTextureQuality(int force32Bit);
-const CGxFormat &__fastcall                  GxDevFormat();
-unsigned int __fastcall                      GxDevBaseMipLevel();
-int __fastcall                               GxDevTextureQuality();
-void __fastcall                              GxDevReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels);
-void __fastcall                              GxDevReadDepth(NTempest::CiRect &rect, TSGrowableArray<float> &depths);
-void __fastcall                              GxDevSetRenderTarget(EGxBuffer buffer, CGxTex *texture, unsigned int plane);
-void __fastcall                              GxLight(unsigned int whichLight, CGxLight &lightInfo);
-void __fastcall                              GxRsGet(EGxRenderState which, void *&value);
-void __fastcall                              GxRsInit();
-void __fastcall                              GxCapsScreenSize(NTempest::CRect &dst);
-void __fastcall                              GxPrimBegin(EGxPrim primType);
-void __fastcall                              GxPrimEnd();
-void __fastcall                              GxPrimVertex(const NTempest::C3Vector &v);
-void __fastcall                              GxPrimTexCoord(unsigned int tmu, const NTempest::C2Vector &t);
-void __fastcall                              GxPrimNormal(const NTempest::C3Vector &n);
-void __fastcall                              GxPrimColor(const NTempest::CImVector &c);
-void __fastcall                              GxPrimPointSize(float s);
-void __fastcall                              GxPrimLineWidth(float w);
-void __fastcall                              GxSceneSetClearColor(NTempest::CImVector clearColor);
-NTempest::CImVector __fastcall               GxSceneClearColor();
-int __fastcall                               GxTexCreate(const CGxTexParms &parms, CGxTex *&texId);
-int __fastcall                               GxTexNeedsUpdate(CGxTex *texId);
-void __fastcall                              GxTexParameters(const CGxTex *texId, CGxTexParms &parms);
-void __fastcall                              GxTexFlags(const CGxTex *texId, CGxTexFlags &flags);
-void __fastcall                              GxXformBone(unsigned int ndx, NTempest::C34Matrix &matrix);
-void __fastcall                              GxXformViewProj(NTempest::C44Matrix &matrix);
-void __fastcall                              GxXformIdentity(EGxXform xf);
-void __fastcall                              GxXformTranslate(EGxXform xf, const NTempest::C3Vector &t);
-void __fastcall                              GxXformScale(EGxXform xf, const NTempest::C3Vector &s);
-void __fastcall                              GxXformMult(EGxXform xf, const NTempest::C44Matrix &m);
-void __fastcall                              GxFreeVertexMem();
-void __fastcall                              GxFreeIndexMem();
-void __fastcall                              GxFreePixelMem();
-EGxTexFormat __fastcall                      GxGetGxTexFormat(BlitFormat blitFormat);
-void __fastcall                              GxTexGetDimensions(const CGxTex *texId, unsigned int *width, unsigned int *height);
+const TSGrowableArray<CGxFormat> *GxEnumFormats(EGxApi api);
+CGxDevice *GxDevCreate(EGxApi api, unsigned int hwnd, const CGxFormat &format);
+void GxDevWM(EGxWM wm, long param1, long param2);
+void GxDevSetTextureQuality(int force32Bit);
+const CGxFormat &GxDevFormat();
+unsigned int GxDevBaseMipLevel();
+int GxDevTextureQuality();
+void GxDevReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels);
+void GxDevReadDepth(NTempest::CiRect &rect, TSGrowableArray<float> &depths);
+void GxDevSetRenderTarget(EGxBuffer buffer, CGxTex *texture, unsigned int plane);
+void GxLight(unsigned int whichLight, CGxLight &lightInfo);
+void GxRsGet(EGxRenderState which, void *&value);
+void GxRsInit();
+void GxCapsScreenSize(NTempest::CRect &dst);
+void GxPrimBegin(EGxPrim primType);
+void GxPrimEnd();
+void GxPrimVertex(const NTempest::C3Vector &v);
+void GxPrimTexCoord(unsigned int tmu, const NTempest::C2Vector &t);
+void GxPrimNormal(const NTempest::C3Vector &n);
+void GxPrimColor(const NTempest::CImVector &c);
+void GxPrimPointSize(float s);
+void GxPrimLineWidth(float w);
+void GxSceneSetClearColor(NTempest::CImVector clearColor);
+NTempest::CImVector GxSceneClearColor();
+int GxTexCreate(const CGxTexParms &parms, CGxTex *&texId);
+int GxTexNeedsUpdate(CGxTex *texId);
+void GxTexParameters(const CGxTex *texId, CGxTexParms &parms);
+void GxTexFlags(const CGxTex *texId, CGxTexFlags &flags);
+void GxXformBone(unsigned int ndx, NTempest::C34Matrix &matrix);
+void GxXformViewProj(NTempest::C44Matrix &matrix);
+void GxXformIdentity(EGxXform xf);
+void GxXformTranslate(EGxXform xf, const NTempest::C3Vector &t);
+void GxXformScale(EGxXform xf, const NTempest::C3Vector &s);
+void GxXformMult(EGxXform xf, const NTempest::C44Matrix &m);
+void GxFreeVertexMem();
+void GxFreeIndexMem();
+void GxFreePixelMem();
+EGxTexFormat GxGetGxTexFormat(BlitFormat blitFormat);
+void GxTexGetDimensions(const CGxTex *texId, unsigned int *width, unsigned int *height);
 
 extern CGxDevice *g_theGxDevicePtr;

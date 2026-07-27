@@ -66,62 +66,62 @@ static const DWORD FERMAT_WITNESS[1] = {2};
 static const BYTE  initSeed[8] = {0xB5, 0x3B, 0x12, 0x1F, 0xE5, 0x55, 0x9A, 0x15};
 static const BYTE  initMul[8] = {0x50, 0x46, 0x00, 0x00, 0x69, 0x90, 0x00, 0x00};
 
-void __fastcall TSSwap(BYTE &a, BYTE &b) {
+void TSSwap(BYTE &a, BYTE &b) {
   BYTE temp = a;
   a = b;
   b = temp;
 }
 
-static UINT __fastcall             ExtractLowPart(unsigned __int64 *b);
-static UINT __fastcall             ExtractLowPartLargeSum(unsigned __int64 *carry, unsigned __int64 add);
-static UINT __fastcall             ExtractLowPartSx(unsigned __int64 *b);
-static void __fastcall             InsertLowPart(unsigned __int64 *b, UINT c);
-static unsigned __int64 __fastcall MakeLarge(UINT low, UINT high);
-static void __fastcall             Add(BigBuffer &a, const BigBuffer &b, UINT c);
-static void __fastcall             Add(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static void __fastcall             And(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static int __fastcall              Compare(const BigBuffer &a, UINT b);
-static int __fastcall              Compare(const BigBuffer &a, const BigBuffer &b);
-static void __fastcall             Div(BigBuffer &a, UINT *b, const BigBuffer &c, unsigned __int64 d);
-static void __fastcall             Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
-static void __fastcall             FindPrime(BigBuffer &a, UINT b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
-static void __fastcall             Gcd(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
-static UINT __fastcall             HighBitPos(const BigBuffer &a);
-static void __fastcall             InvMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
-static int __fastcall              IsEven(const BigBuffer &a);
-static int __fastcall              IsOdd(const BigBuffer &a);
-static int __fastcall              IsOne(const BigBuffer &a);
-static int __fastcall              IsPrime(const BigBuffer &a, BigStack &stack);
-static int __fastcall              IsZero(const BigBuffer &a);
-static UINT __fastcall             LowBitPos(const BigBuffer &a);
-static void __fastcall             Mul(BigBuffer &a, const BigBuffer &b, unsigned __int64 c);
-static void __fastcall             Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
-static void __fastcall             MulMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
-static void __fastcall             Not(BigBuffer &a, const BigBuffer &b);
-static void __fastcall             Or(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static void __fastcall             Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &stack);
-static void __fastcall             PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
-static void __fastcall             Rand(BigBuffer &a, const BigBuffer &b, BigBuffer &seed, BigStack &stack);
-static void __fastcall             Set2Exp(BigBuffer &a, UINT b);
-static void __fastcall             SetOne(BigBuffer &a);
-static void __fastcall             SetZero(BigBuffer &a);
-static void __fastcall             Shl(BigBuffer &a, const BigBuffer &b, UINT c);
-static void __fastcall             Shr(BigBuffer &a, const BigBuffer &b, UINT c);
-static void __fastcall             Square(BigBuffer &a, const BigBuffer &b, BigStack &stack);
-static void __fastcall             Sub(BigBuffer &a, const BigBuffer &b, UINT c);
-static void __fastcall             Sub(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static void __fastcall             Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static void __fastcall             DecodeDataBytes(const void *data, UINT maxBytes, UINT *offset, UINT *dataBytes);
-static void __fastcall             EncodeDataBytes(SBigOutputArray &output, UINT dataBytes);
-static void __fastcall             FromBinary(BigBuffer &a, const void *data, UINT bytes);
-static void __fastcall             FromStr(BigBuffer &a, const char *str);
-static void __fastcall             FromStream(BigBuffer &a, const void *data, UINT maxBytes, UINT *bytes);
-static void __fastcall             FromUnsigned(BigBuffer &a, UINT val);
-static void __fastcall             ToBinary(SBigOutputArray &output, const BigBuffer &a);
-static void __fastcall             ToBinaryAppend(SBigOutputArray &output, const BigBuffer &a);
-static void __fastcall             ToStr(SBigOutputArray &output, const BigBuffer &a, BigStack &stack);
-static void __fastcall             ToStream(SBigOutputArray &output, const BigBuffer &a);
-static void __fastcall             ToUnsigned(UINT *val, const BigBuffer &a);
+static UINT ExtractLowPart(unsigned __int64 *b);
+static UINT ExtractLowPartLargeSum(unsigned __int64 *carry, unsigned __int64 add);
+static UINT ExtractLowPartSx(unsigned __int64 *b);
+static void InsertLowPart(unsigned __int64 *b, UINT c);
+static unsigned __int64 MakeLarge(UINT low, UINT high);
+static void Add(BigBuffer &a, const BigBuffer &b, UINT c);
+static void Add(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static void And(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static int Compare(const BigBuffer &a, UINT b);
+static int Compare(const BigBuffer &a, const BigBuffer &b);
+static void Div(BigBuffer &a, UINT *b, const BigBuffer &c, unsigned __int64 d);
+static void Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
+static void FindPrime(BigBuffer &a, UINT b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
+static void Gcd(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
+static UINT HighBitPos(const BigBuffer &a);
+static void InvMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
+static int IsEven(const BigBuffer &a);
+static int IsOdd(const BigBuffer &a);
+static int IsOne(const BigBuffer &a);
+static int IsPrime(const BigBuffer &a, BigStack &stack);
+static int IsZero(const BigBuffer &a);
+static UINT LowBitPos(const BigBuffer &a);
+static void Mul(BigBuffer &a, const BigBuffer &b, unsigned __int64 c);
+static void Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
+static void MulMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
+static void Not(BigBuffer &a, const BigBuffer &b);
+static void Or(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static void Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &stack);
+static void PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
+static void Rand(BigBuffer &a, const BigBuffer &b, BigBuffer &seed, BigStack &stack);
+static void Set2Exp(BigBuffer &a, UINT b);
+static void SetOne(BigBuffer &a);
+static void SetZero(BigBuffer &a);
+static void Shl(BigBuffer &a, const BigBuffer &b, UINT c);
+static void Shr(BigBuffer &a, const BigBuffer &b, UINT c);
+static void Square(BigBuffer &a, const BigBuffer &b, BigStack &stack);
+static void Sub(BigBuffer &a, const BigBuffer &b, UINT c);
+static void Sub(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static void Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static void DecodeDataBytes(const void *data, UINT maxBytes, UINT *offset, UINT *dataBytes);
+static void EncodeDataBytes(SBigOutputArray &output, UINT dataBytes);
+static void FromBinary(BigBuffer &a, const void *data, UINT bytes);
+static void FromStr(BigBuffer &a, const char *str);
+static void FromStream(BigBuffer &a, const void *data, UINT maxBytes, UINT *bytes);
+static void FromUnsigned(BigBuffer &a, UINT val);
+static void ToBinary(SBigOutputArray &output, const BigBuffer &a);
+static void ToBinaryAppend(SBigOutputArray &output, const BigBuffer &a);
+static void ToStr(SBigOutputArray &output, const BigBuffer &a, BigStack &stack);
+static void ToStream(SBigOutputArray &output, const BigBuffer &a);
+static void ToUnsigned(UINT *val, const BigBuffer &a);
 
 void BigBuffer::GrowToFit(UINT index) {
   m_data.GrowToFit(m_offset + index, 1);
@@ -223,14 +223,14 @@ SBigOutputArray &BigData::Output() const {
   return (SBigOutputArray &)m_output;
 }
 
-static UINT __fastcall ExtractLowPart(unsigned __int64 *b) {
+static UINT ExtractLowPart(unsigned __int64 *b) {
   UINT result;
   result = (UINT)*b;
   *b >>= 32;
   return result;
 }
 
-static UINT __fastcall ExtractLowPartLargeSum(unsigned __int64 *carry, unsigned __int64 add) {
+static UINT ExtractLowPartLargeSum(unsigned __int64 *carry, unsigned __int64 add) {
   UINT result;
   *carry += add;
   add = (unsigned __int64)(UINT)(*carry < add);
@@ -239,7 +239,7 @@ static UINT __fastcall ExtractLowPartLargeSum(unsigned __int64 *carry, unsigned 
   return result;
 }
 
-static UINT __fastcall ExtractLowPartSx(unsigned __int64 *b) {
+static UINT ExtractLowPartSx(unsigned __int64 *b) {
   UINT result;
   result = (UINT)*b;
   *b >>= 32;
@@ -249,15 +249,15 @@ static UINT __fastcall ExtractLowPartSx(unsigned __int64 *b) {
   return result;
 }
 
-static void __fastcall InsertLowPart(unsigned __int64 *b, UINT c) {
+static void InsertLowPart(unsigned __int64 *b, UINT c) {
   *b = (*b << 32) | c;
 }
 
-static unsigned __int64 __fastcall MakeLarge(UINT low, UINT high) {
+static unsigned __int64 MakeLarge(UINT low, UINT high) {
   return ((unsigned __int64)high << 32) + low;
 }
 
-static void __fastcall Add(BigBuffer &a, const BigBuffer &b, UINT c) {
+static void Add(BigBuffer &a, const BigBuffer &b, UINT c) {
   unsigned __int64 carry = c;
   UINT             index = 0;
   while (carry || b.IsUsed(index)) {
@@ -267,7 +267,7 @@ static void __fastcall Add(BigBuffer &a, const BigBuffer &b, UINT c) {
   a.SetCount(index);
 }
 
-static void __fastcall Add(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
+static void Add(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
   unsigned __int64 carry = 0;
   UINT             index = 0;
   while (carry || b.IsUsed(index) || c.IsUsed(index)) {
@@ -277,7 +277,7 @@ static void __fastcall Add(BigBuffer &a, const BigBuffer &b, const BigBuffer &c)
   a.SetCount(index);
 }
 
-static void __fastcall And(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
+static void And(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
   UINT index = 0;
   while (b.IsUsed(index) || c.IsUsed(index)) {
     a[index] = b[index] & c[index];
@@ -287,7 +287,7 @@ static void __fastcall And(BigBuffer &a, const BigBuffer &b, const BigBuffer &c)
   a.Trim();
 }
 
-static int __fastcall Compare(const BigBuffer &a, UINT b) {
+static int Compare(const BigBuffer &a, UINT b) {
   a.Trim();
   if (a.Count() > 1) {
     return 1;
@@ -298,7 +298,7 @@ static int __fastcall Compare(const BigBuffer &a, UINT b) {
   return a[0] < b ? -1 : a[0] > b;
 }
 
-static int __fastcall Compare(const BigBuffer &a, const BigBuffer &b) {
+static int Compare(const BigBuffer &a, const BigBuffer &b) {
   UINT index = 0;
   int  result = 0;
   while (a.IsUsed(index) || b.IsUsed(index)) {
@@ -310,7 +310,7 @@ static int __fastcall Compare(const BigBuffer &a, const BigBuffer &b) {
   return result;
 }
 
-static void __fastcall Div(BigBuffer &a, UINT *b, const BigBuffer &c, unsigned __int64 d) {
+static void Div(BigBuffer &a, UINT *b, const BigBuffer &c, unsigned __int64 d) {
   unsigned __int64 data = 0;
   UINT             index = c.Count();
   a.SetCount(index);
@@ -325,7 +325,7 @@ static void __fastcall Div(BigBuffer &a, UINT *b, const BigBuffer &c, unsigned _
   }
 }
 
-static void __fastcall Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
+static void Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
   UINT       allocCount = 0;
   BigBuffer &quotient = stack.Alloc(&allocCount);
   BigBuffer &remainder = stack.Alloc(&allocCount);
@@ -363,7 +363,7 @@ static void __fastcall Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const
   stack.Free(allocCount);
 }
 
-static void __fastcall FindPrime(BigBuffer &a, UINT b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
+static void FindPrime(BigBuffer &a, UINT b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
   UINT       allocCount = 0;
   BigBuffer &t = stack.Alloc(&allocCount);
   BigBuffer &seed = stack.Alloc(&allocCount);
@@ -389,7 +389,7 @@ static void __fastcall FindPrime(BigBuffer &a, UINT b, const BigBuffer &c, const
   stack.Free(allocCount);
 }
 
-static void __fastcall Gcd(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack) {
+static void Gcd(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack) {
   UINT       allocCount = 0;
   BigBuffer &aa = stack.Alloc(&allocCount);
   BigBuffer &bb = stack.Alloc(&allocCount);
@@ -406,7 +406,7 @@ static void __fastcall Gcd(BigBuffer &a, const BigBuffer &b, const BigBuffer &c,
   stack.Free(allocCount);
 }
 
-static UINT __fastcall HighBitPos(const BigBuffer &a) {
+static UINT HighBitPos(const BigBuffer &a) {
   UINT index = a.Count();
 
   while (index) {
@@ -426,7 +426,7 @@ static UINT __fastcall HighBitPos(const BigBuffer &a) {
   return 0;
 }
 
-static void __fastcall InvMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack) {
+static void InvMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack) {
   UINT       allocCount = 0;
   BigBuffer &t3 = stack.Alloc(&allocCount);
   BigBuffer &u3 = stack.Alloc(&allocCount);
@@ -456,20 +456,20 @@ static void __fastcall InvMod(BigBuffer &a, const BigBuffer &b, const BigBuffer 
   stack.Free(allocCount);
 }
 
-static int __fastcall IsEven(const BigBuffer &a) {
+static int IsEven(const BigBuffer &a) {
   return !a.Count() || !(a[0] & 1);
 }
 
-static int __fastcall IsOdd(const BigBuffer &a) {
+static int IsOdd(const BigBuffer &a) {
   return a.Count() && (a[0] & 1);
 }
 
-static int __fastcall IsOne(const BigBuffer &a) {
+static int IsOne(const BigBuffer &a) {
   a.Trim();
   return a.Count() == 1 && a[0] == 1;
 }
 
-static int __fastcall IsPrime(const BigBuffer &a, BigStack &stack) {
+static int IsPrime(const BigBuffer &a, BigStack &stack) {
   UINT       b;
   UINT       remainder;
   UINT       j;
@@ -528,12 +528,12 @@ static int __fastcall IsPrime(const BigBuffer &a, BigStack &stack) {
   return result;
 }
 
-static int __fastcall IsZero(const BigBuffer &a) {
+static int IsZero(const BigBuffer &a) {
   a.Trim();
   return !a.Count();
 }
 
-static UINT __fastcall LowBitPos(const BigBuffer &a) {
+static UINT LowBitPos(const BigBuffer &a) {
   UINT index;
   UINT bit;
   for (index = 0; index < a.Count(); ++index) {
@@ -548,7 +548,7 @@ static UINT __fastcall LowBitPos(const BigBuffer &a) {
   return 0;
 }
 
-static void __fastcall Mul(BigBuffer &a, const BigBuffer &b, unsigned __int64 c) {
+static void Mul(BigBuffer &a, const BigBuffer &b, unsigned __int64 c) {
   unsigned __int64 carry = 0;
   UINT             index = 0;
   c = MakeLarge((UINT)c, (UINT)(c >> 32));
@@ -560,7 +560,7 @@ static void __fastcall Mul(BigBuffer &a, const BigBuffer &b, unsigned __int64 c)
   a.Trim();
 }
 
-static void __fastcall Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack) {
+static void Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack) {
   unsigned __int64 carry;
   unsigned __int64 product;
   unsigned __int64 sum;
@@ -588,7 +588,7 @@ static void __fastcall Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c,
   (void)allocCount;
 }
 
-static void __fastcall MulMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
+static void MulMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
   UINT       allocCount = 0;
   BigBuffer &product = stack.Alloc(&allocCount);
   BigBuffer &quotient = stack.Alloc(&allocCount);
@@ -597,7 +597,7 @@ static void __fastcall MulMod(BigBuffer &a, const BigBuffer &b, const BigBuffer 
   stack.Free(allocCount);
 }
 
-static void __fastcall Not(BigBuffer &a, const BigBuffer &b) {
+static void Not(BigBuffer &a, const BigBuffer &b) {
   UINT index = 0;
 
   while (b.IsUsed(index)) {
@@ -607,7 +607,7 @@ static void __fastcall Not(BigBuffer &a, const BigBuffer &b) {
   a.SetCount(index);
 }
 
-static void __fastcall Or(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
+static void Or(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
   UINT index = 0;
 
   while (b.IsUsed(index) || c.IsUsed(index)) {
@@ -617,7 +617,7 @@ static void __fastcall Or(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) 
   a.SetCount(index);
 }
 
-static void __fastcall Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &stack) {
+static void Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &stack) {
   UINT bit = c;
   UINT scan;
 
@@ -637,7 +637,7 @@ static void __fastcall Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &s
   stack.UnmakeDistinct(a, aa);
 }
 
-static void __fastcall PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
+static void PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
   BigBuffer *bPower[3];
   UINT       index;
   UINT       ciBits;
@@ -687,7 +687,7 @@ static void __fastcall PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer 
   stack.Free(allocCount);
 }
 
-static void __fastcall Rand(BigBuffer &a, const BigBuffer &b, BigBuffer &seed, BigStack &stack) {
+static void Rand(BigBuffer &a, const BigBuffer &b, BigBuffer &seed, BigStack &stack) {
   UINT       allocCount = 0;
   int        reinit;
   UINT       loop;
@@ -712,7 +712,7 @@ static void __fastcall Rand(BigBuffer &a, const BigBuffer &b, BigBuffer &seed, B
   stack.Free(allocCount);
 }
 
-static void __fastcall Set2Exp(BigBuffer &a, UINT b) {
+static void Set2Exp(BigBuffer &a, UINT b) {
   UINT count = (b >> 5) + 1;
   UINT index;
   a.SetCount(count);
@@ -722,16 +722,16 @@ static void __fastcall Set2Exp(BigBuffer &a, UINT b) {
   a[b >> 5] = 1u << (b & 31);
 }
 
-static void __fastcall SetOne(BigBuffer &a) {
+static void SetOne(BigBuffer &a) {
   a.SetCount(1);
   a[0] = 1;
 }
 
-static void __fastcall SetZero(BigBuffer &a) {
+static void SetZero(BigBuffer &a) {
   a.Clear();
 }
 
-static void __fastcall Shl(BigBuffer &a, const BigBuffer &b, UINT c) {
+static void Shl(BigBuffer &a, const BigBuffer &b, UINT c) {
   UINT aCount = b.Count() + (c >> 5) + 1;
   UINT cBits = c & 31;
   UINT index = aCount;
@@ -749,7 +749,7 @@ static void __fastcall Shl(BigBuffer &a, const BigBuffer &b, UINT c) {
   a.Trim();
 }
 
-static void __fastcall Shr(BigBuffer &a, const BigBuffer &b, UINT c) {
+static void Shr(BigBuffer &a, const BigBuffer &b, UINT c) {
   UINT word = c >> 5;
   UINT cBits = c & 31;
   UINT index = 0;
@@ -764,7 +764,7 @@ static void __fastcall Shr(BigBuffer &a, const BigBuffer &b, UINT c) {
   a.SetCount(index);
 }
 
-static void __fastcall Square(BigBuffer &a, const BigBuffer &b, BigStack &stack) {
+static void Square(BigBuffer &a, const BigBuffer &b, BigStack &stack) {
   unsigned __int64 add;
   unsigned __int64 mul;
   unsigned __int64 carry;
@@ -786,7 +786,7 @@ static void __fastcall Square(BigBuffer &a, const BigBuffer &b, BigStack &stack)
   stack.UnmakeDistinct(a, aa);
 }
 
-static void __fastcall Sub(BigBuffer &a, const BigBuffer &b, UINT c) {
+static void Sub(BigBuffer &a, const BigBuffer &b, UINT c) {
   unsigned __int64 borrow = 0 - static_cast<unsigned __int64>(c);
   UINT             index = 0;
 
@@ -800,7 +800,7 @@ static void __fastcall Sub(BigBuffer &a, const BigBuffer &b, UINT c) {
   }
 }
 
-static void __fastcall Sub(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
+static void Sub(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
   unsigned __int64 borrow = 0;
   UINT             index = 0;
   while (borrow || b.IsUsed(index) || c.IsUsed(index)) {
@@ -811,7 +811,7 @@ static void __fastcall Sub(BigBuffer &a, const BigBuffer &b, const BigBuffer &c)
   a.Trim();
 }
 
-static void __fastcall Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
+static void Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
   UINT index = 0;
 
   while (b.IsUsed(index) || c.IsUsed(index)) {
@@ -821,7 +821,7 @@ static void __fastcall Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c)
   a.SetCount(index);
 }
 
-static void __fastcall DecodeDataBytes(const void *data, UINT maxBytes, UINT *offset, UINT *dataBytes) {
+static void DecodeDataBytes(const void *data, UINT maxBytes, UINT *offset, UINT *dataBytes) {
   *offset = 0;
   *dataBytes = 0;
   while (*offset < maxBytes) {
@@ -836,7 +836,7 @@ static void __fastcall DecodeDataBytes(const void *data, UINT maxBytes, UINT *of
   }
 }
 
-static void __fastcall EncodeDataBytes(SBigOutputArray &output, UINT dataBytes) {
+static void EncodeDataBytes(SBigOutputArray &output, UINT dataBytes) {
   while (dataBytes) {
     *output.New() = (BYTE)(dataBytes % 0xFF);
     dataBytes /= 0xFF;
@@ -844,7 +844,7 @@ static void __fastcall EncodeDataBytes(SBigOutputArray &output, UINT dataBytes) 
   *output.New() = 0xFF;
 }
 
-static void __fastcall FromBinary(BigBuffer &a, const void *data, UINT bytes) {
+static void FromBinary(BigBuffer &a, const void *data, UINT bytes) {
   UINT byte;
   a.Clear();
   for (byte = 0; byte < bytes; ++byte) {
@@ -857,7 +857,7 @@ static void __fastcall FromBinary(BigBuffer &a, const void *data, UINT bytes) {
   a.Trim();
 }
 
-static void __fastcall FromStr(BigBuffer &a, const char *str) {
+static void FromStr(BigBuffer &a, const char *str) {
   a.Clear();
   while (*str) {
     Mul(a, a, (unsigned __int64)10);
@@ -865,7 +865,7 @@ static void __fastcall FromStr(BigBuffer &a, const char *str) {
   }
 }
 
-static void __fastcall FromStream(BigBuffer &a, const void *data, UINT maxBytes, UINT *bytes) {
+static void FromStream(BigBuffer &a, const void *data, UINT maxBytes, UINT *bytes) {
   UINT offset;
   UINT dataBytes;
   DecodeDataBytes(data, maxBytes, &offset, &dataBytes);
@@ -875,17 +875,17 @@ static void __fastcall FromStream(BigBuffer &a, const void *data, UINT maxBytes,
   }
 }
 
-static void __fastcall FromUnsigned(BigBuffer &a, UINT val) {
+static void FromUnsigned(BigBuffer &a, UINT val) {
   a[0] = val;
   a.SetCount(1);
 }
 
-static void __fastcall ToBinary(SBigOutputArray &output, const BigBuffer &a) {
+static void ToBinary(SBigOutputArray &output, const BigBuffer &a) {
   output.SetCount(0);
   ToBinaryAppend(output, a);
 }
 
-static void __fastcall ToBinaryAppend(SBigOutputArray &output, const BigBuffer &a) {
+static void ToBinaryAppend(SBigOutputArray &output, const BigBuffer &a) {
   UINT byte;
 
   for (byte = 0; byte < a.Count() * 4; ++byte) {
@@ -896,7 +896,7 @@ static void __fastcall ToBinaryAppend(SBigOutputArray &output, const BigBuffer &
   }
 }
 
-static void __fastcall ToStr(SBigOutputArray &output, const BigBuffer &a, BigStack &stack) {
+static void ToStr(SBigOutputArray &output, const BigBuffer &a, BigStack &stack) {
   UINT       count;
   UINT       remainder;
   UINT       allocCount = 0;
@@ -921,7 +921,7 @@ static void __fastcall ToStr(SBigOutputArray &output, const BigBuffer &a, BigSta
   stack.Free(allocCount);
 }
 
-static void __fastcall ToStream(SBigOutputArray &output, const BigBuffer &a) {
+static void ToStream(SBigOutputArray &output, const BigBuffer &a) {
   UINT dataBytes;
   ToBinary(output, a);
   dataBytes = output.Count();
@@ -929,7 +929,7 @@ static void __fastcall ToStream(SBigOutputArray &output, const BigBuffer &a) {
   ToBinaryAppend(output, a);
 }
 
-static void __fastcall ToUnsigned(UINT *val, const BigBuffer &a) {
+static void ToUnsigned(UINT *val, const BigBuffer &a) {
   if (val) {
     *val = a[0];
   }

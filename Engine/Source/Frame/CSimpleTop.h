@@ -109,7 +109,7 @@ class CFrameStrata {
 
   ~CFrameStrata();
 
-  int EnumerateFrames(int(__fastcall *callback)(CSimpleFrame *, void *), void *param) {
+  int EnumerateFrames(int(*callback)(CSimpleFrame *, void *), void *param) {
     unsigned int i;
 
     for (i = 0; i < topLevel; ++i) {
@@ -300,7 +300,7 @@ class CSimpleTop : public CLayoutFrame {
   }
 
   void DrawCursor();
-  void EnumerateFrames(int(__fastcall *callback)(CSimpleFrame *, void *), void *param);
+  void EnumerateFrames(int(*callback)(CSimpleFrame *, void *), void *param);
   void MoveOrResizeFrame(const CMouseEvent &evt);
   void NotifyFrameLayerChanged(CSimpleFrame *frame, unsigned int layer);
   void NotifyFrameMovedOrResized(CSimpleFrame *frame);
@@ -310,19 +310,19 @@ class CSimpleTop : public CLayoutFrame {
   int  RaiseFrame(const NTempest::C2Vector &pt);
   int  RaiseFrame(CSimpleFrame *frame, int checkOcclusion);
   void RegisterForDelete(CSimpleFrame *frame);
-  void RegisterForMouseButton(int(__fastcall *callback)(const CMouseEvent &)) {
+  void RegisterForMouseButton(int(*callback)(const CMouseEvent &)) {
     ASSERT(!m_mouseButtonCallback);
     m_mouseButtonCallback = callback;
   }
-  void UnregisterForMouseButton(int(__fastcall *callback)(const CMouseEvent &)) {
+  void UnregisterForMouseButton(int(*callback)(const CMouseEvent &)) {
     ASSERT(m_mouseButtonCallback == callback);
     m_mouseButtonCallback = 0;
   }
-  void RegisterForDisplaySize(int(__fastcall *callback)(const CSizeEvent &)) {
+  void RegisterForDisplaySize(int(*callback)(const CSizeEvent &)) {
     ASSERT(!m_displaySizeCallback);
     m_displaySizeCallback = callback;
   }
-  void UnregisterForDisplaySize(int(__fastcall *callback)(const CSizeEvent &)) {
+  void UnregisterForDisplaySize(int(*callback)(const CSizeEvent &)) {
     ASSERT(m_displaySizeCallback == callback);
     m_displaySizeCallback = 0;
   }
@@ -378,24 +378,24 @@ class CSimpleTop : public CLayoutFrame {
   unsigned int                                         m_eventTime;
   int                                                  m_checkFocus;
   EVENT_DATA_MOUSE                                     m_mousePosition;
-  int(__fastcall *m_mouseButtonCallback)(const CMouseEvent &event);
-  int(__fastcall *m_displaySizeCallback)(const CSizeEvent &event);
+  int(*m_mouseButtonCallback)(const CMouseEvent &event);
+  int(*m_displaySizeCallback)(const CSizeEvent &event);
 
  private:
   void EnableEvents();
   void DisableEvents();
 
-  static int __fastcall OnChar(const EVENT_DATA_CHAR *pCharEvtData, void *param);
-  static int __fastcall OnIme(const EVENT_DATA_IME *pImeData, void *param);
-  static int __fastcall OnKeyDown(const EVENT_DATA_KEY *pKeyData, void *param);
-  static int __fastcall OnKeyUp(const EVENT_DATA_KEY *pKeyData, void *param);
-  static int __fastcall OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, void *param);
-  static int __fastcall OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, void *param);
-  static int __fastcall OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, void *param);
-  static int __fastcall OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, void *param);
-  static int __fastcall OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, void *param);
-  static int __fastcall OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, void *param);
-  static int __fastcall OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, void *param);
+  static int OnChar(const EVENT_DATA_CHAR *pCharEvtData, void *param);
+  static int OnIme(const EVENT_DATA_IME *pImeData, void *param);
+  static int OnKeyDown(const EVENT_DATA_KEY *pKeyData, void *param);
+  static int OnKeyUp(const EVENT_DATA_KEY *pKeyData, void *param);
+  static int OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, void *param);
+  static int OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, void *param);
+  static int OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, void *param);
+  static int OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, void *param);
+  static int OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, void *param);
+  static int OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, void *param);
+  static int OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, void *param);
 
   static CSimpleTop *s_instance;
 };

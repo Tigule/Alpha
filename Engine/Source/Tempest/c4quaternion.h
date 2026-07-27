@@ -110,7 +110,7 @@ namespace NTempest {
     void ToRotationMatrixInv(C33Matrix &r) const {
       r = static_cast<C33Matrix>(*this).Transpose();
     }
-    void FromAngleAxis(float angle, const C3Vector &axis);
+    void FromAngleAxis(const float angle, const C3Vector &axis);
     void ToAngleAxis(float &angle, C3Vector &axis) const;
     C4Quaternion Conjugate() const {
       return C4Quaternion(w, -x, -y, -z);
@@ -123,22 +123,22 @@ namespace NTempest {
     C4Quaternion Exp() const;
     C4Quaternion Log() const;
 
-    static C4Quaternion __fastcall Slerp(float ratio, const C4Quaternion &start, const C4Quaternion &end);
-    static void __fastcall SquadInterm(
+    static C4Quaternion Slerp(float ratio, const C4Quaternion &start, const C4Quaternion &end);
+    static void SquadInterm(
         const C4Quaternion &q0,
         const C4Quaternion &q1,
         const C4Quaternion &q2,
         C4Quaternion &a,
         C4Quaternion &b
     );
-    static void __fastcall SquadIntermMaxCompat(
+    static void SquadIntermMaxCompat(
         const C4Quaternion &q0,
         const C4Quaternion &q1,
         const C4Quaternion &q2,
         C4Quaternion &a,
         C4Quaternion &b
     );
-    static void __fastcall SquadIntermTCB(
+    static void SquadIntermTCB(
         const C4Quaternion &q0,
         const C4Quaternion &q1,
         const C4Quaternion &q2,
@@ -151,11 +151,11 @@ namespace NTempest {
         C4Quaternion &a,
         C4Quaternion &b
     );
-    static C4Quaternion __fastcall
+    static C4Quaternion
     Squad(float ratio, const C4Quaternion &start, const C4Quaternion &end, const C4Quaternion &outTangent, const C4Quaternion &inTangent);
   };
 
-  inline C4Quaternion __fastcall operator*(const C4Quaternion &l, const C4Quaternion &r) {
+  inline C4Quaternion operator*(const C4Quaternion &l, const C4Quaternion &r) {
     return C4Quaternion(
         l.w * r.w - l.x * r.x - l.y * r.y - l.z * r.z,
         l.w * r.x + l.x * r.w + l.y * r.z - l.z * r.y,

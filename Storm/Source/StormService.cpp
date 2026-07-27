@@ -7,12 +7,12 @@
 #define STORM_SERVICE_SSTR_I64_TO_STRING   3
 #define STORM_SERVICE_SMEM_MARK_ALL_HEAPS  4
 
-char *__fastcall Int64ToString(__int64 num, char *buf, DWORD destsize);
+char *Int64ToString(__int64 num, char *buf, DWORD destsize);
 
-static int __fastcall ISMemGetAllocator(char *arglist);
-static int __fastcall ISMemGenerateReport(char *arglist);
-static int __fastcall ISMemMarkAllHeaps(char *arglist);
-static int __fastcall ISStrI64ToString(char *arglist);
+static int ISMemGetAllocator(char *arglist);
+static int ISMemGenerateReport(char *arglist);
+static int ISMemMarkAllHeaps(char *arglist);
+static int ISStrI64ToString(char *arglist);
 
 extern "C" int __cdecl StormCallService(int selector, ...) {
   va_list args;
@@ -46,7 +46,7 @@ extern "C" int __cdecl StormCallService(int selector, ...) {
   return result;
 }
 
-static int __fastcall ISMemGetAllocator(char *arglist) {
+static int ISMemGetAllocator(char *arglist) {
   void **allocator;
 
   allocator = va_arg(arglist, void **);
@@ -54,15 +54,15 @@ static int __fastcall ISMemGetAllocator(char *arglist) {
   return TRUE;
 }
 
-static int __fastcall ISMemGenerateReport(char *arglist) {
+static int ISMemGenerateReport(char *arglist) {
   return SMemDumpStateEx(arglist);
 }
 
-static int __fastcall ISMemMarkAllHeaps(char *arglist) {
+static int ISMemMarkAllHeaps(char *arglist) {
   return SMemMarkAllHeapsEx(arglist);
 }
 
-static int __fastcall ISStrI64ToString(char *arglist) {
+static int ISStrI64ToString(char *arglist) {
   Int64ToString(*(__int64 *)arglist, *(char **)(arglist + 8), *(DWORD *)(arglist + 12));
   return TRUE;
 }

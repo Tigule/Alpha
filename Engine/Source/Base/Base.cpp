@@ -1,26 +1,26 @@
 #include "Base.h"
 #include "RCString.h"
 
-void __fastcall BaseFileInitialize();
-void __fastcall BaseFileDestroy();
-void __fastcall HandleInitialize();
-void __fastcall HandleDestroy();
+void BaseFileInitialize();
+void BaseFileDestroy();
+void HandleInitialize();
+void HandleDestroy();
 
-void __fastcall BaseInitializeGlobal() {
+void BaseInitializeGlobal() {
   PropInitialize();
   BaseFileInitialize();
 }
 
-void __fastcall BaseDestroyGlobal() {
+void BaseDestroyGlobal() {
   BaseFileDestroy();
   PropDestroy();
   CStringManager::DestroyManager();
 }
 
-void __fastcall BaseInitializeContext() {
+void BaseInitializeContext() {
   HandleInitialize();
 }
 
-void __fastcall BaseDestroyContext() {
+void BaseDestroyContext() {
   HandleDestroy();
 }

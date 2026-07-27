@@ -8,7 +8,7 @@ const unsigned int NUM_ITEMCLASSES = 16;
 
 static TSFixedArray<const ItemSubClassRec *> s_itemSubClassList[NUM_ITEMCLASSES];
 
-void __fastcall SDBItemSubclassInitialize() {
+void SDBItemSubclassInitialize() {
   int counts[NUM_ITEMCLASSES];
   int i;
 
@@ -40,10 +40,10 @@ void __fastcall SDBItemSubclassInitialize() {
   }
 }
 
-void __fastcall SDBItemSubclassDestroy() {
+void SDBItemSubclassDestroy() {
 }
 
-const ItemSubClassRec *__fastcall SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID) {
+const ItemSubClassRec *SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID) {
   if (classID >= NUM_ITEMCLASSES) {
     return 0;
   }

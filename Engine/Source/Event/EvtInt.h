@@ -12,9 +12,9 @@ struct EvtKeyDown;
 struct EvtTimer;
 struct EvtThread;
 
-void __fastcall OsCallSetContext(void *contextDataPtr);
-void __fastcall OsCallResetContext(void *contextDataPtr);
-void __fastcall OsCallDestroyContext(void *contextDataPtr);
+void OsCallSetContext(void *contextDataPtr);
+void OsCallResetContext(void *contextDataPtr);
+void OsCallDestroyContext(void *contextDataPtr);
 
 template <class T>
 class EvtIdTable {
@@ -360,24 +360,24 @@ struct EvtThread : public TSLinkedNode<EvtThread> {
   ~EvtThread();
 };
 
-void __fastcall IEvtQueueInitialize();
-void __fastcall IEvtQueueDestroy();
-void __fastcall IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, float priority);
-void __fastcall IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags);
-void __fastcall IEvtQueueDispatch(EvtContext *context, EVENTID id, const void *data);
-void __fastcall IEvtQueueDispatchAll(EvtContext *context);
-int __fastcall  IEvtQueueHasMessages(EvtContext *context);
-int __fastcall  IEvtQueueDispatchNext(EvtContext *context);
-void __fastcall IEvtQueuePost(EvtContext *context, EVENTID id, const void *data, unsigned int bytes);
-void __fastcall IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param);
-int __fastcall  IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
-int __fastcall  IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
+void IEvtQueueInitialize();
+void IEvtQueueDestroy();
+void IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, float priority);
+void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags);
+void IEvtQueueDispatch(EvtContext *context, EVENTID id, const void *data);
+void IEvtQueueDispatchAll(EvtContext *context);
+int IEvtQueueHasMessages(EvtContext *context);
+int IEvtQueueDispatchNext(EvtContext *context);
+void IEvtQueuePost(EvtContext *context, EVENTID id, const void *data, unsigned int bytes);
+void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param);
+int IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
+int IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
 
-int __fastcall          IEvtTimerDispatch(EvtContext *context);
-unsigned int __fastcall IEvtTimerGetNextTime(EvtContext *context, DWORD currTime);
-float __fastcall        IEvtTimerGetRemaining(EvtContext *context, unsigned int id);
-void __fastcall         IEvtTimerKill(EvtContext *context, unsigned int id, EVENTHANDLER handlerFunction, const char *functionName);
-unsigned int __fastcall IEvtTimerSet(
+int IEvtTimerDispatch(EvtContext *context);
+unsigned int IEvtTimerGetNextTime(EvtContext *context, DWORD currTime);
+float IEvtTimerGetRemaining(EvtContext *context, unsigned int id);
+void IEvtTimerKill(EvtContext *context, unsigned int id, EVENTHANDLER handlerFunction, const char *functionName);
+unsigned int IEvtTimerSet(
     EvtContext      *context,
     float            timeout,
     EVENTHANDLER     handler,
@@ -386,7 +386,7 @@ unsigned int __fastcall IEvtTimerSet(
     unsigned __int64 guidParam,
     void            *guidParam2
 );
-unsigned int __fastcall IEvtTimerSet(
+unsigned int IEvtTimerSet(
     EvtContext      *context,
     unsigned int     timeout,
     EVENTHANDLER     handler,
@@ -395,7 +395,7 @@ unsigned int __fastcall IEvtTimerSet(
     unsigned __int64 guidParam,
     void            *guidParam2
 );
-unsigned int __fastcall IEvtTimerSetAbsolute(
+unsigned int IEvtTimerSetAbsolute(
     EvtContext      *context,
     DWORD            triggerTime,
     EVENTHANDLER     handler,
@@ -405,24 +405,24 @@ unsigned int __fastcall IEvtTimerSetAbsolute(
     void            *guidParam2
 );
 
-void __fastcall IEvtInputInitialize();
-void __fastcall IEvtInputDestroy();
-int __fastcall  IEvtInputProcess(EvtContext *context, int *shutdown);
-void __fastcall IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int holdButton);
-void __fastcall IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam);
-void __fastcall IEvtInputGetMousePosition(float *x, float *y);
-void __fastcall IEvtInputSetMousePosition(float x, float y);
+void IEvtInputInitialize();
+void IEvtInputDestroy();
+int IEvtInputProcess(EvtContext *context, int *shutdown);
+void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int holdButton);
+void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam);
+void IEvtInputGetMousePosition(float *x, float *y);
+void IEvtInputSetMousePosition(float x, float y);
 
 namespace NTempest {
   class CRect;
 }
 
-void __fastcall IEvtInputSetMouseBoundingRect(NTempest::CRect *rect);
+void IEvtInputSetMouseBoundingRect(NTempest::CRect *rect);
 
-void __fastcall IEvtSchedulerInitialize(unsigned int threadCount, int netServer);
-void __fastcall IEvtSchedulerDestroy();
-void __fastcall IEvtSchedulerProcess();
-void __fastcall IEvtSchedulerShutdown();
-HEVENTCONTEXT __fastcall
+void IEvtSchedulerInitialize(unsigned int threadCount, int netServer);
+void IEvtSchedulerDestroy();
+void IEvtSchedulerProcess();
+void IEvtSchedulerShutdown();
+HEVENTCONTEXT
 IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags);
-int __fastcall IEvtSchedulerIsContextInteractive(EvtContext *context);
+int IEvtSchedulerIsContextInteractive(EvtContext *context);

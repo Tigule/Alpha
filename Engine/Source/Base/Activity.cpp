@@ -32,7 +32,7 @@ static void ActivityResume() {
   s_lastTime = OsGetAsyncTimeClocks();
 }
 
-void __fastcall ActivityBegin(ACTIVITY activity) {
+void ActivityBegin(ACTIVITY activity) {
   ACTIVITY previousActivity;
   __int64  currentTime;
 
@@ -58,7 +58,7 @@ void __fastcall ActivityBegin(ACTIVITY activity) {
   ASSERT(s_activityStack.Count() <= MAX_STACK_DEPTH);
 }
 
-void __fastcall ActivityEnd(ACTIVITY activity) {
+void ActivityEnd(ACTIVITY activity) {
   __int64 currTime = OsGetAsyncTimeClocks();
 
   FATALASSERT(activity == *s_activityStack.Top());
@@ -69,7 +69,7 @@ void __fastcall ActivityEnd(ACTIVITY activity) {
   s_lastTime = currTime;
 }
 
-float __fastcall ActivityGetTimePercent(ACTIVITY activity) {
+float ActivityGetTimePercent(ACTIVITY activity) {
   if (s_periodStartTimeClocks && !s_periodElapsedTimeClocks) {
     s_periodElapsedTimeClocks = OsGetAsyncTimeClocks() - s_periodStartTimeClocks;
   }
@@ -81,11 +81,11 @@ float __fastcall ActivityGetTimePercent(ACTIVITY activity) {
   return (float)((double)s_totalTime[activity] * 100.0 / (double)s_periodElapsedTimeClocks);
 }
 
-float __fastcall ActivityGetCalls(ACTIVITY activity) {
+float ActivityGetCalls(ACTIVITY activity) {
   return (float)s_totalCalls[activity];
 }
 
-float __fastcall ActivityGetTime(ACTIVITY activity) {
+float ActivityGetTime(ACTIVITY activity) {
   if (!s_timeScaleComputed) {
     ActivitySuspend();
     s_timeScale = (double)OsGetAsyncClocksDivisor() * 1000.0;
@@ -96,7 +96,7 @@ float __fastcall ActivityGetTime(ACTIVITY activity) {
   return (float)((double)s_totalTime[activity] * s_timeScale);
 }
 
-void __fastcall ActivityResetTimes() {
+void ActivityResetTimes() {
   unsigned int i;
 
   memset(s_totalCalls, 0, sizeof(s_totalCalls));

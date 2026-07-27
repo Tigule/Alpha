@@ -22,9 +22,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-int __fastcall       Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-void __fastcall      CursorModelSetSequence(CURSORANIMATIONS sequence);
-CGUnit_C *__fastcall Script_GetUnitFromName(const char *name);
+int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+void CursorModelSetSequence(CURSORANIMATIONS sequence);
+CGUnit_C *Script_GetUnitFromName(const char *name);
 
 SkillInfo             CGCharacterInfo::m_skillInfoList[93];
 unsigned int          CGCharacterInfo::m_profOffset;
@@ -46,22 +46,22 @@ static const CharBaseInfoRec *GetCharBaseInfo(int raceID, int classID);
 static const ItemSubClassRec *FindItemSubClassRecord(int classID, int subClassID);
 static int __cdecl            QSortCompareProficiency(const void *a, const void *b);
 
-static int __fastcall PlayerCharacterPointsUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int PlayerCharacterPointsUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   CGCharacterInfo::UpdateAllSkillLines();
   return 1;
 }
 
-void __fastcall CGCharacterInfo::InitializeGame() {
+void CGCharacterInfo::InitializeGame() {
   for (unsigned int i = 0; i < 93; ++i) {
     m_skillInfoList[i].isProf = 0;
     m_skillInfoList[i].skillID = 0;
   }
 }
 
-void __fastcall CGCharacterInfo::ShutdownGame() {
+void CGCharacterInfo::ShutdownGame() {
 }
 
-void __fastcall CGCharacterInfo::EnterWorld() {
+void CGCharacterInfo::EnterWorld() {
   InstallMirrorHandlers(ClntObjMgrGetActivePlayer());
   FrameScript_SignalEvent(180, "%s", "player");
   FrameScript_SignalEvent(181, "%s", "player");
@@ -70,25 +70,25 @@ void __fastcall CGCharacterInfo::EnterWorld() {
   UpdateAllSkillLines();
 }
 
-void __fastcall CGCharacterInfo::LeaveWorld() {
+void CGCharacterInfo::LeaveWorld() {
   RemoveMirrorHandlers(ClntObjMgrGetActivePlayer());
 }
 
-void __fastcall CGCharacterInfo::InstallMirrorHandlers(unsigned __int64 player) {
+void CGCharacterInfo::InstallMirrorHandlers(unsigned __int64 player) {
   if (player) {
     unsigned int playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
     ClntObjMgrSetObjMirrorHandler(player, playerOffset + 1756, 8, PlayerCharacterPointsUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   }
 }
 
-void __fastcall CGCharacterInfo::RemoveMirrorHandlers(unsigned __int64 player) {
+void CGCharacterInfo::RemoveMirrorHandlers(unsigned __int64 player) {
   if (player) {
     unsigned int playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
     ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + 1756, PlayerCharacterPointsUpdateHandler, 0);
   }
 }
 
-void __fastcall CGCharacterInfo::UpdateItem(unsigned __int64 item) {
+void CGCharacterInfo::UpdateItem(unsigned __int64 item) {
   CGItem_C *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item, __FILE__, __LINE__));
   if (itemPtr) {
     if (itemPtr->GetOwner() == ClntObjMgrGetActivePlayer()) {
@@ -97,7 +97,7 @@ void __fastcall CGCharacterInfo::UpdateItem(unsigned __int64 item) {
   }
 }
 
-void __fastcall CGCharacterInfo::PickupItem(int slot) {
+void CGCharacterInfo::PickupItem(int slot) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   CGBag_C    *bag = player ? player->GetBag() : 0;
   if (!bag || slot < 0 || slot >= 23) {
@@ -127,7 +127,7 @@ void __fastcall CGCharacterInfo::PickupItem(int slot) {
   }
 }
 
-void __fastcall CGCharacterInfo::UseItem(int slot) {
+void CGCharacterInfo::UseItem(int slot) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   CGBag_C    *bag = player ? player->GetBag() : 0;
   CGItem_C   *item = bag && slot >= 0 && slot < 19 ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
@@ -136,11 +136,11 @@ void __fastcall CGCharacterInfo::UseItem(int slot) {
   }
 }
 
-void __fastcall CGCharacterInfo::PickupBag(int slot) {
+void CGCharacterInfo::PickupBag(int slot) {
   PickupItem(slot + 19);
 }
 
-int __fastcall CGCharacterInfo::PutItemInBag(int slot) {
+int CGCharacterInfo::PutItemInBag(int slot) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || (slot != 255 && (slot < 0 || slot >= 4))) {
     return 0;
@@ -163,11 +163,11 @@ int __fastcall CGCharacterInfo::PutItemInBag(int slot) {
   return 0;
 }
 
-int __fastcall CGCharacterInfo::PutItemInBackpack() {
+int CGCharacterInfo::PutItemInBackpack() {
   return PutItemInBag(255);
 }
 
-void __fastcall CGCharacterInfo::UpdateAllSkillLines() {
+void CGCharacterInfo::UpdateAllSkillLines() {
   OrderSkillLines();
   FrameScript_SignalEvent(248);
 }
@@ -198,7 +198,7 @@ static int __cdecl QSortCompareByCategoryAndLevel(const void *a, const void *b) 
   return SStrCmpI(skill1->m_displayName_lang[CURRENT_LANGUAGE], skill2->m_displayName_lang[CURRENT_LANGUAGE], 4);
 }
 
-void __fastcall CGCharacterInfo::OrderSkillLines() {
+void CGCharacterInfo::OrderSkillLines() {
   SkillLineRec *skillInfo[64];
   unsigned int  count = 0;
   CGPlayer_C   *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -311,7 +311,7 @@ static int __cdecl QSortCompareProficiency(const void *a, const void *b) {
   return info1->level > info2->level ? 1 : -1;
 }
 
-unsigned int __fastcall CGCharacterInfo::OrderProficiencies(unsigned int offset) {
+unsigned int CGCharacterInfo::OrderProficiencies(unsigned int offset) {
   ProficiencyInfo orderedSlots[16];
   unsigned int    numProfs = 0;
   int             i;
@@ -380,7 +380,7 @@ unsigned int __fastcall CGCharacterInfo::OrderProficiencies(unsigned int offset)
   return numProfs;
 }
 
-int __fastcall CGCharacterInfo::GetSkillOffsetFromString(const char *string, int &offset) {
+int CGCharacterInfo::GetSkillOffsetFromString(const char *string, int &offset) {
   if (!SStrCmpI(string, "class", 0x7FFFFFFF)) {
     offset = 1;
     return GetNumClassSkills();
@@ -405,11 +405,11 @@ int __fastcall CGCharacterInfo::GetSkillOffsetFromString(const char *string, int
   return 0;
 }
 
-SkillInfo *__fastcall CGCharacterInfo::GetSkillInfoByIndex(int index) {
+SkillInfo *CGCharacterInfo::GetSkillInfoByIndex(int index) {
   return index >= 0 && static_cast<unsigned int>(index) < m_numSkills ? &m_skillInfoList[index] : 0;
 }
 
-static int __fastcall GetSlotFromLua(lua_State *L, int &slot, int index) {
+static int GetSlotFromLua(lua_State *L, int &slot, int index) {
   if (!lua_isnumber(L, index)) {
     return 0;
   }
@@ -417,7 +417,7 @@ static int __fastcall GetSlotFromLua(lua_State *L, int &slot, int index) {
   return slot >= 0 && slot <= 22 || slot >= 39 && slot <= 62 || slot >= 63 && slot <= 68;
 }
 
-static int __fastcall Script_GetInventorySlotInfo(lua_State *L) {
+static int Script_GetInventorySlotInfo(lua_State *L) {
   const char *string;
   int         numEntries;
   if (lua_isstring(L, 1)) {
@@ -435,7 +435,7 @@ static int __fastcall Script_GetInventorySlotInfo(lua_State *L) {
   return luaL_error(L, "Invalid inventory slot in GetInventorySlotInfo");
 }
 
-static int __fastcall Script_GetInventoryItemTexture(lua_State *L) {
+static int Script_GetInventoryItemTexture(lua_State *L) {
   int slot;
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetInventoryItemTexture(unit, slot)");
@@ -459,7 +459,7 @@ static int __fastcall Script_GetInventoryItemTexture(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetInventoryItemCount(lua_State *L) {
+static int Script_GetInventoryItemCount(lua_State *L) {
   int slot;
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetInventoryItemCount(unit, slot)");
@@ -482,7 +482,7 @@ static int __fastcall Script_GetInventoryItemCount(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetInventoryItemQuality(lua_State *L) {
+static int Script_GetInventoryItemQuality(lua_State *L) {
   int slot;
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetInventoryItemQuality(unit, slot)");
@@ -504,7 +504,7 @@ static int __fastcall Script_GetInventoryItemQuality(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetInventoryItemCooldown(lua_State *L) {
+static int Script_GetInventoryItemCooldown(lua_State *L) {
   int slot;
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetInventoryItemCooldown(unit, slot)");
@@ -528,7 +528,7 @@ static int __fastcall Script_GetInventoryItemCooldown(lua_State *L) {
   return 3;
 }
 
-static int __fastcall Script_GetInventoryItemLink(lua_State *L) {
+static int Script_GetInventoryItemLink(lua_State *L) {
   int slot;
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetInventoryItemLink(unit, slot)");
@@ -551,7 +551,7 @@ static int __fastcall Script_GetInventoryItemLink(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_PickupInventoryItem(lua_State *L) {
+static int Script_PickupInventoryItem(lua_State *L) {
   int slot;
   if (!GetSlotFromLua(L, slot, 1)) {
     return luaL_error(L, "Usage: PickupInventoryItem(slot)");
@@ -560,7 +560,7 @@ static int __fastcall Script_PickupInventoryItem(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_UseInventoryItem(lua_State *L) {
+static int Script_UseInventoryItem(lua_State *L) {
   int slot;
   if (!GetSlotFromLua(L, slot, 1)) {
     return luaL_error(L, "Usage: UseInventoryItem(slot)");
@@ -569,7 +569,7 @@ static int __fastcall Script_UseInventoryItem(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_IsInventoryItemLocked(lua_State *L) {
+static int Script_IsInventoryItemLocked(lua_State *L) {
   int slot;
   if (!GetSlotFromLua(L, slot, 1)) {
     return luaL_error(L, "Invalid inventory slot in IsInventoryItemLocked");
@@ -585,7 +585,7 @@ static int __fastcall Script_IsInventoryItemLocked(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetSkillLineInfo(lua_State *L) {
+static int Script_GetSkillLineInfo(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumClassSkills()));
   lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumSpecSkills()));
   lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumRacialSkills()));
@@ -594,7 +594,7 @@ static int __fastcall Script_GetSkillLineInfo(lua_State *L) {
   return 5;
 }
 
-static int __fastcall Script_GetSkillByIndex(lua_State *L) {
+static int Script_GetSkillByIndex(lua_State *L) {
   int offset = 0;
   if (!lua_isstring(L, 1) ||
       !CGCharacterInfo::GetSkillOffsetFromString(lua_tostring(L, 1), offset) ||
@@ -636,7 +636,7 @@ static int __fastcall Script_GetSkillByIndex(lua_State *L) {
   return 5;
 }
 
-static int __fastcall Script_PutItemInBag(lua_State *L) {
+static int Script_PutItemInBag(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: PutItemInBag(slot)");
   }
@@ -644,12 +644,12 @@ static int __fastcall Script_PutItemInBag(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_PutItemInBackpack(lua_State *L) {
+static int Script_PutItemInBackpack(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGCharacterInfo::PutItemInBackpack()));
   return 1;
 }
 
-static int __fastcall Script_PickupBagFromSlot(lua_State *L) {
+static int Script_PickupBagFromSlot(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: PickupBagFromSlot(slot)");
   }
@@ -657,7 +657,7 @@ static int __fastcall Script_PickupBagFromSlot(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_CursorCanGoInSlot(lua_State *L) {
+static int Script_CursorCanGoInSlot(lua_State *L) {
   int slot;
   if (!GetSlotFromLua(L, slot, 1)) {
     return luaL_error(L, "Invalid inventory slot in CursorCanGoInSlot");
@@ -673,7 +673,7 @@ static int __fastcall Script_CursorCanGoInSlot(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_ShowInventorySellCursor(lua_State *L) {
+static int Script_ShowInventorySellCursor(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: ShowInventorySellCursor(slot)");
   }
@@ -681,7 +681,7 @@ static int __fastcall Script_ShowInventorySellCursor(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetInventoryPortaitTexture(lua_State *L) {
+static int Script_SetInventoryPortaitTexture(lua_State *L) {
   if (lua_type(L, 1) != LUA_TTABLE) {
     return luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)");
   }
@@ -706,13 +706,13 @@ static int __fastcall Script_SetInventoryPortaitTexture(lua_State *L) {
   return 0;
 }
 
-void __fastcall GuildNameCallback(int, const unsigned __int64 &, void *, bool granted) {
+void GuildNameCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(183, "%s", "player");
   }
 }
 
-static int __fastcall Script_GetGuildInfo(lua_State *L) {
+static int Script_GetGuildInfo(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetGuildInfo(\"unit\")");
   }
@@ -755,13 +755,13 @@ static FrameScript_Method s_ScriptFunctions[18] = {
     {              "GetGuildInfo",               Script_GetGuildInfo}
 };
 
-void __fastcall CharacterInfoRegisterScriptFunctions() {
+void CharacterInfoRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 18; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall CharacterInfoUnregisterScriptFunctions() {
+void CharacterInfoUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 18; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

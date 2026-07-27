@@ -14,7 +14,7 @@ const BoltID BADBOLT = static_cast<BoltID>(-1);
 const ulong  NOTUSEDFLAG = 0x80000000;
 
 struct LightningCoordUpdateData {
-  void(__fastcall *callback)(void *context, unsigned int time, NTempest::C3Vector *source, NTempest::C3Vector *destination);
+  void(*callback)(void *context, unsigned int time, NTempest::C3Vector *source, NTempest::C3Vector *destination);
   void *context;
 };
 
@@ -124,13 +124,13 @@ class CLightningManager {
       float               texCoordScale,
       float               duration,
       HTEXTURE            texture,
-      void(__fastcall *updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
+      void(*updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
       void *context
   );
   void Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C3Vector *dst);
   void SetCoordUpdate(
       BoltID boltId,
-      void(__fastcall *updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
+      void(*updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
       void *context
   );
   void  SetColor(BoltID boltId, NTempest::CImVector color);

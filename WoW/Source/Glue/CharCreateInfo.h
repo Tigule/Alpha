@@ -52,55 +52,55 @@ struct CHARCREATEINFO {
 
 class CCharCreateInfo {
  public:
-  static void __fastcall        CreateCharacter(const char *name);
-  static void __fastcall        CycleCharCustomization(uint index, int delta);
-  static const char *__fastcall GetClassNameByIndex(uint index);
-  static float __fastcall       GetCharFacing() {
+  static void CreateCharacter(const char *name);
+  static void CycleCharCustomization(uint index, int delta);
+  static const char *GetClassNameByIndex(uint index);
+  static float GetCharFacing() {
     return m_charFacing;
   }
-  static uint __fastcall GetNumCharCustomizations(uint index);
-  static uint __fastcall GetNumClasses() {
+  static uint GetNumCharCustomizations(uint index);
+  static uint GetNumClasses() {
     return m_classIndex.Count();
   }
-  static uint __fastcall GetNumRaces() {
+  static uint GetNumRaces() {
     return m_raceIndex.Count();
   }
-  static const char *__fastcall GetRaceNameByIndex(uint index);
-  static uint __fastcall        GetSelectedClassID();
-  static uint __fastcall        GetSelectedClassIndex() {
+  static const char *GetRaceNameByIndex(uint index);
+  static uint GetSelectedClassID();
+  static uint GetSelectedClassIndex() {
     return m_selectedClass;
   }
-  static uint __fastcall GetSelectedRaceID();
-  static uint __fastcall GetSelectedRaceIndex() {
+  static uint GetSelectedRaceID();
+  static uint GetSelectedRaceIndex() {
     return m_selectedRace;
   }
-  static uint __fastcall                      GetSelectedSexID();
-  static uint __fastcall                      GetNumOutfits(uint raceID, uint classID, uint sexID);
-  static class CharStartOutfitRec *__fastcall GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID);
-  static void __fastcall                      Initialize();
-  static void __fastcall                      RandomizeCharCustomization();
-  static void __fastcall                      ResetCharCustomizeInfo();
-  static void __fastcall                      SetCharCustomizeFrame(CSimpleModel *frame);
-  static void __fastcall                      SetCharCustomizeModel(const char *filename);
-  static void __fastcall                      SetCharFacing(float facing);
-  static void __fastcall                      SetSelectedClass(uint index);
-  static void __fastcall                      SetSelectedRace(uint index, int updateModel);
-  static void __fastcall                      SetSelectedSex(uint sex);
-  static void __fastcall                      Shutdown();
-  static void __fastcall                      UpdateAvailableClasses();
+  static uint GetSelectedSexID();
+  static uint GetNumOutfits(uint raceID, uint classID, uint sexID);
+  static class CharStartOutfitRec *GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID);
+  static void Initialize();
+  static void RandomizeCharCustomization();
+  static void ResetCharCustomizeInfo();
+  static void SetCharCustomizeFrame(CSimpleModel *frame);
+  static void SetCharCustomizeModel(const char *filename);
+  static void SetCharFacing(float facing);
+  static void SetSelectedClass(uint index);
+  static void SetSelectedRace(uint index, int updateModel);
+  static void SetSelectedSex(uint sex);
+  static void Shutdown();
+  static void UpdateAvailableClasses();
 
-  static void __fastcall UpdateAllCharacterInfo(int race, uint sex);
-  static void __fastcall InitializeCharacterInfo(uint sex, int doNotCommitGeosets);
-  static void __fastcall UpdateCharacterInfo(uint sex);
-  static void __fastcall UpdateGeosets(uint sex);
-  static void __fastcall UpdateEquipment(int doNotUpdateGeosets, uint sex);
-  static void __fastcall ChangeSkinTexture(int doNotCommitGeosets, uint sex);
-  static void __fastcall ChangeFaceTexture(uint sex);
-  static void __fastcall ChangeFacialHairTexture(uint sex);
-  static void __fastcall ChangeScalpHairTexture(uint sex);
-  static void __fastcall ChangeHairGeosets(uint sex);
-  static void __fastcall ChangeFacialHairGeosets(uint sex);
-  static void __fastcall CommitCurrentGeoset(uint sex);
+  static void UpdateAllCharacterInfo(int race, uint sex);
+  static void InitializeCharacterInfo(uint sex, int doNotCommitGeosets);
+  static void UpdateCharacterInfo(uint sex);
+  static void UpdateGeosets(uint sex);
+  static void UpdateEquipment(int doNotUpdateGeosets, uint sex);
+  static void ChangeSkinTexture(int doNotCommitGeosets, uint sex);
+  static void ChangeFaceTexture(uint sex);
+  static void ChangeFacialHairTexture(uint sex);
+  static void ChangeScalpHairTexture(uint sex);
+  static void ChangeHairGeosets(uint sex);
+  static void ChangeFacialHairGeosets(uint sex);
+  static void CommitCurrentGeoset(uint sex);
 
  private:
   static CSimpleModel         *m_charCustomizeFrame;
@@ -114,6 +114,6 @@ class CCharCreateInfo {
   static CHARCREATEINFO        m_charInfo;
 };
 
-void __fastcall CharCreateRegisterScriptFunctions();
-void __fastcall CharCreateUnregisterScriptFunctions();
-void __fastcall ReportMissingComponentTextures(uint race, uint sex);
+void CharCreateRegisterScriptFunctions();
+void CharCreateUnregisterScriptFunctions();
+void ReportMissingComponentTextures(uint race, uint sex);

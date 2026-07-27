@@ -14,7 +14,7 @@ namespace NTempest {
       eComponents = 12
     };
 
-    static C3Vector __fastcall mul3v33m_(const C3Vector &v, const C34Matrix &m) {
+    static C3Vector mul3v33m_(const C3Vector &v, const C34Matrix &m) {
       return C3Vector(
           v.x * m.a0 + v.y * m.b0 + v.z * m.c0,
           v.x * m.a1 + v.y * m.b1 + v.z * m.c1,
@@ -22,7 +22,7 @@ namespace NTempest {
       );
     }
 
-    static C3Vector __fastcall mul3v33m_(const C34Matrix &m, const C3Vector &v) {
+    static C3Vector mul3v33m_(const C34Matrix &m, const C3Vector &v) {
       return C3Vector(
           m.a0 * v.x + m.a1 * v.y + m.a2 * v.z,
           m.b0 * v.x + m.b1 * v.y + m.b2 * v.z,
@@ -132,7 +132,7 @@ namespace NTempest {
       return a0 + b1 + c2;
     }
 
-    static C34Matrix __fastcall Rotation(float angle, const C3Vector &axis, bool unit);
+    static C34Matrix Rotation(float angle, const C3Vector &axis, bool unit);
 
     C34Matrix AffineInverse() const;
     C34Matrix AffineInverse(float uniformScale) const;
@@ -158,22 +158,22 @@ namespace NTempest {
     float d2;
   };
 
-  bool __fastcall      operator==(const C34Matrix &l, const C34Matrix &r);
-  bool __fastcall      operator!=(const C34Matrix &l, const C34Matrix &r);
-  C34Matrix __fastcall operator+(const C34Matrix &l, const C34Matrix &r);
-  C34Matrix __fastcall operator+(const C34Matrix &l, float a);
-  C34Matrix __fastcall operator+(float a, const C34Matrix &r);
-  C34Matrix __fastcall operator-(const C34Matrix &l, const C34Matrix &r);
-  C34Matrix __fastcall operator-(const C34Matrix &l, float a);
-  C34Matrix __fastcall operator*(const C34Matrix &l, const C34Matrix &r);
-  C34Matrix __fastcall operator*(const C34Matrix &l, float a);
-  C34Matrix __fastcall operator*(float a, const C34Matrix &r);
-  C3Vector __fastcall  operator*(const C3Vector &l, const C34Matrix &r);
-  C3Vector __fastcall  operator*(const C34Matrix &l, const C3Vector &r);
-  C4Vector __fastcall  operator*(const C4Vector &l, const C34Matrix &r);
-  C4Vector __fastcall  operator*(const C34Matrix &l, const C4Vector &r);
-  C3Vector __fastcall  operator*=(C3Vector &l, const C34Matrix &r);
-  C34Matrix __fastcall operator/(const C34Matrix &l, float a);
+  bool operator==(const C34Matrix &l, const C34Matrix &r);
+  bool operator!=(const C34Matrix &l, const C34Matrix &r);
+  C34Matrix operator+(const C34Matrix &l, const C34Matrix &r);
+  C34Matrix operator+(const C34Matrix &l, float a);
+  C34Matrix operator+(float a, const C34Matrix &r);
+  C34Matrix operator-(const C34Matrix &l, const C34Matrix &r);
+  C34Matrix operator-(const C34Matrix &l, float a);
+  C34Matrix operator*(const C34Matrix &l, const C34Matrix &r);
+  C34Matrix operator*(const C34Matrix &l, float a);
+  C34Matrix operator*(float a, const C34Matrix &r);
+  C3Vector operator*(const C3Vector &l, const C34Matrix &r);
+  C3Vector operator*(const C34Matrix &l, const C3Vector &r);
+  C4Vector operator*(const C4Vector &l, const C34Matrix &r);
+  C4Vector operator*(const C34Matrix &l, const C4Vector &r);
+  C3Vector operator*=(C3Vector &l, const C34Matrix &r);
+  C34Matrix operator/(const C34Matrix &l, float a);
 
 }  // namespace NTempest
 

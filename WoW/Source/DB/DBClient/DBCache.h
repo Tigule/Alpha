@@ -29,7 +29,7 @@ class HASHKEY_INT {
   }
 };
 
-typedef void(__fastcall *DBCACHECALLBACKPROC)(int result, const unsigned __int64 &guid, void *arg, bool haveData);
+typedef void(*DBCACHECALLBACKPROC)(int result, const unsigned __int64 &guid, void *arg, bool haveData);
 
 struct DBCACHECALLBACK : public TSLinkedNode<DBCACHECALLBACK> {
   DBCACHECALLBACK(DBCACHECALLBACK &callback);

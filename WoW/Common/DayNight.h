@@ -136,7 +136,7 @@ class DNStars {
   void Render();
 
  private:
-  friend void __fastcall DayNightInitialize(const char *litFile);
+  friend void DayNightInitialize(const char *litFile);
   HMODEL__              *m_hModel;
   NTempest::CImVector    m_color;
   NTempest::C3Vector     m_pos;
@@ -163,7 +163,7 @@ class DNClouds {
   void WorldToTexture(NTempest::C3Vector &worldPt, NTempest::C2Vector &tex);
 
  private:
-  static void __fastcall Callback_GxTex(
+  static void Callback_GxTex(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,
@@ -269,17 +269,17 @@ class DNSky {
   static const NTempest::C2Vector m_fadeTable[];
 };
 
-DNInfo *__fastcall DayNightGetInfo();
-void __fastcall    DayNightInitialize(const char *litFile);
-void __fastcall    DayNightForceFullUpdate();
-void __fastcall    DayNightUpdateLighting();
-float __fastcall   DayNightSI(float offset);
-float __fastcall   DayNightUnitSelectColor();
-void __fastcall    DayNightRenderGlares();
-void __fastcall    DayNightRenderSky();
-void __fastcall    DayNightSetEclipse(NTempest::CImVector color, float amount);
-void __fastcall    DayNightDestroy();
-void __fastcall    DayNightSkyTexCallback(
+DNInfo *DayNightGetInfo();
+void DayNightInitialize(const char *litFile);
+void DayNightForceFullUpdate();
+void DayNightUpdateLighting();
+float DayNightSI(float offset);
+float DayNightUnitSelectColor();
+void DayNightRenderGlares();
+void DayNightRenderSky();
+void DayNightSetEclipse(NTempest::CImVector color, float amount);
+void DayNightDestroy();
+void DayNightSkyTexCallback(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,

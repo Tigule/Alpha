@@ -27,8 +27,8 @@ enum ModelIntersectResult {
   MODEL_INTERSECT_HIT_MODEL = 3
 };
 
-unsigned int __fastcall GetInvalidMatrixId();
-void __fastcall
+unsigned int GetInvalidMatrixId();
+void
 GxuLightSelectCallback(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
 
 struct HCOLLISIONDATA__;
@@ -181,7 +181,7 @@ struct CGeoset {
 
 struct CCustomGeoset {
   NTempest::C3Vector position;
-  void(__fastcall *renderCallback)(HMODEL, const NTempest::C34Matrix &, void *);
+  void(*renderCallback)(HMODEL, const NTempest::C34Matrix &, void *);
   void *renderParam;
 };
 
@@ -215,7 +215,7 @@ class CModelBase {
   }
   ~CModelBase();
 
-  void(__fastcall *m_PickLights)(void *, NTempest::C3Vector, const NTempest::C3Vector &, unsigned int);
+  void(*m_PickLights)(void *, NTempest::C3Vector, const NTempest::C3Vector &, unsigned int);
   void               *m_pickLightsParm;
   unsigned int        m_flags;
   NTempest::C34Matrix m_modelToWorld;
@@ -287,10 +287,10 @@ struct CModelShared : public CHandleObject {
   CModelShared &operator=(const CModelShared &source);
 };
 
-void __fastcall ModelEnableLights(HMODEL model, int enable);
-void __fastcall ModelShowBoundingSphere(HMODEL model);
-void __fastcall ModelShowBoundingBox(HMODEL model);
-int __fastcall  ModelGeosetAdd(
+void ModelEnableLights(HMODEL model, int enable);
+void ModelShowBoundingSphere(HMODEL model);
+void ModelShowBoundingBox(HMODEL model);
+int ModelGeosetAdd(
     HMODEL                    model,
     unsigned int              numVertices,
     const NTempest::C3Vector *position,
@@ -305,7 +305,7 @@ int __fastcall  ModelGeosetAdd(
     NTempest::CImVector       color,
     unsigned int              replaceableId
 );
-HMODEL __fastcall ModelCreateSimpleMesh(
+HMODEL ModelCreateSimpleMesh(
     const char               *name,
     unsigned int              numVertices,
     const NTempest::C3Vector *position,
@@ -320,7 +320,7 @@ HMODEL __fastcall ModelCreateSimpleMesh(
     NTempest::CImVector       color,
     unsigned int              replaceableId
 );
-HMODEL __fastcall CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode);
+HMODEL CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode);
 
 struct LINKUNIQUE : public TSLinkedNode<LINKUNIQUE> {
   LINKUNIQUE() : child(0), scale(1.0f) {
@@ -416,7 +416,7 @@ struct CModelRenderData {
 };
 
 void                            EnqueueModelCommand(CModel *model, EModelModQ command, ...);
-HMATERIAL __fastcall            BuildSimpleMaterial(
+HMATERIAL BuildSimpleMaterial(
     CModelTexture *modelTexture,
     unsigned int textureId,
     HTEXTURE texture,
@@ -424,21 +424,21 @@ HMATERIAL __fastcall            BuildSimpleMaterial(
     unsigned int disables,
     unsigned int replaceableId
 );
-unsigned int __fastcall         MatrixAlloc(unsigned int numMatrices);
-NTempest::C34Matrix *__fastcall MatrixDeref(unsigned int handle);
-int __fastcall                  IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared);
-int __fastcall                  IModelDerefHandle(CModel *model, CModelBase **unique);
-int __fastcall                  IModelDerefHandle(CModel *model, CModelShared **shared);
+unsigned int MatrixAlloc(unsigned int numMatrices);
+NTempest::C34Matrix *MatrixDeref(unsigned int handle);
+int IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared);
+int IModelDerefHandle(CModel *model, CModelBase **unique);
+int IModelDerefHandle(CModel *model, CModelShared **shared);
 
-void __fastcall MdxReadCameras(unsigned char *data, unsigned int fileBytes, TSFixedArray<HCAMERA> *cameras);
+void MdxReadCameras(unsigned char *data, unsigned int fileBytes, TSFixedArray<HCAMERA> *cameras);
 
-void __fastcall MdxReadLights(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr);
+void MdxReadLights(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr);
 
-HCOLLISIONDATA __fastcall CollisionDataCreate(unsigned char *fileData, unsigned int fileBytes);
+HCOLLISIONDATA CollisionDataCreate(unsigned char *fileData, unsigned int fileBytes);
 
-void __fastcall
+void
 MdxReadAttachments(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status);
 
-void __fastcall MdxReadRibbonEmitters(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr, CModelShared *shared);
+void MdxReadRibbonEmitters(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr, CModelShared *shared);
 
 #endif

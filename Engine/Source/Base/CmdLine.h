@@ -21,7 +21,7 @@ enum CMDOPT {
   CMDOPTS = 15
 };
 
-int __fastcall          CmdLineGetBool(CMDOPT opt);
-const char *__fastcall  CmdLineGetString(CMDOPT opt);
-unsigned int __fastcall CmdLineGetUint(CMDOPT opt);
-int __fastcall          CmdLineProcess();
+int CmdLineGetBool(CMDOPT opt);
+const char *CmdLineGetString(CMDOPT opt);
+unsigned int CmdLineGetUint(CMDOPT opt);
+int CmdLineProcess();

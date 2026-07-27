@@ -13,7 +13,7 @@ class NETEVENTQUEUE;
 class WowConnection;
 struct NETCONNADDR;
 
-void __fastcall ClientNetGetRealms(const char *serverAddress, void(__fastcall *fcn)(CDataStore *, void *), void *userData);
+void ClientNetGetRealms(const char *serverAddress, void(*fcn)(CDataStore *, void *), void *userData);
 
 enum NETSTATE {
   NS_UNINITIALIZED = 0,
@@ -543,7 +543,7 @@ class NetClient : public WowConnectionResponse {
   void Connect(const char *hostName);
   void Disconnect();
   void Send(CDataStore *msg);
-  void SetMessageHandler(NETMESSAGE msgId, int(__fastcall *handler)(void *, NETMESSAGE, unsigned long, CDataStore *), void *param);
+  void SetMessageHandler(NETMESSAGE msgId, int(*handler)(void *, NETMESSAGE, unsigned long, CDataStore *), void *param);
   void ClearMessageHandler(NETMESSAGE msgId);
 
   NETSTATE GetState() {
@@ -610,7 +610,7 @@ class NetClient : public WowConnectionResponse {
   int         m_redirectBytesRead;
   char        m_redirectHostPort[0x401];
   NETSTATE    m_netState;
-  int(__fastcall *m_handlers[NUM_MSG_TYPES])(void *, NETMESSAGE, unsigned long, CDataStore *);
+  int(*m_handlers[NUM_MSG_TYPES])(void *, NETMESSAGE, unsigned long, CDataStore *);
   void              *m_handlerParams[NUM_MSG_TYPES];
   NETEVENTQUEUE     *m_netEventQueue;
   WowConnection     *m_serverConnection;

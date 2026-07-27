@@ -15,7 +15,7 @@ struct HTEXCOMPONENT__;
 class CGObject_C;
 class CGUnit_C;
 class CGGameObject_C;
-int __fastcall UnitUpdateProc(unsigned __int64 guid, void *param);
+int UnitUpdateProc(unsigned __int64 guid, void *param);
 
 struct CWorldClickEvent {
   unsigned int button;
@@ -41,7 +41,7 @@ struct CObjectTrackEvent {
 };
 
 class CGWorldFrame : public CSimpleFrame {
-  friend int __fastcall UnitUpdateProc(unsigned __int64 guid, void *param);
+  friend int UnitUpdateProc(unsigned __int64 guid, void *param);
 
  public:
   enum HIT_TYPE {
@@ -77,7 +77,7 @@ class CGWorldFrame : public CSimpleFrame {
   virtual int  OnLayerMouseWheel(CMouseEvent &evt);
   virtual int  OnLayerMouseMoveRelative(CMouseEvent &evt);
 
-  static CSimpleFrame *__fastcall Create(CSimpleFrame *parent) {
+  static CSimpleFrame *Create(CSimpleFrame *parent) {
     return NEW(CGWorldFrame)(parent);
   }
 
@@ -114,10 +114,10 @@ class CGWorldFrame : public CSimpleFrame {
   int                         SetPlayerRender(int state);
   void                        OnMouseModeNormal();
   void                        OnMouseModeRelative();
-  static CGCamera *__fastcall GetActiveCamera();
-  static void __fastcall      GetCameraPosition(NTempest::C3Vector *position);
-  static void __fastcall      GetCameraFacing(NTempest::C3Vector *position);
-  static void __fastcall      RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT__ *texture, unsigned char startAlpha);
+  static CGCamera *GetActiveCamera();
+  static void GetCameraPosition(NTempest::C3Vector *position);
+  static void GetCameraFacing(NTempest::C3Vector *position);
+  static void RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT__ *texture, unsigned char startAlpha);
   void                        SetNamePlateUpdate();
   void                        RefreshPlayerAlpha();
   NTempest::C2Vector          GetScreenCoordinates(const NTempest::C3Vector &point);
@@ -160,7 +160,7 @@ class CGWorldFrame : public CSimpleFrame {
   void                   UnitUpdate();
   void                   OnWorldUpdate();
   void                   OnWorldRender();
-  static void __fastcall RenderWorld(void *param);
+  static void RenderWorld(void *param);
   int                    GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
 
   TSList<CModelRecord, TSGetLink<CModelRecord> > m_models;

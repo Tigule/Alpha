@@ -28,15 +28,15 @@ static CURSORANIMATIONS s_cursorMode;
 static HMODEL           s_cursorModel;
 CGCursor               *g_cursor;
 
-void __fastcall CursorResetCursor(int force);
+void CursorResetCursor(int force);
 
-void __fastcall CursorInitialize() {
+void CursorInitialize() {
   CursorDestroy();
   g_cursor = NEW(CGCursor);
   g_cursor->SetArt(ClientDBStringLookup(SLOOKUP_DEFAULTCURSOR));
 }
 
-void __fastcall CursorDestroy() {
+void CursorDestroy() {
   if (g_cursor) {
     DEL(g_cursor);
     g_cursor = 0;
@@ -48,7 +48,7 @@ void __fastcall CursorDestroy() {
   }
 }
 
-int __fastcall CursorGrabMoney(HMODEL model) {
+int CursorGrabMoney(HMODEL model) {
   if (!g_cursor || g_cursor->GetItemType() != CURSOR_EMPTY) {
     return 0;
   }
@@ -57,7 +57,7 @@ int __fastcall CursorGrabMoney(HMODEL model) {
   return 1;
 }
 
-int __fastcall CursorGrabSpell(HMODEL model) {
+int CursorGrabSpell(HMODEL model) {
   if (!g_cursor || g_cursor->GetItemType() != CURSOR_EMPTY) {
     return 0;
   }
@@ -87,7 +87,7 @@ static void CreateCursorIconModel(HTEXTURE texture) {
   FATALASSERT(s_cursorModel);
 }
 
-int __fastcall CursorGrabMoney(unsigned int amount) {
+int CursorGrabMoney(unsigned int amount) {
   const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   const char *separator = path && *path ? "\\" : "";
   char        buffer[MAX_PATH];
@@ -126,7 +126,7 @@ int __fastcall CursorGrabMoney(unsigned int amount) {
   return CursorGrabMoney(s_cursorModel);
 }
 
-int __fastcall CursorGrabSpell(const char *filename) {
+int CursorGrabSpell(const char *filename) {
   if (!filename) {
     return 0;
   }
@@ -148,25 +148,25 @@ int __fastcall CursorGrabSpell(const char *filename) {
   return CursorGrabSpell(s_cursorModel);
 }
 
-void __fastcall CursorDropMoney() {
+void CursorDropMoney() {
   if (g_cursor && g_cursor->GetItemType() == CURSOR_MONEY) {
     g_cursor->Drop();
     g_cursor->SetItemType(CURSOR_EMPTY);
   }
 }
 
-void __fastcall CursorDropSpell() {
+void CursorDropSpell() {
   if (g_cursor && g_cursor->GetItemType() == CURSOR_SPELL) {
     g_cursor->Drop();
     g_cursor->SetItemType(CURSOR_EMPTY);
   }
 }
 
-int __fastcall CursorHasSpell() {
+int CursorHasSpell() {
   return g_cursor && g_cursor->GetItemType() == CURSOR_SPELL;
 }
 
-void __fastcall CursorModelSetSequence(CURSORANIMATIONS sequence) {
+void CursorModelSetSequence(CURSORANIMATIONS sequence) {
   if (g_cursor && sequence < NUM_CURSOR_ANIMS && (s_cursorMode != CAST_CURSOR || sequence == CAST_CURSOR || sequence == CAST_ERROR_CURSOR)) {
     s_cursorType = sequence;
     if (s_cursorMode != CAST_CURSOR || sequence != ATTACK_CURSOR) {
@@ -175,15 +175,15 @@ void __fastcall CursorModelSetSequence(CURSORANIMATIONS sequence) {
   }
 }
 
-unsigned int __fastcall CursorGetCursorType() {
+unsigned int CursorGetCursorType() {
   return s_cursorType;
 }
 
-unsigned int __fastcall CursorGetCursorMode() {
+unsigned int CursorGetCursorMode() {
   return s_cursorMode;
 }
 
-void __fastcall CursorSetCursorMode(CURSORANIMATIONS mode) {
+void CursorSetCursorMode(CURSORANIMATIONS mode) {
   if (g_cursor && mode < NUM_CURSOR_ANIMS) {
     g_cursor->SetCursorMode(mode);
     CURSORANIMATIONS cursorMode = s_cursorMode;
@@ -196,14 +196,14 @@ void __fastcall CursorSetCursorMode(CURSORANIMATIONS mode) {
   }
 }
 
-void __fastcall CursorResetCursor(int force) {
+void CursorResetCursor(int force) {
   if (g_cursor && (s_cursorMode != CAST_CURSOR || force)) {
     s_cursorType = s_cursorMode;
     g_cursor->ResetCursor();
   }
 }
 
-void __fastcall CursorSetHeldItem(unsigned __int64 itemGuid) {
+void CursorSetHeldItem(unsigned __int64 itemGuid) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGuid, __FILE__, __LINE__));
   if (!item) {
     g_cursor->Drop();
@@ -236,7 +236,7 @@ void __fastcall CursorSetHeldItem(unsigned __int64 itemGuid) {
   g_cursor->Grab(s_cursorModel);
 }
 
-void __fastcall CursorSetHeldVirtualItem(unsigned int displayID) {
+void CursorSetHeldVirtualItem(unsigned int displayID) {
   if (!displayID) {
     g_cursor->Drop();
     g_cursor->SetItemType(CURSOR_EMPTY);

@@ -21,60 +21,60 @@ const char *CHandleObject::GetObjectName() {
   return 0;
 }
 
-void __fastcall           AnimInitialize();
-void __fastcall           AnimDestroy();
-void __fastcall           MDLFileInitialize();
-void __fastcall           MDLFileDestroy();
-int __fastcall            MDLFileRead(const char *path, MDLDATA *mdldata, CStatus *status);
-int __fastcall            MdlReadValidate(const MDLDATA &data, CStatus *status);
-HMODEL __fastcall         ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status);
-void __fastcall           ModelAnimateInitialize();
-void __fastcall           ModelAnimateDestroy();
-void __fastcall           ModelRenderInitialize();
-void __fastcall           ModelRenderDestroy();
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
-unsigned char *__fastcall MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status);
-void __fastcall           MDLFileBinaryUnload(unsigned char *fileData);
-HTEXTURE __fastcall       LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
-void __fastcall           AnimSetObjectOrdering(HANIM anim, const char **boneNames, unsigned int numBones);
-void __fastcall           AnimSetSequenceOrdering(HANIM anim, const char **sequenceNames, unsigned int numSequences);
-void __fastcall           AnimSetSequenceOrderingDefault(HANIM anim);
-void __fastcall           MdxReadTextures(unsigned char *, unsigned int, unsigned int, CModelComplex *, CStatus *);
-void __fastcall           MdxReadTextures(unsigned char *, unsigned int, unsigned int, CModelSimple *, CStatus *);
-void __fastcall           MdxReadMaterials(unsigned char *, unsigned int, unsigned int, CModelComplex *, CModelShared *);
-void __fastcall           MdxReadMaterials(unsigned char *, unsigned int, unsigned int, CModelSimple *, CModelShared *);
-void __fastcall           MdxReadGeosets(unsigned char *, unsigned int, unsigned int, CModelComplex *, CModelShared *);
-void __fastcall           MdxReadGeosets(unsigned char *, unsigned int, unsigned int, CModelSimple *, CModelShared *);
-void __fastcall           MdxLoadGlobalProperties(unsigned char *, unsigned int, unsigned int *, CModelShared *);
-void __fastcall           MdxReadAttachments(unsigned char *, unsigned int, unsigned int, CModelComplex *, CModelShared *, CStatus *);
-void __fastcall           MdxReadRibbonEmitters(unsigned char *, unsigned int, CModelComplex *, CModelShared *);
-void __fastcall           MdxReadEmitters2(unsigned char *, unsigned int, unsigned int, CModelComplex *, CModelShared *, CStatus *);
-void __fastcall           MdxReadLights(unsigned char *, unsigned int, CModelComplex *);
-HCOLLISIONDATA __fastcall CollisionDataCreate(unsigned char *, unsigned int);
-HCOLLISIONDATA __fastcall CollisionDataCreate(const MDLDATA &);
-HANIM __fastcall         AnimCreate(const MDLDATA &, unsigned int, CStatus *);
-unsigned int __fastcall  AnimBuildObjectIdTranslation(const MDLDATA &, unsigned int, TSStackArray<unsigned int> *);
-int __fastcall           MdlReadCameras(const MDLDATA &, TSFixedArray<HCAMERA> *);
-void __fastcall          MdlReadLoadGlobalProperties(const MDLDATA &, CModelShared *, unsigned int *);
-int __fastcall           MdlReadLoadModel(const MDLDATA &, CModelComplex *, CModelShared *, unsigned int, CStatus *);
-int __fastcall           MdlReadLoadModel(const MDLDATA &, CModelSimple *, CModelShared *, unsigned int, CStatus *);
-int __fastcall           MdlReadLoadRibbonEmitters(const MDLDATA &, CModelComplex *, CModelShared *);
-int __fastcall           MdlReadLoadEmitters2(const MDLDATA &, CModelComplex *, CModelShared *, unsigned int, CStatus *);
-int __fastcall           MdlReadLoadLights(const MDLDATA &, CModelComplex *);
-void __fastcall           ExecuteQueuedActions(CModel *model);
-void __fastcall           IModelEnableFullAlpha(CModelBase *unique, int enable);
+void AnimInitialize();
+void AnimDestroy();
+void MDLFileInitialize();
+void MDLFileDestroy();
+int MDLFileRead(const char *path, MDLDATA *mdldata, CStatus *status);
+int MdlReadValidate(const MDLDATA &data, CStatus *status);
+HMODEL ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status);
+void ModelAnimateInitialize();
+void ModelAnimateDestroy();
+void ModelRenderInitialize();
+void ModelRenderDestroy();
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+unsigned char *MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status);
+void MDLFileBinaryUnload(unsigned char *fileData);
+HTEXTURE LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
+void AnimSetObjectOrdering(HANIM anim, const char **boneNames, unsigned int numBones);
+void AnimSetSequenceOrdering(HANIM anim, const char **sequenceNames, unsigned int numSequences);
+void AnimSetSequenceOrderingDefault(HANIM anim);
+void MdxReadTextures(unsigned char *, unsigned int, unsigned int, CModelComplex *, CStatus *);
+void MdxReadTextures(unsigned char *, unsigned int, unsigned int, CModelSimple *, CStatus *);
+void MdxReadMaterials(unsigned char *, unsigned int, unsigned int, CModelComplex *, CModelShared *);
+void MdxReadMaterials(unsigned char *, unsigned int, unsigned int, CModelSimple *, CModelShared *);
+void MdxReadGeosets(unsigned char *, unsigned int, unsigned int, CModelComplex *, CModelShared *);
+void MdxReadGeosets(unsigned char *, unsigned int, unsigned int, CModelSimple *, CModelShared *);
+void MdxLoadGlobalProperties(unsigned char *, unsigned int, unsigned int *, CModelShared *);
+void MdxReadAttachments(unsigned char *, unsigned int, unsigned int, CModelComplex *, CModelShared *, CStatus *);
+void MdxReadRibbonEmitters(unsigned char *, unsigned int, CModelComplex *, CModelShared *);
+void MdxReadEmitters2(unsigned char *, unsigned int, unsigned int, CModelComplex *, CModelShared *, CStatus *);
+void MdxReadLights(unsigned char *, unsigned int, CModelComplex *);
+HCOLLISIONDATA CollisionDataCreate(unsigned char *, unsigned int);
+HCOLLISIONDATA CollisionDataCreate(const MDLDATA &);
+HANIM AnimCreate(const MDLDATA &, unsigned int, CStatus *);
+unsigned int AnimBuildObjectIdTranslation(const MDLDATA &, unsigned int, TSStackArray<unsigned int> *);
+int MdlReadCameras(const MDLDATA &, TSFixedArray<HCAMERA> *);
+void MdlReadLoadGlobalProperties(const MDLDATA &, CModelShared *, unsigned int *);
+int MdlReadLoadModel(const MDLDATA &, CModelComplex *, CModelShared *, unsigned int, CStatus *);
+int MdlReadLoadModel(const MDLDATA &, CModelSimple *, CModelShared *, unsigned int, CStatus *);
+int MdlReadLoadRibbonEmitters(const MDLDATA &, CModelComplex *, CModelShared *);
+int MdlReadLoadEmitters2(const MDLDATA &, CModelComplex *, CModelShared *, unsigned int, CStatus *);
+int MdlReadLoadLights(const MDLDATA &, CModelComplex *);
+void ExecuteQueuedActions(CModel *model);
+void IModelEnableFullAlpha(CModelBase *unique, int enable);
 
-void __fastcall ModelClearAllLinks(HMODEL parent);
-void __fastcall ModelEnableAnimBlending(HMODEL model, int enabled);
-void __fastcall ModelHideBounds(HMODEL model);
-void __fastcall ModelHideGeosets(HMODEL model, unsigned int selectionGroup, int hide);
-void __fastcall ModelHideGeosetsRange(HMODEL model, unsigned int selectionStart, unsigned int selectionEnd, int hide);
-int __fastcall  ModelOptimizeVisibleGeosets(HMODEL model);
-int __fastcall  ModelRemoveLink(HMODEL parent, unsigned int parentIndex, HMODEL child);
-void __fastcall ModelSetEmissiveColor(HMODEL model, const NTempest::CImVector &color, int doLinkedModels);
-void __fastcall ModelShowCollision(HMODEL model, int show);
-void __fastcall ModelShowCollisionAaBox(HMODEL model, int show);
-void __fastcall ModelShowModel(HMODEL model, int show);
+void ModelClearAllLinks(HMODEL parent);
+void ModelEnableAnimBlending(HMODEL model, int enabled);
+void ModelHideBounds(HMODEL model);
+void ModelHideGeosets(HMODEL model, unsigned int selectionGroup, int hide);
+void ModelHideGeosetsRange(HMODEL model, unsigned int selectionStart, unsigned int selectionEnd, int hide);
+int ModelOptimizeVisibleGeosets(HMODEL model);
+int ModelRemoveLink(HMODEL parent, unsigned int parentIndex, HMODEL child);
+void ModelSetEmissiveColor(HMODEL model, const NTempest::CImVector &color, int doLinkedModels);
+void ModelShowCollision(HMODEL model, int show);
+void ModelShowCollisionAaBox(HMODEL model, int show);
+void ModelShowModel(HMODEL model, int show);
 
 class CHashKeyFilePath {
  public:
@@ -153,7 +153,7 @@ static EModelParamType s_modelParamTypes[MODEL_NUM_COMMANDS][4] = {
     {  MPARAM_BOOL,     MPARAM_NONE,  MPARAM_NONE, MPARAM_NONE}
 };
 
-static void __fastcall AsyncModelHandler();
+static void AsyncModelHandler();
 
 static TSCArray<unsigned char, 4194304>                  s_asyncLoadBuffer;
 static TSExplicitList<CAsyncObject, 32>                  s_asyncLoadList;
@@ -164,18 +164,18 @@ static TSExplicitList<CModelHash, 292>                   s_modelCacheLRU;
 static CNullStatus                                       s_nullStatus;
 static TSList<CModelModItem, TSGetLink<CModelModItem> >  s_freeModItems;
 
-HMODEL __fastcall ModelDuplicate(HMODEL sourceModel, unsigned int flags);
-HMODEL __fastcall IModelCreateBlocking(const char *fileName, char *actualPath, CModelCreate *data, CStatus *status);
-HMODEL __fastcall CreateDefaultModel(const char *fileName, unsigned int modelLoadFlags, CStatus *status);
+HMODEL ModelDuplicate(HMODEL sourceModel, unsigned int flags);
+HMODEL IModelCreateBlocking(const char *fileName, char *actualPath, CModelCreate *data, CStatus *status);
+HMODEL CreateDefaultModel(const char *fileName, unsigned int modelLoadFlags, CStatus *status);
 
-static int __fastcall ModelIsUsed(HMODEL model) {
+static int ModelIsUsed(HMODEL model) {
   CModelShared *shared;
 
   IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared);
   return reinterpret_cast<CModel *>(model)->GetRefCount() > 1 || reinterpret_cast<CHandleObject *>(shared)->GetRefCount() > 1;
 }
 
-static void __fastcall ProcessAnimReorders(CModelBase *modelptr, CModelCreate *data) {
+static void ProcessAnimReorders(CModelBase *modelptr, CModelCreate *data) {
   ASSERT(modelptr->m_anim);
 
   if (!data) {
@@ -199,7 +199,7 @@ static void __fastcall ProcessAnimReorders(CModelBase *modelptr, CModelCreate *d
   }
 }
 
-static HMODEL __fastcall GetModel(const char *modelFName, CModelCreate *data) {
+static HMODEL GetModel(const char *modelFName, CModelCreate *data) {
   ASSERT(modelFName);
   char fileName[260];
   SStrCopy(fileName, modelFName, sizeof(fileName));
@@ -221,7 +221,7 @@ static HMODEL __fastcall GetModel(const char *modelFName, CModelCreate *data) {
   return duplicate;
 }
 
-static void __fastcall HashNewModel(const char *modelFName, HMODEL model, unsigned int createFlags, CStatus *status) {
+static void HashNewModel(const char *modelFName, HMODEL model, unsigned int createFlags, CStatus *status) {
   char          filePath[260];
   unsigned long currentTime;
 
@@ -260,7 +260,7 @@ static int MdlReadLoadNumMatrices(const MDLDATA& data, CModelShared* shared, uns
   return 1;
 }
 
-static void __fastcall MdxReadNumMatrices(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelShared *shared) {
+static void MdxReadNumMatrices(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelShared *shared) {
   ASSERT(shared);
 
   unsigned char *section = MDLFileBinarySeek(data, fileBytes, 0x454E4F42);
@@ -288,7 +288,7 @@ static void __fastcall MdxReadNumMatrices(unsigned char *data, unsigned int file
   }
 }
 
-static unsigned int __fastcall ConvertAnimCreateFlags(unsigned int loadFlags) {
+static unsigned int ConvertAnimCreateFlags(unsigned int loadFlags) {
   unsigned int createFlags = 0;
 
   if (loadFlags & 0x20) {
@@ -320,7 +320,7 @@ static int MdlReadLoadAnim(const MDLDATA& data, CModelBase* modelptr, unsigned i
   return 1;
 }
 
-static int __fastcall MdxReadAnimation(unsigned char *fileData, unsigned int fileBytes, CModelBase *modelptr, unsigned int loadFlags) {
+static int MdxReadAnimation(unsigned char *fileData, unsigned int fileBytes, CModelBase *modelptr, unsigned int loadFlags) {
   modelptr->m_anim = AnimCreate(fileData, fileBytes, ConvertAnimCreateFlags(loadFlags));
   if (!modelptr->m_anim) {
     return 0;
@@ -333,7 +333,7 @@ static int __fastcall MdxReadAnimation(unsigned char *fileData, unsigned int fil
   return 1;
 }
 
-static void __fastcall MdxReadHitTestData(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr, CModelShared *shared) {
+static void MdxReadHitTestData(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr, CModelShared *shared) {
   unsigned int *shapeDone;
   unsigned int *dataDone;
   unsigned int  i;
@@ -441,7 +441,7 @@ static int MdlReadLoadHitTestData(const MDLDATA& data, CModelComplex* modelptr, 
   return 1;
 }
 
-static void __fastcall ComputeBoundingRadius(const CGeosetShared *geosets, unsigned int numGeosets, const NTempest::C3Vector &center, float *radius) {
+static void ComputeBoundingRadius(const CGeosetShared *geosets, unsigned int numGeosets, const NTempest::C3Vector &center, float *radius) {
   float bestDistSqd = 0.0f;
 
   while (numGeosets) {
@@ -460,7 +460,7 @@ static void __fastcall ComputeBoundingRadius(const CGeosetShared *geosets, unsig
   *radius = NTempest::CMath::sqrt_(bestDistSqd);
 }
 
-static void __fastcall ComputeBoundingBox(const CGeosetShared *geosets, unsigned int numGeosets, NTempest::CAaBox *extent) {
+static void ComputeBoundingBox(const CGeosetShared *geosets, unsigned int numGeosets, NTempest::CAaBox *extent) {
   *extent = NTempest::CAaBox::Bounding(geosets[0].position.Ptr(), geosets[0].position.Count());
 
   while (numGeosets) {
@@ -472,7 +472,7 @@ static void __fastcall ComputeBoundingBox(const CGeosetShared *geosets, unsigned
   }
 }
 
-static void __fastcall IModelComputeBounds(CModelShared *shared) {
+static void IModelComputeBounds(CModelShared *shared) {
   ASSERT(shared);
   ComputeBoundingBox(shared->geosets.Ptr(), shared->geosets.Count(), &shared->bounds.extent);
   shared->bounds.sphere.c = (shared->bounds.extent.b + shared->bounds.extent.t) * 0.5f;
@@ -504,7 +504,7 @@ static int MdlReadLoadExtents(const MDLDATA& data, CModelBase* modelptr, CModelS
   return 1;
 }
 
-static unsigned char *__fastcall LoadBoundsData(unsigned char *data, CBoundsData *bounds) {
+static unsigned char *LoadBoundsData(unsigned char *data, CBoundsData *bounds) {
   bounds->sphere.r = *reinterpret_cast<float *>(data);
   data += sizeof(float);
 
@@ -517,7 +517,7 @@ static unsigned char *__fastcall LoadBoundsData(unsigned char *data, CBoundsData
   return data;
 }
 
-static void __fastcall MdxReadExtents(unsigned char *data, unsigned int fileBytes, CModelBase *modelptr, CModelShared *shared) {
+static void MdxReadExtents(unsigned char *data, unsigned int fileBytes, CModelBase *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
 
@@ -580,7 +580,7 @@ static int MdlReadLoadPositions(const MDLDATA& data, unsigned int flags, CModelS
   return 1;
 }
 
-static void __fastcall MdxReadPositions(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelShared *shared) {
+static void MdxReadPositions(unsigned char *fileData, unsigned int fileBytes, unsigned int flags, CModelShared *shared) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x54564950);
   if (!section) {
     return;
@@ -618,7 +618,7 @@ static void __fastcall MdxReadPositions(unsigned char *fileData, unsigned int fi
   }
 }
 
-static CModelShared *__fastcall CreateSharedModelData(const char *fileName) {
+static CModelShared *CreateSharedModelData(const char *fileName) {
   void         *storage = SMemAlloc(sizeof(CModelShared), "HMODELSHARED", SERR_LINECODE_OBJECT, 0);
   CModelShared *shared = storage ? new (storage) CModelShared : 0;
 
@@ -627,23 +627,23 @@ static CModelShared *__fastcall CreateSharedModelData(const char *fileName) {
   return shared;
 }
 
-int __fastcall IsSimpleModel(const MDLDATA &source) {
+int IsSimpleModel(const MDLDATA &source) {
   return source.geosets.Count() <= 5 && source.materials.Count() <= 4 && source.textures.Count() <= 4 && !source.lights.Count() &&
          !source.attachments.Count() && !source.particleEmitters2.Count() && !source.ribbonEmitters.Count() && !source.cameras.Count() &&
          !source.hitTestShapes.Count();
 }
 
-static unsigned int __fastcall GetSectionCount(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag) {
+static unsigned int GetSectionCount(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, sectionTag);
   return section ? *reinterpret_cast<unsigned int *>(section + 4) : 0;
 }
 
-static unsigned int __fastcall GetTextureCount(unsigned char *fileData, unsigned int fileBytes) {
+static unsigned int GetTextureCount(unsigned char *fileData, unsigned int fileBytes) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x53584554);
   return section ? *reinterpret_cast<unsigned int *>(section) / 0x10C : 0;
 }
 
-static int __fastcall IsSimpleModel(unsigned char *fileData, unsigned int fileBytes) {
+static int IsSimpleModel(unsigned char *fileData, unsigned int fileBytes) {
   if (GetSectionCount(fileData, fileBytes, 0x534C544D) > 4 || GetTextureCount(fileData, fileBytes) > 4 ||
       GetSectionCount(fileData, fileBytes, 0x534F4547) > 5)
   {
@@ -660,7 +660,7 @@ static int __fastcall IsSimpleModel(unsigned char *fileData, unsigned int fileBy
   return 1;
 }
 
-static void __fastcall BuildSimpleModelFromMdxData(
+static void BuildSimpleModelFromMdxData(
     unsigned char *fileData,
     unsigned int   fileBytes,
     CModelSimple  *modelptr,
@@ -683,7 +683,7 @@ static void __fastcall BuildSimpleModelFromMdxData(
   MdxReadPositions(fileData, fileBytes, flags, shared);
 }
 
-static void __fastcall BuildModelFromMdxData(
+static void BuildModelFromMdxData(
     unsigned char *fileData,
     unsigned int   fileBytes,
     CModelBase    *baseModel,
@@ -775,7 +775,7 @@ static int BuildModelFromMdlData(const MDLDATA& source, CModelBase* baseModel, C
          MdlReadCameras(source, &modelptr->m_cameras);
 }
 
-HMATERIAL __fastcall BuildSimpleMaterial(
+HMATERIAL BuildSimpleMaterial(
     CModelTexture *texData,
     unsigned int   textureId,
     HTEXTURE       texture,
@@ -827,7 +827,7 @@ HMATERIAL __fastcall BuildSimpleMaterial(
   return static_cast<HMATERIAL>(HandleCreate(unique, "HMATERIAL"));
 }
 
-static void __fastcall BuildSimpleGeoset(
+static void BuildSimpleGeoset(
     unsigned int              numVertices,
     const NTempest::C3Vector *position,
     const NTempest::C3Vector *normal,
@@ -852,7 +852,7 @@ static void __fastcall BuildSimpleGeoset(
   geoShared->primitiveVertices.Set(numPrimVertices, primitiveVertices);
 }
 
-HMODEL __fastcall CreateDefaultModel(const char *fileName, unsigned int modelLoadFlags, CStatus *status) {
+HMODEL CreateDefaultModel(const char *fileName, unsigned int modelLoadFlags, CStatus *status) {
   status->Add(STATUS_WARNING, "Warning, model %s failed to load\n", fileName);
 
   CGxTexFlags textureFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
@@ -872,7 +872,7 @@ HMODEL __fastcall CreateDefaultModel(const char *fileName, unsigned int modelLoa
   return model;
 }
 
-void __fastcall ModelInitialize() {
+void ModelInitialize() {
   AnimInitialize();
   MDLFileInitialize();
   ModelAnimateInitialize();
@@ -880,7 +880,7 @@ void __fastcall ModelInitialize() {
   AsyncFileReadAddHandler(AsyncModelHandler);
 }
 
-void __fastcall ModelDestroy() {
+void ModelDestroy() {
   ModelRenderDestroy();
   ModelAnimateDestroy();
   AnimDestroy();
@@ -892,12 +892,12 @@ void __fastcall ModelDestroy() {
   s_freeModItems.Clear();
 }
 
-void __fastcall ModelCacheFlush() {
+void ModelCacheFlush() {
   s_modelCacheLRU.UnlinkAll();
   s_modelCache.Destroy();
 }
 
-void __fastcall ModelRemoveFromCache(const char *sourcefile) {
+void ModelRemoveFromCache(const char *sourcefile) {
   char        filePath[260];
   char       *extension;
   CModelHash *modelHash;
@@ -923,7 +923,7 @@ void __fastcall ModelRemoveFromCache(const char *sourcefile) {
   s_modelCache.Delete(modelHash);
 }
 
-int __fastcall ModelCacheUpdate(unsigned long currentTime, CStatus *status) {
+int ModelCacheUpdate(unsigned long currentTime, CStatus *status) {
   unsigned int numModelsFlushed = 0;
 
   while (CModelHash *modelHash = s_modelCacheLRU.Head()) {
@@ -955,12 +955,12 @@ int __fastcall ModelCacheUpdate(unsigned long currentTime, CStatus *status) {
   return numModelsFlushed != 0;
 }
 
-HMODEL __fastcall ModelGetModel(const char *sourcefile, CModelCreate *data) {
+HMODEL ModelGetModel(const char *sourcefile, CModelCreate *data) {
   FATALASSERT(sourcefile);
   return GetModel(sourcefile, data);
 }
 
-HMODEL __fastcall IModelCreateBlocking(const char *fileName, char *actualPath, CModelCreate *data, CStatus *status) {
+HMODEL IModelCreateBlocking(const char *fileName, char *actualPath, CModelCreate *data, CStatus *status) {
   unsigned int   fileBytes;
   CModelShared  *shared;
   unsigned char *fileData;
@@ -1010,7 +1010,7 @@ void CModel::DeleteAsyncObj() {
   SFile::Close(file);
 }
 
-static void __fastcall AsyncModelHandler() {
+static void AsyncModelHandler() {
   unsigned int  bufferRemaining;
   CAsyncObject *asyncObject;
   CAsyncObject *asyncObjectnext_node;
@@ -1041,7 +1041,7 @@ static void __fastcall AsyncModelHandler() {
   }
 }
 
-static void __fastcall AsnycModelPostLoadCallback(void *userArg) {
+static void AsnycModelPostLoadCallback(void *userArg) {
   CModel        *model = static_cast<CModel *>(userArg);
   CStatus        status;
   unsigned char *fileData;
@@ -1077,7 +1077,7 @@ static void __fastcall AsnycModelPostLoadCallback(void *userArg) {
   ExecuteQueuedActions(model);
 }
 
-static HMODEL __fastcall IModelCreate(const char *fileName, char *actualPath, CModelCreate *createData, CStatus *status) {
+static HMODEL IModelCreate(const char *fileName, char *actualPath, CModelCreate *createData, CStatus *status) {
   ASSERT(status);
   OsOutputDebugString("Model: (INFO) : Loading \"%s\"\n", actualPath);
 
@@ -1132,7 +1132,7 @@ static HMODEL __fastcall IModelCreate(const char *fileName, char *actualPath, CM
   return handle;
 }
 
-static int __fastcall IsBinaryFile(char *path) {
+static int IsBinaryFile(char *path) {
   unsigned int length = SStrLen(path);
   char         lastCharacter = path[length - 1];
 
@@ -1150,7 +1150,7 @@ static int __fastcall IsBinaryFile(char *path) {
   return 0;
 }
 
-HMODEL __fastcall ModelCreate(const char *sourcefile, CModelCreate *data, CStatus *status) {
+HMODEL ModelCreate(const char *sourcefile, CModelCreate *data, CStatus *status) {
   ASSERT(sourcefile);
   ASSERT(sourcefile[0]);
 
@@ -1178,7 +1178,7 @@ HMODEL __fastcall ModelCreate(const char *sourcefile, CModelCreate *data, CStatu
   return 0;
 }
 
-HMODEL __fastcall ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status) {
+HMODEL ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status) {
   ASSERT(status);
   ASSERT(static_cast<const char *>(source.header.sourceFilename)[0]);
 
@@ -1225,7 +1225,7 @@ HMODEL __fastcall ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus
   return modelHandle;
 }
 
-static CModel *__fastcall IModelCreateSimpleEmpty(const char *name) {
+static CModel *IModelCreateSimpleEmpty(const char *name) {
   CModel       *model = NEW(CModel);
   CModelShared *shared = NEW(CModelShared);
   CModelSimple *modelptr = NEW(CModelSimple);
@@ -1248,7 +1248,7 @@ static CModel *__fastcall IModelCreateSimpleEmpty(const char *name) {
   return model;
 }
 
-HMODEL __fastcall ModelCreateSimpleMesh(
+HMODEL ModelCreateSimpleMesh(
     const char               *name,
     unsigned int              numVertices,
     const NTempest::C3Vector *position,
@@ -1279,7 +1279,7 @@ HMODEL __fastcall ModelCreateSimpleMesh(
   return static_cast<HMODEL>(HandleCreate(model, "HMODEL"));
 }
 
-int __fastcall ModelGeosetAdd(
+int ModelGeosetAdd(
     HMODEL                    model,
     unsigned int              numVertices,
     const NTempest::C3Vector *position,
@@ -1317,7 +1317,7 @@ int __fastcall ModelGeosetAdd(
   return 1;
 }
 
-HMODEL __fastcall ModelDuplicate(HMODEL sourceModel, unsigned int flags) {
+HMODEL ModelDuplicate(HMODEL sourceModel, unsigned int flags) {
   if (!sourceModel) {
     return 0;
   }
@@ -1405,7 +1405,7 @@ void EnqueueModelCommand(CModel *model, EModelModQ command, ...) {
   va_end(arguments);
 }
 
-void __fastcall ExecuteQueuedActions(CModel *model) {
+void ExecuteQueuedActions(CModel *model) {
   CModelModItem *item = model->modelModQueue.Head();
   HMODEL         modelHandle = 0;
 
@@ -1527,14 +1527,14 @@ void __fastcall ExecuteQueuedActions(CModel *model) {
 
       case MODEL_SET_EVENT_CALLBACK:
         ModelSetEventCallback(
-            modelHandle, *reinterpret_cast<void(__fastcall **)(const char *, const NTempest::C3Vector &, void *)>(param),
+            modelHandle, *reinterpret_cast<void(**)(const char *, const NTempest::C3Vector &, void *)>(param),
             *reinterpret_cast<void **>(param + 4), param[8]
         );
         break;
 
       case MODEL_SET_LIGHT_SELECT_CALLBACK:
         ModelSetLightSelectCallback(
-            modelHandle, *reinterpret_cast<void(__fastcall **)(void *, NTempest::C3Vector, const NTempest::C3Vector &, unsigned int)>(param),
+            modelHandle, *reinterpret_cast<void(**)(void *, NTempest::C3Vector, const NTempest::C3Vector &, unsigned int)>(param),
             *reinterpret_cast<void **>(param + 4), param[8]
         );
         break;
@@ -1666,7 +1666,7 @@ void CModel::RemoveModelCommandsFromQueue() {
   s_freeModItems.Combine(&modelModQueue, LIST_TAIL, 0);
 }
 
-int __fastcall ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
+int ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
   CModel        *modelptr;
   CModelBase    *base;
   CModelComplex *complex;
@@ -1703,7 +1703,7 @@ int __fastcall ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
 
   return 1;
 }
-int __fastcall IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared) {
+int IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared) {
   FATALASSERT(model);
 
   *unique = 0;
@@ -1718,7 +1718,7 @@ int __fastcall IModelDerefHandle(CModel *model, CModelBase **unique, CModelShare
   return 1;
 }
 
-int __fastcall IModelDerefHandle(CModel *model, CModelBase **unique) {
+int IModelDerefHandle(CModel *model, CModelBase **unique) {
   FATALASSERT(model);
 
   *unique = 0;
@@ -1730,7 +1730,7 @@ int __fastcall IModelDerefHandle(CModel *model, CModelBase **unique) {
   return 1;
 }
 
-int __fastcall IModelDerefHandle(CModel *model, CModelShared **shared) {
+int IModelDerefHandle(CModel *model, CModelShared **shared) {
   FATALASSERT(model);
 
   *shared = reinterpret_cast<CModelShared *>(model->shared);

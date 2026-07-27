@@ -17,11 +17,11 @@
 #include <storm.h>
 
 static int __cdecl            SortByTexture(const void *A, const void *B);
-static const char *__fastcall LanguageProcess(const char *text);
-static const char *__fastcall LanguageRule1(const char *text);
-static bool __fastcall        CheckJongsung(const unsigned short *text, int position);
-void __fastcall               TextureGetDimensions(HTEXTURE texture, unsigned int *width, unsigned int *height);
-unsigned int __fastcall       TextBlockGetMaxCharsWithinWidthFromEnd(
+static const char *LanguageProcess(const char *text);
+static const char *LanguageRule1(const char *text);
+static bool CheckJongsung(const unsigned short *text, int position);
+void TextureGetDimensions(HTEXTURE texture, unsigned int *width, unsigned int *height);
+unsigned int TextBlockGetMaxCharsWithinWidthFromEnd(
     HTEXTFONT    font,
     const char  *text,
     float        height,
@@ -31,7 +31,7 @@ unsigned int __fastcall       TextBlockGetMaxCharsWithinWidthFromEnd(
     float        charSpacing,
     unsigned int flags
 );
-void __fastcall TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor);
+void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor);
 
 static char           output8[0x1000];
 static unsigned short output16[0x1000];
@@ -44,7 +44,7 @@ unsigned short     CSimpleRender::s_indices[4] = {0, 1, 2, 3};
 
 EGxTexFilter CSimpleTexture::s_textureFilterMode = GxTex_Linear;
 
-void __fastcall CSimpleRender::DrawBatch(CRenderBatch *batch) {
+void CSimpleRender::DrawBatch(CRenderBatch *batch) {
   unsigned int count = batch->m_texturelist.Count();
 
   if (count) {
@@ -522,7 +522,7 @@ void CSimpleFontString::SetTextLength(int size) {
   }
 }
 
-static bool __fastcall CheckJongsung(const unsigned short *text, int position) {
+static bool CheckJongsung(const unsigned short *text, int position) {
   while (position >= 0) {
     unsigned short character = text[position];
 
@@ -613,7 +613,7 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
   return *this;
 }
 
-static const char *__fastcall LanguageRule1(const char *text) {
+static const char *LanguageRule1(const char *text) {
   unsigned short *readpos;
   unsigned short *writepos;
 
@@ -661,7 +661,7 @@ static const char *__fastcall LanguageRule1(const char *text) {
   return output8;
 }
 
-static const char *__fastcall LanguageProcess(const char *text) {
+static const char *LanguageProcess(const char *text) {
   while (*text) {
     const char *rule = text;
 
@@ -1317,7 +1317,7 @@ void CRenderBatch::QueueFontString(CSimpleFontString *string) {
   }
 }
 
-void CRenderBatch::QueueCallback(void(__fastcall *callback)(void *), void *param) {
+void CRenderBatch::QueueCallback(void(*callback)(void *), void *param) {
   RENDERCALLBACKNODE *node = m_callbacks.NewNode(LIST_TAIL, 0, 0);
   node->callback = callback;
   node->param = param;

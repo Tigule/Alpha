@@ -2,7 +2,7 @@
 
 #include <gl/gl.h>
 
-int __fastcall SetupPixelFormat(HDC hdc, const CGxFormat &format) {
+int SetupPixelFormat(HDC hdc, const CGxFormat &format) {
   unsigned int gBits = 6;
   unsigned int bBits = 5;
   unsigned int rBits = 5;
@@ -115,7 +115,7 @@ int __fastcall SetupPixelFormat(HDC hdc, const CGxFormat &format) {
   return 1;
 }
 
-HGLRC __fastcall AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format) {
+HGLRC AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format) {
   (void)hdc;
   HDC windowDC = GetDC(hwnd);
   if (windowDC && SetupPixelFormat(windowDC, format)) {
@@ -124,7 +124,7 @@ HGLRC __fastcall AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format) {
   return 0;
 }
 
-void __fastcall RemoveGlContext(HGLRC context) {
+void RemoveGlContext(HGLRC context) {
   wglMakeCurrent(0, 0);
   wglDeleteContext(context);
 }

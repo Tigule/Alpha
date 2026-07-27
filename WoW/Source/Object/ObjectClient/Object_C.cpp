@@ -46,7 +46,7 @@ static HTEXTURE s_selectionTexture;
 
 static const float Gx_MaxTexAspect = 8.0f;
 
-static unsigned int __fastcall GenerateAnimFlags(unsigned int objectFlags) {
+static unsigned int GenerateAnimFlags(unsigned int objectFlags) {
   unsigned int animFlags = 0;
 
   if (objectFlags & 2) {
@@ -62,7 +62,7 @@ static unsigned int __fastcall GenerateAnimFlags(unsigned int objectFlags) {
   return animFlags;
 }
 
-static void __fastcall s_BlobFadeTex(
+static void s_BlobFadeTex(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -113,7 +113,7 @@ static void __fastcall s_BlobFadeTex(
   }
 }
 
-static void __fastcall s_BlobFadeTex(
+static void s_BlobFadeTex(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -124,7 +124,7 @@ static void __fastcall s_BlobFadeTex(
     const void  *&texels
 );
 
-HMODEL __fastcall ObjectModelCreate(const char *filename, OBJECT_TYPE objectType, unsigned int mdlCreateFlags) {
+HMODEL ObjectModelCreate(const char *filename, OBJECT_TYPE objectType, unsigned int mdlCreateFlags) {
   FATALASSERT(filename);
 
   CModelCreate  createData;
@@ -470,7 +470,7 @@ void CGObject_C::SetData(const void *data, unsigned int bytes) {
   memcpy(m_obj, data, bytes);
 }
 
-unsigned int __fastcall CGObject_C::OffsetOf(OBJECT_TYPE_ID type) {
+unsigned int CGObject_C::OffsetOf(OBJECT_TYPE_ID type) {
   FATALASSERT(type == ID_OBJECT);
   return 0;
 }
@@ -520,7 +520,7 @@ void CGObject_C::ReportNoAnimation(const char *modelName) {
   SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTNOANIM|%s", modelName);
 }
 
-ANIMENUMERATION __fastcall Object_C_GetAnimIndex(const char* animName) {
+ANIMENUMERATION Object_C_GetAnimIndex(const char* animName) {
   if (!animName || !*animName) {
     return static_cast<ANIMENUMERATION>(-1);
   }
@@ -642,7 +642,7 @@ const char *CGObject_C::GetObjectName() const {
   return 0;
 }
 
-int CGObject_C::GetPageTextID(void(__fastcall *)(int, const unsigned __int64 &, void *, bool)) const {
+int CGObject_C::GetPageTextID(void(*)(int, const unsigned __int64 &, void *, bool)) const {
   return 0;
 }
 
@@ -695,7 +695,7 @@ int CGObject_C::AddAttachment(HMODEL__ *parent, unsigned int parentIndex, HMODEL
   return 0;
 }
 
-void __fastcall CGObject_C::Initialize() {
+void CGObject_C::Initialize() {
   s_objectSelectionCircle = CVar::Register("ObjectSelectionCircle", 0, 0, "1", 0, DEBUG, false, 0);
   s_debugTargetPath = CVar::Register("DebugTargetPath", 0, 0, "0", 0, DEBUG, false, 0);
 
@@ -716,7 +716,7 @@ void __fastcall CGObject_C::Initialize() {
   s_selectionTexture = TextureCreate("Textures\\UnitSelectTexture.blp", flags, &status, 0);
 }
 
-void __fastcall CGObject_C::Shutdown() {
+void CGObject_C::Shutdown() {
   if (s_fadeTex) {
     GxTexDestroy(s_fadeTex);
   }
@@ -1075,11 +1075,11 @@ HMODEL__ *CGObject_C::GetCharacterModel(int *mounted) const {
   return static_cast<HMODEL>(HandleDuplicate(m_model));
 }
 
-unsigned int __fastcall Object_C_AnimHasHitEvent(int anim) {
+unsigned int Object_C_AnimHasHitEvent(int anim) {
   FATALASSERT(anim < NUM_OBJECTANIMATIONS);
   return g_seqInformation[anim].flags & 1;
 }
-static int __fastcall UpdateAllWorldObjectsCallback(unsigned __int64 obj, void *) {
+static int UpdateAllWorldObjectsCallback(unsigned __int64 obj, void *) {
   CGObject_C *object = ClntObjMgrObjectPtr(obj, __FILE__, __LINE__);
   if (object) {
     object->UpdateWorldObject();
@@ -1087,6 +1087,6 @@ static int __fastcall UpdateAllWorldObjectsCallback(unsigned __int64 obj, void *
   return 1;
 }
 
-void __fastcall CGObject_C::UpdateAllWorldObjects() {
+void CGObject_C::UpdateAllWorldObjects() {
   ClntObjMgrEnumVisibleObjects(UpdateAllWorldObjectsCallback, 0);
 }

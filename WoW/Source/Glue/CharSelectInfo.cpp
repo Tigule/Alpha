@@ -29,7 +29,7 @@
 static TSGrowableArray<CHARINFO> s_charList;
 static const char                REGKEY[11] = "WoW\\Client";
 
-void __fastcall SetHandsState(HMODEL model, int itemSlot, int itemInventoryType);
+void SetHandsState(HMODEL model, int itemSlot, int itemInventoryType);
 static const char                REGVAL_LASTCHARACTER[14] = "LastCharacter";
 static const char                REGVAL_LASTACCOUNT[12] = "LastAccount";
 static const char                REGVAL_LASTREALM[10] = "LastRealm";
@@ -37,13 +37,13 @@ static const char                REGVAL_LASTREALM[10] = "LastRealm";
 int           CCharSelectInfo::m_selectionIndex;
 CSimpleModel *CCharSelectInfo::m_modelFrame;
 
-static int __fastcall Script_SetCharSelectModelFrame(lua_State *L);
-static int __fastcall Script_SetCharSelectBackground(lua_State *L);
-static int __fastcall Script_GetCharacterListUpdate(lua_State *__formal);
-static int __fastcall Script_GetNumCharacters(lua_State *L);
-static int __fastcall Script_GetCharacterInfo(lua_State *L);
-static int __fastcall Script_SelectCharacter(lua_State *L);
-static int __fastcall Script_DeleteCharacter(lua_State *L);
+static int Script_SetCharSelectModelFrame(lua_State *L);
+static int Script_SetCharSelectBackground(lua_State *L);
+static int Script_GetCharacterListUpdate(lua_State *__formal);
+static int Script_GetNumCharacters(lua_State *L);
+static int Script_GetCharacterInfo(lua_State *L);
+static int Script_SelectCharacter(lua_State *L);
+static int Script_DeleteCharacter(lua_State *L);
 
 static const FrameScript_Method s_ScriptFunctions[7] = {
     {"SetCharSelectModelFrame", Script_SetCharSelectModelFrame},
@@ -88,18 +88,18 @@ void CHARINFO::UpdateTabardTexture() {
   }
 }
 
-void __fastcall CCharSelectInfo::Initialize() {
+void CCharSelectInfo::Initialize() {
 }
 
-void __fastcall CCharSelectInfo::Shutdown() {
+void CCharSelectInfo::Shutdown() {
   s_charList.Clear();
 }
 
-void __fastcall CCharSelectInfo::SetModelFrame(CSimpleModel *frame) {
+void CCharSelectInfo::SetModelFrame(CSimpleModel *frame) {
   m_modelFrame = frame;
 }
 
-void __fastcall CCharSelectInfo::SetBackgroundModel(const char *filename) {
+void CCharSelectInfo::SetBackgroundModel(const char *filename) {
   CModelCreate createData;
 
   if (!m_modelFrame || !filename || !*filename) {
@@ -116,7 +116,7 @@ void __fastcall CCharSelectInfo::SetBackgroundModel(const char *filename) {
   m_modelFrame->SetModel(filename, &createData, 0);
 }
 
-void __fastcall CCharSelectInfo::ClearCharacterModel() {
+void CCharSelectInfo::ClearCharacterModel() {
   if (m_modelFrame) {
     HMODEL model = m_modelFrame->GetModel();
 
@@ -126,7 +126,7 @@ void __fastcall CCharSelectInfo::ClearCharacterModel() {
   }
 }
 
-void __fastcall CCharSelectInfo::ClearPetModel() {
+void CCharSelectInfo::ClearPetModel() {
   if (m_modelFrame) {
     HMODEL model = m_modelFrame->GetModel();
 
@@ -136,7 +136,7 @@ void __fastcall CCharSelectInfo::ClearPetModel() {
   }
 }
 
-CHARACTER_INFO *__fastcall CCharSelectInfo::GetSelectedCharacterInfo() {
+CHARACTER_INFO *CCharSelectInfo::GetSelectedCharacterInfo() {
   if (m_selectionIndex < 0 || m_selectionIndex >= static_cast<int>(s_charList.Count())) {
     return 0;
   }
@@ -144,7 +144,7 @@ CHARACTER_INFO *__fastcall CCharSelectInfo::GetSelectedCharacterInfo() {
   return &s_charList[m_selectionIndex].m_characterInfo;
 }
 
-void __fastcall CCharSelectInfo::EnumerateCharactersCallback(CHARACTER_INFO &info, void *__formal) {
+void CCharSelectInfo::EnumerateCharactersCallback(CHARACTER_INFO &info, void *__formal) {
   ASSERT(s_charList.Count() < MAX_CHARACTERS_PER_REALM);
 
   CHARINFO *charInfo = s_charList.New();
@@ -167,7 +167,7 @@ void __fastcall CCharSelectInfo::EnumerateCharactersCallback(CHARACTER_INFO &inf
   }
 }
 
-void __fastcall CCharSelectInfo::GuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted) {
+void CCharSelectInfo::GuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted) {
   if (guildID && granted) {
     unsigned __int64 guildGuid = 0;
     unsigned int     index;
@@ -182,7 +182,7 @@ void __fastcall CCharSelectInfo::GuildCallback(int guildID, const unsigned __int
   }
 }
 
-void __fastcall CCharSelectInfo::UpdateCharacterList() {
+void CCharSelectInfo::UpdateCharacterList() {
   s_charList.SetCount(0);
   ClientServices_EnumerateCharacters(EnumerateCharactersCallback, 0);
 
@@ -369,7 +369,7 @@ void CHARINFO::ChangeSkinTexture() {
   HandleClose(geosetHandle);
 }
 
-static void __fastcall SetFingersSeq(HMODEL model, unsigned int sequence, unsigned int startFinger, unsigned int lastFinger) {
+static void SetFingersSeq(HMODEL model, unsigned int sequence, unsigned int startFinger, unsigned int lastFinger) {
   unsigned int finger;
   for (finger = startFinger; finger <= lastFinger; ++finger) {
     if (ModelLockObjectSequence(model, finger, 0)) {
@@ -380,7 +380,7 @@ static void __fastcall SetFingersSeq(HMODEL model, unsigned int sequence, unsign
   }
 }
 
-static void __fastcall ResetFingersSeq(HMODEL model, unsigned int startFinger, unsigned int lastFinger) {
+static void ResetFingersSeq(HMODEL model, unsigned int startFinger, unsigned int lastFinger) {
   unsigned int finger;
   unsigned int sequence = ModelGetPrimarySequence(model);
   for (finger = startFinger; finger <= lastFinger; ++finger) {
@@ -390,7 +390,7 @@ static void __fastcall ResetFingersSeq(HMODEL model, unsigned int startFinger, u
   }
 }
 
-static void __fastcall SetHandState(HMODEL model, int invType, unsigned int startFinger, unsigned int lastFinger) {
+static void SetHandState(HMODEL model, int invType, unsigned int startFinger, unsigned int lastFinger) {
   if (invType == INDEX_SHIELD_TYPE) {
     ResetFingersSeq(model, startFinger, lastFinger);
   } else {
@@ -398,7 +398,7 @@ static void __fastcall SetHandState(HMODEL model, int invType, unsigned int star
   }
 }
 
-void __fastcall SetHandsState(HMODEL model, int itemSlot, int itemInventoryType) {
+void SetHandsState(HMODEL model, int itemSlot, int itemInventoryType) {
   if (!itemSlot) {
     return;
   }
@@ -409,7 +409,7 @@ void __fastcall SetHandsState(HMODEL model, int itemSlot, int itemInventoryType)
   }
 }
 
-void __fastcall CCharSelectInfo::UpdateCharacterInfo() {
+void CCharSelectInfo::UpdateCharacterInfo() {
   if (m_selectionIndex < 0 || m_selectionIndex >= static_cast<int>(s_charList.Count())) {
     return;
   }
@@ -432,14 +432,14 @@ void __fastcall CCharSelectInfo::UpdateCharacterInfo() {
   info->UpdateCharacterInfo(rec->m_ModelName, backgroundModel);
 }
 
-void __fastcall CCharSelectInfo::ChangeSkinTexture() {
+void CCharSelectInfo::ChangeSkinTexture() {
   if (m_selectionIndex < 0 || m_selectionIndex >= static_cast<int>(s_charList.Count())) {
     return;
   }
   s_charList[m_selectionIndex].ChangeSkinTexture();
 }
 
-void __fastcall CCharSelectInfo::SelectCharacter(int index) {
+void CCharSelectInfo::SelectCharacter(int index) {
   index = index < 0 ? 0 : index;
 
   if (index >= static_cast<int>(s_charList.Count())) {
@@ -452,11 +452,11 @@ void __fastcall CCharSelectInfo::SelectCharacter(int index) {
   FrameScript_SignalEvent(7, "%d", m_selectionIndex + 1);
 }
 
-int __fastcall CCharSelectInfo::GetNumCharacters() {
+int CCharSelectInfo::GetNumCharacters() {
   return s_charList.Count();
 }
 
-static int __fastcall Script_SetCharSelectModelFrame(lua_State *L) {
+static int Script_SetCharSelectModelFrame(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: SetCharSelectModelFrame(\"frameName\")");
     return 0;
@@ -470,7 +470,7 @@ static int __fastcall Script_SetCharSelectModelFrame(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetCharSelectBackground(lua_State *L) {
+static int Script_SetCharSelectBackground(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: SetCharSelectBackground(\"filename\")");
     return 0;
@@ -480,19 +480,19 @@ static int __fastcall Script_SetCharSelectBackground(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetCharacterListUpdate(lua_State *__formal) {
+static int Script_GetCharacterListUpdate(lua_State *__formal) {
   CCharSelectInfo::ClearCharacterModel();
   CCharSelectInfo::ClearPetModel();
   CGlueMgr::GetCharacterList();
   return 0;
 }
 
-static int __fastcall Script_GetNumCharacters(lua_State *L) {
+static int Script_GetNumCharacters(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CCharSelectInfo::GetNumCharacters()));
   return 1;
 }
 
-static int __fastcall Script_GetCharacterInfo(lua_State *L) {
+static int Script_GetCharacterInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: GetCharacterInfo(index)");
     return 0;
@@ -529,7 +529,7 @@ static int __fastcall Script_GetCharacterInfo(lua_State *L) {
   return 6;
 }
 
-static int __fastcall Script_SelectCharacter(lua_State *L) {
+static int Script_SelectCharacter(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SelectCharacter(index)");
     return 0;
@@ -544,7 +544,7 @@ static int __fastcall Script_SelectCharacter(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_DeleteCharacter(lua_State *L) {
+static int Script_DeleteCharacter(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: DeleteCharacter(index)");
     return 0;
@@ -558,13 +558,13 @@ static int __fastcall Script_DeleteCharacter(lua_State *L) {
   return 0;
 }
 
-void __fastcall CharSelectRegisterScriptFunctions() {
+void CharSelectRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 7; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall CharSelectUnregisterScriptFunctions() {
+void CharSelectUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 7; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

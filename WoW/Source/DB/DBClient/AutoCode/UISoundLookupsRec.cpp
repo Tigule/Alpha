@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall UISoundLookupsRec::GetFilename() {
+const char *UISoundLookupsRec::GetFilename() {
   return "DBFilesClient\\UISoundLookups.dbc";
 }
 

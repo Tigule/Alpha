@@ -56,7 +56,7 @@ class CGInputControl {
     s_inputControl = 0;
   }
 
-  static CGInputControl *__fastcall GetActive();
+  static CGInputControl *GetActive();
 
   void OnUpdate(float elapsedSec);
   void OnMouseMove(const CMouseEvent &event);
@@ -89,7 +89,7 @@ class CGInputControl {
   int  IsMouseDragging() const;
 };
 
-void __fastcall InputControlInitialize();
-void __fastcall InputControlRegisterScriptFunctions();
-void __fastcall InputControlUnregisterScriptFunctions();
-void __fastcall InputControlDestroy();
+void InputControlInitialize();
+void InputControlRegisterScriptFunctions();
+void InputControlUnregisterScriptFunctions();
+void InputControlDestroy();

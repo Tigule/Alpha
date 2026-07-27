@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall ChrClassesRec::GetFilename() {
+const char *ChrClassesRec::GetFilename() {
   return "DBFilesClient\\ChrClasses.dbc";
 }
 

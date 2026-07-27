@@ -99,7 +99,7 @@ const float        INFINITY = *reinterpret_cast<const float *>(&INFINITY_ENCODIN
 typedef BOOL(APIENTRY *SERRHANDLER)(DWORD errorcode, LPCSTR errorstr, LPCSTR filename, int linenumber, LPCSTR description);
 typedef int(APIENTRY *SERRLOGCALLBACK)(LPSTR buffer, DWORD bufferchars);
 
-void __fastcall           SErrInitialize();
+void SErrInitialize();
 extern "C" BOOL APIENTRY  SErrDestroy();
 extern "C" BOOL APIENTRY  SErrCheckDebugSymbolLibrary(BOOL warnnotfound);
 extern "C" void APIENTRY  SErrPrepareAppFatal(LPCSTR filename, int linenumber);
@@ -343,9 +343,9 @@ extern "C" void APIENTRY SBigXor(BigData *a, const BigData *b, const BigData *c)
 
 typedef void(__cdecl *LOGMACHINESTATEPROC)(void *param, const char *format, ...);
 
-void __fastcall
+void
 LogComputerInfoHeader(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const char *title, SYSTEMTIME *localTime);
-void __fastcall LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, UINT stackFramesToSkip, CONTEXT *context);
+void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, UINT stackFramesToSkip, CONTEXT *context);
 
 // --------------------------------
 // Utility functions
@@ -356,7 +356,7 @@ int __cdecl vsoprintf(char *out, const char *format, char *argumentList);
 int __cdecl snoprintf(char *out, int maxchars, const char *format, ...);
 int __cdecl soprintf(char *out, const char *format, ...);
 
-DWORD __fastcall          CrcBuffer(const void *buffer, DWORD len, DWORD *pcrc, DWORD stage);
+DWORD CrcBuffer(const void *buffer, DWORD len, DWORD *pcrc, DWORD stage);
 extern "C" DWORD APIENTRY SCrcBuffer(const void *buffer, DWORD len, DWORD *pcrc, DWORD stage);
 
 typedef struct SHA1_CONTEXT {
@@ -365,9 +365,9 @@ typedef struct SHA1_CONTEXT {
   unsigned char buffer[64];
 } SHA1_CONTEXT;
 
-void __fastcall SHA1_Init(SHA1_CONTEXT *context);
-void __fastcall SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int len);
-void __fastcall SHA1_Final(unsigned char *const digest, SHA1_CONTEXT *context);
+void SHA1_Init(SHA1_CONTEXT *context);
+void SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int len);
+void SHA1_Final(unsigned char *const digest, SHA1_CONTEXT *context);
 
 class Sha1 {
  public:
@@ -382,7 +382,7 @@ class Sha1 {
   void Finalize(unsigned char *const hash);
 
  private:
-  static void __fastcall Pump(unsigned long *const hash, const unsigned char *const data);
+  static void Pump(unsigned long *const hash, const unsigned char *const data);
 
   unsigned __int64 m_size;
   unsigned long    m_hash[5];
@@ -429,11 +429,11 @@ namespace Crypt {
 
 class SSignatureData;
 
-extern "C" void __fastcall          SSignatureVerifyStream_Begin(SSignatureData **token, unsigned long modulusSize, unsigned long pubExponentSize);
-extern "C" unsigned long __fastcall SSignatureVerifyStream_GetSignatureLength(SSignatureData *token);
-extern "C" void __fastcall          SSignatureVerifyStream_ProvideData(SSignatureData *token, const unsigned char *data, unsigned long size);
-extern "C" int __fastcall SSignatureVerifyStream_Finish(SSignatureData *token, const unsigned char *modulus, const unsigned char *pubExponent);
-extern "C" int __fastcall SSignatureVerify(
+extern "C" void SSignatureVerifyStream_Begin(SSignatureData **token, unsigned long modulusSize, unsigned long pubExponentSize);
+extern "C" unsigned long SSignatureVerifyStream_GetSignatureLength(SSignatureData *token);
+extern "C" void SSignatureVerifyStream_ProvideData(SSignatureData *token, const unsigned char *data, unsigned long size);
+extern "C" int SSignatureVerifyStream_Finish(SSignatureData *token, const unsigned char *modulus, const unsigned char *pubExponent);
+extern "C" int SSignatureVerify(
     const unsigned char *data,
     unsigned long        size,
     const unsigned char *modulus,
@@ -441,7 +441,7 @@ extern "C" int __fastcall SSignatureVerify(
     const unsigned char *pubExponent,
     unsigned long        pubExponentSize
 );
-extern "C" int __fastcall SSignatureGenerate(
+extern "C" int SSignatureGenerate(
     unsigned char       *data,
     unsigned long       &size,
     const unsigned char *modulus,
@@ -572,7 +572,7 @@ extern "C" LPVOID APIENTRY SMemAlloc(DWORD bytes, LPCSTR filename = NULL, int li
 extern "C" BOOL APIENTRY   SMemDestroy();
 extern "C" BOOL APIENTRY   SMemDumpState(SMEMDUMPPROC outputproc, HOUTPUTCONTEXT outputcontext);
 BOOL APIENTRY              SMemDumpStateEx(char *arglist);
-void __fastcall            SMemGenerateReport(SMEMREPORTTYPE reporttype, SMEMREPORTPROC outputproc, HOUTPUTCONTEXT outputcontext);
+void SMemGenerateReport(SMEMREPORTTYPE reporttype, SMEMREPORTPROC outputproc, HOUTPUTCONTEXT outputcontext);
 BOOL APIENTRY              SMemMarkAllHeapsEx(char *arglist);
 extern "C" BOOL APIENTRY   SMemFindNextBlock(HSHEAP heap, LPVOID prevblock, LPVOID *nextblock, LPSMEMBLOCKDETAILS details);
 extern "C" void APIENTRY   SMemHeapGetDetails(HSHEAP heap, LPSMEMHEAPDETAILS details);
@@ -599,29 +599,29 @@ extern "C" void __cdecl    SMemTrace(LPCSTR format, ...);
 // Interlocked functions
 // --------------------------------
 
-void *__fastcall   SInterlockedExchangePointer(void **destPtr, void *exchange);
-void *__fastcall   SInterlockedCompareExchangePointer(void **destPtr, void *exchange, void *comperand);
-long __fastcall    SInterlockedIncrement(long *valuePtr);
-long __fastcall    SInterlockedDecrement(long *valuePtr);
-long __fastcall    SInterlockedExchangeAdd(long *valuePtr, long delta);
-long __fastcall    SInterlockedExchangeSub(long *valuePtr, long delta);
-long __fastcall    SInterlockedExchange(long *destPtr, long exchange);
-long __fastcall    SInterlockedCompareExchange(long *destPtr, long exchange, long comperand);
-__int64 __fastcall SInterlockedIncrement(__int64 *valuePtr);
-__int64 __fastcall SInterlockedDecrement(__int64 *valuePtr);
-__int64 __fastcall SInterlockedExchangeAdd(__int64 *valuePtr, long delta);
-__int64 __fastcall SInterlockedExchangeSub(__int64 *valuePtr, long delta);
-__int64 __fastcall SInterlockedExchangeAdd(__int64 *valuePtr, const __int64 &delta);
-__int64 __fastcall SInterlockedExchangeSub(__int64 *valuePtr, const __int64 &delta);
-__int64 __fastcall SInterlockedRead(const __int64 *sourcePtr);
-__int64 __fastcall SInterlockedExchange(__int64 *destPtr, const __int64 &exchange);
-__int64 __fastcall SInterlockedCompareExchange(__int64 *destPtr, const __int64 &exchange, const __int64 &comperand);
-void __fastcall    SInterlockedIncrementNonAtomic(__int64 *valuePtr);
-void __fastcall    SInterlockedDecrementNonAtomic(__int64 *valuePtr);
-void __fastcall    SInterlockedAddNonAtomic(__int64 *valuePtr, long delta);
-void __fastcall    SInterlockedSubNonAtomic(__int64 *valuePtr, long delta);
-void __fastcall    SInterlockedAddNonAtomic(__int64 *valuePtr, const __int64 &delta);
-void __fastcall    SInterlockedSubNonAtomic(__int64 *valuePtr, const __int64 &delta);
+void *SInterlockedExchangePointer(void **destPtr, void *exchange);
+void *SInterlockedCompareExchangePointer(void **destPtr, void *exchange, void *comperand);
+long SInterlockedIncrement(long *valuePtr);
+long SInterlockedDecrement(long *valuePtr);
+long SInterlockedExchangeAdd(long *valuePtr, long delta);
+long SInterlockedExchangeSub(long *valuePtr, long delta);
+long SInterlockedExchange(long *destPtr, long exchange);
+long SInterlockedCompareExchange(long *destPtr, long exchange, long comperand);
+__int64 SInterlockedIncrement(__int64 *valuePtr);
+__int64 SInterlockedDecrement(__int64 *valuePtr);
+__int64 SInterlockedExchangeAdd(__int64 *valuePtr, long delta);
+__int64 SInterlockedExchangeSub(__int64 *valuePtr, long delta);
+__int64 SInterlockedExchangeAdd(__int64 *valuePtr, const __int64 &delta);
+__int64 SInterlockedExchangeSub(__int64 *valuePtr, const __int64 &delta);
+__int64 SInterlockedRead(const __int64 *sourcePtr);
+__int64 SInterlockedExchange(__int64 *destPtr, const __int64 &exchange);
+__int64 SInterlockedCompareExchange(__int64 *destPtr, const __int64 &exchange, const __int64 &comperand);
+void SInterlockedIncrementNonAtomic(__int64 *valuePtr);
+void SInterlockedDecrementNonAtomic(__int64 *valuePtr);
+void SInterlockedAddNonAtomic(__int64 *valuePtr, long delta);
+void SInterlockedSubNonAtomic(__int64 *valuePtr, long delta);
+void SInterlockedAddNonAtomic(__int64 *valuePtr, const __int64 &delta);
+void SInterlockedSubNonAtomic(__int64 *valuePtr, const __int64 &delta);
 
 // --------------------------------
 // Synchronization functions
@@ -651,7 +651,7 @@ class CDebugSCritSect : public SCritSect {
   void                   Enter(const char *fileName, unsigned long line);
   void                   Leave(const char *fileName, unsigned long line);
   int                    TryEnter(const char *fileName, unsigned long line);
-  static void __fastcall DumpAllEntries();
+  static void DumpAllEntries();
 
  private:
   CDebugSCritSect(const CDebugSCritSect &);
@@ -682,7 +682,7 @@ class CDebugSRWLock : public CSRWLock {
   void                   Enter(int forwriting, const char *fileName, unsigned long line);
   void                   Leave(int fromwriting, const char *fileName, unsigned long line);
   int                    TryEnter(int forwriting, const char *fileName, unsigned long line);
-  static void __fastcall DumpAllEntries();
+  static void DumpAllEntries();
 
  private:
   CDebugSRWLock(const CDebugSRWLock &);
@@ -741,11 +741,11 @@ class SMutex : public SSyncObject {
   int  Release();
 };
 
-unsigned long __fastcall WaitMultiple(unsigned int count, SSyncObject *const objects, int waitAll, unsigned long timeoutMs);
-unsigned long __fastcall WaitMultiplePtr(unsigned int count, SSyncObject **const objectPtrs, int waitAll, unsigned long timeoutMs);
-void __fastcall          SServerInitialize();
-void __fastcall          SServerDestroy();
-int __fastcall           STryEnterCriticalSection(void *opaqueData);
+unsigned long WaitMultiple(unsigned int count, SSyncObject *const objects, int waitAll, unsigned long timeoutMs);
+unsigned long WaitMultiplePtr(unsigned int count, SSyncObject **const objectPtrs, int waitAll, unsigned long timeoutMs);
+void SServerInitialize();
+void SServerDestroy();
+int STryEnterCriticalSection(void *opaqueData);
 
 typedef unsigned int(APIENTRY *STHREADPROC)(void *);
 
@@ -761,14 +761,14 @@ class SThread : public SSyncObject {
   ~SThread();
 #endif
 
-  static int __fastcall Create(STHREADPROC proc, void *param, SThread &thread, char *name);
+  static int Create(STHREADPROC proc, void *param, SThread &thread, char *name);
 };
 
-void *__fastcall         SCreateThread(DWORD stackSize, STHREADPROC proc, void *param, DWORD flags, unsigned int *threadId, char *name);
-void *__fastcall         SCreateThread(STHREADPROC lpStartAddress, void *lpParameter, unsigned int *lpThreadId, void *linuxData, char *threadName);
-unsigned long __fastcall SGetCurrentThreadId();
-int __fastcall           SGetCurrentThreadPriority();
-void __fastcall          SSetCurrentThreadPriority(int priority);
+void *SCreateThread(DWORD stackSize, STHREADPROC proc, void *param, DWORD flags, unsigned int *threadId, char *name);
+void *SCreateThread(STHREADPROC lpStartAddress, void *lpParameter, unsigned int *lpThreadId, void *linuxData, char *threadName);
+unsigned long SGetCurrentThreadId();
+int SGetCurrentThreadPriority();
+void SSetCurrentThreadPriority(int priority);
 
 // --------------------------------
 // Unicode functions
@@ -810,18 +810,18 @@ typedef struct OSSYSTEMTIME {
   WORD milliseconds;
 } OSSYSTEMTIME, *LPOSSYSTEMTIME;
 
-void __fastcall  OsGetSystemTime(OSSYSTEMTIME *sysTime);
-void __fastcall  OsGetLocalTime(OSSYSTEMTIME *sysTime);
-int __fastcall   OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTime2);
-void __fastcall  OsTimeToFileTime(DWORD time, OSFILETIME *fileTime);
-void __fastcall  OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME *localFileTime);
-void __fastcall  OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime);
-void __fastcall  OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime);
-void __fastcall  OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime);
-int __fastcall   OsDirectoryExists(const char *dirName);
-DWORD __fastcall OsGetFileAttributes(const char *fileName);
-void __fastcall  OsSystemObjectCreate(const char *name);
-int __fastcall   OsSystemObjectExists(const char *name);
+void OsGetSystemTime(OSSYSTEMTIME *sysTime);
+void OsGetLocalTime(OSSYSTEMTIME *sysTime);
+int OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTime2);
+void OsTimeToFileTime(DWORD time, OSFILETIME *fileTime);
+void OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME *localFileTime);
+void OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime);
+void OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime);
+void OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime);
+int OsDirectoryExists(const char *dirName);
+DWORD OsGetFileAttributes(const char *fileName);
+void OsSystemObjectCreate(const char *name);
+int OsSystemObjectExists(const char *name);
 
 // --------------------------------
 // Directory functions
@@ -897,11 +897,11 @@ class SFile {
   SFile(SFILE_TYPE type);
   ~SFile();
 
-  static void __fastcall       DoAsyncRead(ASYNCREAD *ptr);
+  static void DoAsyncRead(ASYNCREAD *ptr);
   static unsigned int APIENTRY ReadProc(void *__formal);
-  static void __fastcall       InitializeReadThread();
-  static void __fastcall       QueueReadRequest(SFile *fileptr, void *buffer, DWORD bytestoread, SOVERLAPPED *overlapped);
-  static int __fastcall        DoZRead(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread);
+  static void InitializeReadThread();
+  static void QueueReadRequest(SFile *fileptr, void *buffer, DWORD bytestoread, SOVERLAPPED *overlapped);
+  static int DoZRead(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread);
 
   SFILE_TYPE  m_type;
   void       *m_fileptr;
@@ -942,10 +942,10 @@ class SFile {
   static void APIENTRY     DisableSFileCheckDisk();
   static void APIENTRY     EnableHash(bool enable);
   static void APIENTRY     RebuildHash();
-  static void __fastcall   Destroy();
+  static void Destroy();
   static int APIENTRY      OpenArchive(const char *archivename, int priority, DWORD flags, SArchive **handle);
   static int APIENTRY      CloseArchive(SArchive *archive);
-  static int APIENTRY      List(SArchive *archive, int(__fastcall *cb)(const char *filename, void *param), void *param);
+  static int APIENTRY      List(SArchive *archive, int(*cb)(const char *filename, void *param), void *param);
   static int APIENTRY      GetMD5(SFile *file, MD5 &sum);
   static void APIENTRY     CreateOverlapped(SOVERLAPPED *overlapped);
   static void APIENTRY     DestroyOverlapped(SOVERLAPPED *overlapped);
@@ -1119,17 +1119,17 @@ extern "C" HINSTANCE APIENTRY StormGetInstance();
 extern "C" BOOL APIENTRY      StormGetOption(int optname, void *optval, LPDWORD optlen);
 extern "C" BOOL APIENTRY      StormSetOption(int optname, void *optval, DWORD optlen);
 extern "C" int __cdecl        StormCallService(int service, ...);
-void __fastcall               StormRtlInitialize();
-void __fastcall               StormRtlDestroy();
-void __fastcall               IncrementAllocCount();
-void __fastcall               IncrementFreeCount();
+void StormRtlInitialize();
+void StormRtlDestroy();
+void IncrementAllocCount();
+void IncrementFreeCount();
 
 namespace STypeCache {
-  void __fastcall        Shutdown();
-  void __fastcall        Grow();
-  int __fastcall         GetProbe(const char *rawname);
-  const char *__fastcall Get(const char *rawname);
-  const char *__fastcall Set(const char *rawname, const char *decname);
+  void Shutdown();
+  void Grow();
+  int GetProbe(const char *rawname);
+  const char *Get(const char *rawname);
+  const char *Set(const char *rawname, const char *decname);
 }
 
 // --------------------------------
@@ -1155,10 +1155,10 @@ extern "C" BOOL APIENTRY SRegGetNumSubKeys(LPCSTR keyName, UINT flags, UINT *num
 extern "C" void APIENTRY SStrInitialize();
 extern "C" void APIENTRY SStrDestroy();
 
-const char *__fastcall SStrChr(const char *string, char ch);
-char *__fastcall       SStrChr(char *string, char ch);
-const char *__fastcall SStrChrR(const char *string, char ch);
-char *__fastcall       SStrChrR(char *string, char ch);
+const char *SStrChr(const char *string, char ch);
+char *SStrChr(char *string, char ch);
+const char *SStrChrR(const char *string, char ch);
+char *SStrChrR(char *string, char ch);
 int APIENTRY           SStrCmp(LPCSTR string1, LPCSTR string2, DWORD maxchars);
 int APIENTRY           SStrCmpI(LPCSTR string1, LPCSTR string2, DWORD maxchars);
 DWORD APIENTRY         SStrCopy(char *dest, LPCSTR source, DWORD destsize);
@@ -1179,10 +1179,10 @@ __int64 APIENTRY       SStrHash64(LPCSTR string, DWORD flags, __int64 seed);
 DWORD APIENTRY         SStrHashHT(LPCSTR string);
 void APIENTRY          SStrUpper(char *string);
 void APIENTRY          SStrLower(char *string);
-const char *__fastcall SStrStr(const char *string, const char *search);
-char *__fastcall       SStrStr(char *string, const char *search);
-const char *__fastcall SStrStrI(const char *string, const char *search);
-char *__fastcall       SStrStrI(char *string, const char *search);
+const char *SStrStr(const char *string, const char *search);
+char *SStrStr(char *string, const char *search);
+const char *SStrStrI(const char *string, const char *search);
+char *SStrStrI(char *string, const char *search);
 
 #define ALLOC(bytes)     SMemAlloc(bytes, __FILE__, __LINE__, 0)
 #define ALLOCZERO(bytes) SMemAlloc(bytes, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY)

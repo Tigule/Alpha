@@ -1,10 +1,10 @@
 #pragma once
 
-int __fastcall           OsLaunchURL(const char *url);
-unsigned int __fastcall  OsGetProcessorCount();
-unsigned long __fastcall OsGetProcessorFeatures();
-unsigned long __fastcall OsGetProcessorFeaturesEx(int &vendorID);
-void __fastcall          OsGetVersionString(char *string, int length);
-int __fastcall           OsGetComputerName(char *computerName, unsigned long *computerNameLen);
-int __fastcall           OsGetUserName(char *userName, unsigned long *userNameLen);
-unsigned long __fastcall OsGetPhysicalMemory();
+int OsLaunchURL(const char *url);
+unsigned int OsGetProcessorCount();
+unsigned long OsGetProcessorFeatures();
+unsigned long OsGetProcessorFeaturesEx(int &vendorID);
+void OsGetVersionString(char *string, int length);
+int OsGetComputerName(char *computerName, unsigned long *computerNameLen);
+int OsGetUserName(char *userName, unsigned long *userNameLen);
+unsigned long OsGetPhysicalMemory();

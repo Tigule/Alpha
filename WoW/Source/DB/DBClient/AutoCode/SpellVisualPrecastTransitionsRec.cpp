@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellVisualPrecastTransitionsRec::GetFilename() {
+const char *SpellVisualPrecastTransitionsRec::GetFilename() {
   return "DBFilesClient\\SpellVisualPrecastTransitions.dbc";
 }
 

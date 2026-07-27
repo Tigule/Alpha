@@ -9,7 +9,7 @@ struct EventReg;
 
 class CObserver : public TRefCnt {
  public:
-  typedef int(__fastcall *EVENTCALLBACK)(const CEvent &, void *);
+  typedef int(*EVENTCALLBACK)(const CEvent &, void *);
 
   CObserver() : m_pEventRegistry(0) {
   }

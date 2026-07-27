@@ -17,7 +17,7 @@
 
 class CGBuffBar;
 
-void __fastcall Spell_C_CancelAura(int spellID);
+void Spell_C_CancelAura(int spellID);
 
 class CGBuffDesc {
   friend class CGBuffBar;
@@ -47,15 +47,15 @@ class CGBuffDesc {
 
 class CGBuffBar {
  public:
-  static void __fastcall         InitializeGame();
-  static void __fastcall         ShutdownGame();
-  static void __fastcall         EnterWorld();
-  static void __fastcall         LeaveWorld();
-  static void __fastcall         UpdateBuffs();
-  static void __fastcall         UpdateDuration(unsigned char slot, unsigned int duration);
-  static const CGBuffDesc *__fastcall GetBuffByFilter(int index, unsigned int filter, int &buffIndex);
-  static const CGBuffDesc *__fastcall GetBuffByIndex(int buffIndex);
-  static unsigned int __fastcall GetBuffTimeLeftByIndex(int buffIndex);
+  static void InitializeGame();
+  static void ShutdownGame();
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void UpdateBuffs();
+  static void UpdateDuration(unsigned char slot, unsigned int duration);
+  static const CGBuffDesc *GetBuffByFilter(int index, unsigned int filter, int &buffIndex);
+  static const CGBuffDesc *GetBuffByIndex(int buffIndex);
+  static unsigned int GetBuffTimeLeftByIndex(int buffIndex);
 
  private:
   static CGBuffDesc   m_buffs[56];
@@ -65,35 +65,35 @@ class CGBuffBar {
 CGBuffDesc   CGBuffBar::m_buffs[56];
 unsigned int CGBuffBar::m_durations[56];
 
-static int __fastcall AuraUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int AuraUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   CGBuffBar::UpdateBuffs();
   return 1;
 }
 
-void __fastcall CGBuffBar::InitializeGame() {
+void CGBuffBar::InitializeGame() {
   for (unsigned int i = 0; i < 56; ++i) {
     m_buffs[i].SetAuraIndex(-1, 0);
     m_durations[i] = 0;
   }
 }
 
-void __fastcall CGBuffBar::ShutdownGame() {
+void CGBuffBar::ShutdownGame() {
 }
 
-void __fastcall CGBuffBar::EnterWorld() {
+void CGBuffBar::EnterWorld() {
   unsigned __int64 player = ClntObjMgrGetActivePlayer();
   unsigned int     unitOffset = CGUnit_C::OffsetOf(ID_UNIT);
   ClntObjMgrSetObjMirrorHandler(player, unitOffset + 200, 252, AuraUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   UpdateBuffs();
 }
 
-void __fastcall CGBuffBar::LeaveWorld() {
+void CGBuffBar::LeaveWorld() {
   unsigned __int64 player = ClntObjMgrGetActivePlayer();
   unsigned int     unitOffset = CGUnit_C::OffsetOf(ID_UNIT);
   ClntObjMgrUnsetObjMirrorHandler(player, unitOffset + 200, AuraUpdateHandler, 0);
 }
 
-void __fastcall CGBuffBar::UpdateBuffs() {
+void CGBuffBar::UpdateBuffs() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return;
@@ -143,13 +143,13 @@ void __fastcall CGBuffBar::UpdateBuffs() {
   FrameScript_SignalEvent(188);
 }
 
-void __fastcall CGBuffBar::UpdateDuration(unsigned char slot, unsigned int duration) {
+void CGBuffBar::UpdateDuration(unsigned char slot, unsigned int duration) {
   if (slot < 56) {
     m_durations[slot] = duration + OsGetAsyncTimeMs();
   }
 }
 
-inline const CGBuffDesc *__fastcall CGBuffBar::GetBuffByFilter(int index, unsigned int filter, int &buffIndex) {
+inline const CGBuffDesc *CGBuffBar::GetBuffByFilter(int index, unsigned int filter, int &buffIndex) {
   for (int i = 0; i < 56; ++i) {
     CGBuffDesc &buff = m_buffs[i];
     bool matches = buff.m_auraIndex >= 0;
@@ -176,12 +176,12 @@ inline const CGBuffDesc *__fastcall CGBuffBar::GetBuffByFilter(int index, unsign
   return 0;
 }
 
-const CGBuffDesc *__fastcall CGBuffBar::GetBuffByIndex(int buffIndex) {
+const CGBuffDesc *CGBuffBar::GetBuffByIndex(int buffIndex) {
   ASSERT(buffIndex >= 0 && buffIndex < 56);
   return &m_buffs[buffIndex];
 }
 
-unsigned int __fastcall CGBuffBar::GetBuffTimeLeftByIndex(int buffIndex) {
+unsigned int CGBuffBar::GetBuffTimeLeftByIndex(int buffIndex) {
   const CGBuffDesc *buff = GetBuffByIndex(buffIndex);
   if (buff->m_auraIndex < 0) {
     return 0;
@@ -211,7 +211,7 @@ void CGBuffDesc::SetAuraIndex(int index, CGPlayer_C *player) {
   }
 }
 
-static int __fastcall Script_GetPlayerBuff(lua_State *L) {
+static int Script_GetPlayerBuff(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetPlayerBuff(index [, \"filter\"])");
   }
@@ -245,7 +245,7 @@ static int __fastcall Script_GetPlayerBuff(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_GetPlayerBuffTexture(lua_State *L) {
+static int Script_GetPlayerBuffTexture(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetPlayerBuffTexture(buffIndex)");
   }
@@ -260,7 +260,7 @@ static int __fastcall Script_GetPlayerBuffTexture(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetPlayerBuffTimeLeft(lua_State *L) {
+static int Script_GetPlayerBuffTimeLeft(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetPlayerBuffTimeLeft(buffIndex)");
   }
@@ -268,7 +268,7 @@ static int __fastcall Script_GetPlayerBuffTimeLeft(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_CancelPlayerBuff(lua_State *L) {
+static int Script_CancelPlayerBuff(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: CancelPlayerBuff(buffIndex)");
   }
@@ -289,13 +289,13 @@ static FrameScript_Method s_ScriptFunctions[4] = {
     {     "CancelPlayerBuff",      Script_CancelPlayerBuff}
 };
 
-void __fastcall BuffBarRegisterScriptFunctions() {
+void BuffBarRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 4; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall BuffBarUnregisterScriptFunctions() {
+void BuffBarUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 4; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

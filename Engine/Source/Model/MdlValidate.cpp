@@ -1,7 +1,7 @@
 #include "MDLFile/MDLTypes.h"
 #include "Base/Status.h"
 
-int __fastcall MdlReadValidate(const MDLDATA &data, CStatus *status) {
+int MdlReadValidate(const MDLDATA &data, CStatus *status) {
   if (!data.geosets.Count() &&
       !data.lights.Count() &&
       !data.attachments.Count() &&

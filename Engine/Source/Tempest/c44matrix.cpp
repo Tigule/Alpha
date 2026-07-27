@@ -4,13 +4,13 @@
 #include "Tempest/c4quaternion.h"
 #include "Tempest/c4vector.h"
 
-static float __fastcall Row0Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+static float Row0Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
   return l.a0 * r.a0 + l.a1 * r.b0 + l.a2 * r.c0 + l.a3 * r.d0;
 }
 
 namespace NTempest {
 
-  bool __fastcall operator==(
+  bool operator==(
       const C44Matrix &l,
       const C44Matrix &r
   ) {
@@ -24,7 +24,7 @@ namespace NTempest {
         && l.d2 == r.d2 && l.d3 == r.d3;
   }
 
-  bool __fastcall operator!=(
+  bool operator!=(
       const C44Matrix &l,
       const C44Matrix &r
   ) {
@@ -38,7 +38,7 @@ namespace NTempest {
         || l.d2 != r.d2 || l.d3 != r.d3;
   }
 
-  C44Matrix __fastcall operator+(
+  C44Matrix operator+(
       const C44Matrix &l,
       const C44Matrix &r
   ) {
@@ -50,7 +50,7 @@ namespace NTempest {
     );
   }
 
-  C44Matrix __fastcall operator+(
+  C44Matrix operator+(
       const C44Matrix &l,
       float r
   ) {
@@ -62,11 +62,11 @@ namespace NTempest {
     );
   }
 
-  C44Matrix __fastcall operator+(float l, const C44Matrix &r) {
+  C44Matrix operator+(float l, const C44Matrix &r) {
     return r + l;
   }
 
-  C44Matrix __fastcall operator-(
+  C44Matrix operator-(
       const C44Matrix &l,
       const C44Matrix &r
   ) {
@@ -78,7 +78,7 @@ namespace NTempest {
     );
   }
 
-  C44Matrix __fastcall operator-(
+  C44Matrix operator-(
       const C44Matrix &l,
       float r
   ) {
@@ -90,7 +90,7 @@ namespace NTempest {
     );
   }
 
-  C44Matrix __fastcall operator*(const C44Matrix &l, const C44Matrix &r) {
+  C44Matrix operator*(const C44Matrix &l, const C44Matrix &r) {
     return C44Matrix(
         Row0Col0_(l, r), l.a0 * r.a1 + l.a1 * r.b1 + l.a2 * r.c1 + l.a3 * r.d1, l.a0 * r.a2 + l.a1 * r.b2 + l.a2 * r.c2 + l.a3 * r.d2,
         l.a0 * r.a3 + l.a1 * r.b3 + l.a2 * r.c3 + l.a3 * r.d3, l.b0 * r.a0 + l.b1 * r.b0 + l.b2 * r.c0 + l.b3 * r.d0,
@@ -103,29 +103,29 @@ namespace NTempest {
     );
   }
 
-  C44Matrix __fastcall operator*(const C44Matrix &l, float r) {
+  C44Matrix operator*(const C44Matrix &l, float r) {
     return C44Matrix(
         l.a0 * r, l.a1 * r, l.a2 * r, l.a3 * r, l.b0 * r, l.b1 * r, l.b2 * r, l.b3 * r, l.c0 * r, l.c1 * r, l.c2 * r, l.c3 * r, l.d0 * r, l.d1 * r,
         l.d2 * r, l.d3 * r
     );
   }
 
-  C44Matrix __fastcall operator*(float l, const C44Matrix &r) {
+  C44Matrix operator*(float l, const C44Matrix &r) {
     return r * l;
   }
 
-  C44Matrix __fastcall operator/(const C44Matrix &l, float r) {
+  C44Matrix operator/(const C44Matrix &l, float r) {
     ASSERT(!CMath::fequal_(r, 0.0f));
     return l * (1.0f / r);
   }
 
-  C3Vector __fastcall operator*(const C3Vector &v, const C44Matrix &r) {
+  C3Vector operator*(const C3Vector &v, const C44Matrix &r) {
     C3Vector result = C44Matrix::mul3v33m_(v, r);
     result += C3Vector(r.d0, r.d1, r.d2);
     return result;
   }
 
-  C3Vector __fastcall operator*(
+  C3Vector operator*(
       const C44Matrix &l,
       const C3Vector &v
   ) {
@@ -134,18 +134,18 @@ namespace NTempest {
     return result;
   }
 
-  C3Vector __fastcall operator*=(C3Vector &v, const C44Matrix &r) {
+  C3Vector operator*=(C3Vector &v, const C44Matrix &r) {
     return v = v * r;
   }
 
-  C4Vector __fastcall operator*(const C4Vector &v, const C44Matrix &r) {
+  C4Vector operator*(const C4Vector &v, const C44Matrix &r) {
     return C4Vector(
         v.x * r.a0 + v.y * r.b0 + v.z * r.c0 + v.w * r.d0, v.x * r.a1 + v.y * r.b1 + v.z * r.c1 + v.w * r.d1,
         v.x * r.a2 + v.y * r.b2 + v.z * r.c2 + v.w * r.d2, v.x * r.a3 + v.y * r.b3 + v.z * r.c3 + v.w * r.d3
     );
   }
 
-  C4Vector __fastcall operator*(
+  C4Vector operator*(
       const C44Matrix &l,
       const C4Vector &v
   ) {
@@ -191,7 +191,7 @@ namespace NTempest {
     );
   }
 
-  float __fastcall C44Matrix::Det(
+  float C44Matrix::Det(
       float a, float b, float c,
       float d, float e, float f,
       float g, float h, float i
@@ -278,7 +278,7 @@ namespace NTempest {
     return result;
   }
 
-  C44Matrix __fastcall C44Matrix::Rotation(float angle, const C3Vector &axis, unsigned int unit) {
+  C44Matrix C44Matrix::Rotation(float angle, const C3Vector &axis, unsigned int unit) {
     C3Vector axis_(axis);
 
     if (!unit) {

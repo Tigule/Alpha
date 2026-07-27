@@ -23,15 +23,15 @@ enum SORTABLES {
 
 struct COpaqueLayer;
 
-static int __fastcall            CompareTexLayers(COpaqueLayer *a, COpaqueLayer *b);
-static CModelTexture *__fastcall GetModelTextures(CModelBase *unique);
-static void __fastcall           RestoreFog();
-static void __fastcall           SaveFog();
-static CModelTexture *__fastcall GetTextureList(CModelBase *modelptr);
-static void __fastcall           ClearUvTransforms(const CTexLayer &layerUnique, const CTexLayerShared &layerShared);
-static unsigned int __fastcall   GetNumTexCoordLayers(const CTexLayer &layerUnique, const CTexLayerShared &layerShared);
-static void __fastcall           ClearTransformedUVLayer(const CTexLayerShared &layerShared, unsigned int tmu);
-static void __fastcall           RenderSingleUVMapPrep(
+static int CompareTexLayers(COpaqueLayer *a, COpaqueLayer *b);
+static CModelTexture *GetModelTextures(CModelBase *unique);
+static void RestoreFog();
+static void SaveFog();
+static CModelTexture *GetTextureList(CModelBase *modelptr);
+static void ClearUvTransforms(const CTexLayer &layerUnique, const CTexLayerShared &layerShared);
+static unsigned int GetNumTexCoordLayers(const CTexLayer &layerUnique, const CTexLayerShared &layerShared);
+static void ClearTransformedUVLayer(const CTexLayerShared &layerShared, unsigned int tmu);
+static void RenderSingleUVMapPrep(
     CModelRenderData      *modelptr,
     CGeosetShared         *geoShared,
     const CMaterial       &uniqueMtl,
@@ -39,12 +39,12 @@ static void __fastcall           RenderSingleUVMapPrep(
     unsigned int           layerId,
     int                    geosetChanged
 );
-static void __fastcall SetUvTransforms(CModelBase *modelptr, const CTexLayer &layerUnique, const CTexLayerShared &layerShared);
-static void __fastcall GetTransformedUVLayer(CModelBase *modelptr, const CTexLayerShared &layerShared, unsigned int tmu);
-static void __fastcall LockVertsAndIndices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer, const CTexLayerShared &sharedLayer);
-static void __fastcall LockVertices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer, const CTexLayerShared &sharedLayer);
-static void __fastcall RenderGeosetPrep(CModelBase *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared);
-static void __fastcall RenderGeosetSingleLayer(
+static void SetUvTransforms(CModelBase *modelptr, const CTexLayer &layerUnique, const CTexLayerShared &layerShared);
+static void GetTransformedUVLayer(CModelBase *modelptr, const CTexLayerShared &layerShared, unsigned int tmu);
+static void LockVertsAndIndices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer, const CTexLayerShared &sharedLayer);
+static void LockVertices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer, const CTexLayerShared &sharedLayer);
+static void RenderGeosetPrep(CModelBase *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared);
+static void RenderGeosetSingleLayer(
     CModelRenderData *modelptr,
     CGeoset          *geoUnique,
     CGeosetShared    *geoShared,
@@ -53,8 +53,8 @@ static void __fastcall RenderGeosetSingleLayer(
     int               geosetChanged,
     CStatus          *status
 );
-static void __fastcall RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status);
-static void __fastcall RenderUniformUVMapLayers(
+static void RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status);
+static void RenderUniformUVMapLayers(
     CModelRenderData          *modelptr,
     CGeosetShared             *geoShared,
     const CMaterial           &uniqueMtl,
@@ -62,7 +62,7 @@ static void __fastcall RenderUniformUVMapLayers(
     const NTempest::CImVector &color,
     CStatus                   *status
 );
-static void __fastcall RenderGeosetOneUvMapping(
+static void RenderGeosetOneUvMapping(
     CModelRenderData *modelptr,
     CGeosetShared    *geoShared,
     CMaterial        *uniqueMtl,
@@ -70,7 +70,7 @@ static void __fastcall RenderGeosetOneUvMapping(
     int               geosetChanged,
     CStatus          *status
 );
-static void __fastcall RenderSortedGeoset(
+static void RenderSortedGeoset(
     CModelRenderData *modelptr,
     CGeoset          *geoUnique,
     CGeosetShared    *geoShared,
@@ -78,18 +78,18 @@ static void __fastcall RenderSortedGeoset(
     int               geosetChanged,
     CStatus          *status
 );
-static void __fastcall Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color);
-static int __fastcall  SingleUvMapping(CMaterial *uniqueMtl);
-static void __fastcall RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status);
-static void __fastcall RenderGeosetLayers(CModelRenderData *modelptr, CGeosetShared *geoShared, CStatus *status);
-static void __fastcall RenderGeoset(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, CStatus *status);
-static void __fastcall IModelRenderSceneOpaque(CStatus *status);
-static void __fastcall IModelRenderSceneTransparent(CStatus *status);
-static void __fastcall ModelBaseRender(CModelBase *modelptr);
-static void __fastcall RenderGeosetCheckVis(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, CStatus *status);
-static void __fastcall GeosetComplexRender(CModel *model, CGeoset *geoUnique, CGeosetShared *geoShared, unsigned int renderFlags, CStatus *status);
-static void __fastcall ModelComplexRender(HMODEL modelHandle, CModel *model, unsigned int renderFlags, CStatus *status);
-static void __fastcall ModelSimpleRender(CModel *model, unsigned int renderFlags, CStatus *status);
+static void Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color);
+static int SingleUvMapping(CMaterial *uniqueMtl);
+static void RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status);
+static void RenderGeosetLayers(CModelRenderData *modelptr, CGeosetShared *geoShared, CStatus *status);
+static void RenderGeoset(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, CStatus *status);
+static void IModelRenderSceneOpaque(CStatus *status);
+static void IModelRenderSceneTransparent(CStatus *status);
+static void ModelBaseRender(CModelBase *modelptr);
+static void RenderGeosetCheckVis(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, CStatus *status);
+static void GeosetComplexRender(CModel *model, CGeoset *geoUnique, CGeosetShared *geoShared, unsigned int renderFlags, CStatus *status);
+static void ModelComplexRender(HMODEL modelHandle, CModel *model, unsigned int renderFlags, CStatus *status);
+static void ModelSimpleRender(CModel *model, unsigned int renderFlags, CStatus *status);
 static int IModelTestRay(
     CModelBase                    *modelptr,
     CModelShared                  *shared,
@@ -98,8 +98,8 @@ static int IModelTestRay(
     float                         *distance,
     int                            testLinkedModels
 );
-static void __fastcall SetVertexMatrixIndices(CGeosetShared *geoShared, const TSGrowableArray<unsigned int> &groupVertexCounts);
-static void __fastcall BuildComplexGeoset(
+static void SetVertexMatrixIndices(CGeosetShared *geoShared, const TSGrowableArray<unsigned int> &groupVertexCounts);
+static void BuildComplexGeoset(
     const TSGrowableArray<NTempest::C3Vector> &position,
     const TSGrowableArray<NTempest::C3Vector> &normal,
     const TSGrowableArray<NTempest::C2Vector> &texCoord,
@@ -112,7 +112,7 @@ static void __fastcall BuildComplexGeoset(
     unsigned int geosetId,
     CGeosetShared *geoShared
 );
-static void __fastcall IModelGeosetAdd(
+static void IModelGeosetAdd(
     CModelComplex *modelptr,
     CModelShared *shared,
     const TSGrowableArray<NTempest::C3Vector> &position,
@@ -128,7 +128,7 @@ static void __fastcall IModelGeosetAdd(
     unsigned int disables,
     NTempest::CImVector color
 );
-static void __fastcall IModelHandleGeosetAdd(
+static void IModelHandleGeosetAdd(
     CModel *model,
     const TSGrowableArray<NTempest::C3Vector> &position,
     const TSGrowableArray<NTempest::C3Vector> &normal,
@@ -176,7 +176,7 @@ struct COpaqueLayer {
   COpaqueLayer() : model(0) {
   }
 
-  static bool __fastcall HasHigherPriority(COpaqueLayer *a, COpaqueLayer *b);
+  static bool HasHigherPriority(COpaqueLayer *a, COpaqueLayer *b);
 
   CGeoset       *geoUnique;
   CGeosetShared *geoShared;
@@ -192,7 +192,7 @@ struct CTransparentObject {
     geo.model = 0;
   }
 
-  static bool __fastcall HasHigherPriority(CTransparentObject *a, CTransparentObject *b);
+  static bool HasHigherPriority(CTransparentObject *a, CTransparentObject *b);
 
   SORTABLES sortType;
   int       priorityPlane;
@@ -208,7 +208,7 @@ struct CTransparentObject {
       void  *object;
     } stnd;
     struct {
-      void(__fastcall *callback)(void *, int);
+      void(*callback)(void *, int);
       void *param1;
       int   param2;
     } cust;
@@ -240,10 +240,10 @@ static NTempest::CPriorityQ<COpaqueLayer *, COpaqueLayer> s_opaqueScene;
 static unsigned short                                     s_currAnimFrame;
 static NTempest::CPriorityQ<CTransparentObject *, CTransparentObject> s_transparentScene;
 
-static void __fastcall IModelComplexAddToScene(CModel *model, unsigned int renderFlags);
-static void __fastcall
+static void IModelComplexAddToScene(CModel *model, unsigned int renderFlags);
+static void
 EnqueueSimpleObject(CModel *model, void *object, SORTABLES sortType, const NTempest::C3Vector &position, unsigned int priorityPlane);
-static void __fastcall AddAllGeosetsToScene(
+static void AddAllGeosetsToScene(
     CModel       *modelptr,
     CModelShared *shared,
     unsigned int  renderFlags,
@@ -253,7 +253,7 @@ static void __fastcall AddAllGeosetsToScene(
     HMATERIAL    *materials,
     unsigned int  numMaterials
 );
-static void __fastcall AddGeosetToScene(
+static void AddGeosetToScene(
     CModel        *modelptr,
     unsigned int   renderFlags,
     CGeoset       *geoUnique,
@@ -262,17 +262,17 @@ static void __fastcall AddGeosetToScene(
     HMATERIAL     *materials,
     unsigned int   numMaterials
 );
-static int __fastcall IsOpaque(CMaterial *uniqueMtl);
-static void __fastcall
+static int IsOpaque(CMaterial *uniqueMtl);
+static void
 EnqueueTransparentGeoset(CModel *model, CGeoset *geoUnique, CGeosetShared *geoShared, const NTempest::C3Vector &position, unsigned int priorityPlane);
-static NTempest::C3Vector __fastcall GetGeosetSortPos(CModelBase *modelUnique, CGeosetShared *geoShared);
-static void __fastcall               AddRibbonsToScene(CModel *modelptr, CModelShared *shared);
-static void __fastcall               IModelBaseAddToScene(CModelBase *modelptr, CModelShared *shared);
-static void __fastcall               IModelSimpleAddToScene(CModel *model, unsigned int renderFlags);
+static NTempest::C3Vector GetGeosetSortPos(CModelBase *modelUnique, CGeosetShared *geoShared);
+static void AddRibbonsToScene(CModel *modelptr, CModelShared *shared);
+static void IModelBaseAddToScene(CModelBase *modelptr, CModelShared *shared);
+static void IModelSimpleAddToScene(CModel *model, unsigned int renderFlags);
 
-void __fastcall ModelRenderSceneLogStop();
+void ModelRenderSceneLogStop();
 
-int __fastcall CTexLayer::Compare(const CModelTexture *aTextures, const CModelTexture *bTextures, const CTexLayer &a, const CTexLayer &b) {
+int CTexLayer::Compare(const CModelTexture *aTextures, const CModelTexture *bTextures, const CTexLayer &a, const CTexLayer &b) {
   if (a.vertexFormat != b.vertexFormat) {
     return a.vertexFormat - b.vertexFormat;
   }
@@ -304,7 +304,7 @@ int __fastcall CTexLayer::Compare(const CModelTexture *aTextures, const CModelTe
   return 0;
 }
 
-static void __fastcall SaveFog() {
+static void SaveFog() {
   GxRsGet(GxRs_FogColor, s_fogColor);
   GxRsGet(GxRs_FogStart, s_fogStart);
   GxRsGet(GxRs_FogEnd, s_fogEnd);
@@ -312,7 +312,7 @@ static void __fastcall SaveFog() {
   GxRsGet(GxRs_FogStyle, s_fogStyle);
 }
 
-static void __fastcall RestoreFog() {
+static void RestoreFog() {
   GxRsSet(GxRs_FogColor, s_fogColor);
   GxRsSet(GxRs_FogStart, s_fogStart);
   GxRsSet(GxRs_FogEnd, s_fogEnd);
@@ -320,7 +320,7 @@ static void __fastcall RestoreFog() {
   GxRsSet(GxRs_FogStyle, s_fogStyle);
 }
 
-static CModelTexture *__fastcall GetModelTextures(CModelBase *unique) {
+static CModelTexture *GetModelTextures(CModelBase *unique) {
   if (unique->m_flags & 0x20) {
     return static_cast<CModelComplex *>(unique)->m_textures.Ptr();
   }
@@ -328,7 +328,7 @@ static CModelTexture *__fastcall GetModelTextures(CModelBase *unique) {
   return static_cast<CModelSimple *>(unique)->m_textures.Ptr();
 }
 
-static int __fastcall CompareTexLayers(COpaqueLayer *a, COpaqueLayer *b) {
+static int CompareTexLayers(COpaqueLayer *a, COpaqueLayer *b) {
   ASSERT(a);
   ASSERT(b);
 
@@ -349,7 +349,7 @@ static int __fastcall CompareTexLayers(COpaqueLayer *a, COpaqueLayer *b) {
   return (a->flags & 0xF) <= (b->flags & 0xF);
 }
 
-bool __fastcall CTransparentObject::HasHigherPriority(CTransparentObject *a, CTransparentObject *b) {
+bool CTransparentObject::HasHigherPriority(CTransparentObject *a, CTransparentObject *b) {
   if (a->priorityPlane == b->priorityPlane) {
     return a->sqDistFromCamera >= b->sqDistFromCamera;
   }
@@ -357,7 +357,7 @@ bool __fastcall CTransparentObject::HasHigherPriority(CTransparentObject *a, CTr
   return a->priorityPlane <= b->priorityPlane;
 }
 
-bool __fastcall COpaqueLayer::HasHigherPriority(COpaqueLayer *a, COpaqueLayer *b) {
+bool COpaqueLayer::HasHigherPriority(COpaqueLayer *a, COpaqueLayer *b) {
   bool aSpecial = (a->flags & 0x3000) == 0x3000;
   bool bSpecial = (b->flags & 0x3000) == 0x3000;
 
@@ -374,7 +374,7 @@ bool __fastcall COpaqueLayer::HasHigherPriority(COpaqueLayer *a, COpaqueLayer *b
   return CompareTexLayers(a, b) <= 0;
 }
 
-static int __fastcall IsOpaque(CMaterial *uniqueMtl) {
+static int IsOpaque(CMaterial *uniqueMtl) {
   ASSERT(uniqueMtl);
 
   TSGrowableArray<CTexLayer> &layers = uniqueMtl->layers;
@@ -395,7 +395,7 @@ static int __fastcall IsOpaque(CMaterial *uniqueMtl) {
   return !(layers[layerIndex].disables & 4);
 }
 
-static void __fastcall
+static void
 EnqueueSimpleObject(CModel *model, void *object, SORTABLES sortType, const NTempest::C3Vector &position, unsigned int priorityPlane) {
   float               sqDistFromCamera = (position - s_sceneCameraPos).SquaredMag();
   CTransparentObject *sceneObject = s_trLayerPool.New();
@@ -407,7 +407,7 @@ EnqueueSimpleObject(CModel *model, void *object, SORTABLES sortType, const NTemp
   sceneObject->stnd.model = reinterpret_cast<HMODEL>(HandleCreate(model, "HMODEL"));
 }
 
-static void __fastcall EnqueueTransparentGeoset(
+static void EnqueueTransparentGeoset(
     CModel                   *model,
     CGeoset                  *geoUnique,
     CGeosetShared            *geoShared,
@@ -425,7 +425,7 @@ static void __fastcall EnqueueTransparentGeoset(
   sceneObject->geo.model = reinterpret_cast<HMODEL>(HandleCreate(model, "HMODEL"));
 }
 
-static NTempest::C3Vector __fastcall GetGeosetSortPos(CModelBase *modelUnique, CGeosetShared *geoShared) {
+static NTempest::C3Vector GetGeosetSortPos(CModelBase *modelUnique, CGeosetShared *geoShared) {
   NTempest::C3Vector sortPos = geoShared->centroid * modelUnique->m_modelToWorld;
 
   if (geoShared->flags & 4) {
@@ -441,7 +441,7 @@ static NTempest::C3Vector __fastcall GetGeosetSortPos(CModelBase *modelUnique, C
   return sortPos;
 }
 
-static void __fastcall AddGeosetToScene(
+static void AddGeosetToScene(
     CModel        *modelptr,
     unsigned int   renderFlags,
     CGeoset       *geoUnique,
@@ -516,7 +516,7 @@ static void __fastcall AddGeosetToScene(
   }
 }
 
-static void __fastcall AddAllGeosetsToScene(
+static void AddAllGeosetsToScene(
     CModel       *modelptr,
     CModelShared *shared,
     unsigned int  renderFlags,
@@ -541,7 +541,7 @@ static void __fastcall AddAllGeosetsToScene(
   }
 }
 
-static void __fastcall AddEmitters2ToScene(CModel *modelptr, CModelShared *shared) {
+static void AddEmitters2ToScene(CModel *modelptr, CModelShared *shared) {
   NTempest::C3Vector center;
   unsigned int       numEmitters = static_cast<CModelComplex *>(modelptr->data)->m_emitters2.Count();
   unsigned int       index;
@@ -555,7 +555,7 @@ static void __fastcall AddEmitters2ToScene(CModel *modelptr, CModelShared *share
   }
 }
 
-static void __fastcall AddRibbonsToScene(CModel *modelptr, CModelShared *shared) {
+static void AddRibbonsToScene(CModel *modelptr, CModelShared *shared) {
   NTempest::C3Vector center;
   unsigned int       numEmitters = static_cast<CModelComplex *>(modelptr->data)->m_ribbons.Count();
   unsigned int       index;
@@ -566,7 +566,7 @@ static void __fastcall AddRibbonsToScene(CModel *modelptr, CModelShared *shared)
   }
 }
 
-static unsigned int __fastcall GetNumTexCoordLayers(const CTexLayer &layerUnique, const CTexLayerShared &layerShared) {
+static unsigned int GetNumTexCoordLayers(const CTexLayer &layerUnique, const CTexLayerShared &layerShared) {
   unsigned int numLayers = 0;
 
   for (unsigned int tmu = 0; tmu < 2; ++tmu) {
@@ -577,7 +577,7 @@ static unsigned int __fastcall GetNumTexCoordLayers(const CTexLayer &layerUnique
   return numLayers;
 }
 
-static void __fastcall GetTransformedUVLayer(CModelBase *modelptr, const CTexLayerShared &layerShared, unsigned int tmu) {
+static void GetTransformedUVLayer(CModelBase *modelptr, const CTexLayerShared &layerShared, unsigned int tmu) {
   EGxTextureShader textureShader = layerShared.tmuPass[tmu].textureShader;
   GxRsSet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), textureShader);
 
@@ -594,7 +594,7 @@ static void __fastcall GetTransformedUVLayer(CModelBase *modelptr, const CTexLay
   }
 }
 
-static void __fastcall ClearTransformedUVLayer(const CTexLayerShared &layerShared, unsigned int tmu) {
+static void ClearTransformedUVLayer(const CTexLayerShared &layerShared, unsigned int tmu) {
   EGxTextureShader textureShader = layerShared.tmuPass[tmu].textureShader;
   GxRsSet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), textureShader);
 
@@ -603,7 +603,7 @@ static void __fastcall ClearTransformedUVLayer(const CTexLayerShared &layerShare
   }
 }
 
-static void __fastcall SetUvTransforms(CModelBase *modelptr, const CTexLayer &layerUnique, const CTexLayerShared &layerShared) {
+static void SetUvTransforms(CModelBase *modelptr, const CTexLayer &layerUnique, const CTexLayerShared &layerShared) {
   switch (GetNumTexCoordLayers(layerUnique, layerShared)) {
     case 1:
       if (layerUnique.tmuPass[1].textureId != static_cast<unsigned int>(-1) && layerShared.tmuPass[1].coordId != static_cast<unsigned int>(-1)) {
@@ -620,7 +620,7 @@ static void __fastcall SetUvTransforms(CModelBase *modelptr, const CTexLayer &la
   }
 }
 
-static void __fastcall ClearUvTransforms(const CTexLayer &layerUnique, const CTexLayerShared &layerShared) {
+static void ClearUvTransforms(const CTexLayer &layerUnique, const CTexLayerShared &layerShared) {
   switch (GetNumTexCoordLayers(layerUnique, layerShared)) {
     case 1:
       if (layerUnique.tmuPass[1].textureId != static_cast<unsigned int>(-1) && layerShared.tmuPass[1].coordId != static_cast<unsigned int>(-1)) {
@@ -637,7 +637,7 @@ static void __fastcall ClearUvTransforms(const CTexLayer &layerUnique, const CTe
   }
 }
 
-static void __fastcall LockVertices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer, const CTexLayerShared &sharedLayer) {
+static void LockVertices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer, const CTexLayerShared &sharedLayer) {
   const NTempest::C2Vector *texCoords[2];
 
   for (unsigned int tmu = 0; tmu < 2; ++tmu) {
@@ -656,7 +656,7 @@ static void __fastcall LockVertices(CGeosetShared *geoShared, const CTexLayer &u
   );
 }
 
-static void __fastcall Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color) {
+static void Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color) {
   ASSERT(s_Project2dCallback);
   ASSERT(geoShared->position.Count() == 4);
 
@@ -714,7 +714,7 @@ static void __fastcall Project2d(CGeosetShared *geoShared, const NTempest::CImVe
   s_Project2dCallback(worldBox, color, basisMtx);
 }
 
-static void __fastcall RenderUniformUVMapLayers(
+static void RenderUniformUVMapLayers(
     CModelRenderData          *modelptr,
     CGeosetShared             *geoShared,
     const CMaterial           &uniqueMtl,
@@ -800,7 +800,7 @@ static void __fastcall RenderUniformUVMapLayers(
   }
 }
 
-static void __fastcall RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status) {
+static void RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status) {
   CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
   ASSERT(sharedMtl);
 
@@ -854,7 +854,7 @@ static void __fastcall RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeo
   }
 }
 
-static void __fastcall LockVertsAndIndices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer, const CTexLayerShared &sharedLayer) {
+static void LockVertsAndIndices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer, const CTexLayerShared &sharedLayer) {
   LockVertices(geoShared, uniqueLayer, sharedLayer);
 
   ASSERT(geoShared->primitive.Count() == 1);
@@ -864,7 +864,7 @@ static void __fastcall LockVertsAndIndices(CGeosetShared *geoShared, const CTexL
   GxPrimLockIndexPtr(prim->type, prim->vertexCount, geoShared->primitiveVertices.Ptr());
 }
 
-static void __fastcall RenderSingleUVMapPrep(
+static void RenderSingleUVMapPrep(
     CModelRenderData      *modelptr,
     CGeosetShared         *geoShared,
     const CMaterial       &uniqueMtl,
@@ -887,7 +887,7 @@ static void __fastcall RenderSingleUVMapPrep(
   }
 }
 
-static void __fastcall RenderGeosetOneUvMapping(
+static void RenderGeosetOneUvMapping(
     CModelRenderData *modelptr,
     CGeosetShared    *geoShared,
     CMaterial        *uniqueMtl,
@@ -908,7 +908,7 @@ static void __fastcall RenderGeosetOneUvMapping(
   ClearUvTransforms(uniqueMtl->layers[firstLayerId], sharedMtl->layers[firstLayerId]);
 }
 
-static void __fastcall RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status) {
+static void RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status) {
   CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
   ASSERT(sharedMtl);
 
@@ -996,7 +996,7 @@ static void __fastcall RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CG
   }
 }
 
-static int __fastcall SingleUvMapping(CMaterial *uniqueMtl) {
+static int SingleUvMapping(CMaterial *uniqueMtl) {
   if (uniqueMtl->layers.Count() <= 1) {
     return 1;
   }
@@ -1042,7 +1042,7 @@ static int __fastcall SingleUvMapping(CMaterial *uniqueMtl) {
   return 1;
 }
 
-static void __fastcall RenderGeosetLayers(CModelRenderData *modelptr, CGeosetShared *geoShared, CStatus *status) {
+static void RenderGeosetLayers(CModelRenderData *modelptr, CGeosetShared *geoShared, CStatus *status) {
   ASSERT(modelptr);
   ASSERT(geoShared);
 
@@ -1073,7 +1073,7 @@ static void TransformBounds(const NTempest::C34Matrix& modelToWorld, float scale
   bounds->r *= scale;
 }
 
-static void __fastcall RenderGeosetPrep(CModelBase *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared) {
+static void RenderGeosetPrep(CModelBase *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared) {
   ASSERT(modelptr);
   ASSERT(geoUnique);
   ASSERT(geoShared);
@@ -1102,7 +1102,7 @@ static void __fastcall RenderGeosetPrep(CModelBase *modelptr, CGeoset *geoUnique
   GxVertexShaderSelect(geoShared->vertexShader);
 }
 
-static void __fastcall RenderGeosetSingleLayer(
+static void RenderGeosetSingleLayer(
     CModelRenderData *modelptr,
     CGeoset          *geoUnique,
     CGeosetShared    *geoShared,
@@ -1195,7 +1195,7 @@ static void __fastcall RenderGeosetSingleLayer(
   }
 }
 
-static void __fastcall RenderSortedGeoset(
+static void RenderSortedGeoset(
     CModelRenderData *modelptr,
     CGeoset          *geoUnique,
     CGeosetShared    *geoShared,
@@ -1228,7 +1228,7 @@ static void __fastcall RenderSortedGeoset(
   }
 }
 
-static void __fastcall RenderGeoset(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, CStatus *status) {
+static void RenderGeoset(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, CStatus *status) {
   ASSERT(modelptr);
   ASSERT(geoUnique);
   ASSERT(geoShared);
@@ -1244,7 +1244,7 @@ static void __fastcall RenderGeoset(CModelRenderData *modelptr, CGeoset *geoUniq
   }
 }
 
-static void __fastcall RenderGeosetCheckVis(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, CStatus *status) {
+static void RenderGeosetCheckVis(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, CStatus *status) {
   ASSERT(modelptr);
   ASSERT(geoUnique);
   ASSERT(geoShared);
@@ -1254,7 +1254,7 @@ static void __fastcall RenderGeosetCheckVis(CModelRenderData *modelptr, CGeoset 
   }
 }
 
-static void __fastcall RenderCustomGeoset(HMODEL model, CCustomGeoset *object) {
+static void RenderCustomGeoset(HMODEL model, CCustomGeoset *object) {
   ASSERT(object);
 
   CModelBase *modelptr;
@@ -1269,7 +1269,7 @@ static void __fastcall RenderCustomGeoset(HMODEL model, CCustomGeoset *object) {
   HandleClose(duplicate);
 }
 
-static void __fastcall IModelGetBoundingSphere(CModelBase *modelptr, CModelShared *shared, NTempest::CAaSphere *sphere) {
+static void IModelGetBoundingSphere(CModelBase *modelptr, CModelShared *shared, NTempest::CAaSphere *sphere) {
   ASSERT(modelptr);
   ASSERT(shared);
   ASSERT(sphere);
@@ -1283,7 +1283,7 @@ static void __fastcall IModelGetBoundingSphere(CModelBase *modelptr, CModelShare
   }
 }
 
-static void __fastcall IModelGetExtents(CModelBase *modelptr, CModelShared *shared, NTempest::CAaBox *extents) {
+static void IModelGetExtents(CModelBase *modelptr, CModelShared *shared, NTempest::CAaBox *extents) {
   ASSERT(modelptr);
   ASSERT(shared);
   ASSERT(extents);
@@ -1297,7 +1297,7 @@ static void __fastcall IModelGetExtents(CModelBase *modelptr, CModelShared *shar
   }
 }
 
-static int __fastcall IModelGetExtents(CModelBase *modelptr, CModelShared *shared, unsigned int seqnum, NTempest::CAaBox *extents) {
+static int IModelGetExtents(CModelBase *modelptr, CModelShared *shared, unsigned int seqnum, NTempest::CAaBox *extents) {
   ASSERT(modelptr);
   ASSERT(shared);
   ASSERT(extents);
@@ -1431,7 +1431,7 @@ static int IModelTestRay(CModelBase* modelptr, CModelShared* shared, const NTemp
   return IModelTestRay(static_cast<CModelSimple *>(modelptr), shared, rayStart, rayEnd, distance);
 }
 
-static void __fastcall CreateBoxGeometry(
+static void CreateBoxGeometry(
     const NTempest::CAaBox              &bounds,
     TSGrowableArray<NTempest::C3Vector> *positions,
     TSGrowableArray<NTempest::C3Vector> *normals,
@@ -1500,7 +1500,7 @@ static void __fastcall CreateBoxGeometry(
   *primType = GxPrim_Triangles;
 }
 
-HMODEL __fastcall CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode) {
+HMODEL CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode) {
   TSGrowableArray<NTempest::C3Vector> positions;
   TSGrowableArray<NTempest::C3Vector> normals;
   TSGrowableArray<NTempest::C2Vector> texCoords;
@@ -1523,7 +1523,7 @@ HMODEL __fastcall CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTUR
   return model;
 }
 
-static void __fastcall GenerateSphereVerts(
+static void GenerateSphereVerts(
     const NTempest::CAaSphere           &bounds,
     unsigned int                         latLongLines,
     TSGrowableArray<NTempest::C3Vector> *vertices,
@@ -1555,7 +1555,7 @@ static void __fastcall GenerateSphereVerts(
   normals->operator[](offset + count - 1) = NTempest::C3Vector(0.0f, 0.0f, -1.0f);
 }
 
-static void __fastcall CreateSphereGeometry(
+static void CreateSphereGeometry(
     const NTempest::CAaSphere           &bounds,
     TSGrowableArray<NTempest::C3Vector> *vertices,
     TSGrowableArray<NTempest::C3Vector> *normals,
@@ -1625,7 +1625,7 @@ static void __fastcall CreateSphereGeometry(
   primitive.vertexCount = 527;
 }
 
-static HMODEL __fastcall CreateModelBoundingSphere(const NTempest::CAaSphere &bounds, HTEXTURE texture, EGxBlend blendMode) {
+static HMODEL CreateModelBoundingSphere(const NTempest::CAaSphere &bounds, HTEXTURE texture, EGxBlend blendMode) {
   TSGrowableArray<NTempest::C3Vector> vertices;
   TSGrowableArray<NTempest::C3Vector> normals;
   TSGrowableArray<NTempest::C2Vector> texCoords;
@@ -1638,18 +1638,18 @@ static HMODEL __fastcall CreateModelBoundingSphere(const NTempest::CAaSphere &bo
   );
 }
 
-HMODEL __fastcall ModelCreateSolidSphere(float radius, HTEXTURE texture) {
+HMODEL ModelCreateSolidSphere(float radius, HTEXTURE texture) {
   NTempest::CAaSphere bounds;
   bounds.c = NTempest::C3Vector(0.0f);
   bounds.r = radius;
   return CreateModelBoundingSphere(bounds, texture, GxBlend_Opaque);
 }
 
-HMODEL __fastcall ModelCreateBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode) {
+HMODEL ModelCreateBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode) {
   return CreateModelBoundingBox(bounds, texture, blendMode);
 }
 
-static void __fastcall FillInRenderData(CModel *modelptr, unsigned int renderFlags, CModelRenderData *renderData) {
+static void FillInRenderData(CModel *modelptr, unsigned int renderFlags, CModelRenderData *renderData) {
   ASSERT(modelptr);
   ASSERT(modelptr->data);
   ASSERT(renderData);
@@ -1675,7 +1675,7 @@ static void __fastcall FillInRenderData(CModel *modelptr, unsigned int renderFla
   }
 }
 
-static CModelTexture *__fastcall GetTextureList(CModelBase *modelptr) {
+static CModelTexture *GetTextureList(CModelBase *modelptr) {
   if (modelptr->m_flags & 0x20) {
     return static_cast<CModelComplex *>(modelptr)->m_textures.Ptr();
   }
@@ -1683,7 +1683,7 @@ static CModelTexture *__fastcall GetTextureList(CModelBase *modelptr) {
   return static_cast<CModelSimple *>(modelptr)->m_textures.Ptr();
 }
 
-static void __fastcall IModelRenderSceneOpaque(CStatus *status) {
+static void IModelRenderSceneOpaque(CStatus *status) {
   if (!s_opLayerPool.Count()) {
     return;
   }
@@ -1766,7 +1766,7 @@ static void __fastcall IModelRenderSceneOpaque(CStatus *status) {
   ASSERT(rsStackOffset == GxRsStackOffset());
 }
 
-static void __fastcall IModelRenderSceneTransparent(CStatus *status) {
+static void IModelRenderSceneTransparent(CStatus *status) {
   if (!s_trLayerPool.Count()) {
     return;
   }
@@ -1832,20 +1832,20 @@ static void __fastcall IModelRenderSceneTransparent(CStatus *status) {
   ASSERT(rsStackOffset == GxRsStackOffset());
 }
 
-void __fastcall ModelRenderInitialize() {
+void ModelRenderInitialize() {
   s_nextMatrix = 0;
   s_lastFrame = 0;
 }
 
-void __fastcall ModelRenderDestroy() {
+void ModelRenderDestroy() {
   ModelRenderSceneLogStop();
 }
 
-unsigned int __fastcall GetInvalidMatrixId() {
+unsigned int GetInvalidMatrixId() {
   return (s_currAnimFrame - 1) << 16;
 }
 
-unsigned int __fastcall MatrixAlloc(unsigned int numMatrices) {
+unsigned int MatrixAlloc(unsigned int numMatrices) {
   unsigned int frame = GxPerfCounter(GxPerf_FrameNum);
 
   if (frame != s_lastFrame) {
@@ -1870,7 +1870,7 @@ unsigned int __fastcall MatrixAlloc(unsigned int numMatrices) {
   return result;
 }
 
-NTempest::C34Matrix *__fastcall MatrixDeref(unsigned int handle) {
+NTempest::C34Matrix *MatrixDeref(unsigned int handle) {
   if (static_cast<unsigned short>(handle >> 16) != s_currAnimFrame) {
     return 0;
   }
@@ -1878,24 +1878,24 @@ NTempest::C34Matrix *__fastcall MatrixDeref(unsigned int handle) {
   return &s_matrixPool[static_cast<unsigned short>(handle)];
 }
 
-void __fastcall ModelRenderSceneLogStart(const char *fileName) {
+void ModelRenderSceneLogStart(const char *fileName) {
 }
 
-void __fastcall ModelRenderSceneLogStop() {
+void ModelRenderSceneLogStop() {
 }
 
-int __fastcall ModelRenderSceneLogToggle(const char *fileName) {
+int ModelRenderSceneLogToggle(const char *fileName) {
   return 0;
 }
 
-void __fastcall ModelScenePlaceCamera(const NTempest::C3Vector &position, const NTempest::C3Vector &direction) {
+void ModelScenePlaceCamera(const NTempest::C3Vector &position, const NTempest::C3Vector &direction) {
   ASSERT(!s_opLayerPool.Count());
   ASSERT(!s_trLayerPool.Count());
   s_sceneCameraPos = position;
   s_sceneCameraDir = direction;
 }
 
-void __fastcall ModelSceneSetSharpness(float sharpness) {
+void ModelSceneSetSharpness(float sharpness) {
   float adjusted = sharpness - 1.0f;
 
   if (adjusted != adjusted || adjusted >= -1.0f) {
@@ -1909,7 +1909,7 @@ void __fastcall ModelSceneSetSharpness(float sharpness) {
   }
 }
 
-static void __fastcall IModelBaseAddToScene(CModelBase *modelptr, CModelShared *shared) {
+static void IModelBaseAddToScene(CModelBase *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
 
@@ -1921,7 +1921,7 @@ static void __fastcall IModelBaseAddToScene(CModelBase *modelptr, CModelShared *
   }
 }
 
-static void __fastcall IModelComplexAddToScene(CModel *model, unsigned int renderFlags) {
+static void IModelComplexAddToScene(CModel *model, unsigned int renderFlags) {
   ASSERT(model);
 
   CModelComplex *modelptr = static_cast<CModelComplex *>(model->data);
@@ -1982,7 +1982,7 @@ static void __fastcall IModelComplexAddToScene(CModel *model, unsigned int rende
   }
 }
 
-static void __fastcall IModelSimpleAddToScene(CModel *model, unsigned int renderFlags) {
+static void IModelSimpleAddToScene(CModel *model, unsigned int renderFlags) {
   ASSERT(model);
 
   CModelSimple *modelptr = static_cast<CModelSimple *>(model->data);
@@ -2014,7 +2014,7 @@ static void __fastcall IModelSimpleAddToScene(CModel *model, unsigned int render
   }
 }
 
-void __fastcall ModelAddToScene(HMODEL model, unsigned int renderFlags) {
+void ModelAddToScene(HMODEL model, unsigned int renderFlags) {
   CModel     *modelptr = reinterpret_cast<CModel *>(model);
   CModelBase *unique;
 
@@ -2031,7 +2031,7 @@ void __fastcall ModelAddToScene(HMODEL model, unsigned int renderFlags) {
   }
 }
 
-void __fastcall ModelAddToScene(NTempest::C3Vector &position, int priorityPlane, void(__fastcall *callback)(void *, int), void *param1, int param2) {
+void ModelAddToScene(NTempest::C3Vector &position, int priorityPlane, void(*callback)(void *, int), void *param1, int param2) {
   CTransparentObject *object = s_trLayerPool.New();
   object->sortType = SORTOBJ_CUSTOM_MODEL;
   object->priorityPlane = priorityPlane;
@@ -2041,7 +2041,7 @@ void __fastcall ModelAddToScene(NTempest::C3Vector &position, int priorityPlane,
   object->cust.param2 = param2;
 }
 
-void __fastcall ModelRenderScene(CStatus *status) {
+void ModelRenderScene(CStatus *status) {
   ActivityBegin(ACTIVITY_MODEL);
   IModelRenderSceneOpaque(status);
   IModelRenderSceneTransparent(status);
@@ -2063,7 +2063,7 @@ void __fastcall ModelRenderScene(CStatus *status) {
   ActivityEnd(ACTIVITY_MODEL);
 }
 
-void __fastcall ModelRenderSceneOpaque(CStatus *status) {
+void ModelRenderSceneOpaque(CStatus *status) {
   ActivityBegin(ACTIVITY_MODEL);
   IModelRenderSceneOpaque(status);
 
@@ -2077,7 +2077,7 @@ void __fastcall ModelRenderSceneOpaque(CStatus *status) {
   ActivityEnd(ACTIVITY_MODEL);
 }
 
-void __fastcall ModelRenderSceneTransparent(CStatus *status) {
+void ModelRenderSceneTransparent(CStatus *status) {
   ActivityBegin(ACTIVITY_MODEL);
   IModelRenderSceneTransparent(status);
 
@@ -2090,7 +2090,7 @@ void __fastcall ModelRenderSceneTransparent(CStatus *status) {
   ActivityEnd(ACTIVITY_MODEL);
 }
 
-static void __fastcall ModelBaseRender(CModelBase *modelptr) {
+static void ModelBaseRender(CModelBase *modelptr) {
   if (modelptr->m_boundsModel) {
     ModelRender(modelptr->m_boundsModel, 0, 0);
   }
@@ -2099,13 +2099,13 @@ static void __fastcall ModelBaseRender(CModelBase *modelptr) {
   }
 }
 
-static void __fastcall GeosetComplexRender(CModel *model, CGeoset *geoUnique, CGeosetShared *geoShared, unsigned int renderFlags, CStatus *status) {
+static void GeosetComplexRender(CModel *model, CGeoset *geoUnique, CGeosetShared *geoShared, unsigned int renderFlags, CStatus *status) {
   CModelRenderData renderData;
   FillInRenderData(model, renderFlags, &renderData);
   RenderGeosetCheckVis(&renderData, geoUnique, geoShared, status);
 }
 
-static void __fastcall ModelComplexRender(HMODEL modelHandle, CModel *model, unsigned int renderFlags, CStatus *status) {
+static void ModelComplexRender(HMODEL modelHandle, CModel *model, unsigned int renderFlags, CStatus *status) {
   CModelComplex *modelptr = static_cast<CModelComplex *>(model->data);
   CModelShared  *shared = reinterpret_cast<CModelShared *>(model->shared);
 
@@ -2157,7 +2157,7 @@ static void __fastcall ModelComplexRender(HMODEL modelHandle, CModel *model, uns
   }
 }
 
-static void __fastcall ModelSimpleRender(CModel *model, unsigned int renderFlags, CStatus *status) {
+static void ModelSimpleRender(CModel *model, unsigned int renderFlags, CStatus *status) {
   CModelSimple *modelptr = static_cast<CModelSimple *>(model->data);
   CModelShared *shared = reinterpret_cast<CModelShared *>(model->shared);
 
@@ -2173,7 +2173,7 @@ static void __fastcall ModelSimpleRender(CModel *model, unsigned int renderFlags
   ModelBaseRender(modelptr);
 }
 
-void __fastcall ModelRender(HMODEL model, CStatus *status, unsigned int renderFlags) {
+void ModelRender(HMODEL model, CStatus *status, unsigned int renderFlags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -2190,13 +2190,13 @@ void __fastcall ModelRender(HMODEL model, CStatus *status, unsigned int renderFl
   }
 }
 
-void __fastcall ModelSceneCalcFrustumPlanes() {
+void ModelSceneCalcFrustumPlanes() {
   NTempest::C44Matrix viewProj;
   GxXformViewProj(viewProj);
   GxuXformCalcFrustumPlanes(viewProj, s_frustumPlanes);
 }
 
-int __fastcall ModelTestSphere(HMODEL model, NTempest::C34Matrix &orientation, float scale, int testLinkedModels) {
+int ModelTestSphere(HMODEL model, NTempest::C34Matrix &orientation, float scale, int testLinkedModels) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2227,19 +2227,19 @@ int __fastcall ModelTestSphere(HMODEL model, NTempest::C34Matrix &orientation, f
   return 0;
 }
 
-void __fastcall ModelSceneGetFrustumPlanes(NTempest::C4Vector *const fp) {
+void ModelSceneGetFrustumPlanes(NTempest::C4Vector *const fp) {
   for (unsigned int i = 0; i < 6; ++i) {
     fp[i] = s_frustumPlanes[i];
   }
 }
 
-void __fastcall ModelSceneSetFrustumPlanes(NTempest::C4Vector *const fp) {
+void ModelSceneSetFrustumPlanes(NTempest::C4Vector *const fp) {
   for (unsigned int i = 0; i < 6; ++i) {
     s_frustumPlanes[i] = fp[i];
   }
 }
 
-int __fastcall ModelIntersectLineSegment(HMODEL__* model, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float radius, float* linePos, int testLinkedModels) {
+int ModelIntersectLineSegment(HMODEL__* model, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, float radius, float* linePos, int testLinkedModels) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2627,7 +2627,7 @@ static int CreateCylinderGeometry(
   return 1;
 }
 
-static void __fastcall SetVertexMatrixIndices(CGeosetShared *geoShared, const TSGrowableArray<unsigned int> &groupVertexCounts) {
+static void SetVertexMatrixIndices(CGeosetShared *geoShared, const TSGrowableArray<unsigned int> &groupVertexCounts) {
   unsigned int numGroups = groupVertexCounts.Count();
   if (numGroups < 2) {
     return;
@@ -2647,7 +2647,7 @@ static void __fastcall SetVertexMatrixIndices(CGeosetShared *geoShared, const TS
   geoShared->vertexShader = GxVS_Skin;
 }
 
-static void __fastcall BuildComplexGeoset(
+static void BuildComplexGeoset(
     const TSGrowableArray<NTempest::C3Vector> &position,
     const TSGrowableArray<NTempest::C3Vector> &normal,
     const TSGrowableArray<NTempest::C2Vector> &texCoord,
@@ -2675,7 +2675,7 @@ static void __fastcall BuildComplexGeoset(
   SetVertexMatrixIndices(geoShared, groupVertex);
 }
 
-static void __fastcall IModelGeosetAdd(
+static void IModelGeosetAdd(
     CModelComplex *modelptr,
     CModelShared *shared,
     const TSGrowableArray<NTempest::C3Vector> &position,
@@ -2724,7 +2724,7 @@ static void __fastcall IModelGeosetAdd(
   );
 }
 
-static void __fastcall IModelHandleGeosetAdd(
+static void IModelHandleGeosetAdd(
     CModel *model,
     const TSGrowableArray<NTempest::C3Vector> &position,
     const TSGrowableArray<NTempest::C3Vector> &normal,
@@ -2865,7 +2865,7 @@ static void AddHitTestGeometryGeoset(HMODEL__* modelHandle, HTEXTURE__* tex) {
   );
 }
 
-int __fastcall ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
+int ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2909,7 +2909,7 @@ int __fastcall ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector 
   return 0;
 }
 
-int __fastcall ModelHasHitTestVolumes(HMODEL model) {
+int ModelHasHitTestVolumes(HMODEL model) {
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared)) {
     return 0;
@@ -2918,7 +2918,7 @@ int __fastcall ModelHasHitTestVolumes(HMODEL model) {
   return shared->hitTest.Count() != 0;
 }
 
-int __fastcall ModelHitTestVolumes(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
+int ModelHitTestVolumes(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2953,7 +2953,7 @@ int __fastcall ModelHitTestVolumes(HMODEL model, float scale, NTempest::C3Vector
   return 0;
 }
 
-int __fastcall ModelHitTestGeometry(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
+int ModelHitTestGeometry(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2977,7 +2977,7 @@ int __fastcall ModelHitTestGeometry(HMODEL model, float scale, NTempest::C3Vecto
   return 0;
 }
 
-ModelIntersectResult __fastcall ModelIntersectLineSegmentEx(HMODEL__* model, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, unsigned int hitTestFlags, float* linePos, float* centerDistSq, int testLinkedModels) {
+ModelIntersectResult ModelIntersectLineSegmentEx(HMODEL__* model, float scale, const NTempest::C3Vector& a, const NTempest::C3Vector& b, unsigned int hitTestFlags, float* linePos, float* centerDistSq, int testLinkedModels) {
   FATALASSERT(linePos);
   FATALASSERT(centerDistSq);
 
@@ -3053,7 +3053,7 @@ ModelIntersectResult __fastcall ModelIntersectLineSegmentEx(HMODEL__* model, flo
   return MODEL_INTERSECT_HIT_MODEL;
 }
 
-void __fastcall ModelShowBoundingSphere(HMODEL model) {
+void ModelShowBoundingSphere(HMODEL model) {
   FATALASSERT(model);
 
   CModelBase   *unique;
@@ -3075,7 +3075,7 @@ void __fastcall ModelShowBoundingSphere(HMODEL model) {
   }
 }
 
-void __fastcall ModelShowBoundingBox(HMODEL model) {
+void ModelShowBoundingBox(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
@@ -3089,7 +3089,7 @@ void __fastcall ModelShowBoundingBox(HMODEL model) {
   }
 }
 
-void __fastcall ModelHideBounds(HMODEL model) {
+void ModelHideBounds(HMODEL model) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -3104,7 +3104,7 @@ void __fastcall ModelHideBounds(HMODEL model) {
   }
 }
 
-void __fastcall ModelShowHitTestGeometry(HMODEL__* model) {
+void ModelShowHitTestGeometry(HMODEL__* model) {
   CModelBase   *unique;
   CModelShared *shared;
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared) &&
@@ -3118,7 +3118,7 @@ void __fastcall ModelShowHitTestGeometry(HMODEL__* model) {
   }
 }
 
-void __fastcall ModelHideHitTestGeometry(HMODEL__* model) {
+void ModelHideHitTestGeometry(HMODEL__* model) {
   CModelBase *unique;
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && (unique->m_flags & 0x28) == 0x28) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
@@ -3128,7 +3128,7 @@ void __fastcall ModelHideHitTestGeometry(HMODEL__* model) {
   }
 }
 
-int __fastcall ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {
+int ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelShared *shared;
 
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared)) {
@@ -3139,7 +3139,7 @@ int __fastcall ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {
   return 1;
 }
 
-int __fastcall ModelGetSeqExtents(HMODEL model, NTempest::CAaBox *extents) {
+int ModelGetSeqExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -3151,7 +3151,7 @@ int __fastcall ModelGetSeqExtents(HMODEL model, NTempest::CAaBox *extents) {
   return 1;
 }
 
-int __fastcall ModelGetSeqExtents(HMODEL model, unsigned int seqnum, NTempest::CAaBox *extents) {
+int ModelGetSeqExtents(HMODEL model, unsigned int seqnum, NTempest::CAaBox *extents) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -3162,7 +3162,7 @@ int __fastcall ModelGetSeqExtents(HMODEL model, unsigned int seqnum, NTempest::C
   return IModelGetExtents(unique, shared, seqnum, extents);
 }
 
-int __fastcall ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds) {
+int ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -3174,6 +3174,6 @@ int __fastcall ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds) {
   return 1;
 }
 
-void __fastcall ModelSetProject2dCallback(MODELPROJECT2DCALLBACK callback) {
+void ModelSetProject2dCallback(MODELPROJECT2DCALLBACK callback) {
   s_Project2dCallback = callback;
 }

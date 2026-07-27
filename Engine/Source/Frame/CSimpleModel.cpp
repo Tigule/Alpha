@@ -12,7 +12,7 @@
 #include "Tempest/c2vector.h"
 #include "Tempest/c44matrix.h"
 
-static int __fastcall AnimFinishedCallback(void *param) {
+static int AnimFinishedCallback(void *param) {
   CSimpleModel *model = static_cast<CSimpleModel *>(param);
 
   model->RunOnAnimFinishedScript();
@@ -286,7 +286,7 @@ void CSimpleModel::UpdateModel() {
   );
 }
 
-void __fastcall CSimpleModel::RenderModel(void *param) {
+void CSimpleModel::RenderModel(void *param) {
   CSimpleModel *simpleModel = static_cast<CSimpleModel *>(param);
   if (!simpleModel->m_model) {
     return;

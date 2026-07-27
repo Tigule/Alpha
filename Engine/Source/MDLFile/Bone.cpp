@@ -7,7 +7,7 @@
 #include <storm.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void IAddBoneErrors(TSet &errors) {
@@ -34,7 +34,7 @@ static void IReadGeosetId(Parser &parse, unsigned int *geosetId) {
       : parse.ExpectInt(token, tokenText, &value);
 }
 
-int __fastcall ReadBone(
+int ReadBone(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -103,7 +103,7 @@ static void IWriteBoneSection(
   WriteObjectTrailer(section, buffer);
 }
 
-int __fastcall WriteBones(
+int WriteBones(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -136,7 +136,7 @@ static void IWriteBinBoneSection(
   buffer.AddUint(section.geosetAnimId);
 }
 
-int __fastcall WriteBinBones(
+int WriteBinBones(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status
@@ -158,7 +158,7 @@ int __fastcall WriteBinBones(
   return 1;
 }
 
-int __fastcall ReadBinBone(
+int ReadBinBone(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

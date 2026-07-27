@@ -69,10 +69,10 @@ struct SECTIONPRIORITIES {
 extern const LAYERIDS          g_sectionLayers[INDEX_NUMSLOTS];
 extern const SECTIONPRIORITIES g_sectionPriorities[INDEX_NUMSLOTS];
 
-int __fastcall CompUtilGetSectionDimensions(unsigned int sectionIndex, unsigned int *width, unsigned int *height);
-int __fastcall CompUtilGetSectionOffset(unsigned int sectionIndex, unsigned int *xCoord, unsigned int *yCoord);
-int __fastcall CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority);
-int __fastcall CompUtilItemSectionInfo(
+int CompUtilGetSectionDimensions(unsigned int sectionIndex, unsigned int *width, unsigned int *height);
+int CompUtilGetSectionOffset(unsigned int sectionIndex, unsigned int *xCoord, unsigned int *yCoord);
+int CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority);
+int CompUtilItemSectionInfo(
     const ItemDisplayInfoRec    *displayInfoRec,
     unsigned int                 inventoryType,
     unsigned int                *numTextureComponents,
@@ -81,25 +81,25 @@ int __fastcall CompUtilItemSectionInfo(
     LAYERPRIORITY *const         priorityList,
     CSectionFileNames           *fileNameList
 );
-const char *__fastcall  CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, unsigned int textureSection);
-unsigned int __fastcall CompUtilGetObjComponents(
+const char *CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, unsigned int textureSection);
+unsigned int CompUtilGetObjComponents(
     const ItemDisplayInfoRec *displayInfoRec,
     int                       itemInventoryType,
     SUBCOMPONENTDESC         *subComponents,
     unsigned int              numSubComponents,
     int                       useAlternate
 );
-int __fastcall
+int
 GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool isPlayer, bool useAlternate, HMODEL *models, int *attachmentPoints);
-HMODEL __fastcall ObjComponentBuildAmmoModel(ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration);
-void __fastcall ComponentUtilAddItemVisual(HMODEL itemModel, int index, const char *name);
-HMODEL __fastcall ComponentUtilGetChildModel(HMODEL parent, int index);
-void __fastcall
+HMODEL ObjComponentBuildAmmoModel(ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration);
+void ComponentUtilAddItemVisual(HMODEL itemModel, int index, const char *name);
+HMODEL ComponentUtilGetChildModel(HMODEL parent, int index);
+void
 CompDecorateTexName(const char *string, TEXCOMPONENT_SECTIONS section, char *buffer, unsigned int size, unsigned int sex, int includeSex);
-void __fastcall CompDecorateObjName(const char *string, char *buffer, unsigned int size, unsigned int race, unsigned int sex);
-void __fastcall GetTabardBackgroundFileName(int section, int background, char *buffer, int size);
-void __fastcall GetTabardEmblemFileName(int section, int emblem, int color, char *buffer, int size);
-void __fastcall GetTabardBorderFileName(int section, int border, int color, char *buffer, int size);
+void CompDecorateObjName(const char *string, char *buffer, unsigned int size, unsigned int race, unsigned int sex);
+void GetTabardBackgroundFileName(int section, int background, char *buffer, int size);
+void GetTabardEmblemFileName(int section, int emblem, int color, char *buffer, int size);
+void GetTabardBorderFileName(int section, int border, int color, char *buffer, int size);
 
 class CTexturePiece : public CHandleObject {
  public:
@@ -257,26 +257,26 @@ class CTexComponent : public CTexturePiece {
   int          m_background;
 };
 
-void __fastcall ComponentInitialize();
-void __fastcall ComponentShutdown();
-bool __fastcall ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle, int eColor, int bStyle, int bColor, int b);
-void __fastcall ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, ItemDisplayInfoRec *displayInfo, int inventoryType);
-void __fastcall ComponentForceTabardDraw(HTEXCOMPONENT component);
-void __fastcall TexComponentCopy(HTEXCOMPONENT d, HTEXCOMPONENT s);
-int __fastcall  TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce);
-int __fastcall  TexComponentCheckSections(HTEXCOMPONENT component, int bForce);
-void __fastcall TexComponentRemoveSections(
+void ComponentInitialize();
+void ComponentShutdown();
+bool ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle, int eColor, int bStyle, int bColor, int b);
+void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, ItemDisplayInfoRec *displayInfo, int inventoryType);
+void ComponentForceTabardDraw(HTEXCOMPONENT component);
+void TexComponentCopy(HTEXCOMPONENT d, HTEXCOMPONENT s);
+int TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce);
+int TexComponentCheckSections(HTEXCOMPONENT component, int bForce);
+void TexComponentRemoveSections(
     HTEXCOMPONENT                component,
     const TEXCOMPONENT_SECTIONS *sectionPointers,
     const unsigned int          *startLayerList,
     unsigned int                 size
 );
-void __fastcall TexComponentRemoveAllHolds(HTEXCOMPONENT component);
-void __fastcall TexComponentAddHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
-void __fastcall TexComponentRemoveHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
-HTEXCOMPONENT __fastcall
+void TexComponentRemoveAllHolds(HTEXCOMPONENT component);
+void TexComponentAddHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
+void TexComponentRemoveHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
+HTEXCOMPONENT
 TexComponentCreate(HTEXTURE texture, unsigned int race, unsigned int sex, unsigned int skinID, int isNPC, int ignoreExistingTexture);
-void __fastcall TexComponentAdd(
+void TexComponentAdd(
     CStatus                  *status,
     int                       playerSex,
     HTEXCOMPONENT             component,
@@ -284,16 +284,16 @@ void __fastcall TexComponentAdd(
     int                       itemInventoryType,
     int                       checkForExistingTexture
 );
-void __fastcall TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperHead, const char *lowerHead, unsigned int layer);
-void __fastcall HeadGeosetHideCharGeosets(
+void TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperHead, const char *lowerHead, unsigned int layer);
+void HeadGeosetHideCharGeosets(
     HCHARGEOSET               geosetHandle,
     const ItemDisplayInfoRec *displayInfoRec,
     unsigned int              raceID,
     const unsigned int       *preferredGeosets,
     unsigned int              numPreferredGeosets
 );
-typedef void(__fastcall *OBJCALLBACK)(void *param, unsigned int inventorySlot, HMODEL model, unsigned int unk, int loaded);
-int __fastcall ObjComponentAdd(
+typedef void(*OBJCALLBACK)(void *param, unsigned int inventorySlot, HMODEL model, unsigned int unk, int loaded);
+int ObjComponentAdd(
     int                       unitSex,
     int                       unitRace,
     int                       unitPlayer,

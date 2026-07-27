@@ -13,8 +13,8 @@
 
 static const float EVENT_PRIORITY_ABOVE_NORMAL = 1.0f;
 
-static void __fastcall PaintCursor(void *, const RECTF *, const RECTF *, float);
-static void __fastcall PaintScreen(void *, const RECTF *, const RECTF *, float elapsedSec);
+static void PaintCursor(void *, const RECTF *, const RECTF *, float);
+static void PaintScreen(void *, const RECTF *, const RECTF *, float elapsedSec);
 
 CSimpleTop *CSimpleTop::s_instance;
 
@@ -112,7 +112,7 @@ void CFrameStrata::CheckOcclusion() {
   }
 }
 
-static void __fastcall PaintCursor(void *, const RECTF *, const RECTF *, float) {
+static void PaintCursor(void *, const RECTF *, const RECTF *, float) {
   ActivityBegin(ACTIVITY_FRAMEMANAGER);
 
   CSimpleTop *top = CSimpleTop::GetInstance();
@@ -122,7 +122,7 @@ static void __fastcall PaintCursor(void *, const RECTF *, const RECTF *, float) 
   ActivityEnd(ACTIVITY_FRAMEMANAGER);
 }
 
-static void __fastcall PaintScreen(void *, const RECTF *, const RECTF *, float elapsedSec) {
+static void PaintScreen(void *, const RECTF *, const RECTF *, float elapsedSec) {
   ActivityBegin(ACTIVITY_FRAMEMANAGER);
 
   CSimpleTop *top = CSimpleTop::GetInstance();
@@ -196,7 +196,7 @@ CSimpleTop::~CSimpleTop() {
   s_instance = 0;
 }
 
-void CSimpleTop::EnumerateFrames(int(__fastcall *callback)(CSimpleFrame *, void *), void *param) {
+void CSimpleTop::EnumerateFrames(int(*callback)(CSimpleFrame *, void *), void *param) {
   unsigned int i;
 
   for (i = 0; i < NUM_FRAME_STRATA; ++i) {
@@ -608,7 +608,7 @@ void CSimpleTop::DrawCursor() {
   }
 }
 
-int __fastcall CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, void *param) {
+int CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, void *param) {
   CSimpleTop  *top = static_cast<CSimpleTop *>(param);
   CCharEvent   charEvent(*pCharEvtData);
   unsigned int strata = NUM_SIMPLEFRAME_DRAWLAYERS;
@@ -630,7 +630,7 @@ int __fastcall CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, void *par
   return !eaten;
 }
 
-int __fastcall CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, void *param) {
+int CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, void *param) {
   CSimpleTop  *top = static_cast<CSimpleTop *>(param);
   CImeEvent    imeEvent(*pImeData);
   unsigned int strata = NUM_SIMPLEFRAME_DRAWLAYERS;
@@ -652,7 +652,7 @@ int __fastcall CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, void *param) {
   return !eaten;
 }
 
-int __fastcall CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, void *param) {
+int CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, void *param) {
   CSimpleTop  *top = static_cast<CSimpleTop *>(param);
   CKeyEvent    keyEvent(*pKeyData);
   unsigned int strata = NUM_SIMPLEFRAME_DRAWLAYERS;
@@ -680,7 +680,7 @@ int __fastcall CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, void *param
   return !eaten;
 }
 
-int __fastcall CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, void *param) {
+int CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, void *param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_keydownCapture[pKeyData->key];
   int           eaten = 0;
@@ -702,7 +702,7 @@ int __fastcall CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, void *param) 
   return !eaten;
 }
 
-int __fastcall CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, void *param) {
+int CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, void *param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_keydownCapture[pKeyData->key];
 
@@ -718,7 +718,7 @@ int __fastcall CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, void 
   return 1;
 }
 
-int __fastcall CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, void *param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CMouseEvent   mouseEvent;
   CSimpleFrame *last_focus = top->m_mouseFocus;
@@ -768,7 +768,7 @@ int __fastcall CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, void 
   return next_focus == 0;
 }
 
-int __fastcall CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, void *param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_mouseFocus;
 
@@ -784,7 +784,7 @@ int __fastcall CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseDat
   return 1;
 }
 
-int __fastcall CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, void *param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CMouseEvent   mouseEvent;
   CSimpleFrame *frame;
@@ -830,7 +830,7 @@ int __fastcall CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, void 
   return !eaten;
 }
 
-int __fastcall CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, void *param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_mouseCapture;
 
@@ -854,7 +854,7 @@ int __fastcall CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, void *p
   return 1;
 }
 
-int __fastcall CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, void *param) {
   CSimpleTop        *top = static_cast<CSimpleTop *>(param);
   CMouseEvent        mouseEvent;
   NTempest::C2Vector pt;
@@ -884,7 +884,7 @@ int __fastcall CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, void
   return !eaten;
 }
 
-int __fastcall CSimpleTop::OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, void *param) {
+int CSimpleTop::OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, void *param) {
   CSimpleTop *top = static_cast<CSimpleTop *>(param);
 
   GxuFontWindowSizeChanged();

@@ -89,9 +89,9 @@ struct WORLDTEXTSTRING : public CHandleObject {
   char                    savedStringText[64];
 };
 
-void __fastcall          WorldTextClearStrings();
-HWORLDTEXT__ *__fastcall WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride);
-void __fastcall          WorldTextShow(HWORLDTEXT__ *text, int show);
-void __fastcall          WorldTextRender(HWORLDTEXT__ *text);
-void __fastcall          WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position);
-int __fastcall           WorldTextIsTextDone(HWORLDTEXT__ *text);
+void WorldTextClearStrings();
+HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride);
+void WorldTextShow(HWORLDTEXT__ *text, int show);
+void WorldTextRender(HWORLDTEXT__ *text);
+void WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position);
+int WorldTextIsTextDone(HWORLDTEXT__ *text);

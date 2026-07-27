@@ -22,9 +22,9 @@ class CGMinimapFrame : public CSimpleFrame {
  public:
   virtual ~CGMinimapFrame();
 
-  static void __fastcall          Initialize(int continentID);
-  static void __fastcall          Shutdown();
-  static CSimpleFrame *__fastcall Create(CSimpleFrame *parent) {
+  static void Initialize(int continentID);
+  static void Shutdown();
+  static CSimpleFrame *Create(CSimpleFrame *parent) {
     return NEW(CGMinimapFrame)(parent);
   }
 
@@ -34,18 +34,18 @@ class CGMinimapFrame : public CSimpleFrame {
   virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnLayerCursorExit();
 
-  static void __fastcall           RenderCallback(void *param);
+  static void RenderCallback(void *param);
   void                             ForceUpdateGeometry();
   int                              OnEvent(const CEvent &event);
-  static void __fastcall           SetPingPosition(const unsigned __int64 &sender, const NTempest::C2Vector &pos);
+  static void SetPingPosition(const unsigned __int64 &sender, const NTempest::C2Vector &pos);
   static const NTempest::C2Vector &GetPingPosition() {
     return m_pingPosition;
   }
   void Init();
   void Render();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);
@@ -65,9 +65,9 @@ class CGMinimapFrame : public CSimpleFrame {
   void UpdateGeometry(const NTempest::C2Vector &centerPoint, float radius);
   void RenderObjectBlips(const DNInfo *dnInfo);
 
-  static int __fastcall                ObjectEnumProc(unsigned __int64 object, void *param);
-  static NTempest::C2Vector __fastcall WorldPosToMinimapFrameCoords(NTempest::C3Vector centerPoint, float radius, float x, float y, float scale);
-  static void __fastcall               MinimapTextureCallback(
+  static int ObjectEnumProc(unsigned __int64 object, void *param);
+  static NTempest::C2Vector WorldPosToMinimapFrameCoords(NTempest::C3Vector centerPoint, float radius, float x, float y, float scale);
+  static void MinimapTextureCallback(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,
@@ -78,9 +78,9 @@ class CGMinimapFrame : public CSimpleFrame {
       const void  *&texels
   );
   void                   RenderInside(float minimapSize, const NTempest::C2Vector &localOffset);
-  static void __fastcall RenderInsideTexture();
-  static void __fastcall RenderInsideSortQuads(QUADDATA *&rHead);
-  static void __fastcall RenderInsideQuad(QUADDATA *q);
+  static void RenderInsideTexture();
+  static void RenderInsideSortQuads(QUADDATA *&rHead);
+  static void RenderInsideQuad(QUADDATA *q);
 
   CSimpleFrame             *m_tooltip;
   CSimpleFontString        *m_tooltipText;

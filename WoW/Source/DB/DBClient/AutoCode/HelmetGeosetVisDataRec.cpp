@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall HelmetGeosetVisDataRec::GetFilename() {
+const char *HelmetGeosetVisDataRec::GetFilename() {
   return "DBFilesClient\\HelmetGeosetVisData.dbc";
 }
 

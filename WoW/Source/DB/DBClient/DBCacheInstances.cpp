@@ -4,19 +4,19 @@
 
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
-static void __fastcall LoadDBCaches();
+static void LoadDBCaches();
 
-static int __fastcall ReceiveCreature(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceiveGameObject(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceiveSingleItem(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceiveMultipleItems(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceiveNPCText(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceiveName(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceiveGuildInfo(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceiveQuest(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceivePageText(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceivePetName(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int __fastcall ReceivePetition(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceiveCreature(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceiveGameObject(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceiveSingleItem(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceiveMultipleItems(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceiveNPCText(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceiveName(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceiveGuildInfo(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceiveQuest(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceivePageText(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceivePetName(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceivePetition(void *, NETMESSAGE, unsigned long, CDataStore *msg);
 
 DBCache<CreatureStats_C, int, HASHKEY_INT> g_creatureDBCache(0x574D4F42, "creaturecache.wdb", CMSG_CREATURE_QUERY, MSG_NULL_ACTION, true, true);
 DBCache<GameObjectStats_C, int, HASHKEY_INT>
@@ -30,7 +30,7 @@ DBCache<PageTextCache_C, int, HASHKEY_INT> g_pageTextCache(0x57505458, "pagetext
 DBCache<PetNameCache, int, HASHKEY_INT>    g_petNameCache(0x57504E4D, "petnamecache.wdb", CMSG_PET_NAME_QUERY, MSG_NULL_ACTION, true, false);
 DBCache<CGPetition, int, HASHKEY_INT>      g_petitionCache(0x5750544E, "petitioncache.wdb", CMSG_PETITION_QUERY, MSG_NULL_ACTION, true, false);
 
-static void __fastcall LoadDBCaches() {
+static void LoadDBCaches() {
   g_creatureDBCache.Load();
   g_gameObjectDBCache.Load();
   g_itemDBCache.Load();
@@ -43,32 +43,32 @@ static void __fastcall LoadDBCaches() {
   g_petitionCache.Load();
 }
 
-static int __fastcall ReceiveCreature(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveCreature(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   g_creatureDBCache.AddItems(msg, true);
   return 1;
 }
 
-static int __fastcall ReceiveGameObject(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveGameObject(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   g_gameObjectDBCache.AddItems(msg, true);
   return 1;
 }
 
-static int __fastcall ReceiveSingleItem(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveSingleItem(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   g_itemDBCache.AddItems(msg, true);
   return 1;
 }
 
-static int __fastcall ReceiveMultipleItems(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveMultipleItems(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   g_itemDBCache.AddItems(msg, false);
   return 1;
 }
 
-static int __fastcall ReceiveNPCText(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveNPCText(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   g_npcTextDBCache.AddItems(msg, true);
   return 1;
 }
 
-static int __fastcall ReceiveName(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveName(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   NameCache nc;
 
   msg->Get(nc.m_guid);
@@ -89,7 +89,7 @@ static int __fastcall ReceiveName(void *, NETMESSAGE, unsigned long, CDataStore 
   return 1;
 }
 
-static int __fastcall ReceiveGuildInfo(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveGuildInfo(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   GuildStats_C guildStats;
 
   guildStats.Unpack(msg);
@@ -102,7 +102,7 @@ static int __fastcall ReceiveGuildInfo(void *, NETMESSAGE, unsigned long, CDataS
   return 1;
 }
 
-static int __fastcall ReceiveQuest(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveQuest(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   QuestCache qc;
 
   qc.Unpack(msg);
@@ -115,12 +115,12 @@ static int __fastcall ReceiveQuest(void *, NETMESSAGE, unsigned long, CDataStore
   return 1;
 }
 
-static int __fastcall ReceivePageText(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceivePageText(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   g_pageTextCache.AddItems(msg, true);
   return 1;
 }
 
-static int __fastcall ReceivePetName(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceivePetName(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   PetNameCache pnc;
 
   msg->Get(pnc.m_ID);
@@ -136,7 +136,7 @@ static int __fastcall ReceivePetName(void *, NETMESSAGE, unsigned long, CDataSto
   return 1;
 }
 
-static int __fastcall ReceivePetition(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceivePetition(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   CGPetition pc;
 
   pc.Unpack(msg);
@@ -149,14 +149,14 @@ static int __fastcall ReceivePetition(void *, NETMESSAGE, unsigned long, CDataSt
   return 1;
 }
 
-void __fastcall DBCache_Initialize() {
+void DBCache_Initialize() {
   LoadDBCaches();
 }
 
-void __fastcall DBCache_Destroy() {
+void DBCache_Destroy() {
 }
 
-void __fastcall DBCache_RegisterHandlers() {
+void DBCache_RegisterHandlers() {
   ClientServices_SetMessageHandler(SMSG_CREATURE_QUERY_RESPONSE, ReceiveCreature, 0);
   ClientServices_SetMessageHandler(SMSG_GAMEOBJECT_QUERY_RESPONSE, ReceiveGameObject, 0);
   ClientServices_SetMessageHandler(SMSG_ITEM_QUERY_SINGLE_RESPONSE, ReceiveSingleItem, 0);
@@ -170,7 +170,7 @@ void __fastcall DBCache_RegisterHandlers() {
   ClientServices_SetMessageHandler(SMSG_PETITION_QUERY_RESPONSE, ReceivePetition, 0);
 }
 
-void __fastcall DBCache_ClearHandlers() {
+void DBCache_ClearHandlers() {
   ClientServices_ClearMessageHandler(SMSG_CREATURE_QUERY_RESPONSE);
   ClientServices_ClearMessageHandler(SMSG_GAMEOBJECT_QUERY_RESPONSE);
   ClientServices_ClearMessageHandler(SMSG_ITEM_QUERY_SINGLE_RESPONSE);

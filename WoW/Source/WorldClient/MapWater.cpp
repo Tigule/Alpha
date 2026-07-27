@@ -126,7 +126,7 @@ int CMapArea::ccWaterWaves = 2;
 int CMapArea::ccWaterSpecular = 1;
 int CMapArea::ccWaterRipples = 1;
 
-void __fastcall CMap::QueryLiquidSounds(
+void CMap::QueryLiquidSounds(
     const NTempest::C3Vector &worldPos,
     float                      radius,
     int                       *lbool,
@@ -442,7 +442,7 @@ void CMapArea::InitWater() {
   }
 }
 
-void __fastcall CMap::WaterDiffTexCallback(
+void CMap::WaterDiffTexCallback(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -509,7 +509,7 @@ void __fastcall CMap::WaterDiffTexCallback(
   }
 }
 
-HTEXTURE__ *__fastcall CMap::GetLiquidTexture(unsigned int liquid) {
+HTEXTURE__ *CMap::GetLiquidTexture(unsigned int liquid) {
   char         filename[256];
   CStatus      status;
   const float  secsPerLoop = liquidTexLoopTime[liquid];
@@ -550,7 +550,7 @@ HTEXTURE__ *__fastcall CMap::GetLiquidTexture(unsigned int liquid) {
   return liquidTex[liquid][texture];
 }
 
-void __fastcall CMap::UnloadLiquidTexture(unsigned int liquid) {
+void CMap::UnloadLiquidTexture(unsigned int liquid) {
   ASSERT(liquid < LIQUID_COUNT);
 
   for (unsigned int texture = 0; texture < LIQUID_TEXTURE_COUNT; ++texture) {
@@ -563,7 +563,7 @@ void __fastcall CMap::UnloadLiquidTexture(unsigned int liquid) {
   liquidTexLoaded[liquid] = false;
 }
 
-void __fastcall CMap::UpdateLiquidTextures() {
+void CMap::UpdateLiquidTextures() {
 }
 
 static void fft2(float* data, unsigned long* nn, int ndim, float isign) {
@@ -643,7 +643,7 @@ static void fft2(float* data, unsigned long* nn, int ndim, float isign) {
   }
 }
 
-void __fastcall CMap::WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
+void CMap::WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
   if (!CMapArea::ccWaterRipples || waterRipplesFree.IsEmpty()) {
     return;
   }
@@ -654,7 +654,7 @@ void __fastcall CMap::WaterRipple(NTempest::C3Vector &pos, float len, float time
   wave->Init(pos, len, time, amp, vel, freq);
 }
 
-void __fastcall CMap::WaterInitialize() {
+void CMap::WaterInitialize() {
   skyTexid = 0;
   riverDiffTexid = 0;
   oceanDiffTexid = 0;
@@ -729,7 +729,7 @@ void __fastcall CMap::WaterInitialize() {
   GxPixelShaderCreate(psOcean0, "Shaders\\Pixel\\Ocean0.bls");
 }
 
-void __fastcall CMap::WaterDestroy() {
+void CMap::WaterDestroy() {
   if (skyTexid) {
     GxTexDestroy(skyTexid);
   }
@@ -789,7 +789,7 @@ void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
   }
 }
 
-static void __fastcall SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPNT0 *&vtx, unsigned short *&idx) {
+static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPNT0 *&vtx, unsigned short *&idx) {
   FATALASSERT(cmd.vertex.op != GxBufOp_Nop);
   FATALASSERT(cmd.index.op != GxBufOp_Nop);
 
@@ -810,7 +810,7 @@ static void __fastcall SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexP
   }
 }
 
-static void __fastcall SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPCT0 *&vtx, unsigned short *&idx) {
+static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPCT0 *&vtx, unsigned short *&idx) {
   FATALASSERT(cmd.vertex.op != GxBufOp_Nop);
   FATALASSERT(cmd.index.op != GxBufOp_Nop);
 
@@ -965,7 +965,7 @@ unsigned short CChunkLiquid::Render0I(unsigned short *idxBase, unsigned int liqu
   return static_cast<unsigned short>(idx - idxBase);
 }
 
-void __fastcall CChunkLiquid::RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
+void CChunkLiquid::RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
   unsigned short *idx;
   CGxVertexPNT0  *vtx;
   UserArg        *arg = static_cast<UserArg *>(gxBuf->UserArg());
@@ -975,7 +975,7 @@ void __fastcall CChunkLiquid::RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *g
   FATALASSERT(arg->indexCount <= gxBuf->IndexCount());
 }
 
-void __fastcall CChunkLiquid::RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
+void CChunkLiquid::RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
   unsigned short *idx;
   CGxVertexPNT0  *vtx;
   UserArg        *arg = static_cast<UserArg *>(gxBuf->UserArg());
@@ -985,7 +985,7 @@ void __fastcall CChunkLiquid::RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *g
   FATALASSERT(arg->indexCount <= gxBuf->IndexCount());
 }
 
-void __fastcall CChunkLiquid::RenderMagma0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
+void CChunkLiquid::RenderMagma0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
   unsigned short *idx;
   CGxVertexPCT0  *vtx;
   UserArg        *arg = static_cast<UserArg *>(gxBuf->UserArg());
@@ -1290,6 +1290,6 @@ void Particulate::Render() {
   GxXformSetView(view);
 }
 
-void __fastcall Particulate::CustomRenderCallback(void *p1, int p2) {
+void Particulate::CustomRenderCallback(void *p1, int p2) {
   static_cast<Particulate *>(p1)->Render();
 }

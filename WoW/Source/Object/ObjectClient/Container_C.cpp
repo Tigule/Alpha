@@ -71,7 +71,7 @@ void CGContainer_C::SetData(const void *data, unsigned int bytes) {
   memcpy(m_cont, data, bytes);
 }
 
-unsigned int __fastcall CGContainer_C::OffsetOf(OBJECT_TYPE_ID type) {
+unsigned int CGContainer_C::OffsetOf(OBJECT_TYPE_ID type) {
   switch (type) {
     case ID_OBJECT:
       return 0;

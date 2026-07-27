@@ -9,11 +9,11 @@ static int           s_workerPipe[2] = {-1, -1};
 static unsigned char s_usingEngine;
 static WSADATA       s_wsaData;
 
-static void __fastcall WinsockInit() {
+static void WinsockInit() {
   WSAStartup(0x0202, &s_wsaData);
 }
 
-static void __fastcall WinsockDestroy() {
+static void WinsockDestroy() {
 }
 
 void WowConnectionNet::PlatformInit(bool useEngine) {
@@ -53,7 +53,7 @@ void WowConnectionNet::PlatformWorkerReady() {
   send(s_workerPipe[1], &c, 1, 0);
 }
 
-static void __fastcall MakeSocketPipe(int *const pipes) {
+static void MakeSocketPipe(int *const pipes) {
   sockaddr_in   addr;
   sockaddr_in   incoming;
   int           len;

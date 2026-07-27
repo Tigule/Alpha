@@ -146,21 +146,21 @@ char       *s_textureLogString[7] = {"character", "creature", "dungeon", "interf
 static int  s_asyncPending;
 static TSHashTableReuse<CSolidTextureHash, HASHKEY_NONE, 1> s_solidTextureCache;
 
-static HTEXTURE __fastcall     GetTexture(const char *texMap, CGxTexFlags flags);
-static HTEXTURE __fastcall     GetTexture(const NTempest::CImVector &color);
-static int __fastcall          TextureIsUsed(HTEXTURE texture);
-static void __fastcall         HashNewTexture(const char *texMap, CGxTexFlags flags, HTEXTURE texture, CStatus *status);
-static void __fastcall         HashNewTexture(const NTempest::CImVector &color, HTEXTURE texture, CStatus *status);
-static void __fastcall         FileError(CStatus *status, const char *description, const char *path);
-static unsigned int __fastcall LoadPredrawnMips(const CTgaFile &mipZero, const char *filemask, MipBits *buffer);
-static void __fastcall         RemoveExtension(char *path);
-static void __fastcall         GenerateMipMask(const char *mipZeroName, char *mipMask);
-static unsigned int __fastcall CalcLevelSize(unsigned int level, unsigned int width, unsigned int height, EGxTexFormat format);
-static unsigned int __fastcall CalcLevelOffset(unsigned int level, unsigned int width, unsigned int height, EGxTexFormat format);
-static MipBits *__fastcall     GetDefaultTexture(unsigned int height, unsigned int width, unsigned int format);
-static MipBits *__fastcall
+static HTEXTURE GetTexture(const char *texMap, CGxTexFlags flags);
+static HTEXTURE GetTexture(const NTempest::CImVector &color);
+static int TextureIsUsed(HTEXTURE texture);
+static void HashNewTexture(const char *texMap, CGxTexFlags flags, HTEXTURE texture, CStatus *status);
+static void HashNewTexture(const NTempest::CImVector &color, HTEXTURE texture, CStatus *status);
+static void FileError(CStatus *status, const char *description, const char *path);
+static unsigned int LoadPredrawnMips(const CTgaFile &mipZero, const char *filemask, MipBits *buffer);
+static void RemoveExtension(char *path);
+static void GenerateMipMask(const char *mipZeroName, char *mipMask);
+static unsigned int CalcLevelSize(unsigned int level, unsigned int width, unsigned int height, EGxTexFormat format);
+static unsigned int CalcLevelOffset(unsigned int level, unsigned int width, unsigned int height, EGxTexFormat format);
+static MipBits *GetDefaultTexture(unsigned int height, unsigned int width, unsigned int format);
+static MipBits *
 LoadTgaMips(const char *fileName, unsigned int *width, unsigned int *height, EGxTexFormat *format, int *isOpaque, unsigned int *alphaBits);
-static void __fastcall UpdateTgaTexture(
+static void UpdateTgaTexture(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -170,9 +170,9 @@ static void __fastcall UpdateTgaTexture(
     unsigned int &texelStrideInBytes,
     const void  *&texels
 );
-static void __fastcall     RequestImageDimensions(unsigned int *width, unsigned int *height, unsigned int *bestMip);
-static HTEXTURE __fastcall CreateTgaTexture(const char *file, CGxTexFlags flags, CStatus *status);
-static void __fastcall     UpdateTextureDefault(
+static void RequestImageDimensions(unsigned int *width, unsigned int *height, unsigned int *bestMip);
+static HTEXTURE CreateTgaTexture(const char *file, CGxTexFlags flags, CStatus *status);
+static void UpdateTextureDefault(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -182,17 +182,17 @@ static void __fastcall     UpdateTextureDefault(
     unsigned int &texelStrideInBytes,
     const void  *&texels
 );
-static CGxTex *__fastcall TextureAllocGxTex(
+static CGxTex *TextureAllocGxTex(
     unsigned int width,
     unsigned int height,
     EGxTexFormat format,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     EGxTexFormat dataFormat
 );
-static void __fastcall TextureFreeGxTex(CGxTex *gxTex);
-static void __fastcall UpdateBlpTextureAsync(
+static void TextureFreeGxTex(CGxTex *gxTex);
+static void UpdateBlpTextureAsync(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -202,7 +202,7 @@ static void __fastcall UpdateBlpTextureAsync(
     unsigned int &texelStrideInBytes,
     const void  *&texels
 );
-static void __fastcall GetTextureFormats(
+static void GetTextureFormats(
     CTexture     *texture,
     PIXEL_FORMAT &pixFormat,
     EGxTexFormat &dataFormat,
@@ -210,15 +210,15 @@ static void __fastcall GetTextureFormats(
     PIXEL_FORMAT  preferredFormat,
     unsigned int  alphaBits
 );
-static int __fastcall          AsyncTextureLoadImageCreate(CTexture *texture);
-static void __fastcall         FillInSolidTexture(const NTempest::CImVector &color, CTexture *texture);
-static void __fastcall         AsyncCreateBlpTextureCallback(void *arg);
-static void __fastcall         AsyncTextureLoadImageCallback(void *arg);
-static void __fastcall         AsyncTextureHandler();
-static void __fastcall         AsyncTextureWait(CTexture *texture);
-static HTEXTURE __fastcall     CreateBlpTexture(const char *filename, CGxTexFlags flags, CStatus *status);
-static EImageFormat __fastcall IdentifyAndStripFileExtension(const char *fileName, char *stripped, char **ext);
-static void __fastcall
+static int AsyncTextureLoadImageCreate(CTexture *texture);
+static void FillInSolidTexture(const NTempest::CImVector &color, CTexture *texture);
+static void AsyncCreateBlpTextureCallback(void *arg);
+static void AsyncTextureLoadImageCallback(void *arg);
+static void AsyncTextureHandler();
+static void AsyncTextureWait(CTexture *texture);
+static HTEXTURE CreateBlpTexture(const char *filename, CGxTexFlags flags, CStatus *status);
+static EImageFormat IdentifyAndStripFileExtension(const char *fileName, char *stripped, char **ext);
+static void
 TextureGenerateMips(unsigned int width, unsigned int height, unsigned int levelsProvided, unsigned int levelsDesired, MipBits *levelBits);
 static int __cdecl TextureLogSortCallback(const void *elem1, const void *elem2);
 
@@ -269,7 +269,7 @@ CTexture::~CTexture() {
   }
 }
 
-static HTEXTURE __fastcall GetTexture(const char *texMap, CGxTexFlags flags) {
+static HTEXTURE GetTexture(const char *texMap, CGxTexFlags flags) {
   CTextureHash *textureHash;
   unsigned int  hash;
 
@@ -285,7 +285,7 @@ static HTEXTURE __fastcall GetTexture(const char *texMap, CGxTexFlags flags) {
   return reinterpret_cast<HTEXTURE>(HandleDuplicate(textureHash->texture));
 }
 
-static HTEXTURE __fastcall GetTexture(const NTempest::CImVector &color) {
+static HTEXTURE GetTexture(const NTempest::CImVector &color) {
   CSolidTextureHash *textureHash = s_solidTextureCache.Ptr(*color.IV_(), s_hashKeyNone);
 
   if (!textureHash) {
@@ -295,12 +295,12 @@ static HTEXTURE __fastcall GetTexture(const NTempest::CImVector &color) {
   return reinterpret_cast<HTEXTURE>(HandleDuplicate(textureHash->texture));
 }
 
-static int __fastcall TextureIsUsed(HTEXTURE texture) {
+static int TextureIsUsed(HTEXTURE texture) {
   ASSERT(texture);
   return texture->unused > 1;
 }
 
-static void __fastcall HashNewTexture(const char *texMap, CGxTexFlags flags, HTEXTURE texture, CStatus *status) {
+static void HashNewTexture(const char *texMap, CGxTexFlags flags, HTEXTURE texture, CStatus *status) {
   unsigned long currentTime;
   unsigned int  hash;
   CTextureHash *textureHash;
@@ -317,7 +317,7 @@ static void __fastcall HashNewTexture(const char *texMap, CGxTexFlags flags, HTE
   textureHash->timeStamp = currentTime;
 }
 
-static void __fastcall HashNewTexture(const NTempest::CImVector &color, HTEXTURE texture, CStatus *status) {
+static void HashNewTexture(const NTempest::CImVector &color, HTEXTURE texture, CStatus *status) {
   unsigned long      currentTime = OsGetAsyncTimeMs();
   CSolidTextureHash *textureHash;
 
@@ -328,7 +328,7 @@ static void __fastcall HashNewTexture(const NTempest::CImVector &color, HTEXTURE
   textureHash->timeStamp = currentTime;
 }
 
-static void __fastcall FileError(CStatus *status, const char *description, const char *path) {
+static void FileError(CStatus *status, const char *description, const char *path) {
   char error[0x100];
 
   SErrGetErrorStr(SErrGetLastError(), error, sizeof(error));
@@ -336,7 +336,7 @@ static void __fastcall FileError(CStatus *status, const char *description, const
   SErrSetLastError(0);
 }
 
-static unsigned int __fastcall LoadPredrawnMips(const CTgaFile &mipZero, const char *filemask, MipBits *buffer) {
+static unsigned int LoadPredrawnMips(const CTgaFile &mipZero, const char *filemask, MipBits *buffer) {
   char         pathName[0x104];
   unsigned int width;
   unsigned int height;
@@ -399,7 +399,7 @@ static unsigned int __fastcall LoadPredrawnMips(const CTgaFile &mipZero, const c
   return index;
 }
 
-static void __fastcall RemoveExtension(char *path) {
+static void RemoveExtension(char *path) {
   char *extension = SStrChrR(path, '.');
 
   if (extension) {
@@ -407,20 +407,20 @@ static void __fastcall RemoveExtension(char *path) {
   }
 }
 
-static void __fastcall GenerateMipMask(const char *mipZeroName, char *mipMask) {
+static void GenerateMipMask(const char *mipZeroName, char *mipMask) {
   SStrCopy(mipMask, mipZeroName, 0x104);
   RemoveExtension(mipMask);
   SStrPack(mipMask, "_mip%d.tga", 0x104);
 }
 
-static unsigned int __fastcall CalcLevelSize(unsigned int level, unsigned int width, unsigned int height, EGxTexFormat format) {
+static unsigned int CalcLevelSize(unsigned int level, unsigned int width, unsigned int height, EGxTexFormat format) {
   unsigned int levelWidth = max(width >> level, 1U);
   unsigned int levelHeight = max(height >> level, 1U);
 
   return (levelWidth * levelHeight * s_bitDepth[format]) >> 3;
 }
 
-static unsigned int __fastcall CalcLevelOffset(unsigned int level, unsigned int width, unsigned int height, EGxTexFormat format) {
+static unsigned int CalcLevelOffset(unsigned int level, unsigned int width, unsigned int height, EGxTexFormat format) {
   unsigned int offset = 0;
   unsigned int index;
 
@@ -431,7 +431,7 @@ static unsigned int __fastcall CalcLevelOffset(unsigned int level, unsigned int 
   return offset;
 }
 
-static MipBits *__fastcall GetDefaultTexture(unsigned int height, unsigned int width, unsigned int format) {
+static MipBits *GetDefaultTexture(unsigned int height, unsigned int width, unsigned int format) {
   ASSERT(format == GxTex_Argb8888);
 
   MipBits *buffer = MippedImgAllocA(PIXEL_ARGB8888, width, height, __FILE__, __LINE__);
@@ -455,7 +455,7 @@ static MipBits *__fastcall GetDefaultTexture(unsigned int height, unsigned int w
   return buffer;
 }
 
-static MipBits *__fastcall
+static MipBits *
 LoadTgaMips(const char *fileName, unsigned int *width, unsigned int *height, EGxTexFormat *format, int *isOpaque, unsigned int *alphaBits) {
   char     mipFileMask[0x104];
   CTgaFile texFile;
@@ -518,7 +518,7 @@ LoadTgaMips(const char *fileName, unsigned int *width, unsigned int *height, EGx
   return buffer;
 }
 
-static void __fastcall UpdateTgaTexture(
+static void UpdateTgaTexture(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -552,7 +552,7 @@ static void __fastcall UpdateTgaTexture(
   }
 }
 
-static void __fastcall RequestImageDimensions(unsigned int *width, unsigned int *height, unsigned int *bestMip) {
+static void RequestImageDimensions(unsigned int *width, unsigned int *height, unsigned int *bestMip) {
   CGxCaps systemCaps = GxCaps();
 
   FATALASSERT(systemCaps.m_maxTextureSize > 0);
@@ -572,7 +572,7 @@ static void __fastcall RequestImageDimensions(unsigned int *width, unsigned int 
   }
 }
 
-static HTEXTURE __fastcall CreateTgaTexture(const char *file, CGxTexFlags flags, CStatus *status) {
+static HTEXTURE CreateTgaTexture(const char *file, CGxTexFlags flags, CStatus *status) {
   CTgaFile image;
 
   if (!image.Open(file)) {
@@ -597,7 +597,7 @@ static HTEXTURE __fastcall CreateTgaTexture(const char *file, CGxTexFlags flags,
   return handle;
 }
 
-static int __fastcall LoadBlpMips(
+static int LoadBlpMips(
     const char   *fileName,
     MipBits     *&buffer,
     unsigned int *width,
@@ -688,7 +688,7 @@ static int __fastcall LoadBlpMips(
   return 1;
 }
 
-static void __fastcall UpdateTextureDefault(
+static void UpdateTextureDefault(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -701,13 +701,13 @@ static void __fastcall UpdateTextureDefault(
   ASSERT(!userArg);
 }
 
-static CGxTex *__fastcall TextureAllocGxTex(
+static CGxTex *TextureAllocGxTex(
     unsigned int width,
     unsigned int height,
     EGxTexFormat format,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     EGxTexFormat dataFormat
 ) {
   CGxTexParmsEx gxTexParmsEx;
@@ -776,7 +776,7 @@ static CGxTex *__fastcall TextureAllocGxTex(
   return gxTexCache->gxTex;
 }
 
-static void __fastcall TextureFreeGxTex(CGxTex *gxTex) {
+static void TextureFreeGxTex(CGxTex *gxTex) {
   CGxTexParmsEx gxTexParmsEx;
   unsigned int  indexW;
   unsigned int  indexH;
@@ -818,7 +818,7 @@ static void __fastcall TextureFreeGxTex(CGxTex *gxTex) {
   GxTexSetUserData(gxTex, UpdateTextureDefault, 0);
 }
 
-static void __fastcall UpdateBlpTextureAsync(
+static void UpdateBlpTextureAsync(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -859,7 +859,7 @@ static void __fastcall UpdateBlpTextureAsync(
   }
 }
 
-static void __fastcall GetTextureFormats(
+static void GetTextureFormats(
     CTexture     *texture,
     PIXEL_FORMAT &pixFormat,
     EGxTexFormat &dataFormat,
@@ -954,7 +954,7 @@ static void __fastcall GetTextureFormats(
   }
 }
 
-static int __fastcall PumpBlpTextureAsync(CTexture *texture) {
+static int PumpBlpTextureAsync(CTexture *texture) {
   CBLPFile image;
 
   if (!image.Source(texture->asyncObject->buffer)) {
@@ -999,7 +999,7 @@ static int __fastcall PumpBlpTextureAsync(CTexture *texture) {
   return 1;
 }
 
-static int __fastcall AsyncTextureLoadImageCreate(CTexture *texture) {
+static int AsyncTextureLoadImageCreate(CTexture *texture) {
   CBLPFile image;
 
   if (!image.Source(texture->asyncObject->buffer)) {
@@ -1034,7 +1034,7 @@ static int __fastcall AsyncTextureLoadImageCreate(CTexture *texture) {
   return 1;
 }
 
-static void __fastcall FillInSolidTexture(const NTempest::CImVector &color, CTexture *texture) {
+static void FillInSolidTexture(const NTempest::CImVector &color, CTexture *texture) {
   CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
 
   GxTexCreate(8, 8, GxTex_Argb8888, flags, reinterpret_cast<void *>(*color.IV_()), GxuUpdateSingleColorTexture, texture->gxTex);
@@ -1046,7 +1046,7 @@ static void __fastcall FillInSolidTexture(const NTempest::CImVector &color, CTex
   }
 }
 
-static void __fastcall AsyncCreateBlpTextureCallback(void *arg) {
+static void AsyncCreateBlpTextureCallback(void *arg) {
   CTexture *texture = static_cast<CTexture *>(arg);
 
   ASSERT(texture);
@@ -1061,7 +1061,7 @@ static void __fastcall AsyncCreateBlpTextureCallback(void *arg) {
   --s_asyncPending;
 }
 
-static void __fastcall AsyncTextureLoadImageCallback(void *arg) {
+static void AsyncTextureLoadImageCallback(void *arg) {
   CTexture *texture = static_cast<CTexture *>(arg);
 
   ASSERT(texture);
@@ -1073,7 +1073,7 @@ static void __fastcall AsyncTextureLoadImageCallback(void *arg) {
   --s_asyncPending;
 }
 
-static void __fastcall AsyncTextureHandler() {
+static void AsyncTextureHandler() {
   unsigned int  bufferRemaining;
   CAsyncObject *asyncObject;
   CAsyncObject *asyncObjectnext_node;
@@ -1102,7 +1102,7 @@ static void __fastcall AsyncTextureHandler() {
   }
 }
 
-static void __fastcall AsyncTextureWait(CTexture *texture) {
+static void AsyncTextureWait(CTexture *texture) {
   ASSERT(texture);
 
   if (texture->asyncObject) {
@@ -1110,7 +1110,7 @@ static void __fastcall AsyncTextureWait(CTexture *texture) {
   }
 }
 
-static HTEXTURE __fastcall CreateBlpTexture(const char *filename, CGxTexFlags flags, CStatus *status) {
+static HTEXTURE CreateBlpTexture(const char *filename, CGxTexFlags flags, CStatus *status) {
   SFile *file;
 
   if (!SFile::Open(filename, &file)) {
@@ -1145,7 +1145,7 @@ static HTEXTURE __fastcall CreateBlpTexture(const char *filename, CGxTexFlags fl
   return reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));
 }
 
-static EImageFormat __fastcall IdentifyAndStripFileExtension(const char *fileName, char *stripped, char **ext) {
+static EImageFormat IdentifyAndStripFileExtension(const char *fileName, char *stripped, char **ext) {
   EImageFormat imageFormat = IMAGE_FORMAT_BLP;
   unsigned int length = SStrCopy(stripped, fileName, 0x104);
 
@@ -1171,20 +1171,20 @@ static EImageFormat __fastcall IdentifyAndStripFileExtension(const char *fileNam
   return imageFormat;
 }
 
-void __fastcall TextureInitialize() {
+void TextureInitialize() {
   g_textureMipBits = SMemAlloc(MippedImgCalcSize(2, 512, 512));
   ASSERT(g_textureMipBits);
 
   AsyncFileReadAddHandler(AsyncTextureHandler);
 }
 
-void __fastcall TextureCacheFlush() {
+void TextureCacheFlush() {
   s_textureCacheLRU.UnlinkAll();
   s_textureCache.Destroy();
   s_solidTextureCache.Destroy();
 }
 
-void __fastcall TextureGxCacheFlush() {
+void TextureGxCacheFlush() {
   unsigned int x;
   unsigned int y;
   unsigned int format;
@@ -1206,7 +1206,7 @@ void __fastcall TextureGxCacheFlush() {
   }
 }
 
-void __fastcall TextureCacheUpdate(unsigned long currentTime, CStatus *status) {
+void TextureCacheUpdate(unsigned long currentTime, CStatus *status) {
   unsigned int numTexturesFlushed = 0;
 
   while (CTextureItem *textureItem = s_textureCacheLRU.Head()) {
@@ -1242,7 +1242,7 @@ void __fastcall TextureCacheUpdate(unsigned long currentTime, CStatus *status) {
   }
 }
 
-MipBits *__fastcall TextureLoadImage(
+MipBits *TextureLoadImage(
     const char   *filename,
     unsigned int *width,
     unsigned int *height,
@@ -1302,7 +1302,7 @@ MipBits *__fastcall TextureLoadImage(
   return mipImages;
 }
 
-HTEXTURE __fastcall TextureLoadImage(const char *filename) {
+HTEXTURE TextureLoadImage(const char *filename) {
   char   loadFileName[0x104];
   char  *ext;
   SFile *file;
@@ -1344,7 +1344,7 @@ HTEXTURE __fastcall TextureLoadImage(const char *filename) {
   return reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));
 }
 
-HTEXTURE __fastcall TextureAllocImage(EGxTexFormat format, unsigned int width, unsigned int height) {
+HTEXTURE TextureAllocImage(EGxTexFormat format, unsigned int width, unsigned int height) {
   CTexture *texture = new (SMemAlloc(sizeof(CTexture), "HTEXTURE", SERR_LINECODE_OBJECT, 0)) CTexture;
   ASSERT(texture);
 
@@ -1360,11 +1360,11 @@ HTEXTURE __fastcall TextureAllocImage(EGxTexFormat format, unsigned int width, u
   return reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));
 }
 
-void __fastcall TextureUnloadImage(MipBits* image) {
+void TextureUnloadImage(MipBits* image) {
   FREEIFUSED(image);
 }
 
-HTEXTURE __fastcall
+HTEXTURE
 TextureCreate(const char *name, unsigned int width, unsigned int height, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags) {
   CTexture *texture = new (SMemAlloc(sizeof(CTexture), "HTEXTURE", SERR_LINECODE_OBJECT, 0)) CTexture;
   ASSERT(texture);
@@ -1383,11 +1383,11 @@ TextureCreate(const char *name, unsigned int width, unsigned int height, EGxTexF
   return reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));
 }
 
-HTEXTURE __fastcall TextureCreate(const char *name, unsigned int width, unsigned int height, EGxTexFormat format, CGxTexFlags flags) {
+HTEXTURE TextureCreate(const char *name, unsigned int width, unsigned int height, EGxTexFormat format, CGxTexFlags flags) {
   return TextureCreate(name, width, height, format, GxTex_Argb8888, flags);
 }
 
-HTEXTURE __fastcall TextureCreate(const char *fileName, CGxTexFlags flags, CStatus *status, int dontCache) {
+HTEXTURE TextureCreate(const char *fileName, CGxTexFlags flags, CStatus *status, int dontCache) {
   char  loadFileName[0x104];
   char *ext;
 
@@ -1442,7 +1442,7 @@ HTEXTURE __fastcall TextureCreate(const char *fileName, CGxTexFlags flags, CStat
   return texture;
 }
 
-HTEXTURE __fastcall TextureCreate(CGxTex *gxTex) {
+HTEXTURE TextureCreate(CGxTex *gxTex) {
   FATALASSERT(gxTex);
 
   CTexture *texture = new (SMemAlloc(sizeof(CTexture), "HTEXTURE", SERR_LINECODE_OBJECT, 0)) CTexture;
@@ -1455,7 +1455,7 @@ HTEXTURE __fastcall TextureCreate(CGxTex *gxTex) {
   return reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));
 }
 
-HTEXTURE __fastcall TextureCreateSolid(const NTempest::CImVector &color, CStatus *status) {
+HTEXTURE TextureCreateSolid(const NTempest::CImVector &color, CStatus *status) {
   HTEXTURE texture = GetTexture(color);
 
   if (texture) {
@@ -1474,7 +1474,7 @@ HTEXTURE __fastcall TextureCreateSolid(const NTempest::CImVector &color, CStatus
   return texture;
 }
 
-CGxTex *__fastcall TextureGetGxTex(HTEXTURE texture, int force, CStatus *status) {
+CGxTex *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status) {
   CTexture *textureObject = reinterpret_cast<CTexture *>(texture);
 
   FATALASSERT(texture);
@@ -1493,7 +1493,7 @@ CGxTex *__fastcall TextureGetGxTex(HTEXTURE texture, int force, CStatus *status)
   return textureObject->gxTex;
 }
 
-MipBits *__fastcall TextureGetMips(HTEXTURE texture, int force) {
+MipBits *TextureGetMips(HTEXTURE texture, int force) {
   CTexture *textureObject = reinterpret_cast<CTexture *>(texture);
 
   FATALASSERT(texture);
@@ -1510,13 +1510,13 @@ MipBits *__fastcall TextureGetMips(HTEXTURE texture, int force) {
   return textureObject->mipBits;
 }
 
-int __fastcall TextureIsOpaque(HTEXTURE__* texture) {
+int TextureIsOpaque(HTEXTURE__* texture) {
   CTexture *texturePtr = reinterpret_cast<CTexture *>(texture);
   FATALASSERT(texturePtr);
   return texturePtr->flags & 1;
 }
 
-unsigned int __fastcall TextureCalcMipCount(unsigned int width, unsigned int height) {
+unsigned int TextureCalcMipCount(unsigned int width, unsigned int height) {
   unsigned int mipCount = 1;
 
   while (width > 1 || height > 1) {
@@ -1537,7 +1537,7 @@ unsigned int __fastcall TextureCalcMipCount(unsigned int width, unsigned int hei
   return mipCount;
 }
 
-static void __fastcall
+static void
 TextureGenerateMips(unsigned int width, unsigned int height, unsigned int levelsProvided, unsigned int levelsDesired, MipBits *levelBits) {
   unsigned int sourceWidth = width;
   unsigned int sourceHeight = height;
@@ -1568,7 +1568,7 @@ TextureGenerateMips(unsigned int width, unsigned int height, unsigned int levels
   }
 }
 
-MipBits *__fastcall TextureAllocMippedImg(EGxTexFormat format, unsigned int width, unsigned int height) {
+MipBits *TextureAllocMippedImg(EGxTexFormat format, unsigned int width, unsigned int height) {
   unsigned int  mipCount;
   unsigned int  levelDataSize;
   unsigned int *ptr;
@@ -1589,7 +1589,7 @@ MipBits *__fastcall TextureAllocMippedImg(EGxTexFormat format, unsigned int widt
   return reinterpret_cast<MipBits *>(ptr);
 }
 
-MipBits* __fastcall TextureCopyMippedImage(MipBits* srcData, EGxTexFormat format, unsigned int width, unsigned int height) {
+MipBits* TextureCopyMippedImage(MipBits* srcData, EGxTexFormat format, unsigned int width, unsigned int height) {
   if (!srcData) {
     return 0;
   }
@@ -1602,11 +1602,11 @@ MipBits* __fastcall TextureCopyMippedImage(MipBits* srcData, EGxTexFormat format
   return destData;
 }
 
-void __fastcall TextureFreeMippedImg(MipBits *image) {
+void TextureFreeMippedImg(MipBits *image) {
   FREEIFUSED(image);
 }
 
-TEXFILETYPE __fastcall TextureDiscoverFileType(const char *path) {
+TEXFILETYPE TextureDiscoverFileType(const char *path) {
   const char *extension = SStrChrR(path, '.');
 
   if (!extension || SStrLen(extension) != 4) {
@@ -1624,7 +1624,7 @@ TEXFILETYPE __fastcall TextureDiscoverFileType(const char *path) {
   return TEXFILETYPE_UNKNOWN;
 }
 
-unsigned int __fastcall TexturePickAlternateFilename(const char *path, TEXFILETYPE fileType, char *newpath, unsigned int size) {
+unsigned int TexturePickAlternateFilename(const char *path, TEXFILETYPE fileType, char *newpath, unsigned int size) {
   char *extension;
 
   if (path != newpath) {
@@ -1655,11 +1655,11 @@ unsigned int __fastcall TexturePickAlternateFilename(const char *path, TEXFILETY
   return fileType;
 }
 
-unsigned long __fastcall TextureGetUniqueID(HTEXTURE__* texture) {
+unsigned long TextureGetUniqueID(HTEXTURE__* texture) {
   return reinterpret_cast<unsigned long>(texture);
 }
 
-void __fastcall TextureGetDimensions(HTEXTURE texture, unsigned int *width, unsigned int *height) {
+void TextureGetDimensions(HTEXTURE texture, unsigned int *width, unsigned int *height) {
   if (width) {
     *width = reinterpret_cast<CTexture *>(texture)->gxWidth;
   }
@@ -1668,7 +1668,7 @@ void __fastcall TextureGetDimensions(HTEXTURE texture, unsigned int *width, unsi
   }
 }
 
-void __fastcall TextureDestroy() {
+void TextureDestroy() {
   CGxTexCache *gxTexCache;
 
   TextureCacheFlush();
@@ -1685,12 +1685,12 @@ void __fastcall TextureDestroy() {
   g_textureMipBits = 0;
 }
 
-const char *__fastcall TextureGetFilename(HTEXTURE texture) {
+const char *TextureGetFilename(HTEXTURE texture) {
   FATALASSERT(texture);
   return reinterpret_cast<CTexture *>(texture)->filename;
 }
 
-int __fastcall
+int
 TextureGetInfo(HTEXTURE texture, unsigned int &width, unsigned int &height, EGxTexFormat &format, int &opaque, unsigned int &alphaBits, int bForce) {
   CTexture *textureObject = reinterpret_cast<CTexture *>(texture);
 
@@ -1711,7 +1711,7 @@ TextureGetInfo(HTEXTURE texture, unsigned int &width, unsigned int &height, EGxT
   return 1;
 }
 
-void __fastcall TextureLogGxCache(HSLOG log) {
+void TextureLogGxCache(HSLOG log) {
   ASSERT(log);
 
   CGxTexParmsEx gxTexParmsEx;
@@ -1743,7 +1743,7 @@ static int __cdecl TextureLogSortCallback(const void *elem1, const void *elem2) 
   return SStrCmpI((*texture1)->filename, (*texture2)->filename, 0x7FFFFFFF);
 }
 
-void __fastcall TextureLogTextures(HSLOG log) {
+void TextureLogTextures(HSLOG log) {
   unsigned int                i;
   unsigned int                texTotal;
   unsigned int                texTypeTotal[7];

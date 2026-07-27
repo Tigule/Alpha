@@ -82,41 +82,41 @@ struct FADEOUTHASHOBJ : public TSHashObject<FADEOUTHASHOBJ, CHashKeyGUID> {
   }
 };
 
-int __fastcall                     Player_C_SetPlayerRender(int enable);
-bool __fastcall                    Spell_C_IsTargeting();
-void __fastcall                    CursorResetCursor(int force);
-bool __fastcall                    Spell_C_CanTargetObjects();
-bool __fastcall                    Spell_C_CanTargetUnits();
-bool __fastcall                    Spell_C_CanTargetMe();
-bool __fastcall                    Spell_C_CanTargetParty();
-bool __fastcall                    Spell_C_CanTargetFriends();
-bool __fastcall                    Spell_C_CanTargetEnemies();
-bool __fastcall                    Spell_C_CanTargetDead();
-bool __fastcall                    Spell_C_CanTargetItems();
-bool __fastcall                    Spell_C_CanTargetTerrain();
-bool __fastcall                    Spell_C_WaitingForStringInput();
-unsigned int __fastcall            Spell_C_WorldObjectCursor();
-float __fastcall                   Spell_C_WorldObjectFacing();
-bool __fastcall                    Spell_C_WorldObjectHousing();
-float __fastcall                   Spell_C_GetSpellRadius();
-bool __fastcall                    Spell_C_HandleSpriteRay(const CSpriteClickEvent &evt, bool checkRange);
-bool __fastcall                    Spell_C_HandleTerrainRay(const CTerrainClickEvent &evt, bool checkRange);
-int __fastcall                     Spell_C_GetTargettingSpell();
-const unsigned __int64 &__fastcall Spell_C_GetCurrentCaster();
-void __fastcall                    WorldTextInitialize();
-void __fastcall                    WorldTextShutdown();
-void __fastcall                    SmartScreenRectInitialize();
-void __fastcall                    SmartScreenRectShutdown();
-void __fastcall                    SmartScreenRectClearAllGrids();
-void __fastcall                    UnitEffectUpdate(CGCamera *camera);
-void __fastcall                    UnitFootprintRenderSplats(NTempest::C3Vector &cameraPos);
+int Player_C_SetPlayerRender(int enable);
+bool Spell_C_IsTargeting();
+void CursorResetCursor(int force);
+bool Spell_C_CanTargetObjects();
+bool Spell_C_CanTargetUnits();
+bool Spell_C_CanTargetMe();
+bool Spell_C_CanTargetParty();
+bool Spell_C_CanTargetFriends();
+bool Spell_C_CanTargetEnemies();
+bool Spell_C_CanTargetDead();
+bool Spell_C_CanTargetItems();
+bool Spell_C_CanTargetTerrain();
+bool Spell_C_WaitingForStringInput();
+unsigned int Spell_C_WorldObjectCursor();
+float Spell_C_WorldObjectFacing();
+bool Spell_C_WorldObjectHousing();
+float Spell_C_GetSpellRadius();
+bool Spell_C_HandleSpriteRay(const CSpriteClickEvent &evt, bool checkRange);
+bool Spell_C_HandleTerrainRay(const CTerrainClickEvent &evt, bool checkRange);
+int Spell_C_GetTargettingSpell();
+const unsigned __int64 &Spell_C_GetCurrentCaster();
+void WorldTextInitialize();
+void WorldTextShutdown();
+void SmartScreenRectInitialize();
+void SmartScreenRectShutdown();
+void SmartScreenRectClearAllGrids();
+void UnitEffectUpdate(CGCamera *camera);
+void UnitFootprintRenderSplats(NTempest::C3Vector &cameraPos);
 void                               SpellVisualsRender();
 void                               SpellVisualsTick(float elapsed);
-void __fastcall                    UpdatePortraits();
-void __fastcall                    ModelRenderSceneOpaque(CStatus *status);
-void __fastcall                    ModelRenderSceneTransparent(CStatus *status);
-int __fastcall                     ObjectEnumProc(void *param, unsigned long status, unsigned __int64 param64, unsigned long param32);
-int __fastcall                     ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldObjCollisionHandlerData *data);
+void UpdatePortraits();
+void ModelRenderSceneOpaque(CStatus *status);
+void ModelRenderSceneTransparent(CStatus *status);
+int ObjectEnumProc(void *param, unsigned long status, unsigned __int64 param64, unsigned long param32);
+int ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldObjCollisionHandlerData *data);
 
 static const char *s_spellShadowName[2] = {
     "Interface\\SpellShadow\\Spell-Shadow-Acceptable.blp", "Interface\\SpellShadow\\Spell-Shadow-Unacceptable.blp"
@@ -138,7 +138,7 @@ static float                                     s_spellShadowSize;
 static HTEXTURE                                  s_spellShadowTexture[2];
 static TSHashTable<FADEOUTHASHOBJ, CHashKeyGUID> s_fadeOutModelTable;
 
-static int __fastcall CheckFadeOutModels(const char *command, const char *arguments) {
+static int CheckFadeOutModels(const char *command, const char *arguments) {
   int          count = 0;
   unsigned int currentTime = OsGetAsyncTimeMs();
   for (FADEOUTHASHOBJ *fade = s_fadeOutModelTable.Head(); fade; fade = s_fadeOutModelTable.Next(fade)) {
@@ -149,7 +149,7 @@ static int __fastcall CheckFadeOutModels(const char *command, const char *argume
   return 1;
 }
 
-void __fastcall RenderFadeOutModels(NTempest::C3Vector cameraPos, NTempest::C3Vector cameraTarg) {
+void RenderFadeOutModels(NTempest::C3Vector cameraPos, NTempest::C3Vector cameraTarg) {
   int currentTime = OsGetAsyncTimeMs();
   for (FADEOUTHASHOBJ *curr = s_fadeOutModelTable.Head(); curr;) {
     FATALASSERT(curr->model);
@@ -551,7 +551,7 @@ int CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempe
   return 1;
 }
 
-int __fastcall ObjectEnumProc(void *param, unsigned long status, unsigned __int64 param64, unsigned long param32) {
+int ObjectEnumProc(void *param, unsigned long status, unsigned __int64 param64, unsigned long param32) {
   CGWorldFrame *worldFrame = static_cast<CGWorldFrame *>(param);
   FATALASSERT(worldFrame);
 
@@ -567,7 +567,7 @@ int __fastcall ObjectEnumProc(void *param, unsigned long status, unsigned __int6
   return 1;
 }
 
-int __fastcall ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldObjCollisionHandlerData *data) {
+int ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldObjCollisionHandlerData *data) {
   FATALASSERT(data);
 
   CGObject_C *object = ClntObjMgrObjectPtr(param64, __FILE__, __LINE__);
@@ -678,13 +678,13 @@ void CGWorldFrame::OnLayerUpdate(float elapsedSec) {
   CGGameUI::UpdateInteractTarget();
 }
 
-CGCamera *__fastcall CGWorldFrame::GetActiveCamera() {
+CGCamera *CGWorldFrame::GetActiveCamera() {
   FATALASSERT(s_currentWorldFrame);
   FATALASSERT(s_currentWorldFrame->m_camera);
   return s_currentWorldFrame->m_camera;
 }
 
-void __fastcall CGWorldFrame::GetCameraPosition(NTempest::C3Vector *position) {
+void CGWorldFrame::GetCameraPosition(NTempest::C3Vector *position) {
   FATALASSERT(position);
   FATALASSERT(s_currentWorldFrame);
   FATALASSERT(s_currentWorldFrame->m_camera);
@@ -708,7 +708,7 @@ void CGWorldFrame::MoveToFreeList(TSList<CModelRecord, TSGetLink<CModelRecord> >
   m_freeModels.Combine(objList, LIST_HEAD, 0);
 }
 
-void __fastcall CGWorldFrame::GetCameraFacing(NTempest::C3Vector *position) {
+void CGWorldFrame::GetCameraFacing(NTempest::C3Vector *position) {
   FATALASSERT(position);
   FATALASSERT(s_currentWorldFrame);
   FATALASSERT(s_currentWorldFrame->m_camera);
@@ -1206,7 +1206,7 @@ void CGWorldFrame::HandleUnitFade(int nowTracking, int immediateFade) {
   }
 }
 
-int __fastcall UnitUpdateProc(unsigned __int64 guid, void *param) {
+int UnitUpdateProc(unsigned __int64 guid, void *param) {
   CGWorldFrame *pWorldFrame = static_cast<CGWorldFrame *>(param);
   FATALASSERT(pWorldFrame);
 
@@ -1230,7 +1230,7 @@ void CGWorldFrame::OnFrameRender(CRenderBatch *batch, unsigned int layer) {
   }
 }
 
-void __fastcall CGWorldFrame::RenderWorld(void *param) {
+void CGWorldFrame::RenderWorld(void *param) {
   CGWorldFrame       *worldFrame = static_cast<CGWorldFrame *>(param);
   NTempest::C44Matrix saved_view;
   NTempest::C44Matrix saved_proj;
@@ -1422,7 +1422,7 @@ void CGWorldFrame::SetNamePlateUpdate() {
   m_flags |= 1;
 }
 
-void __fastcall CGWorldFrame::RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT texture, unsigned char startAlpha) {
+void CGWorldFrame::RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT texture, unsigned char startAlpha) {
   FATALASSERT(object);
 
   HMODEL model = object->GetObjectModel();

@@ -16,7 +16,7 @@
 #include <storm.h>
 #include <string.h>
 
-void __fastcall CursorModelSetSequence(CURSORANIMATIONS sequence);
+void CursorModelSetSequence(CURSORANIMATIONS sequence);
 
 static const float MAX_SHOP_DISTANCE = 5.5555553f;
 static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
@@ -33,20 +33,20 @@ struct VendorItem {
 
 class CGMerchantInfo {
  public:
-  static void __fastcall             EnterWorld();
-  static void __fastcall             LeaveWorld();
-  static void __fastcall             SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count);
-  static unsigned __int64 __fastcall GetMerchant();
-  static void __fastcall             CloseMerchant();
-  static void __fastcall             UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity);
-  static int __fastcall              GetNumItems() {
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count);
+  static unsigned __int64 GetMerchant();
+  static void CloseMerchant();
+  static void UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity);
+  static int GetNumItems() {
     return m_itemCount;
   }
-  static VendorItem *__fastcall GetItem(int index) {
+  static VendorItem *GetItem(int index) {
     return index >= 0 && index < m_itemCount ? &m_items[index] : 0;
   }
-  static const ItemStats *__fastcall GetItemStats(unsigned int itemID);
-  static void __fastcall             DecrementCallbackCount();
+  static const ItemStats *GetItemStats(unsigned int itemID);
+  static void DecrementCallbackCount();
 
  protected:
   static unsigned __int64 m_merchant;
@@ -60,25 +60,25 @@ VendorItem       CGMerchantInfo::m_items[128];
 int              CGMerchantInfo::m_itemCount;
 unsigned int     CGMerchantInfo::m_callbackCount;
 
-void __fastcall MerchantItemStatsCallback(int, const unsigned __int64 &, void *, bool) {
+void MerchantItemStatsCallback(int, const unsigned __int64 &, void *, bool) {
   CGMerchantInfo::DecrementCallbackCount();
 }
 
-void __fastcall CGMerchantInfo::EnterWorld() {
+void CGMerchantInfo::EnterWorld() {
   memset(m_items, 0, sizeof(m_items));
   m_merchant = 0;
   m_itemCount = 0;
 }
 
-unsigned __int64 __fastcall CGMerchantInfo::GetMerchant() {
+unsigned __int64 CGMerchantInfo::GetMerchant() {
   return m_merchant;
 }
 
-void __fastcall CGMerchantInfo::LeaveWorld() {
+void CGMerchantInfo::LeaveWorld() {
   CloseMerchant();
 }
 
-void __fastcall CGMerchantInfo::SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count) {
+void CGMerchantInfo::SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count) {
   if (m_itemCount) {
     for (int index = 0; index < 128; ++index) {
       if (m_items[index].m_itemType) {
@@ -96,7 +96,7 @@ void __fastcall CGMerchantInfo::SetMerchant(unsigned __int64 merchantGUID, Vendo
   FrameScript_SignalEvent(293);
 }
 
-void __fastcall CGMerchantInfo::CloseMerchant() {
+void CGMerchantInfo::CloseMerchant() {
   if (m_merchant) {
     FrameScript_SignalEvent(295);
     CGGameUI::ClearInteractTarget(m_merchant);
@@ -108,7 +108,7 @@ void __fastcall CGMerchantInfo::CloseMerchant() {
   }
 }
 
-void __fastcall CGMerchantInfo::UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity) {
+void CGMerchantInfo::UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity) {
   if (vendor == m_merchant) {
     int index = 0;
     while (m_items[index].m_muid != muid) {
@@ -123,7 +123,7 @@ void __fastcall CGMerchantInfo::UpdateItemQuantity(unsigned __int64 vendor, unsi
   }
 }
 
-const ItemStats *__fastcall CGMerchantInfo::GetItemStats(unsigned int itemID) {
+const ItemStats *CGMerchantInfo::GetItemStats(unsigned int itemID) {
   if (!itemID) {
     return 0;
   }
@@ -135,7 +135,7 @@ const ItemStats *__fastcall CGMerchantInfo::GetItemStats(unsigned int itemID) {
   return stats;
 }
 
-void __fastcall CGMerchantInfo::DecrementCallbackCount() {
+void CGMerchantInfo::DecrementCallbackCount() {
   if (m_callbackCount) {
     --m_callbackCount;
   }
@@ -145,17 +145,17 @@ void __fastcall CGMerchantInfo::DecrementCallbackCount() {
   }
 }
 
-static int __fastcall Script_CloseMerchant(lua_State *__formal) {
+static int Script_CloseMerchant(lua_State *__formal) {
   CGMerchantInfo::CloseMerchant();
   return 0;
 }
 
-static int __fastcall Script_GetMerchantNumItems(lua_State *L) {
+static int Script_GetMerchantNumItems(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGMerchantInfo::GetNumItems()));
   return 1;
 }
 
-static int __fastcall Script_GetMerchantItemInfo(lua_State *L) {
+static int Script_GetMerchantItemInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetMerchantItemInfo(index)");
   }
@@ -196,7 +196,7 @@ static int __fastcall Script_GetMerchantItemInfo(lua_State *L) {
   return 6;
 }
 
-static int __fastcall Script_GetMerchantItemLink(lua_State *L) {
+static int Script_GetMerchantItemLink(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetMerchantItemLink(index)");
   }
@@ -214,7 +214,7 @@ static int __fastcall Script_GetMerchantItemLink(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetMerchantItemMaxStack(lua_State *L) {
+static int Script_GetMerchantItemMaxStack(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetMerchantItemMaxStack(index)");
   }
@@ -224,7 +224,7 @@ static int __fastcall Script_GetMerchantItemMaxStack(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_PickupMerchantItem(lua_State *L) {
+static int Script_PickupMerchantItem(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -253,7 +253,7 @@ static int __fastcall Script_PickupMerchantItem(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_BuyMerchantItem(lua_State *L) {
+static int Script_BuyMerchantItem(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: BuyMerchantItem(index)");
   }
@@ -270,7 +270,7 @@ static int __fastcall Script_BuyMerchantItem(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ShowMerchantSellCursor(lua_State *L) {
+static int Script_ShowMerchantSellCursor(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: ShowMerchantSellCursor(index)");
   }
@@ -293,13 +293,13 @@ static FrameScript_Method s_ScriptFunctions[8] = {
     { "ShowMerchantSellCursor",  Script_ShowMerchantSellCursor}
 };
 
-void __fastcall MerchantRegisterScriptFunctions() {
+void MerchantRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 8; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall MerchantUnregisterScriptFunctions() {
+void MerchantUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 8; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

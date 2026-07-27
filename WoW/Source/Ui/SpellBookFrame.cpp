@@ -27,13 +27,13 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-int __fastcall Spell_C_GetModalSpell();
+int Spell_C_GetModalSpell();
 class CGItem_C;
-int __fastcall  Spell_C_GetTargettingSpell();
-bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
-int __fastcall  Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-void __fastcall Spell_C_StopTargeting();
-void __fastcall Spell_C_CancelAura(int spellID);
+int Spell_C_GetTargettingSpell();
+bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
+int Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+void Spell_C_StopTargeting();
+void Spell_C_CancelAura(int spellID);
 
 class CGTradeSkillInfo {
   friend class CGSpellBook;
@@ -63,18 +63,18 @@ UI_SPELL_TYPE        CGSpellBook::m_selectedType;
 int                  CGSpellBook::m_knowsSpells;
 int                  CGSpellBook::m_knowsPetSpells;
 
-void __fastcall CGSpellBook::InitializeGame() {
+void CGSpellBook::InitializeGame() {
   m_knownSpellBits.SetCount(g_spellDB.GetMaxID() + 1);
   m_languageSpells.SetCount(g_languagesDB.GetMaxID() + 1);
   ClearSpells();
 }
 
-void __fastcall CGSpellBook::ShutdownGame() {
+void CGSpellBook::ShutdownGame() {
   m_knownSpellBits.SetCount(0);
   m_languageSpells.Clear();
 }
 
-void __fastcall CGSpellBook::ClearSpells() {
+void CGSpellBook::ClearSpells() {
   unsigned int i;
 
   m_knownSpellBits.ClearAll();
@@ -96,11 +96,11 @@ void __fastcall CGSpellBook::ClearSpells() {
   m_selectedSlot = -1;
 }
 
-unsigned int __fastcall CGSpellBook::IsSpellKnown(int spellID) {
+unsigned int CGSpellBook::IsSpellKnown(int spellID) {
   return m_knownSpellBits.IsSet(spellID);
 }
 
-unsigned int __fastcall CGSpellBook::IsPetSpellKnown(int spellID) {
+unsigned int CGSpellBook::IsPetSpellKnown(int spellID) {
   for (unsigned int i = 0; i < 1024; ++i) {
     if (m_petSpells[i] == spellID) {
       return 1;
@@ -126,7 +126,7 @@ int __cdecl QSortShapeshiftForms(const void *a, const void *b) {
   return spellA->m_spellLevel > spellB->m_spellLevel ? 1 : -1;
 }
 
-void __fastcall CGSpellBook::AddKnownSpell(int spellID, int slot, int learned) {
+void CGSpellBook::AddKnownSpell(int spellID, int slot, int learned) {
   SpellRec *info = g_spellDB.GetRecord(spellID);
   if (!info) {
     return;
@@ -225,7 +225,7 @@ void __fastcall CGSpellBook::AddKnownSpell(int spellID, int slot, int learned) {
   }
 }
 
-void __fastcall CGSpellBook::DelKnownSpell(int spellID) {
+void CGSpellBook::DelKnownSpell(int spellID) {
   int i;
 
   m_knownSpellBits.ClearBit(spellID);
@@ -265,7 +265,7 @@ void __fastcall CGSpellBook::DelKnownSpell(int spellID) {
   }
 }
 
-void __fastcall CGSpellBook::ReplaceSpell(int oldSpell, int newSpell) {
+void CGSpellBook::ReplaceSpell(int oldSpell, int newSpell) {
   int slot = 0;
   for (unsigned int index = 0; index < 1024; ++index) {
     if (m_knownSpells[index] == oldSpell) {
@@ -287,12 +287,12 @@ void __fastcall CGSpellBook::ReplaceSpell(int oldSpell, int newSpell) {
   }
 }
 
-void __fastcall CGSpellBook::ClearPetSpells() {
+void CGSpellBook::ClearPetSpells() {
   memset(m_petSpells, 0, sizeof(m_petSpells));
   m_knowsPetSpells = 0;
 }
 
-void __fastcall CGSpellBook::AddPetSpell(int spellID) {
+void CGSpellBook::AddPetSpell(int spellID) {
   SpellRec *info = g_spellDB.GetRecord(spellID);
   if (info && !(info->m_attributes & 0x80000000)) {
     for (unsigned int slot = 0; slot < 1024; ++slot) {
@@ -305,7 +305,7 @@ void __fastcall CGSpellBook::AddPetSpell(int spellID) {
   }
 }
 
-void __fastcall CGSpellBook::SetSpell(int slot, int spellID, UI_SPELL_TYPE type) {
+void CGSpellBook::SetSpell(int slot, int spellID, UI_SPELL_TYPE type) {
   if (type == PLAYER_SPELL) {
     m_knownSpells[slot] = spellID;
   } else if (type == PLAYER_ABILITY) {
@@ -318,7 +318,7 @@ void __fastcall CGSpellBook::SetSpell(int slot, int spellID, UI_SPELL_TYPE type)
   UpdateSpells();
 }
 
-void __fastcall CGSpellBook::SendSpellSlot(int slot, UI_SPELL_TYPE type) {
+void CGSpellBook::SendSpellSlot(int slot, UI_SPELL_TYPE type) {
   if (type == PET_SPELL) {
     return;
   }
@@ -342,15 +342,15 @@ void __fastcall CGSpellBook::SendSpellSlot(int slot, UI_SPELL_TYPE type) {
   }
 }
 
-void __fastcall CGSpellBook::UpdateSpells() {
+void CGSpellBook::UpdateSpells() {
   FrameScript_SignalEvent(244);
 }
 
-void __fastcall CGSpellBook::UpdateCooldowns() {
+void CGSpellBook::UpdateCooldowns() {
   FrameScript_SignalEvent(207);
 }
 
-void __fastcall CGSpellBook::UpdateSelection() {
+void CGSpellBook::UpdateSelection() {
   int spell = Spell_C_GetModalSpell();
   if (!spell) {
     spell = Spell_C_GetTargettingSpell();
@@ -386,19 +386,19 @@ void __fastcall CGSpellBook::UpdateSelection() {
   FrameScript_SignalEvent(245);
 }
 
-void __fastcall PlaySpellDropSound(UI_SPELL_TYPE type) {
+void PlaySpellDropSound(UI_SPELL_TYPE type) {
   SndInterfacePlayInterfaceSound("INTERFACESOUND_CURSORDROPOBJECT");
 }
 
-void __fastcall PlaySpellPickupSound(UI_SPELL_TYPE type) {
+void PlaySpellPickupSound(UI_SPELL_TYPE type) {
   SndInterfacePlayInterfaceSound("INTERFACESOUND_CURSORGRABOBJECT");
 }
 
-void __fastcall PlaySpellCastSound(UI_SPELL_TYPE type) {
+void PlaySpellCastSound(UI_SPELL_TYPE type) {
   SndInterfacePlayInterfaceSound("INTERFACESOUND_ACTIONBUTTONDOWN");
 }
 
-int __fastcall CGSpellBook::GetSpell(unsigned int slot, UI_SPELL_TYPE type) {
+int CGSpellBook::GetSpell(unsigned int slot, UI_SPELL_TYPE type) {
   if (slot >= 1024) {
     return 0;
   }
@@ -411,7 +411,7 @@ int __fastcall CGSpellBook::GetSpell(unsigned int slot, UI_SPELL_TYPE type) {
   return type == PET_SPELL ? m_petSpells[slot] : 0;
 }
 
-void __fastcall CGSpellBook::PickupSpell(int slot, UI_SPELL_TYPE type) {
+void CGSpellBook::PickupSpell(int slot, UI_SPELL_TYPE type) {
   ASSERT(slot >= 0);
   ASSERT(slot < 1024);
 
@@ -456,7 +456,7 @@ void __fastcall CGSpellBook::PickupSpell(int slot, UI_SPELL_TYPE type) {
   }
 }
 
-void __fastcall CGSpellBook::CastSpell(int slot, UI_SPELL_TYPE type) {
+void CGSpellBook::CastSpell(int slot, UI_SPELL_TYPE type) {
   ASSERT(slot >= 0);
   ASSERT(slot < 1024);
 
@@ -498,7 +498,7 @@ void __fastcall CGSpellBook::CastSpell(int slot, UI_SPELL_TYPE type) {
   PlaySpellCastSound(type);
 }
 
-int __fastcall CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
+int CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
   ASSERT(slot >= 0);
   ASSERT(slot < 1024);
 
@@ -539,7 +539,7 @@ int __fastcall CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
   return form && player && player->GetUnitData()->shapeshiftForm == form;
 }
 
-int __fastcall CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
+int CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
   ASSERT(slot >= 0);
   ASSERT(slot < 1024);
 
@@ -563,7 +563,7 @@ int __fastcall CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
   return 0;
 }
 
-static int __fastcall GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &type) {
+static int GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &type) {
   if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
     return 0;
   }
@@ -581,7 +581,7 @@ static int __fastcall GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &typ
   return slot >= 0 && slot < 1024;
 }
 
-static const char *__fastcall GetSpellbookTexture(int slot, UI_SPELL_TYPE type) {
+static const char *GetSpellbookTexture(int slot, UI_SPELL_TYPE type) {
   SpellRec *spell = g_spellDB.GetRecord(CGSpellBook::GetSpell(slot, type));
   if (spell && spell->m_effect[0] == 78) {
     return CGActionBar::GetAttackTexture();
@@ -590,7 +590,7 @@ static const char *__fastcall GetSpellbookTexture(int slot, UI_SPELL_TYPE type) 
   return icon ? icon->m_textureFilename : 0;
 }
 
-static int __fastcall Script_GetSpellTexture(lua_State *L) {
+static int Script_GetSpellTexture(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
@@ -605,7 +605,7 @@ static int __fastcall Script_GetSpellTexture(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetSpellName(lua_State *L) {
+static int Script_GetSpellName(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
@@ -622,7 +622,7 @@ static int __fastcall Script_GetSpellName(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_GetSpellCooldown(lua_State *L) {
+static int Script_GetSpellCooldown(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
@@ -639,7 +639,7 @@ static int __fastcall Script_GetSpellCooldown(lua_State *L) {
   return 3;
 }
 
-static int __fastcall Script_PickupSpell(lua_State *L) {
+static int Script_PickupSpell(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
@@ -649,7 +649,7 @@ static int __fastcall Script_PickupSpell(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_CastSpell(lua_State *L) {
+static int Script_CastSpell(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
@@ -659,7 +659,7 @@ static int __fastcall Script_CastSpell(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_IsCurrentCast(lua_State *L) {
+static int Script_IsCurrentCast(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
@@ -673,12 +673,12 @@ static int __fastcall Script_IsCurrentCast(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UpdateSpells(lua_State *__formal) {
+static int Script_UpdateSpells(lua_State *__formal) {
   CGSpellBook::UpdateSpells();
   return 0;
 }
 
-static int __fastcall Script_PlayerHasSpells(lua_State *L) {
+static int Script_PlayerHasSpells(lua_State *L) {
   if (CGSpellBook::KnowsSpells()) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -687,7 +687,7 @@ static int __fastcall Script_PlayerHasSpells(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_HasPetSpells(lua_State *L) {
+static int Script_HasPetSpells(lua_State *L) {
   if (CGSpellBook::KnowsPetSpells()) {
     lua_pushnumber(L, 1.0);
     CGPlayer_C *player = static_cast<CGPlayer_C *>(
@@ -702,7 +702,7 @@ static int __fastcall Script_HasPetSpells(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_IsSpellPassive(lua_State *L) {
+static int Script_IsSpellPassive(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
@@ -718,12 +718,12 @@ static int __fastcall Script_IsSpellPassive(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetNumShapeshiftForms(lua_State *L) {
+static int Script_GetNumShapeshiftForms(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGSpellBook::GetShapeshiftForms().Count()));
   return 1;
 }
 
-static int __fastcall Script_GetShapeshiftFormInfo(lua_State *L) {
+static int Script_GetShapeshiftFormInfo(lua_State *L) {
   if (lua_tonumber(L, 1) == 0.0) {
     return luaL_error(L, "Usage: GetShapeshiftFormInfo(index)");
   }
@@ -761,7 +761,7 @@ static int __fastcall Script_GetShapeshiftFormInfo(lua_State *L) {
   return 3;
 }
 
-static int __fastcall Script_CastShapeshiftForm(lua_State *L) {
+static int Script_CastShapeshiftForm(lua_State *L) {
   if (lua_tonumber(L, 1) == 0.0) {
     return luaL_error(L, "Usage: CastShapeshiftForm(index)");
   }
@@ -792,7 +792,7 @@ static int __fastcall Script_CastShapeshiftForm(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetShapeshiftFormCooldown(lua_State *L) {
+static int Script_GetShapeshiftFormCooldown(lua_State *L) {
   if (lua_tonumber(L, 1) == 0.0) {
     return luaL_error(L, "Usage: GetShapeshiftFormCooldown(index)");
   }
@@ -827,13 +827,13 @@ static FrameScript_Method s_ScriptFunctions[14] = {
     {"GetShapeshiftFormCooldown", Script_GetShapeshiftFormCooldown}
 };
 
-void __fastcall SpellBookRegisterScriptFunctions() {
+void SpellBookRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 14; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall SpellBookUnregisterScriptFunctions() {
+void SpellBookUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 14; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

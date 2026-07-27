@@ -30,21 +30,21 @@ enum PROPERTY {
   PROPERTIES = 0x13
 };
 
-void __fastcall         PropInitialize();
-void __fastcall         PropDestroy();
-HPROPCONTEXT __fastcall PropCreateContext();
-void __fastcall         PropSelectContext(HPROPCONTEXT context);
-HPROPCONTEXT __fastcall PropGetSelectedContext();
-void __fastcall         PropDeleteContext(HPROPCONTEXT context);
-void *__fastcall        PropGet(PROPERTY id);
-void __fastcall         PropSet(PROPERTY id, void *value);
+void PropInitialize();
+void PropDestroy();
+HPROPCONTEXT PropCreateContext();
+void PropSelectContext(HPROPCONTEXT context);
+HPROPCONTEXT PropGetSelectedContext();
+void PropDeleteContext(HPROPCONTEXT context);
+void *PropGet(PROPERTY id);
+void PropSet(PROPERTY id, void *value);
 
-DWORD __fastcall OsTlsAlloc();
-void __fastcall  OsTlsFree(DWORD index);
-void *__fastcall OsTlsGetValue(DWORD index);
-BOOL __fastcall  OsTlsSetValue(DWORD index, void *value);
+DWORD OsTlsAlloc();
+void OsTlsFree(DWORD index);
+void *OsTlsGetValue(DWORD index);
+BOOL OsTlsSetValue(DWORD index, void *value);
 
-void __fastcall BaseInitializeGlobal();
-void __fastcall BaseDestroyGlobal();
-void __fastcall BaseInitializeContext();
-void __fastcall BaseDestroyContext();
+void BaseInitializeGlobal();
+void BaseDestroyGlobal();
+void BaseInitializeContext();
+void BaseDestroyContext();

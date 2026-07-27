@@ -259,7 +259,7 @@ class CMapObjGroup {
   void CreateOptionalDataPointers(unsigned char *pData);
   void Create(unsigned char *rawData);
 
-  static void __fastcall UpdateLightmapTex(
+  static void UpdateLightmapTex(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,
@@ -269,14 +269,14 @@ class CMapObjGroup {
       unsigned int &texelStrideInBytes,
       const void  *&texels
   );
-  static void __fastcall    AsyncPostloadCallback(void *userArg);
-  static CGxBuf *__fastcall AllocExtGxBuf(unsigned int nVerts, unsigned int nIndices);
-  static void __fastcall    ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
-  static CGxBuf *__fastcall AllocIntGxBuf(unsigned int nVerts, unsigned int nIndices);
-  static void __fastcall    IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
-  static void __fastcall    Destroy();
-  static void __fastcall    FreeExtGxBuf(CGxBuf *&gxBuf);
-  static void __fastcall    FreeIntGxBuf(CGxBuf *&gxBuf);
+  static void AsyncPostloadCallback(void *userArg);
+  static CGxBuf *AllocExtGxBuf(unsigned int nVerts, unsigned int nIndices);
+  static void ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
+  static CGxBuf *AllocIntGxBuf(unsigned int nVerts, unsigned int nIndices);
+  static void IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
+  static void Destroy();
+  static void FreeExtGxBuf(CGxBuf *&gxBuf);
+  static void FreeIntGxBuf(CGxBuf *&gxBuf);
   void                      FreeLightmaps();
   void                      CreateLightmaps();
   void                      ExtGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf);
@@ -293,12 +293,12 @@ class CMapObjGroup {
 
 class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
  public:
-  static void __fastcall     Initialize();
-  static void __fastcall     Destroy();
-  static void __fastcall     ClearCache(int force);
-  static void __fastcall     Delete(CMapObj *mapObj);
-  static CMapObj *__fastcall Create(const char *fileName);
-  static void __fastcall     SetGroupRenderCallback(void(__fastcall *func)(const unsigned int, const void *, const int), void *userParam);
+  static void Initialize();
+  static void Destroy();
+  static void ClearCache(int force);
+  static void Delete(CMapObj *mapObj);
+  static CMapObj *Create(const char *fileName);
+  static void SetGroupRenderCallback(void(*func)(const unsigned int, const void *, const int), void *userParam);
 
   CMapObj();
   ~CMapObj();
@@ -363,7 +363,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   );
   unsigned int QueryMapObjMinimap(unsigned int groupID, NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
 
-  static void __fastcall PrepareUpdate();
+  static void PrepareUpdate();
   void                   LocateViewer(NTempest::C44Matrix &im, TSGrowableArray<unsigned int> &inGroups);
   void                   IntRender(NTempest::C44Matrix &mat, TSGrowableArray<unsigned int> &inGroups);
   void                   ExtRender(NTempest::C44Matrix &mat, NTempest::CRect &rect);
@@ -384,9 +384,9 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   friend class CMapObjGroup;
   friend class CMapEntity;
 
-  static void __fastcall AsyncPostloadCallbackHeader(void *userArg);
-  static void __fastcall AsyncPostloadCallback(void *userArg);
-  static void __fastcall AsyncPostloadCallbackAll(void *userArg);
+  static void AsyncPostloadCallbackHeader(void *userArg);
+  static void AsyncPostloadCallback(void *userArg);
+  static void AsyncPostloadCallbackAll(void *userArg);
   void                   CreateAllGroups();
   void                   ReadExtGroups();
   SIffChunk             *ReadChunkHeader(unsigned int *&pData, unsigned long expectedToken);
@@ -470,7 +470,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   TSCArray<CMapObjGroup *, 384>       groupPtrList;
 
   static unsigned int gRenderCount;
-  static void(__fastcall *gRenderCallback)(const unsigned int, const void *, const int);
+  static void(*gRenderCallback)(const unsigned int, const void *, const int);
   static void                              *gRenderUserParam;
   static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
   static HASHKEY_NONE                       nullHashKey;

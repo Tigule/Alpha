@@ -15,10 +15,10 @@ class CSimpleEditBox : public CSimpleFrame {
   CSimpleEditBox(CSimpleFrame *parent);
   virtual ~CSimpleEditBox();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
-  static void __fastcall SetKeyboardFocus(CSimpleEditBox *focus);
-  static void __fastcall ClearKeyboardFocus(CSimpleEditBox *focus);
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
+  static void SetKeyboardFocus(CSimpleEditBox *focus);
+  static void ClearKeyboardFocus(CSimpleEditBox *focus);
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);

@@ -69,15 +69,15 @@ class WTOBJECT {
   void FadeVerts();
 };
 
-void __fastcall ModelCustGeosetAdd(
+void ModelCustGeosetAdd(
     HMODEL                    model,
     const NTempest::C3Vector &modelSpacePosition,
-    void(__fastcall *renderCallback)(HMODEL, const NTempest::C34Matrix &, void *),
+    void(*renderCallback)(HMODEL, const NTempest::C34Matrix &, void *),
     void         *renderParam,
     unsigned int *custGeosetId
 );
-void __fastcall ModelCustGeosetRemove(HMODEL model, unsigned int custGeosetId);
-int __fastcall  ModelGetModelSpacePivot(HMODEL model, unsigned int objectId, NTempest::C3Vector *pivot);
+void ModelCustGeosetRemove(HMODEL model, unsigned int custGeosetId);
+int ModelGetModelSpacePivot(HMODEL model, unsigned int objectId, NTempest::C3Vector *pivot);
 
 static TInstanceAllocator<WTOBJECT> s_unusedObjects(100);
 static TInstanceAllocator<SWING>    s_freeSwings(100);
@@ -89,7 +89,7 @@ static int                             ALPHAFADEOUTRATE = 24;
 static int                             s_masterEnable = 1;
 static CVar                           *s_consoleVarHandle;
 
-static int __fastcall DiscontinueTimerHandler(const void *data, void *userArg);
+static int DiscontinueTimerHandler(const void *data, void *userArg);
 
 SWING::SWING() : m_flags(0) {
   m_trail.SetChunkSize(128);
@@ -201,7 +201,7 @@ void SWING::AddVerts(
   m_lastMatrix = matrix;
 }
 
-static bool __fastcall ToggleCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ToggleCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   s_masterEnable = SStrToInt(newValue);
   return true;
 }
@@ -225,7 +225,7 @@ WTOBJECT::~WTOBJECT() {
   }
 }
 
-static void __fastcall GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis, void *param) {
+static void GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis, void *param) {
   FATALASSERT(param);
 
   NTempest::C44Matrix renderBasis(
@@ -234,7 +234,7 @@ static void __fastcall GeosetRenderFunction(HMODEL model, const NTempest::C34Mat
   static_cast<WTOBJECT *>(param)->Render(renderBasis);
 }
 
-static int __fastcall DiscontinueTimerHandler(const void *data, void *userArg) {
+static int DiscontinueTimerHandler(const void *data, void *userArg) {
   WTOBJECT *trail = static_cast<WTOBJECT *>(userArg);
   FATALASSERT(trail);
 
@@ -368,16 +368,16 @@ void WTOBJECT::SetFadeOutRate(int fadeOutRate) {
   m_fadeOutRate = fadeOutRate < -1 ? fadeOutRate : -1;
 }
 
-void __fastcall WeaponTrailsInitialize() {
+void WeaponTrailsInitialize() {
   s_consoleVarHandle = CVar::Register("weapontrails", "Toggles weapon trails on or off", 0, "1", ToggleCallback, DEFAULT, false, 0);
 }
 
-void __fastcall WeaponTrailsShutdown() {
+void WeaponTrailsShutdown() {
   s_vertexBuffer.Clear();
   s_freeVertexIndices.Clear();
 }
 
-int __fastcall WeaponTrailCreate(HMODEL model) {
+int WeaponTrailCreate(HMODEL model) {
   FATALASSERT(model);
 
   WTOBJECT *trail = static_cast<WTOBJECT *>(s_unusedObjects.GetData(0, typeid(WTOBJECT).raw_name(), -2));
@@ -408,7 +408,7 @@ int __fastcall WeaponTrailCreate(HMODEL model) {
   return reinterpret_cast<int>(trail);
 }
 
-void __fastcall WeaponTrailClose(int trail) {
+void WeaponTrailClose(int trail) {
   FATALASSERT(trail);
 
   WTOBJECT *object = reinterpret_cast<WTOBJECT *>(trail);
@@ -419,25 +419,25 @@ void __fastcall WeaponTrailClose(int trail) {
   s_unusedObjects.PutData(object, 0, 0);
 }
 
-void __fastcall WeaponTrailSetColor(int trail, NTempest::CImVector color) {
+void WeaponTrailSetColor(int trail, NTempest::CImVector color) {
   if (trail) {
     reinterpret_cast<WTOBJECT *>(trail)->SetColor(color);
   }
 }
 
-void __fastcall WeaponTrailSetFadeOutRate(int trail, int fadeOutRate) {
+void WeaponTrailSetFadeOutRate(int trail, int fadeOutRate) {
   if (trail) {
     reinterpret_cast<WTOBJECT *>(trail)->SetFadeOutRate(fadeOutRate);
   }
 }
 
-void __fastcall WeaponTrailDisableDrawing(int trail) {
+void WeaponTrailDisableDrawing(int trail) {
   if (trail) {
     reinterpret_cast<WTOBJECT *>(trail)->DisableDrawing();
   }
 }
 
-void __fastcall WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, unsigned int duration) {
+void WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, unsigned int duration) {
   if (trail && duration) {
     reinterpret_cast<WTOBJECT *>(trail)->SetDrawTrail(color, fadeOutRate, duration);
   }

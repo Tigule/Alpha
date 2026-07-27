@@ -7,7 +7,7 @@ class AreaTriggerRec {
   AreaTriggerRec();
   ~AreaTriggerRec();
 
-  static const char *__fastcall GetFilename();
+  static const char *GetFilename();
 
   static unsigned int GetNumColumns() {
     return 6;

@@ -123,7 +123,7 @@ extern TSHashTable<UISOUNDLOOKUP, HASHKEY_STRI>   g_uiSoundLookups;
 extern TSFixedArray<IMPACTSOUNDARRAY>             g_impactSounds;
 extern WEAPONSOUNDS                               g_weaponSwingSounds[3];
 
-SOUNDDEFINITION *__fastcall                  ISndInterfaceGetSndEntry(unsigned int soundID);
-_FSOUND_REVERB_CHANNELPROPERTIES *__fastcall GetReverbType(int index);
+SOUNDDEFINITION *ISndInterfaceGetSndEntry(unsigned int soundID);
+_FSOUND_REVERB_CHANNELPROPERTIES *GetReverbType(int index);
 
 #endif

@@ -57,7 +57,7 @@ class COsMenu {
  protected:
   void AddHotkey(int inPos);
   void RemoveHotkey(int inPos);
-  static void __fastcall AppendHotkeyText(char *inText, const OsGuiMenuHotkey &inHotkey);
+  static void AppendHotkeyText(char *inText, const OsGuiMenuHotkey &inHotkey);
 
   unsigned char                      mID;
   void                              *mMenuHandle;
@@ -178,7 +178,7 @@ class COsControl {
 
   void SetRedraw(int inVal);
   void Refresh(int inErase);
-  void SetCallback(void(__fastcall *inFunc)(const OsGuiCallbackParams &), void *inParam);
+  void SetCallback(void(*inFunc)(const OsGuiCallbackParams &), void *inParam);
   void SetFont(int inFont);
   void SetInputFocus();
   void LoseInputFocus();
@@ -220,7 +220,7 @@ class COsControl {
   short        mID;
   int          mType;
   void        *mHandle;
-  void(__fastcall *mCallback)(const OsGuiCallbackParams &);
+  void(*mCallback)(const OsGuiCallbackParams &);
   void    *mCallbackParam;
   COsMenu *mContextMenu;
   int      mContextMenuEnabled;
@@ -253,7 +253,7 @@ class COsDialog {
   }
   void         SetTrackMouse(int inVal);
   int          IsMouseInside();
-  void         SetCallback(void(__fastcall *inFunc)(const OsGuiCallbackParams &), void *inParam);
+  void         SetCallback(void(*inFunc)(const OsGuiCallbackParams &), void *inParam);
   void         BringToFront();
   int          IsInFront();
   void         SetInputFocus();
@@ -297,7 +297,7 @@ class COsDialog {
 
   void *mHandle;
   void *mTooltips;
-  void(__fastcall *mCallback)(const OsGuiCallbackParams &);
+  void(*mCallback)(const OsGuiCallbackParams &);
   void                         *mCallbackParam;
   TSGrowableArray<COsControl *> mControls;
   COsControl                   *mCancelButton;
@@ -691,11 +691,11 @@ class COsTreeView : public COsControl {
   void SetFirstVisibleItem(void *inItem);
   void EnumerateItems(
       void *inParent,
-      void(__fastcall *inFunc)(COsTreeView *, void *, void *),
+      void(*inFunc)(COsTreeView *, void *, void *),
       void *inParam
   );
   void EnumerateAllItems(
-      void(__fastcall *inFunc)(COsTreeView *, void *, void *),
+      void(*inFunc)(COsTreeView *, void *, void *),
       void *inParam
   );
   int          IsCharacterAllowed(char inChar);
@@ -715,7 +715,7 @@ class COsTreeView : public COsControl {
     EnableDragDrop(0);
   }
   void SetDragDropHandler(
-      int(__fastcall *inFunc)(const OsGuiTVDDInfo &, void *),
+      int(*inFunc)(const OsGuiTVDDInfo &, void *),
       void *inParam
   );
   void SetDropTarget(void *inItem);
@@ -733,8 +733,8 @@ class COsTreeView : public COsControl {
     EnableFilters(0);
   }
   void SetFilter(unsigned int inFilter, int inVal);
-  void SetCanEditFunction(int(__fastcall *inFunc)(void *, void *), void *inParam);
-  void SetExpandFunction(void(__fastcall *inFunc)(void *, void *), void *inParam);
+  void SetCanEditFunction(int(*inFunc)(void *, void *), void *inParam);
+  void SetExpandFunction(void(*inFunc)(void *, void *), void *inParam);
 
  protected:
   void InitializeTreeView();
@@ -753,11 +753,11 @@ class COsTreeView : public COsControl {
   int                  mDragging;
   OsGuiTVDDInfo        mDragInfo;
   void                *mDragImage;
-  int(__fastcall *mDragHandler)(const OsGuiTVDDInfo &, void *);
+  int(*mDragHandler)(const OsGuiTVDDInfo &, void *);
   void *mDragHandlerParam;
-  int(__fastcall *mCanEditFunc)(void *, void *);
+  int(*mCanEditFunc)(void *, void *);
   void *mCanEditParam;
-  void(__fastcall *mExpandFunc)(void *, void *);
+  void(*mExpandFunc)(void *, void *);
   void                                *mExpandParam;
   int                                  mTextLimit;
   int                                  mFiltersEnabled;
@@ -833,41 +833,41 @@ class COsMenuBar {
   void                      *mAccelerators;
 };
 
-void __fastcall  OsGuiSetApplicationInfo(void *inData);
-void __fastcall  OsGuiMenuSelect(int menuID, int itemID);
-void __fastcall  OsGuiInitialize();
-void __fastcall  OsGuiDestroy();
-void __fastcall  OsGuiSetMenuCommandCallback(void(__fastcall *inCallback)(const OsGuiCallbackParams &), void *inUser);
-void __fastcall  OsGuiSetIdleCallback(void(__fastcall *inCallback)(const OsGuiCallbackParams &), void *inUser);
-void __fastcall  OsGuiEnableTooltips(int inVal);
-void __fastcall  OsGuiEnableMenuHotkeys(int inVal);
+void OsGuiSetApplicationInfo(void *inData);
+void OsGuiMenuSelect(int menuID, int itemID);
+void OsGuiInitialize();
+void OsGuiDestroy();
+void OsGuiSetMenuCommandCallback(void(*inCallback)(const OsGuiCallbackParams &), void *inUser);
+void OsGuiSetIdleCallback(void(*inCallback)(const OsGuiCallbackParams &), void *inUser);
+void OsGuiEnableTooltips(int inVal);
+void OsGuiEnableMenuHotkeys(int inVal);
 struct HICON__;
-HICON__ *__fastcall sWinCursor(int inCursor);
-void __fastcall  OsGuiSetCursor(int inCursor);
-void __fastcall  OsGuiShowCursor(int inVal);
-void __fastcall  OsGuiGetCursorPosition(int *outX, int *outY);
-void __fastcall  OsGuiBeep();
-void *__fastcall OsGuiGetWindow(int inWindowType);
-int __fastcall   OsGuiMessageBox(void *inParentWindow, int inStyle, const char *inMessage, const char *inTitle);
-int __fastcall   OsGuiProcessMessage(void *inMsgData);
-int __fastcall   OsGuiIsModifierKeyDown(int inKey);
-void __fastcall  OsGuiSetGxWindow(void *window);
-void __fastcall  OsGuiSetWindowTitle(void *inWindow, const char *inText);
-void __fastcall  OsGuiSetWindowIcon(void *inWindow, const char *inName);
-void __fastcall  OsGuiSetWindowRect(void *inWindow, const NTempest::CiRect &inRect);
-void __fastcall  OsGuiBringWindowToFront(void *inWindow);
-void __fastcall  OsGuiShowWindow(void *inWindow, int inVal);
-void __fastcall  OsGuiEnableWindow(void *inWindow, int inVal);
-int __fastcall   OsGuiWindowEnabled(void *inWindow);
-void __fastcall  OsGuiMaximizeWindow(void *inWindow, int inVal);
-int __fastcall   OsGuiWindowMaximized(void *inWindow);
-void __fastcall  OsGuiMinimizeWindow(void *inWindow, int inVal);
-int __fastcall   OsGuiWindowMinimized(void *inWindow);
-NTempest::CiRect __fastcall OsGuiGetWindowRect(void *inWindow, int inClientOnly);
-NTempest::CiRect __fastcall OsGuiGetWindowRestoredRect(void *inWindow);
-void __fastcall  OsGuiSetWindowRestoredRect(void *inWindow, const NTempest::CiRect &inRect);
-int __fastcall   OsGuiWindowIsCursorInside(void *inWindow, int inClientOnly);
-NTempest::CiRect __fastcall OsGuiGetScreenBounds();
-NTempest::CImVector __fastcall OsGuiGetColor(int inColor);
-void __fastcall  OsGuiGetHotkeyText(const OsGuiMenuHotkey &inHotkey, char *inBuf, int inBufSize);
-long __fastcall  OsGuiWindowProc(void *inWindow, unsigned int inMessage, unsigned int inWParam, long inLParam);
+HICON__ *sWinCursor(int inCursor);
+void OsGuiSetCursor(int inCursor);
+void OsGuiShowCursor(int inVal);
+void OsGuiGetCursorPosition(int *outX, int *outY);
+void OsGuiBeep();
+void *OsGuiGetWindow(int inWindowType);
+int OsGuiMessageBox(void *inParentWindow, int inStyle, const char *inMessage, const char *inTitle);
+int OsGuiProcessMessage(void *inMsgData);
+int OsGuiIsModifierKeyDown(int inKey);
+void OsGuiSetGxWindow(void *window);
+void OsGuiSetWindowTitle(void *inWindow, const char *inText);
+void OsGuiSetWindowIcon(void *inWindow, const char *inName);
+void OsGuiSetWindowRect(void *inWindow, const NTempest::CiRect &inRect);
+void OsGuiBringWindowToFront(void *inWindow);
+void OsGuiShowWindow(void *inWindow, int inVal);
+void OsGuiEnableWindow(void *inWindow, int inVal);
+int OsGuiWindowEnabled(void *inWindow);
+void OsGuiMaximizeWindow(void *inWindow, int inVal);
+int OsGuiWindowMaximized(void *inWindow);
+void OsGuiMinimizeWindow(void *inWindow, int inVal);
+int OsGuiWindowMinimized(void *inWindow);
+NTempest::CiRect OsGuiGetWindowRect(void *inWindow, int inClientOnly);
+NTempest::CiRect OsGuiGetWindowRestoredRect(void *inWindow);
+void OsGuiSetWindowRestoredRect(void *inWindow, const NTempest::CiRect &inRect);
+int OsGuiWindowIsCursorInside(void *inWindow, int inClientOnly);
+NTempest::CiRect OsGuiGetScreenBounds();
+NTempest::CImVector OsGuiGetColor(int inColor);
+void OsGuiGetHotkeyText(const OsGuiMenuHotkey &inHotkey, char *inBuf, int inBufSize);
+long OsGuiWindowProc(void *inWindow, unsigned int inMessage, unsigned int inWParam, long inLParam);

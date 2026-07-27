@@ -18,7 +18,7 @@
   }                                                                           \
   ASSERT(object)
 
-static int __fastcall CSimpleMessageScrollFrame_AddMessage(lua_State *L) {
+static int CSimpleMessageScrollFrame_AddMessage(lua_State *L) {
   GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
 
   if (!lua_isstring(L, 2)) {
@@ -51,43 +51,43 @@ static int __fastcall CSimpleMessageScrollFrame_AddMessage(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleMessageScrollFrame_ScrollUp(lua_State *L) {
+static int CSimpleMessageScrollFrame_ScrollUp(lua_State *L) {
   GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
   object->ScrollUp();
   return 0;
 }
 
-static int __fastcall CSimpleMessageScrollFrame_ScrollDown(lua_State *L) {
+static int CSimpleMessageScrollFrame_ScrollDown(lua_State *L) {
   GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
   object->ScrollDown();
   return 0;
 }
 
-static int __fastcall CSimpleMessageScrollFrame_PageUp(lua_State *L) {
+static int CSimpleMessageScrollFrame_PageUp(lua_State *L) {
   GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
   object->PageUp();
   return 0;
 }
 
-static int __fastcall CSimpleMessageScrollFrame_PageDown(lua_State *L) {
+static int CSimpleMessageScrollFrame_PageDown(lua_State *L) {
   GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
   object->PageDown();
   return 0;
 }
 
-static int __fastcall CSimpleMessageScrollFrame_ScrollToTop(lua_State *L) {
+static int CSimpleMessageScrollFrame_ScrollToTop(lua_State *L) {
   GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
   object->ScrollToTop();
   return 0;
 }
 
-static int __fastcall CSimpleMessageScrollFrame_ScrollToBottom(lua_State *L) {
+static int CSimpleMessageScrollFrame_ScrollToBottom(lua_State *L) {
   GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
   object->ScrollToBottom();
   return 0;
 }
 
-static int __fastcall CSimpleMessageScrollFrame_AtBottom(lua_State *L) {
+static int CSimpleMessageScrollFrame_AtBottom(lua_State *L) {
   GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
   if (object->AtBottom()) {
     lua_pushnumber(L, 1.0);
@@ -110,11 +110,11 @@ static FrameScript_Method SimpleMessageScrollFrameMethods[] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleMessageScrollFrame::s_scriptMethods;
 
-void __fastcall CSimpleMessageScrollFrame::RegisterScriptMethods() {
+void CSimpleMessageScrollFrame::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleMessageScrollFrameMethods, 8, s_scriptMethods);
 }
 
-void __fastcall CSimpleMessageScrollFrame::UnregisterScriptMethods() {
+void CSimpleMessageScrollFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

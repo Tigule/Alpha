@@ -8,9 +8,9 @@
 static const unsigned short boxIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1, 16, 16, 1, 4,  2,  8,  5,  5,  8,  11,
                                               7,  19, 10, 10, 19, 22, 3,  9, 15, 15, 9, 21, 17, 23, 14, 14, 23, 20};
 
-static void __fastcall CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace);
+static void CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace);
 
-static HMODEL __fastcall CreateSimpleModel(
+static HMODEL CreateSimpleModel(
     const NTempest::C3Vector *positions,
     const NTempest::C3Vector *normals,
     unsigned int              numVertices,
@@ -31,7 +31,7 @@ static HMODEL __fastcall CreateSimpleModel(
   return model;
 }
 
-static int __fastcall CreateCollisionDisplayNormals(const CCollisionData &collide, HMODEL model) {
+static int CreateCollisionDisplayNormals(const CCollisionData &collide, HMODEL model) {
   unsigned int                     numFacets = collide.surfaceNormals.Count();
   TSStackArray<NTempest::C3Vector> position(_alloca(numFacets * 2 * sizeof(NTempest::C3Vector)), numFacets * 2, numFacets * 2);
   TSStackArray<NTempest::C3Vector> normal(_alloca(numFacets * 2 * sizeof(NTempest::C3Vector)), numFacets * 2, numFacets * 2);
@@ -84,7 +84,7 @@ static int __fastcall CreateCollisionDisplayNormals(const CCollisionData &collid
   return result;
 }
 
-static HMODEL __fastcall CreateCollisionDisplayMesh(const CCollisionData &collide) {
+static HMODEL CreateCollisionDisplayMesh(const CCollisionData &collide) {
   unsigned int                     numTriangles = collide.indices.Count();
   TSStackArray<NTempest::C3Vector> positions(_alloca(numTriangles * sizeof(NTempest::C3Vector)), numTriangles, numTriangles);
   TSStackArray<NTempest::C3Vector> normals(_alloca(numTriangles * sizeof(NTempest::C3Vector)), numTriangles, numTriangles);
@@ -105,7 +105,7 @@ static HMODEL __fastcall CreateCollisionDisplayMesh(const CCollisionData &collid
   return CreateSimpleModel(positions.Ptr(), normals.Ptr(), positions.Count(), primVertIndices.Ptr(), numTriangles);
 }
 
-static void __fastcall BuildDisplayBox(
+static void BuildDisplayBox(
     const NTempest::C3Vector boxVerts[8],
     const NTempest::C3Vector boxNormals[6],
     NTempest::C3Vector      *debugVerts,
@@ -135,7 +135,7 @@ static void __fastcall BuildDisplayBox(
   *debugIndices = boxIndices;
 }
 
-HMODEL __fastcall CollisionDataCreateModel(HCOLLISIONDATA handle) {
+HMODEL CollisionDataCreateModel(HCOLLISIONDATA handle) {
   CCollisionData *collide = reinterpret_cast<CCollisionData *>(handle);
   FATALASSERT(collide);
 
@@ -144,7 +144,7 @@ HMODEL __fastcall CollisionDataCreateModel(HCOLLISIONDATA handle) {
   return model;
 }
 
-void __fastcall CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, void *param) {
+void CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, void *param) {
   CModelShared *shared;
   IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared);
   ASSERT(shared);
@@ -153,7 +153,7 @@ void __fastcall CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C
   CollisionDataRenderAABox(collide->extents, basis);
 }
 
-static void __fastcall CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace) {
+static void CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace) {
   NTempest::C3Vector        renderVerts[24];
   NTempest::C3Vector        renderNorms[24];
   NTempest::C3Vector        boxVerts[8];

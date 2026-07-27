@@ -5,7 +5,7 @@
 #include "Services/AsyncFileRead.h"
 #include "WorldClient/DetailDoodad.h"
 
-void __fastcall CMap::Purge() {
+void CMap::Purge() {
   CMapBaseObjLink *link = areaLinkList.Head();
   while (reinterpret_cast<long>(link) > 0) {
     CMapBaseObjLink *next = areaLinkList.RawNext(link);
@@ -23,7 +23,7 @@ void __fastcall CMap::Purge() {
   CWorldScene::camMapObjGroup = 0;
 }
 
-void __fastcall CMap::PurgeDoodadDef(CMapDoodadDef *doodadDef) {
+void CMap::PurgeDoodadDef(CMapDoodadDef *doodadDef) {
   FATALASSERT(doodadDef);
 
   if (!doodadDef->refCount) {
@@ -40,7 +40,7 @@ void __fastcall CMap::PurgeDoodadDef(CMapDoodadDef *doodadDef) {
   }
 }
 
-void __fastcall CMap::PurgeMapObjDef(CMapObjDef *mapObjDef) {
+void CMap::PurgeMapObjDef(CMapObjDef *mapObjDef) {
   FATALASSERT(mapObjDef);
 
   if (!mapObjDef->refCount) {
@@ -66,7 +66,7 @@ void __fastcall CMap::PurgeMapObjDef(CMapObjDef *mapObjDef) {
   }
 }
 
-void __fastcall CMap::PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
+void CMap::PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
   FATALASSERT(mapObjDefGroup);
 
   if (!mapObjDefGroup->refCount) {
@@ -97,12 +97,12 @@ void __fastcall CMap::PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
   }
 }
 
-void __fastcall CMap::PurgeArea(CMapArea *area) {
+void CMap::PurgeArea(CMapArea *area) {
   area->Purge();
   FreeArea(area);
 }
 
-void __fastcall CMap::PurgeChunk(CMapChunk *chunk) {
+void CMap::PurgeChunk(CMapChunk *chunk) {
   chunk->Purge();
   FreeChunk(chunk);
 }

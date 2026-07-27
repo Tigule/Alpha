@@ -60,7 +60,7 @@ struct DefaultSettings {
 
 extern WowClientDB<VideoHardwareRec> g_videoHardwareDB;
 
-void __fastcall DetectHardware(Hardware &hardware, bool &changed);
-void __fastcall SaveHardware(const Hardware &hardware, bool &changed);
-void __fastcall SetDefaults(DefaultSettings &defaults, const Hardware &hardware);
-void __fastcall SetDefaultsFormat(DefaultSettings &defaults, const Hardware &hardware);
+void DetectHardware(Hardware &hardware, bool &changed);
+void SaveHardware(const Hardware &hardware, bool &changed);
+void SetDefaults(DefaultSettings &defaults, const Hardware &hardware);
+void SetDefaultsFormat(DefaultSettings &defaults, const Hardware &hardware);

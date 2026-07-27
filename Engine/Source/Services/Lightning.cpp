@@ -182,7 +182,7 @@ BoltID CLightningManager::Add(
     float               texCoordScale,
     float               duration,
     HTEXTURE            texture,
-    void(__fastcall *updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
+    void(*updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
     void *context
 ) {
   BoltID      boltId;
@@ -238,7 +238,7 @@ void CLightningManager::Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C
 
 void CLightningManager::SetCoordUpdate(
     BoltID boltId,
-    void(__fastcall *updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
+    void(*updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
     void *context
 ) {
   ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());

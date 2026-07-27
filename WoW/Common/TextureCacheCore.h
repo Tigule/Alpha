@@ -17,10 +17,10 @@ struct TEXTUREINFO {
   unsigned int alphaBits;
 };
 
-HTEXTURECACHE __fastcall  TextureCacheCreateSizeCache(unsigned int cacheSize);
-HTEXTURECACHE __fastcall  TextureCacheCreateInstanceCache(unsigned int instances);
-HTEXTURECACHE __fastcall  TextureCacheCreatTimeCache(unsigned int milliSeconds);
-HMIPPEDTEXTURE __fastcall TextureCacheGetTexture(HTEXTURECACHE cache, const char *fileName, TEXTUREINFO *info);
-const MipBits *__fastcall TextureCacheGetImage(HMIPPEDTEXTURE texture);
-int __fastcall            TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, int bForce);
-HMIPPEDTEXTURE __fastcall TextureCacheAllocUncachedImage(EGxTexFormat format, unsigned int width, unsigned int height, TEXTUREINFO *textureInfo);
+HTEXTURECACHE TextureCacheCreateSizeCache(unsigned int cacheSize);
+HTEXTURECACHE TextureCacheCreateInstanceCache(unsigned int instances);
+HTEXTURECACHE TextureCacheCreatTimeCache(unsigned int milliSeconds);
+HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, const char *fileName, TEXTUREINFO *info);
+const MipBits *TextureCacheGetImage(HMIPPEDTEXTURE texture);
+int TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, int bForce);
+HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, unsigned int width, unsigned int height, TEXTUREINFO *textureInfo);

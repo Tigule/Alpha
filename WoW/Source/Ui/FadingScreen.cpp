@@ -24,17 +24,17 @@ static int           s_fadingMode;
 static float         s_fadingTime;
 static unsigned long s_fadingStart;
 static unsigned int  s_fadingComplete;
-static void(__fastcall *s_fadedCallback)(void *);
+static void(*s_fadedCallback)(void *);
 static void   *s_fadedCallbackParam;
 static CGxTex *s_textureHandle;
 
-void __fastcall FadingScreenPaint(void *param, const RECTF *rect, const RECTF *visibleRect, float alpha);
+void FadingScreenPaint(void *param, const RECTF *rect, const RECTF *visibleRect, float alpha);
 
-int __fastcall EatEvent(const void *data, void *param) {
+int EatEvent(const void *data, void *param) {
   return 0;
 }
 
-void __fastcall RegisterHandlers() {
+void RegisterHandlers() {
   EventRegisterEx(EVENT_ID_CHAR, EatEvent, 0, 8.0f);
   EventRegisterEx(EVENT_ID_KEYDOWN, EatEvent, 0, 8.0f);
   EventRegisterEx(EVENT_ID_KEYUP, EatEvent, 0, 8.0f);
@@ -44,7 +44,7 @@ void __fastcall RegisterHandlers() {
   EventRegisterEx(EVENT_ID_MOUSEUP, EatEvent, 0, 8.0f);
 }
 
-void __fastcall UnregisterHandlers() {
+void UnregisterHandlers() {
   EventUnregister(EVENT_ID_CHAR, EatEvent);
   EventUnregister(EVENT_ID_KEYDOWN, EatEvent);
   EventUnregister(EVENT_ID_KEYDOWN_REPEATING, EatEvent);
@@ -54,7 +54,7 @@ void __fastcall UnregisterHandlers() {
   EventUnregister(EVENT_ID_MOUSEUP, EatEvent);
 }
 
-void __fastcall FadingScreenCleanup() {
+void FadingScreenCleanup() {
   HandleClose((HOBJECT)s_fadingScreenLayer);
   GxTexDestroy(s_textureHandle);
   UnregisterHandlers();
@@ -62,7 +62,7 @@ void __fastcall FadingScreenCleanup() {
   s_drawingFadingScreen = 0;
 }
 
-void __fastcall FadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
+void FadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
   float               elapsed = 0.0f;
   NTempest::CImVector color(0xFFFFFFFF);
   unsigned int        fadeComplete = 0;
@@ -110,7 +110,7 @@ void __fastcall FadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
   }
 }
 
-void __fastcall EnableFadingScreen(float fadeTime, void(__fastcall *fadedCallback)(void *), void *param) {
+void EnableFadingScreen(float fadeTime, void(*fadedCallback)(void *), void *param) {
   RECTF rect;
 
   if (s_fadingScreenEnabled) {
@@ -136,7 +136,7 @@ void __fastcall EnableFadingScreen(float fadeTime, void(__fastcall *fadedCallbac
   s_fadingComplete = 0;
 }
 
-void __fastcall DisableFadingScreen(float fadeTime, void(__fastcall *fadedCallback)(void *), void *param) {
+void DisableFadingScreen(float fadeTime, void(*fadedCallback)(void *), void *param) {
   if (s_fadingScreenEnabled) {
     s_fadingTime = fadeTime;
     s_drawingFadingScreen = 0;

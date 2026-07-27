@@ -67,7 +67,7 @@ __int64 __cdecl OsGetAsyncTimeClocks() {
 }
 #endif
 
-__int64 __fastcall OsGetAsyncClocksPerSecond() {
+__int64 OsGetAsyncClocksPerSecond() {
   LARGE_INTEGER qwTickStart;
   LARGE_INTEGER qwTickEnd;
   LARGE_INTEGER liPerfFreq;
@@ -107,7 +107,7 @@ __int64 __fastcall OsGetAsyncClocksPerSecond() {
   return s_cpuTicksPerSecond;
 }
 
-float __fastcall OsGetAsyncClocksDivisor() {
+float OsGetAsyncClocksDivisor() {
   if (!(s_cpuTicksDivisor == 0.0f)) {
     return s_cpuTicksDivisor;
   }
@@ -116,11 +116,11 @@ float __fastcall OsGetAsyncClocksDivisor() {
   return s_cpuTicksDivisor;
 }
 
-DWORD __fastcall OsGetAsyncTimeMs() {
+DWORD OsGetAsyncTimeMs() {
   return GetTickCount();
 }
 
-DWORD __fastcall OsGetAsyncTimeMsPrecise() {
+DWORD OsGetAsyncTimeMsPrecise() {
   LARGE_INTEGER freq;
   LARGE_INTEGER currTime;
 
@@ -141,40 +141,40 @@ DWORD __fastcall OsGetAsyncTimeMsPrecise() {
   return GetTickCount();
 }
 
-float __fastcall OsGetAsyncTimeSec() {
+float OsGetAsyncTimeSec() {
   return (float)GetTickCount() * 0.001f;
 }
 
-void __fastcall OsGetTimeStr(char* timebuf, unsigned long len) {
+void OsGetTimeStr(char* timebuf, unsigned long len) {
   time_t ltime;
   time(&ltime);
   SStrCopy(timebuf, ctime(&ltime), len);
   *SStrChrR(timebuf, '\n') = 0;
 }
 
-void __fastcall OsGetTimeStamp(char *timeStamp, unsigned long len) {
+void OsGetTimeStamp(char *timeStamp, unsigned long len) {
   time_t ltime;
 
   time(&ltime);
   strftime(timeStamp, len, "%m%d%y_%H%M%S", localtime(&ltime));
 }
 
-void __fastcall OsGetTimeStr(char* timebuf, unsigned long len, const char* format, long timer) {
+void OsGetTimeStr(char* timebuf, unsigned long len, const char* format, long timer) {
   strftime(timebuf, len, format, localtime(&timer));
 }
 
-long __fastcall OsGetTime(long* timer) {
+long OsGetTime(long* timer) {
   return time(timer);
 }
 
-void __fastcall OsFileTimeGetCurrent(OSFILETIME* filetime) {
+void OsFileTimeGetCurrent(OSFILETIME* filetime) {
   FATALASSERT(filetime);
   SYSTEMTIME sysTime;
   GetSystemTime(&sysTime);
   SystemTimeToFileTime(&sysTime, reinterpret_cast<FILETIME *>(&filetime->m_value));
 }
 
-int __fastcall OsFileTimeCompare(const OSFILETIME* filetime1, const OSFILETIME* filetime2) {
+int OsFileTimeCompare(const OSFILETIME* filetime1, const OSFILETIME* filetime2) {
   FATALASSERT(filetime1);
   FATALASSERT(filetime2);
   return CompareFileTime(
@@ -183,16 +183,16 @@ int __fastcall OsFileTimeCompare(const OSFILETIME* filetime1, const OSFILETIME* 
   );
 }
 
-void __fastcall OsFileTimeAdd(OSFILETIME* filetime, unsigned int seconds) {
+void OsFileTimeAdd(OSFILETIME* filetime, unsigned int seconds) {
   FATALASSERT(filetime);
   filetime->m_value += 10000000ui64 * seconds;
 }
 
-unsigned __int64 __fastcall OsGetAsyncThreadTimeMs() {
+unsigned __int64 OsGetAsyncThreadTimeMs() {
   return GetTickCount();
 }
 
-unsigned long __fastcall OsGetTime() {
+unsigned long OsGetTime() {
   __int64              lastTimeAndTickCount;
   __int64              currTimeAndTickCount;
   __int64              observedTimeAndTickCount;
@@ -221,15 +221,15 @@ unsigned long __fastcall OsGetTime() {
   return curr[1];
 }
 
-void __fastcall OsGetSystemTime(OSSYSTEMTIME *sysTime) {
+void OsGetSystemTime(OSSYSTEMTIME *sysTime) {
   GetSystemTime((SYSTEMTIME *)sysTime);
 }
 
-void __fastcall OsGetLocalTime(OSSYSTEMTIME *sysTime) {
+void OsGetLocalTime(OSSYSTEMTIME *sysTime) {
   GetLocalTime((SYSTEMTIME *)sysTime);
 }
 
-int __fastcall OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTime2) {
+int OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTime2) {
   int diff;
 
   diff = (int)sysTime1->year - (int)sysTime2->year;
@@ -265,7 +265,7 @@ int __fastcall OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMT
   return (int)sysTime1->milliseconds - (int)sysTime2->milliseconds;
 }
 
-void __fastcall OsTimeToFileTime(DWORD time, OSFILETIME *fileTime) {
+void OsTimeToFileTime(DWORD time, OSFILETIME *fileTime) {
   unsigned __int64 value;
 
   FATALASSERT(fileTime);
@@ -274,7 +274,7 @@ void __fastcall OsTimeToFileTime(DWORD time, OSFILETIME *fileTime) {
   fileTime->m_value = value;
 }
 
-void __fastcall OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME *localFileTime) {
+void OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME *localFileTime) {
   FATALASSERT(fileTime);
 
   FATALASSERT(localFileTime);
@@ -282,7 +282,7 @@ void __fastcall OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME
   FileTimeToLocalFileTime((const FILETIME *)&fileTime->m_value, (FILETIME *)&localFileTime->m_value);
 }
 
-void __fastcall OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime) {
+void OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime) {
   FATALASSERT(fileTime);
 
   FATALASSERT(sysTime);
@@ -290,7 +290,7 @@ void __fastcall OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME 
   FileTimeToSystemTime((const FILETIME *)&fileTime->m_value, (SYSTEMTIME *)sysTime);
 }
 
-void __fastcall OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime) {
+void OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime) {
   FATALASSERT(fileTime);
 
   FATALASSERT(sysTime);
@@ -298,7 +298,7 @@ void __fastcall OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *
   SystemTimeToFileTime((const SYSTEMTIME *)sysTime, (FILETIME *)&fileTime->m_value);
 }
 
-void __fastcall OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime) {
+void OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime) {
   OSFILETIME fileTime;
   OSFILETIME localFileTime;
 
@@ -403,7 +403,7 @@ void OsTimeManager::Calibrate() {
   }
 }
 
-void __fastcall OsTimeStartup() {
+void OsTimeStartup() {
   new OsTimeManager;
 
   DWORD len = sizeof(s_cpuTicksPerSecond);
@@ -413,7 +413,7 @@ void __fastcall OsTimeStartup() {
   Sleep(0);
 }
 
-void __fastcall OsTimeShutdown() {
+void OsTimeShutdown() {
   OsTimeManager* timeMgr = reinterpret_cast<OsTimeManager*>(
       SInterlockedExchange(reinterpret_cast<long*>(&s_OsTimeMgr), 0)
   );

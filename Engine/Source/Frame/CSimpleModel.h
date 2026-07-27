@@ -15,8 +15,8 @@ class CSimpleModel : public CSimpleFrame {
   CSimpleModel(CSimpleFrame *parent);
   virtual ~CSimpleModel();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   virtual void  LoadXML(const XMLNode *node, CStatus *status);
   virtual void  LoadXML_Scripts(const XMLNode *node, CStatus *status);
@@ -148,7 +148,7 @@ class CSimpleModel : public CSimpleFrame {
   void SetCameraInternal(HCAMERA camera);
 
  public:
-  static void __fastcall RenderModel(void *param);
+  static void RenderModel(void *param);
 
  protected:
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;

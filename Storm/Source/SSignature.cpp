@@ -19,12 +19,12 @@ class SSignatureData {
 
 namespace Signature {
 
-  int __fastcall HasMagic(const unsigned char *data, unsigned long size, unsigned long modulusSize, unsigned long &dataSize) {
+  int HasMagic(const unsigned char *data, unsigned long size, unsigned long modulusSize, unsigned long &dataSize) {
     dataSize = size - modulusSize - sizeof(DWORD);
     return size >= modulusSize + sizeof(DWORD) && *(const DWORD *)(data + dataSize) == SIGNATURE_MAGIC;
   }
 
-  void __fastcall Hash(const unsigned char *data, unsigned long size, unsigned char *const digest) {
+  void Hash(const unsigned char *data, unsigned long size, unsigned char *const digest) {
     Sha1 sha;
 
     sha.Initialize();
@@ -34,7 +34,7 @@ namespace Signature {
 
 }  // namespace Signature
 
-extern "C" void __fastcall SSignatureVerifyStream_Begin(SSignatureData **token, unsigned long modulusSize, unsigned long pubExponentSize) {
+extern "C" void SSignatureVerifyStream_Begin(SSignatureData **token, unsigned long modulusSize, unsigned long pubExponentSize) {
   *token = new SSignatureData;
   (*token)->modulusSize = modulusSize;
   (*token)->pubExponentSize = pubExponentSize;
@@ -44,11 +44,11 @@ extern "C" void __fastcall SSignatureVerifyStream_Begin(SSignatureData **token, 
   (*token)->hash.Initialize();
 }
 
-extern "C" unsigned long __fastcall SSignatureVerifyStream_GetSignatureLength(SSignatureData *token) {
+extern "C" unsigned long SSignatureVerifyStream_GetSignatureLength(SSignatureData *token) {
   return token->signatureLength;
 }
 
-extern "C" void __fastcall SSignatureVerifyStream_ProvideData(SSignatureData *token, const unsigned char *data, unsigned long size) {
+extern "C" void SSignatureVerifyStream_ProvideData(SSignatureData *token, const unsigned char *data, unsigned long size) {
   long overflow;
   long hashBytes;
 
@@ -77,7 +77,7 @@ extern "C" void __fastcall SSignatureVerifyStream_ProvideData(SSignatureData *to
   token->buffered += size;
 }
 
-extern "C" int __fastcall SSignatureVerifyStream_Finish(SSignatureData *token, const unsigned char *modulus, const unsigned char *pubExponent) {
+extern "C" int SSignatureVerifyStream_Finish(SSignatureData *token, const unsigned char *modulus, const unsigned char *pubExponent) {
   int result;
 
   ASSERT(token);
@@ -104,7 +104,7 @@ extern "C" int __fastcall SSignatureVerifyStream_Finish(SSignatureData *token, c
   return result;
 }
 
-extern "C" int __fastcall SSignatureVerify(
+extern "C" int SSignatureVerify(
     const unsigned char *data,
     unsigned long        size,
     const unsigned char *modulus,
@@ -119,7 +119,7 @@ extern "C" int __fastcall SSignatureVerify(
   return SSignatureVerifyStream_Finish(token, modulus, pubExponent);
 }
 
-extern "C" int __fastcall SSignatureGenerate(
+extern "C" int SSignatureGenerate(
     unsigned char       *data,
     unsigned long       &size,
     const unsigned char *modulus,

@@ -5,7 +5,7 @@
 #include "Base/MsgBuffer.h"
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void ITextureAnimAddErrors(TSet &errors) {
@@ -77,7 +77,7 @@ static void IReadTextureAnim(
   errors.Complete(status);
 }
 
-int __fastcall ReadTextureAnims(
+int ReadTextureAnims(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -185,7 +185,7 @@ static void IWriteTextureAnim(
   WriteLine(buffer, "\t}\n");
 }
 
-int __fastcall WriteTextureAnims(
+int WriteTextureAnims(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -262,7 +262,7 @@ static void IWriteBinTextureAnim(
   }
 }
 
-int __fastcall WriteBinTextureAnims(
+int WriteBinTextureAnims(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *
@@ -284,7 +284,7 @@ int __fastcall WriteBinTextureAnims(
   return 1;
 }
 
-int __fastcall ReadBinTextureAnims(
+int ReadBinTextureAnims(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

@@ -1762,7 +1762,7 @@ void CSimpleEditBox::UpdateHighlightArea(CSimpleRegion *area, int left, int righ
   }
 }
 
-void __fastcall CSimpleEditBox::SetKeyboardFocus(CSimpleEditBox *focus) {
+void CSimpleEditBox::SetKeyboardFocus(CSimpleEditBox *focus) {
   if (s_currentFocus) {
     s_currentFocus->m_cursor->Hide();
   }
@@ -1770,7 +1770,7 @@ void __fastcall CSimpleEditBox::SetKeyboardFocus(CSimpleEditBox *focus) {
   s_currentFocus = focus;
 }
 
-void __fastcall CSimpleEditBox::ClearKeyboardFocus(CSimpleEditBox *focus) {
+void CSimpleEditBox::ClearKeyboardFocus(CSimpleEditBox *focus) {
   if (s_currentFocus == focus) {
     s_currentFocus->m_cursor->Hide();
     s_currentFocus = 0;

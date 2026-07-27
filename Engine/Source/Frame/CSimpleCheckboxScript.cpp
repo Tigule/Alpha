@@ -19,7 +19,7 @@
   }                                                                 \
   ASSERT(object)
 
-static int __fastcall CSimpleCheckbox_SetChecked(lua_State *L) {
+static int CSimpleCheckbox_SetChecked(lua_State *L) {
   GET_SIMPLE_CHECKBOX_THIS(L, object);
 
   int state = 0;
@@ -33,7 +33,7 @@ static int __fastcall CSimpleCheckbox_SetChecked(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleCheckbox_GetChecked(lua_State *L) {
+static int CSimpleCheckbox_GetChecked(lua_State *L) {
   GET_SIMPLE_CHECKBOX_THIS(L, object);
 
   if (object->GetChecked()) {
@@ -44,7 +44,7 @@ static int __fastcall CSimpleCheckbox_GetChecked(lua_State *L) {
   return 1;
 }
 
-static int __fastcall CSimpleCheckbox_SetCheckedTexture(lua_State *L) {
+static int CSimpleCheckbox_SetCheckedTexture(lua_State *L) {
   GET_SIMPLE_CHECKBOX_THIS(L, object);
 
   if (!lua_isstring(L, 2)) {
@@ -55,7 +55,7 @@ static int __fastcall CSimpleCheckbox_SetCheckedTexture(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleCheckbox_SetDisabledCheckedTexture(lua_State *L) {
+static int CSimpleCheckbox_SetDisabledCheckedTexture(lua_State *L) {
   GET_SIMPLE_CHECKBOX_THIS(L, object);
 
   if (!lua_isstring(L, 2)) {
@@ -77,11 +77,11 @@ static FrameScript_Method SimpleCheckboxMethods[] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleCheckbox::s_scriptMethods;
 
-void __fastcall CSimpleCheckbox::RegisterScriptMethods() {
+void CSimpleCheckbox::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleCheckboxMethods, 4, s_scriptMethods);
 }
 
-void __fastcall CSimpleCheckbox::UnregisterScriptMethods() {
+void CSimpleCheckbox::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

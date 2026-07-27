@@ -28,11 +28,11 @@ static unsigned int                                                   s_readPhys
 static unsigned int                                                   s_closeRequests;
 static unsigned int                                                   s_closePhysicalFile;
 
-SoundFileDataCacheBlock *__fastcall AllocCacheBlock(__int64 hashKey);
-void __fastcall                     DataCacheInitialize(int cacheSizeMB);
-void __fastcall                     DataCacheShutdown();
+SoundFileDataCacheBlock *AllocCacheBlock(__int64 hashKey);
+void DataCacheInitialize(int cacheSizeMB);
+void DataCacheShutdown();
 
-void __fastcall DataCacheInitialize(int cacheSizeMB) {
+void DataCacheInitialize(int cacheSizeMB) {
   unsigned int numCacheBlocks;
   unsigned int i;
 
@@ -50,12 +50,12 @@ void __fastcall DataCacheInitialize(int cacheSizeMB) {
   s_soundFileDataCache.Clear();
 }
 
-void __fastcall DataCacheShutdown() {
+void DataCacheShutdown() {
   s_soundFileDataCacheLRU.UnlinkAll();
   s_soundFileDataCache.Clear();
 }
 
-SoundFileDataCacheBlock *__fastcall AllocCacheBlock(__int64 hashKey) {
+SoundFileDataCacheBlock *AllocCacheBlock(__int64 hashKey) {
   SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCacheLRU.Head();
   s_soundFileDataCacheLRU.UnlinkNode(cacheBlock);
 
@@ -310,7 +310,7 @@ void __stdcall SoundFileCache::Close(unsigned int handle) {
   s_soundFileCacheLock.Leave();
 }
 
-void __fastcall SoundFileCache::Initialize(int cacheSizeMB) {
+void SoundFileCache::Initialize(int cacheSizeMB) {
   DataCacheInitialize(cacheSizeMB);
 
   s_soundFileObjects.SetCount(MAX_FILES);
@@ -328,7 +328,7 @@ void __fastcall SoundFileCache::Initialize(int cacheSizeMB) {
   s_soundFileObjectHashTable.Clear();
 }
 
-void __fastcall SoundFileCache::Shutdown() {
+void SoundFileCache::Shutdown() {
   s_freeSoundFileObjects.UnlinkAll();
   s_soundFileObjectHashTable.Clear();
   s_soundFileObjects.Clear();

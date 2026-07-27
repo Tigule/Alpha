@@ -21,7 +21,7 @@
   }                                                                     \
   ASSERT(object)
 
-int __fastcall CSimpleFrame_GetParent(lua_State *L) {
+int CSimpleFrame_GetParent(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   CSimpleFrame *parent = object->m_parent;
@@ -36,7 +36,7 @@ int __fastcall CSimpleFrame_GetParent(lua_State *L) {
   return 1;
 }
 
-int __fastcall CSimpleFrame_GetName(lua_State *L) {
+int CSimpleFrame_GetName(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   const char *name = object->GetName();
@@ -49,14 +49,14 @@ int __fastcall CSimpleFrame_GetName(lua_State *L) {
   return 1;
 }
 
-int __fastcall CSimpleFrame_GetFrameLevel(lua_State *L) {
+int CSimpleFrame_GetFrameLevel(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   lua_pushnumber(L, object->GetFrameLevel());
   return 1;
 }
 
-int __fastcall CSimpleFrame_SetFrameLevel(lua_State *L) {
+int CSimpleFrame_SetFrameLevel(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -67,7 +67,7 @@ int __fastcall CSimpleFrame_SetFrameLevel(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_RegisterEvent(lua_State *L) {
+int CSimpleFrame_RegisterEvent(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (!lua_isstring(L, 2)) {
@@ -78,7 +78,7 @@ int __fastcall CSimpleFrame_RegisterEvent(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_UnregisterEvent(lua_State *L) {
+int CSimpleFrame_UnregisterEvent(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (!lua_isstring(L, 2)) {
@@ -89,7 +89,7 @@ int __fastcall CSimpleFrame_UnregisterEvent(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_SetAlpha(lua_State *L) {
+int CSimpleFrame_SetAlpha(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -105,14 +105,14 @@ int __fastcall CSimpleFrame_SetAlpha(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_GetAlpha(lua_State *L) {
+int CSimpleFrame_GetAlpha(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   lua_pushnumber(L, static_cast<double>(object->GetAlpha()) / 255.0);
   return 1;
 }
 
-int __fastcall CSimpleFrame_SetID(lua_State *L) {
+int CSimpleFrame_SetID(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -123,14 +123,14 @@ int __fastcall CSimpleFrame_SetID(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_GetID(lua_State *L) {
+int CSimpleFrame_GetID(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   lua_pushnumber(L, object->m_id);
   return 1;
 }
 
-int __fastcall CSimpleFrame_EnableDrawLayer(lua_State *L) {
+int CSimpleFrame_EnableDrawLayer(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   unsigned int layer = 2;
@@ -142,7 +142,7 @@ int __fastcall CSimpleFrame_EnableDrawLayer(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_DisableDrawLayer(lua_State *L) {
+int CSimpleFrame_DisableDrawLayer(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   unsigned int layer = 2;
@@ -154,21 +154,21 @@ int __fastcall CSimpleFrame_DisableDrawLayer(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_Show(lua_State *L) {
+int CSimpleFrame_Show(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   object->Show();
   return 0;
 }
 
-int __fastcall CSimpleFrame_Hide(lua_State *L) {
+int CSimpleFrame_Hide(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   object->Hide();
   return 0;
 }
 
-int __fastcall CSimpleFrame_IsVisible(lua_State *L) {
+int CSimpleFrame_IsVisible(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (object->IsVisible()) {
@@ -180,7 +180,7 @@ int __fastcall CSimpleFrame_IsVisible(lua_State *L) {
   return 1;
 }
 
-int __fastcall CSimpleFrame_IsShown(lua_State *L) {
+int CSimpleFrame_IsShown(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (object->m_shown) {
@@ -192,21 +192,21 @@ int __fastcall CSimpleFrame_IsShown(lua_State *L) {
   return 1;
 }
 
-int __fastcall CSimpleFrame_Raise(lua_State *L) {
+int CSimpleFrame_Raise(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   object->Raise();
   return 0;
 }
 
-int __fastcall CSimpleFrame_Lower(lua_State *L) {
+int CSimpleFrame_Lower(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   object->Lower();
   return 0;
 }
 
-int __fastcall CSimpleFrame_GetCenter(lua_State *L) {
+int CSimpleFrame_GetCenter(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   lua_pushnumber(L, object->CenterX() * 1024.0f * 1.25f);
@@ -214,7 +214,7 @@ int __fastcall CSimpleFrame_GetCenter(lua_State *L) {
   return 2;
 }
 
-int __fastcall CSimpleFrame_GetWidth(lua_State *L) {
+int CSimpleFrame_GetWidth(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   float width = object->GetWidth();
@@ -229,7 +229,7 @@ int __fastcall CSimpleFrame_GetWidth(lua_State *L) {
   return 1;
 }
 
-int __fastcall CSimpleFrame_SetWidth(lua_State *L) {
+int CSimpleFrame_SetWidth(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -240,7 +240,7 @@ int __fastcall CSimpleFrame_SetWidth(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_GetHeight(lua_State *L) {
+int CSimpleFrame_GetHeight(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   float height = object->GetHeight();
@@ -255,7 +255,7 @@ int __fastcall CSimpleFrame_GetHeight(lua_State *L) {
   return 1;
 }
 
-int __fastcall CSimpleFrame_SetHeight(lua_State *L) {
+int CSimpleFrame_SetHeight(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -266,7 +266,7 @@ int __fastcall CSimpleFrame_SetHeight(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_SetPoint(lua_State *L) {
+int CSimpleFrame_SetPoint(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (!lua_isstring(L, 2) || !lua_isstring(L, 3)) {
@@ -320,7 +320,7 @@ int __fastcall CSimpleFrame_SetPoint(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_SetAllPoints(lua_State *L) {
+int CSimpleFrame_SetAllPoints(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   if (!lua_isstring(L, 2)) {
@@ -341,14 +341,14 @@ int __fastcall CSimpleFrame_SetAllPoints(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_ClearAllPoints(lua_State *L) {
+int CSimpleFrame_ClearAllPoints(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   object->ClearAllPoints(1);
   return 0;
 }
 
-int __fastcall CSimpleFrame_RegisterForDrag(lua_State *L) {
+int CSimpleFrame_RegisterForDrag(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   CSimpleFrame *frame = object;
@@ -375,7 +375,7 @@ int __fastcall CSimpleFrame_RegisterForDrag(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_EnableMouse(lua_State *L) {
+int CSimpleFrame_EnableMouse(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   int enable;
@@ -398,7 +398,7 @@ int __fastcall CSimpleFrame_EnableMouse(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_EnableKeyboard(lua_State *L) {
+int CSimpleFrame_EnableKeyboard(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   int enable;
@@ -423,7 +423,7 @@ int __fastcall CSimpleFrame_EnableKeyboard(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_SetBackdropColor(lua_State *L) {
+int CSimpleFrame_SetBackdropColor(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   NTempest::CImVector color;
@@ -444,7 +444,7 @@ int __fastcall CSimpleFrame_SetBackdropColor(lua_State *L) {
   return 0;
 }
 
-int __fastcall CSimpleFrame_SetBackdropBorderColor(lua_State *L) {
+int CSimpleFrame_SetBackdropBorderColor(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   NTempest::CImVector color;
@@ -503,11 +503,11 @@ static FrameScript_Method SimpleFrameMethods[] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleFrame::s_scriptMethods;
 
-void __fastcall CSimpleFrame::RegisterScriptMethods() {
+void CSimpleFrame::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleFrameMethods, sizeof(SimpleFrameMethods) / sizeof(SimpleFrameMethods[0]), s_scriptMethods);
 }
 
-void __fastcall CSimpleFrame::UnregisterScriptMethods() {
+void CSimpleFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

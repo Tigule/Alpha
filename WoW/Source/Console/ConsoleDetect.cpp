@@ -99,7 +99,7 @@ static const char *HWMEMIDX = "HWMemIdx";
 static const char *HWVIDEOIDX = "HWVideoIdx";
 static const char *HWSOUNDIDX = "HWSoundIdx";
 
-static void __fastcall PrintUnknownHardware(const Hardware &hardware) {
+static void PrintUnknownHardware(const Hardware &hardware) {
   char         caption[512];
   char         msg[1024];
   unsigned int i;
@@ -128,7 +128,7 @@ static void __fastcall PrintUnknownHardware(const Hardware &hardware) {
   OsGuiMessageBox(OsGuiGetWindow(2), 0, msg, caption);
 }
 
-static void __fastcall SetVideoIdx(Hardware &hardware) {
+static void SetVideoIdx(Hardware &hardware) {
   int numRecords = g_videoHardwareDB.GetNumRecords();
   int i;
 
@@ -142,7 +142,7 @@ static void __fastcall SetVideoIdx(Hardware &hardware) {
   }
 }
 
-void __fastcall DetectHardware(Hardware &hardware, bool &changed) {
+void DetectHardware(Hardware &hardware, bool &changed) {
   char str[1024];
 
   g_videoHardwareDB.Load();
@@ -199,7 +199,7 @@ void __fastcall DetectHardware(Hardware &hardware, bool &changed) {
   GxLog(str);
 }
 
-void __fastcall SaveHardware(const Hardware &hardware, bool &changed) {
+void SaveHardware(const Hardware &hardware, bool &changed) {
   int memIdx = -1;
   int soundIdx = -1;
   int videoIdx = -1;
@@ -227,7 +227,7 @@ void __fastcall SaveHardware(const Hardware &hardware, bool &changed) {
   SRegSaveValue(REGKEY, HWSOUNDIDX, 0, hardware.soundIdx);
 }
 
-void __fastcall SetDefaults(DefaultSettings &defaults, const Hardware &hardware) {
+void SetDefaults(DefaultSettings &defaults, const Hardware &hardware) {
   defaults.farClip = s_farClip[hardware.videoHw->m_farclipIdx][hardware.cpuHw->farclipIdx];
   defaults.terrainLODDist = s_terrainLODDist[hardware.videoHw->m_terrainLODDistIdx];
   defaults.terrainShadowLOD = hardware.videoHw->m_terrainShadowLOD;
@@ -248,6 +248,6 @@ void __fastcall SetDefaults(DefaultSettings &defaults, const Hardware &hardware)
   defaults.fivePointOne = 0;
 }
 
-void __fastcall SetDefaultsFormat(DefaultSettings &defaults, const Hardware &hardware) {
+void SetDefaultsFormat(DefaultSettings &defaults, const Hardware &hardware) {
   defaults.format = &s_formats[hardware.videoHw->m_resolutionIdx];
 }

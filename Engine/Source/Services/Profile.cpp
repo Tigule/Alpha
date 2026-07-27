@@ -31,9 +31,9 @@ namespace ProfileInternal {
       return string >= m_data && string < m_data + m_dataSize;
     }
 
-    static STRINGBLOCK *__fastcall AllocBlock(unsigned long chars);
-    static char *__fastcall        AllocString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, const char *string, int inSitu);
-    static void __fastcall         FreeString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, char *string);
+    static STRINGBLOCK *AllocBlock(unsigned long chars);
+    static char *AllocString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, const char *string, int inSitu);
+    static void FreeString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, char *string);
 
     unsigned long m_refCount;
     unsigned long m_dataSize;
@@ -67,28 +67,28 @@ namespace ProfileInternal {
     TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > stringBlockList;
   };
 
-  static int __fastcall          IReadFile(PROFILE *profile, const char *rawPath);
-  static int __fastcall          IWriteFile(PROFILE *profile, const char *path);
-  static int __fastcall          IReadBuffer(PROFILE *profile, const void *buffer, unsigned long bufferBytes);
-  static void __fastcall         TokenizeStringValues(PROFILE *profile, const char *sectionName, const char *keyName, char *value);
-  static void __fastcall         ISetValue(PROFILE *profile, const char *sectionName, const char *keyName, const char *value, int clear, int inSitu);
-  static const char *__fastcall  IGetValue(PROFILE *profile, const char *sectionName, const char *keyName, unsigned int index);
-  static unsigned int __fastcall IGetNumValues(PROFILE *profile, const char *sectionName, const char *keyName);
-  static KEYVALUE *__fastcall    GetKeyValue(PROFILE *profile, const char *sectionName, const char *keyName);
+  static int IReadFile(PROFILE *profile, const char *rawPath);
+  static int IWriteFile(PROFILE *profile, const char *path);
+  static int IReadBuffer(PROFILE *profile, const void *buffer, unsigned long bufferBytes);
+  static void TokenizeStringValues(PROFILE *profile, const char *sectionName, const char *keyName, char *value);
+  static void ISetValue(PROFILE *profile, const char *sectionName, const char *keyName, const char *value, int clear, int inSitu);
+  static const char *IGetValue(PROFILE *profile, const char *sectionName, const char *keyName, unsigned int index);
+  static unsigned int IGetNumValues(PROFILE *profile, const char *sectionName, const char *keyName);
+  static KEYVALUE *GetKeyValue(PROFILE *profile, const char *sectionName, const char *keyName);
   static void                    WriteLine(TSGrowableArray<char> &buffer, const char *pszFmt, ...);
-  static int __fastcall          WriteFileBuffer(const char *path, const TSGrowableArray<char> &buffer);
-  static void __fastcall         WriteKey(KEYVALUE *key, TSGrowableArray<char> &buffer);
-  static void __fastcall         WriteSection(SECTION *section, TSGrowableArray<char> &buffer);
-  static int __fastcall          PrfStrToInt(const char *str);
+  static int WriteFileBuffer(const char *path, const TSGrowableArray<char> &buffer);
+  static void WriteKey(KEYVALUE *key, TSGrowableArray<char> &buffer);
+  static void WriteSection(SECTION *section, TSGrowableArray<char> &buffer);
+  static int PrfStrToInt(const char *str);
 
-  STRINGBLOCK *__fastcall STRINGBLOCK::AllocBlock(unsigned long chars) {
+  STRINGBLOCK *STRINGBLOCK::AllocBlock(unsigned long chars) {
     unsigned long dataChars = sizeof(((STRINGBLOCK *)0)->m_data);
     unsigned long allocChars = chars < dataChars ? dataChars : chars;
 
     return new (ALLOC(sizeof(STRINGBLOCK) + allocChars - dataChars)) STRINGBLOCK(chars);
   }
 
-  char *__fastcall STRINGBLOCK::AllocString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, const char *string, int inSitu) {
+  char *STRINGBLOCK::AllocString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, const char *string, int inSitu) {
     STRINGBLOCK  *stringBlock;
     unsigned long chars;
     char         *dest;
@@ -120,7 +120,7 @@ namespace ProfileInternal {
     return dest;
   }
 
-  void __fastcall STRINGBLOCK::FreeString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, char *string) {
+  void STRINGBLOCK::FreeString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, char *string) {
     STRINGBLOCK *stringBlock;
 
     FATALASSERT(string);
@@ -160,7 +160,7 @@ namespace ProfileInternal {
     }
   }
 
-  static KEYVALUE *__fastcall GetKeyValue(PROFILE *profile, const char *sectionName, const char *keyName) {
+  static KEYVALUE *GetKeyValue(PROFILE *profile, const char *sectionName, const char *keyName) {
     SECTION *section = profile->sectionTable.Ptr(sectionName);
 
     if (!section) {
@@ -170,12 +170,12 @@ namespace ProfileInternal {
     return section->keyTable.Ptr(keyName);
   }
 
-  static unsigned int __fastcall IGetNumValues(PROFILE *profile, const char *sectionName, const char *keyName) {
+  static unsigned int IGetNumValues(PROFILE *profile, const char *sectionName, const char *keyName) {
     KEYVALUE *keyValue = GetKeyValue(profile, sectionName, keyName);
     return keyValue ? keyValue->values.Count() : 0;
   }
 
-  static const char *__fastcall IGetValue(PROFILE *profile, const char *sectionName, const char *keyName, unsigned int index) {
+  static const char *IGetValue(PROFILE *profile, const char *sectionName, const char *keyName, unsigned int index) {
     KEYVALUE *keyValue = GetKeyValue(profile, sectionName, keyName);
 
     if (!keyValue || index >= keyValue->values.Count()) {
@@ -185,7 +185,7 @@ namespace ProfileInternal {
     return keyValue->values[index];
   }
 
-  static void __fastcall ISetValue(PROFILE *profile, const char *sectionName, const char *keyName, const char *value, int clear, int inSitu) {
+  static void ISetValue(PROFILE *profile, const char *sectionName, const char *keyName, const char *value, int clear, int inSitu) {
     SECTION     *section;
     KEYVALUE    *keyValue;
     const char  *storedString;
@@ -215,7 +215,7 @@ namespace ProfileInternal {
     *keyValue->values.New() = STRINGBLOCK::AllocString(profile->stringBlockList, value, inSitu);
   }
 
-  static void __fastcall TokenizeStringValues(PROFILE *profile, const char *sectionName, const char *keyName, char *value) {
+  static void TokenizeStringValues(PROFILE *profile, const char *sectionName, const char *keyName, char *value) {
     char *token;
     int   quoted;
 
@@ -245,7 +245,7 @@ namespace ProfileInternal {
     }
   }
 
-  static int __fastcall IReadBuffer(PROFILE *profile, const void *buffer, unsigned long bufferBytes) {
+  static int IReadBuffer(PROFILE *profile, const void *buffer, unsigned long bufferBytes) {
     enum {
       STATE_NEWLINE = 0,
       STATE_COMMENT = 1,
@@ -336,7 +336,7 @@ namespace ProfileInternal {
     return 1;
   }
 
-  static int __fastcall IReadFile(PROFILE *profile, const char *rawPath) {
+  static int IReadFile(PROFILE *profile, const char *rawPath) {
     void         *buffer = 0;
     unsigned long bufferBytes = 0;
     char          path[MAX_PATH];
@@ -362,7 +362,7 @@ namespace ProfileInternal {
     return result;
   }
 
-  static int __fastcall WriteFileBuffer(const char *path, const TSGrowableArray<char> &buffer) {
+  static int WriteFileBuffer(const char *path, const TSGrowableArray<char> &buffer) {
     FILE        *file;
     unsigned int bytesWritten;
 
@@ -375,7 +375,7 @@ namespace ProfileInternal {
     return !fclose(file) && bytesWritten == buffer.Count();
   }
 
-  static void __fastcall WriteKey(KEYVALUE *key, TSGrowableArray<char> &buffer) {
+  static void WriteKey(KEYVALUE *key, TSGrowableArray<char> &buffer) {
     unsigned int       loop;
     const char *const *value;
 
@@ -397,7 +397,7 @@ namespace ProfileInternal {
     WriteLine(buffer, "\n");
   }
 
-  static void __fastcall WriteSection(SECTION *section, TSGrowableArray<char> &buffer) {
+  static void WriteSection(SECTION *section, TSGrowableArray<char> &buffer) {
     KEYVALUE *key;
 
     WriteLine(buffer, "[%s]\n", section->GetString());
@@ -409,7 +409,7 @@ namespace ProfileInternal {
     WriteLine(buffer, "\n");
   }
 
-  static int __fastcall IWriteFile(PROFILE *profile, const char *path) {
+  static int IWriteFile(PROFILE *profile, const char *path) {
     TSGrowableArray<char> buffer;
     SECTION              *section;
 
@@ -425,7 +425,7 @@ namespace ProfileInternal {
     return WriteFileBuffer(path, buffer);
   }
 
-  static int __fastcall PrfStrToInt(const char *str) {
+  static int PrfStrToInt(const char *str) {
     int          value = 0;
     unsigned int index;
 
@@ -443,34 +443,34 @@ namespace ProfileInternal {
 
 }  // namespace ProfileInternal
 
-HPROFILE __fastcall ProfileCreate() {
+HPROFILE ProfileCreate() {
   return NEW(ProfileInternal::PROFILE);
 }
 
-int __fastcall ProfileReadFile(HPROFILE handle, const char *path) {
+int ProfileReadFile(HPROFILE handle, const char *path) {
   FATALASSERT(path);
 
   return ProfileInternal::IReadFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
 }
 
-int __fastcall ProfileWriteFile(HPROFILE handle, const char *path) {
+int ProfileWriteFile(HPROFILE handle, const char *path) {
   FATALASSERT(path);
 
   return ProfileInternal::IWriteFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
 }
 
-int __fastcall ProfileReadBuffer(HPROFILE handle, const void *buffer, unsigned long bufferBytes) {
+int ProfileReadBuffer(HPROFILE handle, const void *buffer, unsigned long bufferBytes) {
   return ProfileInternal::IReadBuffer(static_cast<ProfileInternal::PROFILE *>(handle), buffer, bufferBytes);
 }
 
-int __fastcall ProfileAddValue(HPROFILE handle, const char *section, const char *key, bool value) {
+int ProfileAddValue(HPROFILE handle, const char *section, const char *key, bool value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
   return ProfileAddValue(handle, section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR);
 }
 
-int __fastcall ProfileAddValue(HPROFILE handle, const char *section, const char *key, int value) {
+int ProfileAddValue(HPROFILE handle, const char *section, const char *key, int value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -479,7 +479,7 @@ int __fastcall ProfileAddValue(HPROFILE handle, const char *section, const char 
   return ProfileAddValue(handle, section, key, strValue);
 }
 
-int __fastcall ProfileAddValue(HPROFILE handle, const char *section, const char *key, __int64 value) {
+int ProfileAddValue(HPROFILE handle, const char *section, const char *key, __int64 value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -488,7 +488,7 @@ int __fastcall ProfileAddValue(HPROFILE handle, const char *section, const char 
   return ProfileAddValue(handle, section, key, strValue);
 }
 
-int __fastcall ProfileAddValue(HPROFILE handle, const char *section, const char *key, float value) {
+int ProfileAddValue(HPROFILE handle, const char *section, const char *key, float value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -497,7 +497,7 @@ int __fastcall ProfileAddValue(HPROFILE handle, const char *section, const char 
   return ProfileAddValue(handle, section, key, strValue);
 }
 
-int __fastcall ProfileAddValue(HPROFILE handle, const char *section, const char *key, const char *value) {
+int ProfileAddValue(HPROFILE handle, const char *section, const char *key, const char *value) {
   FATALASSERT(section);
   FATALASSERT(key);
   FATALASSERT(value);
@@ -506,14 +506,14 @@ int __fastcall ProfileAddValue(HPROFILE handle, const char *section, const char 
   return 1;
 }
 
-int __fastcall ProfileSetValue(HPROFILE handle, const char *section, const char *key, bool value) {
+int ProfileSetValue(HPROFILE handle, const char *section, const char *key, bool value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
   return ProfileSetValue(handle, section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR);
 }
 
-int __fastcall ProfileSetValue(HPROFILE handle, const char *section, const char *key, int value) {
+int ProfileSetValue(HPROFILE handle, const char *section, const char *key, int value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -522,7 +522,7 @@ int __fastcall ProfileSetValue(HPROFILE handle, const char *section, const char 
   return ProfileSetValue(handle, section, key, strValue);
 }
 
-int __fastcall ProfileSetValue(HPROFILE handle, const char *section, const char *key, __int64 value) {
+int ProfileSetValue(HPROFILE handle, const char *section, const char *key, __int64 value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -531,7 +531,7 @@ int __fastcall ProfileSetValue(HPROFILE handle, const char *section, const char 
   return ProfileSetValue(handle, section, key, strValue);
 }
 
-int __fastcall ProfileSetValue(HPROFILE handle, const char *section, const char *key, float value) {
+int ProfileSetValue(HPROFILE handle, const char *section, const char *key, float value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -540,7 +540,7 @@ int __fastcall ProfileSetValue(HPROFILE handle, const char *section, const char 
   return ProfileSetValue(handle, section, key, strValue);
 }
 
-int __fastcall ProfileSetValue(HPROFILE handle, const char *section, const char *key, const char *value) {
+int ProfileSetValue(HPROFILE handle, const char *section, const char *key, const char *value) {
   FATALASSERT(section);
   FATALASSERT(key);
   FATALASSERT(value);
@@ -549,7 +549,7 @@ int __fastcall ProfileSetValue(HPROFILE handle, const char *section, const char 
   return 1;
 }
 
-int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char *key, bool *value, unsigned int index) {
+int ProfileGetValue(HPROFILE handle, const char *section, const char *key, bool *value, unsigned int index) {
   const char *string;
 
   FATALASSERT(section);
@@ -566,7 +566,7 @@ int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char 
   return 1;
 }
 
-int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char *key, int *value, unsigned int index) {
+int ProfileGetValue(HPROFILE handle, const char *section, const char *key, int *value, unsigned int index) {
   const char *string;
 
   FATALASSERT(section);
@@ -585,7 +585,7 @@ int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char 
   return 1;
 }
 
-int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char *key, __int64 *value, unsigned int index) {
+int ProfileGetValue(HPROFILE handle, const char *section, const char *key, __int64 *value, unsigned int index) {
   const char *string;
 
   FATALASSERT(section);
@@ -602,7 +602,7 @@ int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char 
   return 1;
 }
 
-int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char *key, float *value, unsigned int index) {
+int ProfileGetValue(HPROFILE handle, const char *section, const char *key, float *value, unsigned int index) {
   const char *string;
 
   FATALASSERT(section);
@@ -619,7 +619,7 @@ int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char 
   return 1;
 }
 
-int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char *key, char *value, unsigned int maxChars, unsigned int index) {
+int ProfileGetValue(HPROFILE handle, const char *section, const char *key, char *value, unsigned int maxChars, unsigned int index) {
   const char *string;
 
   FATALASSERT(section);
@@ -638,21 +638,21 @@ int __fastcall ProfileGetValue(HPROFILE handle, const char *section, const char 
   return 1;
 }
 
-const char *__fastcall ProfileGetValueNoCopy(HPROFILE handle, const char *section, const char *key, unsigned int index) {
+const char *ProfileGetValueNoCopy(HPROFILE handle, const char *section, const char *key, unsigned int index) {
   FATALASSERT(section);
   FATALASSERT(key);
 
   return ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
 }
 
-unsigned int __fastcall ProfileGetNumValues(HPROFILE handle, const char *section, const char *key) {
+unsigned int ProfileGetNumValues(HPROFILE handle, const char *section, const char *key) {
   FATALASSERT(section);
   FATALASSERT(key);
 
   return ProfileInternal::IGetNumValues(static_cast<ProfileInternal::PROFILE *>(handle), section, key);
 }
 
-int __fastcall ProfileGetValueIndex(HPROFILE handle, const char *section, const char *key, const char *value) {
+int ProfileGetValueIndex(HPROFILE handle, const char *section, const char *key, const char *value) {
   unsigned int index;
   const char  *candidate;
 
@@ -671,7 +671,7 @@ int __fastcall ProfileGetValueIndex(HPROFILE handle, const char *section, const 
   return -1;
 }
 
-void __fastcall ProfileEnumKeys(HPROFILE handle, const char *sectionName, PROFILEENUMKEYCALLBACK callback, void *opaqueData) {
+void ProfileEnumKeys(HPROFILE handle, const char *sectionName, PROFILEENUMKEYCALLBACK callback, void *opaqueData) {
   ProfileInternal::PROFILE  *profile;
   ProfileInternal::SECTION  *pSection;
   ProfileInternal::KEYVALUE *key;
@@ -687,7 +687,7 @@ void __fastcall ProfileEnumKeys(HPROFILE handle, const char *sectionName, PROFIL
   }
 }
 
-void __fastcall ProfileEnumSections(HPROFILE handle, PROFILEENUMSECTIONCALLBACK callback, void *opaqueData) {
+void ProfileEnumSections(HPROFILE handle, PROFILEENUMSECTIONCALLBACK callback, void *opaqueData) {
   ProfileInternal::PROFILE *profile;
   ProfileInternal::SECTION *section;
 
@@ -699,7 +699,7 @@ void __fastcall ProfileEnumSections(HPROFILE handle, PROFILEENUMSECTIONCALLBACK 
   }
 }
 
-int __fastcall ProfileSectionExists(HPROFILE profile, const char *section) {
+int ProfileSectionExists(HPROFILE profile, const char *section) {
   ProfileInternal::PROFILE *profilePtr;
 
   profilePtr = static_cast<ProfileInternal::PROFILE *>(profile);
@@ -708,7 +708,7 @@ int __fastcall ProfileSectionExists(HPROFILE profile, const char *section) {
   return profilePtr->sectionTable.Ptr(section) != 0;
 }
 
-void __fastcall ProfileClose(HPROFILE handle) {
+void ProfileClose(HPROFILE handle) {
   if (handle) {
     DEL(static_cast<ProfileInternal::PROFILE *>(handle));
   }

@@ -20,18 +20,18 @@
 #include <storm.h>
 #include <string.h>
 
-int __fastcall Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
 
 class CGContainerInfo {
  public:
-  static void __fastcall             EnterWorld();
-  static void __fastcall             LeaveWorld();
-  static void __fastcall             UpdateContainers();
-  static void __fastcall             UpdateContents(unsigned __int64 guid);
-  static void __fastcall             UpdateCooldowns();
-  static unsigned __int64 __fastcall GetContainer(int index);
-  static void __fastcall             OpenContainer(unsigned __int64 container);
-  static void __fastcall             UpdateItem(unsigned __int64 item);
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void UpdateContainers();
+  static void UpdateContents(unsigned __int64 guid);
+  static void UpdateCooldowns();
+  static unsigned __int64 GetContainer(int index);
+  static void OpenContainer(unsigned __int64 container);
+  static void UpdateItem(unsigned __int64 item);
 
  protected:
   static unsigned __int64 m_containers[10];
@@ -39,7 +39,7 @@ class CGContainerInfo {
 
 unsigned __int64 CGContainerInfo::m_containers[10];
 
-static int __fastcall UpdateContainerContents(unsigned __int64 guid, unsigned int offset, unsigned int, const void *prevValue, void *) {
+static int UpdateContainerContents(unsigned __int64 guid, unsigned int offset, unsigned int, const void *prevValue, void *) {
   CGContainerInfo::UpdateContents(guid);
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
@@ -52,7 +52,7 @@ static int __fastcall UpdateContainerContents(unsigned __int64 guid, unsigned in
   return 1;
 }
 
-static int __fastcall UpdateInvContents(unsigned __int64 guid, unsigned int offset, unsigned int, const void *prevValue, void *) {
+static int UpdateInvContents(unsigned __int64 guid, unsigned int offset, unsigned int, const void *prevValue, void *) {
   CGContainerInfo::UpdateContents(guid);
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
@@ -65,12 +65,12 @@ static int __fastcall UpdateInvContents(unsigned __int64 guid, unsigned int offs
   return 1;
 }
 
-static int __fastcall InvUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int InvUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   CGContainerInfo::UpdateContainers();
   return 1;
 }
 
-void __fastcall CGContainerInfo::EnterWorld() {
+void CGContainerInfo::EnterWorld() {
   unsigned __int64 player = ClntObjMgrGetActivePlayer();
   unsigned int     playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
   ClntObjMgrSetObjMirrorHandler(player, playerOffset + 152, 32, InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
@@ -82,7 +82,7 @@ void __fastcall CGContainerInfo::EnterWorld() {
   UpdateContainers();
 }
 
-void __fastcall CGContainerInfo::LeaveWorld() {
+void CGContainerInfo::LeaveWorld() {
   unsigned int containerOffset = CGUnit_C::OffsetOf(ID_CONTAINER);
   for (int i = 0; i < 10; ++i) {
     unsigned __int64 container = m_containers[i];
@@ -107,7 +107,7 @@ void __fastcall CGContainerInfo::LeaveWorld() {
   ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + 504, InvUpdateHandler, 0);
 }
 
-void __fastcall CGContainerInfo::UpdateContainers() {
+void CGContainerInfo::UpdateContainers() {
   CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!object) {
     return;
@@ -146,7 +146,7 @@ void __fastcall CGContainerInfo::UpdateContainers() {
   }
 }
 
-void __fastcall CGContainerInfo::UpdateContents(unsigned __int64 guid) {
+void CGContainerInfo::UpdateContents(unsigned __int64 guid) {
   CGActionBar::UpdateUsable();
   if (guid == ClntObjMgrGetActivePlayer()) {
     FrameScript_SignalEvent(305, "%d", 0);
@@ -160,18 +160,18 @@ void __fastcall CGContainerInfo::UpdateContents(unsigned __int64 guid) {
   }
 }
 
-void __fastcall CGContainerInfo::UpdateCooldowns() {
+void CGContainerInfo::UpdateCooldowns() {
   FrameScript_SignalEvent(307);
 }
 
-unsigned __int64 __fastcall CGContainerInfo::GetContainer(int index) {
+unsigned __int64 CGContainerInfo::GetContainer(int index) {
   if (!index) {
     return ClntObjMgrGetActivePlayer();
   }
   return index > 0 && index <= 10 ? m_containers[index - 1] : 0;
 }
 
-void __fastcall CGContainerInfo::OpenContainer(unsigned __int64 container) {
+void CGContainerInfo::OpenContainer(unsigned __int64 container) {
   if (container == ClntObjMgrGetActivePlayer()) {
     FrameScript_SignalEvent(304, "%d", 0);
     return;
@@ -184,7 +184,7 @@ void __fastcall CGContainerInfo::OpenContainer(unsigned __int64 container) {
   }
 }
 
-void __fastcall CGContainerInfo::UpdateItem(unsigned __int64 item) {
+void CGContainerInfo::UpdateItem(unsigned __int64 item) {
   CGItem_C *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item, __FILE__, __LINE__));
   if (itemPtr) {
     if (itemPtr->GetOwner() == ClntObjMgrGetActivePlayer()) {
@@ -193,7 +193,7 @@ void __fastcall CGContainerInfo::UpdateItem(unsigned __int64 item) {
   }
 }
 
-static int __fastcall Script_GetContainerNumSlots(lua_State *L) {
+static int Script_GetContainerNumSlots(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetContainerNumSlots(index)");
   }
@@ -209,7 +209,7 @@ static int __fastcall Script_GetContainerNumSlots(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetContainerItemInfo(lua_State *L) {
+static int Script_GetContainerItemInfo(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: GetContainerItemInfo(index, slot)");
   }
@@ -242,7 +242,7 @@ static int __fastcall Script_GetContainerItemInfo(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_GetContainerItemLink(lua_State *L) {
+static int Script_GetContainerItemLink(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: GetContainerItemLink(index, slot)");
   }
@@ -269,7 +269,7 @@ static int __fastcall Script_GetContainerItemLink(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetContainerItemCooldown(lua_State *L) {
+static int Script_GetContainerItemCooldown(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: GetContainerItemCooldown(index, slot)");
   }
@@ -294,7 +294,7 @@ static int __fastcall Script_GetContainerItemCooldown(lua_State *L) {
   return 3;
 }
 
-static int __fastcall Script_PickupContainerItem(lua_State *L) {
+static int Script_PickupContainerItem(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: PickupContainerItem(index, slot)");
   }
@@ -335,7 +335,7 @@ static int __fastcall Script_PickupContainerItem(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SplitContainerItem(lua_State *L) {
+static int Script_SplitContainerItem(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
     return luaL_error(L, "Usage: SplitContainerItem(index, slot, amount)");
   }
@@ -357,7 +357,7 @@ static int __fastcall Script_SplitContainerItem(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_UseContainerItem(lua_State *L) {
+static int Script_UseContainerItem(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: UseContainerItem(index, slot)");
   }
@@ -385,7 +385,7 @@ static int __fastcall Script_UseContainerItem(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ShowContainerSellCursor(lua_State *L) {
+static int Script_ShowContainerSellCursor(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: ShowContainerSellCursor(index, slot)");
   }
@@ -393,7 +393,7 @@ static int __fastcall Script_ShowContainerSellCursor(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetBagPortaitTexture(lua_State *L) {
+static int Script_SetBagPortaitTexture(lua_State *L) {
   if (lua_type(L, 1) != LUA_TTABLE) {
     return luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)");
   }
@@ -417,7 +417,7 @@ static int __fastcall Script_SetBagPortaitTexture(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetBagName(lua_State *L) {
+static int Script_GetBagName(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetBagName(index)");
   }
@@ -450,13 +450,13 @@ static FrameScript_Method s_ScriptFunctions[10] = {
     {              "GetBagName",               Script_GetBagName}
 };
 
-void __fastcall ContainerRegisterScriptFunctions() {
+void ContainerRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 10; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall ContainerUnregisterScriptFunctions() {
+void ContainerUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 10; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

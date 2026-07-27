@@ -38,7 +38,7 @@ namespace NTempest {
     ~CImVector() {
     }
 
-    static unsigned long __fastcall MakeARGB(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
+    static unsigned long MakeARGB(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
       return (static_cast<unsigned long>(alpha) << 24) | (static_cast<unsigned long>(red) << 16) | (static_cast<unsigned long>(green) << 8) |
              static_cast<unsigned long>(blue);
     }
@@ -401,7 +401,7 @@ namespace NTempest {
     return *this;
   }
 
-  void __fastcall RGBtoHSV(const C3Vector &rgb, C3Vector &hsv);
-  void __fastcall HSVtoRGB(const C3Vector &hsv, C3Vector &rgb);
+  void RGBtoHSV(const C3Vector &rgb, C3Vector &hsv);
+  void HSVtoRGB(const C3Vector &hsv, C3Vector &rgb);
 
 }  // namespace NTempest

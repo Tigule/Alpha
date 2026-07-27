@@ -9,7 +9,7 @@
 
 class CStatus;
 
-int __fastcall MDLFileRead(const char *path, MDLDATA *mdldata, CStatus *status);
+int MDLFileRead(const char *path, MDLDATA *mdldata, CStatus *status);
 
 TSHashTable<CSimpleDoodad, HASHKEY_NONE> CSimpleDoodad::simpleDoodadHash;
 CGxBuf                                  *CSimpleDoodad::gxBufDyn;
@@ -17,12 +17,12 @@ HASHKEY_NONE                             CSimpleDoodad::nullHashKey;
 
 static TSExplicitList<CSimpleDoodad, 200> simpleDoodadScene;
 
-void __fastcall CSimpleDoodad::Initialize() {
+void CSimpleDoodad::Initialize() {
   gxBufDyn = GxBufCreate(GxBWF_Dynamic, GxVBF_PNT0, 0x2000, 0x2000, GxBufDynCallback, 0);
   ASSERT(gxBufDyn);
 }
 
-void __fastcall CSimpleDoodad::Destroy() {
+void CSimpleDoodad::Destroy() {
   ClearCache();
 
   if (gxBufDyn) {
@@ -31,11 +31,11 @@ void __fastcall CSimpleDoodad::Destroy() {
   gxBufDyn = 0;
 }
 
-void __fastcall CSimpleDoodad::ClearCache() {
+void CSimpleDoodad::ClearCache() {
   simpleDoodadHash.Clear();
 }
 
-CSimpleDoodad *__fastcall CSimpleDoodad::Create(const char *fileName) {
+CSimpleDoodad *CSimpleDoodad::Create(const char *fileName) {
   unsigned int   hashval = SStrHashHT(fileName);
   CSimpleDoodad *simpleDoodad = simpleDoodadHash.Ptr(hashval, nullHashKey);
   if (simpleDoodad) {
@@ -53,7 +53,7 @@ CSimpleDoodad *__fastcall CSimpleDoodad::Create(const char *fileName) {
   return 0;
 }
 
-void __fastcall CSimpleDoodad::Delete(CSimpleDoodad *simpleDoodad) {
+void CSimpleDoodad::Delete(CSimpleDoodad *simpleDoodad) {
   ASSERT(simpleDoodad);
 
   if (--simpleDoodad->refCount <= 0) {
@@ -61,10 +61,10 @@ void __fastcall CSimpleDoodad::Delete(CSimpleDoodad *simpleDoodad) {
   }
 }
 
-void __fastcall CSimpleDoodad::PrepareUpdate() {
+void CSimpleDoodad::PrepareUpdate() {
 }
 
-void __fastcall CSimpleDoodad::AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef) {
+void CSimpleDoodad::AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef) {
   simpleDoodad->matrixList.Add(&mat);
   simpleDoodad->doodadDefList.Add(&doodadDef);
 
@@ -73,7 +73,7 @@ void __fastcall CSimpleDoodad::AddToScene(CSimpleDoodad *simpleDoodad, NTempest:
   }
 }
 
-void __fastcall CSimpleDoodad::RenderScene() {
+void CSimpleDoodad::RenderScene() {
   GxRsPush();
   GxRsSet(GxRs_DepthWrite, 1);
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
@@ -116,7 +116,7 @@ void __fastcall CSimpleDoodad::RenderScene() {
   GxRsPop();
 }
 
-int __fastcall CSimpleDoodad::Read(const char *fileName, CSimpleDoodad *simpleDoodad) {
+int CSimpleDoodad::Read(const char *fileName, CSimpleDoodad *simpleDoodad) {
   ASSERT(fileName);
 
   MDLDATA mdlData;
@@ -127,7 +127,7 @@ int __fastcall CSimpleDoodad::Read(const char *fileName, CSimpleDoodad *simpleDo
   return MdlReadCallback(mdlData, simpleDoodad);
 }
 
-int __fastcall CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad) {
+int CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad) {
   ASSERT(simpleDoodad);
 
   if (data.materials.Count() > 4) {
@@ -201,10 +201,10 @@ int __fastcall CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad
   return 1;
 }
 
-void __fastcall CSimpleDoodad::MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CSimpleDoodad *simpleDoodad) {
+void CSimpleDoodad::MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CSimpleDoodad *simpleDoodad) {
 }
 
-void __fastcall CSimpleDoodad::GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf) {
+void CSimpleDoodad::GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf) {
   CSimpleDoodadGeoset *geoset;
 
   ASSERT(buf);
@@ -216,7 +216,7 @@ void __fastcall CSimpleDoodad::GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf)
   CreateIndices(geoset, cmd, buf);
 }
 
-void __fastcall CSimpleDoodad::CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf) {
+void CSimpleDoodad::CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPNT0 *vtxBase;
   unsigned int   index;
 
@@ -248,7 +248,7 @@ void __fastcall CSimpleDoodad::CreateVertices(CSimpleDoodadGeoset *geoset, const
   }
 }
 
-void __fastcall CSimpleDoodad::CreateIndices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf) {
+void CSimpleDoodad::CreateIndices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf) {
   unsigned short *idx;
 
   ASSERT(geoset);

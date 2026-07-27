@@ -17,16 +17,16 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-static int __fastcall Script_SetTaxiMap(lua_State *L);
-static int __fastcall Script_SetTaxiRoute(lua_State *L);
-static int __fastcall Script_NumTaxiNodes(lua_State *L);
-static int __fastcall Script_TaxiNodeName(lua_State *L);
-static int __fastcall Script_TaxiNodePosition(lua_State *L);
-static int __fastcall Script_TaxiNodeCost(lua_State *L);
-static int __fastcall Script_TakeTaxiNode(lua_State *L);
-static int __fastcall Script_CloseTaxiMap(lua_State *L);
-static int __fastcall Script_GetTextureCoordinates(lua_State *L);
-static int __fastcall Script_TaxiNodeGetType(lua_State *L);
+static int Script_SetTaxiMap(lua_State *L);
+static int Script_SetTaxiRoute(lua_State *L);
+static int Script_NumTaxiNodes(lua_State *L);
+static int Script_TaxiNodeName(lua_State *L);
+static int Script_TaxiNodePosition(lua_State *L);
+static int Script_TaxiNodeCost(lua_State *L);
+static int Script_TakeTaxiNode(lua_State *L);
+static int Script_CloseTaxiMap(lua_State *L);
+static int Script_GetTextureCoordinates(lua_State *L);
+static int Script_TaxiNodeGetType(lua_State *L);
 
 static const char *s_taxiNodeNames[4] = {"NONE", "CURRENT", "REACHABLE", "DISTANT"};
 
@@ -34,21 +34,21 @@ unsigned __int64       CGTaxiMap::m_unit;
 unsigned int           CGTaxiMap::m_startNode;
 TSCArray<TaxiNode, 64> CGTaxiMap::m_nodes;
 
-void __fastcall CGTaxiMap::InitializeGame() {
+void CGTaxiMap::InitializeGame() {
   m_unit = 0;
 }
 
-void __fastcall CGTaxiMap::ShutdownGame() {
+void CGTaxiMap::ShutdownGame() {
 }
 
-void __fastcall CGTaxiMap::EnterWorld() {
+void CGTaxiMap::EnterWorld() {
 }
 
-void __fastcall CGTaxiMap::LeaveWorld() {
+void CGTaxiMap::LeaveWorld() {
   CloseMap();
 }
 
-void __fastcall CGTaxiMap::SetupMap(
+void CGTaxiMap::SetupMap(
     const unsigned __int64 &unit,
     unsigned int            node,
     __int64                 destNodes,
@@ -94,7 +94,7 @@ void __fastcall CGTaxiMap::SetupMap(
   FrameScript_SignalEvent(283);
 }
 
-void __fastcall CGTaxiMap::CloseMap() {
+void CGTaxiMap::CloseMap() {
   if (m_unit) {
     CGGameUI::ClearInteractTarget(m_unit);
     m_unit = 0;
@@ -103,30 +103,30 @@ void __fastcall CGTaxiMap::CloseMap() {
   }
 }
 
-const char *__fastcall CGTaxiMap::TaxiNodeName(unsigned int slot) {
+const char *CGTaxiMap::TaxiNodeName(unsigned int slot) {
   FATALASSERT(slot < NumTaxiNodes());
   TaxiNodesRec *node = g_taxiNodesDB.GetRecord(m_nodes[slot].id);
   FATALASSERT(node);
   return node->m_Name_lang[CURRENT_LANGUAGE];
 }
 
-const char *__fastcall CGTaxiMap::TaxiNodeType(unsigned int slot) {
+const char *CGTaxiMap::TaxiNodeType(unsigned int slot) {
   FATALASSERT(slot < NumTaxiNodes());
   return s_taxiNodeNames[TaxiNodeGetNodeType(m_nodes[slot].id)];
 }
 
-void __fastcall CGTaxiMap::TaxiNodePosition(unsigned int slot, float &x, float &y) {
+void CGTaxiMap::TaxiNodePosition(unsigned int slot, float &x, float &y) {
   FATALASSERT(slot < NumTaxiNodes());
   x = m_nodes[slot].x;
   y = m_nodes[slot].y;
 }
 
-unsigned int __fastcall CGTaxiMap::TaxiNodeCost(unsigned int slot) {
+unsigned int CGTaxiMap::TaxiNodeCost(unsigned int slot) {
   FATALASSERT(slot < NumTaxiNodes());
   return ::TaxiNodeCost(m_startNode, m_nodes[slot].id);
 }
 
-void __fastcall CGTaxiMap::TakeTaxiNode(unsigned int slot) {
+void CGTaxiMap::TakeTaxiNode(unsigned int slot) {
   FATALASSERT(slot < NumTaxiNodes());
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
@@ -160,13 +160,13 @@ void __fastcall CGTaxiMap::TakeTaxiNode(unsigned int slot) {
   }                                                             \
   FATALASSERT(object)
 
-static int __fastcall Script_SetTaxiMap(lua_State *L) {
+static int Script_SetTaxiMap(lua_State *L) {
   GET_TAXI_OBJECT_THIS(L, CSimpleTexture, object);
   object->SetTexture(TaxiMapGetTexture());
   return 0;
 }
 
-static int __fastcall Script_SetTaxiRoute(lua_State *L) {
+static int Script_SetTaxiRoute(lua_State *L) {
   CSimpleModel *model = static_cast<CSimpleModel *>(SimpleFrameRegistryGetEntry("TaxiRouteMap", 0));
   if (model && !model->GetModel()) {
     HMODEL route = TaxiGetRouteModel(model->GetWidth(), model->GetHeight());
@@ -178,12 +178,12 @@ static int __fastcall Script_SetTaxiRoute(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_NumTaxiNodes(lua_State *L) {
+static int Script_NumTaxiNodes(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGTaxiMap::NumTaxiNodes()));
   return 1;
 }
 
-static int __fastcall Script_TaxiNodeName(lua_State *L) {
+static int Script_TaxiNodeName(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TaxiNodeName(slot)");
   }
@@ -195,7 +195,7 @@ static int __fastcall Script_TaxiNodeName(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_TaxiNodePosition(lua_State *L) {
+static int Script_TaxiNodePosition(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TaxiNodeTaxiNodeLocation(slot)");
   }
@@ -211,7 +211,7 @@ static int __fastcall Script_TaxiNodePosition(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_TaxiNodeCost(lua_State *L) {
+static int Script_TaxiNodeCost(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TaxiNodeCost(slot)");
   }
@@ -223,7 +223,7 @@ static int __fastcall Script_TaxiNodeCost(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_TakeTaxiNode(lua_State *L) {
+static int Script_TakeTaxiNode(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TakeTaxiNode(slot)");
   }
@@ -234,12 +234,12 @@ static int __fastcall Script_TakeTaxiNode(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_CloseTaxiMap(lua_State *L) {
+static int Script_CloseTaxiMap(lua_State *L) {
   CGTaxiMap::CloseMap();
   return 0;
 }
 
-static int __fastcall Script_GetTextureCoordinates(lua_State *L) {
+static int Script_GetTextureCoordinates(lua_State *L) {
   NTempest::CRect rect = TaxiMapGetRect();
   lua_pushnumber(L, rect.l);
   lua_pushnumber(L, rect.r);
@@ -248,7 +248,7 @@ static int __fastcall Script_GetTextureCoordinates(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_TaxiNodeGetType(lua_State *L) {
+static int Script_TaxiNodeGetType(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TakeTaxiNode(slot)");
   }
@@ -275,13 +275,13 @@ static FrameScript_Method s_ScriptFunctions[10] = {
     { "TaxiNodeGetType",       Script_TaxiNodeGetType}
 };
 
-void __fastcall CGTaxiMap::RegisterScriptFunctions() {
+void CGTaxiMap::RegisterScriptFunctions() {
   for (unsigned int i = 0; i < 10; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall CGTaxiMap::UnregisterScriptFunctions() {
+void CGTaxiMap::UnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 10; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellVisualKitRec::GetFilename() {
+const char *SpellVisualKitRec::GetFilename() {
   return "DBFilesClient\\SpellVisualKit.dbc";
 }
 

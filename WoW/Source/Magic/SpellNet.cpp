@@ -24,7 +24,7 @@ struct SpellCast {
   unsigned short     flags;
 };
 
-void __fastcall SpellPutCastTargets(SpellCast *cast, CDataStore *msg) {
+void SpellPutCastTargets(SpellCast *cast, CDataStore *msg) {
   msg->Put(cast->targets);
   if (cast->targets & 0x802) {
     msg->Put(cast->unitTarget);
@@ -47,7 +47,7 @@ void __fastcall SpellPutCastTargets(SpellCast *cast, CDataStore *msg) {
   }
 }
 
-void __fastcall SpellGetCastTargets(SpellCast* cast, CDataStore* msg) {
+void SpellGetCastTargets(SpellCast* cast, CDataStore* msg) {
   msg->Get(cast->targets);
   if (cast->targets & 0x802) {
     msg->Get(cast->unitTarget);

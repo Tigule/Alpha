@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall LockTypeRec::GetFilename() {
+const char *LockTypeRec::GetFilename() {
   return "DBFilesClient\\LockType.dbc";
 }
 

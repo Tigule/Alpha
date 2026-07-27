@@ -26,32 +26,32 @@ struct CLightList : public TSHashObject<CLightList, HASHKEY_DWORD> {
   static TSHashTableReuse<CLightList, HASHKEY_DWORD, 1> s_lightHashTable;
 };
 
-extern void(__fastcall *GxuLightInitialize)();
-extern void(__fastcall *GxuLightShutdown)();
-extern unsigned long(__fastcall *GxuLightCreate)();
-extern void(__fastcall *GxuLightDestroy)(unsigned long lightId);
-extern CGxLight *(__fastcall *GxuLightLock)(unsigned long lightId);
-extern void(__fastcall *GxuLightUnlock)(unsigned long lightId);
-extern void(__fastcall *GxuLightSelect)(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
-extern int(__fastcall *GxuLightEnable)(unsigned long lightId);
-extern void(__fastcall *GxuLightEnableSet)(unsigned long lightId, int enable);
-extern void(__fastcall *GxuLightSetMaxLights)(unsigned int maxLightsToUse);
-extern float(__fastcall *GxuLightBucketSize)();
-extern void(__fastcall *GxuLightBucketSizeSet)(float bucketSize);
-extern void(__fastcall *GxuLightResetCache)();
+extern void(*GxuLightInitialize)();
+extern void(*GxuLightShutdown)();
+extern unsigned long(*GxuLightCreate)();
+extern void(*GxuLightDestroy)(unsigned long lightId);
+extern CGxLight *(*GxuLightLock)(unsigned long lightId);
+extern void(*GxuLightUnlock)(unsigned long lightId);
+extern void(*GxuLightSelect)(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
+extern int(*GxuLightEnable)(unsigned long lightId);
+extern void(*GxuLightEnableSet)(unsigned long lightId, int enable);
+extern void(*GxuLightSetMaxLights)(unsigned int maxLightsToUse);
+extern float(*GxuLightBucketSize)();
+extern void(*GxuLightBucketSizeSet)(float bucketSize);
+extern void(*GxuLightResetCache)();
 
-void __fastcall GxuLightFuncsSet(
-    void(__fastcall *initializeFunc)(),
-    void(__fastcall *shutDownFunc)(),
-    unsigned long(__fastcall *createFunc)(),
-    void(__fastcall *destroyFunc)(unsigned long lightId),
-    CGxLight *(__fastcall *lockFunc)(unsigned long lightId),
-    void(__fastcall *unlockFunc)(unsigned long lightId),
-    void(__fastcall *selectFunc)(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse),
-    int(__fastcall *enableFunc)(unsigned long lightId),
-    void(__fastcall *enableSetFunc)(unsigned long lightId, int enable),
-    void(__fastcall *setMaxLightsFunc)(unsigned int maxLightsToUse),
-    float(__fastcall *bucketSizeFunc)(),
-    void(__fastcall *bucketSizeSetFunc)(float bucketSize),
-    void(__fastcall *resetCacheFunc)()
+void GxuLightFuncsSet(
+    void(*initializeFunc)(),
+    void(*shutDownFunc)(),
+    unsigned long(*createFunc)(),
+    void(*destroyFunc)(unsigned long lightId),
+    CGxLight *(*lockFunc)(unsigned long lightId),
+    void(*unlockFunc)(unsigned long lightId),
+    void(*selectFunc)(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse),
+    int(*enableFunc)(unsigned long lightId),
+    void(*enableSetFunc)(unsigned long lightId, int enable),
+    void(*setMaxLightsFunc)(unsigned int maxLightsToUse),
+    float(*bucketSizeFunc)(),
+    void(*bucketSizeSetFunc)(float bucketSize),
+    void(*resetCacheFunc)()
 );

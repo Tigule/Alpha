@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall WMOAreaTableRec::GetFilename() {
+const char *WMOAreaTableRec::GetFilename() {
   return "DBFilesClient\\WMOAreaTable.dbc";
 }
 

@@ -37,15 +37,15 @@ class CSimpleDoodadGeoset {
 
 struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
  public:
-  static void __fastcall Initialize();
-  static void __fastcall Destroy();
-  static void __fastcall ClearCache();
+  static void Initialize();
+  static void Destroy();
+  static void ClearCache();
 
-  static CSimpleDoodad *__fastcall Create(const char *fileName);
-  static void __fastcall  Delete(CSimpleDoodad *simpleDoodad);
-  static void __fastcall  PrepareUpdate();
-  static void __fastcall  AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef);
-  static void __fastcall  RenderScene();
+  static CSimpleDoodad *Create(const char *fileName);
+  static void Delete(CSimpleDoodad *simpleDoodad);
+  static void PrepareUpdate();
+  static void AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef);
+  static void RenderScene();
 
   ~CSimpleDoodad() {
     for (unsigned int index = 0; index < nTextures; ++index) {
@@ -82,13 +82,13 @@ struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
   static HASHKEY_NONE                             nullHashKey;
   static CGxBuf                                  *gxBufDyn;
 
-  static int __fastcall  Read(const char *fileName, CSimpleDoodad *simpleDoodad);
-  static int __fastcall  MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad);
-  static void __fastcall MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CSimpleDoodad *simpleDoodad);
+  static int Read(const char *fileName, CSimpleDoodad *simpleDoodad);
+  static int MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad);
+  static void MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CSimpleDoodad *simpleDoodad);
 
-  static void __fastcall GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf);
-  static void __fastcall CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf);
-  static void __fastcall CreateIndices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf);
+  static void GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf);
+  static void CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf);
+  static void CreateIndices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf);
 };
 
 #endif

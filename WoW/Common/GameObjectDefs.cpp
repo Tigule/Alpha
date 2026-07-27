@@ -2,8 +2,8 @@
 
 class CGameObjectDef {
  public:
-  static const char *__fastcall NameFromTypeId(int typeId);
-  static int __fastcall GetPropNum(int typeId, int propId);
+  static const char *NameFromTypeId(int typeId);
+  static int GetPropNum(int typeId, int propId);
 };
 
 struct ObjectInfo {
@@ -51,12 +51,12 @@ static ObjectInfo s_objectInfo[19] = {
     { 2,      s_ritualPropertiesList, 0,      "ritual", 0}
 };
 
-const char *__fastcall CGameObjectDef::NameFromTypeId(int typeId) {
+const char *CGameObjectDef::NameFromTypeId(int typeId) {
   FATALASSERT(typeId >= 0 && typeId < 19);
   return typeId >= 0 && typeId < 19 ? s_objectInfo[typeId].name : 0;
 }
 
-int __fastcall CGameObjectDef::GetPropNum(int typeId, int propId) {
+int CGameObjectDef::GetPropNum(int typeId, int propId) {
   if (typeId >= 19 || propId >= 38) {
     return -1;
   }

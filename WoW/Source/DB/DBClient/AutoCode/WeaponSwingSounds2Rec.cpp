@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall WeaponSwingSounds2Rec::GetFilename() {
+const char *WeaponSwingSounds2Rec::GetFilename() {
   return "DBFilesClient\\WeaponSwingSounds2.dbc";
 }
 

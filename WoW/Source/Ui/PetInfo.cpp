@@ -20,7 +20,7 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-int __fastcall Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+int Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
 
 static const char s_petModeTokens[3][32] = {"PASSIVE", "DEFENSIVE", "AGGRESSIVE"};
 static const char s_petOrdersTokens[4][32] = {"WAIT", "FOLLOW", "ATTACK", "DISMISS"};
@@ -30,21 +30,21 @@ unsigned int     CGPetInfo::m_petMode;
 PetAction        CGPetInfo::m_actions[10];
 unsigned long    CGPetInfo::m_expirationTime;
 
-void __fastcall CGPetInfo::InitializeGame() {
+void CGPetInfo::InitializeGame() {
 }
 
-void __fastcall CGPetInfo::EnterWorld() {
+void CGPetInfo::EnterWorld() {
   FrameScript_SignalEvent(192);
   SetPet(0, 0);
 }
 
-void __fastcall CGPetInfo::LeaveWorld() {
+void CGPetInfo::LeaveWorld() {
 }
 
-void __fastcall CGPetInfo::ShutdownGame() {
+void CGPetInfo::ShutdownGame() {
 }
 
-void __fastcall CGPetInfo::SetPet(unsigned __int64 pet, unsigned long expirationTime) {
+void CGPetInfo::SetPet(unsigned __int64 pet, unsigned long expirationTime) {
   m_pet = pet;
   if (expirationTime) {
     m_expirationTime = OsGetAsyncTimeMs() + expirationTime;
@@ -62,27 +62,27 @@ void __fastcall CGPetInfo::SetPet(unsigned __int64 pet, unsigned long expiration
   }
 }
 
-void __fastcall CGPetInfo::SetPetModeAndOrders(unsigned int petMode) {
+void CGPetInfo::SetPetModeAndOrders(unsigned int petMode) {
   m_petMode = petMode;
 }
 
-void __fastcall CGPetInfo::SetPetMode(unsigned int mode) {
+void CGPetInfo::SetPetMode(unsigned int mode) {
   FATALASSERT(mode < 256);
   m_petMode = mode | m_petMode & 0xFFFFFF00;
   FrameScript_SignalEvent(333);
 }
 
-void __fastcall CGPetInfo::SetPetOrders(unsigned int orders) {
+void CGPetInfo::SetPetOrders(unsigned int orders) {
   FATALASSERT(orders < 256);
   m_petMode = orders << 8 | m_petMode & 0xFF;
   FrameScript_SignalEvent(333);
 }
 
-void __fastcall CGPetInfo::ClearActions() {
+void CGPetInfo::ClearActions() {
   memset(m_actions, 0, sizeof(m_actions));
 }
 
-void __fastcall CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
+void CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
   FATALASSERT(index < sizeof(m_actions) / sizeof(m_actions[0]));
 
   unsigned int &rawAction = action;
@@ -137,7 +137,7 @@ void __fastcall CGPetInfo::SetAction(unsigned int index, PetAction &action, int 
   }
 }
 
-void __fastcall CGPetInfo::ToggleAutocast(unsigned int index) {
+void CGPetInfo::ToggleAutocast(unsigned int index) {
   FATALASSERT(index < 10);
   unsigned int &action = m_actions[index];
   if (static_cast<int>(action) < 0) {
@@ -154,7 +154,7 @@ void __fastcall CGPetInfo::ToggleAutocast(unsigned int index) {
   }
 }
 
-void __fastcall CGPetInfo::PutActionInSlot(PetAction &action, unsigned int slot) {
+void CGPetInfo::PutActionInSlot(PetAction &action, unsigned int slot) {
   unsigned int rawAction = action;
   for (unsigned int i = 0; i < 10; ++i) {
     unsigned int current = m_actions[i];
@@ -168,29 +168,29 @@ void __fastcall CGPetInfo::PutActionInSlot(PetAction &action, unsigned int slot)
   SetAction(slot, action, 1);
 }
 
-const char *__fastcall CGPetInfo::GetModeToken(unsigned int id) {
+const char *CGPetInfo::GetModeToken(unsigned int id) {
   FATALASSERT(id < sizeof(s_petModeTokens) / sizeof(s_petModeTokens[0]));
   return s_petModeTokens[id];
 }
 
-const char *__fastcall CGPetInfo::GetOrdersToken(unsigned int id) {
+const char *CGPetInfo::GetOrdersToken(unsigned int id) {
   FATALASSERT(id < sizeof(s_petOrdersTokens) / sizeof(s_petOrdersTokens[0]));
   return s_petOrdersTokens[id];
 }
 
-void __fastcall CGPetInfo::ShowGrid() {
+void CGPetInfo::ShowGrid() {
   FrameScript_SignalEvent(335);
 }
 
-void __fastcall CGPetInfo::HideGrid() {
+void CGPetInfo::HideGrid() {
   FrameScript_SignalEvent(336);
 }
 
-void __fastcall CGPetInfo::UpdateCooldowns() {
+void CGPetInfo::UpdateCooldowns() {
   FrameScript_SignalEvent(334);
 }
 
-void __fastcall CGPetInfo::SendPetAction(PetAction &action, const unsigned __int64 &target) {
+void CGPetInfo::SendPetAction(PetAction &action, const unsigned __int64 &target) {
   unsigned __int64 actionTarget = target ? target : CGGameUI::GetLockedTarget();
   unsigned int     rawAction = action;
   unsigned int     actionType = rawAction >> 24 & 0x3F;
@@ -222,49 +222,49 @@ void __fastcall CGPetInfo::SendPetAction(PetAction &action, const unsigned __int
   ClientServices_Send(&msg);
 }
 
-void __fastcall CGPetInfo::PetPassiveMode() {
+void CGPetInfo::PetPassiveMode() {
   PetAction              action(0x06000000);
   const unsigned __int64 noTarget = 0;
   SendPetAction(action, noTarget);
 }
 
-void __fastcall CGPetInfo::PetDefensiveMode() {
+void CGPetInfo::PetDefensiveMode() {
   PetAction              action(0x06000001);
   const unsigned __int64 noTarget = 0;
   SendPetAction(action, noTarget);
 }
 
-void __fastcall CGPetInfo::PetAggressiveMode() {
+void CGPetInfo::PetAggressiveMode() {
   PetAction              action(0x06000002);
   const unsigned __int64 noTarget = 0;
   SendPetAction(action, noTarget);
 }
 
-void __fastcall CGPetInfo::PetWait() {
+void CGPetInfo::PetWait() {
   PetAction              action(0x07000000);
   const unsigned __int64 noTarget = 0;
   SendPetAction(action, noTarget);
 }
 
-void __fastcall CGPetInfo::PetFollow() {
+void CGPetInfo::PetFollow() {
   PetAction              action(0x07000001);
   const unsigned __int64 noTarget = 0;
   SendPetAction(action, noTarget);
 }
 
-void __fastcall CGPetInfo::PetAttackTarget(const unsigned __int64 &targetGUID) {
+void CGPetInfo::PetAttackTarget(const unsigned __int64 &targetGUID) {
   PetAction action(0x07000002);
   SendPetAction(action, targetGUID);
 }
 
-void __fastcall CGPetInfo::PetDismiss() {
+void CGPetInfo::PetDismiss() {
   PetAction              action(0x07000003);
   const unsigned __int64 noTarget = 0;
   SendPetAction(action, noTarget);
   FrameScript_SignalEvent(368, "%d", 10000);
 }
 
-void __fastcall CGPetInfo::PetAbandon() {
+void CGPetInfo::PetAbandon() {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_PET_ABANDON));
   msg.Put(m_pet);
@@ -272,7 +272,7 @@ void __fastcall CGPetInfo::PetAbandon() {
   ClientServices_Send(&msg);
 }
 
-void __fastcall CGPetInfo::PetRename(const char *newName) {
+void CGPetInfo::PetRename(const char *newName) {
   CGUnit_C *pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_pet, __FILE__, __LINE__));
   if (!pet) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(217));
@@ -302,7 +302,7 @@ void __fastcall CGPetInfo::PetRename(const char *newName) {
   ClientServices_Send(&msg);
 }
 
-static int __fastcall Script_PetHasActionBar(lua_State *L) {
+static int Script_PetHasActionBar(lua_State *L) {
   if (CGPetInfo::GetPet())
     lua_pushnumber(L, 1.0);
   else
@@ -310,7 +310,7 @@ static int __fastcall Script_PetHasActionBar(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetPetActionInfo(lua_State *L) {
+static int Script_GetPetActionInfo(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetPetActionInfo(index)");
   unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
@@ -365,7 +365,7 @@ static int __fastcall Script_GetPetActionInfo(lua_State *L) {
   return 7;
 }
 
-static int __fastcall Script_GetPetActionCooldown(lua_State *L) {
+static int Script_GetPetActionCooldown(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetPetActionCooldown(index)");
   PetAction    *action = CGPetInfo::GetAction(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
@@ -383,7 +383,7 @@ static int __fastcall Script_GetPetActionCooldown(lua_State *L) {
   return 3;
 }
 
-static int __fastcall Script_PickupPetAction(lua_State *L) {
+static int Script_PickupPetAction(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: PickupPetAction(index)");
   }
@@ -418,7 +418,7 @@ static int __fastcall Script_PickupPetAction(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_TogglePetAutocast(lua_State *L) {
+static int Script_TogglePetAutocast(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TogglePetAutocast(index)");
   }
@@ -439,7 +439,7 @@ static int __fastcall Script_TogglePetAutocast(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_CastPetAction(lua_State *L) {
+static int Script_CastPetAction(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: CastPetAction(index)");
   }
@@ -465,52 +465,52 @@ static int __fastcall Script_CastPetAction(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_PetPassiveMode(lua_State *__formal) {
+static int Script_PetPassiveMode(lua_State *__formal) {
   CGPetInfo::PetPassiveMode();
   return 0;
 }
 
-static int __fastcall Script_PetDefensiveMode(lua_State *__formal) {
+static int Script_PetDefensiveMode(lua_State *__formal) {
   CGPetInfo::PetDefensiveMode();
   return 0;
 }
 
-static int __fastcall Script_PetAggressiveMode(lua_State *__formal) {
+static int Script_PetAggressiveMode(lua_State *__formal) {
   CGPetInfo::PetAggressiveMode();
   return 0;
 }
 
-static int __fastcall Script_PetWait(lua_State *__formal) {
+static int Script_PetWait(lua_State *__formal) {
   CGPetInfo::PetWait();
   return 0;
 }
 
-static int __fastcall Script_PetFollow(lua_State *__formal) {
+static int Script_PetFollow(lua_State *__formal) {
   CGPetInfo::PetFollow();
   return 0;
 }
 
-static int __fastcall Script_PetAttack(lua_State *__formal) {
+static int Script_PetAttack(lua_State *__formal) {
   CGPetInfo::PetAttackTarget(CGGameUI::GetLockedTarget());
   return 0;
 }
 
-static int __fastcall Script_PetAbandon(lua_State *__formal) {
+static int Script_PetAbandon(lua_State *__formal) {
   CGPetInfo::PetAbandon();
   return 0;
 }
 
-static int __fastcall Script_PetDismiss(lua_State *__formal) {
+static int Script_PetDismiss(lua_State *__formal) {
   CGPetInfo::PetDismiss();
   return 0;
 }
 
-static int __fastcall Script_PetRename(lua_State *L) {
+static int Script_PetRename(lua_State *L) {
   CGPetInfo::PetRename(lua_tostring(L, 1));
   return 0;
 }
 
-static int __fastcall Script_PetCanBeAbandoned(lua_State *L) {
+static int Script_PetCanBeAbandoned(lua_State *L) {
   CGUnit_C *pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(), __FILE__, __LINE__));
   if (pet && pet->GetUnitData()->summonedBy == ClntObjMgrGetActivePlayer() && (pet->GetUnitData()->flags & 0x20)) {
     lua_pushnumber(L, 1.0);
@@ -520,7 +520,7 @@ static int __fastcall Script_PetCanBeAbandoned(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_PetCanBeRenamed(lua_State *L) {
+static int Script_PetCanBeRenamed(lua_State *L) {
   CGUnit_C *pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(), __FILE__, __LINE__));
   if (pet && pet->GetUnitData()->summonedBy == ClntObjMgrGetActivePlayer() && (pet->GetUnitData()->flags & 0x10)) {
     lua_pushnumber(L, 1.0);
@@ -530,7 +530,7 @@ static int __fastcall Script_PetCanBeRenamed(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetPetTimeRemaining(lua_State *L) {
+static int Script_GetPetTimeRemaining(lua_State *L) {
   unsigned long expiration = CGPetInfo::GetExpirationTime();
   if (expiration) {
     unsigned long now = OsGetAsyncTimeMs();
@@ -562,13 +562,13 @@ static FrameScript_Method s_ScriptFunctions[18] = {
     { "GetPetTimeRemaining",  Script_GetPetTimeRemaining}
 };
 
-void __fastcall PetInfoRegisterScriptFunctions() {
+void PetInfoRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 18; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall PetInfoUnregisterScriptFunctions() {
+void PetInfoUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 18; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

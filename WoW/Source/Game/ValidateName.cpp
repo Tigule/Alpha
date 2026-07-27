@@ -13,16 +13,16 @@ static unsigned short Valid_Korean[0x92E] = {
 
 TSFixedArray<regex_t> g_profanityTokens;
 
-static VALIDATE_NAME_RESULT __fastcall
+static VALIDATE_NAME_RESULT
 ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, unsigned int &nameLength, CHARSET &charset);
-static CHARSET __fastcall GetCharSet(unsigned short ch);
-static bool __fastcall    IsAlpha(WOW_LOCALE locale, unsigned short ch);
-static bool __fastcall    IsLatin1(unsigned short ch);
-static bool __fastcall    IsAlphaLatin1(unsigned short ch);
-static bool __fastcall    IsKorean(unsigned short ch);
-static bool __fastcall    IsAlphaKorean(unsigned short ch);
+static CHARSET GetCharSet(unsigned short ch);
+static bool IsAlpha(WOW_LOCALE locale, unsigned short ch);
+static bool IsLatin1(unsigned short ch);
+static bool IsAlphaLatin1(unsigned short ch);
+static bool IsKorean(unsigned short ch);
+static bool IsAlphaKorean(unsigned short ch);
 
-void __fastcall ValidateNameInitialize() {
+void ValidateNameInitialize() {
   unsigned int numRecords = g_namesProfanityDB.GetNumRecords();
   unsigned int i;
 
@@ -37,11 +37,11 @@ void __fastcall ValidateNameInitialize() {
   }
 }
 
-void __fastcall ValidateNameDestroy() {
+void ValidateNameDestroy() {
   g_profanityTokens.Clear();
 }
 
-static VALIDATE_NAME_RESULT __fastcall
+static VALIDATE_NAME_RESULT
 ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, unsigned int &nameLength, CHARSET &charset) {
   unsigned short uniName[0x400];
   regmatch_t     match;
@@ -113,7 +113,7 @@ ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, un
   return NAME_SUCCESS;
 }
 
-VALIDATE_NAME_RESULT __fastcall ValidateCharacterName(WOW_LOCALE locale, const char *name) {
+VALIDATE_NAME_RESULT ValidateCharacterName(WOW_LOCALE locale, const char *name) {
   unsigned int         length;
   CHARSET              charset;
   VALIDATE_NAME_RESULT result = ValidateName(locale, 0, name, length, charset);
@@ -128,14 +128,14 @@ VALIDATE_NAME_RESULT __fastcall ValidateCharacterName(WOW_LOCALE locale, const c
   return result;
 }
 
-static CHARSET __fastcall GetCharSet(unsigned short ch) {
+static CHARSET GetCharSet(unsigned short ch) {
   if (IsLatin1(ch)) {
     return CHARSET_LATIN1;
   }
   return IsKorean(ch) ? CHARSET_KOREAN : CHARSET_UNKNOWN;
 }
 
-static bool __fastcall IsAlpha(WOW_LOCALE locale, unsigned short ch) {
+static bool IsAlpha(WOW_LOCALE locale, unsigned short ch) {
   if (IsLatin1(ch)) {
     return IsAlphaLatin1(ch);
   }
@@ -145,19 +145,19 @@ static bool __fastcall IsAlpha(WOW_LOCALE locale, unsigned short ch) {
   return 0;
 }
 
-static bool __fastcall IsLatin1(unsigned short ch) {
+static bool IsLatin1(unsigned short ch) {
   return ch <= 0x00FF;
 }
 
-static bool __fastcall IsAlphaLatin1(unsigned short ch) {
+static bool IsAlphaLatin1(unsigned short ch) {
   return (ch >= 0x0041 && ch <= 0x005A) || (ch >= 0x0061 && ch <= 0x007A) || (ch >= 0x00C0 && ch <= 0x00DD) || (ch >= 0x00E0 && ch <= 0x00FF);
 }
 
-static bool __fastcall IsKorean(unsigned short ch) {
+static bool IsKorean(unsigned short ch) {
   return (ch >= 0x1100 && ch <= 0x11FF) || (ch >= 0x3130 && ch <= 0x318F) || (ch >= 0xAC00 && ch <= 0xD7A3);
 }
 
-static bool __fastcall IsAlphaKorean(unsigned short ch) {
+static bool IsAlphaKorean(unsigned short ch) {
   if (ch < 0xAC00 || ch > 0xD7A3) {
     return 0;
   }

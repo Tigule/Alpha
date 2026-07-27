@@ -4,7 +4,7 @@
 #include <Tempest/c44matrix.h>
 #include <Tempest/crect.h>
 
-static void __fastcall
+static void
 FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
   ASSERT(NTempest::CMath::fnotequal_(direction.SquaredMag(), 0.0f));
 
@@ -20,7 +20,7 @@ FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, N
   *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
 }
 
-static void __fastcall BuildBillboardMatrix(const NTempest::C3Vector &direction, NTempest::C33Matrix *rotation) {
+static void BuildBillboardMatrix(const NTempest::C3Vector &direction, NTempest::C33Matrix *rotation) {
   NTempest::C3Vector zprime;
   NTempest::C3Vector yprime;
   NTempest::C3Vector xprime;
@@ -29,7 +29,7 @@ static void __fastcall BuildBillboardMatrix(const NTempest::C3Vector &direction,
   *rotation = NTempest::C33Matrix(xprime.x, xprime.y, xprime.z, yprime.x, yprime.y, yprime.z, zprime.x, zprime.y, zprime.z);
 }
 
-static void __fastcall FaceDirectionWithRoll(
+static void FaceDirectionWithRoll(
     const NTempest::C3Vector &direction,
     const NTempest::C3Vector &up,
     NTempest::C3Vector       *xprime,
@@ -50,7 +50,7 @@ static void __fastcall FaceDirectionWithRoll(
   *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
 }
 
-static void __fastcall
+static void
 BuildBillboardMatrixWithRoll(const NTempest::C3Vector &direction, const NTempest::C3Vector &up, NTempest::C33Matrix *rotation) {
   NTempest::C3Vector zprime;
   NTempest::C3Vector yprime;

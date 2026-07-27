@@ -18,7 +18,7 @@ struct W32Joystick {
 
 static TSGrowableArray<W32Joystick> s_joystick;
 
-int __fastcall OsNumJoysticks() {
+int OsNumJoysticks() {
   JOYCAPS      joycaps;
   JOYINFOEX    joyinfo;
   int          maxdevs;
@@ -50,7 +50,7 @@ int __fastcall OsNumJoysticks() {
   return s_joystick.Count();
 }
 
-OsJoystickID __fastcall OsOpenJoystick(int index) {
+OsJoystickID OsOpenJoystick(int index) {
   JOYCAPS joycaps;
   int     axis_min[6];
   int     axis_max[6];
@@ -96,18 +96,18 @@ OsJoystickID __fastcall OsOpenJoystick(int index) {
   return index;
 }
 
-void __fastcall OsCloseJoystick(OsJoystickID id) {
+void OsCloseJoystick(OsJoystickID id) {
 }
 
-int __fastcall OsGetNumButtons(OsJoystickID id) {
+int OsGetNumButtons(OsJoystickID id) {
   return s_joystick[id].caps.wNumButtons;
 }
 
-int __fastcall OsGetNumAxes(OsJoystickID id) {
+int OsGetNumAxes(OsJoystickID id) {
   return s_joystick[id].caps.wNumAxes;
 }
 
-unsigned int __fastcall OsGetButtonState(OsJoystickID id) {
+unsigned int OsGetButtonState(OsJoystickID id) {
   JOYINFOEX joyinfo;
 
   joyinfo.dwSize = sizeof(joyinfo);
@@ -120,11 +120,11 @@ unsigned int __fastcall OsGetButtonState(OsJoystickID id) {
   return 0;
 }
 
-int __fastcall OsGetButtonState(OsJoystickID id, int index) {
+int OsGetButtonState(OsJoystickID id, int index) {
   return OsGetButtonState(id) & (1 << index);
 }
 
-int __fastcall OsGetAxisState(OsJoystickID id, int index) {
+int OsGetAxisState(OsJoystickID id, int index) {
   unsigned long flags[6] = {
       JOY_RETURNX, JOY_RETURNY, JOY_RETURNZ, JOY_RETURNR, JOY_RETURNU, JOY_RETURNV,
   };

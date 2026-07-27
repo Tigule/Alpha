@@ -4,9 +4,9 @@
 #include "Gxu/IGxuLight.h"
 #include "MDLFile/MDLTypes.h"
 
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
-static unsigned long __fastcall CreateGxLight(const unsigned char *lightData) {
+static unsigned long CreateGxLight(const unsigned char *lightData) {
   unsigned long lightId = GxuLightCreate();
   if (!lightId) {
     return 0;
@@ -33,7 +33,7 @@ static unsigned long __fastcall CreateGxLight(const unsigned char *lightData) {
   return lightId;
 }
 
-int __fastcall MdlReadLoadLights(const MDLDATA& data, CModelComplex* modelptr) {
+int MdlReadLoadLights(const MDLDATA& data, CModelComplex* modelptr) {
   FATALASSERT(modelptr);
   unsigned int numLights = data.lights.Count();
   modelptr->m_lights.SetCount(numLights);
@@ -47,7 +47,7 @@ int __fastcall MdlReadLoadLights(const MDLDATA& data, CModelComplex* modelptr) {
   return 1;
 }
 
-void __fastcall MdxReadLights(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr) {
+void MdxReadLights(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr) {
   ASSERT(data);
   ASSERT(modelptr);
 

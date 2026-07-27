@@ -15,14 +15,14 @@
 static const char *token;
 static int         s_lastNumber;
 
-int __fastcall  Spell_C_GetSpellLevel(int id, int isPet);
-int __fastcall  Spell_C_GetManaCost(int id, int isPet);
-int __fastcall  Spell_C_GetManaCostPerSecond(int id, int isPet);
-void __fastcall Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet);
+int Spell_C_GetSpellLevel(int id, int isPet);
+int Spell_C_GetManaCost(int id, int isPet);
+int Spell_C_GetManaCostPerSecond(int id, int isPet);
+void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet);
 
-bool __fastcall QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
+bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
 
-bool __fastcall QuestParserGenderConditional(char *buf, unsigned int size, const unsigned __int64 &target, const NameCache *nc) {
+bool QuestParserGenderConditional(char *buf, unsigned int size, const unsigned __int64 &target, const NameCache *nc) {
   char        temp[1024];
   const char *semi;
   CGUnit_C   *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
@@ -73,7 +73,7 @@ bool __fastcall QuestParserGenderConditional(char *buf, unsigned int size, const
   return true;
 }
 
-bool __fastcall QuestParserReplaceText(char *buf, unsigned int size, const unsigned __int64 &target, const NameCache *nc) {
+bool QuestParserReplaceText(char *buf, unsigned int size, const unsigned __int64 &target, const NameCache *nc) {
   char      race[32];
   char      classStr[32];
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
@@ -139,7 +139,7 @@ bool __fastcall QuestParserReplaceText(char *buf, unsigned int size, const unsig
   return true;
 }
 
-bool __fastcall QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken) {
+bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken) {
   const char      *oldToken;
   const NameCache *nc;
   unsigned int     length;
@@ -180,7 +180,7 @@ bool __fastcall QuestParserParseText(const char *text, char *buf, unsigned int s
   return error == 0;
 }
 
-bool __fastcall SpellParserGenderConditional(char *buf, unsigned int size) {
+bool SpellParserGenderConditional(char *buf, unsigned int size) {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return false;
@@ -220,7 +220,7 @@ bool __fastcall SpellParserGenderConditional(char *buf, unsigned int size) {
   return true;
 }
 
-bool __fastcall SpellParserPluralConditional(char *buf, unsigned int size, int ordinal) {
+bool SpellParserPluralConditional(char *buf, unsigned int size, int ordinal) {
   while (*token == ' ') {
     ++token;
   }
@@ -256,7 +256,7 @@ bool __fastcall SpellParserPluralConditional(char *buf, unsigned int size, int o
   return true;
 }
 
-int __fastcall SpellParserReplaceText(char *buf, unsigned int size, const SpellRec *spell, int level, int isPet) {
+int SpellParserReplaceText(char *buf, unsigned int size, const SpellRec *spell, int level, int isPet) {
   if (!spell) {
     return 0;
   }
@@ -407,7 +407,7 @@ int __fastcall SpellParserReplaceText(char *buf, unsigned int size, const SpellR
   return 1;
 }
 
-int __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet) {
+int SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet) {
   FATALASSERT(spell);
   FATALASSERT(buf);
   buf[0] = 0;

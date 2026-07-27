@@ -79,36 +79,36 @@ struct Sound : public TSLinkedNode<Sound> {
   Sound();
   ~Sound();
 
-  static int __fastcall Initialize(
-      bool(__fastcall *GetParamInt)(const char *, int &),
-      bool(__fastcall *GetParamFloat)(const char *, float &),
-      bool(__fastcall *GetParamString)(const char *, const char *&)
+  static int Initialize(
+      bool(*GetParamInt)(const char *, int &),
+      bool(*GetParamFloat)(const char *, float &),
+      bool(*GetParamString)(const char *, const char *&)
   );
-  static void __fastcall Shutdown();
-  static void __fastcall SetSoundVolume(float volume);
-  static void __fastcall SetMusicVolume(float volume);
-  static void __fastcall SetMasterVolume(float volume);
-  static void __fastcall MuteSFX(bool m);
-  static int __fastcall MIDI_Initialize();
-  static void __fastcall MIDI_Shutdown();
-  static void __fastcall MIDI_Play(const char *midiFilename, const char *dlsFilename);
-  static void __fastcall MIDI_Stop();
-  static void __fastcall MIDI_SetVolume(float volume);
-  static bool __fastcall MIDI_Playing();
-  static void __fastcall Update();
-  static void __fastcall GetListenerPosition(NTempest::C3Vector &position);
-  static void __fastcall SetListenerAttributes(
+  static void Shutdown();
+  static void SetSoundVolume(float volume);
+  static void SetMusicVolume(float volume);
+  static void SetMasterVolume(float volume);
+  static void MuteSFX(bool m);
+  static int MIDI_Initialize();
+  static void MIDI_Shutdown();
+  static void MIDI_Play(const char *midiFilename, const char *dlsFilename);
+  static void MIDI_Stop();
+  static void MIDI_SetVolume(float volume);
+  static bool MIDI_Playing();
+  static void Update();
+  static void GetListenerPosition(NTempest::C3Vector &position);
+  static void SetListenerAttributes(
       const NTempest::C3Vector &worldPosition,
       const NTempest::C3Vector *worldVelocity,
       const NTempest::C3Vector &worldForward,
       const NTempest::C3Vector &worldUp
   );
-  static Sound *__fastcall Play2D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused);
-  static Sound *__fastcall Play3D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused);
-  static Sound *__fastcall Play2DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused);
-  static Sound *__fastcall Play3DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused);
-  static void __fastcall   KillSound(Sound *&sound);
-  static void __fastcall   SetReverbProperties(const _FSOUND_REVERB_PROPERTIES *reverb);
+  static Sound *Play2D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused);
+  static Sound *Play3D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused);
+  static Sound *Play2DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused);
+  static Sound *Play3DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused);
+  static void KillSound(Sound *&sound);
+  static void SetReverbProperties(const _FSOUND_REVERB_PROPERTIES *reverb);
 
   void Stop(float fadeTime);
   void Stop(unsigned int fadeTime);
@@ -129,15 +129,15 @@ struct Sound : public TSLinkedNode<Sound> {
   void SetDistances(float min, float max);
   void SetVolume(float volume);
 
-  static int __fastcall         GetNumOutputSystems();
-  static const char *__fastcall GetOutputSystemName(int index);
-  static int __fastcall         GetNumDrivers();
-  static const char *__fastcall GetDriverName(int index);
-  static int __fastcall         GetNumMixers();
-  static const char *__fastcall GetMixerName(int index);
-  static int __fastcall         GetMixRate();
+  static int GetNumOutputSystems();
+  static const char *GetOutputSystemName(int index);
+  static int GetNumDrivers();
+  static const char *GetDriverName(int index);
+  static int GetNumMixers();
+  static const char *GetMixerName(int index);
+  static int GetMixRate();
   static void SetPositionUpdateCallback(
-      unsigned char(__fastcall *callback)(__int64 handle, NTempest::C3Vector &position)
+      unsigned char(*callback)(__int64 handle, NTempest::C3Vector &position)
   ) {
     m_positionUpdateCallback = callback;
   }
@@ -150,19 +150,19 @@ struct Sound : public TSLinkedNode<Sound> {
   TSLink<Sound> stopLink;
 
  private:
-  static Sound *__fastcall Alloc(const char *name);
-  static Sound *__fastcall Play(SOUNDCATEGORIES category, const char *filename, unsigned int mode, bool startPaused, int flags);
-  static Sound *__fastcall PlayLooped(SOUNDCATEGORIES category, const char *filename, int loopCount, unsigned int mode, bool startPaused, int flags);
-  static bool __fastcall   DupeCheckFailed(SOUNDCATEGORIES category, const char *fileName, int flags);
-  static void __fastcall   ProcessStopList();
-  static void __fastcall   ProcessFadeList();
-  static void __fastcall   ProcessUpdateList();
-  static void __fastcall   ProcessPanningList(const NTempest::C3Vector &listenerPos);
-  static void __fastcall   ProcessCutoffList(const NTempest::C3Vector &listenerPos);
+  static Sound *Alloc(const char *name);
+  static Sound *Play(SOUNDCATEGORIES category, const char *filename, unsigned int mode, bool startPaused, int flags);
+  static Sound *PlayLooped(SOUNDCATEGORIES category, const char *filename, int loopCount, unsigned int mode, bool startPaused, int flags);
+  static bool DupeCheckFailed(SOUNDCATEGORIES category, const char *fileName, int flags);
+  static void ProcessStopList();
+  static void ProcessFadeList();
+  static void ProcessUpdateList();
+  static void ProcessPanningList(const NTempest::C3Vector &listenerPos);
+  static void ProcessCutoffList(const NTempest::C3Vector &listenerPos);
   void                     Stop();
   int                      GetVolume();
   void                     SetVolume(int volume);
-  static void __fastcall   UpdateSoundVolumes(bool music);
+  static void UpdateSoundVolumes(bool music);
   void                     UpdateVolume();
   void                     UpdatePosition();
   void                     AddToFadeList();
@@ -180,7 +180,7 @@ struct Sound : public TSLinkedNode<Sound> {
   void                     Resume();
 
  public:
-  static unsigned char(__fastcall *m_positionUpdateCallback)(__int64 handle, NTempest::C3Vector &position);
+  static unsigned char(*m_positionUpdateCallback)(__int64 handle, NTempest::C3Vector &position);
 
  private:
   int                m_channel;
@@ -201,4 +201,4 @@ struct Sound : public TSLinkedNode<Sound> {
   SOUNDCATEGORIES    m_category;
 };
 
-void __fastcall SndSetObstructionCallback(float(__fastcall *callback)(const NTempest::C3Vector &, const NTempest::C3Vector &));
+void SndSetObstructionCallback(float(*callback)(const NTempest::C3Vector &, const NTempest::C3Vector &));

@@ -134,13 +134,13 @@ class CChunkLiquid {
   unsigned short         Render0I(unsigned short *idxBase, unsigned int liquidType);
   void                   RenderOcean0();
   void                   RenderOcean0V(CGxVertexPNT0 *vtx);
-  static void __fastcall RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf);
+  static void RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf);
   void                   RenderRiver0(unsigned int type);
   void                   RenderRiver0V(CGxVertexPNT0 *vtx);
-  static void __fastcall RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf);
+  static void RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf);
   void                   RenderMagma0(unsigned int type);
   void                   RenderMagma0V(CGxVertexPCT0 *vtx);
-  static void __fastcall RenderMagma0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf);
+  static void RenderMagma0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf);
   void                   Render(unsigned int type);
   void                   GetAaBox(NTempest::CAaBox &aaBox);
 
@@ -263,9 +263,9 @@ class CMapLight : public CMapBaseObj {
   CMapLight();
   ~CMapLight();
 
-  static void __fastcall    CreatePointAtten();
-  static void __fastcall    DestroyPointAtten();
-  static CGxTex *__fastcall GetPointAttenTex();
+  static void CreatePointAtten();
+  static void DestroyPointAtten();
+  static CGxTex *GetPointAttenTex();
 
   static TSExplicitList<CMapBaseObjLink, 8> dirLightLinkList;
   static unsigned int                       maxLights;
@@ -375,7 +375,7 @@ class CMapDoodadDef : public CMapStaticEntity, public TSHashObject<CMapDoodadDef
   unsigned int          cCount;
   int                   doodadSoundHandle;
   TSLink<CMapDoodadDef> sceneLink;
-  void(__fastcall *RenderCB)(void *param, const NTempest::C44Matrix &matrix);
+  void(*RenderCB)(void *param, const NTempest::C44Matrix &matrix);
   void *renderCBParam;
 };
 
@@ -539,10 +539,10 @@ class CMapChunk : public CMapBaseObj {
   void Load(SMChunkInfo *chunkInfo);
   void Create(unsigned int *data);
 
-  static void __fastcall Initialize();
-  static void __fastcall AsyncPollHandler();
-  static void __fastcall Destroy();
-  static void __fastcall FreeLists();
+  static void Initialize();
+  static void AsyncPollHandler();
+  static void Destroy();
+  static void FreeLists();
 
   virtual void SelectLights();
   void         UpdateLights();
@@ -608,23 +608,23 @@ class CMapChunk : public CMapBaseObj {
 
  private:
   void                      PurgeLayer(CChunkLayer *layer);
-  static CGxBuf *__fastcall AllocGxBuf(unsigned int indexCount);
-  static void __fastcall    FreeGxBuf(CGxBuf *gxBuf);
-  static CGxTex *__fastcall AllocAlphaGxTex(
+  static CGxBuf *AllocGxBuf(unsigned int indexCount);
+  static void FreeGxBuf(CGxBuf *gxBuf);
+  static CGxTex *AllocAlphaGxTex(
       void *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
   );
-  static void __fastcall    FreeAlphaGxTex(CGxTex *gxTex);
-  static CGxTex *__fastcall AllocShadowGxTex(
+  static void FreeAlphaGxTex(CGxTex *gxTex);
+  static CGxTex *AllocShadowGxTex(
       void *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
   );
-  static void __fastcall FreeShadowGxTex(CGxTex *gxTex);
-  static void __fastcall
+  static void FreeShadowGxTex(CGxTex *gxTex);
+  static void
   UnpackAlphaShadowBits(NTempest::CImVector *texels, unsigned long *bits, const unsigned int *const *alpha, const unsigned int *shadow);
-  static void __fastcall UnpackAlphaBits(unsigned long *pixels, const unsigned int *alphaPixels);
-  static void __fastcall UnpackShadowBits(unsigned long *pixels, unsigned long *shadowBits, const unsigned int *shadow);
-  static void __fastcall UpdateLayerGxTexture(
+  static void UnpackAlphaBits(unsigned long *pixels, const unsigned int *alphaPixels);
+  static void UnpackShadowBits(unsigned long *pixels, unsigned long *shadowBits, const unsigned int *shadow);
+  static void UpdateLayerGxTexture(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,
@@ -634,7 +634,7 @@ class CMapChunk : public CMapBaseObj {
       unsigned int &texelStrideInBytes,
       const void  *&texels
   );
-  static void __fastcall UpdateShadowGxTexture(
+  static void UpdateShadowGxTexture(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,
@@ -644,7 +644,7 @@ class CMapChunk : public CMapBaseObj {
       unsigned int &texelStrideInBytes,
       const void  *&texels
   );
-  static void __fastcall UpdateShaderGxTexture(
+  static void UpdateShaderGxTexture(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,
@@ -654,7 +654,7 @@ class CMapChunk : public CMapBaseObj {
       unsigned int &texelStrideInBytes,
       const void  *&texels
   );
-  static void __fastcall UpdateTextureDefault(
+  static void UpdateTextureDefault(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,
@@ -664,10 +664,10 @@ class CMapChunk : public CMapBaseObj {
       unsigned int &texelStrideInBytes,
       const void  *&texels
   );
-  static void __fastcall          CreateRenderLists();
-  static void __fastcall          GxBufDynFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
-  static void __fastcall          GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
-  static void __fastcall          LodCreateTree(int level, int maxLevel, int neighborLOD, int holes, int cX, int cY);
+  static void CreateRenderLists();
+  static void GxBufDynFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
+  static void GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
+  static void LodCreateTree(int level, int maxLevel, int neighborLOD, int holes, int cX, int cY);
   void                            FillGxBufVertex(const CGxBufCommand &cmd, CGxBuf *buf);
   void                            FillGxBufIndex(const CGxBufCommand &cmd, CGxBuf *buf);
   void                            FillGxBufDynVertex(const CGxBufCommand &cmd, CGxBuf *buf);
@@ -676,10 +676,10 @@ class CMapChunk : public CMapBaseObj {
   void                            RenderLayersDyn();
   void                            RenderLayersColor();
   void                            RenderLayersColorDyn();
-  static void __fastcall          FreeAsyncLoadBuffer(unsigned int *buffer);
-  static void __fastcall          InitAsyncLoadBuffers();
-  static unsigned int *__fastcall AllocAsyncLoadBuffer();
-  static void __fastcall          AsyncCallback(void *userArg);
+  static void FreeAsyncLoadBuffer(unsigned int *buffer);
+  static void InitAsyncLoadBuffers();
+  static unsigned int *AllocAsyncLoadBuffer();
+  static void AsyncCallback(void *userArg);
   void                            SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, unsigned int *&shadowTex, unsigned int *&alphaTex);
 
   static unsigned int       syncLoadBuffer[15000];
@@ -692,8 +692,8 @@ class CMapChunk : public CMapBaseObj {
   static NTempest::C4Vector psLayerMask[4];
   static unsigned short     primList[768];
   static unsigned short    *primPtr;
-  static void(__fastcall *soundEmitterCreateHandler)(CWSoundEmitter &);
-  static void(__fastcall *soundEmitterDestroyHandler)(unsigned long);
+  static void(*soundEmitterCreateHandler)(CWSoundEmitter &);
+  static void(*soundEmitterDestroyHandler)(unsigned long);
   static CGxBuf                   *gxBufDyn;
   static TSGrowableArray<CGxBuf *> gxBufFreeList;
   static TSGrowableArray<CGxTex *> gxAlphaTexFreeList;

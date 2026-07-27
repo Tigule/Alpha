@@ -117,7 +117,7 @@ WGLCHOOSEPIXELFORMATARB      wglChoosePixelFormatARB;
 static const char *s_glExts;
 static const char *s_wglExts;
 
-void __fastcall BindGlExtensions() {
+void BindGlExtensions() {
   int         maxIdxs;
   int         versionLow = -1;
   int         versionHigh = -1;
@@ -297,12 +297,12 @@ void __fastcall BindGlExtensions() {
   }
 }
 
-void __fastcall UnbindGlExtensions() {
+void UnbindGlExtensions() {
   s_glExts = 0;
   s_wglExts = 0;
 }
 
-static bool __fastcall ScanString(const char *string, const char *ext) {
+static bool ScanString(const char *string, const char *ext) {
   unsigned int length = strlen(ext);
   while (*string) {
     if (!SStrCmpI(string, ext, length)) {
@@ -318,14 +318,14 @@ static bool __fastcall ScanString(const char *string, const char *ext) {
   return false;
 }
 
-bool __fastcall FindGlExt(const char *ext) {
+bool FindGlExt(const char *ext) {
   if (!s_glExts) {
     s_glExts = reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS));
   }
   return ScanString(s_glExts, ext);
 }
 
-bool __fastcall FindWglExt(const char *ext) {
+bool FindWglExt(const char *ext) {
   if (!wglGetExtensionsStringARB) {
     return false;
   }

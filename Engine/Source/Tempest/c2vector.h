@@ -24,25 +24,25 @@ namespace NTempest {
     void Get(float &tx, float &ty) const { tx = x; ty = y; }
     void Set(float tx, float ty) { x = tx; y = ty; }
 
-    static C2Vector __fastcall FromAxisAngle(float angle, float magnitude) {
+    static C2Vector FromAxisAngle(float angle, float magnitude) {
       return C2Vector(CMath::cos_(angle) * magnitude, CMath::sin_(angle) * magnitude);
     }
-    static float __fastcall AngleToAxisAngle(float angle) {
+    static float AngleToAxisAngle(float angle) {
       return CMath::fmod_(angle, 6.28318548f);
     }
-    static C2Vector __fastcall Min(const C2Vector &a, const C2Vector &b) {
+    static C2Vector Min(const C2Vector &a, const C2Vector &b) {
       return C2Vector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y);
     }
-    static C2Vector __fastcall Max(const C2Vector &a, const C2Vector &b) {
+    static C2Vector Max(const C2Vector &a, const C2Vector &b) {
       return C2Vector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y);
     }
-    static C2Vector __fastcall Lerp(const C2Vector &a, const C2Vector &b, const C2Vector &t) {
+    static C2Vector Lerp(const C2Vector &a, const C2Vector &b, const C2Vector &t) {
       return C2Vector(a.x + (b.x - a.x) * t.x, a.y + (b.y - a.y) * t.y);
     }
-    static float __fastcall Dot(const C2Vector &a, const C2Vector &b) {
+    static float Dot(const C2Vector &a, const C2Vector &b) {
       return a.x * b.x + a.y * b.y;
     }
-    static float __fastcall Cross(const C2Vector &a, const C2Vector &b) {
+    static float Cross(const C2Vector &a, const C2Vector &b) {
       return a.x * b.y - a.y * b.x;
     }
 
@@ -101,11 +101,11 @@ namespace NTempest {
     float y;
   };
 
-  inline C2Vector __fastcall operator-(const C2Vector &l, const C2Vector &r) {
+  inline C2Vector operator-(const C2Vector &l, const C2Vector &r) {
     return C2Vector(l.x - r.x, l.y - r.y);
   }
 
-  inline C2Vector __fastcall operator*(float l, const C2Vector &r) {
+  inline C2Vector operator*(float l, const C2Vector &r) {
     return C2Vector(l * r.x, l * r.y);
   }
 

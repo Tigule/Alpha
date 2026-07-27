@@ -10,15 +10,15 @@ namespace NTempest {
 struct HPLAYERNAME__;
 class CGUnit_C;
 
-HPLAYERNAME__ *__fastcall PlayerNameCreate(CGUnit_C *unitPtr);
-void __fastcall PlayerNameShow(int show);
+HPLAYERNAME__ *PlayerNameCreate(CGUnit_C *unitPtr);
+void PlayerNameShow(int show);
 
-void __fastcall PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, const char *text, const NTempest::CImVector *colorOverride);
+void PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, const char *text, const NTempest::CImVector *colorOverride);
 
-void __fastcall PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name);
-void __fastcall PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name);
-void __fastcall PlayerNameChangeLocation(HPLAYERNAME__ *name, const NTempest::C3Vector &namePosition);
-void __fastcall PlayerNameUpdateEarly();
-void __fastcall PlayerNameUpdateLate();
-void __fastcall PlayerNameUpdateWorldText(HPLAYERNAME__ *name);
-void __fastcall PlayerNameRenderWorldText();
+void PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name);
+void PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name);
+void PlayerNameChangeLocation(HPLAYERNAME__ *name, const NTempest::C3Vector &namePosition);
+void PlayerNameUpdateEarly();
+void PlayerNameUpdateLate();
+void PlayerNameUpdateWorldText(HPLAYERNAME__ *name);
+void PlayerNameRenderWorldText();

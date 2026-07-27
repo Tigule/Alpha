@@ -26,7 +26,7 @@ class CGUIBindingsStatus : public CStatus {
 
 static CGUIBindingsStatus s_nullStatus;
 
-int __fastcall ConsoleCommand_RunExec(const char *cmd, const char *arguments);
+int ConsoleCommand_RunExec(const char *cmd, const char *arguments);
 
 void CGUIBindingsStatus::Add(STATUS_TYPE, const char *format, ...) {
   char    buffer[512];
@@ -38,7 +38,7 @@ void CGUIBindingsStatus::Add(STATUS_TYPE, const char *format, ...) {
   OsOutputDebugString(buffer);
 }
 
-static int __fastcall Bind_CommandHandler(const char *command, const char *arguments) {
+static int Bind_CommandHandler(const char *command, const char *arguments) {
   char keyName[32];
 
   if (!*arguments) {
@@ -54,7 +54,7 @@ static int __fastcall Bind_CommandHandler(const char *command, const char *argum
 
 CGUIBindings *CGUIBindings::s_bindings;
 
-CGUIBindings *__fastcall CGUIBindings::Initialize(const char *commandsFile, CStatus *status) {
+CGUIBindings *CGUIBindings::Initialize(const char *commandsFile, CStatus *status) {
   FATALASSERT(!s_bindings);
   s_bindings = NEW(CGUIBindings);
   FATALASSERT(s_bindings);
@@ -67,7 +67,7 @@ CGUIBindings *__fastcall CGUIBindings::Initialize(const char *commandsFile, CSta
   return s_bindings;
 }
 
-void __fastcall CGUIBindings::Shutdown() {
+void CGUIBindings::Shutdown() {
   ConsoleCommandUnregister("bind");
   if (s_bindings) {
     DEL(s_bindings);
@@ -75,7 +75,7 @@ void __fastcall CGUIBindings::Shutdown() {
   }
 }
 
-void __fastcall CGUIBindings::LoadBindings(int useDefault) {
+void CGUIBindings::LoadBindings(int useDefault) {
   CGUIBindings *bindings = GetActive();
   FATALASSERT(bindings);
 
@@ -87,7 +87,7 @@ void __fastcall CGUIBindings::LoadBindings(int useDefault) {
   }
 }
 
-void __fastcall CGUIBindings::SaveBindings() {
+void CGUIBindings::SaveBindings() {
   CGUIBindings *bindings = GetActive();
   FATALASSERT(bindings);
 
@@ -141,7 +141,7 @@ static struct {
     {KEY_ALT, "ALT-"}
 };
 
-int __fastcall CGUIBindings::AddMetaPrefix(unsigned int metaKeyState, char *&string, int &maxLen) {
+int CGUIBindings::AddMetaPrefix(unsigned int metaKeyState, char *&string, int &maxLen) {
   for (int index = 2; index >= 0; --index) {
     if (metaKeyState & (1 << metaList[index].metaKey)) {
       int length = SStrLen(metaList[index].metaStr);
@@ -156,7 +156,7 @@ int __fastcall CGUIBindings::AddMetaPrefix(unsigned int metaKeyState, char *&str
   return 1;
 }
 
-const char *__fastcall CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int maxLen) {
+const char *CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int maxLen) {
   char        charBuf[8];
   char       *dest = string;
   const char *keyString = "UNKNOWN";
@@ -231,7 +231,7 @@ const char *__fastcall CGUIBindings::KeyEventToString(const CKeyEvent &evt, char
   return string;
 }
 
-const char *__fastcall CGUIBindings::MouseEventToString(const CMouseEvent &evt, char *string, int maxLen) {
+const char *CGUIBindings::MouseEventToString(const CMouseEvent &evt, char *string, int maxLen) {
   char *dest = string;
   if (!AddMetaPrefix(evt.metaKeyState, dest, maxLen)) {
     return 0;
@@ -486,14 +486,14 @@ const char *CGUIBindings::GetCommandAction(const char *keystring) {
   return binding ? binding->command : 0;
 }
 
-static int __fastcall Script_GetNumBindings(lua_State *L) {
+static int Script_GetNumBindings(lua_State *L) {
   CGUIBindings *bindings = CGUIBindings::GetActive();
   FATALASSERT(bindings);
   lua_pushnumber(L, bindings->GetNumCommands());
   return 1;
 }
 
-static int __fastcall Script_GetBinding(lua_State *L) {
+static int Script_GetBinding(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetBinding(index)");
   }
@@ -512,7 +512,7 @@ static int __fastcall Script_GetBinding(lua_State *L) {
   return count + 1;
 }
 
-static int __fastcall Script_SetBinding(lua_State *L) {
+static int Script_SetBinding(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SetBinding(\"KEY\"[, \"COMMAND\"])");
   }
@@ -526,7 +526,7 @@ static int __fastcall Script_SetBinding(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetBindingKey(lua_State *L) {
+static int Script_GetBindingKey(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetBindingKey(\"command\")");
   }
@@ -540,7 +540,7 @@ static int __fastcall Script_GetBindingKey(lua_State *L) {
   return count;
 }
 
-static int __fastcall Script_GetBindingAction(lua_State *L) {
+static int Script_GetBindingAction(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetBindingAction(\"key\")");
   }
@@ -551,7 +551,7 @@ static int __fastcall Script_GetBindingAction(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_RunBinding(lua_State *L) {
+static int Script_RunBinding(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: RunBinding(\"COMMAND\")");
   }
@@ -565,17 +565,17 @@ static int __fastcall Script_RunBinding(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ResetBindings(lua_State *L) {
+static int Script_ResetBindings(lua_State *L) {
   CGUIBindings::LoadBindings(0);
   return 0;
 }
 
-static int __fastcall Script_DefaultBindings(lua_State *L) {
+static int Script_DefaultBindings(lua_State *L) {
   CGUIBindings::LoadBindings(1);
   return 0;
 }
 
-static int __fastcall Script_SaveBindings(lua_State *L) {
+static int Script_SaveBindings(lua_State *L) {
   CGUIBindings::SaveBindings();
   return 0;
 }
@@ -592,13 +592,13 @@ static FrameScript_Method s_ScriptFunctions[9] = {
     {    "SaveBindings",     Script_SaveBindings}
 };
 
-void __fastcall UIBindingsRegisterScriptFunctions() {
+void UIBindingsRegisterScriptFunctions() {
   for (int i = 0; i < 9; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall UIBindingsUnegisterScriptFunctions() {
+void UIBindingsUnegisterScriptFunctions() {
   for (int i = 0; i < 9; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

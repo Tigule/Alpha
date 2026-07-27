@@ -75,7 +75,7 @@ namespace NTempest {
 
 }  // namespace NTempest
 
-static float __fastcall EvaluatePolynomial(unsigned int degree, float t, const float *coefficients) {
+static float EvaluatePolynomial(unsigned int degree, float t, const float *coefficients) {
   float result = coefficients[0];
   for (unsigned int i = 1; i <= degree; ++i) {
     result = result * t + coefficients[i];

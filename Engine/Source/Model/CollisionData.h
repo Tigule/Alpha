@@ -10,25 +10,25 @@ struct CCollisionData : public CHandleObject {
   NTempest::CAaBox                 extents;
 };
 
-HCOLLISIONDATA __fastcall CollisionDataCreate(const NTempest::CAaBox &bounds);
-HMODEL __fastcall         CollisionDataCreateModel(HCOLLISIONDATA collide);
-void __fastcall           CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, void *param);
-void __fastcall           ModelGetCollisionExtents(HMODEL model, NTempest::CAaBox *extents);
-int __fastcall            ModelCollisionVectorIntersect(
+HCOLLISIONDATA CollisionDataCreate(const NTempest::CAaBox &bounds);
+HMODEL CollisionDataCreateModel(HCOLLISIONDATA collide);
+void CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, void *param);
+void ModelGetCollisionExtents(HMODEL model, NTempest::CAaBox *extents);
+int ModelCollisionVectorIntersect(
     HMODEL model, const NTempest::C34Matrix &basis, const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, float &t
 );
-void __fastcall           ModelAddCollisionFacets(
+void ModelAddCollisionFacets(
     HMODEL                             model,
     const NTempest::C34Matrix         &toWorld,
     float                              scale,
     const NTempest::CAaBox            &worldBox,
     TSGrowableArray<NTempest::CFacet> *facets
 );
-void __fastcall CollisionDataAddFacets(
+void CollisionDataAddFacets(
     HCOLLISIONDATA                     collide,
     const NTempest::C34Matrix         &toWorld,
     float                              scale,
     const NTempest::CAaBox            &worldBox,
     TSGrowableArray<NTempest::CFacet> *facets
 );
-int __fastcall TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts);
+int TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts);

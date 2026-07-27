@@ -186,7 +186,7 @@ void CSimpleScrollFrame::OnFrameSizeChanged(float w, float h) {
   m_updateScrollChild = 1;
 }
 
-void __fastcall CSimpleScrollFrame::RenderScrollChild(void *param) {
+void CSimpleScrollFrame::RenderScrollChild(void *param) {
   CSimpleScrollFrame *scrollFrame = static_cast<CSimpleScrollFrame *>(param);
   NTempest::CRect     viewRect(0.0f);
 

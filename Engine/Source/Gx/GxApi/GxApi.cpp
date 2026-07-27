@@ -61,23 +61,23 @@ CGxFormat::CGxFormat(
   vsync = p_vsync;
 }
 
-int __fastcall GxAdapterID(unsigned short &vendorID, unsigned short &deviceID, unsigned long &driverVersionHi, unsigned long &driverVersionLow) {
+int GxAdapterID(unsigned short &vendorID, unsigned short &deviceID, unsigned long &driverVersionHi, unsigned long &driverVersionLow) {
   return CGxDevice::AdapterID(vendorID, deviceID, driverVersionHi, driverVersionLow);
 }
 
-int __fastcall GxAdapterInfer(unsigned short &deviceID) {
+int GxAdapterInfer(unsigned short &deviceID) {
   return CGxDevice::AdapterInfer(deviceID);
 }
 
-int __fastcall GxAdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
+int GxAdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   return CGxDevice::AdapterMonitorModes(modes);
 }
 
-int __fastcall GxAdapterDesktopMode(CGxMonitorMode &mode) {
+int GxAdapterDesktopMode(CGxMonitorMode &mode) {
   return CGxDevice::AdapterDesktopMode(mode);
 }
 
-const TSGrowableArray<CGxFormat> *__fastcall GxEnumFormats(EGxApi api) {
+const TSGrowableArray<CGxFormat> *GxEnumFormats(EGxApi api) {
   static TSGrowableArray<CGxFormat> s_formats;
 
   ASSERT(api < GxApis_Last);
@@ -102,7 +102,7 @@ const TSGrowableArray<CGxFormat> *__fastcall GxEnumFormats(EGxApi api) {
   return s_formats.Count() ? &s_formats : 0;
 }
 
-CGxDevice *__fastcall GxDevCreate(EGxApi api, GXWINDOWPROC windowProc, const CGxFormat &format) {
+CGxDevice *GxDevCreate(EGxApi api, GXWINDOWPROC windowProc, const CGxFormat &format) {
   CGxDevice *device;
 
   ASSERT(api < GxApis_Last);
@@ -138,7 +138,7 @@ CGxDevice *__fastcall GxDevCreate(EGxApi api, GXWINDOWPROC windowProc, const CGx
   return 0;
 }
 
-CGxDevice *__fastcall GxDevCreate(EGxApi api, unsigned int hwnd, const CGxFormat &format) {
+CGxDevice *GxDevCreate(EGxApi api, unsigned int hwnd, const CGxFormat &format) {
   CGxDevice *device;
 
   ASSERT(api < GxApis_Last);
@@ -174,11 +174,11 @@ CGxDevice *__fastcall GxDevCreate(EGxApi api, unsigned int hwnd, const CGxFormat
   return 0;
 }
 
-void __fastcall GxDevWM(EGxWM wm, long param1, long param2) {
+void GxDevWM(EGxWM wm, long param1, long param2) {
   g_theGxDevicePtr->DeviceWM(wm, param1, param2);
 }
 
-void __fastcall GxDevDestroy(CGxDevice *devicePtr) {
+void GxDevDestroy(CGxDevice *devicePtr) {
   if (!devicePtr) {
     return;
   }
@@ -190,104 +190,104 @@ void __fastcall GxDevDestroy(CGxDevice *devicePtr) {
   g_theGxDevicePtr = 0;
 }
 
-int __fastcall GxDevSetFormat(const CGxFormat &format) {
+int GxDevSetFormat(const CGxFormat &format) {
   return g_theGxDevicePtr->DeviceSetFormat(format);
 }
 
-void __fastcall GxDevSetBaseMipLevel(unsigned int baseMipLevel) {
+void GxDevSetBaseMipLevel(unsigned int baseMipLevel) {
   g_theGxDevicePtr->DeviceSetBaseMipLevel(baseMipLevel);
 }
 
-void __fastcall GxDevSetGamma(float gamma) {
+void GxDevSetGamma(float gamma) {
   g_theGxDevicePtr->DeviceSetGamma(gamma);
 }
 
-void __fastcall GxDevSetGamma(const CGxGammaRamp &ramp) {
+void GxDevSetGamma(const CGxGammaRamp &ramp) {
   g_theGxDevicePtr->DeviceSetGamma(ramp);
 }
 
-void __fastcall GxDevSetTextureQuality(int force32Bit) {
+void GxDevSetTextureQuality(int force32Bit) {
   g_theGxDevicePtr->DeviceSetTextureQuality(force32Bit);
 }
 
-const CGxFormat &__fastcall GxDevFormat() {
+const CGxFormat &GxDevFormat() {
   return g_theGxDevicePtr->DeviceFormat();
 }
 
-unsigned int __fastcall GxDevBaseMipLevel() {
+unsigned int GxDevBaseMipLevel() {
   return g_theGxDevicePtr->DeviceBaseMipLevel();
 }
 
-void __fastcall GxDevGammaRamp(CGxGammaRamp &ramp) {
+void GxDevGammaRamp(CGxGammaRamp &ramp) {
   g_theGxDevicePtr->DeviceGamma(ramp);
 }
 
-void __fastcall GxDevSystemGammaRamp(CGxGammaRamp &ramp) {
+void GxDevSystemGammaRamp(CGxGammaRamp &ramp) {
   g_theGxDevicePtr->DeviceSystemGamma(ramp);
 }
 
-int __fastcall GxDevTextureQuality() {
+int GxDevTextureQuality() {
   return g_theGxDevicePtr->DeviceTextureQuality();
 }
 
-unsigned long __fastcall GxDevWindow() {
+unsigned long GxDevWindow() {
   return g_theGxDevicePtr->DeviceWindow();
 }
 
-EGxApi __fastcall GxDevApi() {
+EGxApi GxDevApi() {
   return g_theGxDevicePtr->DeviceApi();
 }
 
-void __fastcall GxDevTakeScreenShot() {
+void GxDevTakeScreenShot() {
   g_theGxDevicePtr->DeviceTakeScreenShot();
 }
 
-void __fastcall GxDevReadScreenShot(unsigned int &w, unsigned int &h, const NTempest::CImVector *&pixels) {
+void GxDevReadScreenShot(unsigned int &w, unsigned int &h, const NTempest::CImVector *&pixels) {
   g_theGxDevicePtr->DeviceReadScreenShot(w, h, pixels);
 }
 
-void __fastcall GxDevClearScreenShot() {
+void GxDevClearScreenShot() {
   g_theGxDevicePtr->DeviceClearScreenShot();
 }
 
-void __fastcall GxDevReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels) {
+void GxDevReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels) {
   g_theGxDevicePtr->DeviceReadPixels(rect, pixels);
 }
 
-void __fastcall GxDevReadDepth(NTempest::CiRect &rect, TSGrowableArray<float> &depths) {
+void GxDevReadDepth(NTempest::CiRect &rect, TSGrowableArray<float> &depths) {
   g_theGxDevicePtr->DeviceReadDepths(rect, depths);
 }
 
-void __fastcall GxDevSetRenderTarget(EGxBuffer buffer, CGxTex *texture, unsigned int plane) {
+void GxDevSetRenderTarget(EGxBuffer buffer, CGxTex *texture, unsigned int plane) {
   ASSERT(texture ? texture->m_flags.m_renderTarget : 1);
   g_theGxDevicePtr->DeviceSetRenderTarget(buffer, texture, plane);
 }
 
-void __fastcall GxDevOverride(EGxOverride override, unsigned long value) {
+void GxDevOverride(EGxOverride override, unsigned long value) {
   ASSERT(override <= GxOverrides_Last);
 
   g_theGxDevicePtr->DeviceOverride(override, value);
 }
 
-void __fastcall GxLightSet(unsigned int whichLight, const CGxLight &lightInfo, NTempest::C3Vector cameraPos) {
+void GxLightSet(unsigned int whichLight, const CGxLight &lightInfo, NTempest::C3Vector cameraPos) {
   FATALASSERT(whichLight < Gx_MaxLights);
 
   g_theGxDevicePtr->LightSet(whichLight, lightInfo, cameraPos);
 }
 
-void __fastcall GxLight(unsigned int whichLight, CGxLight &lightInfo) {
+void GxLight(unsigned int whichLight, CGxLight &lightInfo) {
   FATALASSERT(whichLight < Gx_MaxLights);
 
   g_theGxDevicePtr->Light(whichLight, lightInfo);
 }
 
-void __fastcall GxLightEnable(unsigned int whichLight, int enable) {
+void GxLightEnable(unsigned int whichLight, int enable) {
   FATALASSERT(whichLight < Gx_MaxLights);
 
   g_theGxDevicePtr->LightEnable(whichLight, enable);
 }
 
-void __fastcall GxRsSet(EGxRenderState which, NTempest::CImVector value) {
+void GxRsSet(EGxRenderState which, NTempest::CImVector value) {
   FATALASSERT(which < GxRenderStates_Last);
 
   switch (which) {
@@ -306,7 +306,7 @@ void __fastcall GxRsSet(EGxRenderState which, NTempest::CImVector value) {
   g_theGxDevicePtr->RsSet(which, value);
 }
 
-void __fastcall GxRsSet(EGxRenderState which, float value) {
+void GxRsSet(EGxRenderState which, float value) {
   FATALASSERT(which < GxRenderStates_Last);
 
   switch (which) {
@@ -338,7 +338,7 @@ void __fastcall GxRsSet(EGxRenderState which, float value) {
   g_theGxDevicePtr->RsSet(which, value);
 }
 
-void __fastcall GxRsSet(EGxRenderState which, int value) {
+void GxRsSet(EGxRenderState which, int value) {
   FATALASSERT(which < GxRenderStates_Last);
 
   switch (which) {
@@ -399,7 +399,7 @@ void __fastcall GxRsSet(EGxRenderState which, int value) {
   g_theGxDevicePtr->RsSet(which, value);
 }
 
-void __fastcall GxRsSet(EGxRenderState which, void *value) {
+void GxRsSet(EGxRenderState which, void *value) {
   ASSERT(which < GxRenderStates_Last);
 
   switch (which) {
@@ -418,70 +418,70 @@ void __fastcall GxRsSet(EGxRenderState which, void *value) {
   g_theGxDevicePtr->RsSet(which, value);
 }
 
-void __fastcall GxRsGet(EGxRenderState which, NTempest::CImVector &value) {
+void GxRsGet(EGxRenderState which, NTempest::CImVector &value) {
   FATALASSERT(which < GxRenderStates_Last);
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
-void __fastcall GxRsGet(EGxRenderState which, float &value) {
+void GxRsGet(EGxRenderState which, float &value) {
   FATALASSERT(which < GxRenderStates_Last);
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
-void __fastcall GxRsGet(EGxRenderState which, int &value) {
+void GxRsGet(EGxRenderState which, int &value) {
   FATALASSERT(which < GxRenderStates_Last);
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
-void __fastcall GxRsGet(EGxRenderState which, void *&value) {
+void GxRsGet(EGxRenderState which, void *&value) {
   FATALASSERT(which < GxRenderStates_Last);
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
-void __fastcall GxRsPush() {
+void GxRsPush() {
   g_theGxDevicePtr->RsPush();
 }
 
-void __fastcall GxRsPop() {
+void GxRsPop() {
   g_theGxDevicePtr->RsPop();
 }
 
-void __fastcall GxRsInit() {
+void GxRsInit() {
   g_theGxDevicePtr->RsInit();
 }
 
-unsigned int __fastcall GxRsStackOffset() {
+unsigned int GxRsStackOffset() {
   return g_theGxDevicePtr->RsStackOffset();
 }
 
-void __fastcall GxVertexShaderSelect(EGxVertexShader shader) {
+void GxVertexShaderSelect(EGxVertexShader shader) {
   FATALASSERT(shader < GxVertexShaders_Last);
 
   g_theGxDevicePtr->VertexShaderSelect(shader);
 }
 
-unsigned int __fastcall GxVertexSize(EGxVertexBufferFormat format) {
+unsigned int GxVertexSize(EGxVertexBufferFormat format) {
   FATALASSERT(format < GxVertexBufferFormats_Last);
 
   return vtxBufSize[format];
 }
 
-unsigned int __fastcall GxVertexMemberOffset(EGxVertexBufferFormat format, EGxVertexMember member) {
+unsigned int GxVertexMemberOffset(EGxVertexBufferFormat format, EGxVertexMember member) {
   ASSERT(format < GxVertexBufferFormats_Last);
   ASSERT(member < GxVertexMembers_Last);
   return s_vtxBufOffset[format][member];
 }
 
-CGxBuf *__fastcall GxBufCreate(
+CGxBuf *GxBufCreate(
     EGxBufWriteFreq       writeFreq,
     EGxVertexBufferFormat format,
     unsigned int          numVertices,
     unsigned int          numIndices,
-    void(__fastcall *userCallback)(CGxBufCommand &, CGxBuf *),
+    void(*userCallback)(CGxBufCommand &, CGxBuf *),
     void *userArg
 ) {
   CGxBuf *buf;
@@ -500,47 +500,47 @@ CGxBuf *__fastcall GxBufCreate(
   return buf;
 }
 
-void __fastcall GxBufLock(CGxBuf *buf) {
+void GxBufLock(CGxBuf *buf) {
   ActivityBegin(ACTIVITY_RENDER);
   g_theGxDevicePtr->BufLock(buf);
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-void __fastcall GxBufUnlock() {
+void GxBufUnlock() {
   ActivityBegin(ACTIVITY_RENDER);
   g_theGxDevicePtr->BufUnlock();
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-void __fastcall GxBufRender(const CGxBatch *batches, unsigned int count) {
+void GxBufRender(const CGxBatch *batches, unsigned int count) {
   ActivityBegin(ACTIVITY_RENDER);
   g_theGxDevicePtr->BufRender(batches, count);
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-void __fastcall GxBufRender(const CGxBatch &batch) {
+void GxBufRender(const CGxBatch &batch) {
   GxBufRender(&batch, 1);
 }
 
-void __fastcall GxBufDestroy(CGxBuf *&buf) {
+void GxBufDestroy(CGxBuf *&buf) {
   g_theGxDevicePtr->BufDestroy(buf);
 }
 
-void __fastcall GxBufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, unsigned int numVertices, unsigned int numIndices) {
+void GxBufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, unsigned int numVertices, unsigned int numIndices) {
   g_theGxDevicePtr->BufReserve(freq, format, numVertices, numIndices);
 }
 
-CGxBuf *__fastcall GxBufGetDynamic(EGxVertexBufferFormat format) {
+CGxBuf *GxBufGetDynamic(EGxVertexBufferFormat format) {
   return g_theGxDevicePtr->BufGetDynamic(format);
 }
 
-unsigned int __fastcall GxPerfCounter(EGxPerfCounter counter) {
+unsigned int GxPerfCounter(EGxPerfCounter counter) {
   FATALASSERT(counter < GxPerfCounters_Last);
 
   return g_theGxDevicePtr->PerfCounter(counter);
 }
 
-void __fastcall GxMasterEnableSet(EGxMasterEnables state, int enable) {
+void GxMasterEnableSet(EGxMasterEnables state, int enable) {
   FATALASSERT(state < GxMasterEnables_Last);
 
   ASSERT((enable & ~1) == 0);
@@ -548,25 +548,25 @@ void __fastcall GxMasterEnableSet(EGxMasterEnables state, int enable) {
   g_theGxDevicePtr->MasterEnableSet(state, enable);
 }
 
-int __fastcall GxMasterEnable(EGxMasterEnables state) {
+int GxMasterEnable(EGxMasterEnables state) {
   FATALASSERT(state < GxMasterEnables_Last);
 
   return g_theGxDevicePtr->MasterEnable(state);
 }
 
-const CGxCaps &__fastcall GxCaps() {
+const CGxCaps &GxCaps() {
   return g_theGxDevicePtr->Caps();
 }
 
-void __fastcall GxCapsWindowSize(NTempest::CRect &dst) {
+void GxCapsWindowSize(NTempest::CRect &dst) {
   g_theGxDevicePtr->CapsWindowSize(dst);
 }
 
-void __fastcall GxCapsScreenSize(NTempest::CRect &dst) {
+void GxCapsScreenSize(NTempest::CRect &dst) {
   g_theGxDevicePtr->CapsWindowSizeInScreenCoords(dst);
 }
 
-int __fastcall GxCapsIsWindowVisible() {
+int GxCapsIsWindowVisible() {
   if (!g_theGxDevicePtr) {
     return 0;
   }
@@ -574,7 +574,7 @@ int __fastcall GxCapsIsWindowVisible() {
   return g_theGxDevicePtr->CapsIsWindowVisible();
 }
 
-void __fastcall GxPrimLockVertexPtrs(
+void GxPrimLockVertexPtrs(
     unsigned int               vertexCount,
     const NTempest::C3Vector  *pos,
     unsigned int               posStride,
@@ -619,7 +619,7 @@ void __fastcall GxPrimLockVertexPtrs(
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-void __fastcall GxPrimLockIndexPtr(EGxPrim primType, unsigned int indexCount, const unsigned short *indices) {
+void GxPrimLockIndexPtr(EGxPrim primType, unsigned int indexCount, const unsigned short *indices) {
   ActivityBegin(ACTIVITY_RENDER);
 
   FATALASSERT(primType < GxPrims_Last);
@@ -634,77 +634,77 @@ void __fastcall GxPrimLockIndexPtr(EGxPrim primType, unsigned int indexCount, co
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-void __fastcall GxPrimDrawElements() {
+void GxPrimDrawElements() {
   ActivityBegin(ACTIVITY_RENDER);
   g_theGxDevicePtr->PrimDrawElements();
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-void __fastcall GxPrimUnlockIndexPtr() {
+void GxPrimUnlockIndexPtr() {
   ActivityBegin(ACTIVITY_RENDER);
   g_theGxDevicePtr->PrimUnlockIndexPtr();
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-void __fastcall GxPrimDrawElements(EGxPrim primType, unsigned int indexCount, const unsigned short *indices) {
+void GxPrimDrawElements(EGxPrim primType, unsigned int indexCount, const unsigned short *indices) {
   GxPrimLockIndexPtr(primType, indexCount, indices);
   GxPrimDrawElements();
   GxPrimUnlockIndexPtr();
 }
 
-void __fastcall GxPrimUnlockVertexPtrs() {
+void GxPrimUnlockVertexPtrs() {
   ActivityBegin(ACTIVITY_RENDER);
   g_theGxDevicePtr->PrimUnlockVertexPtrs();
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-void __fastcall GxPrimBegin(EGxPrim primType) {
+void GxPrimBegin(EGxPrim primType) {
   g_theGxDevicePtr->PrimBegin(primType);
 }
 
-void __fastcall GxPrimEnd() {
+void GxPrimEnd() {
   g_theGxDevicePtr->PrimEnd();
 }
 
-void __fastcall GxPrimVertex(const NTempest::C3Vector &v) {
+void GxPrimVertex(const NTempest::C3Vector &v) {
   g_theGxDevicePtr->PrimVertex(v);
 }
 
-void __fastcall GxPrimTexCoord(unsigned int tmu, const NTempest::C2Vector &t) {
+void GxPrimTexCoord(unsigned int tmu, const NTempest::C2Vector &t) {
   g_theGxDevicePtr->PrimTexCoord(tmu, t);
 }
 
-void __fastcall GxPrimNormal(const NTempest::C3Vector &n) {
+void GxPrimNormal(const NTempest::C3Vector &n) {
   g_theGxDevicePtr->PrimNormal(n);
 }
 
-void __fastcall GxPrimColor(const NTempest::CImVector &c) {
+void GxPrimColor(const NTempest::CImVector &c) {
   g_theGxDevicePtr->PrimColor(c);
 }
 
-void __fastcall GxPrimPointSize(float s) {
+void GxPrimPointSize(float s) {
   g_theGxDevicePtr->PrimPointSize(s);
 }
 
-void __fastcall GxPrimLineWidth(float w) {
+void GxPrimLineWidth(float w) {
   g_theGxDevicePtr->PrimLineWidth(w);
 }
 
-void __fastcall GxSceneSetClearColor(NTempest::CImVector clearColor) {
+void GxSceneSetClearColor(NTempest::CImVector clearColor) {
   g_theGxDevicePtr->SceneSetClearColor(clearColor);
 }
 
-NTempest::CImVector __fastcall GxSceneClearColor() {
+NTempest::CImVector GxSceneClearColor() {
   return g_theGxDevicePtr->SceneClearColor();
 }
 
-void __fastcall GxScenePresent(unsigned int mask) {
+void GxScenePresent(unsigned int mask) {
   ActivityBegin(ACTIVITY_RENDER);
   g_theGxDevicePtr->ScenePresent(mask);
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-void __fastcall GxSceneClear(unsigned int mask) {
+void GxSceneClear(unsigned int mask) {
   ActivityBegin(ACTIVITY_RENDER);
   g_theGxDevicePtr->SceneClear(mask);
   ActivityEnd(ACTIVITY_RENDER);
@@ -735,13 +735,13 @@ CGxTexFlags::CGxTexFlags(
   ASSERT(filter == GxTex_Anisotropic ? GxCaps().m_texFilterAnisotropic : 1);
 }
 
-int __fastcall GxTexCreate(
+int GxTexCreate(
     unsigned int width,
     unsigned int height,
     EGxTexFormat format,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     CGxTex *&texId
 ) {
   texId = 0;
@@ -775,11 +775,11 @@ int __fastcall GxTexCreate(
   return g_theGxDevicePtr->TexCreate(width, height, format, flags, userArg, userFunc, texId);
 }
 
-int __fastcall GxTexCreate(const CGxTexParms &parms, CGxTex *&texId) {
+int GxTexCreate(const CGxTexParms &parms, CGxTex *&texId) {
   return GxTexCreate(parms.width, parms.height, parms.format, parms.flags, parms.userArg, parms.userFunc, texId);
 }
 
-int __fastcall GxTexCreate(
+int GxTexCreate(
     EGxTexTarget target,
     unsigned int width,
     unsigned int height,
@@ -788,7 +788,7 @@ int __fastcall GxTexCreate(
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     CGxTex *&texId
 ) {
   texId = 0;
@@ -826,34 +826,34 @@ int __fastcall GxTexCreate(
   return g_theGxDevicePtr->TexCreate(target, width, height, depth, format, dataFormat, flags, userArg, userFunc, texId);
 }
 
-int __fastcall GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId) {
+int GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId) {
   return GxTexCreate(
       parms.target, parms.width, parms.height, parms.depth, parms.format, parms.dataFormat, parms.flags, parms.userArg, parms.userFunc, texId
   );
 }
 
-void __fastcall GxTexUpdate(CGxTex *texId, int minX, int minY, int maxX, int maxY, int immediate) {
+void GxTexUpdate(CGxTex *texId, int minX, int minY, int maxX, int maxY, int immediate) {
   FATALASSERT(texId != 0);
 
   NTempest::CiRect rect(minY, minX, maxY, maxX);
   GxTexUpdate(texId, rect, immediate);
 }
 
-int __fastcall GxTexNeedsUpdate(CGxTex *texId) {
+int GxTexNeedsUpdate(CGxTex *texId) {
   FATALASSERT(texId != 0);
 
   return g_theGxDevicePtr->TexNeedsUpdate(texId);
 }
 
-void __fastcall GxTexUpdate(CGxTex *texId, NTempest::CiRect &updateRect, int immediate) {
+void GxTexUpdate(CGxTex *texId, NTempest::CiRect &updateRect, int immediate) {
   FATALASSERT(texId != 0);
 
   g_theGxDevicePtr->TexMarkForUpdate(texId, updateRect, immediate);
 }
 
-void __fastcall GxTexSetUserData(
+void GxTexSetUserData(
     CGxTex *texId,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     void *userArg
 ) {
   FATALASSERT(texId != 0);
@@ -861,31 +861,31 @@ void __fastcall GxTexSetUserData(
   g_theGxDevicePtr->TexSetUserData(texId, userFunc, userArg);
 }
 
-void __fastcall GxTexSetFlags(CGxTex *texId, CGxTexFlags flags) {
+void GxTexSetFlags(CGxTex *texId, CGxTexFlags flags) {
   FATALASSERT(texId != 0);
 
   g_theGxDevicePtr->TexSetFlags(texId, flags);
 }
 
-void __fastcall GxTexDestroy(CGxTex *texId) {
+void GxTexDestroy(CGxTex *texId) {
   FATALASSERT(texId != 0);
 
   g_theGxDevicePtr->TexDestroy(texId);
 }
 
-void __fastcall GxTexParameters(const CGxTex *texId, CGxTexParms &parms) {
+void GxTexParameters(const CGxTex *texId, CGxTexParms &parms) {
   FATALASSERT(texId != 0);
 
   g_theGxDevicePtr->TexParameters(texId, parms);
 }
 
-void __fastcall GxTexParametersEx(const CGxTex *texId, CGxTexParmsEx &parms) {
+void GxTexParametersEx(const CGxTex *texId, CGxTexParmsEx &parms) {
   FATALASSERT(texId != 0);
 
   g_theGxDevicePtr->TexParameters(texId, parms);
 }
 
-void __fastcall GxTexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat) {
+void GxTexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat) {
   FATALASSERT(texId != 0);
 
   FATALASSERT(dataFormat <= GxTexFormats_Last);
@@ -893,13 +893,13 @@ void __fastcall GxTexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat) {
   g_theGxDevicePtr->TexSetDataFormat(texId, dataFormat);
 }
 
-void __fastcall GxTexFlags(const CGxTex *texId, CGxTexFlags &flags) {
+void GxTexFlags(const CGxTex *texId, CGxTexFlags &flags) {
   FATALASSERT(texId != 0);
 
   g_theGxDevicePtr->TexFlags(texId, flags);
 }
 
-void __fastcall GxXformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
+void GxXformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
   FATALASSERT(minX < maxX);
 
   FATALASSERT(minY < maxY);
@@ -915,15 +915,15 @@ void __fastcall GxXformSetViewport(float minX, float maxX, float minY, float max
   g_theGxDevicePtr->XformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 }
 
-void __fastcall GxXformSetProjection(const NTempest::C44Matrix &matrix) {
+void GxXformSetProjection(const NTempest::C44Matrix &matrix) {
   g_theGxDevicePtr->XformSetProjection(matrix);
 }
 
-void __fastcall GxXformSetView(const NTempest::C44Matrix &matrix) {
+void GxXformSetView(const NTempest::C44Matrix &matrix) {
   g_theGxDevicePtr->XformSetView(matrix);
 }
 
-void __fastcall GxXformSetBones(unsigned int numBones, const NTempest::C34Matrix *matrices) {
+void GxXformSetBones(unsigned int numBones, const NTempest::C34Matrix *matrices) {
   FATALASSERT(numBones < Gx_MaxBoneMatrices);
 
   FATALASSERT(matrices != 0);
@@ -931,25 +931,25 @@ void __fastcall GxXformSetBones(unsigned int numBones, const NTempest::C34Matrix
   g_theGxDevicePtr->XformSetBones(numBones, matrices);
 }
 
-void __fastcall GxXformViewport(float &minX, float &maxX, float &minY, float &maxY, float &minZ, float &maxZ) {
+void GxXformViewport(float &minX, float &maxX, float &minY, float &maxY, float &minZ, float &maxZ) {
   g_theGxDevicePtr->XformViewport(minX, maxX, minY, maxY, minZ, maxZ);
 }
 
-void __fastcall GxXformProjection(NTempest::C44Matrix &matrix) {
+void GxXformProjection(NTempest::C44Matrix &matrix) {
   g_theGxDevicePtr->XformProjection(matrix);
 }
 
-void __fastcall GxXformView(NTempest::C44Matrix &matrix) {
+void GxXformView(NTempest::C44Matrix &matrix) {
   g_theGxDevicePtr->XformView(matrix);
 }
 
-void __fastcall GxXformBone(unsigned int ndx, NTempest::C34Matrix &matrix) {
+void GxXformBone(unsigned int ndx, NTempest::C34Matrix &matrix) {
   FATALASSERT(ndx < Gx_MaxBoneMatrices);
 
   g_theGxDevicePtr->XformBone(ndx, matrix);
 }
 
-void __fastcall GxXformViewProj(NTempest::C44Matrix &matrix) {
+void GxXformViewProj(NTempest::C44Matrix &matrix) {
   NTempest::C44Matrix p;
   NTempest::C44Matrix v;
 
@@ -958,75 +958,75 @@ void __fastcall GxXformViewProj(NTempest::C44Matrix &matrix) {
   matrix = v * p;
 }
 
-void __fastcall GxXformPush(EGxXform xf) {
+void GxXformPush(EGxXform xf) {
   ASSERT(xf < GxXforms_Last);
   ASSERT(xf <= GxXform_World);
 
   g_theGxDevicePtr->XformPush(xf);
 }
 
-void __fastcall GxXformPush(EGxXform xf, const NTempest::C44Matrix &matrix) {
+void GxXformPush(EGxXform xf, const NTempest::C44Matrix &matrix) {
   ASSERT(xf < GxXforms_Last);
   ASSERT(xf <= GxXform_World);
 
   g_theGxDevicePtr->XformPush(xf, matrix);
 }
 
-void __fastcall GxXformPop(EGxXform xf) {
+void GxXformPop(EGxXform xf) {
   ASSERT(xf < GxXforms_Last);
   ASSERT(xf <= GxXform_World);
 
   g_theGxDevicePtr->XformPop(xf);
 }
 
-void __fastcall GxXformIdentity(EGxXform xf) {
+void GxXformIdentity(EGxXform xf) {
   ASSERT(xf < GxXforms_Last);
   ASSERT(xf <= GxXform_World);
 
   g_theGxDevicePtr->XformIdentity(xf);
 }
 
-void __fastcall GxXformSet(EGxXform xf, const NTempest::C44Matrix &matrix) {
+void GxXformSet(EGxXform xf, const NTempest::C44Matrix &matrix) {
   ASSERT(xf < GxXforms_Last);
   ASSERT(xf <= GxXform_World);
 
   g_theGxDevicePtr->XformSet(xf, matrix);
 }
 
-void __fastcall GxXformTranslate(EGxXform xf, const NTempest::C3Vector &t) {
+void GxXformTranslate(EGxXform xf, const NTempest::C3Vector &t) {
   ASSERT(xf < GxXforms_Last);
   ASSERT(xf <= GxXform_World);
 
   g_theGxDevicePtr->XformTranslate(xf, t);
 }
 
-void __fastcall GxXformScale(EGxXform xf, const NTempest::C3Vector &s) {
+void GxXformScale(EGxXform xf, const NTempest::C3Vector &s) {
   ASSERT(xf < GxXforms_Last);
   ASSERT(xf <= GxXform_World);
 
   g_theGxDevicePtr->XformScale(xf, s);
 }
 
-void __fastcall GxXformMult(EGxXform xf, const NTempest::C44Matrix &m) {
+void GxXformMult(EGxXform xf, const NTempest::C44Matrix &m) {
   ASSERT(xf < GxXforms_Last);
   ASSERT(xf <= GxXform_World);
 
   g_theGxDevicePtr->XformMult(xf, m);
 }
 
-void __fastcall GxXform(EGxXform xf, NTempest::C44Matrix &matrix) {
+void GxXform(EGxXform xf, NTempest::C44Matrix &matrix) {
   ASSERT(xf < GxXforms_Last);
   ASSERT(xf <= GxXform_World);
 
   g_theGxDevicePtr->Xform(xf, matrix);
 }
 
-void __fastcall GxPixelShaderCreate(CGxPixelShader *&ps, const char *filename) {
+void GxPixelShaderCreate(CGxPixelShader *&ps, const char *filename) {
   ASSERT(filename);
   g_theGxDevicePtr->PixelShaderCreate(ps, filename);
 }
 
-void __fastcall GxPixelShaderDestroy(CGxPixelShader *&ps) {
+void GxPixelShaderDestroy(CGxPixelShader *&ps) {
   g_theGxDevicePtr->PixelShaderDestroy(ps);
 }
 
@@ -1084,54 +1084,54 @@ CGxShaderParam *CGxShader::GetParam(const char *name) {
   return 0;
 }
 
-void *__fastcall GxAllocVertexMem(unsigned int nBytes) {
+void *GxAllocVertexMem(unsigned int nBytes) {
   ASSERT(nBytes < sizeof(CGxVertexPNCT0T1) * Gx_MaxVertices);
 
   s_vertexMem.SetCount(nBytes);
   return s_vertexMem.Ptr();
 }
 
-void __fastcall GxFreeVertexMem() {
+void GxFreeVertexMem() {
   s_vertexMem.Clear();
 }
 
-void *__fastcall GxAllocIndexMem(unsigned int nBytes) {
+void *GxAllocIndexMem(unsigned int nBytes) {
   ASSERT(nBytes < sizeof(uint16) * Gx_MaxIndices);
 
   s_indexMem.SetCount(nBytes);
   return s_indexMem.Ptr();
 }
 
-void __fastcall GxFreeIndexMem() {
+void GxFreeIndexMem() {
   s_indexMem.Clear();
 }
 
-void *__fastcall GxAllocPixelMem(unsigned int nBytes) {
+void *GxAllocPixelMem(unsigned int nBytes) {
   ASSERT(nBytes <= sizeof(CArgb) * Gx_MaxTexWidth * Gx_MaxTexHeight);
 
   s_pixelMem.SetCount(nBytes);
   return s_pixelMem.Ptr();
 }
 
-void __fastcall GxFreePixelMem() {
+void GxFreePixelMem() {
   s_pixelMem.Clear();
 }
 
-EGxTexFormat __fastcall GxGetGxTexFormat(BlitFormat blitFormat) {
+EGxTexFormat GxGetGxTexFormat(BlitFormat blitFormat) {
   ASSERT(blitFormat < BlitFormats_Last);
   return gxTexTable[blitFormat];
 }
 
-BlitFormat __fastcall GxGetBlitFormat(EGxTexFormat texFormat) {
+BlitFormat GxGetBlitFormat(EGxTexFormat texFormat) {
   ASSERT(texFormat < GxTexFormats_Last);
   return blitTable[texFormat];
 }
 
-void __fastcall GxLogOpen() {
+void GxLogOpen() {
   CGxDevice::LogOpen();
 }
 
-void __fastcall GxLogClose() {
+void GxLogClose() {
   CGxDevice::LogClose();
 }
 
@@ -1145,7 +1145,7 @@ void __cdecl GxLog(const char *format, ...) {
   va_end(arguments);
 }
 
-void __fastcall GxTexGetDimensions(const CGxTex *texId, unsigned int *width, unsigned int *height) {
+void GxTexGetDimensions(const CGxTex *texId, unsigned int *width, unsigned int *height) {
   FATALASSERT(texId != 0);
   g_theGxDevicePtr->TexGetDimensions(texId, width, height);
 }

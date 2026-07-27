@@ -21,12 +21,12 @@ static NTempest::C44Matrix s_mvp;
 static NTempest::C44Matrix s_mw;
 static NTempest::C44Matrix s_cm;
 
-void __fastcall CMapObj::SetGroupRenderCallback(void(__fastcall *func)(const unsigned int, const void *, const int), void *userParam) {
+void CMapObj::SetGroupRenderCallback(void(*func)(const unsigned int, const void *, const int), void *userParam) {
   gRenderCallback = func;
   gRenderUserParam = userParam;
 }
 
-void __fastcall CMapObj::PrepareUpdate() {
+void CMapObj::PrepareUpdate() {
   CMapObj *mapObjnext_node;
 
   extViewList.SetCount(0);

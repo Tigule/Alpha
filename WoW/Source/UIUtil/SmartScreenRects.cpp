@@ -276,11 +276,11 @@ static NTempest::C2Vector FindNextAvailableRect(SCREENRECTGRIDS grid, const NTem
   return NTempest::C2Vector((validRect.r + validRect.l) * 0.5f, validRect.t);
 }
 
-void __fastcall SmartScreenRectInitialize() {
+void SmartScreenRectInitialize() {
   s_showCVar = CVar::Register("showsmartrects", 0, 0, "0", 0, DEFAULT, false, 0);
 }
 
-void __fastcall SmartScreenRectShutdown() {
+void SmartScreenRectShutdown() {
   while (s_activeBFSNodes.Head()) {
     DEL(s_activeBFSNodes.Head());
   }
@@ -294,7 +294,7 @@ void __fastcall SmartScreenRectShutdown() {
   }
 }
 
-void __fastcall SmartScreenRectClearAllGrids() {
+void SmartScreenRectClearAllGrids() {
   unsigned int grid;
 
   for (grid = 0; grid < 2; ++grid) {
@@ -302,7 +302,7 @@ void __fastcall SmartScreenRectClearAllGrids() {
   }
 }
 
-void __fastcall SmartScreenRectGridPos(SCREENRECTGRIDS grid, NTempest::CRect& rect) {
+void SmartScreenRectGridPos(SCREENRECTGRIDS grid, NTempest::CRect& rect) {
   float totalHeight = static_cast<float>(fabs(rect.b - rect.t));
   float halfWidth = static_cast<float>(fabs(rect.r - rect.l)) * 0.5f;
   float halfHeight = totalHeight * 0.5f;
@@ -317,7 +317,7 @@ void __fastcall SmartScreenRectGridPos(SCREENRECTGRIDS grid, NTempest::CRect& re
   MarkRect(grid, rect);
 }
 
-void __fastcall SmartScreenRectGetGridPos(SCREENRECTGRIDS grid, CLayoutFrame* frameToPlace, float totalWidth, float totalHeight, CLayoutFrame* base, const NTempest::C2Vector& pos, int positionFromCenter) {
+void SmartScreenRectGetGridPos(SCREENRECTGRIDS grid, CLayoutFrame* frameToPlace, float totalWidth, float totalHeight, CLayoutFrame* base, const NTempest::C2Vector& pos, int positionFromCenter) {
   ASSERT(base);
   ASSERT(frameToPlace);
   ASSERT(grid < NUM_SRECTGRIDS);

@@ -171,7 +171,7 @@ struct CGxBuf {
   EGxVertexBufferFormat m_vbFormat;
   unsigned int          m_numVertices;
   unsigned int          m_numIndices;
-  void(__fastcall *m_userCallback)(CGxBufCommand &, CGxBuf *);
+  void(*m_userCallback)(CGxBufCommand &, CGxBuf *);
   void        *m_userArg;
   unsigned int m_vertexBase;
   unsigned int m_indexBase;
@@ -205,11 +205,11 @@ struct CGxBuf {
     m_userArg = userArg;
   }
 
-  void(__fastcall *UserCallback())(CGxBufCommand &, CGxBuf *) {
+  void(*UserCallback())(CGxBufCommand &, CGxBuf *) {
     return m_userCallback;
   }
 
-  void UserCallbackSet(void(__fastcall *userCallback)(CGxBufCommand &, CGxBuf *)) {
+  void UserCallbackSet(void(*userCallback)(CGxBufCommand &, CGxBuf *)) {
     m_userCallback = userCallback;
   }
 
@@ -285,7 +285,7 @@ class CGxTex {
       EGxTexFormat dataFormat,
       CGxTexFlags  flags,
       void        *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
   );
 
  public:
@@ -298,7 +298,7 @@ class CGxTex {
       EGxTexFormat dataFormat,
       CGxTexFlags  flags,
       void        *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
   );
   CGxTex(
       unsigned int width,
@@ -306,7 +306,7 @@ class CGxTex {
       EGxTexFormat format,
       CGxTexFlags  flags,
       void        *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
   );
   ~CGxTex() {
   }
@@ -327,7 +327,7 @@ class CGxTex {
   EGxTexFormat     m_dataFormat;
   CGxTexFlags      m_flags;
   void            *m_userArg;
-  void(__fastcall *m_userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&);
+  void(*m_userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&);
   void *m_apiSpecificData;
 };
 
@@ -505,7 +505,7 @@ class CGxDevice {
       EGxVertexBufferFormat format,
       unsigned int          numVertices,
       unsigned int          numIndices,
-      void(__fastcall *userCallback)(CGxBufCommand &, CGxBuf *),
+      void(*userCallback)(CGxBufCommand &, CGxBuf *),
       void *userArg
   );
   virtual void BufLock(CGxBuf *buf);
@@ -523,7 +523,7 @@ class CGxDevice {
       EGxTexFormat dataFormat,
       CGxTexFlags  flags,
       void        *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
       CGxTex *&texId
   );
   virtual int TexCreate(
@@ -532,7 +532,7 @@ class CGxDevice {
       EGxTexFormat format,
       CGxTexFlags  flags,
       void        *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
       CGxTex *&texId
   );
   virtual void TexDestroy(CGxTex *texId);
@@ -542,7 +542,7 @@ class CGxDevice {
   void         TexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat);
   void         TexSetUserData(
       CGxTex *texId,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
       void *userArg
   );
   void        *TexUserArg(CGxTex *texId);
@@ -555,15 +555,15 @@ class CGxDevice {
   virtual void VertexShaderCreate(CGxVertexShader *&vs, const char *filename);
   virtual void VertexShaderDestroy(CGxVertexShader *&vs);
 
-  static CGxDevice *__fastcall NewD3d();
-  static CGxDevice *__fastcall NewOpenGl();
-  static int __fastcall
+  static CGxDevice *NewD3d();
+  static CGxDevice *NewOpenGl();
+  static int
   AdapterID(unsigned short &vendorID, unsigned short &deviceID, unsigned long &driverVersionHi, unsigned long &driverVersionLow);
-  static int __fastcall AdapterInfer(unsigned short &deviceID);
-  static int __fastcall AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes);
-  static int __fastcall AdapterDesktopMode(CGxMonitorMode &mode);
-  static int __fastcall D3dEnumFormats(TSGrowableArray<CGxFormat> &formats);
-  static int __fastcall OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats);
+  static int AdapterInfer(unsigned short &deviceID);
+  static int AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes);
+  static int AdapterDesktopMode(CGxMonitorMode &mode);
+  static int D3dEnumFormats(TSGrowableArray<CGxFormat> &formats);
+  static int OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats);
 
   const CGxFormat          &DeviceFormat();
   unsigned int              DeviceBaseMipLevel();
@@ -577,8 +577,8 @@ class CGxDevice {
   void                      PerfAcc(EGxPerfCounter counter, unsigned int value) {
     m_perfCountersAcc[counter] += value;
   }
-  static float __fastcall   CpuFrequency();
-  static __int64 __fastcall CpuTicks();
+  static float CpuFrequency();
+  static __int64 CpuTicks();
   void                      XformProjection(NTempest::C44Matrix &matrix);
   void                      XformView(NTempest::C44Matrix &matrix);
   void                      XformBone(unsigned int ndx, NTempest::C34Matrix &matrix);
@@ -609,8 +609,8 @@ class CGxDevice {
   int                       MasterEnable(EGxMasterEnables state);
   void                      Light(unsigned int whichLight, CGxLight &lightInfo);
 
-  static void __fastcall LogOpen();
-  static void __fastcall LogClose();
+  static void LogOpen();
+  static void LogClose();
   static void __cdecl    Log(const char *format, ...);
   static void __cdecl    DbgPrintf(const char *format, ...);
 

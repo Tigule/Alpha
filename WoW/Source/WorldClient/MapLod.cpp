@@ -21,7 +21,7 @@ static const int vertOffs[4][2] = {
     { 17, 1}
 };
 
-void __fastcall CMapChunk::LodCreateTree(int level, int maxLevel, int neighborLOD, int holes, int cX, int cY) {
+void CMapChunk::LodCreateTree(int level, int maxLevel, int neighborLOD, int holes, int cX, int cY) {
   int lod[4];
 
   FATALASSERT(primPtr);

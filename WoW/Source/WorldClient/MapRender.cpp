@@ -7,7 +7,7 @@
 
 #include <storm.h>
 
-void __fastcall CMap::TestQueryRender() {
+void CMap::TestQueryRender() {
   NTempest::C44Matrix cMat;
 
   if (!testQueryVerts.Count()) {
@@ -33,10 +33,10 @@ void __fastcall CMap::TestQueryRender() {
   GxRsPop();
 }
 
-void __fastcall CMap::RenderLow() {
+void CMap::RenderLow() {
 }
 
-void __fastcall CMap::RenderAreaLow(CMapAreaLow *areaLow) {
+void CMap::RenderAreaLow(CMapAreaLow *areaLow) {
   GxRsPush();
   GxRsSet(GxRs_Blend, GxBlend_Opaque);
   GxRsSet(GxRs_Lighting, 0);
@@ -51,7 +51,7 @@ void __fastcall CMap::RenderAreaLow(CMapAreaLow *areaLow) {
   GxRsPop();
 }
 
-void __fastcall CMap::GxBufDynLowDetailCallback(CGxBufCommand &cmd, CGxBuf *buf) {
+void CMap::GxBufDynLowDetailCallback(CGxBufCommand &cmd, CGxBuf *buf) {
   CMapAreaLow *areaLow = static_cast<CMapAreaLow *>(buf->UserArg());
 
   ASSERT(areaLow);
@@ -59,7 +59,7 @@ void __fastcall CMap::GxBufDynLowDetailCallback(CGxBufCommand &cmd, CGxBuf *buf)
   CreateAreaLowDetailIndices(areaLow, cmd, buf);
 }
 
-void __fastcall CMap::CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf) {
+void CMap::CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPC *vtxBase = 0;
   unsigned int row;
   unsigned int column;
@@ -119,7 +119,7 @@ void __fastcall CMap::CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CG
   }
 }
 
-void __fastcall CMap::CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf) {
+void CMap::CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf) {
   unsigned short *idx = 0;
   unsigned int    row;
   unsigned int    column;
@@ -169,7 +169,7 @@ void __fastcall CMap::CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGx
   }
 }
 
-static void __fastcall Billboard(const NTempest::C3Vector &dir, NTempest::C44Matrix &mat) {
+static void Billboard(const NTempest::C3Vector &dir, NTempest::C44Matrix &mat) {
   mat.a0 = dir.x;
   mat.a1 = dir.y;
   mat.a2 = dir.z;

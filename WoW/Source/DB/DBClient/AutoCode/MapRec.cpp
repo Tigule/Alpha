@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall MapRec::GetFilename() {
+const char *MapRec::GetFilename() {
   return "DBFilesClient\\Map.dbc";
 }
 

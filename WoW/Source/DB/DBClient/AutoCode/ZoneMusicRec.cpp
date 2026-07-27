@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall ZoneMusicRec::GetFilename() {
+const char *ZoneMusicRec::GetFilename() {
   return "DBFilesClient\\ZoneMusic.dbc";
 }
 

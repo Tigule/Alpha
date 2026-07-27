@@ -13,11 +13,11 @@
 #include <Services/SysMessage.h>
 #include <Tempest/caasphere.h>
 
-void __fastcall            SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard);
-BlizzardObject *__fastcall SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec);
-void __fastcall            SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
-void __fastcall            SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
-void __fastcall            SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
+void SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard);
+BlizzardObject *SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec);
+void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
+void SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
+void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
 
 void CGDynamicObject_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
@@ -75,11 +75,11 @@ int CGDynamicObject_C::UpdateModelLoadStatus() {
   return 1;
 }
 
-static void __fastcall AnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void AnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
   static_cast<CGDynamicObject_C *>(param)->HandleAnimEvent(eventName, position);
 }
 
-static int __fastcall AnimFinishedCallback(void *param) {
+static int AnimFinishedCallback(void *param) {
   if (param) {
     static_cast<CGDynamicObject_C *>(param)->AnimFinished();
   }
@@ -165,7 +165,7 @@ void CGDynamicObject_C::SetData(const void *data, unsigned int bytes) {
   memcpy(m_dynamicObj, data, bytes);
 }
 
-unsigned int __fastcall CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
+unsigned int CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
   if (type == ID_OBJECT) {
     return 0;
   }

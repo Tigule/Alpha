@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall FactionRec::GetFilename() {
+const char *FactionRec::GetFilename() {
   return "DBFilesClient\\Faction.dbc";
 }
 

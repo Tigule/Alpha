@@ -8,7 +8,7 @@ unsigned int g_commandHistoryIndex;
 char         g_ExecBuffer[0x2000];
 EXECMODE     g_ExecCreateMode = EM_NOTACTIVE;
 
-int __fastcall AddLineToExecFile(const char *currentLine) {
+int AddLineToExecFile(const char *currentLine) {
   char stringToWrite[0x104];
   int  spaceRemaining;
 
@@ -44,7 +44,7 @@ int __fastcall AddLineToExecFile(const char *currentLine) {
   return 0;
 }
 
-void __fastcall AddToHistory(const char *command) {
+void AddToHistory(const char *command) {
   SStrCopy(g_commandHistory[g_commandHistoryIndex], command, 80);
   g_commandHistoryIndex = (g_commandHistoryIndex + 1) & 0x1F;
 }

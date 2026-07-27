@@ -29,7 +29,7 @@ static BYTE       s_sha1Zero;
   z += (w ^ x ^ y) + SHA1_BLK(i) + 0xCA62C1D6 + SHA1_ROL(v, 5); \
   w = SHA1_ROL(w, 30)
 
-void __fastcall SHA1_Transform(unsigned int *const state, const unsigned char *const buffer) {
+void SHA1_Transform(unsigned int *const state, const unsigned char *const buffer) {
   DWORD words[16];
   DWORD a;
   DWORD b;
@@ -131,7 +131,7 @@ void __fastcall SHA1_Transform(unsigned int *const state, const unsigned char *c
   state[4] += e;
 }
 
-void __fastcall SHA1_Init(SHA1_CONTEXT *context) {
+void SHA1_Init(SHA1_CONTEXT *context) {
   context->state[0] = 0x67452301;
   context->state[1] = 0xEFCDAB89;
   context->state[2] = 0x98BADCFE;
@@ -141,7 +141,7 @@ void __fastcall SHA1_Init(SHA1_CONTEXT *context) {
   context->count[0] = 0;
 }
 
-void __fastcall SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int len) {
+void SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int len) {
   DWORD i;
   DWORD j;
 
@@ -167,7 +167,7 @@ void __fastcall SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, un
   memcpy(&context->buffer[j], data + i, len - i);
 }
 
-void __fastcall SHA1_Final(unsigned char *const digest, SHA1_CONTEXT *context) {
+void SHA1_Final(unsigned char *const digest, SHA1_CONTEXT *context) {
   BYTE  finalcount[8];
   DWORD i;
 
@@ -186,7 +186,7 @@ void __fastcall SHA1_Final(unsigned char *const digest, SHA1_CONTEXT *context) {
   }
 }
 
-unsigned char *__fastcall SHA1_InterleaveHash(unsigned char *const digest, const unsigned char *data, unsigned int len) {
+unsigned char *SHA1_InterleaveHash(unsigned char *const digest, const unsigned char *data, unsigned int len) {
   SHA1_CONTEXT context;
   BYTE         localDigest[20];
   BYTE        *scratch;

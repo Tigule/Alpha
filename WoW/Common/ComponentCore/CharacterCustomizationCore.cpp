@@ -519,15 +519,15 @@ class CCharGeoset : public CHandleObject {
   unsigned int   m_currentGeosets[NUM_CHARGEOSETS];
 };
 
-static void __fastcall InitializeCameraFileNames();
-static void __fastcall FillInMissingTextureFileNames();
-static void __fastcall ReadTextureFileNames(int numRaces);
-static void __fastcall InitializeTextureFileNames();
-static void __fastcall InitializeHairGeosets();
-static void __fastcall InitializeTextureHoldLayers();
-static void __fastcall InitializeFacialHairVariations();
+static void InitializeCameraFileNames();
+static void FillInMissingTextureFileNames();
+static void ReadTextureFileNames(int numRaces);
+static void InitializeTextureFileNames();
+static void InitializeHairGeosets();
+static void InitializeTextureHoldLayers();
+static void InitializeFacialHairVariations();
 
-static void __fastcall InitializeCameraFileNames() {
+static void InitializeCameraFileNames() {
   unsigned int i;
 
   s_cameraFileNames.SetCount(g_chrRacesDB.GetMaxID() + 1);
@@ -556,7 +556,7 @@ static void __fastcall InitializeCameraFileNames() {
   }
 }
 
-static void __fastcall FillInMissingTextureFileNames() {
+static void FillInMissingTextureFileNames() {
   int race;
 
   for (race = s_raceTextureFileNames.Count(); race;) {
@@ -608,7 +608,7 @@ static void __fastcall FillInMissingTextureFileNames() {
   }
 }
 
-static void __fastcall ReadTextureFileNames(int numRaces) {
+static void ReadTextureFileNames(int numRaces) {
   int i;
 
   for (i = g_charTextureVariationsV2DB.GetNumRecords(); i; --i) {
@@ -647,7 +647,7 @@ static void __fastcall ReadTextureFileNames(int numRaces) {
   }
 }
 
-static void __fastcall InitializeTextureFileNames() {
+static void InitializeTextureFileNames() {
   int numRaces = g_chrRacesDB.GetMaxID() + 1;
 
   s_raceTextureFileNames.SetCount(numRaces);
@@ -655,7 +655,7 @@ static void __fastcall InitializeTextureFileNames() {
   FillInMissingTextureFileNames();
 }
 
-static void __fastcall InitializeHairGeosets() {
+static void InitializeHairGeosets() {
   int i;
 
   for (i = g_charHairGeosetsDB.GetNumRecords(); i; --i) {
@@ -677,7 +677,7 @@ static void __fastcall InitializeHairGeosets() {
   }
 }
 
-static void __fastcall InitializeTextureHoldLayers() {
+static void InitializeTextureHoldLayers() {
   int i;
 
   for (i = g_charVariationsDB.GetNumRecords(); i; --i) {
@@ -697,7 +697,7 @@ static void __fastcall InitializeTextureHoldLayers() {
   }
 }
 
-static void __fastcall InitializeFacialHairVariations() {
+static void InitializeFacialHairVariations() {
   int               records = g_characterFacialHairStylesDB.GetNumRecords();
   int               MAX_PLAYER_RACE_ID = g_chrRacesDB.GetMaxID();
   TSStackArray<int> maxVariationID(_alloca(MAX_PLAYER_RACE_ID * 2 * sizeof(int)), MAX_PLAYER_RACE_ID * 2, MAX_PLAYER_RACE_ID * 2);
@@ -747,7 +747,7 @@ static void __fastcall InitializeFacialHairVariations() {
   }
 }
 
-void __fastcall CharCustomizationInitialize() {
+void CharCustomizationInitialize() {
   unsigned int i;
 
   s_characterVariations.SetCount(g_chrRacesDB.GetMaxID() + 1);
@@ -763,12 +763,12 @@ void __fastcall CharCustomizationInitialize() {
   InitializeTextureHoldLayers();
 }
 
-void __fastcall CharCustomizationShutdown() {
+void CharCustomizationShutdown() {
   s_characterVariations.Clear();
   s_raceTextureFileNames.Clear();
 }
 
-void __fastcall CharCustomizationGetNumSkinTextures(unsigned int raceID, unsigned int sexID, int *pcVars, int *npcVars) {
+void CharCustomizationGetNumSkinTextures(unsigned int raceID, unsigned int sexID, int *pcVars, int *npcVars) {
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sexID < UNITSEX_LAST);
@@ -791,7 +791,7 @@ void __fastcall CharCustomizationGetNumSkinTextures(unsigned int raceID, unsigne
   }
 }
 
-HTEXTURE __fastcall CharCustomizationLoadSkin(
+HTEXTURE CharCustomizationLoadSkin(
     HMODEL       characterModel,
     const char  *skinName,
     unsigned int raceID,
@@ -842,7 +842,7 @@ HTEXTURE __fastcall CharCustomizationLoadSkin(
   return texture;
 }
 
-HTEXTURE __fastcall CharCustomizationSetSkin(HMODEL characterModel, unsigned int raceID, unsigned int sexID, unsigned int textureNumber, int isNPC) {
+HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, unsigned int raceID, unsigned int sexID, unsigned int textureNumber, int isNPC) {
   FATALASSERT(characterModel);
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
@@ -886,7 +886,7 @@ HTEXTURE __fastcall CharCustomizationSetSkin(HMODEL characterModel, unsigned int
   return texture;
 }
 
-int __fastcall CharCustomizationGetNakedSectionName(
+int CharCustomizationGetNakedSectionName(
     unsigned int raceID,
     unsigned int sexID,
     unsigned int skinID,
@@ -926,7 +926,7 @@ int __fastcall CharCustomizationGetNakedSectionName(
   return *name != 0;
 }
 
-void __fastcall CharCustomizationNumFaces(unsigned int raceID, unsigned int sexID, int *pcVars, int *npcVars) {
+void CharCustomizationNumFaces(unsigned int raceID, unsigned int sexID, int *pcVars, int *npcVars) {
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sexID < UNITSEX_LAST);
@@ -936,7 +936,7 @@ void __fastcall CharCustomizationNumFaces(unsigned int raceID, unsigned int sexI
   var.GetNumVariations(CHARTEXTURESECTION_FACEUPPER, pcVars, npcVars);
 }
 
-void __fastcall CharCustomizationSetFaceTexture(
+void CharCustomizationSetFaceTexture(
     HMODEL        characterModel,
     HTEXCOMPONENT texComponent,
     unsigned int  raceID,
@@ -980,7 +980,7 @@ void __fastcall CharCustomizationSetFaceTexture(
   );
 }
 
-unsigned int __fastcall CharCustomizationNumHairColors(unsigned int raceID, unsigned int sexID) {
+unsigned int CharCustomizationNumHairColors(unsigned int raceID, unsigned int sexID) {
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sexID < UNITSEX_LAST);
@@ -992,7 +992,7 @@ unsigned int __fastcall CharCustomizationNumHairColors(unsigned int raceID, unsi
   return var.GetNames(CHARTEXTURESECTION_HAIR, 0).GetColorCount();
 }
 
-void __fastcall CharCustomizationSetHairTexture(
+void CharCustomizationSetHairTexture(
     HMODEL        characterModel,
     HTEXCOMPONENT texComponent,
     unsigned int  raceID,
@@ -1028,13 +1028,13 @@ void __fastcall CharCustomizationSetHairTexture(
   }
 }
 
-unsigned int __fastcall CharCustomizationNumHairStyles(unsigned int raceID, unsigned int sexID) {
+unsigned int CharCustomizationNumHairStyles(unsigned int raceID, unsigned int sexID) {
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sexID < s_characterVariations[raceID].Count());
   return s_characterVariations[raceID][sexID].hairGeosets.Count();
 }
 
-unsigned int __fastcall CharCustomizationGetHairGeoset(unsigned int race, unsigned int sex, unsigned int hair) {
+unsigned int CharCustomizationGetHairGeoset(unsigned int race, unsigned int sex, unsigned int hair) {
   FATALASSERT(race != 0);
   FATALASSERT(race <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sex < s_characterVariations[race].Count());
@@ -1046,14 +1046,14 @@ unsigned int __fastcall CharCustomizationGetHairGeoset(unsigned int race, unsign
   return abs(hairGeosets[hair % hairGeosets.Count()].theInt);
 }
 
-unsigned int __fastcall CharCustomizationNumBeardStyles(unsigned int raceID, unsigned int sexID) {
+unsigned int CharCustomizationNumBeardStyles(unsigned int raceID, unsigned int sexID) {
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sexID < UNITSEX_LAST);
   return s_characterVariations[raceID][sexID].facialVariations.facialGeosets.Count();
 }
 
-int __fastcall
+int
 CharCustomizationGetBeardStyle(unsigned int raceID, unsigned int sexID, unsigned int facialHairID, BEARDSTYLEDATA *facialHairStyleData) {
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
@@ -1072,7 +1072,7 @@ CharCustomizationGetBeardStyle(unsigned int raceID, unsigned int sexID, unsigned
   return 1;
 }
 
-void __fastcall CharCustomizationSetFacialTexture(
+void CharCustomizationSetFacialTexture(
     HMODEL        characterModel,
     HTEXCOMPONENT texComponent,
     unsigned int  raceID,
@@ -1096,7 +1096,7 @@ void __fastcall CharCustomizationSetFacialTexture(
   TexComponentChangeCharacterHead(texComponent, upperTexture, lowerTexture, TEXLAYER_CLOTH);
 }
 
-HCHARGEOSET __fastcall CharCustomizationCreateGeosetHandle(HMODEL characterModel) {
+HCHARGEOSET CharCustomizationCreateGeosetHandle(HMODEL characterModel) {
   if (!characterModel) {
     return 0;
   }
@@ -1107,7 +1107,7 @@ HCHARGEOSET __fastcall CharCustomizationCreateGeosetHandle(HMODEL characterModel
   return reinterpret_cast<HCHARGEOSET>(HandleCreate(newObject, "HCHARGEOSET"));
 }
 
-void __fastcall CharCustomizationSetPaperDollGeoset(HCHARGEOSET handle, HMODEL paperDollModel) {
+void CharCustomizationSetPaperDollGeoset(HCHARGEOSET handle, HMODEL paperDollModel) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(handle);
   if (geoset) {
     if (geoset->m_paperDollModel) {
@@ -1117,7 +1117,7 @@ void __fastcall CharCustomizationSetPaperDollGeoset(HCHARGEOSET handle, HMODEL p
   }
 }
 
-void __fastcall CharCustomizationInitBaseCharacter(
+void CharCustomizationInitBaseCharacter(
     HCHARGEOSET  geosetHandle,
     unsigned int beardGeoset,
     unsigned int sideBurnGeoset,
@@ -1145,14 +1145,14 @@ void __fastcall CharCustomizationInitBaseCharacter(
   geoset->ClearGeosets();
 }
 
-void __fastcall CharCustomizationResetHairGeoset(HCHARGEOSET geosetHandle, unsigned int race, unsigned int sex, unsigned int hairStyleID) {
+void CharCustomizationResetHairGeoset(HCHARGEOSET geosetHandle, unsigned int race, unsigned int sex, unsigned int hairStyleID) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(geosetHandle);
   if (geoset) {
     geoset->EnableHairGeosets(race, sex, hairStyleID);
   }
 }
 
-void __fastcall CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets) {
+void CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(geosetHandle);
   if (geoset) {
     geoset->CommitWorkingGeosetInfo();
@@ -1162,7 +1162,7 @@ void __fastcall CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int
   }
 }
 
-void __fastcall CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets, HMODEL paperDollModel) {
+void CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets, HMODEL paperDollModel) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(geosetHandle);
   if (geoset) {
     CharCustomizationCommitItemGeosets(geosetHandle, doNotCommitGeosets);
@@ -1172,14 +1172,14 @@ void __fastcall CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int
   }
 }
 
-void __fastcall CharCustomizationClearItemGeosets(HCHARGEOSET geosetHandle) {
+void CharCustomizationClearItemGeosets(HCHARGEOSET geosetHandle) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(geosetHandle);
   if (geoset) {
     geoset->ClearGeosets();
   }
 }
 
-void __fastcall CharCustomizationAddItemGeosets(
+void CharCustomizationAddItemGeosets(
     HCHARGEOSET               geosetHandle,
     const ItemDisplayInfoRec *displayInfoRec,
     unsigned int              itemInventoryType,
@@ -1199,7 +1199,7 @@ void __fastcall CharCustomizationAddItemGeosets(
   }
 }
 
-void __fastcall CharCustomizationRemoveItemGeosets(
+void CharCustomizationRemoveItemGeosets(
     HCHARGEOSET               geosetHandle,
     const ItemDisplayInfoRec *displayInfoRec,
     unsigned int              itemInventoryType,
@@ -1216,28 +1216,28 @@ void __fastcall CharCustomizationRemoveItemGeosets(
   }
 }
 
-void __fastcall CharCustomizationCommitGeosets(HCHARGEOSET handle) {
+void CharCustomizationCommitGeosets(HCHARGEOSET handle) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(handle);
   if (geoset) {
     geoset->Commit();
   }
 }
 
-void __fastcall CharCustomizationShowGeoset(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section, unsigned int geosetNumber) {
+void CharCustomizationShowGeoset(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section, unsigned int geosetNumber) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(handle);
   if (geoset) {
     geoset->ShowGeosetSection(section, geosetNumber, 1);
   }
 }
 
-void __fastcall CharCustomizationHideGeosetSection(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section) {
+void CharCustomizationHideGeosetSection(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(handle);
   if (geoset) {
     geoset->HideGeosetSection(section);
   }
 }
 
-void __fastcall
+void
 CharCustomizationGetTextureLayerHolds(unsigned int raceID, unsigned int sexID, unsigned int *textureLayerHolds, unsigned int numTextureLayerHolds) {
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));

@@ -18,7 +18,7 @@
   }                                                               \
   ASSERT(object)
 
-static int __fastcall CSimpleSlider_SetMinMaxValues(lua_State *L) {
+static int CSimpleSlider_SetMinMaxValues(lua_State *L) {
   GET_SIMPLE_SLIDER_THIS(L, object);
 
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -31,7 +31,7 @@ static int __fastcall CSimpleSlider_SetMinMaxValues(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleSlider_GetMinMaxValues(lua_State *L) {
+static int CSimpleSlider_GetMinMaxValues(lua_State *L) {
   GET_SIMPLE_SLIDER_THIS(L, object);
 
   lua_pushnumber(L, object->GetMinValue());
@@ -39,7 +39,7 @@ static int __fastcall CSimpleSlider_GetMinMaxValues(lua_State *L) {
   return 2;
 }
 
-static int __fastcall CSimpleSlider_SetValue(lua_State *L) {
+static int CSimpleSlider_SetValue(lua_State *L) {
   GET_SIMPLE_SLIDER_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -51,14 +51,14 @@ static int __fastcall CSimpleSlider_SetValue(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleSlider_GetValue(lua_State *L) {
+static int CSimpleSlider_GetValue(lua_State *L) {
   GET_SIMPLE_SLIDER_THIS(L, object);
 
   lua_pushnumber(L, object->GetValue());
   return 1;
 }
 
-static int __fastcall CSimpleSlider_SetValueStep(lua_State *L) {
+static int CSimpleSlider_SetValueStep(lua_State *L) {
   GET_SIMPLE_SLIDER_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -70,7 +70,7 @@ static int __fastcall CSimpleSlider_SetValueStep(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleSlider_GetValueStep(lua_State *L) {
+static int CSimpleSlider_GetValueStep(lua_State *L) {
   GET_SIMPLE_SLIDER_THIS(L, object);
 
   lua_pushnumber(L, object->GetValueStep());
@@ -90,11 +90,11 @@ static FrameScript_Method SimpleSliderMethods[] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleSlider::s_scriptMethods;
 
-void __fastcall CSimpleSlider::RegisterScriptMethods() {
+void CSimpleSlider::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleSliderMethods, 6, s_scriptMethods);
 }
 
-void __fastcall CSimpleSlider::UnregisterScriptMethods() {
+void CSimpleSlider::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

@@ -99,10 +99,10 @@ typedef struct regmatch_t {
 extern "C" {
 #endif
 
-int __fastcall regcomp(regex_t *, const char *, int);
-int __fastcall regexec(const regex_t *, const char *, unsigned int,
+int regcomp(regex_t *, const char *, int);
+int regexec(const regex_t *, const char *, unsigned int,
     regmatch_t *, int);
-void __fastcall regfree(regex_t *);
+void regfree(regex_t *);
 
 #ifdef __cplusplus
 }

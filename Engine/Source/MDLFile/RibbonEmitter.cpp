@@ -7,7 +7,7 @@
 #include <math.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void IAddRibbonEmitterErrors(TSet &errors) {
@@ -163,7 +163,7 @@ static void IReadRibbonEmitter(
   parse.Expect('}', token, tokenText);
 }
 
-int __fastcall ReadRibbonEmitter(
+int ReadRibbonEmitter(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -234,7 +234,7 @@ static void IWriteRibbonEmitter(
   WriteObjectTrailer(emitter, buffer);
 }
 
-int __fastcall WriteRibbonEmitters(
+int WriteRibbonEmitters(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -344,7 +344,7 @@ static void IWriteBinRibbonEmitter(
   WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buffer);
 }
 
-int __fastcall WriteBinRibbonEmitters(
+int WriteBinRibbonEmitters(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status
@@ -464,7 +464,7 @@ static int ReadBinRibbonEmitter(
   return 1;
 }
 
-int __fastcall ReadBinRibbonEmitters(
+int ReadBinRibbonEmitters(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

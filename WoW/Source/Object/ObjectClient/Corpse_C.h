@@ -46,7 +46,7 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
   virtual void                   Reenable();
   int                            SetBlock(unsigned int i, unsigned long data);
   void                           SetData(const void *data, unsigned int bytes);
-  static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);
+  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
   virtual const char            *GetModelFileName() const;
   virtual int                    ShouldRender(unsigned long worldStatus);
   virtual void                   GetPosition(NTempest::C3Vector &vec) const {

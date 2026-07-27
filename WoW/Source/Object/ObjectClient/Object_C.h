@@ -8,7 +8,7 @@ class CGBag_C;
 class CGWorldFrame;
 struct HMODEL__;
 
-HMODEL__ *__fastcall ObjectModelCreate(const char *filename, OBJECT_TYPE objectType, unsigned int mdlCreateFlags);
+HMODEL__ *ObjectModelCreate(const char *filename, OBJECT_TYPE objectType, unsigned int mdlCreateFlags);
 
 enum HIGHLIGHTTYPE {
   HT_OBJSELECTION = 0,
@@ -36,9 +36,9 @@ class CGObject_C : public CGObject {
   void         PostMovementUpdate();
   int          IsPostInited();
 
-  static void __fastcall Initialize();
-  static void __fastcall Shutdown();
-  static void __fastcall UpdateAllWorldObjects();
+  static void Initialize();
+  static void Shutdown();
+  static void UpdateAllWorldObjects();
 
   virtual void               Disable(int shutdown);
   virtual void               Reenable();
@@ -74,7 +74,7 @@ class CGObject_C : public CGObject {
 
   int                            SetBlock(unsigned int i, unsigned long data);
   void                           SetData(const void *data, unsigned int bytes);
-  static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);
+  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
 
   void AddWorldObject();
   void UpdateWorldObject();
@@ -148,7 +148,7 @@ class CGObject_C : public CGObject {
  public:
   virtual const char *GetObjectName() const;
   void                ReportMissingEventObject(unsigned int objectID, const char *modelName) const;
-  virtual int         GetPageTextID(void(__fastcall *func)(int, const unsigned __int64 &, void *, bool)) const;
+  virtual int         GetPageTextID(void(*func)(int, const unsigned __int64 &, void *, bool)) const;
   void                DoFade(unsigned char alpha, unsigned int fadeTimeMs);
   unsigned int        GetAlpha() const {
     return m_alpha;

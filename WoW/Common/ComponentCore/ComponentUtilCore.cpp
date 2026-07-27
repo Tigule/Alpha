@@ -9,7 +9,7 @@
 
 static const char *s_itemVisualAnimNames[1] = {"stand"};
 
-void __fastcall ComponentUtilAddItemVisual(HMODEL itemModel, int index, const char *name) {
+void ComponentUtilAddItemVisual(HMODEL itemModel, int index, const char *name) {
   if (ModelIsLoaded(itemModel, 1) && !ModelHasLinkPoint(itemModel, index)) {
     return;
   }
@@ -27,7 +27,7 @@ void __fastcall ComponentUtilAddItemVisual(HMODEL itemModel, int index, const ch
   }
 }
 
-HMODEL __fastcall ComponentUtilGetChildModel(HMODEL parent, int index) {
+HMODEL ComponentUtilGetChildModel(HMODEL parent, int index) {
   if (!parent) {
     return 0;
   }
@@ -47,7 +47,7 @@ SUBCOMPONENTDESC::~SUBCOMPONENTDESC() {
   }
 }
 
-static char *__fastcall DuplicateComponentString(const char *string) {
+static char *DuplicateComponentString(const char *string) {
   if (!string) {
     return 0;
   }
@@ -197,7 +197,7 @@ extern const SECTIONPRIORITIES g_sectionPriorities[INDEX_NUMSLOTS] = {
       LAYERPRIORITY_0, LAYERPRIORITY_0}}
 };
 
-int __fastcall CompUtilGetSectionDimensions(unsigned int sectionIndex, unsigned int *width, unsigned int *height) {
+int CompUtilGetSectionDimensions(unsigned int sectionIndex, unsigned int *width, unsigned int *height) {
   ASSERT(width);
   ASSERT(height);
 
@@ -210,7 +210,7 @@ int __fastcall CompUtilGetSectionDimensions(unsigned int sectionIndex, unsigned 
   return 1;
 }
 
-int __fastcall CompUtilGetSectionOffset(unsigned int sectionIndex, unsigned int *xCoord, unsigned int *yCoord) {
+int CompUtilGetSectionOffset(unsigned int sectionIndex, unsigned int *xCoord, unsigned int *yCoord) {
   ASSERT(xCoord);
   ASSERT(yCoord);
 
@@ -223,7 +223,7 @@ int __fastcall CompUtilGetSectionOffset(unsigned int sectionIndex, unsigned int 
   return 1;
 }
 
-int __fastcall CompUtilItemSectionInfo(
+int CompUtilItemSectionInfo(
     const ItemDisplayInfoRec    *displayInfoRec,
     unsigned int                 inventoryType,
     unsigned int                *numTextureComponents,
@@ -262,7 +262,7 @@ int __fastcall CompUtilItemSectionInfo(
   return 1;
 }
 
-int __fastcall CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority) {
+int CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority) {
   ASSERT(invType < INDEX_NUMSLOTS);
   ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
   ASSERT(layer);
@@ -277,7 +277,7 @@ int __fastcall CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SEC
   return 1;
 }
 
-const char *__fastcall CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, unsigned int textureSection) {
+const char *CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, unsigned int textureSection) {
   if (!displayInfoRec || textureSection >= NUM_TEXCOMPONENT_SECTIONS) {
     return 0;
   }
@@ -287,7 +287,7 @@ const char *__fastcall CompUtilGetTextureSectionName(const ItemDisplayInfoRec *d
   return displayInfoRec->m_texture[textureIndex];
 }
 
-static int __fastcall
+static int
 ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichComponent, unsigned int inventoryType, SUBCOMPONENTDESC *subComp) {
   ASSERT(inventoryType < INDEX_NUMSLOTS);
   ASSERT(displayInfoRec);
@@ -317,7 +317,7 @@ ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichCom
   return 1;
 }
 
-unsigned int __fastcall CompUtilGetObjComponents(
+unsigned int CompUtilGetObjComponents(
     const ItemDisplayInfoRec *displayInfoRec,
     int                       itemInventoryType,
     SUBCOMPONENTDESC         *subComponents,

@@ -55,7 +55,7 @@ static const OsGuiCodeTranslation table[18] = {
     {15, -551, 2},  {16, -3, 1}};
 
 struct OsGuiCallbackInfo {
-  void(__fastcall *function)(const OsGuiCallbackParams &);
+  void(*function)(const OsGuiCallbackParams &);
   void *userParam;
 };
 static OsGuiCallbackInfo sCallbacks[2];
@@ -79,24 +79,24 @@ static const char *ControlClassName[20] = {
     "SysTabControl32", "SysListView32", "ToolbarWindow32", "SCROLLBAR", "STATIC"
 };
 
-void __fastcall OsGuiSetMenuCommandCallback(void(__fastcall *inCallback)(const OsGuiCallbackParams &), void *inUser) {
+void OsGuiSetMenuCommandCallback(void(*inCallback)(const OsGuiCallbackParams &), void *inUser) {
   sCallbacks[0].function = inCallback;
   sCallbacks[0].userParam = inUser;
 }
 
-void __fastcall OsGuiSetIdleCallback(void(__fastcall *inCallback)(const OsGuiCallbackParams &), void *inUser) {
+void OsGuiSetIdleCallback(void(*inCallback)(const OsGuiCallbackParams &), void *inUser) {
   sCallbacks[1].function = inCallback;
   sCallbacks[1].userParam = inUser;
 }
 
-typedef long(__fastcall *OSWINDOWPROC)(void *, unsigned int, unsigned int, long);
-void __fastcall OsSetWindowProc(OSWINDOWPROC windowproc);
-long __fastcall OsGuiWindowProc(void *_hWnd, unsigned int uMsg, unsigned int wParam, long lParam);
-void __fastcall OsGuiSetCursor(int inCursor);
-void __fastcall OsGuiGetCursorPosition(int *outX, int *outY);
-void __fastcall OsGuiSetWindowRect(void *inWindow, const NTempest::CiRect &inRect);
-void __fastcall OsGuiSetWindowIcon(void *inWindow, const char *inName);
-HICON__ *__fastcall sWinCursor(int inCursor);
+typedef long(*OSWINDOWPROC)(void *, unsigned int, unsigned int, long);
+void OsSetWindowProc(OSWINDOWPROC windowproc);
+long OsGuiWindowProc(void *_hWnd, unsigned int uMsg, unsigned int wParam, long lParam);
+void OsGuiSetCursor(int inCursor);
+void OsGuiGetCursorPosition(int *outX, int *outY);
+void OsGuiSetWindowRect(void *inWindow, const NTempest::CiRect &inRect);
+void OsGuiSetWindowIcon(void *inWindow, const char *inName);
+HICON__ *sWinCursor(int inCursor);
 static HBITMAP__ *sBitmapFromImageData(int inWidth, int inHeight, void *inData, HDC__ *inDC);
 static HBITMAP__ *sMaskFromImageData(int inWidth, int inHeight, void *inData, HDC__ *inDC);
 
@@ -125,7 +125,7 @@ static void sEnableGlobalTips(int inVal) {
   }
 }
 
-static void *__fastcall sGetOsGuiPointer(HWND hwnd) {
+static void *sGetOsGuiPointer(HWND hwnd) {
   return GetPropA(hwnd, "OsGuiPointer");
 }
 
@@ -186,7 +186,7 @@ static int sMenuRaw2RealID(int inID) {
   return inID;
 }
 
-void __fastcall OsGuiMenuSelect(int menuID, int itemID) {
+void OsGuiMenuSelect(int menuID, int itemID) {
   PostMessageA(GetActiveWindow(), WM_COMMAND, MAKEWPARAM(itemID, menuID), 0);
 }
 
@@ -204,7 +204,7 @@ static void sCiRectToWinRect(const NTempest::CiRect* inRect, tagRECT* outRect) {
   outRect->right = inRect->r;
 }
 
-NTempest::CiRect __fastcall OsGuiGetWindowRect(void *inWindow, int inClientOnly) {
+NTempest::CiRect OsGuiGetWindowRect(void *inWindow, int inClientOnly) {
   WINDOWINFO_TIGULE windowInfo;
   windowInfo.cbSize = sizeof(windowInfo);
   GetWindowInfo(static_cast<HWND>(inWindow), &windowInfo);
@@ -215,7 +215,7 @@ NTempest::CiRect __fastcall OsGuiGetWindowRect(void *inWindow, int inClientOnly)
   return result;
 }
 
-NTempest::CiRect __fastcall OsGuiGetWindowRestoredRect(void *inWindow) {
+NTempest::CiRect OsGuiGetWindowRestoredRect(void *inWindow) {
   WINDOWPLACEMENT placement;
   placement.length = sizeof(placement);
   GetWindowPlacement(static_cast<HWND>(inWindow), &placement);
@@ -225,7 +225,7 @@ NTempest::CiRect __fastcall OsGuiGetWindowRestoredRect(void *inWindow) {
   return result;
 }
 
-NTempest::CImVector __fastcall OsGuiGetColor(int inColor) {
+NTempest::CImVector OsGuiGetColor(int inColor) {
   int systemColor;
   switch (inColor) {
     case 0:
@@ -242,7 +242,7 @@ NTempest::CImVector __fastcall OsGuiGetColor(int inColor) {
   return NTempest::CImVector(0xFF, GetRValue(color), GetGValue(color), GetBValue(color));
 }
 
-void __fastcall OsGuiInitialize() {
+void OsGuiInitialize() {
   OsSetWindowProc(OsGuiWindowProc);
   INITCOMMONCONTROLSEX initCtrls;
   initCtrls.dwSize = sizeof(initCtrls);
@@ -250,7 +250,7 @@ void __fastcall OsGuiInitialize() {
   ASSERT(InitCommonControlsEx(&initCtrls));
 }
 
-void __fastcall OsGuiDestroy() {
+void OsGuiDestroy() {
   OsSetWindowProc(0);
   if (sGlobalTips) {
     DestroyWindow(sGlobalTips);
@@ -258,11 +258,11 @@ void __fastcall OsGuiDestroy() {
   }
 }
 
-void __fastcall OsGuiSetApplicationInfo(void *inData) {
+void OsGuiSetApplicationInfo(void *inData) {
   sAppInstance = static_cast<HINSTANCE>(inData);
 }
 
-int __fastcall OsGuiProcessMessage(void *inMsgData) {
+int OsGuiProcessMessage(void *inMsgData) {
   MSG *message = static_cast<MSG *>(inMsgData);
   int  handled = 0;
 
@@ -324,7 +324,7 @@ int __fastcall OsGuiProcessMessage(void *inMsgData) {
   return handled;
 }
 
-void __fastcall OsGuiEnableTooltips(int inVal) {
+void OsGuiEnableTooltips(int inVal) {
   if (inVal != sMasterTooltipsEnabled) {
     sMasterTooltipsEnabled = inVal;
     sEnableGlobalTips(inVal);
@@ -334,7 +334,7 @@ void __fastcall OsGuiEnableTooltips(int inVal) {
   }
 }
 
-void __fastcall OsGuiEnableMenuHotkeys(int inVal) {
+void OsGuiEnableMenuHotkeys(int inVal) {
   sMenuHotkeysEnabled = inVal;
 }
 
@@ -753,7 +753,7 @@ void COsControl::Refresh(int inErase) {
   InvalidateRect(static_cast<HWND>(mHandle), 0, inErase);
 }
 
-void COsControl::SetCallback(void(__fastcall *inFunc)(const OsGuiCallbackParams &), void *inParam) {
+void COsControl::SetCallback(void(*inFunc)(const OsGuiCallbackParams &), void *inParam) {
   mCallback = inFunc;
   mCallbackParam = inParam;
 }
@@ -968,7 +968,7 @@ void COsMenu::RemoveHotkey(int inPos) {
   mHotkeys.SetCount(count - 1);
 }
 
-void __fastcall COsMenu::AppendHotkeyText(char *inText, const OsGuiMenuHotkey &inHotkey) {
+void COsMenu::AppendHotkeyText(char *inText, const OsGuiMenuHotkey &inHotkey) {
   char keyText[52];
   sGetHotkeyText(inHotkey.keyID, inHotkey.modKeyID, keyText, 50);
   SStrPack(inText, "\t", 0x7FFFFFFF);
@@ -1384,7 +1384,7 @@ int COsDialog::IsMouseInside() {
       && cursor.y < dialogRect.bottom;
 }
 
-void COsDialog::SetCallback(void(__fastcall *inFunc)(const OsGuiCallbackParams &), void *inParam) {
+void COsDialog::SetCallback(void(*inFunc)(const OsGuiCallbackParams &), void *inParam) {
   mCallback = inFunc;
   mCallbackParam = inParam;
 }
@@ -2738,7 +2738,7 @@ static int sEditBoxProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, lon
   return CallWindowProcA(proc, hwnd, msg, wParam, lParam);
 }
 
-static int __fastcall sIsCharacterAllowed(char inChar, unsigned int inFilters) {
+static int sIsCharacterAllowed(char inChar, unsigned int inFilters) {
   signed char character = static_cast<signed char>(inChar);
 
   if (character >= 0 && character < 0x20) {
@@ -3032,7 +3032,7 @@ void *COsTreeView::GetItemChild(void *inItem, int inIndex) {
 
 void COsTreeView::EnumerateItems(
     void *inParent,
-    void(__fastcall *inFunc)(COsTreeView *, void *, void *),
+    void(*inFunc)(COsTreeView *, void *, void *),
     void *inParam
 ) {
   inFunc(this, inParent, inParam);
@@ -3048,7 +3048,7 @@ void COsTreeView::EnumerateItems(
 }
 
 void COsTreeView::EnumerateAllItems(
-    void(__fastcall *inFunc)(COsTreeView *, void *, void *),
+    void(*inFunc)(COsTreeView *, void *, void *),
     void *inParam
 ) {
   void *root = reinterpret_cast<void *>(
@@ -3142,7 +3142,7 @@ void COsTreeView::EditItem(void *inItem) {
   SendMessageA(static_cast<HWND>(mHandle), TVM_EDITLABELA, 0, reinterpret_cast<LPARAM>(inItem));
 }
 
-static void __fastcall sTVGetSelectInfo(COsTreeView* inView, void* inItem, void* inParam) {
+static void sTVGetSelectInfo(COsTreeView* inView, void* inItem, void* inParam) {
   struct SelectInfo {
     int count;
     void *first;
@@ -3172,7 +3172,7 @@ static void __fastcall sTVGetSelectInfo(COsTreeView* inView, void* inItem, void*
   }
 }
 
-static void __fastcall sTVSelect(COsTreeView* inView, void* inItem, void* inParam) {
+static void sTVSelect(COsTreeView* inView, void* inItem, void* inParam) {
   inView->SelectItem(inItem, *static_cast<int *>(inParam));
 }
 
@@ -3396,7 +3396,7 @@ void COsTreeView::EnableDragDrop(int inVal) {
 }
 
 void COsTreeView::SetDragDropHandler(
-    int(__fastcall *inFunc)(const OsGuiTVDDInfo &, void *),
+    int(*inFunc)(const OsGuiTVDDInfo &, void *),
     void *inParam
 ) {
   mDragHandler = inFunc;
@@ -3581,12 +3581,12 @@ void COsTreeView::SetFilter(unsigned int inFilter, int inVal) {
   }
 }
 
-void COsTreeView::SetCanEditFunction(int(__fastcall *inFunc)(void *, void *), void *inParam) {
+void COsTreeView::SetCanEditFunction(int(*inFunc)(void *, void *), void *inParam) {
   mCanEditFunc = inFunc;
   mCanEditParam = inParam;
 }
 
-void COsTreeView::SetExpandFunction(void(__fastcall *inFunc)(void *, void *), void *inParam) {
+void COsTreeView::SetExpandFunction(void(*inFunc)(void *, void *), void *inParam) {
   mExpandFunc = inFunc;
   mExpandParam = inParam;
 }
@@ -3970,7 +3970,7 @@ void COsWindow::SetInputFocus() {
 void COsWindow::OnResize() {
 }
 
-HICON__* __fastcall sWinCursor(int inCursor) {
+HICON__* sWinCursor(int inCursor) {
   FATALASSERT(inCursor >= 0 && inCursor < 4);
   switch (inCursor) {
     case 0: return static_cast<HCURSOR>(LoadCursorA(0, IDC_ARROW));
@@ -3981,18 +3981,18 @@ HICON__* __fastcall sWinCursor(int inCursor) {
   return 0;
 }
 
-void __fastcall OsGuiSetCursor(int inCursor) {
+void OsGuiSetCursor(int inCursor) {
   HCURSOR cursor = sWinCursor(inCursor);
   if (cursor) {
     SetCursor(cursor);
   }
 }
 
-void __fastcall OsGuiShowCursor(int inVal) {
+void OsGuiShowCursor(int inVal) {
   ShowCursor(inVal);
 }
 
-void __fastcall OsGuiGetCursorPosition(int* outX, int* outY) {
+void OsGuiGetCursorPosition(int* outX, int* outY) {
   POINT p;
   if (GetCursorPos(&p)) {
     *outX = p.x;
@@ -4000,11 +4000,11 @@ void __fastcall OsGuiGetCursorPosition(int* outX, int* outY) {
   }
 }
 
-void __fastcall OsGuiSetWindowTitle(void *inWindow, const char *inText) {
+void OsGuiSetWindowTitle(void *inWindow, const char *inText) {
   SetWindowTextA(static_cast<HWND>(inWindow), inText);
 }
 
-void __fastcall OsGuiSetWindowIcon(void* inWindow, const char* inName) {
+void OsGuiSetWindowIcon(void* inWindow, const char* inName) {
   HMODULE module = GetModuleHandleA(0);
   HICON oldIcon = reinterpret_cast<HICON>(
       SetClassLongA(static_cast<HWND>(inWindow), GCL_HICON,
@@ -4022,33 +4022,33 @@ void __fastcall OsGuiSetWindowIcon(void* inWindow, const char* inName) {
   }
 }
 
-void __fastcall OsGuiSetWindowRect(void* inWindow, const NTempest::CiRect& inRect) {
+void OsGuiSetWindowRect(void* inWindow, const NTempest::CiRect& inRect) {
   SetWindowPos(
       static_cast<HWND>(inWindow), 0, inRect.l, inRect.t, inRect.Width(), inRect.Height(),
       SWP_NOZORDER | SWP_NOACTIVATE
   );
 }
 
-void __fastcall OsGuiBringWindowToFront(void* inWindow) {
+void OsGuiBringWindowToFront(void* inWindow) {
   BringWindowToTop(static_cast<HWND>(inWindow));
 }
 
-void __fastcall OsGuiShowWindow(void* inWindow, int inVal) {
+void OsGuiShowWindow(void* inWindow, int inVal) {
   SetWindowPos(
       static_cast<HWND>(inWindow), 0, 0, 0, 0, 0,
       SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | (inVal ? SWP_SHOWWINDOW : SWP_HIDEWINDOW)
   );
 }
 
-void __fastcall OsGuiEnableWindow(void* inWindow, int inVal) {
+void OsGuiEnableWindow(void* inWindow, int inVal) {
   EnableWindow(static_cast<HWND>(inWindow), inVal);
 }
 
-int __fastcall OsGuiWindowEnabled(void* inWindow) {
+int OsGuiWindowEnabled(void* inWindow) {
   return IsWindowEnabled(static_cast<HWND>(inWindow));
 }
 
-void *__fastcall OsGuiGetWindow(int inWindowType) {
+void *OsGuiGetWindow(int inWindowType) {
   switch (inWindowType) {
     case 0:
       ASSERT(s_GxDevWindow);
@@ -4064,34 +4064,34 @@ void *__fastcall OsGuiGetWindow(int inWindowType) {
   return 0;
 }
 
-void __fastcall OsGuiSetGxWindow(void *window) {
+void OsGuiSetGxWindow(void *window) {
   s_GxDevWindow = window;
 }
 
-void __fastcall OsGuiMaximizeWindow(void* inWindow, int inVal) {
+void OsGuiMaximizeWindow(void* inWindow, int inVal) {
   HWND wnd = static_cast<HWND>(inWindow);
   ShowWindow(wnd, IsWindowVisible(wnd) ? (inVal ? SW_MAXIMIZE : SW_RESTORE) : (inVal ? SW_SHOWMAXIMIZED : SW_HIDE));
 }
 
-int __fastcall OsGuiWindowMaximized(void* inWindow) {
+int OsGuiWindowMaximized(void* inWindow) {
   WINDOWPLACEMENT placement;
   placement.length = sizeof(placement);
   GetWindowPlacement(static_cast<HWND>(inWindow), &placement);
   return placement.showCmd == SW_SHOWMAXIMIZED;
 }
 
-void __fastcall OsGuiMinimizeWindow(void* inWindow, int inVal) {
+void OsGuiMinimizeWindow(void* inWindow, int inVal) {
   HWND wnd = static_cast<HWND>(inWindow);
   ShowWindow(wnd, IsWindowVisible(wnd) ? (inVal ? SW_MINIMIZE : SW_RESTORE) : (inVal ? SW_MINIMIZE : SW_HIDE));
 }
 
-int __fastcall OsGuiWindowMinimized(void* inWindow) {
+int OsGuiWindowMinimized(void* inWindow) {
   WINDOWPLACEMENT placement;
   placement.length = sizeof(placement);
   GetWindowPlacement(static_cast<HWND>(inWindow), &placement);
   return placement.showCmd == SW_SHOWMINIMIZED;
 }
-void __fastcall OsGuiSetWindowRestoredRect(void* inWindow, const NTempest::CiRect& inRect) {
+void OsGuiSetWindowRestoredRect(void* inWindow, const NTempest::CiRect& inRect) {
   WINDOWPLACEMENT placement;
   placement.length = sizeof(placement);
   GetWindowPlacement(static_cast<HWND>(inWindow), &placement);
@@ -4100,7 +4100,7 @@ void __fastcall OsGuiSetWindowRestoredRect(void* inWindow, const NTempest::CiRec
   SetWindowPlacement(static_cast<HWND>(inWindow), &placement);
 }
 
-int __fastcall OsGuiWindowIsCursorInside(void* inWindow, int inClientOnly) {
+int OsGuiWindowIsCursorInside(void* inWindow, int inClientOnly) {
   int cursorX = 0;
   int cursorY = 0;
   OsGuiGetCursorPosition(&cursorX, &cursorY);
@@ -4115,7 +4115,7 @@ int __fastcall OsGuiWindowIsCursorInside(void* inWindow, int inClientOnly) {
   return 1;
 }
 
-NTempest::CiRect __fastcall OsGuiGetScreenBounds() {
+NTempest::CiRect OsGuiGetScreenBounds() {
   RECT workArea;
   NTempest::CiRect result;
   SystemParametersInfoA(SPI_GETWORKAREA, 0, &workArea, 0);
@@ -4123,11 +4123,11 @@ NTempest::CiRect __fastcall OsGuiGetScreenBounds() {
   return result;
 }
 
-void __fastcall OsGuiBeep() {
+void OsGuiBeep() {
   MessageBeep(0);
 }
 
-int __fastcall OsGuiMessageBox(void *inParentWindow, int inStyle, const char *inMessage, const char *inTitle) {
+int OsGuiMessageBox(void *inParentWindow, int inStyle, const char *inMessage, const char *inTitle) {
   unsigned int messageBoxStyle = 0;
   int          result;
 
@@ -4159,7 +4159,7 @@ int __fastcall OsGuiMessageBox(void *inParentWindow, int inStyle, const char *in
   return 2;
 }
 
-int __fastcall OsGuiIsModifierKeyDown(int inKey) {
+int OsGuiIsModifierKeyDown(int inKey) {
   int virtualKey;
 
   ASSERT(inKey >= 0 && inKey < 3);
@@ -4185,11 +4185,11 @@ int __fastcall OsGuiIsModifierKeyDown(int inKey) {
   return (GetKeyState(virtualKey) & 0xF000) != 0;
 }
 
-void __fastcall OsGuiGetHotkeyText(const OsGuiMenuHotkey& inHotkey, char* inBuf, int inBufSize) {
+void OsGuiGetHotkeyText(const OsGuiMenuHotkey& inHotkey, char* inBuf, int inBufSize) {
   sGetHotkeyText(inHotkey.keyID, inHotkey.modKeyID, inBuf, inBufSize);
 }
 
-long __fastcall OsGuiWindowProc(void* _hWnd, unsigned int uMsg, unsigned int wParam, long lParam) {
+long OsGuiWindowProc(void* _hWnd, unsigned int uMsg, unsigned int wParam, long lParam) {
   HWND hwnd = static_cast<HWND>(_hWnd);
   switch (uMsg) {
     case WM_DRAWITEM:

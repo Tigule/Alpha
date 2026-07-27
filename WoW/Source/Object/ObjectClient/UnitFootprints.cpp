@@ -21,7 +21,7 @@
 #include <math.h>
 #include <new.h>
 
-void __fastcall ProjectTex2dMakeMatrices(
+void ProjectTex2dMakeMatrices(
     NTempest::C44Matrix &texmat0,
     NTempest::C44Matrix &texmat1,
     NTempest::CAaBox    &box,
@@ -30,7 +30,7 @@ void __fastcall ProjectTex2dMakeMatrices(
     int                  inWorldSpace
 );
 CGxTex         *ProjectTex2dGetFade();
-void __fastcall UnitEffectOneShot(
+void UnitEffectOneShot(
     UNITEFFECTSPECIALS        effectNumber,
     unsigned __int64          target,
     const NTempest::C3Vector *attachPos,
@@ -104,7 +104,7 @@ static NTempest::C44Matrix MakeBasis(NTempest::C2Vector &size, int mirror, float
   return basis;
 }
 
-static void __fastcall ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
+static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPNCT0T1 *vertices = 0;
   unsigned short   *indices = 0;
   if (cmd.vertex.op == GxBufOp_Fill) {
@@ -494,7 +494,7 @@ void UnitFootprintPlayParticle(CGUnit_C *unit, NTempest::C3Vector &position, uns
   }
 }
 
-void __fastcall UnitFootprintRenderSplats(NTempest::C3Vector &cameraPos) {
+void UnitFootprintRenderSplats(NTempest::C3Vector &cameraPos) {
   if (!s_renderSplatsCVar || !s_renderSplatsCVar->GetInt()) {
     return;
   }

@@ -5,11 +5,11 @@
 #include "Base/MsgBuffer.h"
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 }
 
-void __fastcall ReadEventKeyframes(
+void ReadEventKeyframes(
     Parser &parse,
     MDLSIMPLEKEYTRACK<MDLEVENTKEY> *track
 ) {
@@ -48,7 +48,7 @@ void __fastcall ReadEventKeyframes(
   }
 }
 
-void __fastcall WriteEventKeyFrames(
+void WriteEventKeyFrames(
     const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &track,
     TSGrowableArray<char> &buffer
 ) {
@@ -74,7 +74,7 @@ void __fastcall WriteEventKeyFrames(
   }
 }
 
-int __fastcall ReadBinEventKeyFrames(
+int ReadBinEventKeyFrames(
     MDLSIMPLEKEYTRACK<MDLEVENTKEY> &track,
     CMsgBuffer &buffer,
     unsigned int *totalRead
@@ -100,7 +100,7 @@ int __fastcall ReadBinEventKeyFrames(
   return 1;
 }
 
-void __fastcall WriteBinEventKeyFrames(
+void WriteBinEventKeyFrames(
     const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &track,
     CMsgBuffer &buffer
 ) {
@@ -114,7 +114,7 @@ void __fastcall WriteBinEventKeyFrames(
   }
 }
 
-unsigned int __fastcall GetBinEventKeyFramesSize(
+unsigned int GetBinEventKeyFramesSize(
     const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &track
 ) {
   return track.keys.Count() ? 4 * track.keys.Count() + 12 : 0;
@@ -122,7 +122,7 @@ unsigned int __fastcall GetBinEventKeyFramesSize(
 
 namespace MDL {
 
-int __fastcall ReadEventObject(
+int ReadEventObject(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -159,7 +159,7 @@ int __fastcall ReadEventObject(
   return !parse.FoundError();
 }
 
-int __fastcall WriteEventObjects(
+int WriteEventObjects(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -176,7 +176,7 @@ int __fastcall WriteEventObjects(
   return 1;
 }
 
-int __fastcall WriteBinEventObjects(
+int WriteBinEventObjects(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status
@@ -205,7 +205,7 @@ int __fastcall WriteBinEventObjects(
   return 1;
 }
 
-int __fastcall ReadBinEventObjects(
+int ReadBinEventObjects(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

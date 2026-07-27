@@ -45,7 +45,7 @@ namespace NTempest {
   }
 
   void C4Quaternion::FromAngleAxis(
-      float angle,
+      const float angle,
       const C3Vector &axis
   ) {
     ASSERT(CMath::fequal_(axis.Mag(), 1.0f));
@@ -123,7 +123,7 @@ namespace NTempest {
     );
   }
 
-  C4Quaternion __fastcall C4Quaternion::Slerp(float ratio, const C4Quaternion &start, const C4Quaternion &end) {
+  C4Quaternion C4Quaternion::Slerp(float ratio, const C4Quaternion &start, const C4Quaternion &end) {
     float sign = 1.0f;
     float dot = start.x * end.x + start.y * end.y + start.z * end.z + start.w * end.w;
     if (dot < 0.0f) {
@@ -145,7 +145,7 @@ namespace NTempest {
     );
   }
 
-  C4Quaternion __fastcall C4Quaternion::Squad(
+  C4Quaternion C4Quaternion::Squad(
       float               ratio,
       const C4Quaternion &start,
       const C4Quaternion &end,
@@ -157,7 +157,7 @@ namespace NTempest {
     return Slerp(2.0f * ratio * (1.0f - ratio), value, tangent);
   }
 
-  void __fastcall C4Quaternion::SquadInterm(
+  void C4Quaternion::SquadInterm(
       const C4Quaternion &q0,
       const C4Quaternion &q1,
       const C4Quaternion &q2,
@@ -184,7 +184,7 @@ namespace NTempest {
     b = q1 * inverseTangent.Exp();
   }
 
-  void __fastcall C4Quaternion::SquadIntermMaxCompat(
+  void C4Quaternion::SquadIntermMaxCompat(
       const C4Quaternion &q0,
       const C4Quaternion &q1,
       const C4Quaternion &q2,
@@ -208,7 +208,7 @@ namespace NTempest {
     b = a;
   }
 
-  void __fastcall C4Quaternion::SquadIntermTCB(
+  void C4Quaternion::SquadIntermTCB(
       const C4Quaternion &q0,
       const C4Quaternion &q1,
       const C4Quaternion &q2,

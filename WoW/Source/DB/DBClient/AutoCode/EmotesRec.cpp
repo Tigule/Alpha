@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall EmotesRec::GetFilename() {
+const char *EmotesRec::GetFilename() {
   return "DBFilesClient\\Emotes.dbc";
 }
 

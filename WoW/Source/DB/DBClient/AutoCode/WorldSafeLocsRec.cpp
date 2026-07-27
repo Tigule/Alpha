@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall WorldSafeLocsRec::GetFilename() {
+const char *WorldSafeLocsRec::GetFilename() {
   return "DBFilesClient\\WorldSafeLocs.dbc";
 }
 

@@ -1,6 +1,6 @@
 #include "WorldCommon/WorldMath.h"
 
-static void __fastcall TransformAABox(
+static void TransformAABox(
     const NTempest::C3Vector *row0,
     const NTempest::C3Vector *row1,
     const NTempest::C3Vector *row2,
@@ -25,7 +25,7 @@ static void __fastcall TransformAABox(
   }
 }
 
-void __fastcall CWorldMath::TransformAABox(const NTempest::C33Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox) {
+void CWorldMath::TransformAABox(const NTempest::C33Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox) {
   nBox.b = NTempest::C3Vector(0.0f);
   nBox.t = NTempest::C3Vector(0.0f);
 
@@ -35,7 +35,7 @@ void __fastcall CWorldMath::TransformAABox(const NTempest::C33Matrix &m, const N
   ::TransformAABox(&row0, &row1, &row2, box, nBox);
 }
 
-void __fastcall CWorldMath::TransformAABox(const NTempest::C34Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox) {
+void CWorldMath::TransformAABox(const NTempest::C34Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox) {
   nBox.b = NTempest::C3Vector(m.d0, m.d1, m.d2);
   nBox.t = nBox.b;
 
@@ -45,7 +45,7 @@ void __fastcall CWorldMath::TransformAABox(const NTempest::C34Matrix &m, const N
   ::TransformAABox(&row0, &row1, &row2, box, nBox);
 }
 
-void __fastcall CWorldMath::TransformAABox(const NTempest::C44Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox) {
+void CWorldMath::TransformAABox(const NTempest::C44Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox) {
   nBox.b = NTempest::C3Vector(m.d0, m.d1, m.d2);
   nBox.t = nBox.b;
 
@@ -55,7 +55,7 @@ void __fastcall CWorldMath::TransformAABox(const NTempest::C44Matrix &m, const N
   ::TransformAABox(&row0, &row1, &row2, box, nBox);
 }
 
-int __fastcall CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
+int CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
   float         dir[3] = {end.x - start.x, end.y - start.y, end.z - start.z};
   unsigned long i;
   int           Inside = 1;
@@ -121,6 +121,6 @@ int __fastcall CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, co
   return 1;
 }
 
-int __fastcall CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Segment &seg) {
+int CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Segment &seg) {
   return VectorIntersectAABox2(box, seg.start, seg.end);
 }

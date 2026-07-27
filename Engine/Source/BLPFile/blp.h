@@ -45,7 +45,7 @@ enum COLOR_FILE_FORMAT {
   COLOR_DXT = 2
 };
 
-static int __fastcall LoadBlpMips(
+static int LoadBlpMips(
     const char   *fileName,
     MipBits     *&buffer,
     unsigned int *width,
@@ -54,7 +54,7 @@ static int __fastcall LoadBlpMips(
     int          *isOpaque,
     unsigned int *alphaBits
 );
-static int __fastcall PumpBlpTextureAsync(CTexture *texture);
+static int PumpBlpTextureAsync(CTexture *texture);
 
 struct BlpPalPixel {
   unsigned char b;
@@ -84,7 +84,7 @@ struct BLPHeader {
 };
 
 class CBLPFile {
-  friend int __fastcall LoadBlpMips(
+  friend int LoadBlpMips(
       const char   *fileName,
       MipBits     *&buffer,
       unsigned int *width,
@@ -93,7 +93,7 @@ class CBLPFile {
       int          *isOpaque,
       unsigned int *alphaBits
   );
-  friend int __fastcall PumpBlpTextureAsync(CTexture *texture);
+  friend int PumpBlpTextureAsync(CTexture *texture);
 
  public:
   CBLPFile() : m_images(0), m_quality(100) {

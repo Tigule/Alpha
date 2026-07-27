@@ -4,7 +4,7 @@
 
 struct CVar;
 
-typedef bool(__fastcall *CVARCALLBACK)(CVar *, const char *, const char *, void *);
+typedef bool(*CVARCALLBACK)(CVar *, const char *, const char *, void *);
 
 struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
   enum {
@@ -15,10 +15,10 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
   CVar();
   ~CVar();
 
-  static void __fastcall Initialize(const char *filename);
-  static void __fastcall Destroy();
+  static void Initialize(const char *filename);
+  static void Destroy();
 
-  static CVar *__fastcall Register(
+  static CVar *Register(
       const char  *name,
       const char  *help,
       unsigned int flags,
@@ -28,7 +28,7 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
       bool         setCommand,
       void        *arg
   );
-  static CVar *__fastcall Lookup(const char *name);
+  static CVar *Lookup(const char *name);
 
   const char *GetString() {
     return m_stringValue;

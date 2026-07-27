@@ -25,7 +25,7 @@
 #include "WowServices/WDataStore.h"
 #include "WowSvcs/WowSvcsClient/ClientConnection.h"
 
-void __fastcall BotClientSetAccount(const char *accountName, const char *password);
+void BotClientSetAccount(const char *accountName, const char *password);
 
 static char                   text[0x100];
 static const char            *s_vendors[4] = {"Unknown", "intel", "AMD", "PPC"};
@@ -107,9 +107,9 @@ static const char            *s_errorCodeTokens[0x42] = {
     "CHAR_NAME_SUCCESS"
 };
 extern CVar           *g_realmNameVar;
-static void __fastcall RealmEnum_InternalCallback(CDataStore *data, void *param);
+static void RealmEnum_InternalCallback(CDataStore *data, void *param);
 
-static int __fastcall ConsoleCommand_Logout(const char *command, const char *arguments) {
+static int ConsoleCommand_Logout(const char *command, const char *arguments) {
   ASSERT(s_currentConnection);
 
   if (s_currentConnection->IsInGame()) {
@@ -119,7 +119,7 @@ static int __fastcall ConsoleCommand_Logout(const char *command, const char *arg
   return 1;
 }
 
-static int __fastcall ClientServices_MessageHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+static int ClientServices_MessageHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
   ASSERT(param);
 
   ClientConnection *connection = static_cast<ClientConnection *>(param);
@@ -198,7 +198,7 @@ int ClientConnection::Initialize(LoginData *loginData) {
   return 1;
 }
 
-void __fastcall ClientServices_Initialize(LoginData *loginData) {
+void ClientServices_Initialize(LoginData *loginData) {
   if (!g_clientConnection) {
     g_clientConnection = NEW(ClientConnection);
     ASSERT(g_clientConnection);
@@ -251,7 +251,7 @@ void ClientConnection::Destroy() {
   }
 }
 
-void __fastcall ClientServices_Destroy() {
+void ClientServices_Destroy() {
   ConsoleCommandUnregister("logout");
 
   if (g_clientConnection) {
@@ -266,7 +266,7 @@ int ClientConnection::PollStatus(WOWCS_OPS &op, int &errorCode, int &result) {
   return m_statusComplete;
 }
 
-int __fastcall ClientServices_PollStatus(WOWCS_OPS &op, const char *&msg, int &result, int &errorCode) {
+int ClientServices_PollStatus(WOWCS_OPS &op, const char *&msg, int &result, int &errorCode) {
   ASSERT(s_currentConnection);
 
   int status = s_currentConnection->PollStatus(op, errorCode, result);
@@ -292,7 +292,7 @@ int __fastcall ClientServices_PollStatus(WOWCS_OPS &op, const char *&msg, int &r
   return status;
 }
 
-const char *__fastcall ClientServices_GetErrorToken(int errorCode) {
+const char *ClientServices_GetErrorToken(int errorCode) {
   if (errorCode <= 0 || errorCode >= LAST_CHAR_NAME_RESULT) {
     return "";
   }
@@ -300,12 +300,12 @@ const char *__fastcall ClientServices_GetErrorToken(int errorCode) {
   return s_errorCodeTokens[errorCode];
 }
 
-unsigned int __fastcall ClientServices_GetWaitCount() {
+unsigned int ClientServices_GetWaitCount() {
   ASSERT(s_currentConnection);
   return s_currentConnection->GetWaitCount();
 }
 
-int __fastcall ClientServices_ValidDisconnect(const void *message) {
+int ClientServices_ValidDisconnect(const void *message) {
   const ClientConnection *client = static_cast<const ClientConnection *>(message);
 
   ASSERT(client);
@@ -319,12 +319,12 @@ void ClientConnection::Cancel(int errorCode) {
   m_statusComplete = 1;
 }
 
-void __fastcall ClientServices_Cancel() {
+void ClientServices_Cancel() {
   ASSERT(s_currentConnection);
   s_currentConnection->Cancel(2);
 }
 
-void __fastcall ClientServices_Disconnected() {
+void ClientServices_Disconnected() {
   ASSERT(s_currentConnection);
 }
 
@@ -335,7 +335,7 @@ void ClientConnection::Cleanup() {
   }
 }
 
-void __fastcall ClientServices_Cleanup() {
+void ClientServices_Cleanup() {
   ASSERT(s_currentConnection);
   s_currentConnection->Cleanup();
 }
@@ -387,14 +387,14 @@ void ClientConnection::Connect() {
   }
 }
 
-void __fastcall ClientServices_Connect() {
+void ClientServices_Connect() {
   ASSERT(s_currentConnection);
 
   CGlueMgr::ClearWaitQueue();
   s_currentConnection->Connect();
 }
 
-int __fastcall ClientServices_IsConnected() {
+int ClientServices_IsConnected() {
   ASSERT(s_currentConnection);
   return s_currentConnection->IsConnected();
 }
@@ -480,12 +480,12 @@ void ClientConnection::AccountLogin(const char *name, const char *password, int 
   }
 }
 
-void __fastcall ClientServices_AccountLogin(const char *name, const char *password, int region, WOW_LOCALE locale) {
+void ClientServices_AccountLogin(const char *name, const char *password, int region, WOW_LOCALE locale) {
   ASSERT(s_currentConnection);
   s_currentConnection->AccountLogin(name, password, region, locale);
 }
 
-void __fastcall ClientServices_SetAccountName(const char *accountName) {
+void ClientServices_SetAccountName(const char *accountName) {
   ASSERT(accountName);
   SStrCopy(s_accountName, accountName, sizeof(s_accountName));
   s_accountNameValid = 1;
@@ -496,7 +496,7 @@ void ClientConnection::AccountLogout() {
   s_accountNameValid = 0;
 }
 
-void __fastcall ClientServices_AccountLogout() {
+void ClientServices_AccountLogout() {
   ASSERT(s_currentConnection);
   s_currentConnection->AccountLogout();
 }
@@ -574,7 +574,7 @@ void ClientConnection::GetCharacterList() {
   Send(&netMsg);
 }
 
-void __fastcall ClientServices_GetCharacterList() {
+void ClientServices_GetCharacterList() {
   ASSERT(s_currentConnection);
   s_currentConnection->GetCharacterList();
 }
@@ -583,12 +583,12 @@ int ClientConnection::GetCharacterListCount() {
   return m_characterList.Count();
 }
 
-int __fastcall ClientServices_GetCharacterListCount() {
+int ClientServices_GetCharacterListCount() {
   ASSERT(s_currentConnection);
   return s_currentConnection->GetCharacterListCount();
 }
 
-int ClientConnection::EnumerateCharacters(void(__fastcall *fcn)(CHARACTER_INFO &info, void *param), void *param) {
+int ClientConnection::EnumerateCharacters(void(*fcn)(CHARACTER_INFO &info, void *param), void *param) {
   ASSERT(fcn);
 
   int enumCount = m_characterList.Count();
@@ -599,7 +599,7 @@ int ClientConnection::EnumerateCharacters(void(__fastcall *fcn)(CHARACTER_INFO &
   return enumCount;
 }
 
-int __fastcall ClientServices_EnumerateCharacters(void(__fastcall *fcn)(CHARACTER_INFO &info, void *param), void *param) {
+int ClientServices_EnumerateCharacters(void(*fcn)(CHARACTER_INFO &info, void *param), void *param) {
   ASSERT(s_currentConnection);
   return s_currentConnection->EnumerateCharacters(fcn, param);
 }
@@ -647,7 +647,7 @@ void ClientConnection::CharacterCreate(const CHARACTER_CREATE_INFO &info) {
   Send(&netMsg);
 }
 
-void __fastcall ClientServices_CharacterCreate(const CHARACTER_CREATE_INFO &info) {
+void ClientServices_CharacterCreate(const CHARACTER_CREATE_INFO &info) {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterCreate(info);
 }
@@ -706,7 +706,7 @@ void ClientConnection::CharacterLogin(unsigned __int64 id) {
   m_playing = 1;
 }
 
-void __fastcall ClientServices_CharacterLogin(unsigned __int64 id, unsigned int continentID, NTempest::C3Vector position) {
+void ClientServices_CharacterLogin(unsigned __int64 id, unsigned int continentID, NTempest::C3Vector position) {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterLogin(id);
 }
@@ -719,12 +719,12 @@ void ClientConnection::CharacterSetInGame(int state) {
   m_inGame = state;
 }
 
-void __fastcall ClientServices_CharacterSetInGame(int state) {
+void ClientServices_CharacterSetInGame(int state) {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterSetInGame(state);
 }
 
-int __fastcall ClientServices_CharacterIsInGame() {
+int ClientServices_CharacterIsInGame() {
   return s_currentConnection && s_currentConnection->IsInGame();
 }
 
@@ -771,7 +771,7 @@ void ClientConnection::CharacterRemoveFromGame() {
   m_playing = 0;
 }
 
-void __fastcall ClientServices_CharacterRemoveFromGame() {
+void ClientServices_CharacterRemoveFromGame() {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterRemoveFromGame();
   ClientDestroyGame(1, 1, 0);
@@ -792,7 +792,7 @@ void ClientConnection::CharacterAbortLogout() {
   Send(&netMsg);
 }
 
-void __fastcall ClientServices_CharacterAbortLogout() {
+void ClientServices_CharacterAbortLogout() {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterAbortLogout();
 }
@@ -801,7 +801,7 @@ void ClientConnection::CharacterForceLogout() {
   CharacterLogout(false, true);
 }
 
-void __fastcall ClientServices_CharacterForceLogout() {
+void ClientServices_CharacterForceLogout() {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterForceLogout();
 }
@@ -827,7 +827,7 @@ void ClientConnection::CharacterLogout(bool exitAfterLogout, bool instant) {
   Send(&netMsg);
 }
 
-void __fastcall ClientServices_CharacterLogout(bool instant) {
+void ClientServices_CharacterLogout(bool instant) {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterLogout(false, instant);
 }
@@ -836,12 +836,12 @@ int ClientConnection::CharacterLoggingOut() {
   return m_loggingOut;
 }
 
-int __fastcall ClientServices_CharacterLoggingOut() {
+int ClientServices_CharacterLoggingOut() {
   ASSERT(s_currentConnection);
   return s_currentConnection->CharacterLoggingOut();
 }
 
-void __fastcall ClientServices_Exit() {
+void ClientServices_Exit() {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterLogout(true, false);
 }
@@ -888,7 +888,7 @@ void ClientConnection::CharacterDelete(unsigned __int64 guid) {
   Send(&netMsg);
 }
 
-void __fastcall ClientServices_CharacterDelete(unsigned __int64 guid) {
+void ClientServices_CharacterDelete(unsigned __int64 guid) {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterDelete(guid);
 }
@@ -903,7 +903,7 @@ int ClientConnection::Disconnect() {
   return 1;
 }
 
-int __fastcall ClientServices_Disconnect() {
+int ClientServices_Disconnect() {
   ASSERT(s_currentConnection);
   return s_currentConnection->Disconnect();
 }
@@ -990,7 +990,7 @@ error:
   m_statusComplete = 1;
 }
 
-static void __fastcall RealmEnum_InternalCallback(CDataStore *data, void *param) {
+static void RealmEnum_InternalCallback(CDataStore *data, void *param) {
   ClientConnection *client = static_cast<ClientConnection *>(param);
 
   ASSERT(client);
@@ -1009,7 +1009,7 @@ void ClientConnection::GetRealmList() {
   ClientNetGetRealms(s_realmListVar->GetString(), RealmEnum_InternalCallback, this);
 }
 
-void __fastcall ClientServices_GetRealmList() {
+void ClientServices_GetRealmList() {
   ASSERT(s_currentConnection);
   s_currentConnection->GetRealmList();
 }
@@ -1018,12 +1018,12 @@ int ClientConnection::GetRealmListCount() {
   return m_realmList.Count();
 }
 
-int __fastcall ClientServices_GetRealmListCount() {
+int ClientServices_GetRealmListCount() {
   ASSERT(s_currentConnection);
   return s_currentConnection->GetRealmListCount();
 }
 
-int ClientConnection::EnumerateRealms(void(__fastcall *fcn)(REALM_INFO &info, void *param), void *param) {
+int ClientConnection::EnumerateRealms(void(*fcn)(REALM_INFO &info, void *param), void *param) {
   ASSERT(fcn);
 
   int enumCount = m_realmList.Count();
@@ -1034,7 +1034,7 @@ int ClientConnection::EnumerateRealms(void(__fastcall *fcn)(REALM_INFO &info, vo
   return enumCount;
 }
 
-int __fastcall ClientServices_EnumerateRealms(void(__fastcall *fcn)(REALM_INFO &info, void *param), void *param) {
+int ClientServices_EnumerateRealms(void(*fcn)(REALM_INFO &info, void *param), void *param) {
   ASSERT(s_currentConnection);
   return s_currentConnection->EnumerateRealms(fcn, param);
 }
@@ -1047,48 +1047,48 @@ const REALM_INFO *ClientConnection::GetRealmInfoByIndex(int index) {
   return &m_realmList[index];
 }
 
-const REALM_INFO *__fastcall ClientServices_GetRealmInfoByIndex(int index) {
+const REALM_INFO *ClientServices_GetRealmInfoByIndex(int index) {
   ASSERT(s_currentConnection);
   return s_currentConnection->GetRealmInfoByIndex(index);
 }
 
-void __fastcall ClientServices_Send(CDataStore *msg) {
+void ClientServices_Send(CDataStore *msg) {
   if (s_currentConnection) {
     s_currentConnection->Send(msg);
   }
 }
 
-void __fastcall
-ClientServices_SetMessageHandler(NETMESSAGE msgId, int(__fastcall *handler)(void *, NETMESSAGE, unsigned long, CDataStore *), void *param) {
+void
+ClientServices_SetMessageHandler(NETMESSAGE msgId, int(*handler)(void *, NETMESSAGE, unsigned long, CDataStore *), void *param) {
   ASSERT(s_currentConnection);
   ASSERT(handler);
 
   s_currentConnection->SetMessageHandler(msgId, handler, param);
 }
 
-void __fastcall ClientServices_ClearMessageHandler(NETMESSAGE msgId) {
+void ClientServices_ClearMessageHandler(NETMESSAGE msgId) {
   ASSERT(s_currentConnection);
 
   s_currentConnection->ClearMessageHandler(msgId);
 }
 
-void __fastcall ClientServices_SelectRealm(const char *realmName, const char *redirectServerAddress) {
+void ClientServices_SelectRealm(const char *realmName, const char *redirectServerAddress) {
   g_realmNameVar->Set(realmName, true, false, false);
 }
 
-const char *__fastcall ClientServices_GetSelectedRealmName() {
+const char *ClientServices_GetSelectedRealmName() {
   return g_realmNameVar->GetString();
 }
 
-const char *__fastcall ClientServices_GetSelectedRealmAddress() {
+const char *ClientServices_GetSelectedRealmAddress() {
   return s_redirectServer;
 }
 
-CHAR_NAME_RESULT __fastcall ClientServices_CharacterValidateName(const char *name) {
+CHAR_NAME_RESULT ClientServices_CharacterValidateName(const char *name) {
   return static_cast<CHAR_NAME_RESULT>(ValidateCharacterName(CURRENT_LANGUAGE, name) + CHAR_NAME_RESULT_START);
 }
 
-int __fastcall ClientServices_AccountValidateName(const char *name) {
+int ClientServices_AccountValidateName(const char *name) {
   while (*name) {
     if (!isalnum(*name) && *name != '.' && *name != '-') {
       return 0;
@@ -1099,11 +1099,11 @@ int __fastcall ClientServices_AccountValidateName(const char *name) {
   return 1;
 }
 
-const char *__fastcall ClientServices_GetAccountName() {
+const char *ClientServices_GetAccountName() {
   return s_accountNameValid ? s_accountName : 0;
 }
 
-bool __fastcall ClientServices_ReportScreenshot() {
+bool ClientServices_ReportScreenshot() {
   CDataStore msg;
   msg.Put(CMSG_SCREENSHOT);
   msg.Finalize();
@@ -1111,7 +1111,7 @@ bool __fastcall ClientServices_ReportScreenshot() {
   return true;
 }
 
-bool __fastcall ClientServices_Report(unsigned int reportType, const char *text, const char *category) {
+bool ClientServices_Report(unsigned int reportType, const char *text, const char *category) {
   if (!text) {
     return false;
   }
@@ -1271,21 +1271,21 @@ bool __fastcall ClientServices_Report(unsigned int reportType, const char *text,
   return true;
 }
 
-void __fastcall ClientServices_GetNetStats(float &bandwidthIn, float &bandwidthOut, unsigned long &latency) {
+void ClientServices_GetNetStats(float &bandwidthIn, float &bandwidthOut, unsigned long &latency) {
   s_currentConnection->GetNetStats(bandwidthIn, bandwidthOut, latency);
 }
 
-ClientConnection *__fastcall ClientServices_GetCurrent() {
+ClientConnection *ClientServices_GetCurrent() {
   return s_currentConnection;
 }
 
-ClientConnection *__fastcall ClientServices_SetCurrent(ClientConnection *conn) {
+ClientConnection *ClientServices_SetCurrent(ClientConnection *conn) {
   ClientConnection *previous = s_currentConnection;
   s_currentConnection = conn;
   return previous;
 }
 
-void __fastcall ClientServices_PollEventQueue() {
+void ClientServices_PollEventQueue() {
   if (s_currentConnection) {
     s_currentConnection->PollEventQueue();
   }

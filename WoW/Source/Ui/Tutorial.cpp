@@ -15,19 +15,19 @@ static const char *s_tutorialTokens[18] = {"QUESTGIVERS", "MOVEMENT",     "CAMER
 
 FBitField CGTutorial::m_tutorialFlags;
 
-void __fastcall CGTutorial::InitializeGame() {
+void CGTutorial::InitializeGame() {
   m_tutorialFlags.ClearAll();
   ClientServices_SetMessageHandler(SMSG_TUTORIAL_FLAGS, OnTutorialFlags, 0);
 }
 
-void __fastcall CGTutorial::ShutdownGame() {
+void CGTutorial::ShutdownGame() {
   ClientServices_ClearMessageHandler(SMSG_TUTORIAL_FLAGS);
 }
 
-void __fastcall CGTutorial::TriggerTutorial(TUTORIAL tutorial) {
+void CGTutorial::TriggerTutorial(TUTORIAL tutorial) {
 }
 
-void __fastcall CGTutorial::ClearTutorials() {
+void CGTutorial::ClearTutorials() {
   m_tutorialFlags.SetAll();
 
   CDataStore msg;
@@ -36,7 +36,7 @@ void __fastcall CGTutorial::ClearTutorials() {
   ClientServices_Send(&msg);
 }
 
-void __fastcall CGTutorial::ResetTutorials() {
+void CGTutorial::ResetTutorials() {
   m_tutorialFlags.ClearAll();
 
   CDataStore msg;
@@ -45,7 +45,7 @@ void __fastcall CGTutorial::ResetTutorials() {
   ClientServices_Send(&msg);
 }
 
-int __fastcall CGTutorial::OnTutorialFlags(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int CGTutorial::OnTutorialFlags(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned int byteCount = msg->Size() - msg->Tell();
   void        *data;
 
@@ -54,7 +54,7 @@ int __fastcall CGTutorial::OnTutorialFlags(void *__formal, NETMESSAGE msgId, uns
   return 1;
 }
 
-static int __fastcall Script_TriggerTutorial(lua_State *L) {
+static int Script_TriggerTutorial(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: TriggerTutorial(\"tutorial\")");
   }
@@ -72,12 +72,12 @@ static int __fastcall Script_TriggerTutorial(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ClearTutorials(lua_State *L) {
+static int Script_ClearTutorials(lua_State *L) {
   CGTutorial::ClearTutorials();
   return 0;
 }
 
-static int __fastcall Script_ResetTutorials(lua_State *L) {
+static int Script_ResetTutorials(lua_State *L) {
   CGTutorial::ResetTutorials();
   return 0;
 }
@@ -88,13 +88,13 @@ static FrameScript_Method s_ScriptFunctions[3] = {
     { "ResetTutorials",  Script_ResetTutorials}
 };
 
-void __fastcall TutorialRegisterScriptFunctions() {
+void TutorialRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 3; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall TutorialUnregisterScriptFunctions() {
+void TutorialUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 3; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

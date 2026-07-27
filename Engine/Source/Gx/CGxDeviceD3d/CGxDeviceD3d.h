@@ -191,7 +191,7 @@ class CGxDeviceD3d : public CGxDevice {
       EGxVertexBufferFormat format,
       unsigned int          numVertices,
       unsigned int          numIndices,
-      void(__fastcall *userCallback)(CGxBufCommand &, CGxBuf *),
+      void(*userCallback)(CGxBufCommand &, CGxBuf *),
       void *userArg
   );
   virtual void BufLock(CGxBuf *b);
@@ -205,7 +205,7 @@ class CGxDeviceD3d : public CGxDevice {
       EGxTexFormat format,
       CGxTexFlags  flags,
       void        *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
       CGxTex *&texId
   );
   virtual int TexCreate(
@@ -217,15 +217,15 @@ class CGxDeviceD3d : public CGxDevice {
       EGxTexFormat dataFormat,
       CGxTexFlags  flags,
       void        *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
       CGxTex *&texId
   );
   virtual void TexDestroy(CGxTex *texId);
   virtual void PixelShaderCreate(CGxPixelShader *&ps, const char *filename);
   virtual void PixelShaderDestroy(CGxPixelShader *&ps);
 
-  static int __fastcall   ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d);
-  static void __fastcall  IUnloadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d);
+  static int ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d);
+  static void IUnloadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d);
   static LRESULT CALLBACK WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
  private:

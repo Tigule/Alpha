@@ -21,14 +21,14 @@ const float                                 TWO_PI = 6.28318530717958647692f;
 const float                                 OO_TWO_PI = 0.15915494309189533577f;
 static TSGrowableArray<unsigned char>       s_layerAlpha;
 
-static void __fastcall ApplyWorldTransforms(
+static void ApplyWorldTransforms(
     const NTempest::C3Vector &position,
     float                     rotationAngle,
     const NTempest::C3Vector &rotationAxis,
     const NTempest::C3Vector &nonUniformScale,
     NTempest::C34Matrix      *orientation
 );
-static void __fastcall ModelAnimateAttached(
+static void ModelAnimateAttached(
     HMODEL                    model,
     float                     scale,
     unsigned int              transform,
@@ -37,18 +37,18 @@ static void __fastcall ModelAnimateAttached(
     const NTempest::C3Vector &cameraVector
 );
 
-void __fastcall ModelAnimateLogStop();
+void ModelAnimateLogStop();
 
-static void __fastcall BuildPrimBone(NTempest::C34Matrix *boneMatrices, unsigned int *matrix, unsigned int mtxCount, NTempest::C34Matrix *bone);
-static void __fastcall BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatrices, NTempest::C34Matrix *weightedMatrices);
-static void __fastcall SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared, NTempest::C34Matrix *boneMatrices);
-static void __fastcall SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared);
+static void BuildPrimBone(NTempest::C34Matrix *boneMatrices, unsigned int *matrix, unsigned int mtxCount, NTempest::C34Matrix *bone);
+static void BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatrices, NTempest::C34Matrix *weightedMatrices);
+static void SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared, NTempest::C34Matrix *boneMatrices);
+static void SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared);
 
-static void __fastcall
+static void
 IModelAnimate(CModelBase *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector);
-static void __fastcall IModelProcessEvents(CModelBase *unique, CModelShared *shared);
+static void IModelProcessEvents(CModelBase *unique, CModelShared *shared);
 
-static unsigned int __fastcall GetTransformListIndex(unsigned int numAttached) {
+static unsigned int GetTransformListIndex(unsigned int numAttached) {
   if (!numAttached) {
     return 0;
   }
@@ -63,12 +63,12 @@ static unsigned int __fastcall GetTransformListIndex(unsigned int numAttached) {
   return index;
 }
 
-static void __fastcall ReleaseTransformListIndex(unsigned int numAttached) {
+static void ReleaseTransformListIndex(unsigned int numAttached) {
   ASSERT(s_transInUse >= numAttached);
   s_transInUse -= numAttached;
 }
 
-static NTempest::C34Matrix *__fastcall GetTransformPtr(unsigned int index) {
+static NTempest::C34Matrix *GetTransformPtr(unsigned int index) {
   if (!s_transforms.Count()) {
     return 0;
   }
@@ -76,7 +76,7 @@ static NTempest::C34Matrix *__fastcall GetTransformPtr(unsigned int index) {
   return &s_transforms[index];
 }
 
-static unsigned int __fastcall GetLayerIndex(unsigned int numLayers) {
+static unsigned int GetLayerIndex(unsigned int numLayers) {
   if (!numLayers) {
     return 0;
   }
@@ -91,12 +91,12 @@ static unsigned int __fastcall GetLayerIndex(unsigned int numLayers) {
   return index;
 }
 
-static void __fastcall ReleaseLayerIndex(unsigned int numLayers) {
+static void ReleaseLayerIndex(unsigned int numLayers) {
   ASSERT(s_layersInUse >= numLayers);
   s_layersInUse -= numLayers;
 }
 
-static unsigned int *__fastcall GetLayerPtr(unsigned int index) {
+static unsigned int *GetLayerPtr(unsigned int index) {
   if (!s_layers.Count()) {
     return 0;
   }
@@ -104,7 +104,7 @@ static unsigned int *__fastcall GetLayerPtr(unsigned int index) {
   return &s_layers[index];
 }
 
-static void __fastcall IGetLayerIDs(unsigned int *array, unsigned int numLayers) {
+static void IGetLayerIDs(unsigned int *array, unsigned int numLayers) {
   if (numLayers) {
     ASSERT(array);
 
@@ -114,7 +114,7 @@ static void __fastcall IGetLayerIDs(unsigned int *array, unsigned int numLayers)
   }
 }
 
-static void __fastcall BuildPrimBone(NTempest::C34Matrix *boneMatrices, unsigned int *matrix, unsigned int mtxCount, NTempest::C34Matrix *bone) {
+static void BuildPrimBone(NTempest::C34Matrix *boneMatrices, unsigned int *matrix, unsigned int mtxCount, NTempest::C34Matrix *bone) {
   unsigned int i;
 
   ASSERT(mtxCount > 0);
@@ -156,7 +156,7 @@ static void __fastcall BuildPrimBone(NTempest::C34Matrix *boneMatrices, unsigned
   }
 }
 
-static void __fastcall BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatrices, NTempest::C34Matrix *weightedMatrices) {
+static void BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatrices, NTempest::C34Matrix *weightedMatrices) {
   unsigned int numGroups = geoset->groupMatrixCounts.Count();
 
   if (!numGroups) {
@@ -174,7 +174,7 @@ static void __fastcall BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix
   } while (--numGroups);
 }
 
-static void __fastcall SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared, NTempest::C34Matrix *boneMatrices) {
+static void SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared, NTempest::C34Matrix *boneMatrices) {
   if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].animatedColor.a) {
     unsigned int numGroups = geoShared->groupMatrixCounts.Count();
     ASSERT(numGroups > 0);
@@ -184,7 +184,7 @@ static void __fastcall SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetC
   }
 }
 
-static void __fastcall SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared) {
+static void SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared) {
   if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].animatedColor.a) {
     ASSERT(geoShared->groupMatrixCounts.Count() <= 1);
 
@@ -193,7 +193,7 @@ static void __fastcall SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColo
   }
 }
 
-static void __fastcall SetCollisionMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
+static void SetCollisionMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
   NTempest::C34Matrix *source = boneMatrices + shared->numBones - shared->hitTest.Count();
   NTempest::C34Matrix *target = unique->m_hitTestMtx.Ptr();
   unsigned int         count = unique->m_hitTestMtx.Count();
@@ -206,7 +206,7 @@ static void __fastcall SetCollisionMatrices(CModelComplex *unique, CModelShared 
   }
 }
 
-static void __fastcall SetGeosetMatrices(CModelSimple *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
+static void SetGeosetMatrices(CModelSimple *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
   ASSERT(unique);
 
   unsigned int numGeosets = unique->m_geosets.Count();
@@ -215,7 +215,7 @@ static void __fastcall SetGeosetMatrices(CModelSimple *unique, CModelShared *sha
   }
 }
 
-static void __fastcall SetGeosetMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
+static void SetGeosetMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
   ASSERT(unique);
 
   unsigned int i;
@@ -229,7 +229,7 @@ static void __fastcall SetGeosetMatrices(CModelComplex *unique, CModelShared *sh
   }
 }
 
-static void __fastcall SetUnanimatedCollisionMatrices(CModelComplex *unique) {
+static void SetUnanimatedCollisionMatrices(CModelComplex *unique) {
   NTempest::C34Matrix *matrix = unique->m_hitTestMtx.Ptr();
   unsigned int         count = unique->m_hitTestMtx.Count();
 
@@ -240,7 +240,7 @@ static void __fastcall SetUnanimatedCollisionMatrices(CModelComplex *unique) {
   }
 }
 
-static void __fastcall SetUnanimatedGeosetMatrices(CModelSimple *unique, CModelShared *shared) {
+static void SetUnanimatedGeosetMatrices(CModelSimple *unique, CModelShared *shared) {
   ASSERT(unique);
   ASSERT(shared);
 
@@ -250,7 +250,7 @@ static void __fastcall SetUnanimatedGeosetMatrices(CModelSimple *unique, CModelS
   }
 }
 
-static void __fastcall SetUnanimatedGeosetMatrices(CModelComplex *unique, CModelShared *shared) {
+static void SetUnanimatedGeosetMatrices(CModelComplex *unique, CModelShared *shared) {
   ASSERT(unique);
   ASSERT(shared);
 
@@ -265,7 +265,7 @@ static void __fastcall SetUnanimatedGeosetMatrices(CModelComplex *unique, CModel
   }
 }
 
-static void __fastcall GetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsigned char *layerAlpha) {
+static void GetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsigned char *layerAlpha) {
   for (unsigned int i = 0; i < numMaterials; ++i) {
     CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[i]);
     ASSERT(uniqueMtl);
@@ -277,7 +277,7 @@ static void __fastcall GetLayerAlpha(HMATERIAL *materials, unsigned int numMater
   }
 }
 
-static void __fastcall SetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsigned char *layerAlpha) {
+static void SetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsigned char *layerAlpha) {
   for (unsigned int i = 0; i < numMaterials; ++i) {
     CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[i]);
     ASSERT(uniqueMtl);
@@ -289,7 +289,7 @@ static void __fastcall SetLayerAlpha(HMATERIAL *materials, unsigned int numMater
   }
 }
 
-static void __fastcall UpdateEmitters(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos) {
+static void UpdateEmitters(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos) {
   float elapsed = AnimGetElapsedTime() * 0.001f;
 
   unsigned int i;
@@ -309,7 +309,7 @@ static void __fastcall UpdateEmitters(CModelComplex *unique, CModelShared *share
   }
 }
 
-static void __fastcall IModelAnimateBounds(HMODEL model) {
+static void IModelAnimateBounds(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
@@ -317,7 +317,7 @@ static void __fastcall IModelAnimateBounds(HMODEL model) {
   }
 }
 
-static void __fastcall
+static void
 IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector) {
   if (!unique->m_anim) {
     SetUnanimatedGeosetMatrices(unique, shared);
@@ -379,7 +379,7 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
   SetLayerAlpha(unique->m_materials.Ptr(), numMaterials, s_layerAlpha.Ptr());
 }
 
-static void __fastcall ModelAnimateAttached(
+static void ModelAnimateAttached(
     HMODEL                    model,
     float                     scale,
     unsigned int              transform,
@@ -409,7 +409,7 @@ static void __fastcall ModelAnimateAttached(
   WorldMatrixPop();
 }
 
-static void __fastcall
+static void
 IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector) {
   const unsigned int numAttachments = unique->m_attached.Count();
   unsigned int       transforms = GetTransformListIndex(numAttachments);
@@ -498,7 +498,7 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
   ReleaseTransformListIndex(numAttachments);
 }
 
-static void __fastcall
+static void
 IModelAnimate(CModelBase *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector) {
   ASSERT(unique);
   ASSERT(shared);
@@ -509,7 +509,7 @@ IModelAnimate(CModelBase *unique, CModelShared *shared, const NTempest::C3Vector
   }
 }
 
-static void __fastcall IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
+static void IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
   FATALASSERT(unique);
   FATALASSERT(shared);
 
@@ -543,7 +543,7 @@ static void __fastcall IModelProcessEvents(CModelBase *unique, CModelShared *sha
   }
 }
 
-static void __fastcall ApplyWorldTransforms(
+static void ApplyWorldTransforms(
     const NTempest::C3Vector &position,
     float                     rotationAngle,
     const NTempest::C3Vector &rotationAxis,
@@ -559,7 +559,7 @@ static void __fastcall ApplyWorldTransforms(
   orientation->Scale(scale);
 }
 
-static void __fastcall ApplyWorldTransforms(
+static void ApplyWorldTransforms(
     const NTempest::C3Vector &position,
     float                     rotationAngle,
     const NTempest::C3Vector &rotationAxis,
@@ -575,7 +575,7 @@ static void __fastcall ApplyWorldTransforms(
   orientation->Scale(nonUniformScale);
 }
 
-static void __fastcall IModelGetStandingBasis(
+static void IModelGetStandingBasis(
     GROUND_TRACK              trackType,
     const NTempest::C3Vector &groundNormal,
     float                     facing,
@@ -604,7 +604,7 @@ static void __fastcall IModelGetStandingBasis(
   }
 }
 
-static void __fastcall IModelGetStandingMatrix(
+static void IModelGetStandingMatrix(
     GROUND_TRACK              trackType,
     const NTempest::C3Vector &position,
     const NTempest::C3Vector &groundNormal,
@@ -622,25 +622,25 @@ static void __fastcall IModelGetStandingMatrix(
   orientation->Scale(scale);
 }
 
-void __fastcall ModelAnimateInitialize() {
+void ModelAnimateInitialize() {
   s_transInUse = 0;
 }
 
-void __fastcall ModelAnimateDestroy() {
+void ModelAnimateDestroy() {
   ModelAnimateLogStop();
 }
 
-void __fastcall ModelAnimateLogStart(const char *fileName) {
+void ModelAnimateLogStart(const char *fileName) {
 }
 
-void __fastcall ModelAnimateLogStop() {
+void ModelAnimateLogStop() {
 }
 
-int __fastcall ModelAnimateLogToggle(const char *fileName) {
+int ModelAnimateLogToggle(const char *fileName) {
   return 0;
 }
 
-void __fastcall ModelAnimateCameras(HMODEL model, const NTempest::C34Matrix &orientation) {
+void ModelAnimateCameras(HMODEL model, const NTempest::C34Matrix &orientation) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && (unique->m_flags & 0x20)) {
@@ -654,7 +654,7 @@ void __fastcall ModelAnimateCameras(HMODEL model, const NTempest::C34Matrix &ori
   }
 }
 
-void __fastcall
+void
 ModelAnimateCameras(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale) {
   NTempest::C34Matrix orientation;
 
@@ -662,7 +662,7 @@ ModelAnimateCameras(HMODEL model, const NTempest::C3Vector &position, float rota
   ModelAnimateCameras(model, orientation);
 }
 
-void __fastcall ModelProcessEvents(HMODEL model, const NTempest::C34Matrix &orientation) {
+void ModelProcessEvents(HMODEL model, const NTempest::C34Matrix &orientation) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -676,7 +676,7 @@ void __fastcall ModelProcessEvents(HMODEL model, const NTempest::C34Matrix &orie
   }
 }
 
-void __fastcall
+void
 ModelProcessEvents(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale) {
   NTempest::C34Matrix orientation;
 
@@ -684,7 +684,7 @@ ModelProcessEvents(HMODEL model, const NTempest::C3Vector &position, float rotat
   ModelProcessEvents(model, orientation);
 }
 
-void __fastcall ModelAnimate(
+void ModelAnimate(
     HMODEL                     model,
     const NTempest::C34Matrix &orientation,
     float                      scale,
@@ -713,7 +713,7 @@ void __fastcall ModelAnimate(
   ActivityEnd(ACTIVITY_ANIMATE);
 }
 
-void __fastcall ModelAnimate(
+void ModelAnimate(
     HMODEL                    model,
     const NTempest::C3Vector &position,
     float                     rotationAngle,
@@ -728,7 +728,7 @@ void __fastcall ModelAnimate(
   ModelAnimate(model, orientation, scale, cameraWorldPos, cameraVector);
 }
 
-void __fastcall ModelAnimate(
+void ModelAnimate(
     HMODEL                    model,
     const NTempest::C3Vector &position,
     float                     rotationAngle,
@@ -748,7 +748,7 @@ void __fastcall ModelAnimate(
   ModelAnimate(model, orientation, fakeScale, cameraWorldPos, cameraVector);
 }
 
-int __fastcall ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned int flags) {
+int ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned int flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -777,7 +777,7 @@ int __fastcall ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned in
   return 1;
 }
 
-int __fastcall ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
+int ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -794,7 +794,7 @@ int __fastcall ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned in
   return AnimSetSequence(unique->m_anim, seqIndex, objectId, flags);
 }
 
-int __fastcall ModelMatchSequence(HMODEL model, unsigned int objectId, unsigned int sameAsObjectId, unsigned int flags) {
+int ModelMatchSequence(HMODEL model, unsigned int objectId, unsigned int sameAsObjectId, unsigned int flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -811,7 +811,7 @@ int __fastcall ModelMatchSequence(HMODEL model, unsigned int objectId, unsigned 
   return AnimMatchSequence(unique->m_anim, objectId, sameAsObjectId, flags);
 }
 
-int __fastcall ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int flags) {
+int ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -836,7 +836,7 @@ int __fastcall ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex,
   return result;
 }
 
-int __fastcall ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
+int ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -853,7 +853,7 @@ int __fastcall ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex,
   return AnimSetRandomSequenceFidget(unique->m_anim, seqIndex, objectId, flags);
 }
 
-unsigned int __fastcall ModelGetNumSequenceFidgets(HMODEL model, unsigned int seqIndex) {
+unsigned int ModelGetNumSequenceFidgets(HMODEL model, unsigned int seqIndex) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -862,7 +862,7 @@ unsigned int __fastcall ModelGetNumSequenceFidgets(HMODEL model, unsigned int se
   return 0;
 }
 
-int __fastcall ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int fidgetId, unsigned int flags) {
+int ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int fidgetId, unsigned int flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -887,7 +887,7 @@ int __fastcall ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsig
   return result;
 }
 
-int __fastcall ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int fidgetId, unsigned int objectId, unsigned int flags) {
+int ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int fidgetId, unsigned int objectId, unsigned int flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -904,7 +904,7 @@ int __fastcall ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsig
   return AnimSetSequenceFidget(unique->m_anim, seqIndex, fidgetId, objectId, flags);
 }
 
-unsigned int __fastcall ModelGetNumSequences(HMODEL model) {
+unsigned int ModelGetNumSequences(HMODEL model) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -913,7 +913,7 @@ unsigned int __fastcall ModelGetNumSequences(HMODEL model) {
   return 0;
 }
 
-int __fastcall ModelGetSequenceDuration(HMODEL model, unsigned int seqIndex, unsigned int *duration) {
+int ModelGetSequenceDuration(HMODEL model, unsigned int seqIndex, unsigned int *duration) {
   FATALASSERT(duration);
   *duration = 0;
 
@@ -922,7 +922,7 @@ int __fastcall ModelGetSequenceDuration(HMODEL model, unsigned int seqIndex, uns
          AnimGetSequenceDuration(unique->m_anim, seqIndex, duration);
 }
 
-int __fastcall ModelGetSequenceMoveSpeed(HMODEL model, unsigned int seqIndex, float *moveSpeed) {
+int ModelGetSequenceMoveSpeed(HMODEL model, unsigned int seqIndex, float *moveSpeed) {
   FATALASSERT(moveSpeed);
   *moveSpeed = 0.0f;
 
@@ -931,7 +931,7 @@ int __fastcall ModelGetSequenceMoveSpeed(HMODEL model, unsigned int seqIndex, fl
          AnimGetSequenceMoveSpeed(unique->m_anim, seqIndex, moveSpeed);
 }
 
-int __fastcall ModelGetSequenceName(HMODEL model, unsigned int seqIndex, char *buffer, unsigned int buffLength) {
+int ModelGetSequenceName(HMODEL model, unsigned int seqIndex, char *buffer, unsigned int buffLength) {
   FATALASSERT(buffer);
   if (buffLength) {
     buffer[0] = 0;
@@ -942,13 +942,13 @@ int __fastcall ModelGetSequenceName(HMODEL model, unsigned int seqIndex, char *b
          AnimGetSequenceName(unique->m_anim, seqIndex, buffer, buffLength);
 }
 
-int __fastcall ModelHasSequenceId(HMODEL model, unsigned int seqIndex) {
+int ModelHasSequenceId(HMODEL model, unsigned int seqIndex) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimHasSequenceId(unique->m_anim, seqIndex);
 }
 
-unsigned int __fastcall ModelGetTotalKeys(HMODEL model) {
+unsigned int ModelGetTotalKeys(HMODEL model) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -957,7 +957,7 @@ unsigned int __fastcall ModelGetTotalKeys(HMODEL model) {
   return 0;
 }
 
-void __fastcall ModelSetSeqFinishedHandler(HMODEL model, ANIMSEQFINISHEDHANDLER callback, void *param) {
+void ModelSetSeqFinishedHandler(HMODEL model, ANIMSEQFINISHEDHANDLER callback, void *param) {
   CModelBase *unique;
 
   FATALASSERT(model);
@@ -972,7 +972,7 @@ void __fastcall ModelSetSeqFinishedHandler(HMODEL model, ANIMSEQFINISHEDHANDLER 
   }
 }
 
-void __fastcall ModelSetSeqFinishedHandler(HMODEL model, unsigned int sequence, ANIMSEQFINISHEDHANDLER callback, void *param) {
+void ModelSetSeqFinishedHandler(HMODEL model, unsigned int sequence, ANIMSEQFINISHEDHANDLER callback, void *param) {
   CModelBase *unique;
 
   FATALASSERT(model);
@@ -987,7 +987,7 @@ void __fastcall ModelSetSeqFinishedHandler(HMODEL model, unsigned int sequence, 
   }
 }
 
-void __fastcall ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
+void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1026,7 +1026,7 @@ void __fastcall ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedMod
   }
 }
 
-int __fastcall ModelSetObjectTimeScale(HMODEL model, unsigned int objectId, float timeScale, int doLinkedModels) {
+int ModelSetObjectTimeScale(HMODEL model, unsigned int objectId, float timeScale, int doLinkedModels) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1069,7 +1069,7 @@ int __fastcall ModelSetObjectTimeScale(HMODEL model, unsigned int objectId, floa
   return 1;
 }
 
-float __fastcall ModelGetTimeScale(HMODEL model) {
+float ModelGetTimeScale(HMODEL model) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -1078,7 +1078,7 @@ float __fastcall ModelGetTimeScale(HMODEL model) {
   return 0.0f;
 }
 
-float __fastcall ModelGetObjectTimeScale(HMODEL model, unsigned int objectId) {
+float ModelGetObjectTimeScale(HMODEL model, unsigned int objectId) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -1087,7 +1087,7 @@ float __fastcall ModelGetObjectTimeScale(HMODEL model, unsigned int objectId) {
   return 0.0f;
 }
 
-int __fastcall ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels) {
+int ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1130,7 +1130,7 @@ int __fastcall ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int d
   return 1;
 }
 
-int __fastcall ModelForceSequenceTime(HMODEL model, unsigned int seqIndex, int timeOffset, int doLinkedModels) {
+int ModelForceSequenceTime(HMODEL model, unsigned int seqIndex, int timeOffset, int doLinkedModels) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1177,7 +1177,7 @@ int __fastcall ModelForceSequenceTime(HMODEL model, unsigned int seqIndex, int t
   return 1;
 }
 
-int __fastcall ModelAdvanceTime(HMODEL model) {
+int ModelAdvanceTime(HMODEL model) {
   CModelBase *unique;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
     return 0;
@@ -1217,7 +1217,7 @@ int __fastcall ModelAdvanceTime(HMODEL model) {
   return 1;
 }
 
-int __fastcall ModelAdvanceTime(HMODEL model, int timeChange) {
+int ModelAdvanceTime(HMODEL model, int timeChange) {
   CModelBase *unique;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
     return 0;
@@ -1256,7 +1256,7 @@ int __fastcall ModelAdvanceTime(HMODEL model, int timeChange) {
   return 1;
 }
 
-void __fastcall ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
+void ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
   CModelBase *unique;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
     return;
@@ -1283,7 +1283,7 @@ void __fastcall ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
   }
 }
 
-void __fastcall ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) {
+void ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) {
   CModelBase *unique;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
     return;
@@ -1310,8 +1310,8 @@ void __fastcall ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) 
   }
 }
 
-void __fastcall
-ModelSetEventCallback(HMODEL model, void(__fastcall *callback)(const char *, const NTempest::C3Vector &, void *), void *param, int doLinkedModels) {
+void
+ModelSetEventCallback(HMODEL model, void(*callback)(const char *, const NTempest::C3Vector &, void *), void *param, int doLinkedModels) {
   CModelBase *unique;
 
   FATALASSERT(model);
@@ -1339,7 +1339,7 @@ ModelSetEventCallback(HMODEL model, void(__fastcall *callback)(const char *, con
   }
 }
 
-int __fastcall ModelApplyObjectLookAt(HMODEL model, unsigned int objectId, const NTempest::C3Vector &target) {
+int ModelApplyObjectLookAt(HMODEL model, unsigned int objectId, const NTempest::C3Vector &target) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1351,7 +1351,7 @@ int __fastcall ModelApplyObjectLookAt(HMODEL model, unsigned int objectId, const
   return unique->m_anim ? AnimApplyObjectLookAt(unique->m_anim, objectId, target) : 0;
 }
 
-int __fastcall ModelRemoveObjectLookAt(HMODEL model, unsigned int objectId) {
+int ModelRemoveObjectLookAt(HMODEL model, unsigned int objectId) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1363,13 +1363,13 @@ int __fastcall ModelRemoveObjectLookAt(HMODEL model, unsigned int objectId) {
   return unique->m_anim ? AnimRemoveObjectLookAt(unique->m_anim, objectId) : 0;
 }
 
-int __fastcall ModelObjectUsingLookAt(HMODEL model, unsigned int objectId) {
+int ModelObjectUsingLookAt(HMODEL model, unsigned int objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimObjectUsingLookAt(unique->m_anim, objectId);
 }
 
-int __fastcall ModelApplyObjectFaceDir(HMODEL model, unsigned int objectId, const NTempest::C3Vector &direction) {
+int ModelApplyObjectFaceDir(HMODEL model, unsigned int objectId, const NTempest::C3Vector &direction) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1381,7 +1381,7 @@ int __fastcall ModelApplyObjectFaceDir(HMODEL model, unsigned int objectId, cons
   return unique->m_anim ? AnimApplyObjectFaceDir(unique->m_anim, objectId, direction) : 0;
 }
 
-int __fastcall ModelRemoveObjectFaceDir(HMODEL model, unsigned int objectId) {
+int ModelRemoveObjectFaceDir(HMODEL model, unsigned int objectId) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1393,13 +1393,13 @@ int __fastcall ModelRemoveObjectFaceDir(HMODEL model, unsigned int objectId) {
   return unique->m_anim ? AnimRemoveObjectFaceDir(unique->m_anim, objectId) : 0;
 }
 
-int __fastcall ModelObjectUsingFaceDir(HMODEL model, unsigned int objectId) {
+int ModelObjectUsingFaceDir(HMODEL model, unsigned int objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimObjectUsingFaceDir(unique->m_anim, objectId);
 }
 
-int __fastcall ModelMarkFootstepSequence(HMODEL model, unsigned int seqIndex) {
+int ModelMarkFootstepSequence(HMODEL model, unsigned int seqIndex) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1411,7 +1411,7 @@ int __fastcall ModelMarkFootstepSequence(HMODEL model, unsigned int seqIndex) {
   return unique->m_anim ? AnimMarkFootstepSequence(unique->m_anim, seqIndex) : 0;
 }
 
-int __fastcall ModelLockObjectSequence(HMODEL model, unsigned int objectId, int set) {
+int ModelLockObjectSequence(HMODEL model, unsigned int objectId, int set) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1423,7 +1423,7 @@ int __fastcall ModelLockObjectSequence(HMODEL model, unsigned int objectId, int 
   return unique->m_anim ? AnimLockObjectSequence(unique->m_anim, objectId, set) : 0;
 }
 
-void __fastcall ModelGetStandingMatrix(
+void ModelGetStandingMatrix(
     HMODEL                    model,
     const NTempest::C3Vector &position,
     const NTempest::C3Vector &groundNormal,
@@ -1437,7 +1437,7 @@ void __fastcall ModelGetStandingMatrix(
   }
 }
 
-void __fastcall ModelForceStandingMatrix(
+void ModelForceStandingMatrix(
     HMODEL                    model,
     const NTempest::C3Vector &position,
     const NTempest::C3Vector &groundNormal,
@@ -1476,7 +1476,7 @@ void __fastcall ModelForceStandingMatrix(
   }
 }
 
-float __fastcall ModelGetPrimarySequenceCompletion(HMODEL model) {
+float ModelGetPrimarySequenceCompletion(HMODEL model) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -1485,13 +1485,13 @@ float __fastcall ModelGetPrimarySequenceCompletion(HMODEL model) {
   return 0.0f;
 }
 
-int __fastcall ModelEventEmitterHasKeysThisSeq(HMODEL model, unsigned int objectId) {
+int ModelEventEmitterHasKeysThisSeq(HMODEL model, unsigned int objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimEventEmitterHasKeysThisSeq(unique->m_anim, objectId);
 }
 
-int __fastcall ModelGetModelSpacePivot(HMODEL model, unsigned int objectId, NTempest::C3Vector *pivot) {
+int ModelGetModelSpacePivot(HMODEL model, unsigned int objectId, NTempest::C3Vector *pivot) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -1499,7 +1499,7 @@ int __fastcall ModelGetModelSpacePivot(HMODEL model, unsigned int objectId, NTem
          AnimGetObjectPosition(unique->m_anim, objectId, shared->positions, pivot);
 }
 
-int __fastcall ModelGetObjectPosition(HMODEL model, unsigned int objectId, NTempest::C3Vector *position) {
+int ModelGetObjectPosition(HMODEL model, unsigned int objectId, NTempest::C3Vector *position) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -1513,7 +1513,7 @@ int __fastcall ModelGetObjectPosition(HMODEL model, unsigned int objectId, NTemp
   return 1;
 }
 
-int __fastcall ModelGetEventObjectPosition(HMODEL model, unsigned int objectId, int modelSpace, NTempest::C3Vector *position) {
+int ModelGetEventObjectPosition(HMODEL model, unsigned int objectId, int modelSpace, NTempest::C3Vector *position) {
   CModelBase *unique;
 
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) || !unique->m_anim ||

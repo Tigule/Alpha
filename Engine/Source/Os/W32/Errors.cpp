@@ -1,6 +1,6 @@
 #include <windows.h>
 
-char *__fastcall OsGetLastErrorStr() {
+char *OsGetLastErrorStr() {
   char *msgBuf;
   FormatMessageA(
       FORMAT_MESSAGE_ALLOCATE_BUFFER |
@@ -11,6 +11,6 @@ char *__fastcall OsGetLastErrorStr() {
   return msgBuf;
 }
 
-void __fastcall OsFreeLastErrorStr(char *msgBuf) {
+void OsFreeLastErrorStr(char *msgBuf) {
   LocalFree(msgBuf);
 }

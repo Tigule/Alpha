@@ -38,25 +38,25 @@ TSGrowableArray<TrainerServiceInfo *>   CGClassTrainer::m_services;
 TSGrowableArray<TrainerSkillLineInfo *> CGClassTrainer::m_skillLines;
 char                                    CGClassTrainer::m_greetingText[512];
 
-void __fastcall Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet);
-int __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
+void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet);
+int SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
 
-static void __fastcall TrainerItemCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
+static void TrainerItemCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
   if (granted) {
     CGClassTrainer::RefreshList();
   }
 }
 
-static void __fastcall TradeSkillItemCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
+static void TradeSkillItemCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
   if (granted) {
     CGClassTrainer::RefreshList();
   }
 }
 
-void __fastcall CGClassTrainer::InitializeGame() {
+void CGClassTrainer::InitializeGame() {
 }
 
-void __fastcall CGClassTrainer::ShutdownGame() {
+void CGClassTrainer::ShutdownGame() {
   unsigned int i;
   for (i = 0; i < m_services.Count(); ++i) {
     DEL(m_services[i]);
@@ -69,18 +69,18 @@ void __fastcall CGClassTrainer::ShutdownGame() {
   m_skillLines.Clear();
 }
 
-void __fastcall CGClassTrainer::EnterWorld() {
+void CGClassTrainer::EnterWorld() {
   m_trainer = 0;
   m_currentSelection = 0;
   m_numServices = 0;
   m_greetingText[0] = 0;
 }
 
-void __fastcall CGClassTrainer::LeaveWorld() {
+void CGClassTrainer::LeaveWorld() {
   SetTrainer(0, TRAINER_TYPE_GENERAL);
 }
 
-void __fastcall CGClassTrainer::SetTrainer(unsigned __int64 trainerGUID, TRAINER_TYPE type) {
+void CGClassTrainer::SetTrainer(unsigned __int64 trainerGUID, TRAINER_TYPE type) {
   if (trainerGUID) {
     if (trainerGUID != ClntObjMgrGetActivePlayer()) {
       CGGameUI::SetInteractTarget(trainerGUID, MAX_SHOP_DISTANCE_SQUARED);
@@ -96,7 +96,7 @@ void __fastcall CGClassTrainer::SetTrainer(unsigned __int64 trainerGUID, TRAINER
   }
 }
 
-void __fastcall CGClassTrainer::SetSelection(unsigned int index) {
+void CGClassTrainer::SetSelection(unsigned int index) {
   if (index < m_numServices) {
     m_currentSelection = m_services[index]->spellID;
   } else {
@@ -104,7 +104,7 @@ void __fastcall CGClassTrainer::SetSelection(unsigned int index) {
   }
 }
 
-int __fastcall CGClassTrainer::GetSelectionIndex() {
+int CGClassTrainer::GetSelectionIndex() {
   if (!m_currentSelection) {
     return -1;
   }
@@ -229,7 +229,7 @@ int __cdecl QSortServices_Talent(const void *a, const void *b) {
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
-int __fastcall GetSkillLineFromService(int serviceSpell) {
+int GetSkillLineFromService(int serviceSpell) {
   SpellRec *spell = g_spellDB.GetRecord(serviceSpell);
   if (!spell) {
     return 0;
@@ -261,7 +261,7 @@ int __fastcall GetSkillLineFromService(int serviceSpell) {
   return unit->GetSpellSkillLine(effectIndex < 0 ? spell->m_ID : spell->m_effectTriggerSpell[effectIndex]);
 }
 
-void __fastcall CGClassTrainer::AddServices(
+void CGClassTrainer::AddServices(
     unsigned int   count,
     int           *spellID,
     unsigned int  *moneyCost,
@@ -393,7 +393,7 @@ void __fastcall CGClassTrainer::AddServices(
   FrameScript_SignalEvent(286);
 }
 
-void __fastcall CGClassTrainer::RefreshList() {
+void CGClassTrainer::RefreshList() {
   unsigned int i;
   unsigned int j;
 
@@ -553,7 +553,7 @@ void __fastcall CGClassTrainer::RefreshList() {
   FrameScript_SignalEvent(287);
 }
 
-void __fastcall CGClassTrainer::FilterAndSortServices() {
+void CGClassTrainer::FilterAndSortServices() {
   m_filteredServices = m_numServices;
   for (unsigned int lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
     TrainerSkillLineInfo *line = m_skillLines[lineIndex];
@@ -593,11 +593,11 @@ void __fastcall CGClassTrainer::FilterAndSortServices() {
   qsort(m_services.Ptr(), m_numServices, sizeof(TrainerServiceInfo *), compare);
 }
 
-TrainerServiceInfo *__fastcall CGClassTrainer::GetService(unsigned int index) {
+TrainerServiceInfo *CGClassTrainer::GetService(unsigned int index) {
   return index < m_numServices ? m_services[index] : 0;
 }
 
-const char *__fastcall CGClassTrainer::GetServiceName(unsigned int index) {
+const char *CGClassTrainer::GetServiceName(unsigned int index) {
   TrainerServiceInfo *service = GetService(index);
   if (!service) {
     return 0;
@@ -613,7 +613,7 @@ const char *__fastcall CGClassTrainer::GetServiceName(unsigned int index) {
   return line ? line->m_displayName_lang[CURRENT_LANGUAGE] : 0;
 }
 
-const char *__fastcall CGClassTrainer::GetServiceSubtext(unsigned int index) {
+const char *CGClassTrainer::GetServiceSubtext(unsigned int index) {
   TrainerServiceInfo *service = GetService(index);
   if (!service || service->spellID < 0) {
     return service ? "" : 0;
@@ -622,7 +622,7 @@ const char *__fastcall CGClassTrainer::GetServiceSubtext(unsigned int index) {
   return spell ? spell->m_nameSubtext_lang[CURRENT_LANGUAGE] : 0;
 }
 
-const char *__fastcall CGClassTrainer::GetServiceType(unsigned int index) {
+const char *CGClassTrainer::GetServiceType(unsigned int index) {
   TrainerServiceInfo *service = GetService(index);
   if (!service) {
     return 0;
@@ -636,7 +636,7 @@ const char *__fastcall CGClassTrainer::GetServiceType(unsigned int index) {
   return service->usable == 2 ? "used" : "unavailable";
 }
 
-int __fastcall CGClassTrainer::GetSkillLineIndexFromService(unsigned int index) {
+int CGClassTrainer::GetSkillLineIndexFromService(unsigned int index) {
   TrainerServiceInfo *service = GetService(index);
   if (!service || service->spellID >= 0) {
     return -1;
@@ -649,30 +649,30 @@ int __fastcall CGClassTrainer::GetSkillLineIndexFromService(unsigned int index) 
   return -1;
 }
 
-int __fastcall CGClassTrainer::IsCollpasedHeader(unsigned int index) {
+int CGClassTrainer::IsCollpasedHeader(unsigned int index) {
   int line = GetSkillLineIndexFromService(index);
   return line >= 0 && !(m_collapseFilter & (1 << line));
 }
 
-void __fastcall CGClassTrainer::SetServiceTypeFilter(int filter) {
+void CGClassTrainer::SetServiceTypeFilter(int filter) {
   m_serviceTypeFilter = filter;
   FilterAndSortServices();
   FrameScript_SignalEvent(287);
 }
 
-void __fastcall CGClassTrainer::SetSkillLineFilter(int filter) {
+void CGClassTrainer::SetSkillLineFilter(int filter) {
   m_skillLineFilter = filter;
   FilterAndSortServices();
   FrameScript_SignalEvent(287);
 }
 
-void __fastcall CGClassTrainer::SetCollapseFilter(int filter) {
+void CGClassTrainer::SetCollapseFilter(int filter) {
   m_collapseFilter = filter;
   FilterAndSortServices();
   FrameScript_SignalEvent(287);
 }
 
-static int __fastcall Script_OpenTrainer(lua_State *__formal) {
+static int Script_OpenTrainer(lua_State *__formal) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->TalkToTrainer(player->GetUnitData()->target);
@@ -680,17 +680,17 @@ static int __fastcall Script_OpenTrainer(lua_State *__formal) {
   return 0;
 }
 
-static int __fastcall Script_CloseTrainer(lua_State *__formal) {
+static int Script_CloseTrainer(lua_State *__formal) {
   CGClassTrainer::SetTrainer(0, TRAINER_TYPE_GENERAL);
   return 0;
 }
 
-static int __fastcall Script_GetNumTrainerServices(lua_State *L) {
+static int Script_GetNumTrainerServices(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGClassTrainer::GetNumServices()));
   return 1;
 }
 
-static int __fastcall Script_GetTrainerServiceInfo(lua_State *L) {
+static int Script_GetTrainerServiceInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceInfo(index)");
   }
@@ -706,7 +706,7 @@ static int __fastcall Script_GetTrainerServiceInfo(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_SelectTrainerService(lua_State *L) {
+static int Script_SelectTrainerService(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SelectTrainerService(index)");
   }
@@ -714,7 +714,7 @@ static int __fastcall Script_SelectTrainerService(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_IsTradeskillTrainer(lua_State *L) {
+static int Script_IsTradeskillTrainer(lua_State *L) {
   if (CGClassTrainer::GetTrainerType() == TRAINER_TYPE_TRADESKILLS) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -723,7 +723,7 @@ static int __fastcall Script_IsTradeskillTrainer(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_IsTalentTrainer(lua_State *L) {
+static int Script_IsTalentTrainer(lua_State *L) {
   if (!CGClassTrainer::GetTrainer() || CGClassTrainer::GetTrainerType() == TRAINER_TYPE_TALENTS) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -732,17 +732,17 @@ static int __fastcall Script_IsTalentTrainer(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTrainerSelectionIndex(lua_State *L) {
+static int Script_GetTrainerSelectionIndex(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGClassTrainer::GetSelectionIndex() + 1));
   return 1;
 }
 
-static int __fastcall Script_GetTrainerGreetingText(lua_State *L) {
+static int Script_GetTrainerGreetingText(lua_State *L) {
   lua_pushstring(L, CGClassTrainer::GetGreetingText());
   return 1;
 }
 
-static int __fastcall Script_GetTrainerServiceIcon(lua_State *L) {
+static int Script_GetTrainerServiceIcon(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceIcon(index)");
   }
@@ -773,7 +773,7 @@ static int __fastcall Script_GetTrainerServiceIcon(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTrainerServiceSkillLine(lua_State *L) {
+static int Script_GetTrainerServiceSkillLine(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceSkillLine(index)");
   }
@@ -783,7 +783,7 @@ static int __fastcall Script_GetTrainerServiceSkillLine(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTrainerServiceCost(lua_State *L) {
+static int Script_GetTrainerServiceCost(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceCost(index)");
   }
@@ -794,7 +794,7 @@ static int __fastcall Script_GetTrainerServiceCost(lua_State *L) {
   return 3;
 }
 
-static int __fastcall Script_GetTrainerServiceLevelReq(lua_State *L) {
+static int Script_GetTrainerServiceLevelReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceLevelReq(index)");
   }
@@ -803,7 +803,7 @@ static int __fastcall Script_GetTrainerServiceLevelReq(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTrainerServiceSkillReq(lua_State *L) {
+static int Script_GetTrainerServiceSkillReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceSkillReq(index)");
   }
@@ -820,7 +820,7 @@ static int __fastcall Script_GetTrainerServiceSkillReq(lua_State *L) {
   return 3;
 }
 
-static int __fastcall Script_GetTrainerServiceNumAbilityReq(lua_State *L) {
+static int Script_GetTrainerServiceNumAbilityReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceAbilityReq(index)");
   }
@@ -837,7 +837,7 @@ static int __fastcall Script_GetTrainerServiceNumAbilityReq(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTrainerServiceAbilityReq(lua_State *L) {
+static int Script_GetTrainerServiceAbilityReq(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: GetTrainerServiceAbilityReq(index)");
   }
@@ -873,7 +873,7 @@ static int __fastcall Script_GetTrainerServiceAbilityReq(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_GetTrainerServiceStepReq(lua_State *L) {
+static int Script_GetTrainerServiceStepReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceStepReq(index)");
   }
@@ -914,7 +914,7 @@ static int __fastcall Script_GetTrainerServiceStepReq(lua_State *L) {
   return 2;
 }
 
-static const SpellRec *__fastcall GetLearnedSpell(const TrainerServiceInfo *service, int *learnEffect) {
+static const SpellRec *GetLearnedSpell(const TrainerServiceInfo *service, int *learnEffect) {
   const SpellRec *trainer = service ? g_spellDB.GetRecord(service->spellID) : 0;
   if (!trainer) {
     return 0;
@@ -930,7 +930,7 @@ static const SpellRec *__fastcall GetLearnedSpell(const TrainerServiceInfo *serv
   return 0;
 }
 
-static int __fastcall Script_GetTrainerServiceDescription(lua_State *L) {
+static int Script_GetTrainerServiceDescription(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceDescription(index)");
   }
@@ -950,7 +950,7 @@ static int __fastcall Script_GetTrainerServiceDescription(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_IsTrainerServiceSkillStep(lua_State *L) {
+static int Script_IsTrainerServiceSkillStep(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: IsTrainerServiceSkillStep(index)");
   }
@@ -971,7 +971,7 @@ static int __fastcall Script_IsTrainerServiceSkillStep(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_IsTrainerServiceLearnSpell(lua_State *L) {
+static int Script_IsTrainerServiceLearnSpell(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: IsTrainerServiceLearnSpell(index)");
   }
@@ -999,7 +999,7 @@ static int __fastcall Script_IsTrainerServiceLearnSpell(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_IsTrainerServiceTradeSkill(lua_State *L) {
+static int Script_IsTrainerServiceTradeSkill(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: IsTrainerServiceTradeSkill(index)");
   }
@@ -1013,7 +1013,7 @@ static int __fastcall Script_IsTrainerServiceTradeSkill(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTrainerServiceStepIncrease(lua_State *L) {
+static int Script_GetTrainerServiceStepIncrease(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceStepIncrease(index)");
   }
@@ -1035,7 +1035,7 @@ static int __fastcall Script_GetTrainerServiceStepIncrease(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTrainerServiceSpellStats(lua_State *L) {
+static int Script_GetTrainerServiceSpellStats(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceSpellStats(index)");
   }
@@ -1064,7 +1064,7 @@ static int __fastcall Script_GetTrainerServiceSpellStats(lua_State *L) {
   return 5;
 }
 
-static int __fastcall Script_GetTrainerServiceEffects(lua_State *L) {
+static int Script_GetTrainerServiceEffects(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceEffects(index)");
   }
@@ -1083,7 +1083,7 @@ static int __fastcall Script_GetTrainerServiceEffects(lua_State *L) {
   return count;
 }
 
-static int __fastcall Script_BuyTrainerService(lua_State *L) {
+static int Script_BuyTrainerService(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: BuyTrainerService(index)");
   }
@@ -1095,7 +1095,7 @@ static int __fastcall Script_BuyTrainerService(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetTrainerServiceItemStats(lua_State *L) {
+static int Script_GetTrainerServiceItemStats(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceItemStats(index)");
   }
@@ -1127,7 +1127,7 @@ static int __fastcall Script_GetTrainerServiceItemStats(lua_State *L) {
   return count;
 }
 
-static int __fastcall GetServiceTypeFromString(const char *string) {
+static int GetServiceTypeFromString(const char *string) {
   if (!string) {
     return 6;
   }
@@ -1143,7 +1143,7 @@ static int __fastcall GetServiceTypeFromString(const char *string) {
   return 6;
 }
 
-static int __fastcall Script_SetTrainerServiceTypeFilter(lua_State *L) {
+static int Script_SetTrainerServiceTypeFilter(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SetTrainerServiceTypeFilter(\"type\" [, on\\off, exclusive])");
   }
@@ -1173,7 +1173,7 @@ static int __fastcall Script_SetTrainerServiceTypeFilter(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetTrainerSkillLineFilter(lua_State *L) {
+static int Script_SetTrainerSkillLineFilter(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SetTrainerSkillLineFilter(index [, on\\off, exclusive])");
   }
@@ -1202,7 +1202,7 @@ static int __fastcall Script_SetTrainerSkillLineFilter(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetTrainerServiceTypeFilter(lua_State *L) {
+static int Script_GetTrainerServiceTypeFilter(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceTypeFilter(\"type\")");
   }
@@ -1218,7 +1218,7 @@ static int __fastcall Script_GetTrainerServiceTypeFilter(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTrainerSkillLineFilter(lua_State *L) {
+static int Script_GetTrainerSkillLineFilter(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerSkillLineFilter(index)");
   }
@@ -1240,7 +1240,7 @@ static int __fastcall Script_GetTrainerSkillLineFilter(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTrainerSkillLines(lua_State *L) {
+static int Script_GetTrainerSkillLines(lua_State *L) {
   unsigned int count = CGClassTrainer::GetNumSkillLines();
   for (unsigned int i = 0; i < count; ++i) {
     const SkillLineRec *line = g_skillLineDB.GetRecord(CGClassTrainer::GetSkillLine(i));
@@ -1249,7 +1249,7 @@ static int __fastcall Script_GetTrainerSkillLines(lua_State *L) {
   return count;
 }
 
-static int __fastcall Script_CollapseTrainerSkillLine(lua_State *L) {
+static int Script_CollapseTrainerSkillLine(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: CollapseTrainerSkillLine(index)");
   }
@@ -1266,7 +1266,7 @@ static int __fastcall Script_CollapseTrainerSkillLine(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ExpandTrainerSkillLine(lua_State *L) {
+static int Script_ExpandTrainerSkillLine(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: ExpandTrainerSkillLine(index)");
   }
@@ -1319,13 +1319,13 @@ static FrameScript_Method s_ScriptFunctions[33] = {
     {        "ExpandTrainerSkillLine",         Script_ExpandTrainerSkillLine}
 };
 
-void __fastcall ClassTrainerRegisterScriptFunctions() {
+void ClassTrainerRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 33; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall ClassTrainerUnregisterScriptFunctions() {
+void ClassTrainerUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 33; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

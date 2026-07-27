@@ -9,7 +9,7 @@
 static float       lastUpdateTime;
 static const float OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
 
-void __fastcall CMap::SnapBaseObjToSubChunk(CMapBaseObj *baseObj, NTempest::C3Vector &pos, float angle) {
+void CMap::SnapBaseObjToSubChunk(CMapBaseObj *baseObj, NTempest::C3Vector &pos, float angle) {
   NTempest::C44Matrix mat;
   NTempest::CAaBox    tAaBox;
   NTempest::C3Vector  tVec;
@@ -37,7 +37,7 @@ void __fastcall CMap::SnapBaseObjToSubChunk(CMapBaseObj *baseObj, NTempest::C3Ve
   pos.y -= tVec.y - y * (150.0f / 36.0f);
 }
 
-void __fastcall CMap::Update() {
+void CMap::Update() {
   NTempest::CiRect areaRect = CWorld::areaRect;
 
   for (long y = areaRect.miny; y <= areaRect.maxy; ++y) {
@@ -76,7 +76,7 @@ void __fastcall CMap::Update() {
   }
 }
 
-void __fastcall CMap::UpdateDoodadDef(CMapDoodadDef *doodadDef, NTempest::C3Vector &pos, float angle) {
+void CMap::UpdateDoodadDef(CMapDoodadDef *doodadDef, NTempest::C3Vector &pos, float angle) {
   FATALASSERT(doodadDef);
 
   doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
@@ -97,7 +97,7 @@ void __fastcall CMap::UpdateDoodadDef(CMapDoodadDef *doodadDef, NTempest::C3Vect
   }
 }
 
-void __fastcall CMap::UpdateMapObjDefs() {
+void CMap::UpdateMapObjDefs() {
   for (CMapObjDef *mapObjDef = mapObjDefHash.Head(); mapObjDef; mapObjDef = mapObjDefHash.Next(mapObjDef)) {
     if ((mapObjDef->flags & CMapBaseObj::Flag_Loaded) && mapObjDef->aaBox.b.x <= CWorldScene::camFrustumBounds.t.x &&
         mapObjDef->aaBox.b.y <= CWorldScene::camFrustumBounds.t.y && mapObjDef->aaBox.b.z <= CWorldScene::camFrustumBounds.t.z &&
@@ -109,7 +109,7 @@ void __fastcall CMap::UpdateMapObjDefs() {
   }
 }
 
-void __fastcall CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float angle) {
+void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float angle) {
   NTempest::CAaBox aaBox;
   CMapObjGroup    *mapObjGroup;
   SMOLight        *sLight;
@@ -161,7 +161,7 @@ void __fastcall CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector 
   }
 }
 
-void __fastcall CMap::UpdateChunks(CMapArea *area) {
+void CMap::UpdateChunks(CMapArea *area) {
   FATALASSERT(area);
 
   unsigned int corner = 0;

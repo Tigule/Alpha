@@ -95,7 +95,7 @@ static int CCommand_Nuke(const char* command, const char* args) {
   return 1;
 }
 
-void __fastcall InstallGMCommands() {
+void InstallGMCommands() {
   ConsoleCommandRegister("ghost", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Ghost), GM, "Watch a player");
   ConsoleCommandRegister("invis", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Invis), GM, "Go GM Invis");
   ConsoleCommandRegister(
@@ -115,7 +115,7 @@ void __fastcall InstallGMCommands() {
       "Nuke a player (forcibly remove from server completely)");
 }
 
-void __fastcall UninstallGMCommands() {
+void UninstallGMCommands() {
   ConsoleCommandUnregister("ghost");
   ConsoleCommandUnregister("invis");
   ConsoleCommandUnregister("bindplayer");

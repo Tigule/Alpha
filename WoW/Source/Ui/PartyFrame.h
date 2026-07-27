@@ -34,41 +34,41 @@ class CGPartyInfo {
     int                connected;
   };
 
-  static void __fastcall             InitializeGame();
-  static void __fastcall             EnterWorld();
-  static void __fastcall             LeaveWorld();
-  static void __fastcall             ShutdownGame();
-  static int __fastcall              IsMember(const unsigned __int64 &guid);
-  static unsigned __int64 __fastcall GetMemberByName(const char *name);
-  static unsigned __int64 __fastcall GetLeader() {
+  static void InitializeGame();
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void ShutdownGame();
+  static int IsMember(const unsigned __int64 &guid);
+  static unsigned __int64 GetMemberByName(const char *name);
+  static unsigned __int64 GetLeader() {
     return m_leader;
   }
-  static int __fastcall GetLeaderIndex() {
+  static int GetLeaderIndex() {
     return m_leaderIndex;
   }
-  static int __fastcall InParty() {
+  static int InParty() {
     return NumMembers() != 0;
   }
-  static unsigned int __fastcall NumMembers();
-  static RemoteStats *__fastcall GetRemoteStats(unsigned __int64 guid);
+  static unsigned int NumMembers();
+  static RemoteStats *GetRemoteStats(unsigned __int64 guid);
   static unsigned __int64        GetMember(unsigned int index) {
     FATALASSERT(index < 4);
     return m_members[index];
   }
-  static void __fastcall        SetLeader(unsigned __int64 guid);
-  static void __fastcall        AddMember(unsigned __int64 guid, int connected);
-  static void __fastcall        EnableMember(unsigned __int64 guid, int enable);
-  static void __fastcall        RemoveActivePlayer(unsigned __int64 guid);
-  static void __fastcall        RemoveAll();
-  static void __fastcall        SetLootMethod(LOOT_METHOD method, unsigned __int64 master);
-  static void __fastcall        SetLookingForGroup(int looking);
-  static LOOT_METHOD __fastcall GetLootMethod() {
+  static void SetLeader(unsigned __int64 guid);
+  static void AddMember(unsigned __int64 guid, int connected);
+  static void EnableMember(unsigned __int64 guid, int enable);
+  static void RemoveActivePlayer(unsigned __int64 guid);
+  static void RemoveAll();
+  static void SetLootMethod(LOOT_METHOD method, unsigned __int64 master);
+  static void SetLookingForGroup(int looking);
+  static LOOT_METHOD GetLootMethod() {
     return m_lootMethod;
   }
-  static unsigned __int64 __fastcall GetMasterLooter() {
+  static unsigned __int64 GetMasterLooter() {
     return m_lootMaster;
   }
-  static int __fastcall IsLookingForGroup() {
+  static int IsLookingForGroup() {
     return m_lookingForGroup;
   }
 

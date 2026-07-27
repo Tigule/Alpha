@@ -12,7 +12,7 @@ namespace NTempest {
     C22Matrix(const C2Vector &a, const C2Vector &b) : a0(a.x), a1(a.y), b0(b.x), b1(b.y) {}
     ~C22Matrix() {}
 
-    static C22Matrix __fastcall Rotation(float angle);
+    static C22Matrix Rotation(float angle);
     C22Matrix asC22Matrix() const { return *this; }
     const C22Matrix *asFloatPtr() const { return this; }
     float *Access() { return &a0; }

@@ -9,52 +9,52 @@
 
 namespace MDL {
 
-typedef int (__fastcall *TEXTHANDLER)(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+typedef int (*TEXTHANDLER)(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
 
-int __fastcall ReadVersion(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadModelGlobals(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadSequences(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadGlobalSequences(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadTextureAnims(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadTextures(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadMaterials(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadGeoset(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadGeosetAnim(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadBone(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadLight(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadHelper(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadAttachment(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadPivotPoints(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadParticleEmitter(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadParticleEmitter2(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadCamera(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadEventObject(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadHitTest(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadRibbonEmitter(Parser &, MDLDATA &, CMDLStatus *);
-int __fastcall ReadCollision(Parser &, MDLDATA &, CMDLStatus *);
+int ReadVersion(Parser &, MDLDATA &, CMDLStatus *);
+int ReadModelGlobals(Parser &, MDLDATA &, CMDLStatus *);
+int ReadSequences(Parser &, MDLDATA &, CMDLStatus *);
+int ReadGlobalSequences(Parser &, MDLDATA &, CMDLStatus *);
+int ReadTextureAnims(Parser &, MDLDATA &, CMDLStatus *);
+int ReadTextures(Parser &, MDLDATA &, CMDLStatus *);
+int ReadMaterials(Parser &, MDLDATA &, CMDLStatus *);
+int ReadGeoset(Parser &, MDLDATA &, CMDLStatus *);
+int ReadGeosetAnim(Parser &, MDLDATA &, CMDLStatus *);
+int ReadBone(Parser &, MDLDATA &, CMDLStatus *);
+int ReadLight(Parser &, MDLDATA &, CMDLStatus *);
+int ReadHelper(Parser &, MDLDATA &, CMDLStatus *);
+int ReadAttachment(Parser &, MDLDATA &, CMDLStatus *);
+int ReadPivotPoints(Parser &, MDLDATA &, CMDLStatus *);
+int ReadParticleEmitter(Parser &, MDLDATA &, CMDLStatus *);
+int ReadParticleEmitter2(Parser &, MDLDATA &, CMDLStatus *);
+int ReadCamera(Parser &, MDLDATA &, CMDLStatus *);
+int ReadEventObject(Parser &, MDLDATA &, CMDLStatus *);
+int ReadHitTest(Parser &, MDLDATA &, CMDLStatus *);
+int ReadRibbonEmitter(Parser &, MDLDATA &, CMDLStatus *);
+int ReadCollision(Parser &, MDLDATA &, CMDLStatus *);
 
-int __fastcall WriteHeaderComment(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteVersion(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteModelGlobals(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteSequences(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteGlobalSequences(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteTextures(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteMaterials(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteTextureAnims(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteGeosets(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteGeosetAnims(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteBones(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteLights(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteHelpers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteAttachments(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WritePivotPoints(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteParticleEmitters(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteParticleEmitters2(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteRibbonEmitters(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteCameras(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteEventObjects(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteHitTests(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int __fastcall WriteCollision(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteHeaderComment(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteVersion(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteModelGlobals(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteSequences(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteGlobalSequences(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteTextures(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteMaterials(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteTextureAnims(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteGeosets(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteGeosetAnims(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteBones(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteLights(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteHelpers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteAttachments(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WritePivotPoints(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteParticleEmitters(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteParticleEmitters2(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteRibbonEmitters(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteCameras(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteEventObjects(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteHitTests(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteCollision(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
 
 static TEXTHANDLER s_handlers[22] = {
     WriteHeaderComment, WriteVersion, WriteModelGlobals, WriteSequences,
@@ -81,7 +81,7 @@ void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...) {
   buffer.Add(count, line);
 }
 
-int __fastcall CallTextReadHandler(
+int CallTextReadHandler(
     unsigned int token,
     mdl_scan &scanner,
     MDLDATA &data,
@@ -116,7 +116,7 @@ int __fastcall CallTextReadHandler(
   return 0;
 }
 
-int __fastcall CallTextWriteHandlers(
+int CallTextWriteHandlers(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *status

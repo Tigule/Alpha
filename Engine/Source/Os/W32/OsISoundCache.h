@@ -30,8 +30,8 @@ struct SoundFileDataCacheBlock : public TSHashObject<SoundFileDataCacheBlock, HA
 
 class SoundFileCache {
  public:
-  static void __fastcall Initialize(int cacheSizeMB);
-  static void __fastcall Shutdown();
+  static void Initialize(int cacheSizeMB);
+  static void Shutdown();
 
   static unsigned int __stdcall Open(const char *filename);
   static int __stdcall          Read(void *buffer, int size, unsigned int handle);

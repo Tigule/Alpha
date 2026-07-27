@@ -26,7 +26,7 @@ void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, unsign
   GxXformSetView(mView);
 }
 
-void __fastcall CameraCalcPosFromTarg(HCAMERA__* camera, NTempest::C3Vector* position) {
+void CameraCalcPosFromTarg(HCAMERA__* camera, NTempest::C3Vector* position) {
   CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
   FATALASSERT(cameraPtr);
   FATALASSERT(position);
@@ -37,7 +37,7 @@ void __fastcall CameraCalcPosFromTarg(HCAMERA__* camera, NTempest::C3Vector* pos
   position->z = cameraPtr->m_target.m_data.z - cameraPtr->m_aoa.m_sin * distance;
 }
 
-void __fastcall CameraCalcTargFromPos(HCAMERA__* camera, NTempest::C3Vector* target) {
+void CameraCalcTargFromPos(HCAMERA__* camera, NTempest::C3Vector* target) {
   CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
   FATALASSERT(cameraPtr);
   FATALASSERT(target);
@@ -48,12 +48,12 @@ void __fastcall CameraCalcTargFromPos(HCAMERA__* camera, NTempest::C3Vector* tar
   target->z = cameraPtr->m_position.m_data.z + cameraPtr->m_aoa.m_sin * distance;
 }
 
-HCAMERA __fastcall CameraCreate() {
+HCAMERA CameraCreate() {
   CCamera *camera = NEW(CCamera)();
   return camera ? reinterpret_cast<HCAMERA>(HandleCreate(camera, "HCAMERA")) : 0;
 }
 
-HCAMERA __fastcall CameraDuplicate(HCAMERA source) {
+HCAMERA CameraDuplicate(HCAMERA source) {
   CCamera *srcPtr = reinterpret_cast<CCamera *>(source);
   ASSERT(srcPtr);
 
@@ -110,7 +110,7 @@ HCAMERA __fastcall CameraDuplicate(HCAMERA source) {
   return reinterpret_cast<HCAMERA>(HandleCreate(cameraPtr, "HCAMERA"));
 }
 
-void __fastcall CameraGetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b) {
+void CameraGetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b) {
   FATALASSERT(a);
   FATALASSERT(b);
   FATALASSERT(x >= 0.0f && x <= 1.0f);
@@ -132,7 +132,7 @@ void __fastcall CameraGetLineSegment(float x, float y, NTempest::C3Vector *a, NT
   *b = lefty + (righty - lefty) * x;
 }
 
-void __fastcall CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NTempest::C2Vector &screenPoint, float depth) {
+void CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NTempest::C2Vector &screenPoint, float depth) {
   NTempest::CRect     frustumRect = projectionRect;
   const float         offsetX = (projectionRect.l + projectionRect.r) * 0.5f;
   const float         offsetY = (projectionRect.t + projectionRect.b) * 0.5f;
@@ -154,7 +154,7 @@ void __fastcall CameraSetupScreenProjection(const NTempest::CRect &projectionRec
   GxXformSetView(mView);
 }
 
-void __fastcall CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, unsigned int flags) {
+void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, unsigned int flags) {
   ASSERT(camera);
 
   reinterpret_cast<CCamera *>(camera)->SetupWorldProjection(projectionRect, flags);
@@ -162,7 +162,7 @@ void __fastcall CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect
 
 #include "Services/DataMgrInt.h"
 
-void __fastcall CameraUpdate(HCAMERA__* camera, float elapsedSec) {
+void CameraUpdate(HCAMERA__* camera, float elapsedSec) {
   CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
   FATALASSERT(cameraPtr);
   cameraPtr->Update(elapsedSec);

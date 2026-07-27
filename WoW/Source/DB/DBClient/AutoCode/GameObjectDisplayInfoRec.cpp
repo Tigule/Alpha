@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall GameObjectDisplayInfoRec::GetFilename() {
+const char *GameObjectDisplayInfoRec::GetFilename() {
   return "DBFilesClient\\GameObjectDisplayInfo.dbc";
 }
 

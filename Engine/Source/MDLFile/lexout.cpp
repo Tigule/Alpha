@@ -7,7 +7,7 @@
 #include <stdarg.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 }
 
 mdl_scan::mdl_scan(const char *in, int inputSize) {

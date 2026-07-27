@@ -630,7 +630,7 @@ void CParticleEmitter2::IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
   }
 }
 
-void __fastcall CParticleEmitter2::BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf) {
+void CParticleEmitter2::BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf) {
   CParticleEmitter2 *emitter = static_cast<CParticleEmitter2 *>(buf->UserArg());
   emitter->IRenderVertices(cmd, buf);
   emitter->IRenderIndices(cmd, buf);

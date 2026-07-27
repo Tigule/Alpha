@@ -24,7 +24,7 @@ struct HCOLLISIONDATA__;
 struct HMODEL__;
 struct WorldObjCollisionHandlerData;
 
-int __fastcall ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldObjCollisionHandlerData *data);
+int ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldObjCollisionHandlerData *data);
 
 struct CGGameObjectData {
   unsigned int       m_data[8];
@@ -281,7 +281,7 @@ class CGGameObject_C_Type_Ritual : public CGGameObject_C_TypeAnimated {
 };
 
 class CGGameObject_C : public CGObject_C, public CGGameObject {
-  friend int __fastcall ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldObjCollisionHandlerData *data);
+  friend int ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldObjCollisionHandlerData *data);
   friend class CGGameObject_C_TypeAnimated;
   friend class CGGameObject_C_Type_AreaDamage;
   friend class CGGameObject_C_Type_Door;
@@ -315,7 +315,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   virtual int                IsPointInside(const NTempest::C3Vector &point) const;
   virtual NTempest::C34Matrix GetMatrix() const;
   virtual const char        *GetObjectName() const;
-  virtual int                GetPageTextID(void(__fastcall *func)(int, const unsigned __int64 &, void *, bool)) const;
+  virtual int                GetPageTextID(void(*func)(int, const unsigned __int64 &, void *, bool)) const;
   virtual void               GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
   virtual void               ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
 
@@ -349,9 +349,9 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     return m_gameObj;
   }
 
-  static void __fastcall Initialize();
-  static void __fastcall Shutdown();
-  static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);
+  static void Initialize();
+  static void Shutdown();
+  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
 
   TSLink<CGGameObject_C>   moveLink;
   CGGameObject_C_TypeBase *m_baseObj;

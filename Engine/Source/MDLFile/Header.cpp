@@ -4,12 +4,12 @@
 #include <stpl.h>
 
 class CMDLStatus;
-void __fastcall OsGetTimeStr(char *timeBuffer, unsigned long length);
+void OsGetTimeStr(char *timeBuffer, unsigned long length);
 
 namespace MDL {
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
-int __fastcall WriteHeaderComment(
+int WriteHeaderComment(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *

@@ -67,7 +67,7 @@ LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam
   return DefWindowProcA(hWnd, uMsg, wParam, lParam);
 }
 
-static unsigned short __fastcall WindowClassCreate() {
+static unsigned short WindowClassCreate() {
   HINSTANCE   instance = GetModuleHandleA(0);
   WNDCLASSEXA wc;
 
@@ -86,7 +86,7 @@ static unsigned short __fastcall WindowClassCreate() {
   return RegisterClassExA(&wc);
 }
 
-static HWND __fastcall WindowCreate(CGxDeviceD3d *dev, const CGxFormat &format) {
+static HWND WindowCreate(CGxDeviceD3d *dev, const CGxFormat &format) {
   HINSTANCE     instance = GetModuleHandleA(0);
   CGxFormat     fmt = format;
   unsigned long style =
@@ -106,12 +106,12 @@ static HWND __fastcall WindowCreate(CGxDeviceD3d *dev, const CGxFormat &format) 
   return window;
 }
 
-static void __fastcall WindowDestroy(HWND &hwnd) {
+static void WindowDestroy(HWND &hwnd) {
   DestroyWindow(hwnd);
   hwnd = 0;
 }
 
-static void __fastcall WindowClassDestroy(unsigned short &hClass) {
+static void WindowClassDestroy(unsigned short &hClass) {
   UnregisterClassA(reinterpret_cast<const char *>(hClass), GetModuleHandleA(0));
   hClass = 0;
 }
@@ -154,7 +154,7 @@ CGxDeviceD3d::~CGxDeviceD3d() {
   m_thisDevice = 0;
 }
 
-int __fastcall CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
+int CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
   typedef IDirect3D9 *(__stdcall * D3dCreateProc)(unsigned int);
 
   D3dCreateProc d3dCreateProc;
@@ -189,7 +189,7 @@ failed:
   return 0;
 }
 
-void __fastcall CGxDeviceD3d::IUnloadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
+void CGxDeviceD3d::IUnloadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
   if (d3d) {
     d3d->Release();
     d3d = 0;

@@ -6,17 +6,17 @@
 
 #include <string.h>
 
-void __fastcall ReadVertices(
+void ReadVertices(
     Parser &parse,
     const char *item,
     TSGrowableArray<NTempest::C3Vector> *vertices
 );
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
-int __fastcall ReadHitTest(
+int ReadHitTest(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -199,7 +199,7 @@ static void IWriteHitTestSection(
   WriteObjectTrailer(section, buffer);
 }
 
-int __fastcall WriteHitTests(
+int WriteHitTests(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -216,7 +216,7 @@ int __fastcall WriteHitTests(
   return 1;
 }
 
-int __fastcall WriteBinHitTests(
+int WriteBinHitTests(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status
@@ -274,7 +274,7 @@ int __fastcall WriteBinHitTests(
   return 1;
 }
 
-int __fastcall ReadBinHitTests(
+int ReadBinHitTests(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

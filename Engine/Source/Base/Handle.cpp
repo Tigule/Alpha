@@ -1,26 +1,26 @@
 #include "Handle.h"
 
-void __fastcall HandleClose(HOBJECT handle) {
+void HandleClose(HOBJECT handle) {
   CHandleObject *ptr = HandleDereference(handle);
 
   ptr->DecRef();
 }
 
-HOBJECT __fastcall HandleCreate(CHandleObject *ptr, const char *handleName) {
+HOBJECT HandleCreate(CHandleObject *ptr, const char *handleName) {
   FATALASSERT(ptr);
 
   ptr->IncRef();
   return reinterpret_cast<HOBJECT>(ptr);
 }
 
-CHandleObject *__fastcall HandleDereference(HOBJECT handle) {
+CHandleObject *HandleDereference(HOBJECT handle) {
   return reinterpret_cast<CHandleObject *>(handle);
 }
 
-void __fastcall HandleDestroy() {
+void HandleDestroy() {
 }
 
-HOBJECT __fastcall HandleDuplicate(HOBJECT handle) {
+HOBJECT HandleDuplicate(HOBJECT handle) {
   CHandleObject *ptr;
 
   if (!handle) {
@@ -32,9 +32,9 @@ HOBJECT __fastcall HandleDuplicate(HOBJECT handle) {
   return reinterpret_cast<HOBJECT>(ptr);
 }
 
-void __fastcall HandleInitialize() {
+void HandleInitialize() {
 }
 
-int __fastcall HandleObjectCompare(HOBJECT object1, HOBJECT object2) {
+int HandleObjectCompare(HOBJECT object1, HOBJECT object2) {
   return object1 - object2;
 }

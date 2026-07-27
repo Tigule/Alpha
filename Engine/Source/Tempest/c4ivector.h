@@ -20,13 +20,13 @@ namespace NTempest {
     }
     C4iVector(const C4Vector &a);
 
-    static C4iVector __fastcall Min(const C4iVector &a, const C4iVector &b) {
+    static C4iVector Min(const C4iVector &a, const C4iVector &b) {
       return C4iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w);
     }
-    static C4iVector __fastcall Max(const C4iVector &a, const C4iVector &b) {
+    static C4iVector Max(const C4iVector &a, const C4iVector &b) {
       return C4iVector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w);
     }
-    static long __fastcall Dot(const C4iVector &a, const C4iVector &b) {
+    static long Dot(const C4iVector &a, const C4iVector &b) {
       return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     }
 

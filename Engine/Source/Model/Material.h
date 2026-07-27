@@ -36,7 +36,7 @@ struct CTexLayer {
     }
   }
   CTexLayer(const CTexLayer &a);
-  static int __fastcall Compare(const CModelTexture *aTextures, const CModelTexture *bTextures, const CTexLayer &a, const CTexLayer &b);
+  static int Compare(const CModelTexture *aTextures, const CModelTexture *bTextures, const CTexLayer &a, const CTexLayer &b);
 
   EGxVertexBufferFormat vertexFormat;
   union {

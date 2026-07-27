@@ -12,28 +12,28 @@
 #include <lua.h>
 #include <storm.h>
 
-int __fastcall OsLaunchURL(const char *url);
+int OsLaunchURL(const char *url);
 
 static const char REGKEY[11] = "WoW\\Client";
 static const char REGVAL_ACCOUNTNAME[12] = "AccountName";
 
-static int __fastcall Script_GetBuildInfo(lua_State *L);
-static int __fastcall Script_SetCurrentScreen(lua_State *L);
-static int __fastcall Script_QuitGame(lua_State *__formal);
-static int __fastcall Script_PlayGlueMusic(lua_State *L);
-static int __fastcall Script_LaunchURL(lua_State *L);
-static int __fastcall Script_LaunchAccountCreate(lua_State *__formal);
-static int __fastcall Script_GetLastAccountName(lua_State *L);
-static int __fastcall Script_DefaultServerLogin(lua_State *L);
-static int __fastcall Script_StatusDialogClick(lua_State *__formal);
-static int __fastcall Script_GetServerName(lua_State *L);
-static int __fastcall Script_DisconnectFromServer(lua_State *__formal);
-static int __fastcall Script_IsConnectedToServer(lua_State *L);
-static int __fastcall Script_GetRealmList(lua_State *__formal);
-static int __fastcall Script_GetNumRealms(lua_State *L);
-static int __fastcall Script_GetRealmInfo(lua_State *L);
-static int __fastcall Script_ChangeRealm(lua_State *L);
-static int __fastcall Script_EnterWorld(lua_State *__formal);
+static int Script_GetBuildInfo(lua_State *L);
+static int Script_SetCurrentScreen(lua_State *L);
+static int Script_QuitGame(lua_State *__formal);
+static int Script_PlayGlueMusic(lua_State *L);
+static int Script_LaunchURL(lua_State *L);
+static int Script_LaunchAccountCreate(lua_State *__formal);
+static int Script_GetLastAccountName(lua_State *L);
+static int Script_DefaultServerLogin(lua_State *L);
+static int Script_StatusDialogClick(lua_State *__formal);
+static int Script_GetServerName(lua_State *L);
+static int Script_DisconnectFromServer(lua_State *__formal);
+static int Script_IsConnectedToServer(lua_State *L);
+static int Script_GetRealmList(lua_State *__formal);
+static int Script_GetNumRealms(lua_State *L);
+static int Script_GetRealmInfo(lua_State *L);
+static int Script_ChangeRealm(lua_State *L);
+static int Script_EnterWorld(lua_State *__formal);
 
 static const FrameScript_Method s_ScriptFunctions[17] = {
     {        "GetBuildInfo",         Script_GetBuildInfo},
@@ -57,7 +57,7 @@ static const FrameScript_Method s_ScriptFunctions[17] = {
 
 const char *g_glueScriptEvents[11];
 
-void __fastcall GlueScriptEventsInitialize() {
+void GlueScriptEventsInitialize() {
   g_glueScriptEvents[0] = "SET_GLUE_SCREEN";
   g_glueScriptEvents[1] = "START_GLUE_MUSIC";
   g_glueScriptEvents[2] = "DISCONNECTED_FROM_SERVER";
@@ -71,7 +71,7 @@ void __fastcall GlueScriptEventsInitialize() {
   g_glueScriptEvents[10] = "SELECT_LAST_CHARACTER";
 }
 
-static int __fastcall Script_GetBuildInfo(lua_State *L) {
+static int Script_GetBuildInfo(lua_State *L) {
   lua_pushstring(L, FrameScript_GetText("ALPHA_BUILD", -1, GENDER_NOT_APPLICABLE));
   lua_pushstring(L, FrameScript_GetText("ASSERTIONS_ENABLED_BUILD", -1, GENDER_NOT_APPLICABLE));
   lua_pushstring(L, "5.3");
@@ -80,7 +80,7 @@ static int __fastcall Script_GetBuildInfo(lua_State *L) {
   return 5;
 }
 
-static int __fastcall Script_SetCurrentScreen(lua_State *L) {
+static int Script_SetCurrentScreen(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: SetCurrentScreen(\"screen\")");
     return 0;
@@ -91,12 +91,12 @@ static int __fastcall Script_SetCurrentScreen(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_QuitGame(lua_State *__formal) {
+static int Script_QuitGame(lua_State *__formal) {
   CGlueMgr::QuitGame();
   return 0;
 }
 
-static int __fastcall Script_PlayGlueMusic(lua_State *L) {
+static int Script_PlayGlueMusic(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: PlayGlueMusic(\"filename\")");
     return 0;
@@ -106,7 +106,7 @@ static int __fastcall Script_PlayGlueMusic(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_LaunchURL(lua_State *L) {
+static int Script_LaunchURL(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: LaunchURL(\"URL\")");
     return 0;
@@ -116,12 +116,12 @@ static int __fastcall Script_LaunchURL(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_LaunchAccountCreate(lua_State *__formal) {
+static int Script_LaunchAccountCreate(lua_State *__formal) {
   OsLaunchURL(FrameScript_GetText("ACCOUNT_CREATE_URL", -1, GENDER_NOT_APPLICABLE));
   return 0;
 }
 
-static int __fastcall Script_GetLastAccountName(lua_State *L) {
+static int Script_GetLastAccountName(lua_State *L) {
   char accountName[64] = "";
 
   SRegLoadString(REGKEY, REGVAL_ACCOUNTNAME, 0, accountName, sizeof(accountName));
@@ -129,7 +129,7 @@ static int __fastcall Script_GetLastAccountName(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_DefaultServerLogin(lua_State *L) {
+static int Script_DefaultServerLogin(lua_State *L) {
   if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
     luaL_error(L, "Usage: DefaultServerLogin(\"accountName\", \"password\")");
     return 0;
@@ -139,17 +139,17 @@ static int __fastcall Script_DefaultServerLogin(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_StatusDialogClick(lua_State *__formal) {
+static int Script_StatusDialogClick(lua_State *__formal) {
   CGlueMgr::StatusDialogClick();
   return 0;
 }
 
-static int __fastcall Script_GetServerName(lua_State *L) {
+static int Script_GetServerName(lua_State *L) {
   lua_pushstring(L, ClientServices_GetSelectedRealmName());
   return 1;
 }
 
-static int __fastcall Script_DisconnectFromServer(lua_State *__formal) {
+static int Script_DisconnectFromServer(lua_State *__formal) {
   if (ClientServices_IsConnected()) {
     CGlueMgr::ExpectDisconnect(0);
     ClientServices_Disconnect();
@@ -158,7 +158,7 @@ static int __fastcall Script_DisconnectFromServer(lua_State *__formal) {
   return 0;
 }
 
-static int __fastcall Script_IsConnectedToServer(lua_State *L) {
+static int Script_IsConnectedToServer(lua_State *L) {
   if (ClientServices_IsConnected()) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -168,17 +168,17 @@ static int __fastcall Script_IsConnectedToServer(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetRealmList(lua_State *__formal) {
+static int Script_GetRealmList(lua_State *__formal) {
   CGlueMgr::GetRealmList();
   return 0;
 }
 
-static int __fastcall Script_GetNumRealms(lua_State *L) {
+static int Script_GetNumRealms(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(ClientServices_GetRealmListCount()));
   return 1;
 }
 
-static int __fastcall Script_GetRealmInfo(lua_State *L) {
+static int Script_GetRealmInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: GetRealmInfo(index)");
     return 0;
@@ -204,7 +204,7 @@ static int __fastcall Script_GetRealmInfo(lua_State *L) {
   return 3;
 }
 
-static int __fastcall Script_ChangeRealm(lua_State *L) {
+static int Script_ChangeRealm(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: ChangeRealm(index)");
     return 0;
@@ -224,18 +224,18 @@ static int __fastcall Script_ChangeRealm(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_EnterWorld(lua_State *__formal) {
+static int Script_EnterWorld(lua_State *__formal) {
   CGlueMgr::EnterWorld();
   return 0;
 }
 
-void __fastcall GlueScriptEventsRegisterFunctions() {
+void GlueScriptEventsRegisterFunctions() {
   for (unsigned int i = 0; i < 17; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall GlueScriptEventsUnregisterFunctions() {
+void GlueScriptEventsUnregisterFunctions() {
   for (unsigned int i = 0; i < 17; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

@@ -41,7 +41,7 @@ struct CLIENT_NETSTATS {
 };
 
 struct CLIENTNETGETREALMSDATA {
-  void(__fastcall *fcn)(CDataStore *, void *);
+  void(*fcn)(CDataStore *, void *);
   void      *userData;
   CDataStore data;
 };
@@ -127,7 +127,7 @@ static TSList<NETCLIENTNODE, TSGetLink<NETCLIENTNODE> > s_clientList;
 static CLIENT_NETSTATS                                  s_stats;
 static HPROPCONTEXT                                     s_propContext;
 
-static void __fastcall LogStats() {
+static void LogStats() {
   char message[128];
 
   SStrPrintf(
@@ -171,7 +171,7 @@ NetClient::~NetClient() {
   }
 }
 
-static void __fastcall InitializePropContext() {
+static void InitializePropContext() {
   if (PropGetSelectedContext() != s_propContext) {
     PropSelectContext(s_propContext);
   }
@@ -308,7 +308,7 @@ void NetClient::Send(CDataStore *msg) {
   }
 }
 
-void NetClient::SetMessageHandler(NETMESSAGE msgId, int(__fastcall *handler)(void *, NETMESSAGE, unsigned long, CDataStore *), void *param) {
+void NetClient::SetMessageHandler(NETMESSAGE msgId, int(*handler)(void *, NETMESSAGE, unsigned long, CDataStore *), void *param) {
   ASSERT(msgId < NUM_MSG_TYPES);
   ASSERT(handler);
   ASSERT(m_handlers[msgId] == 0);
@@ -482,7 +482,7 @@ static int __stdcall GetRealmsEventHandler(
   return 0;
 }
 
-void __fastcall ClientNetGetRealms(const char *serverAddress, void(__fastcall *fcn)(CDataStore *, void *), void *userData) {
+void ClientNetGetRealms(const char *serverAddress, void(*fcn)(CDataStore *, void *), void *userData) {
   ASSERT(serverAddress);
   ASSERT(fcn);
 

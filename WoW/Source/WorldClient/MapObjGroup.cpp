@@ -19,7 +19,7 @@ SMOGxBatch             *CMapObjGroup::sLockGxBatch;
 unsigned int            CMapObjGroup::rDrawSharedLiquidFirst;
 unsigned int            CMapObjGroup::rDrawSharedLiquidToggle;
 
-void __fastcall CMapObjGroup::UpdateLightmapTex(
+void CMapObjGroup::UpdateLightmapTex(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -64,8 +64,8 @@ class BspQuery {
   static unsigned int   hitFaceSub;
 };
 
-unsigned char __fastcall QueryCull(const NTempest::CAaBox &aaBox, const NTempest::C3Vector *verts);
-unsigned char __fastcall QueryCull(const CWFrustum &frustum, const NTempest::C3Vector *verts);
+unsigned char QueryCull(const NTempest::CAaBox &aaBox, const NTempest::C3Vector *verts);
+unsigned char QueryCull(const CWFrustum &frustum, const NTempest::C3Vector *verts);
 
 template <class VOLUME>
 class BspQuery_Volume : public BspQuery {
@@ -151,7 +151,7 @@ class BspQuery_Segment : public BspQuery {
   unsigned short      faceIgnoreFlags;
 };
 
-CGxBuf *__fastcall CMapObjGroup::AllocExtGxBuf(unsigned int nVerts, unsigned int nIndices) {
+CGxBuf *CMapObjGroup::AllocExtGxBuf(unsigned int nVerts, unsigned int nIndices) {
   if (!extGxBufFreeList.Count()) {
     return GxBufCreate(GxBWF_Low, static_cast<EGxVertexBufferFormat>(2), nVerts, nIndices, ExtGxBufFill, 0);
   }
@@ -163,7 +163,7 @@ CGxBuf *__fastcall CMapObjGroup::AllocExtGxBuf(unsigned int nVerts, unsigned int
   return gxBuf;
 }
 
-void __fastcall CMapObjGroup::FreeExtGxBuf(CGxBuf *&gxBuf) {
+void CMapObjGroup::FreeExtGxBuf(CGxBuf *&gxBuf) {
   unsigned int index;
 
   ASSERT(gxBuf);
@@ -173,14 +173,14 @@ void __fastcall CMapObjGroup::FreeExtGxBuf(CGxBuf *&gxBuf) {
   gxBuf = 0;
 }
 
-void __fastcall CMapObjGroup::ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
+void CMapObjGroup::ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
   CMapObjGroup *group = static_cast<CMapObjGroup *>(buf->UserArg());
   FATALASSERT(group);
   group->ExtGxBufFillVertex(cmd, buf);
   group->GxBufFillIndex(cmd, buf);
 }
 
-CGxBuf *__fastcall CMapObjGroup::AllocIntGxBuf(unsigned int nVerts, unsigned int nIndices) {
+CGxBuf *CMapObjGroup::AllocIntGxBuf(unsigned int nVerts, unsigned int nIndices) {
   if (!intGxBufFreeList.Count()) {
     return GxBufCreate(GxBWF_Low, static_cast<EGxVertexBufferFormat>(2), nVerts, nIndices, IntGxBufFill, 0);
   }
@@ -192,7 +192,7 @@ CGxBuf *__fastcall CMapObjGroup::AllocIntGxBuf(unsigned int nVerts, unsigned int
   return gxBuf;
 }
 
-void __fastcall CMapObjGroup::FreeIntGxBuf(CGxBuf *&gxBuf) {
+void CMapObjGroup::FreeIntGxBuf(CGxBuf *&gxBuf) {
   unsigned int index;
 
   ASSERT(gxBuf);
@@ -202,14 +202,14 @@ void __fastcall CMapObjGroup::FreeIntGxBuf(CGxBuf *&gxBuf) {
   gxBuf = 0;
 }
 
-void __fastcall CMapObjGroup::IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
+void CMapObjGroup::IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
   CMapObjGroup *group = static_cast<CMapObjGroup *>(buf->UserArg());
   FATALASSERT(group);
   group->IntGxBufFillVertex(cmd, buf);
   group->GxBufFillIndex(cmd, buf);
 }
 
-void __fastcall CMapObjGroup::Destroy() {
+void CMapObjGroup::Destroy() {
   unsigned int i;
 
   for (i = 0; i < extGxBufFreeList.Count(); ++i) {
@@ -645,7 +645,7 @@ bool CMapObjGroup::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVe
   return false;
 }
 
-unsigned char __fastcall QueryCull(const NTempest::CAaBox& aaBox, const NTempest::C3Vector* verts) {
+unsigned char QueryCull(const NTempest::CAaBox& aaBox, const NTempest::C3Vector* verts) {
   for (unsigned int component = 0; component < 3; ++component) {
     unsigned int signMax = 0xFFFFFFFF;
     unsigned int signMin = 0xFFFFFFFF;
@@ -666,7 +666,7 @@ unsigned char __fastcall QueryCull(const NTempest::CAaBox& aaBox, const NTempest
   return 0;
 }
 
-unsigned char __fastcall QueryCull(const CWFrustum& frustum, const NTempest::C3Vector* verts) {
+unsigned char QueryCull(const CWFrustum& frustum, const NTempest::C3Vector* verts) {
   unsigned int cc[3];
   const_cast<CWFrustum &>(frustum).Cull(const_cast<NTempest::C3Vector &>(verts[0]), cc[0]);
   const_cast<CWFrustum &>(frustum).Cull(const_cast<NTempest::C3Vector &>(verts[1]), cc[1]);

@@ -50,7 +50,7 @@ class CGCamera : public CSimpleCamera {
   void SetPositionAndTarget(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
   void SetPositionAndFacing(const NTempest::C3Vector &position, const NTempest::C3Vector &facing);
   int  SetModelCamera(
-      const char *modelFile, const NTempest::C3Vector &origin, float facing, int(__fastcall *ModelCameraFinished)(void *), void *param
+      const char *modelFile, const NTempest::C3Vector &origin, float facing, int(*ModelCameraFinished)(void *), void *param
   );
   void ClearModelCamera();
   void ResetModelCamera();
@@ -85,11 +85,11 @@ class CGCamera : public CSimpleCamera {
   int                   FinishLoadingModel();
   int                   FinishLoadingTarget(CGObject_C *target);
   NTempest::C33Matrix   ParentToWorld();
-  static int __fastcall CCommand_CameraClip(const char *command, const char *arguments);
+  static int CCommand_CameraClip(const char *command, const char *arguments);
   void                  SetTargetFadeValue(unsigned char value);
   void                  SetModeNormal();
   void                  SetModeFreeLook();
-  static int __fastcall UpdateCallback(const void *__formal, void *param);
+  static int UpdateCallback(const void *__formal, void *param);
   void                  CalcThirdPerson(CGObject_C *target, unsigned long timestamp);
   void                  CalcFirstPerson(CGObject_C *target, unsigned long timestamp);
   void                  ClampAngles();
@@ -156,9 +156,9 @@ class CGCamera : public CSimpleCamera {
   static int s_clipCamera;
 };
 
-void __fastcall CameraInitialize();
-void __fastcall CameraRegisterScriptFunctions();
-void __fastcall CameraUnregisterScriptFunctions();
-void __fastcall CameraDestroy();
+void CameraInitialize();
+void CameraRegisterScriptFunctions();
+void CameraUnregisterScriptFunctions();
+void CameraDestroy();
 
 #endif

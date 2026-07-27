@@ -13,7 +13,7 @@
 DECLARE_DERIVED_HANDLE(HDATAMGR, HOBJECT);
 
 struct UpdateInfo {
-  void(__fastcall *updateFcn)(float, void *, void *);
+  void(*updateFcn)(float, void *, void *);
   void *updateData;
   float updatePriority;
 };
@@ -28,7 +28,7 @@ class CBaseManaged {
   }
   virtual void UpdateR(float __formal) {
   }
-  void SetUpdate(void(__fastcall *fcn)(float, void *, void *), void *data, float priority) {
+  void SetUpdate(void(*fcn)(float, void *, void *), void *data, float priority) {
     m_updateFcn = fcn;
     m_updateData = data;
     m_updatePriority = priority;
@@ -37,7 +37,7 @@ class CBaseManaged {
   TSLink<CBaseManaged> m_link;
   unsigned char        m_dataTypeId;
   unsigned char        m_flags;
-  void(__fastcall *m_updateFcn)(float, void *, void *);
+  void(*m_updateFcn)(float, void *, void *);
   void *m_updateData;
   float m_updatePriority;
 };
@@ -122,17 +122,17 @@ class CDataMgr : public CHandleObject {
   void Update(float elapsedSec);
 };
 
-void __fastcall  DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3Vector *coord);
-float __fastcall DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId);
+void DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3Vector *coord);
+float DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId);
 
-void __fastcall DataMgrSetCoord(HDATAMGR mgr, unsigned int fieldId, const NTempest::C3Vector &coord, unsigned int coordFlags);
+void DataMgrSetCoord(HDATAMGR mgr, unsigned int fieldId, const NTempest::C3Vector &coord, unsigned int coordFlags);
 
-void __fastcall DataMgrSetFloat(HDATAMGR mgr, unsigned int fieldId, float val);
+void DataMgrSetFloat(HDATAMGR mgr, unsigned int fieldId, float val);
 
-void __fastcall DataMgrSetBoolUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, int *), void *updateData, float updatePriority);
-void __fastcall DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, NTempest::CImVector *), void *updateData, float updatePriority);
-void __fastcall DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, C3Color *), void *updateData, float updatePriority);
-void __fastcall DataMgrSetCoordUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, NTempest::C3Vector *), void *updateData, float updatePriority);
-void __fastcall DataMgrSetC33MatrixUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, NTempest::C33Matrix *), void *updateData, float updatePriority);
-void __fastcall DataMgrSetIntUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, int *), void *updateData, float updatePriority);
-void __fastcall DataMgrSetFloatUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, float *), void *updateData, float updatePriority);
+void DataMgrSetBoolUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, int *), void *updateData, float updatePriority);
+void DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, NTempest::CImVector *), void *updateData, float updatePriority);
+void DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, C3Color *), void *updateData, float updatePriority);
+void DataMgrSetCoordUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, NTempest::C3Vector *), void *updateData, float updatePriority);
+void DataMgrSetC33MatrixUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, NTempest::C33Matrix *), void *updateData, float updatePriority);
+void DataMgrSetIntUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, int *), void *updateData, float updatePriority);
+void DataMgrSetFloatUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, float *), void *updateData, float updatePriority);

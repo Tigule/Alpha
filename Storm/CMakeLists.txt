@@ -42,7 +42,7 @@ if(WIN32)
 endif()
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Storm PRIVATE /GX- /Ob1 /Oy-)
+    target_compile_options(Storm PRIVATE /Gr /GX- /Ob1 /Oy-)
 
     set_property(SOURCE
         Source/SBig.cpp

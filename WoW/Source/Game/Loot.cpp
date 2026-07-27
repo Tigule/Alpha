@@ -3,13 +3,13 @@
 static int          s_currencyMultiplier[3];
 static unsigned int s_lootInitialized;
 
-int __fastcall CurrencyMultiplier(int denomination) {
+int CurrencyMultiplier(int denomination) {
   FATALASSERT(s_lootInitialized);
   FATALASSERT(denomination >= 0 && denomination < 3);
   return s_currencyMultiplier[denomination];
 }
 
-const char *__fastcall CurrencyAbbreviation(int coinType) {
+const char *CurrencyAbbreviation(int coinType) {
   switch (coinType) {
     case 0:
       return "COPPER";
@@ -22,7 +22,7 @@ const char *__fastcall CurrencyAbbreviation(int coinType) {
   }
 }
 
-void __fastcall CurrencyBreakdown(int money, int *coins) {
+void CurrencyBreakdown(int money, int *coins) {
   FATALASSERT(s_lootInitialized);
   FATALASSERT(coins);
 
@@ -38,7 +38,7 @@ void __fastcall CurrencyBreakdown(int money, int *coins) {
   coins[0] = money;
 }
 
-unsigned int __fastcall CurrencyTotal(int *const coins) {
+unsigned int CurrencyTotal(int *const coins) {
   FATALASSERT(s_lootInitialized);
   FATALASSERT(coins);
 
@@ -49,7 +49,7 @@ unsigned int __fastcall CurrencyTotal(int *const coins) {
   return total;
 }
 
-void __fastcall LootInitialize() {
+void LootInitialize() {
   s_currencyMultiplier[0] = 1;
   for (int denomination = 1; denomination < 3; ++denomination) {
     s_currencyMultiplier[denomination] = 100 * s_currencyMultiplier[denomination - 1];
@@ -58,6 +58,6 @@ void __fastcall LootInitialize() {
   s_lootInitialized = true;
 }
 
-void __fastcall LootDestroy() {
+void LootDestroy() {
   s_lootInitialized = false;
 }

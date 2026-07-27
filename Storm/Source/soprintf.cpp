@@ -26,7 +26,7 @@ union ArgumentType {
   double           real;
 };
 
-static int __fastcall ParseFormatSpecifier(const char **specifierPtr, ArgumentSize *size, int *orderingPtr) {
+static int ParseFormatSpecifier(const char **specifierPtr, ArgumentSize *size, int *orderingPtr) {
   const char *specifier;
   int         currentNumber;
 
@@ -100,7 +100,7 @@ static int __fastcall ParseFormatSpecifier(const char **specifierPtr, ArgumentSi
   }
 }
 
-static void __fastcall RemoveOrderingFromFormatSpecifier(char *specifier) {
+static void RemoveOrderingFromFormatSpecifier(char *specifier) {
   char *dollarSign;
   char *firstDigit;
 
@@ -117,7 +117,7 @@ static void __fastcall RemoveOrderingFromFormatSpecifier(char *specifier) {
   memmove(firstDigit, dollarSign + 1, strlen(dollarSign));
 }
 
-static void __fastcall FixUpLongLongFormatSpecifier(char *specifier) {
+static void FixUpLongLongFormatSpecifier(char *specifier) {
   specifier = strstr(specifier, "ll");
   if (!specifier) {
     return;

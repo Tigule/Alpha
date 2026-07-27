@@ -59,20 +59,20 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   friend void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect);
   friend class CSimpleFontString;
   friend class CSimpleTexture;
-  friend int __fastcall CSimpleFrame_GetParent(lua_State *L);
-  friend int __fastcall CSimpleFrame_SetID(lua_State *L);
-  friend int __fastcall CSimpleFrame_GetID(lua_State *L);
-  friend int __fastcall CSimpleFrame_IsShown(lua_State *L);
-  friend int __fastcall CSimpleFrame_RegisterForDrag(lua_State *L);
-  friend int __fastcall CSimpleFrame_SetBackdropColor(lua_State *L);
-  friend int __fastcall CSimpleFrame_SetBackdropBorderColor(lua_State *L);
+  friend int CSimpleFrame_GetParent(lua_State *L);
+  friend int CSimpleFrame_SetID(lua_State *L);
+  friend int CSimpleFrame_GetID(lua_State *L);
+  friend int CSimpleFrame_IsShown(lua_State *L);
+  friend int CSimpleFrame_RegisterForDrag(lua_State *L);
+  friend int CSimpleFrame_SetBackdropColor(lua_State *L);
+  friend int CSimpleFrame_SetBackdropBorderColor(lua_State *L);
 
  public:
   CSimpleFrame(CSimpleFrame *parent);
   virtual ~CSimpleFrame();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   virtual void          DelayedDelete();
   virtual void          PreLoadXML(const XMLNode *node, CStatus *status);

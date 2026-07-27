@@ -43,10 +43,10 @@ class FriendList {
   ~FriendList();
 
   FriendList();
-  static void __fastcall Initialize();
-  static void __fastcall RegisterScriptFunctions();
-  static void __fastcall UnregisterScriptFunctions();
-  static void __fastcall Destroy();
+  static void Initialize();
+  static void RegisterScriptFunctions();
+  static void UnregisterScriptFunctions();
+  static void Destroy();
   unsigned int           GetNumFriends() const;
   Friend                *GetFriend(unsigned int index);
   void                   SetFriendSelectionIndex(unsigned int index);

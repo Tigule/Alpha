@@ -6,7 +6,7 @@
 
 static EGxBufWriteFreq freqOrder[3] = {GxBWF_Dynamic, GxBWF_Low, GxBWF_Medium};
 
-CGxDevice *__fastcall CGxDevice::NewOpenGl() {
+CGxDevice *CGxDevice::NewOpenGl() {
   return NEW(CGxDeviceOpenGl);
 }
 

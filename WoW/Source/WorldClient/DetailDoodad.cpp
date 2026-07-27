@@ -8,9 +8,9 @@
 
 class CStatus;
 
-unsigned char *__fastcall MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status);
-void __fastcall           MDLFileBinaryUnload(unsigned char *fileData);
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+unsigned char *MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status);
+void MDLFileBinaryUnload(unsigned char *fileData);
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
 static unsigned int g_gxBufCreateCount;
 static unsigned int g_gxBufDestroyCount;
@@ -21,7 +21,7 @@ TSGrowableArray<CDetailDoodadData *>   CDetailDoodad::doodadList;
 TSExplicitList<CDetailDoodadGeom, 104> CDetailDoodad::geomList;
 CGxTex                                *CDetailDoodad::alphaRampTexture;
 
-void __fastcall CDetailDoodad::Initialize() {
+void CDetailDoodad::Initialize() {
   unsigned int nEntries = g_groundEffectDoodadDB.GetNumRecords();
   unsigned int i;
 
@@ -45,7 +45,7 @@ void __fastcall CDetailDoodad::Initialize() {
   ASSERT(alphaRampTexture);
 }
 
-void __fastcall CDetailDoodad::Destroy() {
+void CDetailDoodad::Destroy() {
   Clear();
 
   for (unsigned int index = 0; index < gxBufFreeList.Count(); ++index) {
@@ -62,7 +62,7 @@ void __fastcall CDetailDoodad::Destroy() {
   alphaRampTexture = 0;
 }
 
-void __fastcall CDetailDoodad::Clear() {
+void CDetailDoodad::Clear() {
   for (unsigned int index = 0; index < doodadList.Count(); ++index) {
     if (doodadList[index]) {
       DEL(doodadList[index]);
@@ -74,7 +74,7 @@ void __fastcall CDetailDoodad::Clear() {
   geomList.Clear();
 }
 
-CDetailDoodadInst *__fastcall CDetailDoodad::AllocInst() {
+CDetailDoodadInst *CDetailDoodad::AllocInst() {
   CDetailDoodadInst *inst = instList.Head();
   if (inst) {
     instList.UnlinkNode(inst);
@@ -86,7 +86,7 @@ CDetailDoodadInst *__fastcall CDetailDoodad::AllocInst() {
   return inst;
 }
 
-void __fastcall CDetailDoodad::FreeInst(CDetailDoodadInst *inst) {
+void CDetailDoodad::FreeInst(CDetailDoodadInst *inst) {
   unsigned int index;
 
   ASSERT(inst);
@@ -105,7 +105,7 @@ void __fastcall CDetailDoodad::FreeInst(CDetailDoodadInst *inst) {
   }
 }
 
-CDetailDoodadGeom *__fastcall CDetailDoodad::AllocGeom() {
+CDetailDoodadGeom *CDetailDoodad::AllocGeom() {
   CDetailDoodadGeom *geom = geomList.Head();
   if (geom) {
     geomList.UnlinkNode(geom);
@@ -117,7 +117,7 @@ CDetailDoodadGeom *__fastcall CDetailDoodad::AllocGeom() {
   return geom;
 }
 
-void __fastcall CDetailDoodad::FreeGeom(CDetailDoodadGeom *geom) {
+void CDetailDoodad::FreeGeom(CDetailDoodadGeom *geom) {
   ASSERT(geom);
   geomList.LinkNode(geom, LIST_TAIL, 0);
 
@@ -129,7 +129,7 @@ void __fastcall CDetailDoodad::FreeGeom(CDetailDoodadGeom *geom) {
   geom->indexList.SetCount(0);
 }
 
-CGxBuf *__fastcall CDetailDoodad::AllocGxBuf(unsigned int vertexCount, unsigned int indexCount) {
+CGxBuf *CDetailDoodad::AllocGxBuf(unsigned int vertexCount, unsigned int indexCount) {
   CGxBuf *gxBuf;
 
   if (gxBufFreeList.Count()) {
@@ -147,19 +147,19 @@ CGxBuf *__fastcall CDetailDoodad::AllocGxBuf(unsigned int vertexCount, unsigned 
   return gxBuf;
 }
 
-void __fastcall CDetailDoodad::FreeGxBuf(CGxBuf *gxBuf) {
+void CDetailDoodad::FreeGxBuf(CGxBuf *gxBuf) {
   ASSERT(gxBuf);
   *gxBufFreeList.New() = gxBuf;
 }
 
-void __fastcall CDetailDoodad::GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf) {
+void CDetailDoodad::GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf) {
   CDetailDoodadGeom *detailDoodadGeom = static_cast<CDetailDoodadGeom *>(buf->UserArg());
   FATALASSERT(detailDoodadGeom);
   detailDoodadGeom->FillGxBufVertex(cmd, buf);
   detailDoodadGeom->FillGxBufIndex(cmd, buf);
 }
 
-void __fastcall CDetailDoodad::CreateAlphaRampTexture(const void *&texels) {
+void CDetailDoodad::CreateAlphaRampTexture(const void *&texels) {
   static NTempest::CImVector alphaRamp[8][64];
   unsigned char              alpha = 0;
 
@@ -173,7 +173,7 @@ void __fastcall CDetailDoodad::CreateAlphaRampTexture(const void *&texels) {
   texels = alphaRamp;
 }
 
-void __fastcall CDetailDoodad::UpdateAlphaRampTexture(
+void CDetailDoodad::UpdateAlphaRampTexture(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -296,7 +296,7 @@ int CDetailDoodadData::Load() {
   return 1;
 }
 
-void __fastcall CDetailDoodadData::MdlReadCallback(unsigned int *fileData, unsigned int fileBytes, CDetailDoodadData *detailDoodad) {
+void CDetailDoodadData::MdlReadCallback(unsigned int *fileData, unsigned int fileBytes, CDetailDoodadData *detailDoodad) {
   FATALASSERT(detailDoodad);
   FATALASSERT(detailDoodad->geom == 0);
 

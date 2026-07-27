@@ -5,7 +5,7 @@
 #include "Base/MsgBuffer.h"
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void AddCameraErrors(TSet &errors) {
@@ -54,7 +54,7 @@ static void IReadCameraTarget(
   errors.Complete(status);
 }
 
-int __fastcall ReadCamera(
+int ReadCamera(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -186,7 +186,7 @@ static void IWriteCamera(
   WriteLine(buffer, "}\n");
 }
 
-int __fastcall WriteCameras(
+int WriteCameras(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -265,7 +265,7 @@ static void IWriteBinCamera(
   WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buffer);
 }
 
-int __fastcall WriteBinCameras(
+int WriteBinCameras(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *
@@ -286,7 +286,7 @@ int __fastcall WriteBinCameras(
   return 1;
 }
 
-int __fastcall ReadBinCamera(
+int ReadBinCamera(
     CMsgBuffer &buffer,
     MDLCAMERASECTION *camera,
     CMDLStatus *status,
@@ -335,7 +335,7 @@ int __fastcall ReadBinCamera(
   return 1;
 }
 
-int __fastcall ReadBinCameras(
+int ReadBinCameras(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

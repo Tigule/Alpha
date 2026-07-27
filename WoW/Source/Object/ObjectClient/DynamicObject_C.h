@@ -38,7 +38,7 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
   virtual void                   Reenable();
   int                            SetBlock(unsigned int i, unsigned long data);
   void                           SetData(const void *data, unsigned int bytes);
-  static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);
+  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
   SpellVisualEffectNameRec      *GetVisualEffectNameRec();
   virtual const char            *GetModelFileName() const;
   void                           HandleAnimEvent(const char *eventName, const NTempest::C3Vector &position);

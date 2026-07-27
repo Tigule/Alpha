@@ -100,52 +100,52 @@ enum SPELL_FAILED_REASON {
 };
 
 struct LightningObject;
-void __fastcall UnitEffectsInitialize();
-void __fastcall UnitEffectsShutdown();
-void __fastcall UnitSoundInitialize();
-void __fastcall UnitSoundShutdown();
-void __fastcall Spell_C_Initialize();
-void __fastcall Spell_C_Destroy();
-void __fastcall UnitCombatClientInitialize();
-void __fastcall UnitCombatClientShutdown();
-void __fastcall ShadowInit();
-void __fastcall ShadowDestroy();
+void UnitEffectsInitialize();
+void UnitEffectsShutdown();
+void UnitSoundInitialize();
+void UnitSoundShutdown();
+void Spell_C_Initialize();
+void Spell_C_Destroy();
+void UnitCombatClientInitialize();
+void UnitCombatClientShutdown();
+void ShadowInit();
+void ShadowDestroy();
 void UnitFootprintInitialize();
 void UnitFootprintShutdown();
-ANIMENUMERATION __fastcall Object_C_GetAnimIndex(const char *animName);
-void __fastcall UnitEffectClear(CGObject_C *object);
-void __fastcall WeaponTrailDisableDrawing(int trail);
-void __fastcall BotClientLoseTarget(const CGUnit_C *unit);
-void __fastcall ScriptEventsRegisterUnit(CGUnit_C *unit);
-void __fastcall ScriptEventsUnregisterUnit(CGUnit_C *unit);
-FishingLineObject *__fastcall SpellVisualsFishingLineCreate(
+ANIMENUMERATION Object_C_GetAnimIndex(const char *animName);
+void UnitEffectClear(CGObject_C *object);
+void WeaponTrailDisableDrawing(int trail);
+void BotClientLoseTarget(const CGUnit_C *unit);
+void ScriptEventsRegisterUnit(CGUnit_C *unit);
+void ScriptEventsUnregisterUnit(CGUnit_C *unit);
+FishingLineObject *SpellVisualsFishingLineCreate(
     const SpellVisualKitRec *kitRec,
     const unsigned __int64  &gameObj,
     const unsigned __int64  &caster
 );
-void __fastcall SpellVisualsFishingLineDestroy(FishingLineObject *object);
-void __fastcall SpellVisualFishingLineSetVisible(FishingLineObject *object);
-void __fastcall SpellVisualClearLightning(LightningObject *lightning);
-void __fastcall SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects);
-int __fastcall SpellFizzleTimer(const void *data, void *userData);
-void __fastcall UpdatePortraitTexture(const unsigned __int64 &guid);
-bool __fastcall Spell_C_IsModal();
-int __fastcall Spell_C_GetSpellCooldown(int spellID, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-int __fastcall Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-int __fastcall Spell_C_GetManaCost(int spellID, int isPet);
-void __fastcall Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2);
-const unsigned __int64 &__fastcall Spell_C_GetCurrentTarget();
-void __fastcall Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
-void __fastcall UnitCombatLogUnitDead(unsigned __int64 unit);
+void SpellVisualsFishingLineDestroy(FishingLineObject *object);
+void SpellVisualFishingLineSetVisible(FishingLineObject *object);
+void SpellVisualClearLightning(LightningObject *lightning);
+void SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects);
+int SpellFizzleTimer(const void *data, void *userData);
+void UpdatePortraitTexture(const unsigned __int64 &guid);
+bool Spell_C_IsModal();
+int Spell_C_GetSpellCooldown(int spellID, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+int Spell_C_GetManaCost(int spellID, int isPet);
+void Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2);
+const unsigned __int64 &Spell_C_GetCurrentTarget();
+void Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
+void UnitCombatLogUnitDead(unsigned __int64 unit);
 void            UnitFootprintNewBloodSplat(UnitBloodRec *rec, unsigned int unitSize, NTempest::C3Vector &position);
-static void __fastcall PlayerNameGuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
+static void PlayerNameGuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
 
 struct BLOODSPLATNODE : public TSLinkedNode<BLOODSPLATNODE> {
   unsigned int       time;
   NTempest::C3Vector position;
 };
 
-int __fastcall OnPickNextStandHandler(void *param, CGUnit_C *ptr) {
+int OnPickNextStandHandler(void *param, CGUnit_C *ptr) {
   ptr->CGUnit_C::OnPickNextStandHandler();
   return 1;
 }
@@ -276,37 +276,37 @@ void CGUnit_C::ProcessChannelObject() {
   }
 }
 
-int __fastcall DeathAnimEndHandler(void *param, CGUnit_C *ptr) {
+int DeathAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->DeathAnimEndHandler();
   return 1;
 }
 
-int __fastcall PickNextRunHandler(void *param, CGUnit_C *ptr) {
+int PickNextRunHandler(void *param, CGUnit_C *ptr) {
   ptr->PickNextRunHandler();
   return 1;
 }
 
-int __fastcall WoundAnimEndHandler(void *param, CGUnit_C *ptr) {
+int WoundAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->WoundAnimEndHandler();
   return 1;
 }
 
-int __fastcall SpellAnimEndHandler(void *param, CGUnit_C *ptr) {
+int SpellAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->SpellAnimEndHandler();
   return 1;
 }
 
-int __fastcall NPCAnimEndHandler(void *param, CGUnit_C *ptr) {
+int NPCAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->NPCAnimEndHandler();
   return 1;
 }
 
-int __fastcall JumpTakeOffFinishedHandler(void *param, CGUnit_C *ptr) {
+int JumpTakeOffFinishedHandler(void *param, CGUnit_C *ptr) {
   ptr->JumpTakeOffFinishedHandler();
   return 1;
 }
 
-int __fastcall JumpLandFinishedHandler(void *param, CGUnit_C *ptr) {
+int JumpLandFinishedHandler(void *param, CGUnit_C *ptr) {
   ptr->JumpLandFinishedHandler();
   return 1;
 }
@@ -364,13 +364,13 @@ static TSList<FREENAMEPLATE, TSGetLink<FREENAMEPLATE> > s_freeNamePlateList;
 static TSHashTable<NAMEPLATEDESC, CHashKeyGUID>         s_monsterNamePlateList;
 static CGWorldFrame                                    *s_namePlateWorldFrame;
 
-int __fastcall RangedWeaponAnimEndHandler(void *param, CGUnit_C *ptr) {
+int RangedWeaponAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->RangedWeaponAnimEndHandler();
   return 1;
 }
 
 typedef TSList<SPELLEFFECTDESC, TSGetLink<SPELLEFFECTDESC> > SpellEffectList;
-typedef void(__fastcall *SpellProcHandler)(
+typedef void(*SpellProcHandler)(
     SPELLPROC_ACTION         action,
     SpellEffectList         &list,
     CGUnit_C                *unit,
@@ -381,11 +381,11 @@ typedef void(__fastcall *SpellProcHandler)(
     float                    elapsed
 );
 
-void __fastcall                   SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason);
-void __fastcall                   UnitEffectClearSpellPrecast(CGObject_C *object, int spellID);
-void __fastcall                   SndInterfaceAssociateSoundWithObject(Sound *sound, CGObject_C *objectPtr);
-const ItemSubClassRec *__fastcall SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
-int __fastcall                    SheatheTypeToSheathePoint(int sheatheType, int invSlot);
+void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason);
+void UnitEffectClearSpellPrecast(CGObject_C *object, int spellID);
+void SndInterfaceAssociateSoundWithObject(Sound *sound, CGObject_C *objectPtr);
+const ItemSubClassRec *SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
+int SheatheTypeToSheathePoint(int sheatheType, int invSlot);
 
 enum SAVEDSHEATHATTACHPOINTS {
   SHEATHATTACH_NONE = 0,
@@ -403,12 +403,12 @@ static SAVEDSHEATHATTACHPOINTS s_sheathePoints[2][9] = {
 };
 
 static const int s_savedSheathToAttachPoints[8] = {-1, 26, 27, 30, 31, 32, 33, 28};
-void __fastcall  WeaponTrailClose(int trail);
-int __fastcall   WeaponTrailCreate(HMODEL model);
-void __fastcall  WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, unsigned int duration);
-int __fastcall   Spell_C_GetCastTime(int id, int isPet);
-int __fastcall   UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber);
-void __fastcall  UnitEffectOneShot(
+void WeaponTrailClose(int trail);
+int WeaponTrailCreate(HMODEL model);
+void WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, unsigned int duration);
+int Spell_C_GetCastTime(int id, int isPet);
+int UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber);
+void UnitEffectOneShot(
     UNITEFFECTSPECIALS effectNumber,
     unsigned __int64   target,
     const NTempest::C3Vector *attachPos,
@@ -416,8 +416,8 @@ void __fastcall  UnitEffectOneShot(
     float              scale,
     bool               forceEffectOnMount
 );
-void __fastcall  UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added, int auraSlot);
-int __fastcall   GetObjComponentInfo(
+void UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added, int auraSlot);
+int GetObjComponentInfo(
     int     race,
     int     sex,
     int     displayID,
@@ -427,25 +427,25 @@ int __fastcall   GetObjComponentInfo(
     HMODEL *models,
     int    *attachmentPoints
 );
-void __fastcall              CreatureQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
-void __fastcall              Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
-bool __fastcall              IsShapeshiftSpell(const SpellRec *rec);
-void __fastcall              SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj);
-void __fastcall              SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
-void __fastcall              UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset);
-GEOCOMPONENTLINKS __fastcall UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach);
-HMODEL __fastcall            UnitEffectCreateAuraModel(unsigned int effectID);
-unsigned int __fastcall      UnitEffectIsAuraWorldObject(unsigned int effectID, unsigned int &isWorldObj);
-unsigned long __fastcall     UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest::C3Vector &location, float facing);
-int __fastcall               OnFirstAuraSequenceFinished(void *param);
-bool __fastcall              AnimSheathesWeapon(unsigned int anim);
-int __fastcall               GetObjAnimFlags(int unitAnimFlags);
-unsigned int __fastcall      SpellGetRangedPrecastHoldAnim(unsigned int loadAnim);
-unsigned int __fastcall      PlayerNameGetUnitNameMode();
-void __fastcall              SpellVisualsPlayCastKit(CGUnit_C *caster, SpellVisualKitRec *kitRec, int spellID, unsigned int isCastEffect);
-unsigned int __fastcall      Object_C_AnimHasHitEvent(int anim);
-float __fastcall             CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
-void __fastcall              UnitEffectOneShot(
+void CreatureQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
+void Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
+bool IsShapeshiftSpell(const SpellRec *rec);
+void SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj);
+void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
+void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset);
+GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach);
+HMODEL UnitEffectCreateAuraModel(unsigned int effectID);
+unsigned int UnitEffectIsAuraWorldObject(unsigned int effectID, unsigned int &isWorldObj);
+unsigned long UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest::C3Vector &location, float facing);
+int OnFirstAuraSequenceFinished(void *param);
+bool AnimSheathesWeapon(unsigned int anim);
+int GetObjAnimFlags(int unitAnimFlags);
+unsigned int SpellGetRangedPrecastHoldAnim(unsigned int loadAnim);
+unsigned int PlayerNameGetUnitNameMode();
+void SpellVisualsPlayCastKit(CGUnit_C *caster, SpellVisualKitRec *kitRec, int spellID, unsigned int isCastEffect);
+unsigned int Object_C_AnimHasHitEvent(int anim);
+float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
+void UnitEffectOneShot(
     const SpellVisualEffectNameRec *effect,
     CGObject_C                     *object,
     UNITEFFECTATTACHPPOINT          attachPoint,
@@ -464,15 +464,15 @@ struct AuraDecayNode : public TSLinkedNode<AuraDecayNode> {
   }
 };
 
-int __fastcall OnAuraDecayFinished(void *param);
+int OnAuraDecayFinished(void *param);
 
 class CGQuestInfo {
  public:
-  static const unsigned __int64 &__fastcall GetQuestGiver();
-  static void __fastcall                    QuestGiverFinished();
+  static const unsigned __int64 &GetQuestGiver();
+  static void QuestGiverFinished();
 };
-int __fastcall AuraMirrorHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param);
-#define DECLARE_UNIT_MIRROR_HANDLER(name) int __fastcall name(unsigned __int64, unsigned int, unsigned int, const void *, void *)
+int AuraMirrorHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param);
+#define DECLARE_UNIT_MIRROR_HANDLER(name) int name(unsigned __int64, unsigned int, unsigned int, const void *, void *)
 DECLARE_UNIT_MIRROR_HANDLER(UnitFlagUpdateHandler);
 DECLARE_UNIT_MIRROR_HANDLER(UnitLevelUpdateHandler);
 DECLARE_UNIT_MIRROR_HANDLER(UnitModeUpdateHandler);
@@ -601,7 +601,7 @@ CGUnit_C::~CGUnit_C() {
   ClearAnimCallbackData();
 }
 
-int __fastcall LootAnimEndHandler(void *param, CGUnit_C *ptr) {
+int LootAnimEndHandler(void *param, CGUnit_C *ptr) {
   if (ptr->GetType() & TYPE_PLAYER) {
     static_cast<CGPlayer_C *>(ptr)->CGPlayer_C::LootAnimEndHandler();
   } else {
@@ -610,41 +610,41 @@ int __fastcall LootAnimEndHandler(void *param, CGUnit_C *ptr) {
   return 1;
 }
 
-int __fastcall SheatheAnimEndHandler(void *param, CGUnit_C *ptr) {
+int SheatheAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->SheatheAnimEndHandler();
   return 1;
 }
 
-int __fastcall SitSleepAnimEndHandler(void *param, CGUnit_C *ptr) {
+int SitSleepAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->SitSleepAnimEndHandler();
   return 1;
 }
 
-int __fastcall RangedPrecastEndHandler(void *param, CGUnit_C *ptr) {
+int RangedPrecastEndHandler(void *param, CGUnit_C *ptr) {
   ptr->RangedPrecastEndHandler();
   return 1;
 }
 
-int __fastcall ThrowAnimEndHandler(void *param, CGUnit_C *ptr) {
+int ThrowAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->ThrowAnimEndHandler();
   return 1;
 }
 
-int __fastcall AttackAnimEndHandler(void *param, CGUnit_C *ptr) {
+int AttackAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->AttackAnimEndHandler();
   return 1;
 }
 
-int __fastcall DodgeAnimEndHandler(void *param, CGUnit_C *ptr) {
+int DodgeAnimEndHandler(void *param, CGUnit_C *ptr) {
   ptr->DodgeAnimEndHandler();
   return 1;
 }
 
-int __fastcall InvSlotToObjAttachSlot(int invSlot) {
+int InvSlotToObjAttachSlot(int invSlot) {
   return invSlot <= 18 ? s_invSlotToObjAttachSlot[invSlot] : -1;
 }
 
-static void __fastcall PurgeExpiredNodes(TSList<SPELLEFFECTDESC, TSGetLink<SPELLEFFECTDESC> > &list, float elapsed) {
+static void PurgeExpiredNodes(TSList<SPELLEFFECTDESC, TSGetLink<SPELLEFFECTDESC> > &list, float elapsed) {
   SPELLEFFECTDESC *desc = list.Head();
   while (desc) {
     SPELLEFFECTDESC *next = desc->Next();
@@ -671,7 +671,7 @@ float SPELLEFFECTDESC::CalcScalar() {
   return scalar;
 }
 
-void __fastcall SpellProcChainHandler(
+void SpellProcChainHandler(
     SPELLPROC_ACTION action,
     SpellEffectList &,
     CGUnit_C *unit,
@@ -697,7 +697,7 @@ void __fastcall SpellProcChainHandler(
   }
 }
 
-void __fastcall SpellProcColorHandler(
+void SpellProcColorHandler(
     SPELLPROC_ACTION         action,
     SpellEffectList         &list,
     CGUnit_C                *unit,
@@ -745,7 +745,7 @@ void __fastcall SpellProcColorHandler(
   }
 }
 
-static float __fastcall GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
+static float GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
   float scale = desc->scale;
   if (desc->fadeInTime != desc->startTime && desc->curTime < desc->fadeInTime) {
     NTempest::C3Vector points[4] = {
@@ -775,7 +775,7 @@ static float __fastcall GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
   return scale;
 }
 
-static float __fastcall GetDesiredRenderScale(SpellEffectList &list) {
+static float GetDesiredRenderScale(SpellEffectList &list) {
   float currentScale = 1.0f;
   for (SPELLEFFECTDESC *desc = list.Head(); desc; desc = desc->Next()) {
     currentScale *= GetSpellEffectDescScale(desc);
@@ -789,7 +789,7 @@ static float __fastcall GetDesiredRenderScale(SpellEffectList &list) {
   return currentScale;
 }
 
-void __fastcall SpellProcScaleHandler(
+void SpellProcScaleHandler(
     SPELLPROC_ACTION action,
     SpellEffectList &list,
     CGUnit_C        *unit,
@@ -823,7 +823,7 @@ void __fastcall SpellProcScaleHandler(
   }
 }
 
-void __fastcall SpellProcEmissiveHandler(
+void SpellProcEmissiveHandler(
     SPELLPROC_ACTION action,
     SpellEffectList &list,
     CGUnit_C        *unit,
@@ -845,7 +845,7 @@ void __fastcall SpellProcEmissiveHandler(
   }
 }
 
-void __fastcall SpellProcEclipseHandler(
+void SpellProcEclipseHandler(
     SPELLPROC_ACTION action,
     SpellEffectList &list,
     CGUnit_C *,
@@ -869,7 +869,7 @@ void __fastcall SpellProcEclipseHandler(
   }
 }
 
-void __fastcall SpellProcStandWalkAnimHandler(
+void SpellProcStandWalkAnimHandler(
     SPELLPROC_ACTION action,
     SpellEffectList &list,
     CGUnit_C        *unit,
@@ -936,7 +936,7 @@ static const ANIMQUEUETYPE                  s_animStandDownTransitions[9] = {
     ANIMQUEUE_SITCHAIRHIGH,  ANIMQUEUE_DEAD,           ANIMQUEUE_KNEELDOWN
 };
 
-void __fastcall SpellProcWeaponTrailHandler(
+void SpellProcWeaponTrailHandler(
     SPELLPROC_ACTION action,
     SpellEffectList &,
     CGUnit_C *unit,
@@ -956,7 +956,7 @@ void __fastcall SpellProcWeaponTrailHandler(
   }
 }
 
-static BLOODSPLATNODE *__fastcall NewBloodSplatNode() {
+static BLOODSPLATNODE *NewBloodSplatNode() {
   BLOODSPLATNODE *node = s_bloodSplatList.Head();
   if (node) {
     node->Unlink();
@@ -1070,22 +1070,22 @@ void CGUnit_C::PreRender(int currentTime, float elapsed) {
 
 static NTempest::CImVector COLOR_GOLD(0xFFFFDE00);
 
-int __fastcall OnPickNextStandHandler(void *param, CGUnit_C *ptr);
-int __fastcall DeathAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall PickNextRunHandler(void *param, CGUnit_C *ptr);
-int __fastcall WoundAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall SpellAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall NPCAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall JumpTakeOffFinishedHandler(void *param, CGUnit_C *ptr);
-int __fastcall JumpLandFinishedHandler(void *param, CGUnit_C *ptr);
-int __fastcall RangedWeaponAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall LootAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall SheatheAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall SitSleepAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall RangedPrecastEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall ThrowAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall AttackAnimEndHandler(void *param, CGUnit_C *ptr);
-int __fastcall DodgeAnimEndHandler(void *param, CGUnit_C *ptr);
+int OnPickNextStandHandler(void *param, CGUnit_C *ptr);
+int DeathAnimEndHandler(void *param, CGUnit_C *ptr);
+int PickNextRunHandler(void *param, CGUnit_C *ptr);
+int WoundAnimEndHandler(void *param, CGUnit_C *ptr);
+int SpellAnimEndHandler(void *param, CGUnit_C *ptr);
+int NPCAnimEndHandler(void *param, CGUnit_C *ptr);
+int JumpTakeOffFinishedHandler(void *param, CGUnit_C *ptr);
+int JumpLandFinishedHandler(void *param, CGUnit_C *ptr);
+int RangedWeaponAnimEndHandler(void *param, CGUnit_C *ptr);
+int LootAnimEndHandler(void *param, CGUnit_C *ptr);
+int SheatheAnimEndHandler(void *param, CGUnit_C *ptr);
+int SitSleepAnimEndHandler(void *param, CGUnit_C *ptr);
+int RangedPrecastEndHandler(void *param, CGUnit_C *ptr);
+int ThrowAnimEndHandler(void *param, CGUnit_C *ptr);
+int AttackAnimEndHandler(void *param, CGUnit_C *ptr);
+int DodgeAnimEndHandler(void *param, CGUnit_C *ptr);
 
 static void ClearQuestIconHandles(int reinitialize) {
   for (unsigned int i = 0; i < 5; ++i) {
@@ -1106,7 +1106,7 @@ static void ClearQuestIconHandles(int reinitialize) {
   }
 }
 
-void __fastcall InitTalkEmotes() {
+void InitTalkEmotes() {
   for (int index = g_emotesDB.GetNumRecords(); index;) {
     EmotesRec *emote = g_emotesDB.GetRecordByIndex(--index);
     FATALASSERT(emote);
@@ -1125,7 +1125,7 @@ void __fastcall InitTalkEmotes() {
   }
 }
 
-void __fastcall CreatureQueryCallback(int id, const unsigned __int64 &guid, void *, bool) {
+void CreatureQueryCallback(int id, const unsigned __int64 &guid, void *, bool) {
   unsigned __int64       noGuid = 0;
   const CreatureStats_C *stats = g_creatureDBCache.GetRecord(id, noGuid, 0, 0);
   if (stats) {
@@ -1137,7 +1137,7 @@ void __fastcall CreatureQueryCallback(int id, const unsigned __int64 &guid, void
   }
 }
 
-static void __fastcall NameQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
+static void NameQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
   if (granted) {
     CGGameUI::UnitNameUpdate(guid);
   }
@@ -1162,14 +1162,14 @@ void CGUnit_C::RemoveObjectLookAt() {
   m_animFlags &= ~0x1000u;
 }
 
-int __fastcall SpellFizzleTimer(const void *__formal, void *userData) {
+int SpellFizzleTimer(const void *__formal, void *userData) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(userData);
   FATALASSERT(unitPtr);
   unitPtr->EndSpellEffects(2);
   return 1;
 }
 
-static int __fastcall RangedStandTimerHandler(const void *__formal, void *userData) {
+static int RangedStandTimerHandler(const void *__formal, void *userData) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(userData);
   FATALASSERT(unitPtr);
   unitPtr->OnRangedStandTimer();
@@ -1186,14 +1186,14 @@ void CGUnit_C::AddBloodPool() {
   }
 }
 
-static void __fastcall AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
+static void AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(param);
   if (unit) {
     unit->HandleAnimEvent(eventName, position);
   }
 }
 
-static void __fastcall MountedAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
+static void MountedAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(param);
   if (unit) {
     unit->HandleMountedAnimEvent(eventName, position);
@@ -1276,7 +1276,7 @@ void CGUnit_C::ProcessBreathParticles(int currentTime) {
   }
 }
 
-static int __fastcall GenericAnimEndHandler(void *param) {
+static int GenericAnimEndHandler(void *param) {
   ANIMENDDATA *data = static_cast<ANIMENDDATA *>(param);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(data->guid, __FILE__, __LINE__));
   if (unit) {
@@ -1285,7 +1285,7 @@ static int __fastcall GenericAnimEndHandler(void *param) {
   return 1;
 }
 
-int __fastcall UnitFlagUpdateHandler(unsigned __int64 unit, unsigned int, unsigned int, const void *oldValue, void *) {
+int UnitFlagUpdateHandler(unsigned __int64 unit, unsigned int, unsigned int, const void *oldValue, void *) {
   FATALASSERT(oldValue);
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(unitPtr);
@@ -1293,7 +1293,7 @@ int __fastcall UnitFlagUpdateHandler(unsigned __int64 unit, unsigned int, unsign
   return 1;
 }
 
-int __fastcall UnitLevelUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int UnitLevelUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   int       oldLevel = *static_cast<const int *>(oldValue);
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unitPtr->GetUnitData()->level != oldLevel) {
@@ -1302,7 +1302,7 @@ int __fastcall UnitLevelUpdateHandler(unsigned __int64 guid, unsigned int offset
   return 1;
 }
 
-int __fastcall UnitModeUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int UnitModeUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   FATALASSERT(oldValue);
   CGUnit_C              *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   const CreatureStats_C *stats = g_creatureDBCache.GetRecord(unitPtr->m_obj->m_entryID, guid, CreatureQueryCallback, 0);
@@ -1313,7 +1313,7 @@ int __fastcall UnitModeUpdateHandler(unsigned __int64 guid, unsigned int offset,
   return 1;
 }
 
-int __fastcall UnitHealthUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int UnitHealthUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   FATALASSERT(oldValue);
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   int       oldHealth = *static_cast<const int *>(oldValue);
@@ -1351,7 +1351,7 @@ int __fastcall UnitHealthUpdateHandler(unsigned __int64 unit, unsigned int offse
   return 1;
 }
 
-int __fastcall UnitCharmedUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int UnitCharmedUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->OnCharmedChanged();
@@ -1359,7 +1359,7 @@ int __fastcall UnitCharmedUpdateHandler(unsigned __int64 unit, unsigned int offs
   return 1;
 }
 
-int __fastcall DisplayIDUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int DisplayIDUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->UpdateDisplayInfo();
@@ -1367,7 +1367,7 @@ int __fastcall DisplayIDUpdateHandler(unsigned __int64 unit, unsigned int offset
   return 1;
 }
 
-int __fastcall StandStateUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int StandStateUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->StandStateChanged(*static_cast<const unsigned char *>(oldValue));
@@ -1527,7 +1527,7 @@ static const TRACKTYPEINFO s_trackTypeInfo[3] = {
 static const float TRACKMOVETHRESHOLDSQ = 4.0f;
 static const float TRACKRUNTHRESHOLDSQ = 16.0f;
 
-int __fastcall NPCFlagsHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int NPCFlagsHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->NPCFlagChanged(*static_cast<const unsigned char *>(oldValue));
@@ -1535,7 +1535,7 @@ int __fastcall NPCFlagsHandler(unsigned __int64 unit, unsigned int offset, unsig
   return 1;
 }
 
-int __fastcall WeaponModeUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int WeaponModeUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->WeaponModeChanged();
@@ -1543,7 +1543,7 @@ int __fastcall WeaponModeUpdateHandler(unsigned __int64 unit, unsigned int offse
   return 1;
 }
 
-int __fastcall PetNameChangeHandler(unsigned __int64 unit, unsigned int, unsigned int, const void *, void *) {
+int PetNameChangeHandler(unsigned __int64 unit, unsigned int, unsigned int, const void *, void *) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     const CGUnitData *unitData = unitPtr->GetUnitData();
@@ -1557,7 +1557,7 @@ int __fastcall PetNameChangeHandler(unsigned __int64 unit, unsigned int, unsigne
   return 1;
 }
 
-int __fastcall VirtualItemChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int VirtualItemChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->VirtualComponentChanged(reinterpret_cast<int>(param), *static_cast<const int *>(oldValue));
@@ -1565,7 +1565,7 @@ int __fastcall VirtualItemChangeHandler(unsigned __int64 unit, unsigned int offs
   return 1;
 }
 
-int __fastcall DynamicFlagsChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int DynamicFlagsChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->OnDynamicFlagsChanged(*static_cast<const unsigned int *>(oldValue));
@@ -1573,7 +1573,7 @@ int __fastcall DynamicFlagsChangeHandler(unsigned __int64 unit, unsigned int off
   return 1;
 }
 
-int __fastcall EmoteStateChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int EmoteStateChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->ClearTorsoAnimation(0);
@@ -1602,7 +1602,7 @@ void ACTIVEATTACHMENTINFO::ClearAttachmentFromModel(HMODEL charModel, HMODEL pap
   }
 }
 
-int __fastcall ChannelSpellChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int ChannelSpellChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->OnChannelSpellChanged(*static_cast<const unsigned int *>(oldValue));
@@ -2095,7 +2095,7 @@ void CGUnit_C::OnTeleportAck(unsigned long eventTime, const CMovementStatus &upd
   ClientServices_Send(&outBound);
 }
 
-static int __fastcall OnUnitMoveEvent(NETMESSAGE msgId, unsigned long eventTime, unsigned __int64 guid, CDataStore *msg) {
+static int OnUnitMoveEvent(NETMESSAGE msgId, unsigned long eventTime, unsigned __int64 guid, CDataStore *msg) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
     return unit->OnMoveEvent(msgId, eventTime, msg);
@@ -2106,12 +2106,12 @@ static int __fastcall OnUnitMoveEvent(NETMESSAGE msgId, unsigned long eventTime,
   return 0;
 }
 
-static int __fastcall OnUnitMoveEventActive(void *, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+static int OnUnitMoveEventActive(void *, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   FATALASSERT(msg);
   return OnUnitMoveEvent(msgId, eventTime, CGUnit_C::m_activeMover, msg);
 }
 
-static int __fastcall OnUnitMoveEventNoActive(void *, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+static int OnUnitMoveEventNoActive(void *, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   unsigned __int64 guid;
@@ -2124,7 +2124,7 @@ static int __fastcall OnUnitMoveEventNoActive(void *, NETMESSAGE msgId, unsigned
   return 1;
 }
 
-static int __fastcall OnMonsterMoveEvent(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int OnMonsterMoveEvent(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
   unsigned __int64 guid;
   msg->Get(guid);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
@@ -2138,7 +2138,7 @@ static int __fastcall OnMonsterMoveEvent(void* param, NETMESSAGE msgId, unsigned
   return 0;
 }
 
-static int __fastcall OnForceMoveChange(void *, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+static int OnForceMoveChange(void *, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   if (unit) {
     return unit->OnForceMoveChange(eventTime, msgId, msg);
@@ -2146,7 +2146,7 @@ static int __fastcall OnForceMoveChange(void *, NETMESSAGE msgId, unsigned long 
   return 1;
 }
 
-static int __fastcall OnUnitMountCancelledEvent(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int OnUnitMountCancelledEvent(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
   ASSERT(msg);
   unsigned __int64 guid;
   msg->Get(guid);
@@ -2157,7 +2157,7 @@ static int __fastcall OnUnitMountCancelledEvent(void* param, NETMESSAGE msgId, u
   return 1;
 }
 
-static int __fastcall OnSpecialMountAnim(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int OnSpecialMountAnim(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
   ASSERT(msg);
   unsigned __int64 guid;
   msg->Get(guid);
@@ -2168,7 +2168,7 @@ static int __fastcall OnSpecialMountAnim(void* param, NETMESSAGE msgId, unsigned
   return 1;
 }
 
-static int __fastcall OnUnitReaction(void*, NETMESSAGE msgId, unsigned long, CDataStore* msg) {
+static int OnUnitReaction(void*, NETMESSAGE msgId, unsigned long, CDataStore* msg) {
   ASSERT(msgId == SMSG_AI_REACTION);
   unsigned __int64 unitGUID;
   int              reaction;
@@ -2181,7 +2181,7 @@ static int __fastcall OnUnitReaction(void*, NETMESSAGE msgId, unsigned long, CDa
   return 1;
 }
 
-int __fastcall AuraMirrorHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
+int AuraMirrorHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
   unsigned int slot = (offset - 200) >> 2;
   FATALASSERT(prevValue);
   int       previousValue = *static_cast<const int *>(prevValue);
@@ -2192,7 +2192,7 @@ int __fastcall AuraMirrorHandler(unsigned __int64 guid, unsigned int offset, uns
   return 1;
 }
 
-static int __fastcall TargetMirrorHandler(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
+static int TargetMirrorHandler(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   ASSERT(unit);
   if (guid != ClntObjMgrGetActivePlayer()) {
@@ -2201,7 +2201,7 @@ static int __fastcall TargetMirrorHandler(unsigned __int64 guid, unsigned int, u
   return 1;
 }
 
-static int __fastcall ChannelObjectMirrorHandler(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
+static int ChannelObjectMirrorHandler(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
     unit->ClearFishingObject();
@@ -2209,7 +2209,7 @@ static int __fastcall ChannelObjectMirrorHandler(unsigned __int64 guid, unsigned
   return 1;
 }
 
-static void __fastcall PlayerNameGuildCallback(int guildID, const unsigned __int64& guid, void* arg, bool granted) {
+static void PlayerNameGuildCallback(int guildID, const unsigned __int64& guid, void* arg, bool granted) {
   if (granted) {
     PlayerNameTriggerNameRegenerate(*static_cast<HPLAYERNAME *>(arg));
   }
@@ -2440,13 +2440,13 @@ void CGUnit_C::OnMountCancelled() {
   }
 }
 
-void __fastcall OnPendingMoveStateChange(unsigned __int64 unit, int msgId, unsigned long eventTime) {
+void OnPendingMoveStateChange(unsigned __int64 unit, int msgId, unsigned long eventTime) {
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(mover);
   mover->OnPendingMoveStateChange(static_cast<NETMESSAGE>(msgId));
 }
 
-void __fastcall OnCollideRedirected(unsigned __int64 unit, unsigned long eventTime) {
+void OnCollideRedirected(unsigned __int64 unit, unsigned long eventTime) {
   if (unit == CGUnit_C::m_activeMover) {
     CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
     FATALASSERT(mover);
@@ -2454,7 +2454,7 @@ void __fastcall OnCollideRedirected(unsigned __int64 unit, unsigned long eventTi
   }
 }
 
-void __fastcall OnCollideStuck(unsigned __int64 unit, unsigned long eventTime) {
+void OnCollideStuck(unsigned __int64 unit, unsigned long eventTime) {
   if (unit == CGUnit_C::m_activeMover) {
     CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
     FATALASSERT(mover);
@@ -2466,19 +2466,19 @@ void __fastcall OnCollideStuck(unsigned __int64 unit, unsigned long eventTime) {
   }
 }
 
-void __fastcall OnCollideFallLand(unsigned __int64 unit, unsigned long eventTime) {
+void OnCollideFallLand(unsigned __int64 unit, unsigned long eventTime) {
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(mover);
   mover->OnCollideFallLand(eventTime);
 }
 
-void __fastcall OnCollideFalling(unsigned __int64 unit, unsigned long eventTime) {
+void OnCollideFalling(unsigned __int64 unit, unsigned long eventTime) {
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(mover);
   mover->OnCollideFalling(eventTime);
 }
 
-void __fastcall OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime) {
+void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime) {
   CGUnit_C *unitptr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(unitptr);
 
@@ -2513,7 +2513,7 @@ void __fastcall OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime) {
   }
 }
 
-int __fastcall UnitGetObjectPosition(const unsigned __int64 &guid, NTempest::C3Vector *position) {
+int UnitGetObjectPosition(const unsigned __int64 &guid, NTempest::C3Vector *position) {
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (!object) {
     return 0;
@@ -2523,11 +2523,11 @@ int __fastcall UnitGetObjectPosition(const unsigned __int64 &guid, NTempest::C3V
   return 1;
 }
 
-float __fastcall UnitCalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination) {
+float UnitCalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination) {
   return CalculateFacingTo(position, destination);
 }
 
-void __fastcall UnitUpdateMovementAnim(const unsigned __int64 &unit) {
+void UnitUpdateMovementAnim(const unsigned __int64 &unit) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->UpdateBaseAnimation(0);
@@ -2535,7 +2535,7 @@ void __fastcall UnitUpdateMovementAnim(const unsigned __int64 &unit) {
   }
 }
 
-void __fastcall UnitNotifyStopped(const unsigned __int64 &, bool) {
+void UnitNotifyStopped(const unsigned __int64 &, bool) {
 }
 
 CGUnit::CGUnit(
@@ -2849,7 +2849,7 @@ void CGUnit_C::SetupFootprints() {
   m_footprintParticleScale = m_modelData->m_footprintParticleScale;
 }
 
-void __fastcall CGUnit_C::InitializeTextureVariations(
+void CGUnit_C::InitializeTextureVariations(
     const CreatureDisplayInfoRec *displayInfo,
     HMODEL                        theModel,
     const CreatureModelDataRec   *modelData
@@ -2973,7 +2973,7 @@ void CGUnit_C::GenericAnimEndHandler(ANIMENUMERATION animID, void *param) {
   }
 }
 
-static int __fastcall IsSitStandSleepTransition(unsigned int animState);
+static int IsSitStandSleepTransition(unsigned int animState);
 
 int CGUnit_C::PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget, bool &checkImpacts) {
   checkImpacts = false;
@@ -3422,7 +3422,7 @@ void CGUnit_C::UpdateLookAtTarget() {
   }
 }
 
-int __fastcall OnAuraDecayFinished(void *param) {
+int OnAuraDecayFinished(void *param) {
   AuraDecayNode *decay = static_cast<AuraDecayNode *>(param);
   CGObject_C    *object = ClntObjMgrObjectPtr(decay->unit, __FILE__, __LINE__);
 
@@ -4201,7 +4201,7 @@ void CGUnit_C::AddKitAuras(const SpellVisualKitRec *kitRec, const SpellRec *spel
   MaybeAttachAura(UNITEFFECT_ATTACHBREATH, kitRec->m_breathEffect, spellRec->m_ID, spellRec->m_spellPriority, 0);
 }
 
-unsigned int __fastcall VisualHasDecay(HMODEL model) {
+unsigned int VisualHasDecay(HMODEL model) {
   return model && ModelHasSequenceId(model, 2);
 }
 
@@ -4361,7 +4361,7 @@ void CGUnit_C::AddAuraEffect(unsigned int slot, unsigned int startNow) {
   }
 }
 
-int __fastcall OnFirstAuraSequenceFinished(void *param) {
+int OnFirstAuraSequenceFinished(void *param) {
   ModelSetRandomSequenceFidget(reinterpret_cast<HMODEL>(param), 1, 0);
   return 1;
 }
@@ -4417,13 +4417,13 @@ void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, unsigned int effec
   visual.SetPermanent(permanent);
 }
 
-void CGUnit_C::SetAuraMirrorHandler(unsigned int slot, int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)) {
+void CGUnit_C::SetAuraMirrorHandler(unsigned int slot, int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)) {
   ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 4 * slot + 200, 4, handler, 0, HANDLER_PRIORITY_HIGH);
 }
 
 void CGUnit_C::UnsetAuraMirrorHandler(
     unsigned int slot,
-    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
+    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
 ) {
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 4 * slot + 200, handler, 0);
 }
@@ -4602,7 +4602,7 @@ void CGUnit_C::OnDynamicFlagsChanged(unsigned int oldValue) {
   }
 }
 
-static int __fastcall MoveHeartBeatHandler(const void *packetData, void *param) {
+static int MoveHeartBeatHandler(const void *packetData, void *param) {
   CGUnit_C       *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   CMovementStatus status;
   if (unit) {
@@ -4621,7 +4621,7 @@ HTEXCOMPONENT CGUnit_C::GetTexComponent() const {
   return m_texComponent;
 }
 
-void __fastcall CGUnit_C::SetActiveMover(const unsigned __int64 &guid) {
+void CGUnit_C::SetActiveMover(const unsigned __int64 &guid) {
   if (m_activeMover) {
     CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_activeMover, __FILE__, __LINE__));
     if (mover) {
@@ -4882,7 +4882,7 @@ void CGUnit_C::SetSmoothFacing(float facing) {
   memset(m_savedFacingDeltas, 0, sizeof(m_savedFacingDeltas));
 }
 
-static void __fastcall UpdateLocalPlayerFallState(int falling) {
+static void UpdateLocalPlayerFallState(int falling) {
   CGUnit_C::StopMoveHeartbeatTimer();
   if (falling) {
     s_moveHeartBeatTimer = ClientSetTimer(500, MoveHeartBeatHandler, 0);
@@ -4931,19 +4931,19 @@ void CGUnit_C::SendRedirectionMessage() {
   }
 }
 
-void __fastcall CGUnit_C::StopMoveHeartbeatTimer() {
+void CGUnit_C::StopMoveHeartbeatTimer() {
   if (s_moveHeartBeatTimer) {
     ClientKillTimer(s_moveHeartBeatTimer, MoveHeartBeatHandler, "MoveHeartBeatHandler");
   }
   s_moveHeartBeatTimer = 0;
 }
 
-void __fastcall CGUnit_C::StartMoveHeartbeatTimer() {
+void CGUnit_C::StartMoveHeartbeatTimer() {
   StopMoveHeartbeatTimer();
   s_moveHeartBeatTimer = ClientSetTimer(500, MoveHeartBeatHandler, 0);
 }
 
-unsigned int __fastcall CGUnit_C::OffsetOf(OBJECT_TYPE_ID type) {
+unsigned int CGUnit_C::OffsetOf(OBJECT_TYPE_ID type) {
   switch (type) {
     case ID_OBJECT:
       return 0;
@@ -4965,12 +4965,12 @@ static void ResequenceEmoteAnims() {
   }
 }
 
-static bool __fastcall ShowBreathCallback(CVar *, const char *, const char *newValue, void *) {
+static bool ShowBreathCallback(CVar *, const char *, const char *newValue, void *) {
   ConsoleWrite(SStrToInt(newValue) ? "Breath display enabled" : "Breath display disabled", DEFAULT_COLOR);
   return true;
 }
 
-void __fastcall CGUnit_C::Initialize() {
+void CGUnit_C::Initialize() {
   ClientServices_SetMessageHandler(MSG_MOVE_START_FORWARD, OnUnitMoveEventNoActive, 0);
   ClientServices_SetMessageHandler(MSG_MOVE_START_BACKWARD, OnUnitMoveEventNoActive, 0);
   ClientServices_SetMessageHandler(MSG_MOVE_STOP, OnUnitMoveEventNoActive, 0);
@@ -5037,11 +5037,11 @@ void __fastcall CGUnit_C::Initialize() {
       CVar::Register("ShowBreath", "Toggle display of unit/player breath", 0, "1", ShowBreathCallback, GRAPHICS, false, 0);
 }
 
-void __fastcall CGUnit_C::PostShutdown() {
+void CGUnit_C::PostShutdown() {
   UnitEffectsShutdown();
 }
 
-void __fastcall CGUnit_C::Shutdown() {
+void CGUnit_C::Shutdown() {
   ClientServices_ClearMessageHandler(MSG_MOVE_START_FORWARD);
   ClientServices_ClearMessageHandler(MSG_MOVE_START_BACKWARD);
   ClientServices_ClearMessageHandler(MSG_MOVE_STOP);
@@ -5097,9 +5097,9 @@ void __fastcall CGUnit_C::Shutdown() {
   g_mountSeqEndList.Clear();
 }
 
-int __fastcall ViolenceGetLevel();
+int ViolenceGetLevel();
 
-void __fastcall CGUnit_C::NamePlateShow(int show) {
+void CGUnit_C::NamePlateShow(int show) {
   s_drawNameplates = show;
   if (!show) {
     RemoveAllNamePlates();
@@ -5302,7 +5302,7 @@ void CGUnit_C::OnBadAttackFacing(unsigned __int64 victimGUID) {
   m_hitInformation.attackFlags |= 2;
 }
 
-int __fastcall GetForcedAnimIndex(const char *token) {
+int GetForcedAnimIndex(const char *token) {
   for (unsigned int i = 0; i < 8; ++i) {
     if (!SStrCmp(s_forcedAnimations[i].name, token, 0x7FFFFFFF)) {
       return i;
@@ -5311,7 +5311,7 @@ int __fastcall GetForcedAnimIndex(const char *token) {
   return -1;
 }
 
-int __fastcall ParseForcedAnimCommandLine(const char *arguments, unsigned int *fidgetIndex) {
+int ParseForcedAnimCommandLine(const char *arguments, unsigned int *fidgetIndex) {
   if (!arguments || !*arguments || !fidgetIndex) {
     return -1;
   }
@@ -5389,7 +5389,7 @@ void CGUnit_C::ForceUpdateBaseAnimation() {
 void CGUnit_C::OnBadAttackPosition(unsigned __int64 victimGUID, float range) {
 }
 
-void __fastcall ClearSpecialEffects(HMODEL model) {
+void ClearSpecialEffects(HMODEL model) {
   static unsigned int linkPoints[] = {19, 20, 21, 22, -1, 17, 34, 23, 24, 25, 16, 15};
 
   FATALASSERT(model);
@@ -5580,7 +5580,7 @@ void CGUnit_C::ProcessQuestItemMessages() {
   m_questCountNeeded = -1;
 }
 
-static bool __fastcall IsCombatSwingSpell(int spellID) {
+static bool IsCombatSwingSpell(int spellID) {
   const SpellRec *spellRec = g_spellDB.GetRecord(spellID);
   return spellRec && (spellRec->m_attributes & 0x404);
 }
@@ -6260,7 +6260,7 @@ void CGUnit_C::OnRightClick() {
   }
 }
 
-bool __fastcall CGUnit_C::FactionHasReputation(int faction) {
+bool CGUnit_C::FactionHasReputation(int faction) {
   FactionRec *rec = g_factionDB.GetRecord(faction);
   if (!rec) {
     return false;
@@ -6419,7 +6419,7 @@ void CGUnit_C::PlayerNameVisibilityChanged(int nameVisible) {
   }
 }
 
-static int __fastcall IsInSitSleepPosition(unsigned int animState) {
+static int IsInSitSleepPosition(unsigned int animState) {
   return animState < 64 ? (s_animInfo[animState].flags >> 19) & 1 : 0;
 }
 
@@ -6470,7 +6470,7 @@ HMODEL CGUnit_C::DuplicateCharacterModel(unsigned int flags) {
   return duplicate;
 }
 
-UNIT_REACTION __fastcall CGUnit_C::UnitReaction(int factionID, const CGUnit_C *unit, int trueSight) {
+UNIT_REACTION CGUnit_C::UnitReaction(int factionID, const CGUnit_C *unit, int trueSight) {
   const FactionTemplateRec *source = g_factionTemplateDB.GetRecord(factionID);
   const FactionTemplateRec *target = g_factionTemplateDB.GetRecord(unit->GetFactionTemplate());
 
@@ -6746,7 +6746,7 @@ static void RecycleNameplateFrame(CGNamePlateFrame *frame) {
   freeNamePlate->namePlate = frame;
 }
 
-void __fastcall CGUnit_C::RemoveAllNamePlates() {
+void CGUnit_C::RemoveAllNamePlates() {
   s_freeNamePlateList.Clear();
   while (NAMEPLATEDESC *desc = s_namePlateList.Head()) {
     DEL(desc->namePlate);
@@ -6765,7 +6765,7 @@ void CGUnit_C::RemoveUnitNamePlate() {
   }
 }
 
-void __fastcall CGUnit_C::UpdateUnitNameplates(CGWorldFrame *worldFrame) {
+void CGUnit_C::UpdateUnitNameplates(CGWorldFrame *worldFrame) {
   s_namePlateWorldFrame = worldFrame;
   if (!worldFrame) {
     while (NAMEPLATEDESC *desc = s_namePlateList.Head()) {
@@ -6775,7 +6775,7 @@ void __fastcall CGUnit_C::UpdateUnitNameplates(CGWorldFrame *worldFrame) {
   }
 }
 
-void __fastcall CGUnit_C::ResortAllUnitNameplates(CGWorldFrame *worldFrame) {
+void CGUnit_C::ResortAllUnitNameplates(CGWorldFrame *worldFrame) {
   FATALASSERT(worldFrame);
   for (NAMEPLATEDESC *desc = s_namePlateList.Head(); desc;) {
     NAMEPLATEDESC *next = s_namePlateList.Next(desc);
@@ -7832,7 +7832,7 @@ int CGUnit_C::SetEmoteAnimation(unsigned int emoteID, int flags) {
   return SetTorsoAnimation(46, 0, flags);
 }
 
-bool __fastcall AnimSheathesWeapon(unsigned int anim) {
+bool AnimSheathesWeapon(unsigned int anim) {
   FATALASSERT(anim < NUM_OBJECTANIMATIONS);
   return (g_seqInformation[anim].flags >> 4) & 1;
 }
@@ -8292,7 +8292,7 @@ void CGUnit_C::RemoveEmissiveColor(const NTempest::CImVector &color) {
   }
 }
 
-int __fastcall CGUnit_C::GetAnimPriority(int state) {
+int CGUnit_C::GetAnimPriority(int state) {
   FATALASSERT(state >= 0);
   FATALASSERT(state < sizeof(s_animInfo) / sizeof(s_animInfo[0]));
   return s_animInfo[state].basePriority;
@@ -8305,7 +8305,7 @@ int CGUnit_C::IsInStandSitTransition() {
   return IsSitStandSleepTransition(m_currentBaseAnimState);
 }
 
-static int __fastcall IsSitStandSleepTransition(unsigned int animState) {
+static int IsSitStandSleepTransition(unsigned int animState) {
   return animState < 64 ? (s_animInfo[animState].flags >> 16) & 1 : 0;
 }
 
@@ -8412,7 +8412,7 @@ void CGUnit_C::AddWorldText(MISS_REASON reason) {
   }
 }
 
-void __fastcall CGUnit_C_RenderBowStrings(NTempest::C3Vector &c) {
+void CGUnit_C_RenderBowStrings(NTempest::C3Vector &c) {
   if (!s_bowStringIndices.Count()) {
     return;
   }
@@ -9672,7 +9672,7 @@ bool CGUnit_C::SetSheathingSequence() {
   return success;
 }
 
-int __fastcall SheatheTypeToSheathePoint(int sheatheType, int invSlot) {
+int SheatheTypeToSheathePoint(int sheatheType, int invSlot) {
   unsigned int ranged = invSlot != 15;
   return s_savedSheathToAttachPoints[s_sheathePoints[ranged][sheatheType]];
 }
@@ -9871,7 +9871,7 @@ void CGUnit_C::ToggleRunModeLocal(unsigned long eventTime) {
   m_move.OnSetRunModeLocal(eventTime, (m_move.m_moveFlags & 0x100) == 0);
 }
 
-void __fastcall ProcessLocalMoveEvent(unsigned int msgId) {
+void ProcessLocalMoveEvent(unsigned int msgId) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
   FATALASSERT(unit);
   unit->ProcessLocalMoveEvent(static_cast<NETMESSAGE>(msgId));
@@ -10100,7 +10100,7 @@ bool CGUnit_C::TrackingTargetMoving() const {
   return (s_trackingFlags & 1) != 0;
 }
 
-int __fastcall GetObjAnimFlags(int unitAnimFlags) {
+int GetObjAnimFlags(int unitAnimFlags) {
   int flags = unitAnimFlags & 1;
   if (unitAnimFlags & 2) {
     flags |= 2;

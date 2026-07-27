@@ -23,7 +23,7 @@ unsigned int         CGItemText::m_currentPage;
 TSGrowableArray<int> CGItemText::m_pages;
 char                 CGItemText::m_text[0x200];
 
-void __fastcall CGItemText::InitializeGame() {
+void CGItemText::InitializeGame() {
   m_itemGUID = 0;
   m_currentPage = 0;
   m_pages.SetCount(2);
@@ -32,25 +32,25 @@ void __fastcall CGItemText::InitializeGame() {
   m_text[0] = 0;
 }
 
-void __fastcall CGItemText::ShutdownGame() {
+void CGItemText::ShutdownGame() {
   m_pages.Clear();
 }
 
-void __fastcall CGItemText::EnterWorld() {
+void CGItemText::EnterWorld() {
 }
 
-void __fastcall CGItemText::LeaveWorld() {
+void CGItemText::LeaveWorld() {
   const unsigned __int64 noItem = 0;
   SetItem(noItem, 0);
 }
 
-void __fastcall CGItemText::ItemTextCallback(int, const unsigned __int64 &guid, void *, bool granted) {
+void CGItemText::ItemTextCallback(int, const unsigned __int64 &guid, void *, bool granted) {
   if (granted && m_itemGUID == guid) {
     SetItem(guid, 1);
   }
 }
 
-void __fastcall CGItemText::SetItem(const unsigned __int64 &item, int callback) {
+void CGItemText::SetItem(const unsigned __int64 &item, int callback) {
   if (!callback && !item && item == m_itemGUID) {
     CGGameUI::ClearInteractTarget(m_itemGUID);
     FrameScript_SignalEvent(276);
@@ -102,7 +102,7 @@ void __fastcall CGItemText::SetItem(const unsigned __int64 &item, int callback) 
   }
 }
 
-void __fastcall CGItemText::DisplayText(const unsigned __int64 &item, int useSkill) {
+void CGItemText::DisplayText(const unsigned __int64 &item, int useSkill) {
   if (item != m_itemGUID) {
     return;
   }
@@ -154,27 +154,27 @@ void __fastcall CGItemText::DisplayText(const unsigned __int64 &item, int useSki
   FrameScript_SignalEvent(275);
 }
 
-void __fastcall CGItemText::PrevPage() {
+void CGItemText::PrevPage() {
   if (m_itemGUID && m_currentPage) {
     --m_currentPage;
     DisplayText(m_itemGUID, 1);
   }
 }
 
-void __fastcall CGItemText::NextPage() {
+void CGItemText::NextPage() {
   if (m_itemGUID && m_pages[m_currentPage + 1] > 0) {
     ++m_currentPage;
     DisplayText(m_itemGUID, 1);
   }
 }
 
-static int __fastcall Script_ItemTextGetItem(lua_State *L) {
+static int Script_ItemTextGetItem(lua_State *L) {
   CGObject_C *object = ClntObjMgrObjectPtr(CGItemText::GetItem(), __FILE__, __LINE__);
   lua_pushstring(L, object ? object->GetObjectName() : 0);
   return 1;
 }
 
-static int __fastcall Script_ItemTextGetMaterial(lua_State *L) {
+static int Script_ItemTextGetMaterial(lua_State *L) {
   CGObject_C *object = ClntObjMgrObjectPtr(CGItemText::GetItem(), __FILE__, __LINE__);
   int         material = 0;
   if (object) {
@@ -194,17 +194,17 @@ static int __fastcall Script_ItemTextGetMaterial(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_ItemTextGetPage(lua_State *L) {
+static int Script_ItemTextGetPage(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGItemText::GetCurrentPage() + 1));
   return 1;
 }
 
-static int __fastcall Script_ItemTextGetText(lua_State *L) {
+static int Script_ItemTextGetText(lua_State *L) {
   lua_pushstring(L, CGItemText::GetText());
   return 1;
 }
 
-static int __fastcall Script_ItemTextHasNextPage(lua_State *L) {
+static int Script_ItemTextHasNextPage(lua_State *L) {
   if (CGItemText::HasNextPage()) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -213,17 +213,17 @@ static int __fastcall Script_ItemTextHasNextPage(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_ItemTextPrevPage(lua_State *L) {
+static int Script_ItemTextPrevPage(lua_State *L) {
   CGItemText::PrevPage();
   return 0;
 }
 
-static int __fastcall Script_ItemTextNextPage(lua_State *L) {
+static int Script_ItemTextNextPage(lua_State *L) {
   CGItemText::NextPage();
   return 0;
 }
 
-static int __fastcall Script_CloseItemText(lua_State *__formal) {
+static int Script_CloseItemText(lua_State *__formal) {
   const unsigned __int64 noItem = 0;
   CGItemText::SetItem(noItem, 0);
   return 0;
@@ -240,13 +240,13 @@ static FrameScript_Method s_ScriptFunctions[8] = {
     {      "CloseItemText",       Script_CloseItemText}
 };
 
-void __fastcall ItemTextRegisterScriptFunctions() {
+void ItemTextRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 8; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall ItemTextUnregisterScriptFunctions() {
+void ItemTextUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 8; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

@@ -104,14 +104,14 @@ NTempest::C4Vector CMapChunk::psLayerMask[4] = {
     NTempest::C4Vector(0.0f, 0.0f, 1.0f, 0.0f)
 };
 
-void __fastcall CMapChunk::GxBufDynFillCallback(CGxBufCommand &cmd, CGxBuf *buf) {
+void CMapChunk::GxBufDynFillCallback(CGxBufCommand &cmd, CGxBuf *buf) {
   CMapChunk *mapChunk = static_cast<CMapChunk *>(buf->UserArg());
   ASSERT(mapChunk);
   mapChunk->FillGxBufDynVertex(cmd, buf);
   mapChunk->FillGxBufDynIndex(cmd, buf);
 }
 
-void __fastcall CMapChunk::GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf) {
+void CMapChunk::GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf) {
   CMapChunk *mapChunk = static_cast<CMapChunk *>(buf->UserArg());
   FATALASSERT(mapChunk);
   mapChunk->FillGxBufVertex(cmd, buf);

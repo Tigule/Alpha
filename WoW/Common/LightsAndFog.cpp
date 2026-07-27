@@ -12,7 +12,7 @@ struct DiskLightDataItem {
   int         m_cloudMask;
 };
 
-unsigned int __fastcall ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
+unsigned int ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
   DiskLightDataItem diskdataitem;
   int               markerCount;
   int               i;
@@ -51,7 +51,7 @@ unsigned int __fastcall ReadSingleLightGroup(SFile *lightdata, LightDataItem *da
   return 1;
 }
 
-unsigned int __fastcall LoadLightsAndFog(const char *filename, LightGroup *lightgroup) {
+unsigned int LoadLightsAndFog(const char *filename, LightGroup *lightgroup) {
   int    versionNumber;
   int    lightCount;
   SFile *lightdata = 0;
@@ -92,7 +92,7 @@ unsigned int __fastcall LoadLightsAndFog(const char *filename, LightGroup *light
   return 0;
 }
 
-void __fastcall CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTempest::CImVector *color, float *distance) {
+void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTempest::CImVector *color, float *distance) {
   int band = oband;
   if (oband >= 18) {
     band = 7;
@@ -176,7 +176,7 @@ static unsigned long BlendLightValue(unsigned long base, unsigned long storm, in
   return stormpercent * storm / 100 + (100 - stormpercent) * base / 100;
 }
 
-void __fastcall CalcLightColors(int time, CurrentLight *current, LightDataItem *lightdata, LightDataItem *stormdata, int stormpercent) {
+void CalcLightColors(int time, CurrentLight *current, LightDataItem *lightdata, LightDataItem *stormdata, int stormpercent) {
   CalcIndividualLightColor(time, 0, lightdata, &current->DirectColor, 0);
   CalcIndividualLightColor(time, 1, lightdata, &current->AmbientColor, 0);
   for (int i = 0; i < 6; ++i) {

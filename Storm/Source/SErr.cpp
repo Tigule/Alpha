@@ -8,11 +8,11 @@
 
 #define MAX_ERR_THREADS 64
 
-int __fastcall  CheckMachineStateSymbolHelper();
-void __fastcall LoadMachineStateSymbols();
-void __fastcall UnloadMachineStateSymbols();
-int __fastcall  LogMiniDump(void *file, EXCEPTION_POINTERS *exceptionPointers, UINT userStreamCount, char **const userStreams);
-int __fastcall  LogMiniDumpIsAvailable();
+int CheckMachineStateSymbolHelper();
+void LoadMachineStateSymbols();
+void UnloadMachineStateSymbols();
+int LogMiniDump(void *file, EXCEPTION_POINTERS *exceptionPointers, UINT userStreamCount, char **const userStreams);
+int LogMiniDumpIsAvailable();
 
 typedef struct _MSGSRC {
   WORD      facility;
@@ -162,13 +162,13 @@ HANDLER *TSListWinHeap<HANDLER, TSGetLink<HANDLER> >::DeleteNode(HANDLER *ptr) {
 }
 
 static DWORD WINAPI    WatchdogThreadProc(LPVOID __formal);
-static void __fastcall CheckKeyboard();
-static void __fastcall LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCSTR description, LPCSTR suffix);
+static void CheckKeyboard();
+static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCSTR description, LPCSTR suffix);
 static LONG WINAPI     ExceptionFilterWin32(EXCEPTION_POINTERS *exceptionpointers);
-static void __fastcall InternalEnterCriticalSection(CRITICAL_SECTION *crit);
-static void __fastcall InternalLeaveCriticalSection(CRITICAL_SECTION *crit);
-static void __fastcall UnregisterAllThreads();
-static void __fastcall Breakpoint();
+static void InternalEnterCriticalSection(CRITICAL_SECTION *crit);
+static void InternalLeaveCriticalSection(CRITICAL_SECTION *crit);
+static void UnregisterAllThreads();
+static void Breakpoint();
 
 #define SErrEnter()          InternalEnterCriticalSection(&s_critsect)
 #define SErrLeave()          InternalLeaveCriticalSection(&s_critsect)
@@ -205,7 +205,7 @@ static LPCSTR const s_displaystr[] = {
     "press Cancel to terminate the program."
 };
 
-static LPCSTR __fastcall GetErrorString(UINT id) {
+static LPCSTR GetErrorString(UINT id) {
   if (LoadStringA(StormGetInstance(), id + 0x5100, buffer, sizeof(buffer))) {
     return buffer;
   }
@@ -217,7 +217,7 @@ static LPCSTR __fastcall GetErrorString(UINT id) {
   return "";
 }
 
-static void __fastcall AddStormFacility(WORD facility) {
+static void AddStormFacility(WORD facility) {
   MSGSRC **link;
   MSGSRC  *source;
 
@@ -233,13 +233,13 @@ static void __fastcall AddStormFacility(WORD facility) {
   source->next = NULL;
 }
 
-static void __fastcall AddStormMessages() {
+static void AddStormMessages() {
   AddStormFacility(0x510);
   AddStormFacility(0x876);
   AddStormFacility(0x878);
 }
 
-static void __fastcall Breakpoint() {
+static void Breakpoint() {
 #if defined(_MSC_VER) && defined(_M_IX86)
   __try {
     DebugBreak();
@@ -248,7 +248,7 @@ static void __fastcall Breakpoint() {
 #endif
 }
 
-static void __fastcall InternalEnterCriticalSection(CRITICAL_SECTION *critsect) {
+static void InternalEnterCriticalSection(CRITICAL_SECTION *critsect) {
   if (!InterlockedIncrement(&s_critsectinit)) {
     InitializeCriticalSection(&s_critsect);
     InitializeCriticalSection(&s_exceptioncritsect);
@@ -259,11 +259,11 @@ static void __fastcall InternalEnterCriticalSection(CRITICAL_SECTION *critsect) 
   EnterCriticalSection(critsect);
 }
 
-static void __fastcall InternalLeaveCriticalSection(CRITICAL_SECTION *critsect) {
+static void InternalLeaveCriticalSection(CRITICAL_SECTION *critsect) {
   LeaveCriticalSection(critsect);
 }
 
-static int __fastcall UndecorateObjectName(const char *source, char *dest, DWORD destchars) {
+static int UndecorateObjectName(const char *source, char *dest, DWORD destchars) {
   char *end;
 
   if (!source || !dest || SStrLen(source) < 6 || source[0] != '.' || source[3] != 'U') {
@@ -293,13 +293,13 @@ static int __fastcall UndecorateObjectName(const char *source, char *dest, DWORD
   return TRUE;
 }
 
-void __fastcall SErrInitialize() {
+void SErrInitialize() {
   SRegLoadValue("Internal", "Debug Error Output", 0, &debugmode);
   SRegLoadValue("Internal", "No Minidumps", 0, &s_noMiniDumps);
   SErrRegisterThread(GetCurrentThread(), GetCurrentThreadId());
 }
 
-static int __fastcall CanBreakToDebugger() {
+static int CanBreakToDebugger() {
   HMODULE kernel;
   FARPROC proc;
   int     present;
@@ -319,7 +319,7 @@ static int __fastcall CanBreakToDebugger() {
   return present;
 }
 
-static int __fastcall MakeDirectory(LPCSTR pszFullPath) {
+static int MakeDirectory(LPCSTR pszFullPath) {
   DWORD attributes;
   DWORD error;
 
@@ -354,7 +354,7 @@ static void __cdecl WriteLine(void *param, const char *format, ...) {
   WriteFile((HANDLE)param, buffer, SStrLen(buffer), &written, NULL);
 }
 
-static void __fastcall WriteMessageToLog(HANDLE logfile, LPCSTR message) {
+static void WriteMessageToLog(HANDLE logfile, LPCSTR message) {
   DWORD byteswritten;
   char  prevc;
   DWORD length;
@@ -387,7 +387,7 @@ static void __fastcall WriteMessageToLog(HANDLE logfile, LPCSTR message) {
   WriteFile(logfile, buffer, out, &byteswritten, NULL);
 }
 
-static HANDLE __fastcall CreateErrorLogFile(LPCSTR suffix, LPCSTR ext, char *const logpath, DWORD logpathchars, SYSTEMTIME &time) {
+static HANDLE CreateErrorLogFile(LPCSTR suffix, LPCSTR ext, char *const logpath, DWORD logpathchars, SYSTEMTIME &time) {
   char  logfilename[MAX_PATH];
   char  exefullpath[MAX_PATH];
   char *pathend;
@@ -418,7 +418,7 @@ static HANDLE __fastcall CreateErrorLogFile(LPCSTR suffix, LPCSTR ext, char *con
   return CreateFileA(logpath, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
-static HANDLE __fastcall CreateErrorLog(LPCSTR suffix, LPCSTR message, SYSTEMTIME *time) {
+static HANDLE CreateErrorLog(LPCSTR suffix, LPCSTR message, SYSTEMTIME *time) {
   HANDLE     file;
   char       logpath[MAX_PATH];
   SYSTEMTIME localTime;
@@ -448,17 +448,17 @@ static HANDLE __fastcall CreateErrorLog(LPCSTR suffix, LPCSTR message, SYSTEMTIM
   return file;
 }
 
-static void __fastcall LogContext(HANDLE logfile, int framestoskip, CONTEXT *context) {
+static void LogContext(HANDLE logfile, int framestoskip, CONTEXT *context) {
   LogMachineState(0x40001, WriteLine, logfile, framestoskip, context);
 }
 
-static void __fastcall CloseErrorLog(HANDLE logfile) {
+static void CloseErrorLog(HANDLE logfile) {
   if (logfile != INVALID_HANDLE_VALUE) {
     CloseHandle(logfile);
   }
 }
 
-static void __fastcall GetExceptionNameWin32(DWORD exceptioncode, char *buffer, DWORD buffersize) {
+static void GetExceptionNameWin32(DWORD exceptioncode, char *buffer, DWORD buffersize) {
   switch (exceptioncode) {
     case EXCEPTION_ACCESS_VIOLATION:
       SStrCopy(buffer, "ACCESS_VIOLATION", buffersize);
@@ -1020,7 +1020,7 @@ extern "C" void APIENTRY SErrUnregisterHandler(SERRHANDLER handler) {
   SErrLeave();
 }
 
-static void __fastcall UnregisterAllThreads() {
+static void UnregisterAllThreads() {
   int i;
 
   SErrThreadsEnter();
@@ -1072,7 +1072,7 @@ extern "C" void APIENTRY SErrUnregisterThread(HANDLE thread, DWORD threadid) {
   SErrThreadsLeave();
 }
 
-static void __fastcall LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCSTR description, LPCSTR suffix) {
+static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCSTR description, LPCSTR suffix) {
   BOOL   suspended[MAX_ERR_THREADS];
   HANDLE log;
   DWORD  currentThreadId;
@@ -1172,7 +1172,7 @@ extern "C" void APIENTRY SErrLogThreads(HANDLE *threads, LPDWORD threadids, int 
   LogThreads(threads, threadids, numthreads, description, suffix);
 }
 
-static void __fastcall CheckKeyboard() {
+static void CheckKeyboard() {
   BOOL chordDown;
 
   chordDown = TRUE;

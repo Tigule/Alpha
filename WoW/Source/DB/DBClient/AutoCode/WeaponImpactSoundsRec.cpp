@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall WeaponImpactSoundsRec::GetFilename() {
+const char *WeaponImpactSoundsRec::GetFilename() {
   return "DBFilesClient\\WeaponImpactSounds.dbc";
 }
 

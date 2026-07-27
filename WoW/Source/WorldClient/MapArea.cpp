@@ -10,18 +10,18 @@ static TSExplicitList<CAsyncObject, 32> s_asyncLoadList;
 static unsigned int                    *s_freeAsyncBuffer;
 static unsigned int                     s_asyncBuffersInitialized;
 
-void __fastcall CMapArea::FreeAsyncLoadBuffer(unsigned int *buffer) {
+void CMapArea::FreeAsyncLoadBuffer(unsigned int *buffer) {
   *reinterpret_cast<unsigned int **>(buffer) = s_freeAsyncBuffer;
   s_freeAsyncBuffer = buffer;
 }
 
-void __fastcall CMapArea::InitAsyncLoadBuffers() {
+void CMapArea::InitAsyncLoadBuffers() {
   for (unsigned int index = 0; index < 4; ++index) {
     FreeAsyncLoadBuffer(reinterpret_cast<unsigned int *>(s_asyncLoadBuffers[index].Ptr()));
   }
 }
 
-unsigned int *__fastcall CMapArea::AllocAsyncLoadBuffer() {
+unsigned int *CMapArea::AllocAsyncLoadBuffer() {
   if (!s_asyncBuffersInitialized) {
     InitAsyncLoadBuffers();
     s_asyncBuffersInitialized = 1;
@@ -35,14 +35,14 @@ unsigned int *__fastcall CMapArea::AllocAsyncLoadBuffer() {
   return buffer;
 }
 
-void __fastcall CMapArea::Initialize() {
+void CMapArea::Initialize() {
   AsyncFileReadAddHandler(AsyncPollHandler);
 }
 
-void __fastcall CMapArea::Destroy() {
+void CMapArea::Destroy() {
 }
 
-void __fastcall CMapArea::AsyncPollHandler() {
+void CMapArea::AsyncPollHandler() {
   CAsyncObject *object = s_asyncLoadList.Head();
 
   while (object) {
@@ -197,7 +197,7 @@ void CMapArea::LoadTextures(char *texNames, unsigned long size) {
   }
 }
 
-void __fastcall CMapArea::AsyncCallback(void *userArg) {
+void CMapArea::AsyncCallback(void *userArg) {
   CMapArea *area = static_cast<CMapArea *>(userArg);
   FATALASSERT(area);
 

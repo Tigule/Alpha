@@ -32,27 +32,27 @@ static unsigned int s_unitSoundTimers[16];
 static CVar        *s_footstepSoundCVar;
 static int          soundDataOffsets[16] = {4, 8, 12, 16, 24, 28, 32, 0, 36, 40, 44, 52, 20, 48, 100, 104};
 
-int __fastcall GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
+int GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
   FATALASSERT(soundData);
   FATALASSERT(static_cast<unsigned int>(soundType) < 16);
   int offset = soundDataOffsets[soundType];
   return offset ? *reinterpret_cast<const int *>(reinterpret_cast<const unsigned char *>(soundData) + offset) : 0;
 }
 
-int __fastcall GetFidgetSoundID(const CreatureSoundDataRec* soundData, unsigned int soundType) {
+int GetFidgetSoundID(const CreatureSoundDataRec* soundData, unsigned int soundType) {
   FATALASSERT(soundData);
   FATALASSERT(soundType < 4);
   return soundData->m_soundFidget[soundType];
 }
 
-static int __fastcall CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
+static int CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
   FATALASSERT(static_cast<unsigned int>(soundType) < 16);
   unsigned int random = NTempest::CRandom::uint32_(g_rndSeed);
   unsigned int value = static_cast<unsigned int>((static_cast<unsigned __int64>(101) * random) >> 32);
   return s_unitSoundChances[soundType] >= value;
 }
 
-void __fastcall GenerateDeathThudSounds() {
+void GenerateDeathThudSounds() {
   unsigned int maxTerrainFootstepID = g_terrainTypeSoundsDB.GetMaxID();
   for (unsigned int i = 0; i < 5; ++i) {
     s_deathThudSounds[i].SetCount(maxTerrainFootstepID + 1);
@@ -69,18 +69,18 @@ void __fastcall GenerateDeathThudSounds() {
   }
 }
 
-void __fastcall ClearDeathThudSounds() {
+void ClearDeathThudSounds() {
   for (unsigned int i = 0; i < 5; ++i) {
     s_deathThudSounds[i].SetCount(0);
   }
 }
 
-void __fastcall UnitSoundShutdown() {
+void UnitSoundShutdown() {
   ClearDeathThudSounds();
   SndInterfaceClearPositionCallback();
 }
 
-void __fastcall UnitSoundInitialize() {
+void UnitSoundInitialize() {
   GenerateDeathThudSounds();
   SndInterfaceSetPositionCallback();
   unsigned long currentTime = OsGetAsyncTimeMs();
@@ -90,7 +90,7 @@ void __fastcall UnitSoundInitialize() {
   s_footstepSoundCVar = CVar::Register("FootstepSounds", 0, 0, "1", 0, DEFAULT, false, 0);
 }
 
-int __fastcall CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
+int CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
   FATALASSERT(static_cast<unsigned int>(soundType) < 16);
   unsigned long currentTime = OsGetAsyncTimeMs();
   int           canPlay = static_cast<long>(currentTime - s_unitSoundTimers[soundType]) > 0;
@@ -98,7 +98,7 @@ int __fastcall CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
   return canPlay;
 }
 
-const ItemSubClassRec *__fastcall SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
+const ItemSubClassRec *SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
 
 void CGUnit_C::HandlePlayStandSound(unsigned long code, const char *eventName) {
   if (code == 0x58444624) {

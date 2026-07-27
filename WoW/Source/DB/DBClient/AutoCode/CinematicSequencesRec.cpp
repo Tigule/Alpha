@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall CinematicSequencesRec::GetFilename() {
+const char *CinematicSequencesRec::GetFilename() {
   return "DBFilesClient\\CinematicSequences.dbc";
 }
 

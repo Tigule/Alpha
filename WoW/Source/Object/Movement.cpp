@@ -14,10 +14,10 @@
 #include <float.h>
 #include <math.h>
 
-void __fastcall WVLog(unsigned int logMask, unsigned int priority, const char *fmt, char *arglist);
-void __fastcall OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime);
-void __fastcall OnCollideFalling(unsigned __int64 unit, unsigned long eventTime);
-void __fastcall UnitUpdateMovementAnim(const unsigned __int64 &unit);
+void WVLog(unsigned int logMask, unsigned int priority, const char *fmt, char *arglist);
+void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime);
+void OnCollideFalling(unsigned __int64 unit, unsigned long eventTime);
+void UnitUpdateMovementAnim(const unsigned __int64 &unit);
 
 static unsigned int s_localMoveHeap = static_cast<unsigned int>(-1);
 
@@ -33,7 +33,7 @@ CMovementData::~CMovementData() {
 CMovement::CMovement(const NTempest::C3Vector &position, float facing, const unsigned __int64 &guid) : CMovementData(position, facing, guid) {
 }
 
-int __fastcall CMovement::MoversOnList() {
+int CMovement::MoversOnList() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   return globals && globals->numMovers > 0;
 }
@@ -60,7 +60,7 @@ void CMovement::MoveUnit(unsigned long timeNow, unsigned long lastUpdate, void *
   }
 }
 
-void __fastcall CMovement::MoveUnits(unsigned long timeNow, unsigned long lastUpdate) {
+void CMovement::MoveUnits(unsigned long timeNow, unsigned long lastUpdate) {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   if (!globals) {
     return;
@@ -236,7 +236,7 @@ void CMovement::MoveLocalPlayer(unsigned long timeNow, unsigned long lastUpdate)
   OnMoveUpdate(m_guid, timeNow);
 }
 
-int __fastcall MovementIdleMoveUnits(const void *packetData, void *param) {
+int MovementIdleMoveUnits(const void *packetData, void *param) {
   MovementLockMoversList(1);
 
   unsigned long     timeNow = OsGetAsyncTimeMs();
@@ -273,7 +273,7 @@ int __fastcall MovementIdleMoveUnits(const void *packetData, void *param) {
   return 1;
 }
 
-void __fastcall MovementInitialize(const char *logFileName, bool needLocalHeap) {
+void MovementInitialize(const char *logFileName, bool needLocalHeap) {
   CMovementGlobals *globals = NEW(CMovementGlobals);
   MovementSetGlobals(globals);
   FATALASSERT(globals);
@@ -288,7 +288,7 @@ void __fastcall MovementInitialize(const char *logFileName, bool needLocalHeap) 
   globals->m_lastUpdateTime = OsGetAsyncTimeMs();
 }
 
-void __fastcall MovementDestroy() {
+void MovementDestroy() {
   CMovement::StopAllLogging();
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   globals->m_localMoveQueue.m_events.UnlinkAll();
@@ -296,12 +296,12 @@ void __fastcall MovementDestroy() {
   MovementSetGlobals(0);
 }
 
-int __fastcall MovementGetNumMovers() {
+int MovementGetNumMovers() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   return globals ? globals->numMovers : 0;
 }
 
-unsigned long __fastcall MovementGetLastUpdate() {
+unsigned long MovementGetLastUpdate() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   return globals ? globals->m_lastUpdateTime : 0;
 }
@@ -1088,7 +1088,7 @@ void CMovement::SetRunMode(unsigned long eventTime, int run) {
   m_moveFlags |= 0x08000000;
 }
 
-void __fastcall DisconnectLocalMover(CMovement *mover) {
+void DisconnectLocalMover(CMovement *mover) {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   if (globals && mover == globals->m_localMover) {
     globals->m_localMover = 0;
@@ -1371,7 +1371,7 @@ void CMovement::SetUpdateInfo(unsigned long eventTime, CClientMoveUpdate &init, 
   );
 }
 
-void __fastcall CMovement::StartFallLogging() {
+void CMovement::StartFallLogging() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   ASSERT(globals);
 
@@ -1393,7 +1393,7 @@ void __fastcall CMovement::StartFallLogging() {
   }
 }
 
-int __fastcall CMovement::ToggleFallLogging() {
+int CMovement::ToggleFallLogging() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   if (!globals) {
     return 0;
@@ -1408,7 +1408,7 @@ int __fastcall CMovement::ToggleFallLogging() {
   return IsFallLoggingOn();
 }
 
-int __fastcall CMovement::IsFallLoggingOn() {
+int CMovement::IsFallLoggingOn() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   return globals && globals->fallingLog;
 }
@@ -1425,7 +1425,7 @@ void __cdecl CMovement::FallLogWrite(const char *format, ...) {
   }
 }
 
-void __fastcall CMovement::StopFallLogging() {
+void CMovement::StopFallLogging() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   if (globals && globals->fallingLog) {
     fclose(globals->fallingLog);
@@ -1433,7 +1433,7 @@ void __fastcall CMovement::StopFallLogging() {
   }
 }
 
-void __fastcall CMovement::StartLogging() {
+void CMovement::StartLogging() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   ASSERT(globals);
 
@@ -1442,7 +1442,7 @@ void __fastcall CMovement::StartLogging() {
   }
 }
 
-int __fastcall CMovement::ToggleLogging() {
+int CMovement::ToggleLogging() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   ASSERT(globals);
 
@@ -1455,7 +1455,7 @@ int __fastcall CMovement::ToggleLogging() {
   return IsLoggingOn();
 }
 
-int __fastcall CMovement::IsLoggingOn() {
+int CMovement::IsLoggingOn() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   ASSERT(globals);
   return globals->movementLog != 0;
@@ -1491,12 +1491,12 @@ void __cdecl CMovement::BothLogWrite(const char *format, ...) {
   }
 }
 
-void __fastcall CMovement::StopAllLogging() {
+void CMovement::StopAllLogging() {
   StopLogging();
   StopFallLogging();
 }
 
-void __fastcall CMovement::StopLogging() {
+void CMovement::StopLogging() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   if (globals && globals->movementLog) {
     fclose(globals->movementLog);
@@ -1785,7 +1785,7 @@ void CMovement::SetPitch(unsigned long eventTime, float pitch) {
   m_moveFlags &= ~0xC0U;
 }
 
-void __fastcall MovementEnableCollision(int enable) {
+void MovementEnableCollision(int enable) {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   FATALASSERT(globals);
   globals->ignoreObstacles = enable == 0;

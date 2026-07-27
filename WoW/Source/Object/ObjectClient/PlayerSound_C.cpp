@@ -10,12 +10,12 @@
 #include "Services/SysMessage.h"
 #include "SoundInterface/SoundInterface.h"
 
-int __fastcall GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType);
-int __fastcall CheckUnitSoundTimer(UNITSOUNDTYPE soundType);
+int GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType);
+int CheckUnitSoundTimer(UNITSOUNDTYPE soundType);
 
 static unsigned int s_playerSoundChances[16] = {35, 100, 30, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 
-int __fastcall CheckPlayerPlaySound(UNITSOUNDTYPE soundType) {
+int CheckPlayerPlaySound(UNITSOUNDTYPE soundType) {
   FATALASSERT(static_cast<unsigned int>(soundType) < 16);
   unsigned int random = NTempest::CRandom::uint32_(g_rndSeed);
   unsigned int value = static_cast<unsigned int>((static_cast<unsigned __int64>(101) * random) >> 32);
@@ -101,8 +101,8 @@ const VirtualItemInfo *CGPlayer_C::GetDefendingItem() const {
   return item ? &item->m_itemInfo : CGUnit_C::GetDefendingItem();
 }
 
-void __fastcall PlayerInitializeSounds() {
+void PlayerInitializeSounds() {
 }
 
-void __fastcall PlayerShutdownSounds() {
+void PlayerShutdownSounds() {
 }

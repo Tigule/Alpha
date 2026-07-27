@@ -4,7 +4,7 @@
 
 namespace NTempest {
 
-  void __fastcall CMemBlock::Set32b_(char *c, unsigned char value, unsigned long size) {
+  void CMemBlock::Set32b_(char *c, unsigned char value, unsigned long size) {
     unsigned long prefix = -reinterpret_cast<unsigned long>(c) & 3;
     unsigned long suffix = (size - prefix) & 3;
     unsigned long body = size - suffix - prefix;
@@ -40,7 +40,7 @@ namespace NTempest {
     }
   }
 
-  void __fastcall CMemBlock::Set32b_(unsigned long *c, unsigned long value, unsigned long size) {
+  void CMemBlock::Set32b_(unsigned long *c, unsigned long value, unsigned long size) {
     unsigned long count = size >> 4;
 
     while (count) {
@@ -62,7 +62,7 @@ namespace NTempest {
     }
   }
 
-  void __fastcall CMemBlock::SetM_(char *c, unsigned char value, unsigned long size) {
+  void CMemBlock::SetM_(char *c, unsigned char value, unsigned long size) {
     if (size >= 16) {
       Set32b_(c, value, size);
       return;
@@ -102,7 +102,7 @@ namespace NTempest {
     }
   }
 
-  void __fastcall CMemBlock::SetM_(unsigned long *d, unsigned long c, unsigned long size) {
+  void CMemBlock::SetM_(unsigned long *d, unsigned long c, unsigned long size) {
     ASSERT((size & 0x3) == 0);
     Set32b_(d, c, size);
   }

@@ -15,7 +15,7 @@
     SErrDisplayAppFatal(#a);                 \
   }
 
-static void __fastcall BuildFullKeyName(LPCSTR keyname, UINT flags, char *buffer, UINT bufferChars) {
+static void BuildFullKeyName(LPCSTR keyname, UINT flags, char *buffer, UINT bufferChars) {
   buffer[0] = 0;
   if (!(flags & SREG_FLAG_NO_BASE)) {
     SRegGetBaseKey(flags, buffer, bufferChars);
@@ -24,7 +24,7 @@ static void __fastcall BuildFullKeyName(LPCSTR keyname, UINT flags, char *buffer
   SStrPack(buffer, keyname, bufferChars);
 }
 
-static LONG __fastcall IDeleteValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valueName) {
+static LONG IDeleteValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valueName) {
   char  currentSubKey[MAX_PATH];
   char *slash;
   DWORD subKeyCount;
@@ -66,7 +66,7 @@ static LONG __fastcall IDeleteValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR va
   return status;
 }
 
-static LONG __fastcall IDeleteKey(HKEY parentKey, LPCSTR subKeyName) {
+static LONG IDeleteKey(HKEY parentKey, LPCSTR subKeyName) {
   HKEY key;
   LONG status;
 
@@ -80,7 +80,7 @@ static LONG __fastcall IDeleteKey(HKEY parentKey, LPCSTR subKeyName) {
   return status;
 }
 
-static LONG __fastcall
+static LONG
 ILoadValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valuename, LPDWORD datatype, LPBYTE buffer, DWORD bytes, LPDWORD bytesread) {
   HKEY key;
   LONG status;
@@ -95,7 +95,7 @@ ILoadValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valuename, LPDWORD datatype
   return status;
 }
 
-static BOOL __fastcall InternalDeleteEntry(LPCSTR keyname, LPCSTR valuename, UINT flags) {
+static BOOL InternalDeleteEntry(LPCSTR keyname, LPCSTR valuename, UINT flags) {
   char fullkeyname[MAX_PATH];
   BOOL success;
   LONG hkcuStatus;
@@ -131,7 +131,7 @@ static BOOL __fastcall InternalDeleteEntry(LPCSTR keyname, LPCSTR valuename, UIN
   return FALSE;
 }
 
-static BOOL __fastcall InternalDeleteKey(LPCSTR keyname, UINT flags) {
+static BOOL InternalDeleteKey(LPCSTR keyname, UINT flags) {
   char fullkeyname[MAX_PATH];
   BOOL deleted;
   LONG hkcuStatus;
@@ -167,7 +167,7 @@ static BOOL __fastcall InternalDeleteKey(LPCSTR keyname, UINT flags) {
   return FALSE;
 }
 
-static BOOL __fastcall
+static BOOL
 InternalLoadEntry(LPCSTR keyname, LPCSTR valuename, UINT flags, LPDWORD datatype, LPVOID buffer, DWORD bytes, LPDWORD bytesread) {
   char fullkeyname[MAX_PATH];
   LONG status;
@@ -194,7 +194,7 @@ InternalLoadEntry(LPCSTR keyname, LPCSTR valuename, UINT flags, LPDWORD datatype
   return FALSE;
 }
 
-static BOOL __fastcall InternalSaveEntry(LPCSTR keyname, LPCSTR valuename, UINT flags, DWORD datatype, LPCVOID buffer, DWORD bytes) {
+static BOOL InternalSaveEntry(LPCSTR keyname, LPCSTR valuename, UINT flags, DWORD datatype, LPCVOID buffer, DWORD bytes) {
   char  fullkeyname[MAX_PATH];
   DWORD disposition;
   HKEY  key;

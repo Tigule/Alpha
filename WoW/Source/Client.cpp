@@ -82,17 +82,17 @@ void *__cdecl operator new(size_t bytes) {
 }
 #endif
 
-typedef void(__fastcall *SPROCESSCOMPLETIONPROC)(void *);
+typedef void(*SPROCESSCOMPLETIONPROC)(void *);
 
-unsigned int __fastcall ClientSetTimer(unsigned int timeout, CLIENTTIMERHANDLER handler, void *param) {
+unsigned int ClientSetTimer(unsigned int timeout, CLIENTTIMERHANDLER handler, void *param) {
   return EventSetTimer(timeout, handler, param);
 }
 
-unsigned int __fastcall ClientSetTimer(unsigned int timeout, CLIENTGUIDTIMERHANDLER handler, unsigned __int64 guid, void *param) {
+unsigned int ClientSetTimer(unsigned int timeout, CLIENTGUIDTIMERHANDLER handler, unsigned __int64 guid, void *param) {
   return EventSetTimer(timeout, handler, guid, param);
 }
 
-static int __fastcall ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+static int ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
   float facing;
   float anchorfacing;
 
@@ -102,54 +102,54 @@ static int __fastcall ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, un
   return 1;
 }
 
-void __fastcall    OsIMEInitialize();
-void __fastcall    OsIMEDestroy();
-void __fastcall    TextureInitialize();
-void __fastcall    TextureDestroy();
-void __fastcall    ModelInitialize();
-void __fastcall    ModelDestroy();
-void __fastcall    ObjectAllocInitialize();
-void __fastcall    ObjectAllocDestroy();
-void __fastcall    ClientDBInitialize();
-void __fastcall    ClientDBShutdown();
-void __fastcall    ComponentInitialize();
-void __fastcall    ComponentShutdown();
-int __fastcall     FrameXML_RegisterDefault();
-void __fastcall    FrameXML_ClearFactories();
-void __fastcall    GlueScriptEventsInitialize();
-void __fastcall    ScriptEventsInitialize();
-void __fastcall    CharCustomizationInitialize();
-void __fastcall    CharCustomizationShutdown();
-void __fastcall    CameraInitialize();
-void __fastcall    CameraDestroy();
-void __fastcall    SpellVisualsInitialize();
-void __fastcall    SpellVisualsShutdown();
-void __fastcall    SpellTableInitialize();
-void __fastcall    SpellTableDestroy();
-void __fastcall    PlayerNameInitialize();
-void __fastcall    PlayerNameShutdown();
-void __fastcall    WeaponTrailsInitialize();
-void __fastcall    WeaponTrailsShutdown();
-void __fastcall    ShadowInit();
-void __fastcall    ShadowDestroy();
-void __fastcall    LootInitialize();
-void __fastcall    LootDestroy();
-void __fastcall    TaxiMapInitialize();
-void __fastcall    TaxiMapShutdown();
-void __fastcall    Trade_C_Initialize();
-void __fastcall    Trade_C_Destroy();
-void __fastcall    SmartScreenRectClearAllGrids();
-void __fastcall    ValidateNameInitialize();
-void __fastcall    ValidateNameDestroy();
-void __fastcall    ViolenceLevelsInitialize();
-void __fastcall    ViolenceLevelsShutdown();
-void __fastcall    InstallGameConsoleCommands();
-void __fastcall    UninstallGameConsoleCommands();
-void __fastcall    WorldTextClearStrings();
-int __fastcall     SCreateProcess(const char *applicationName, char *commandLine, SPROCESSCOMPLETIONPROC completionProc, void *completionParam);
-int __fastcall     ModelCacheUpdate(DWORD currentTime, CStatus *status);
-void __fastcall    TextureCacheUpdate(DWORD currentTime, CStatus *status);
-void __fastcall    OsGetExePath(char *buffer, DWORD chars);
+void OsIMEInitialize();
+void OsIMEDestroy();
+void TextureInitialize();
+void TextureDestroy();
+void ModelInitialize();
+void ModelDestroy();
+void ObjectAllocInitialize();
+void ObjectAllocDestroy();
+void ClientDBInitialize();
+void ClientDBShutdown();
+void ComponentInitialize();
+void ComponentShutdown();
+int FrameXML_RegisterDefault();
+void FrameXML_ClearFactories();
+void GlueScriptEventsInitialize();
+void ScriptEventsInitialize();
+void CharCustomizationInitialize();
+void CharCustomizationShutdown();
+void CameraInitialize();
+void CameraDestroy();
+void SpellVisualsInitialize();
+void SpellVisualsShutdown();
+void SpellTableInitialize();
+void SpellTableDestroy();
+void PlayerNameInitialize();
+void PlayerNameShutdown();
+void WeaponTrailsInitialize();
+void WeaponTrailsShutdown();
+void ShadowInit();
+void ShadowDestroy();
+void LootInitialize();
+void LootDestroy();
+void TaxiMapInitialize();
+void TaxiMapShutdown();
+void Trade_C_Initialize();
+void Trade_C_Destroy();
+void SmartScreenRectClearAllGrids();
+void ValidateNameInitialize();
+void ValidateNameDestroy();
+void ViolenceLevelsInitialize();
+void ViolenceLevelsShutdown();
+void InstallGameConsoleCommands();
+void UninstallGameConsoleCommands();
+void WorldTextClearStrings();
+int SCreateProcess(const char *applicationName, char *commandLine, SPROCESSCOMPLETIONPROC completionProc, void *completionParam);
+int ModelCacheUpdate(DWORD currentTime, CStatus *status);
+void TextureCacheUpdate(DWORD currentTime, CStatus *status);
+void OsGetExePath(char *buffer, DWORD chars);
 NTempest::CRndSeed g_rndSeed;
 CVar              *g_realmNameVar;
 CVar              *g_realmAddressVar;
@@ -199,79 +199,79 @@ static NTempest::C3Vector s_newPosition;
 static float              s_newFacing;
 static const char        *s_newMapname;
 
-static int __fastcall  CacheUpdateHandler(const void *eventData, void *arg);
-static void __fastcall CacheUpdateInitialize();
-static void __fastcall CacheUpdateShutdown();
-static void __fastcall ClientRegisterConsoleCommands();
-static void __fastcall ClientUnregisterConsoleCommands();
-static int __fastcall  ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-static int __fastcall  ClientChatHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int __fastcall  ChannelNotifyHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
-static int __fastcall  ClientTextEmoteHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int __fastcall  ClientChannelListHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
-static int __fastcall  MovementLoggingHandler(void *param, NETMESSAGE msgID, unsigned long time, CDataStore *msg);
-static int __fastcall  MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-static int __fastcall  LookupResultsHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int __fastcall  ReceiveObjectPosition(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-static int __fastcall  PlayedTimeHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
-static void __fastcall FormatTime(char *buf, int len, int secs);
-static int __fastcall  NotifyHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int __fastcall  TransferAbortedHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
-static int __fastcall  TransferPendingHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
-void __fastcall        MovementInit();
-static int __fastcall  LoadNewWorld(const void *eventData, void *param);
-static int __fastcall  NewWorldHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int __fastcall  ClientIdle(const void *data, void *__formal);
-static int __fastcall  ClientFocus(const void *packetData, void *__formal);
+static int CacheUpdateHandler(const void *eventData, void *arg);
+static void CacheUpdateInitialize();
+static void CacheUpdateShutdown();
+static void ClientRegisterConsoleCommands();
+static void ClientUnregisterConsoleCommands();
+static int ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg);
+static int ClientChatHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
+static int ChannelNotifyHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
+static int ClientTextEmoteHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
+static int ClientChannelListHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
+static int MovementLoggingHandler(void *param, NETMESSAGE msgID, unsigned long time, CDataStore *msg);
+static int MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg);
+static int LookupResultsHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
+static int ReceiveObjectPosition(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg);
+static int PlayedTimeHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
+static void FormatTime(char *buf, int len, int secs);
+static int NotifyHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
+static int TransferAbortedHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
+static int TransferPendingHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
+void MovementInit();
+static int LoadNewWorld(const void *eventData, void *param);
+static int NewWorldHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
+static int ClientIdle(const void *data, void *__formal);
+static int ClientFocus(const void *packetData, void *__formal);
 
-typedef unsigned __int64(__fastcall *GETLOCALTARGETPROC)(CGPlayer_C *);
+typedef unsigned __int64(*GETLOCALTARGETPROC)(CGPlayer_C *);
 
-static bool __fastcall ErrorDisplayCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool __fastcall ErrorDisplayMinLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool __fastcall ErrorDisplayMaxLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool __fastcall ErrorDisplayFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool __fastcall DebugTargetInfoCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool __fastcall DebugShowGUIDsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool __fastcall GammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool __fastcall DesktopGammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool __fastcall ProfanityFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool ErrorDisplayCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool ErrorDisplayMinLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool ErrorDisplayMaxLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool ErrorDisplayFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool DebugTargetInfoCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool DebugShowGUIDsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool GammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool DesktopGammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool ProfanityFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
 
-static void __fastcall DisplayErrorLevelStatus();
-static void __fastcall PrintFilterMask();
-static int __fastcall  SetFilterMask(const char *filterString);
+static void DisplayErrorLevelStatus();
+static void PrintFilterMask();
+static int SetFilterMask(const char *filterString);
 
-static int __fastcall CCommand_ReloadUI(const char *command, const char *arguments);
-static int __fastcall CCommand_ToggleLighting(const char *command, const char *arguments);
-static int __fastcall CCommand_ToggleFog(const char *command, const char *arguments);
-static int __fastcall CCommand_ToggleDepthTesting(const char *command, const char *arguments);
-static int __fastcall CCommand_ToggleDepthSetting(const char *command, const char *arguments);
-static int __fastcall CCommand_ToggleCulling(const char *command, const char *arguments);
-static int __fastcall CCommand_ToggleDblBuffer(const char *command, const char *arguments);
-static int __fastcall CCommand_SetResolutionXY(const char *command, const char *arguments);
-static int __fastcall CCommand_SetResolutionMode(const char *command, const char *arguments);
-static int __fastcall CCommand_SetColorDepth(const char *command, const char *arguments);
-static int __fastcall CCommand_SetAPI(const char *command, const char *arguments);
-static int __fastcall CCommand_Bug(const char *command, const char *args);
+static int CCommand_ReloadUI(const char *command, const char *arguments);
+static int CCommand_ToggleLighting(const char *command, const char *arguments);
+static int CCommand_ToggleFog(const char *command, const char *arguments);
+static int CCommand_ToggleDepthTesting(const char *command, const char *arguments);
+static int CCommand_ToggleDepthSetting(const char *command, const char *arguments);
+static int CCommand_ToggleCulling(const char *command, const char *arguments);
+static int CCommand_ToggleDblBuffer(const char *command, const char *arguments);
+static int CCommand_SetResolutionXY(const char *command, const char *arguments);
+static int CCommand_SetResolutionMode(const char *command, const char *arguments);
+static int CCommand_SetColorDepth(const char *command, const char *arguments);
+static int CCommand_SetAPI(const char *command, const char *arguments);
+static int CCommand_Bug(const char *command, const char *args);
 
-static int __fastcall ClientChatHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int ClientChatHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
   return CGChat::ChatHandler(msg);
 }
 
-static int __fastcall ChannelNotifyHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ChannelNotifyHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   CGChat::ChannelNotify(msg);
   return 1;
 }
 
-static int __fastcall ClientTextEmoteHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int ClientTextEmoteHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
   return CGChat::HandleTextEmote(msg);
 }
 
-static int __fastcall ClientChannelListHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ClientChannelListHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   CGChat::ChannelList(msg);
   return 1;
 }
 
-static int __fastcall DebugAIStateHandler(void *, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int DebugAIStateHandler(void *, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
   CGTooltip *tooltip = CGGameUI::m_gameTooltip;
   unsigned __int64 unit;
   msg->Get(unit);
@@ -296,7 +296,7 @@ static int __fastcall DebugAIStateHandler(void *, NETMESSAGE msgID, unsigned lon
   return 1;
 }
 
-static int __fastcall MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+static int MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
   if (CMovement::ToggleFallLogging()) {
     SysMsgAdd("MOVEMENT|Movement fall logging started", SYSMSG_INFO, 1);
     if (CGUnit_C::m_activeMover) {
@@ -316,7 +316,7 @@ static int __fastcall MovementFallLoggingHandler(void *param, NETMESSAGE msgId, 
   return 1;
 }
 
-static int __fastcall MovementLoggingHandler(void *param, NETMESSAGE msgID, unsigned long time, CDataStore *msg) {
+static int MovementLoggingHandler(void *param, NETMESSAGE msgID, unsigned long time, CDataStore *msg) {
   if (CMovement::ToggleLogging()) {
     SysMsgAdd("MOVEMENT|Movement logging started", SYSMSG_INFO, 1);
     if (CGUnit_C::m_activeMover) {
@@ -329,7 +329,7 @@ static int __fastcall MovementLoggingHandler(void *param, NETMESSAGE msgID, unsi
   return 1;
 }
 
-static int __fastcall LookupResultsHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int LookupResultsHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
   unsigned int numResults;
 
   msg->Get(numResults);
@@ -352,7 +352,7 @@ static int __fastcall LookupResultsHandler(void *__formal, NETMESSAGE msgID, uns
   return 1;
 }
 
-static int __fastcall ReceiveObjectPosition(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+static int ReceiveObjectPosition(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
   NTempest::C3Vector position;
 
   msg->Get(position.x);
@@ -362,7 +362,7 @@ static int __fastcall ReceiveObjectPosition(void *__formal, NETMESSAGE msgId, un
   return 1;
 }
 
-static void __fastcall FormatTime(char *buf, int len, int secs) {
+static void FormatTime(char *buf, int len, int secs) {
   int days = secs / 86400;
   secs -= days * 86400;
   int hours = secs / 3600;
@@ -373,7 +373,7 @@ static void __fastcall FormatTime(char *buf, int len, int secs) {
   SStrPrintf(buf, len, "%dd %dh %dm %ds", days, hours, minutes, secs);
 }
 
-static int __fastcall PlayedTimeHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int PlayedTimeHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   int  totalTime;
   int  levelTime;
   char buf[256];
@@ -389,20 +389,20 @@ static int __fastcall PlayedTimeHandler(void *, NETMESSAGE, unsigned long, CData
   return 1;
 }
 
-static int __fastcall TransferPendingHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int TransferPendingHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   CGGameUI::ClearClientControls();
   ConsolePrintf("World transfer pending...");
   EnableLoadingScreen();
   return 1;
 }
 
-static int __fastcall TransferAbortedHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int TransferAbortedHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   ConsolePrintf("World transfer aborted...");
   DisableLoadingScreen();
   return 1;
 }
 
-void __fastcall MovementInit() {
+void MovementInit() {
   char buffer[260];
 
   if (!SRegLoadString("Wow\\Client", "MoveLogFile", 0, buffer, sizeof(buffer)) || !buffer[0]) {
@@ -414,7 +414,7 @@ void __fastcall MovementInit() {
   EventRegisterEx(EVENT_ID_IDLE, MovementIdleMoveUnits, 0, 2.0f);
 }
 
-static int __fastcall LoadNewWorld(const void *eventData, void *param) {
+static int LoadNewWorld(const void *eventData, void *param) {
   ClientServices_CharacterSetInGame(0);
 
   CWorld::UnloadMap();
@@ -442,7 +442,7 @@ static int __fastcall LoadNewWorld(const void *eventData, void *param) {
   return 1;
 }
 
-static int __fastcall NewWorldHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int NewWorldHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
   ASSERT(msgID == SMSG_NEW_WORLD);
 
   msg->Get(reinterpret_cast<unsigned char &>(s_newZoneID));
@@ -469,7 +469,7 @@ static int __fastcall NewWorldHandler(void *__formal, NETMESSAGE msgID, unsigned
   return 1;
 }
 
-static bool __fastcall ErrorDisplayCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ErrorDisplayCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int enabled = SStrToInt(newValue);
 
   SysMsgEnable(enabled);
@@ -477,7 +477,7 @@ static bool __fastcall ErrorDisplayCallback(CVar *h, const char *oldValue, const
   return true;
 }
 
-static void __fastcall DisplayErrorLevelStatus() {
+static void DisplayErrorLevelStatus() {
   char        buffer[80];
   SYSMSG_TYPE minLevel = SysMsgGetMinDisplayLevel();
   SYSMSG_TYPE maxLevel = SysMsgGetMaxDisplayLevel();
@@ -524,7 +524,7 @@ static void __fastcall DisplayErrorLevelStatus() {
   ConsoleWrite(buffer, DEFAULT_COLOR);
 }
 
-static bool __fastcall ErrorDisplayMinLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ErrorDisplayMinLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int level = SStrToInt(newValue);
 
   if (level >= 0 && level < SYSMSG_NUMTYPES) {
@@ -537,7 +537,7 @@ static bool __fastcall ErrorDisplayMinLevelCallback(CVar *h, const char *oldValu
   return false;
 }
 
-static bool __fastcall ErrorDisplayMaxLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ErrorDisplayMaxLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int level = SStrToInt(newValue);
 
   if (level >= 0 && level < SYSMSG_NUMTYPES) {
@@ -550,7 +550,7 @@ static bool __fastcall ErrorDisplayMaxLevelCallback(CVar *h, const char *oldValu
   return false;
 }
 
-static void __fastcall PrintFilterMask() {
+static void PrintFilterMask() {
   char         filters[80] = "";
   unsigned int filter = SysMsgGetFilter();
 
@@ -581,7 +581,7 @@ static void __fastcall PrintFilterMask() {
   ConsolePrintf("Now filtering: %s", filters);
 }
 
-static int __fastcall SetFilterMask(const char *filterString) {
+static int SetFilterMask(const char *filterString) {
   char         filter[64];
   char         whitespace[] = "\t\r\n\" ";
   const char  *string = filterString;
@@ -704,7 +704,7 @@ unknownFilter:
   return 0;
 }
 
-static bool __fastcall ErrorDisplayFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ErrorDisplayFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (!SetFilterMask(newValue)) {
     return false;
   }
@@ -713,21 +713,21 @@ static bool __fastcall ErrorDisplayFilterCallback(CVar *h, const char *oldValue,
   return true;
 }
 
-static bool __fastcall DebugTargetInfoCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool DebugTargetInfoCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int enabled = SStrToInt(newValue);
 
   ConsoleWrite(enabled ? "Debug target tooltips enabled" : "Debug target tooltips disabled", DEFAULT_COLOR);
   return true;
 }
 
-static bool __fastcall DebugShowGUIDsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool DebugShowGUIDsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int enabled = SStrToInt(newValue);
 
   ConsoleWrite(enabled ? "GUID tooltips enabled" : "GUID tooltips disabled", DEFAULT_COLOR);
   return true;
 }
 
-static bool __fastcall ErrorFileLogCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ErrorFileLogCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   char        curDir[MAX_PATH];
   const char *dataDirectory;
 
@@ -748,7 +748,7 @@ static bool __fastcall ErrorFileLogCallback(CVar *h, const char *oldValue, const
   return true;
 }
 
-static bool __fastcall GammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool GammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float v = SStrToFloat(newValue);
 
   if (s_desktopGammaCvar && !s_desktopGammaCvar->GetInt()) {
@@ -757,7 +757,7 @@ static bool __fastcall GammaCallback(CVar *h, const char *oldValue, const char *
   return true;
 }
 
-static bool __fastcall DesktopGammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool DesktopGammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   CGxGammaRamp ramp;
   float        gamma;
 
@@ -772,7 +772,7 @@ static bool __fastcall DesktopGammaCallback(CVar *h, const char *oldValue, const
   return true;
 }
 
-static bool __fastcall ProfanityFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ProfanityFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int enabled = SStrToInt(newValue);
 
   ConsoleWrite(enabled ? "Profanity filter enabled" : "Profanity filter disabled", DEFAULT_COLOR);
@@ -780,13 +780,13 @@ static bool __fastcall ProfanityFilterCallback(CVar *h, const char *oldValue, co
   return true;
 }
 
-static int __fastcall CCommand_ReloadUI(const char *command, const char *arguments) {
+static int CCommand_ReloadUI(const char *command, const char *arguments) {
   CGlueMgr::Reload();
   CGGameUI::Reload();
   return 1;
 }
 
-static int __fastcall CCommand_ToggleLighting(const char *command, const char *arguments) {
+static int CCommand_ToggleLighting(const char *command, const char *arguments) {
   int enabled = SStrToInt(arguments);
 
   GxMasterEnableSet(GxMasterEnable_Lighting, enabled);
@@ -794,7 +794,7 @@ static int __fastcall CCommand_ToggleLighting(const char *command, const char *a
   return 1;
 }
 
-static int __fastcall CCommand_ToggleFog(const char *command, const char *arguments) {
+static int CCommand_ToggleFog(const char *command, const char *arguments) {
   int enabled = SStrToInt(arguments);
 
   GxMasterEnableSet(GxMasterEnable_Fog, enabled);
@@ -802,7 +802,7 @@ static int __fastcall CCommand_ToggleFog(const char *command, const char *argume
   return 1;
 }
 
-static int __fastcall CCommand_ToggleDepthTesting(const char *command, const char *arguments) {
+static int CCommand_ToggleDepthTesting(const char *command, const char *arguments) {
   int enabled = !GxMasterEnable(GxMasterEnable_DepthTest);
 
   GxMasterEnableSet(GxMasterEnable_DepthTest, enabled);
@@ -810,7 +810,7 @@ static int __fastcall CCommand_ToggleDepthTesting(const char *command, const cha
   return 1;
 }
 
-static int __fastcall CCommand_ToggleDepthSetting(const char *command, const char *arguments) {
+static int CCommand_ToggleDepthSetting(const char *command, const char *arguments) {
   int enabled = !GxMasterEnable(GxMasterEnable_DepthWrite);
 
   GxMasterEnableSet(GxMasterEnable_DepthWrite, enabled);
@@ -818,7 +818,7 @@ static int __fastcall CCommand_ToggleDepthSetting(const char *command, const cha
   return 1;
 }
 
-static int __fastcall CCommand_ToggleCulling(const char *command, const char *arguments) {
+static int CCommand_ToggleCulling(const char *command, const char *arguments) {
   int enabled = !GxMasterEnable(GxMasterEnable_Culling);
 
   GxMasterEnableSet(GxMasterEnable_Culling, enabled);
@@ -826,7 +826,7 @@ static int __fastcall CCommand_ToggleCulling(const char *command, const char *ar
   return 1;
 }
 
-static int __fastcall CCommand_ToggleDblBuffer(const char *command, const char *arguments) {
+static int CCommand_ToggleDblBuffer(const char *command, const char *arguments) {
   int enabled = !GxMasterEnable(GxMasterEnable_DoubleBuffering);
 
   GxMasterEnableSet(GxMasterEnable_DoubleBuffering, enabled);
@@ -834,23 +834,23 @@ static int __fastcall CCommand_ToggleDblBuffer(const char *command, const char *
   return 1;
 }
 
-static int __fastcall CCommand_SetResolutionXY(const char *command, const char *arguments) {
+static int CCommand_SetResolutionXY(const char *command, const char *arguments) {
   return 1;
 }
 
-static int __fastcall CCommand_SetResolutionMode(const char *command, const char *arguments) {
+static int CCommand_SetResolutionMode(const char *command, const char *arguments) {
   return 1;
 }
 
-static int __fastcall CCommand_SetColorDepth(const char *command, const char *arguments) {
+static int CCommand_SetColorDepth(const char *command, const char *arguments) {
   return 1;
 }
 
-static int __fastcall CCommand_SetAPI(const char *command, const char *arguments) {
+static int CCommand_SetAPI(const char *command, const char *arguments) {
   return 1;
 }
 
-static int __fastcall CCommand_Bug(const char *command, const char *args) {
+static int CCommand_Bug(const char *command, const char *args) {
   unsigned int reportType;
 
   if (!SStrCmpI(command, "bug", 0x7FFFFFFF)) {
@@ -871,7 +871,7 @@ static int __fastcall CCommand_Bug(const char *command, const char *args) {
   return 1;
 }
 
-static void __fastcall ClientRegisterConsoleCommands() {
+static void ClientRegisterConsoleCommands() {
   ConsoleCommandRegister("reloadUI", CCommand_ReloadUI, GRAPHICS, 0);
   ConsoleCommandRegister("light", CCommand_ToggleLighting, GRAPHICS, 0);
   ConsoleCommandRegister("fog", CCommand_ToggleFog, GRAPHICS, 0);
@@ -917,7 +917,7 @@ static void __fastcall ClientRegisterConsoleCommands() {
   s_profanityFilterCvar = CVar::Register("profanityFilter", "Toggle profanity filter", 0, "1", ProfanityFilterCallback, GAME, false, 0);
 }
 
-static void __fastcall ClientUnregisterConsoleCommands() {
+static void ClientUnregisterConsoleCommands() {
   ConsoleCommandUnregister("reloadUI");
   ConsoleCommandUnregister("light");
   ConsoleCommandUnregister("fog");
@@ -935,7 +935,7 @@ static void __fastcall ClientUnregisterConsoleCommands() {
   ConsoleCommandUnregister("Note");
 }
 
-static int __fastcall CacheUpdateHandler(const void *eventData, void *arg) {
+static int CacheUpdateHandler(const void *eventData, void *arg) {
   CStatus status;
   DWORD   time = OsGetAsyncTimeMs();
 
@@ -946,22 +946,22 @@ static int __fastcall CacheUpdateHandler(const void *eventData, void *arg) {
   return 1;
 }
 
-static void __fastcall CacheUpdateInitialize() {
+static void CacheUpdateInitialize() {
   s_cacheUpdateTimerHandle = EventSetTimer(250u, CacheUpdateHandler, 0);
 }
 
-static void __fastcall CacheUpdateShutdown() {
+static void CacheUpdateShutdown() {
   if (s_cacheUpdateTimerHandle) {
     EventKillTimer(s_cacheUpdateTimerHandle, CacheUpdateHandler, "CacheUpdateHandler");
   }
 }
 
-static int __fastcall PollNet(const void *, void *) {
+static int PollNet(const void *, void *) {
   ClientServices_PollEventQueue();
   return 1;
 }
 
-static void __fastcall WowClientInit() {
+static void WowClientInit() {
   ObjectAllocInitialize();
   SysMsgInitialize();
   ClientDBInitialize();
@@ -990,7 +990,7 @@ static void __fastcall WowClientInit() {
   EventRegister(EVENT_ID_POLL, PollNet);
 }
 
-static int __fastcall InitializeHandlerPlayer(const void *, void *) {
+static int InitializeHandlerPlayer(const void *, void *) {
   ASSERT(EventIsContextInteractive());
 
   BaseInitializeContext();
@@ -1006,7 +1006,7 @@ static int __fastcall InitializeHandlerPlayer(const void *, void *) {
   return 1;
 }
 
-static void __fastcall WowClientDestroy() {
+static void WowClientDestroy() {
   ValidateNameDestroy();
   SpellVisualsShutdown();
   CameraDestroy();
@@ -1026,7 +1026,7 @@ static void __fastcall WowClientDestroy() {
   ObjectAllocDestroy();
 }
 
-static int __fastcall DestroyHandlerPlayer(const void *, void *) {
+static int DestroyHandlerPlayer(const void *, void *) {
   ASSERT(EventIsContextInteractive());
 
   ClientDestroyGame(0, 0, 0);
@@ -1044,7 +1044,7 @@ static int __fastcall DestroyHandlerPlayer(const void *, void *) {
   return 1;
 }
 
-static int __fastcall NotifyHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int NotifyHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
   char text[256];
 
   msg->GetString(text, sizeof(text));
@@ -1052,7 +1052,7 @@ static int __fastcall NotifyHandler(void *__formal, NETMESSAGE msgID, unsigned l
   return 1;
 }
 
-static void __fastcall SetPaths() {
+static void SetPaths() {
   char        buffer[MAX_PATH];
   const char *path;
 
@@ -1070,7 +1070,7 @@ static void __fastcall SetPaths() {
   OsSetCurrentDirectory(path);
 }
 
-static void __fastcall OpenArchives() {
+static void OpenArchives() {
   unsigned int i;
 
   for (i = 0; i < 8; ++i) {
@@ -1080,7 +1080,7 @@ static void __fastcall OpenArchives() {
   }
 }
 
-static void __fastcall ShutdownFileAccess() {
+static void ShutdownFileAccess() {
   unsigned int i;
 
   for (i = 0; i < 8; ++i) {
@@ -1090,12 +1090,12 @@ static void __fastcall ShutdownFileAccess() {
   }
 }
 
-static void __fastcall ProcessCommandLine() {
+static void ProcessCommandLine() {
   SCmdRegisterArgList(s_wowArgList, 17);
   CmdLineProcess();
 }
 
-static bool __fastcall InitializeGlobal() {
+static bool InitializeGlobal() {
   char  windowTitle[MAX_PATH];
   int   active;
   FILE *sessionFile;
@@ -1144,7 +1144,7 @@ static bool __fastcall InitializeGlobal() {
   return TRUE;
 }
 
-static void __fastcall DestroyGlobal() {
+static void DestroyGlobal() {
   SMemSetDebugFlags(0, 8);
   OsIMEDestroy();
   EventDestroy();
@@ -1155,27 +1155,27 @@ static void __fastcall DestroyGlobal() {
   ShutdownFileAccess();
 }
 
-static int __fastcall ClientIdle(const void *data, void *__formal) {
+static int ClientIdle(const void *data, void *__formal) {
   ClientGameTimeTickHandler(data, 0);
   Player_C_ZoneUpdateHandler(data, 0);
   CGPlayer_C::GMIdle();
   return 1;
 }
 
-static int __fastcall ClientFocus(const void *packetData, void *__formal) {
+static int ClientFocus(const void *packetData, void *__formal) {
   Player_C_AppFocusMovementHandler(*static_cast<const int *>(packetData));
   return 1;
 }
 
-void __fastcall ClientKillTimer(unsigned int timerId, CLIENTTIMERHANDLER handler, const char *handlerName) {
+void ClientKillTimer(unsigned int timerId, CLIENTTIMERHANDLER handler, const char *handlerName) {
   EventKillTimer(timerId, handler, handlerName);
 }
 
-void __fastcall ClientPostClose() {
+void ClientPostClose() {
   EventPostClose();
 }
 
-void __fastcall ClientInitializeGame(unsigned int continentID, NTempest::C3Vector position) {
+void ClientInitializeGame(unsigned int continentID, NTempest::C3Vector position) {
   GxMasterEnableSet(GxMasterEnable_Fog, 1);
   ClntObjMgrInitializeShared();
 
@@ -1234,7 +1234,7 @@ void __fastcall ClientInitializeGame(unsigned int continentID, NTempest::C3Vecto
   clientGameInitialized = 1;
 }
 
-void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError) {
+void ClientDestroyGame(int connected, int resumeUI, int loginError) {
   if (!clientGameInitialized) {
     return;
   }
@@ -1298,24 +1298,24 @@ void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError) {
   }
 }
 
-unsigned int __fastcall Bot_QueryAreaId(float x, float y) {
+unsigned int Bot_QueryAreaId(float x, float y) {
   return CWorld::QueryAreaId(x, y);
 }
 
-int __fastcall Bot_GetWanderPoint(const NTempest::C3Vector&, float, const NTempest::C3Vector&, const NTempest::C3Vector&, float, NTempest::C3Vector&) {
+int Bot_GetWanderPoint(const NTempest::C3Vector&, float, const NTempest::C3Vector&, const NTempest::C3Vector&, float, NTempest::C3Vector&) {
   return 0;
 }
 
-void __fastcall BotClientSetAccount(const char *, const char *) {
+void BotClientSetAccount(const char *, const char *) {
 }
 
-void __fastcall BotClientAddKnownSpell(CGPlayer_C*, int) {
+void BotClientAddKnownSpell(CGPlayer_C*, int) {
 }
 
-void __fastcall BotClientLoseTarget(const CGUnit_C*) {
+void BotClientLoseTarget(const CGUnit_C*) {
 }
 
-static void __fastcall LogZoneInfo(CGPlayer_C *player, char *log, unsigned long size) {
+static void LogZoneInfo(CGPlayer_C *player, char *log, unsigned long size) {
   NTempest::C3Vector location(reinterpret_cast<CGObject_C *>(player)->GetPosition());
   char               text[MAX_PATH];
   unsigned int       area;
@@ -1327,11 +1327,11 @@ static void __fastcall LogZoneInfo(CGPlayer_C *player, char *log, unsigned long 
   SStrPack(log, "\r\n", size);
 }
 
-static int __fastcall ClientIsValidPointer(const void *address, unsigned long size, int forWriting) {
+static int ClientIsValidPointer(const void *address, unsigned long size, int forWriting) {
   return SMemIsValidPointer(address, size, forWriting) != 0;
 }
 
-static void __fastcall LogObjectInfo(const char *label, CGObject_C *object, char *log, unsigned long size) {
+static void LogObjectInfo(const char *label, CGObject_C *object, char *log, unsigned long size) {
   char             text[MAX_PATH];
   unsigned __int64 guid;
 
@@ -1399,7 +1399,7 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
   return 1;
 }
 
-static void __fastcall LaunchWoWError(const char *logFileName) {
+static void LaunchWoWError(const char *logFileName) {
   char cmd[520];
 
   SStrPrintf(cmd, sizeof(cmd), "%s %s", "WowErrorAE.exe", logFileName);

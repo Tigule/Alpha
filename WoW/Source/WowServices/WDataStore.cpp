@@ -20,7 +20,7 @@ static TObjectAlloc<WDataStoreBuffer<SMALL_BUFFER_SIZE> > *s_smallHeap;
 static TObjectAlloc<WDataStoreBuffer<LARGE_BUFFER_SIZE> > *s_largeHeap;
 static unsigned char                                       s_heapsInitialized;
 
-void __fastcall WDataStore::StaticInitialize() {
+void WDataStore::StaticInitialize() {
   if (s_heapsInitialized) {
     return;
   }
@@ -32,7 +32,7 @@ void __fastcall WDataStore::StaticInitialize() {
   s_heapsInitialized = 1;
 }
 
-void __fastcall WDataStore::StaticDestroy() {
+void WDataStore::StaticDestroy() {
   if (s_smallHeap) {
     DEL(s_smallHeap);
   }
@@ -136,7 +136,7 @@ int WDataStore::InternalFetchWrite(
   return 1;
 }
 
-void *__fastcall WDataStore::AllocBuffer(unsigned int size) {
+void *WDataStore::AllocBuffer(unsigned int size) {
   if (size <= SMALL_BUFFER_SIZE) {
     return s_smallHeap->New()->buf;
   }
@@ -148,7 +148,7 @@ void *__fastcall WDataStore::AllocBuffer(unsigned int size) {
   return ALLOC(size);
 }
 
-void __fastcall WDataStore::FreeBuffer(void *buffer, unsigned int size) {
+void WDataStore::FreeBuffer(void *buffer, unsigned int size) {
   if (size <= SMALL_BUFFER_SIZE) {
     WDataStoreBuffer<SMALL_BUFFER_SIZE> *obj = CONTAINING_RECORD(buffer, WDataStoreBuffer<SMALL_BUFFER_SIZE>, buf);
     s_smallHeap->Free(obj);

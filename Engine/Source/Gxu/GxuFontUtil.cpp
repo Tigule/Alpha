@@ -30,7 +30,7 @@ static HASHKEY_NONE                                 s_nullHashKey;
 static const float                                  ONEOVERTEXSIZE = 1.0f / 256.0f;
 static const float                                  ONEHALFONEOVERTEXSIZE = ONEOVERTEXSIZE * 0.5f;
 
-QUOTEDCODE __fastcall GxuDetermineQuotedCode(
+QUOTEDCODE GxuDetermineQuotedCode(
     const char          *text,
     unsigned int        &advance,
     NTempest::CImVector *color,
@@ -196,7 +196,7 @@ invalidQuotedCode:
   return CODE_INVALIDCODE;
 }
 
-static int __fastcall CanWrapBetween(unsigned int lastChar, unsigned int wideChar, unsigned int flags) {
+static int CanWrapBetween(unsigned int lastChar, unsigned int wideChar, unsigned int flags) {
   int value;
 
   if (!lastChar) {
@@ -381,7 +381,7 @@ checkWideCharacterRange:
   return 1;
 }
 
-static unsigned int __fastcall FindWrappingIndex(const char *currentText, unsigned int lineBytes, unsigned int flags, const char **nextText) {
+static unsigned int FindWrappingIndex(const char *currentText, unsigned int lineBytes, unsigned int flags, const char **nextText) {
   const char  *startingText;
   const char  *scan;
   unsigned int wrapIndex;
@@ -767,7 +767,7 @@ CGxString *CGxString::Duplicate() const {
   return newString;
 }
 
-void __fastcall CalcWrapPoint(
+void CalcWrapPoint(
     CGxFont      *face,
     const char   *currentText,
     float         fontHeight,
@@ -2192,7 +2192,7 @@ void TEXTURECACHE::Update() {
   }
 }
 
-void __fastcall TEXTURECACHE::TextureCallback(
+void TEXTURECACHE::TextureCallback(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -2581,14 +2581,14 @@ int CGxString::SetGradient(int startCharacter, int length, const TSGrowableArray
   return 0;
 }
 
-void __fastcall IGxuStringInitialize() {
+void IGxuStringInitialize() {
 }
 
-void __fastcall IGxuStringShutdown() {
+void IGxuStringShutdown() {
   s_freeStringMatrices.Clear();
 }
 
-void __fastcall InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, unsigned int flags) {
+void InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, unsigned int flags) {
   float        width = 0.0f;
   float        lastWidth = 0.0f;
   float        maxWidth = 0.0f;
@@ -2664,7 +2664,7 @@ void __fastcall InternalGetTextExtent(CGxFont *face, const char *text, unsigned 
   }
 }
 
-unsigned int __fastcall InternalGetMaxCharsWithinWidth(
+unsigned int InternalGetMaxCharsWithinWidth(
     CGxFont      *face,
     const char   *text,
     float         height,
@@ -2782,7 +2782,7 @@ unsigned int __fastcall InternalGetMaxCharsWithinWidth(
   return numChars;
 }
 
-void __fastcall GxuFontSetUseAdvanceWidth(int useAdvanceWidth) {
+void GxuFontSetUseAdvanceWidth(int useAdvanceWidth) {
 }
 
 void CGxString::RenderTexture(bool initGxRenderStates, int texture) {

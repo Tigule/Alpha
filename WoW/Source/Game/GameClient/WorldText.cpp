@@ -135,7 +135,7 @@ void WORLDTEXTSTRING::InitTextFrame(const char *text) {
   }
 }
 
-static void __fastcall InitConsoleVariables() {
+static void InitConsoleVariables() {
   s_fontHeightCVar = CVar::Register("DamageFontHeight", 0, 0, "0.035", 0, DEFAULT, false, 0);
   s_fontOutlineCVar = CVar::Register("DamageFontOutline", 0, 0, "1", 0, DEFAULT, false, 0);
   s_fontFadeInTime = CVar::Register("DamageFontFadeInTime", 0, 0, "200", 0, DEFAULT, false, 0);
@@ -146,7 +146,7 @@ static void __fastcall InitConsoleVariables() {
   s_fontConeAngle = CVar::Register("DamageFontConeAngle", 0, 0, "0", 0, DEFAULT, false, 0);
 }
 
-void __fastcall WorldTextInitialize() {
+void WorldTextInitialize() {
   unsigned int i;
   for (i = 0; i < NUM_WORLDTEXTTYPES; ++i) {
     s_worldTextParams[i].Defaults();
@@ -216,7 +216,7 @@ void __fastcall WorldTextInitialize() {
   }
 }
 
-void __fastcall WorldTextShutdown() {
+void WorldTextShutdown() {
   for (unsigned int i = 0; i < NUM_WORLDTEXTTYPES; ++i) {
     if (s_worldTextFontHandles[i]) {
       HandleClose(s_worldTextFontHandles[i]);
@@ -225,7 +225,7 @@ void __fastcall WorldTextShutdown() {
   }
 }
 
-void __fastcall WorldTextClearStrings() {
+void WorldTextClearStrings() {
   WORLDTEXTSTRING *worldText = s_textList.Head();
 
   while (worldText) {
@@ -238,13 +238,13 @@ void __fastcall WorldTextClearStrings() {
   }
 }
 
-void __fastcall WorldTextGetColor(WORLDTEXTTYPE type, NTempest::CImVector* color) {
+void WorldTextGetColor(WORLDTEXTTYPE type, NTempest::CImVector* color) {
   FATALASSERT(type < NUM_WORLDTEXTTYPES);
   FATALASSERT(color);
   *color = s_worldTextParams[type].fontColor;
 }
 
-HWORLDTEXT__ *__fastcall WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride) {
+HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride) {
   FATALASSERT(type < NUM_WORLDTEXTTYPES);
   WORLDTEXTCREATEPARAMS *params = &s_worldTextParams[type];
   FATALASSERT(params);
@@ -269,7 +269,7 @@ HWORLDTEXT__ *__fastcall WorldTextCreate(WORLDTEXTTYPE type, const char *text, u
   return reinterpret_cast<HWORLDTEXT__ *>(HandleCreate(worldTextPtr, "HWORLDTEXT"));
 }
 
-void __fastcall WorldTextUpdate(float elapsed, const NTempest::C44Matrix& matrix) {
+void WorldTextUpdate(float elapsed, const NTempest::C44Matrix& matrix) {
   for (WORLDTEXTSTRING *text = s_textList.Head(); text; text = s_textList.Next(text)) {
     if (text->object) {
       text->Update(elapsed, matrix, 0);
@@ -489,13 +489,13 @@ void WORLDTEXTSTRING::CalculateNewColor(unsigned int elapsed) {
   }
 }
 
-void __fastcall WorldTextUpdate(HWORLDTEXT__* text, float elapsed, const NTempest::C44Matrix& matrix, const NTempest::C3Vector* position) {
+void WorldTextUpdate(HWORLDTEXT__* text, float elapsed, const NTempest::C44Matrix& matrix, const NTempest::C3Vector* position) {
   if (text) {
     reinterpret_cast<WORLDTEXTSTRING *>(text)->Update(elapsed, matrix, position);
   }
 }
 
-int __fastcall WorldTextIsTextDone(HWORLDTEXT__* handle) {
+int WorldTextIsTextDone(HWORLDTEXT__* handle) {
   WORLDTEXTSTRING *text = reinterpret_cast<WORLDTEXTSTRING *>(handle);
   if (!text) {
     return 1;
@@ -503,13 +503,13 @@ int __fastcall WorldTextIsTextDone(HWORLDTEXT__* handle) {
   return text->elapsedTime > text->totalTime && !(text->m_flags & 1);
 }
 
-void __fastcall WorldTextShow(HWORLDTEXT__ *text, int show) {
+void WorldTextShow(HWORLDTEXT__ *text, int show) {
   if (text) {
     reinterpret_cast<WORLDTEXTSTRING *>(text)->Hide(!show);
   }
 }
 
-void __fastcall WorldTextRender(HWORLDTEXT__ *text) {
+void WorldTextRender(HWORLDTEXT__ *text) {
   if (text) {
     reinterpret_cast<WORLDTEXTSTRING *>(text)->Render();
   }

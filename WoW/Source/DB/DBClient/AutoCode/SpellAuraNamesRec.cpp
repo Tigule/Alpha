@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellAuraNamesRec::GetFilename() {
+const char *SpellAuraNamesRec::GetFilename() {
   return "DBFilesClient\\SpellAuraNames.dbc";
 }
 

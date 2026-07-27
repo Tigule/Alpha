@@ -33,22 +33,22 @@ struct CHARINFO {
 
 class CCharSelectInfo {
  public:
-  static void __fastcall            ClearCharacterModel();
-  static void __fastcall            ClearPetModel();
-  static int __fastcall             GetNumCharacters();
-  static CHARACTER_INFO *__fastcall GetSelectedCharacterInfo();
-  static void __fastcall            GuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
-  static void __fastcall            Initialize();
-  static void __fastcall            SelectCharacter(int index);
-  static void __fastcall            SetBackgroundModel(const char *filename);
-  static void __fastcall            SetModelFrame(CSimpleModel *frame);
-  static void __fastcall            Shutdown();
-  static void __fastcall            UpdateCharacterList();
+  static void ClearCharacterModel();
+  static void ClearPetModel();
+  static int GetNumCharacters();
+  static CHARACTER_INFO *GetSelectedCharacterInfo();
+  static void GuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
+  static void Initialize();
+  static void SelectCharacter(int index);
+  static void SetBackgroundModel(const char *filename);
+  static void SetModelFrame(CSimpleModel *frame);
+  static void Shutdown();
+  static void UpdateCharacterList();
 
  protected:
-  static void __fastcall ChangeSkinTexture();
-  static void __fastcall EnumerateCharactersCallback(CHARACTER_INFO &info, void *__formal);
-  static void __fastcall UpdateCharacterInfo();
+  static void ChangeSkinTexture();
+  static void EnumerateCharactersCallback(CHARACTER_INFO &info, void *__formal);
+  static void UpdateCharacterInfo();
 
  private:
   friend class CGlueMgr;
@@ -57,5 +57,5 @@ class CCharSelectInfo {
   static CSimpleModel *m_modelFrame;
 };
 
-void __fastcall CharSelectRegisterScriptFunctions();
-void __fastcall CharSelectUnregisterScriptFunctions();
+void CharSelectRegisterScriptFunctions();
+void CharSelectUnregisterScriptFunctions();

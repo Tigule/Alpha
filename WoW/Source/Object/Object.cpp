@@ -10,7 +10,7 @@
 
 static const float TWO_PI = 6.28318530717958647692f;
 
-void __fastcall CClientMoveUpdate::Skip(CDataStore *packet) {
+void CClientMoveUpdate::Skip(CDataStore *packet) {
   void *unused;
   packet->GetDataInSitu(unused, 44);
   unsigned int flags = 0;
@@ -38,7 +38,7 @@ void __fastcall CClientMoveUpdate::Skip(CDataStore *packet) {
 
 namespace NTempest {
 
-  CDataStore &__fastcall operator<<(CDataStore &s_, const C3Vector &d_) {
+  CDataStore &operator<<(CDataStore &s_, const C3Vector &d_) {
     s_ << d_.x;
     s_ << d_.y;
     s_ << d_.z;
@@ -47,7 +47,7 @@ namespace NTempest {
 
 }  // namespace NTempest
 
-CDataStore &__fastcall operator<<(CDataStore &packet, const CClientMoveUpdate &update) {
+CDataStore &operator<<(CDataStore &packet, const CClientMoveUpdate &update) {
   packet << update.status.transport << update.status.transRelPosition.x << update.status.transRelPosition.y << update.status.transRelPosition.z
          << update.status.transRelFacing;
   packet << update.status.worldPosition;
@@ -77,7 +77,7 @@ CDataStore &__fastcall operator<<(CDataStore &packet, const CClientMoveUpdate &u
   return packet;
 }
 
-CDataStore &__fastcall operator>>(CDataStore &packet, CClientMoveUpdate &update) {
+CDataStore &operator>>(CDataStore &packet, CClientMoveUpdate &update) {
   packet.Get(update.status.transport);
   packet.Get(update.status.transRelPosition.x);
   packet.Get(update.status.transRelPosition.y);
@@ -124,7 +124,7 @@ CDataStore &__fastcall operator>>(CDataStore &packet, CClientMoveUpdate &update)
   return packet;
 }
 
-unsigned char __fastcall IsAngleWithinRange(float a, float b, float fieldofView) {
+unsigned char IsAngleWithinRange(float a, float b, float fieldofView) {
   fieldofView = static_cast<float>(fabs(fieldofView));
   while (a < 0.0f) {
     a += TWO_PI;
@@ -145,7 +145,7 @@ unsigned char __fastcall IsAngleWithinRange(float a, float b, float fieldofView)
   return fabs(a - b) < fieldofView;
 }
 
-float __fastcall CalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination) {
+float CalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination) {
   NTempest::C3Vector diff = destination - position;
 
   if (fabs(diff.x) >= 2.3841858e-7f) {

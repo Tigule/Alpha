@@ -98,21 +98,21 @@ const SkillLineAbilityRec *SkillLineTable::LookupPet(int skillLineID, unsigned i
   return 0;
 }
 
-void __fastcall SpellTableInitialize() {
+void SpellTableInitialize() {
   ASSERT(!s_skillLineTable);
 
   s_skillLineTable = new SkillLineTable;
   s_skillLineTable->Initialize();
 }
 
-void __fastcall SpellTableDestroy() {
+void SpellTableDestroy() {
   if (s_skillLineTable) {
     delete s_skillLineTable;
     s_skillLineTable = 0;
   }
 }
 
-const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID) {
+const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID) {
   if (!s_skillLineTable) {
     return 0;
   }
@@ -120,7 +120,7 @@ const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceI
   return s_skillLineTable->Lookup(raceID, classID, spellID);
 }
 
-const SkillLineAbilityRec* __fastcall SpellTableLookupPetAbility(int skillLineID, unsigned int spellID) {
+const SkillLineAbilityRec* SpellTableLookupPetAbility(int skillLineID, unsigned int spellID) {
   if (!s_skillLineTable) {
     return 0;
   }

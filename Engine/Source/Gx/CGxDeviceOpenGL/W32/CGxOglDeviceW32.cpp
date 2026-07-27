@@ -18,10 +18,10 @@ static const char s_WndClassName[] = "GxWindowClassOpenGl";
 
 static int s_inCreateOrDestroy;
 
-HGLRC __fastcall AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format);
-void __fastcall  RemoveGlContext(HGLRC context);
+HGLRC AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format);
+void RemoveGlContext(HGLRC context);
 
-static unsigned short __fastcall WindowClassCreate() {
+static unsigned short WindowClassCreate() {
   HINSTANCE   instance = GetModuleHandle(0);
   WNDCLASSEXA wc;
   memset(&wc, 0, sizeof(wc));
@@ -38,12 +38,12 @@ static unsigned short __fastcall WindowClassCreate() {
   return RegisterClassExA(&wc);
 }
 
-void __fastcall WindowClassDestroy(unsigned short &hwndClass) {
+void WindowClassDestroy(unsigned short &hwndClass) {
   UnregisterClass(reinterpret_cast<const char *>(hwndClass), GetModuleHandle(0));
   hwndClass = 0;
 }
 
-static HWND __fastcall WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
+static HWND WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
   unsigned long style =
       format.window ? WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_POPUP | WS_MAXIMIZE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 
@@ -53,7 +53,7 @@ static HWND __fastcall WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &forma
   );
 }
 
-void __fastcall WindowDestroy(HWND &window) {
+void WindowDestroy(HWND &window) {
   DestroyWindow(window);
   window = 0;
 }
@@ -398,11 +398,11 @@ unsigned long CGxDeviceOpenGl::DeviceWindow() {
   return reinterpret_cast<unsigned long>(m_hwnd);
 }
 
-static int __fastcall IsGlDisplayModeGood(const DEVMODEA &dm) {
+static int IsGlDisplayModeGood(const DEVMODEA &dm) {
   return (dm.dmBitsPerPel == 16 || dm.dmBitsPerPel == 32) && dm.dmPelsWidth >= 640 && dm.dmPelsHeight >= 480;
 }
 
-int __fastcall CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
+int CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   DISPLAY_DEVICEA dd;
   DEVMODEA        dm;
   CGxFormat       fmt;

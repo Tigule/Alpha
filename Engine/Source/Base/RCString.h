@@ -38,7 +38,7 @@ class CStringManager : public TSHashTable<CStringRep, HASHKEY_STR> {
   friend class RCString;
 
  protected:
-  static CStringManager *__fastcall Get();
+  static CStringManager *Get();
   static CStringManager            *s_stringManager;
 
  public:
@@ -47,7 +47,7 @@ class CStringManager : public TSHashTable<CStringRep, HASHKEY_STR> {
   CStringRep &Add(const char *str);
   CStringRep &Find(const char *str);
 
-  static void __fastcall DestroyManager();
+  static void DestroyManager();
 };
 
 class RCString : public TRefCnt {

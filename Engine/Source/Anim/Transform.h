@@ -2,6 +2,6 @@
 
 #include "Anim/AnimInternal.h"
 
-void __fastcall CalcGeosetColor(
+void CalcGeosetColor(
     const InterpInfo &animInfo, CAnimGeoset *geoset, CAnimGeosetObjStatus *geoStatus, CGeosetColor *color
 );

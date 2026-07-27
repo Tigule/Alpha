@@ -71,9 +71,9 @@ class CGItem_C : public CGObject_C, public CGItem {
   void         PostInitWithStats();
   virtual void Disable(int shutdown);
   virtual void Reenable();
-  static void __fastcall        Initialize();
-  static void __fastcall        Shutdown();
-  static const char *__fastcall GetInventoryArt(int displayID);
+  static void Initialize();
+  static void Shutdown();
+  static const char *GetInventoryArt(int displayID);
   const char                   *GetInventoryArt() const;
   virtual const char           *GetModelFileName() const;
   int                           GetDisplayID() const;
@@ -83,7 +83,7 @@ class CGItem_C : public CGObject_C, public CGItem {
   int                           GetSubtypeID() const;
   int                           GetSheatheType() const;
   int                           IsMetal() const;
-  static int __fastcall         IsMetal(unsigned int material);
+  static int IsMetal(unsigned int material);
   int                           GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const;
   int                           GetMaterial() const;
   ItemStats                    *GetStats();
@@ -122,11 +122,11 @@ class CGItem_C : public CGObject_C, public CGItem {
   void SetStorage(unsigned long *storage);
   int  SetBlock(unsigned int i, unsigned long data);
   void SetData(const void *data, unsigned int bytes);
-  static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);
+  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
   virtual int         GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
   virtual void        OnRightClick();
   virtual int GetPageTextID(
-      void(__fastcall *func)(int, const unsigned __int64 &, void *, bool)
+      void(*func)(int, const unsigned __int64 &, void *, bool)
   ) const;
   virtual const char *GetObjectName() const;
 

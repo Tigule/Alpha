@@ -18,15 +18,15 @@ enum HTML_TEXT_TYPE {
 };
 
 class CSimpleHTML : public CSimpleHyperlinkedFrame {
-  friend int __fastcall CSimpleHTML_SetText(lua_State *L);
-  friend int __fastcall CSimpleHTML_SetTextColor(lua_State *L);
+  friend int CSimpleHTML_SetText(lua_State *L);
+  friend int CSimpleHTML_SetTextColor(lua_State *L);
 
  public:
   CSimpleHTML(CSimpleFrame *parent);
   virtual ~CSimpleHTML();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   void SetTextAttributes(const CSimpleFontStringAttributes &attrib, HTML_TEXT_TYPE textType) {

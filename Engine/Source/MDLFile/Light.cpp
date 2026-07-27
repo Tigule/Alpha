@@ -5,7 +5,7 @@
 #include "Base/MsgBuffer.h"
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void IAddLightErrors(TSet &errors) {
@@ -159,7 +159,7 @@ static void IReadLight(
   parse.Expect('}', token, tokenText);
 }
 
-int __fastcall ReadLight(
+int ReadLight(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -244,7 +244,7 @@ static void IWriteLightSection(
   WriteObjectTrailer(section, buffer);
 }
 
-int __fastcall WriteLights(
+int WriteLights(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -339,7 +339,7 @@ static void IWriteBinLightSection(
   WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buffer);
 }
 
-int __fastcall WriteBinLights(
+int WriteBinLights(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status
@@ -429,7 +429,7 @@ static int ReadBinLight(
   return 1;
 }
 
-int __fastcall ReadBinLights(
+int ReadBinLights(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

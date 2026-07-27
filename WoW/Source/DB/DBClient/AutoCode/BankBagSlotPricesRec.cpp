@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall BankBagSlotPricesRec::GetFilename() {
+const char *BankBagSlotPricesRec::GetFilename() {
   return "DBFilesClient\\BankBagSlotPrices.dbc";
 }
 

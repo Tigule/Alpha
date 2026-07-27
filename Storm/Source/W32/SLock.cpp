@@ -14,28 +14,28 @@ namespace SRWLock {
     volatile long m_readerEvent;
   };
 
-  void __fastcall IInitialize();
-  void __fastcall IDestroy();
-  void __fastcall IOsRWLockIncRef();
-  void __fastcall IOsRWLockDecRef();
-  int __fastcall  IWaitAndCheckForDeadlock(void *hevent);
-  long __fastcall IAllocEvent(unsigned long evtype);
-  void __fastcall IFreeEvent(unsigned long evtype, long event, int forcereset);
-  int __fastcall  IWaitForEvent(unsigned long evtype, long event);
-  void __fastcall ISetEvent(unsigned long evtype, long event);
-  long __fastcall IEventIncRefCountOnly(long volatile *eventptr, long increment);
-  long __fastcall IAllocEventOrIncRefCount(unsigned long evtype, long volatile *eventptr, long increment);
-  int __fastcall  IDecRefCountAndFreeEvent(unsigned long evtype, long volatile *eventptr, long finalevent, long decrement);
-  void __fastcall SUNNLockInitialize(SUNNLOCK volatile *sunnlock);
-  void __fastcall SUNNLockDelete(SUNNLOCK volatile *sunnlock);
-  void __fastcall SUNNLockEnter(SUNNLOCK volatile *sunnlock);
-  int __fastcall  SUNNLockTryEnter(SUNNLOCK volatile *sunnlock);
-  void __fastcall SUNNLockLeave(SUNNLOCK volatile *sunnlock);
-  void __fastcall SURWLockInitialize(SURWLOCK volatile *surwlock);
-  void __fastcall SURWLockDelete(SURWLOCK volatile *surwlock);
-  void __fastcall SURWLockEnter(SURWLOCK volatile *surwlock, int forwriting);
-  int __fastcall  SURWLockTryEnter(SURWLOCK volatile *surwlock, int forwriting);
-  void __fastcall SURWLockLeave(SURWLOCK volatile *surwlock, int fromwriting);
+  void IInitialize();
+  void IDestroy();
+  void IOsRWLockIncRef();
+  void IOsRWLockDecRef();
+  int IWaitAndCheckForDeadlock(void *hevent);
+  long IAllocEvent(unsigned long evtype);
+  void IFreeEvent(unsigned long evtype, long event, int forcereset);
+  int IWaitForEvent(unsigned long evtype, long event);
+  void ISetEvent(unsigned long evtype, long event);
+  long IEventIncRefCountOnly(long volatile *eventptr, long increment);
+  long IAllocEventOrIncRefCount(unsigned long evtype, long volatile *eventptr, long increment);
+  int IDecRefCountAndFreeEvent(unsigned long evtype, long volatile *eventptr, long finalevent, long decrement);
+  void SUNNLockInitialize(SUNNLOCK volatile *sunnlock);
+  void SUNNLockDelete(SUNNLOCK volatile *sunnlock);
+  void SUNNLockEnter(SUNNLOCK volatile *sunnlock);
+  int SUNNLockTryEnter(SUNNLOCK volatile *sunnlock);
+  void SUNNLockLeave(SUNNLOCK volatile *sunnlock);
+  void SURWLockInitialize(SURWLOCK volatile *surwlock);
+  void SURWLockDelete(SURWLOCK volatile *surwlock);
+  void SURWLockEnter(SURWLOCK volatile *surwlock, int forwriting);
+  int SURWLockTryEnter(SURWLOCK volatile *surwlock, int forwriting);
+  void SURWLockLeave(SURWLOCK volatile *surwlock, int fromwriting);
 }  // namespace SRWLock
 
 struct CDebugLockData {
@@ -71,21 +71,21 @@ static long          s_freeCount[SRW_EVENT_TYPES];
 template <class T>
 class CDebugLock {
  public:
-  static void __fastcall Construct(CDebugLockData *lock);
-  static void __fastcall Destruct(CDebugLockData *lock);
-  static void __fastcall IEnter();
-  static void __fastcall ILeave();
-  static void __fastcall IDumpAllEntries();
+  static void Construct(CDebugLockData *lock);
+  static void Destruct(CDebugLockData *lock);
+  static void IEnter();
+  static void ILeave();
+  static void IDumpAllEntries();
 
-  static void __fastcall IDumpEntries(CDebugLockData *lock);
+  static void IDumpEntries(CDebugLockData *lock);
 
-  static DWORD __fastcall IClashingEntry(CDebugLockData *lock, DWORD threadId, int forwriting);
-  static DWORD __fastcall IAddEntry(CDebugLockData *lock, DWORD threadId, int forwriting, const char *fileName, DWORD line);
-  static DWORD __fastcall IDeleteEntry(CDebugLockData *lock, DWORD threadId, int fromwriting);
-  static void __fastcall  IEnterEntry(DWORD e);
+  static DWORD IClashingEntry(CDebugLockData *lock, DWORD threadId, int forwriting);
+  static DWORD IAddEntry(CDebugLockData *lock, DWORD threadId, int forwriting, const char *fileName, DWORD line);
+  static DWORD IDeleteEntry(CDebugLockData *lock, DWORD threadId, int fromwriting);
+  static void IEnterEntry(DWORD e);
 
  private:
-  static void __fastcall IRepairBadEntry(CDebugLockData *lock, DWORD e, CDebugLockEntry *eptr, const char *fileName, DWORD line);
+  static void IRepairBadEntry(CDebugLockData *lock, DWORD e, CDebugLockEntry *eptr, const char *fileName, DWORD line);
 
   static CInitCritSect   s_critsect;
   static CDebugLockEntry s_entries[256];
@@ -93,10 +93,10 @@ class CDebugLock {
   static CDebugLockData *s_locks;
 };
 
-void __fastcall Pause() {
+void Pause() {
 }
 
-void __fastcall SRWLock::IInitialize() {
+void SRWLock::IInitialize() {
   SYSTEM_INFO sysinfo;
   DWORD       type;
   void      **eventHandle;
@@ -137,7 +137,7 @@ void __fastcall SRWLock::IInitialize() {
   SServerInitialize();
 }
 
-void __fastcall SRWLock::IDestroy() {
+void SRWLock::IDestroy() {
   DWORD  type;
   void **eventHandle;
   long  *slotBase;
@@ -167,7 +167,7 @@ void __fastcall SRWLock::IDestroy() {
   SServerDestroy();
 }
 
-void __fastcall SRWLock::IOsRWLockIncRef() {
+void SRWLock::IOsRWLockIncRef() {
   s_initCritsect.Enter();
   if (s_initCount++ == 0) {
     IInitialize();
@@ -175,7 +175,7 @@ void __fastcall SRWLock::IOsRWLockIncRef() {
   s_initCritsect.Leave();
 }
 
-void __fastcall SRWLock::IOsRWLockDecRef() {
+void SRWLock::IOsRWLockDecRef() {
   s_initCritsect.Enter();
   if (--s_initCount == 0) {
     IDestroy();
@@ -183,7 +183,7 @@ void __fastcall SRWLock::IOsRWLockDecRef() {
   s_initCritsect.Leave();
 }
 
-int __fastcall SRWLock::IWaitAndCheckForDeadlock(void *hevent) {
+int SRWLock::IWaitAndCheckForDeadlock(void *hevent) {
   if (WaitForSingleObject((HANDLE)hevent, 60000) == WAIT_OBJECT_0) {
     return 1;
   }
@@ -194,7 +194,7 @@ int __fastcall SRWLock::IWaitAndCheckForDeadlock(void *hevent) {
   return 0;
 }
 
-long __fastcall SRWLock::IAllocEvent(unsigned long evtype) {
+long SRWLock::IAllocEvent(unsigned long evtype) {
   long *freeptr;
   long  event;
 
@@ -219,7 +219,7 @@ long __fastcall SRWLock::IAllocEvent(unsigned long evtype) {
   return event;
 }
 
-void __fastcall SRWLock::IFreeEvent(unsigned long evtype, long event, int forcereset) {
+void SRWLock::IFreeEvent(unsigned long evtype, long event, int forcereset) {
   long *freeptr;
   long  oldevent;
 
@@ -246,17 +246,17 @@ void __fastcall SRWLock::IFreeEvent(unsigned long evtype, long event, int forcer
   }
 }
 
-int __fastcall SRWLock::IWaitForEvent(unsigned long evtype, long event) {
+int SRWLock::IWaitForEvent(unsigned long evtype, long event) {
   return IWaitAndCheckForDeadlock(s_handle[evtype][((unsigned long)event >> 21) - 1]);
 }
 
-void __fastcall SRWLock::ISetEvent(unsigned long evtype, long event) {
+void SRWLock::ISetEvent(unsigned long evtype, long event) {
   if (event) {
     SetEvent(s_handle[evtype][((unsigned long)event >> 21) - 1]);
   }
 }
 
-long __fastcall SRWLock::IEventIncRefCountOnly(long volatile *eventptr, long increment) {
+long SRWLock::IEventIncRefCountOnly(long volatile *eventptr, long increment) {
   long value;
 
   value = *eventptr;
@@ -275,7 +275,7 @@ long __fastcall SRWLock::IEventIncRefCountOnly(long volatile *eventptr, long inc
   return 0;
 }
 
-long __fastcall SRWLock::IAllocEventOrIncRefCount(unsigned long evtype, long volatile *eventptr, long increment) {
+long SRWLock::IAllocEventOrIncRefCount(unsigned long evtype, long volatile *eventptr, long increment) {
   long allocated;
   long value;
 
@@ -293,7 +293,7 @@ long __fastcall SRWLock::IAllocEventOrIncRefCount(unsigned long evtype, long vol
   return allocated;
 }
 
-int __fastcall SRWLock::IDecRefCountAndFreeEvent(unsigned long evtype, long volatile *eventptr, long finalevent, long decrement) {
+int SRWLock::IDecRefCountAndFreeEvent(unsigned long evtype, long volatile *eventptr, long finalevent, long decrement) {
   long previous;
 
   previous = SInterlockedCompareExchange((long *)eventptr, 0, finalevent);
@@ -308,12 +308,12 @@ int __fastcall SRWLock::IDecRefCountAndFreeEvent(unsigned long evtype, long vola
   return 1;
 }
 
-void __fastcall SRWLock::SUNNLockInitialize(SUNNLOCK volatile *sunnlock) {
+void SRWLock::SUNNLockInitialize(SUNNLOCK volatile *sunnlock) {
   sunnlock->m_state = 1;
   sunnlock->m_event = 0;
 }
 
-void __fastcall SRWLock::SUNNLockDelete(SUNNLOCK volatile *sunnlock) {
+void SRWLock::SUNNLockDelete(SUNNLOCK volatile *sunnlock) {
   long eventValue;
 
   sunnlock->m_state = 0;
@@ -323,7 +323,7 @@ void __fastcall SRWLock::SUNNLockDelete(SUNNLOCK volatile *sunnlock) {
   }
 }
 
-void __fastcall SRWLock::SUNNLockEnter(SUNNLOCK volatile *sunnlock) {
+void SRWLock::SUNNLockEnter(SUNNLOCK volatile *sunnlock) {
   DWORD spin;
   long  eventValue;
   long  baseValue;
@@ -357,21 +357,21 @@ void __fastcall SRWLock::SUNNLockEnter(SUNNLOCK volatile *sunnlock) {
   }
 }
 
-int __fastcall SRWLock::SUNNLockTryEnter(SUNNLOCK volatile *sunnlock) {
+int SRWLock::SUNNLockTryEnter(SUNNLOCK volatile *sunnlock) {
   return SInterlockedExchange((long *)&sunnlock->m_state, 0) != 0;
 }
 
-void __fastcall SRWLock::SUNNLockLeave(SUNNLOCK volatile *sunnlock) {
+void SRWLock::SUNNLockLeave(SUNNLOCK volatile *sunnlock) {
   sunnlock->m_state = 1;
   ISetEvent(0, sunnlock->m_event);
 }
 
-void __fastcall SRWLock::SURWLockInitialize(SURWLOCK volatile *surwlock) {
+void SRWLock::SURWLockInitialize(SURWLOCK volatile *surwlock) {
   SUNNLockInitialize(&surwlock->m_mutex);
   surwlock->m_readerEvent = 0;
 }
 
-void __fastcall SRWLock::SURWLockDelete(SURWLOCK volatile *surwlock) {
+void SRWLock::SURWLockDelete(SURWLOCK volatile *surwlock) {
   long eventValue;
 
   SUNNLockDelete(&surwlock->m_mutex);
@@ -381,7 +381,7 @@ void __fastcall SRWLock::SURWLockDelete(SURWLOCK volatile *surwlock) {
   }
 }
 
-void __fastcall SRWLock::SURWLockEnter(SURWLOCK volatile *surwlock, int forwriting) {
+void SRWLock::SURWLockEnter(SURWLOCK volatile *surwlock, int forwriting) {
   DWORD spin;
   long  eventValue;
   long  baseValue;
@@ -417,7 +417,7 @@ void __fastcall SRWLock::SURWLockEnter(SURWLOCK volatile *surwlock, int forwriti
   }
 }
 
-int __fastcall SRWLock::SURWLockTryEnter(SURWLOCK volatile *surwlock, int forwriting) {
+int SRWLock::SURWLockTryEnter(SURWLOCK volatile *surwlock, int forwriting) {
   DWORD spin;
   long  eventValue;
   long  baseValue;
@@ -453,7 +453,7 @@ success:
   return 1;
 }
 
-void __fastcall SRWLock::SURWLockLeave(SURWLOCK volatile *surwlock, int fromwriting) {
+void SRWLock::SURWLockLeave(SURWLOCK volatile *surwlock, int fromwriting) {
   if (fromwriting) {
     SUNNLockLeave(&surwlock->m_mutex);
     return;
@@ -465,7 +465,7 @@ void __fastcall SRWLock::SURWLockLeave(SURWLOCK volatile *surwlock, int fromwrit
 }
 
 template <class T>
-void __fastcall CDebugLock<T>::IRepairBadEntry(CDebugLockData *lock, DWORD e, CDebugLockEntry *eptr, const char *fileName, DWORD line) {
+void CDebugLock<T>::IRepairBadEntry(CDebugLockData *lock, DWORD e, CDebugLockEntry *eptr, const char *fileName, DWORD line) {
   SOutputDebugString("%s(%u) : CDebugLock:%08x: entry has bad next %u\n", fileName, line, lock, e);
   if (eptr) {
     eptr->next = 0;
@@ -475,7 +475,7 @@ void __fastcall CDebugLock<T>::IRepairBadEntry(CDebugLockData *lock, DWORD e, CD
 }
 
 template <class T>
-void __fastcall CDebugLock<T>::IEnter() {
+void CDebugLock<T>::IEnter() {
   DWORD i;
 
   if (s_critsect.Enter()) {
@@ -488,12 +488,12 @@ void __fastcall CDebugLock<T>::IEnter() {
 }
 
 template <class T>
-void __fastcall CDebugLock<T>::ILeave() {
+void CDebugLock<T>::ILeave() {
   s_critsect.Leave();
 }
 
 template <class T>
-void __fastcall CDebugLock<T>::IDumpAllEntries() {
+void CDebugLock<T>::IDumpAllEntries() {
   CDebugLockData *data;
 
   data = s_locks;
@@ -504,7 +504,7 @@ void __fastcall CDebugLock<T>::IDumpAllEntries() {
 }
 
 template <class T>
-void __fastcall CDebugLock<T>::IDumpEntries(CDebugLockData *lock) {
+void CDebugLock<T>::IDumpEntries(CDebugLockData *lock) {
   DWORD            index;
   DWORD            now;
   CDebugLockEntry *entry;
@@ -530,7 +530,7 @@ void __fastcall CDebugLock<T>::IDumpEntries(CDebugLockData *lock) {
 }
 
 template <class T>
-DWORD __fastcall CDebugLock<T>::IClashingEntry(CDebugLockData *lock, DWORD threadId, int forwriting) {
+DWORD CDebugLock<T>::IClashingEntry(CDebugLockData *lock, DWORD threadId, int forwriting) {
   DWORD            index;
   CDebugLockEntry *entry;
   CDebugLockEntry *previous;
@@ -554,7 +554,7 @@ DWORD __fastcall CDebugLock<T>::IClashingEntry(CDebugLockData *lock, DWORD threa
 }
 
 template <class T>
-DWORD __fastcall CDebugLock<T>::IAddEntry(CDebugLockData *lock, DWORD threadId, int forwriting, const char *fileName, DWORD line) {
+DWORD CDebugLock<T>::IAddEntry(CDebugLockData *lock, DWORD threadId, int forwriting, const char *fileName, DWORD line) {
   DWORD            index;
   CDebugLockEntry *entry;
 
@@ -577,7 +577,7 @@ DWORD __fastcall CDebugLock<T>::IAddEntry(CDebugLockData *lock, DWORD threadId, 
 }
 
 template <class T>
-DWORD __fastcall CDebugLock<T>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int fromwriting) {
+DWORD CDebugLock<T>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int fromwriting) {
   DWORD            index;
   CDebugLockEntry *entry;
   CDebugLockEntry *previous;
@@ -610,14 +610,14 @@ DWORD __fastcall CDebugLock<T>::IDeleteEntry(CDebugLockData *lock, DWORD threadI
 }
 
 template <class T>
-void __fastcall CDebugLock<T>::IEnterEntry(DWORD e) {
+void CDebugLock<T>::IEnterEntry(DWORD e) {
   if (e) {
     s_entries[e].flags |= 0x80000000;
   }
 }
 
 template <class T>
-void __fastcall CDebugLock<T>::Construct(CDebugLockData *lock) {
+void CDebugLock<T>::Construct(CDebugLockData *lock) {
   lock->entry = 0;
   lock->prev = NULL;
 
@@ -631,7 +631,7 @@ void __fastcall CDebugLock<T>::Construct(CDebugLockData *lock) {
 }
 
 template <class T>
-void __fastcall CDebugLock<T>::Destruct(CDebugLockData *lock) {
+void CDebugLock<T>::Destruct(CDebugLockData *lock) {
   DWORD            index;
   CDebugLockEntry *entry;
 
@@ -671,26 +671,26 @@ DWORD CDebugLock<T>::s_freeEntries;
 template <class T>
 CDebugLockData *CDebugLock<T>::s_locks;
 
-template void __fastcall CDebugLock<CDebugSCritSect>::Construct(CDebugLockData *lock);
-template void __fastcall CDebugLock<CDebugSCritSect>::Destruct(CDebugLockData *lock);
-template void __fastcall CDebugLock<CDebugSCritSect>::IEnter();
-template void __fastcall CDebugLock<CDebugSCritSect>::ILeave();
-template void __fastcall CDebugLock<CDebugSCritSect>::IDumpAllEntries();
-template DWORD __fastcall CDebugLock<
+template void CDebugLock<CDebugSCritSect>::Construct(CDebugLockData *lock);
+template void CDebugLock<CDebugSCritSect>::Destruct(CDebugLockData *lock);
+template void CDebugLock<CDebugSCritSect>::IEnter();
+template void CDebugLock<CDebugSCritSect>::ILeave();
+template void CDebugLock<CDebugSCritSect>::IDumpAllEntries();
+template DWORD CDebugLock<
     CDebugSCritSect>::IAddEntry(CDebugLockData *lock, DWORD threadId, int forwriting, const char *fileName, DWORD line);
-template DWORD __fastcall CDebugLock<CDebugSCritSect>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int fromwriting);
-template void __fastcall CDebugLock<CDebugSCritSect>::IEnterEntry(DWORD e);
+template DWORD CDebugLock<CDebugSCritSect>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int fromwriting);
+template void CDebugLock<CDebugSCritSect>::IEnterEntry(DWORD e);
 
-template void __fastcall CDebugLock<CDebugSRWLock>::Construct(CDebugLockData *lock);
-template void __fastcall CDebugLock<CDebugSRWLock>::Destruct(CDebugLockData *lock);
-template void __fastcall CDebugLock<CDebugSRWLock>::IEnter();
-template void __fastcall CDebugLock<CDebugSRWLock>::ILeave();
-template void __fastcall CDebugLock<CDebugSRWLock>::IDumpAllEntries();
-template DWORD __fastcall CDebugLock<CDebugSRWLock>::IClashingEntry(CDebugLockData *lock, DWORD threadId, int forwriting);
-template DWORD __fastcall CDebugLock<
+template void CDebugLock<CDebugSRWLock>::Construct(CDebugLockData *lock);
+template void CDebugLock<CDebugSRWLock>::Destruct(CDebugLockData *lock);
+template void CDebugLock<CDebugSRWLock>::IEnter();
+template void CDebugLock<CDebugSRWLock>::ILeave();
+template void CDebugLock<CDebugSRWLock>::IDumpAllEntries();
+template DWORD CDebugLock<CDebugSRWLock>::IClashingEntry(CDebugLockData *lock, DWORD threadId, int forwriting);
+template DWORD CDebugLock<
     CDebugSRWLock>::IAddEntry(CDebugLockData *lock, DWORD threadId, int forwriting, const char *fileName, DWORD line);
-template DWORD __fastcall CDebugLock<CDebugSRWLock>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int fromwriting);
-template void __fastcall CDebugLock<CDebugSRWLock>::IEnterEntry(DWORD e);
+template DWORD CDebugLock<CDebugSRWLock>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int fromwriting);
+template void CDebugLock<CDebugSRWLock>::IEnterEntry(DWORD e);
 
 SCritSect::SCritSect() {
   InitializeCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
@@ -768,7 +768,7 @@ void CDebugSCritSect::Leave(const char *fileName, unsigned long line) {
   SCritSect::Leave();
 }
 
-void __fastcall CDebugSCritSect::DumpAllEntries() {
+void CDebugSCritSect::DumpAllEntries() {
   CDebugLock<CDebugSCritSect>::IEnter();
   SOutputDebugString("%s(%u) : CDebugSCritSect:DumpAllEntries\n", __FILE__, __LINE__);
   CDebugLock<CDebugSCritSect>::IDumpAllEntries();
@@ -893,7 +893,7 @@ void CDebugSRWLock::Leave(int fromwriting, const char *fileName, unsigned long l
   CSRWLock::Leave(fromwriting);
 }
 
-void __fastcall CDebugSRWLock::DumpAllEntries() {
+void CDebugSRWLock::DumpAllEntries() {
   CDebugLock<CDebugSRWLock>::IEnter();
   SOutputDebugString("%s(%u) : CDebugSRWLock:DumpAllEntries\n", __FILE__, __LINE__);
   CDebugLock<CDebugSRWLock>::IDumpAllEntries();
@@ -943,7 +943,7 @@ unsigned long SSyncObject::Wait(unsigned long timeoutMs) {
   return WaitForSingleObject(*(HANDLE *)m_opaqueData, timeoutMs);
 }
 
-unsigned long __fastcall WaitMultiple(unsigned int count, SSyncObject *const objects, int waitAll, unsigned long timeoutMs) {
+unsigned long WaitMultiple(unsigned int count, SSyncObject *const objects, int waitAll, unsigned long timeoutMs) {
   if (count > MAXIMUM_WAIT_OBJECTS) {
     return 0xFFFFFFFF;
   }
@@ -951,7 +951,7 @@ unsigned long __fastcall WaitMultiple(unsigned int count, SSyncObject *const obj
   return WaitForMultipleObjects(count, (const HANDLE *)objects, waitAll, timeoutMs);
 }
 
-unsigned long __fastcall WaitMultiplePtr(unsigned int count, SSyncObject **const objectPtrs, int waitAll, unsigned long timeoutMs) {
+unsigned long WaitMultiplePtr(unsigned int count, SSyncObject **const objectPtrs, int waitAll, unsigned long timeoutMs) {
   HANDLE       objects[MAXIMUM_WAIT_OBJECTS];
   unsigned int i;
   unsigned int handlecount;
@@ -995,7 +995,7 @@ int SSemaphore::Signal(unsigned int count) {
   return ReleaseSemaphore(*(HANDLE *)m_opaqueData, count, NULL);
 }
 
-int __fastcall SThread::Create(STHREADPROC threadProc, void *param, SThread &thread, char *threadName) {
+int SThread::Create(STHREADPROC threadProc, void *param, SThread &thread, char *threadName) {
   unsigned int id;
 
   (void)threadName;

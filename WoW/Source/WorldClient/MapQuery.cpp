@@ -3,7 +3,7 @@
 
 #include "Base/Base.h"
 
-bool __fastcall CMap::LocateViewerMapObjs(
+bool CMap::LocateViewerMapObjs(
     const NTempest::C3Vector &lCen,
     const NTempest::C3Vector &lEnd,
     float                    &maxT,
@@ -61,7 +61,7 @@ bool __fastcall CMap::LocateViewerMapObjs(
   return hitMapObjDef != 0;
 }
 
-unsigned int __fastcall CMap::QueryAreaId(float x, float y) {
+unsigned int CMap::QueryAreaId(float x, float y) {
   float mx = -(y - 17066.666f);
   float my = -(x - 17066.666f);
 
@@ -82,7 +82,7 @@ unsigned int __fastcall CMap::QueryAreaId(float x, float y) {
   return chunk ? chunk->zoneId : 0;
 }
 
-unsigned int __fastcall CMap::QueryShadow(NTempest::C3Vector &pos) {
+unsigned int CMap::QueryShadow(NTempest::C3Vector &pos) {
   float mx = -(pos.y - 17066.666f);
   float my = -(pos.x - 17066.666f);
   if (mx < 0.0f || my < 0.0f || mx >= 34133.332f || my >= 34133.332f) {
@@ -106,7 +106,7 @@ unsigned int __fastcall CMap::QueryShadow(NTempest::C3Vector &pos) {
   return (chunk->shadowBits[sy] & (1 << sx)) != 0;
 }
 
-unsigned int __fastcall CMap::QueryLiquidStatusMapObjsExt(
+unsigned int CMap::QueryLiquidStatusMapObjsExt(
     NTempest::C3Vector &point,
     unsigned int       &liquid,
     float              &surface,
@@ -127,7 +127,7 @@ unsigned int __fastcall CMap::QueryLiquidStatusMapObjsExt(
   return 0;
 }
 
-static void __fastcall GetHeightFlow(
+static void GetHeightFlow(
     CChunkLiquid        *cl,
     NTempest::C3Vector  &point,
     NTempest::C2Vector  &frac,
@@ -172,7 +172,7 @@ static void __fastcall GetHeightFlow(
   }
 }
 
-unsigned int __fastcall CMap::QueryLiquidStatus(
+unsigned int CMap::QueryLiquidStatus(
     NTempest::C3Vector &point,
     unsigned int       &liquid,
     float              &surface,

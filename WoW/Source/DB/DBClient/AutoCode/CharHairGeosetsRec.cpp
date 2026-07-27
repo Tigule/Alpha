@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall CharHairGeosetsRec::GetFilename() {
+const char *CharHairGeosetsRec::GetFilename() {
   return "DBFilesClient\\CharHairGeosets.dbc";
 }
 

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellDispelTypeRec::GetFilename() {
+const char *SpellDispelTypeRec::GetFilename() {
   return "DBFilesClient\\SpellDispelType.dbc";
 }
 

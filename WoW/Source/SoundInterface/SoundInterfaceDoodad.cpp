@@ -21,7 +21,7 @@ struct LOOPEDDOODADDESC {
 static LOOPEDDOODADDESC s_doodadLoopedInfo[8];
 static int              s_elapsed;
 
-static LOOPEDDOODADDESC *__fastcall FindFreeDoodadLoop(int soundID, int &freeSlot, int &soundIndex) {
+static LOOPEDDOODADDESC *FindFreeDoodadLoop(int soundID, int &freeSlot, int &soundIndex) {
   LOOPEDDOODADDESC *freeDoodadLoop = 0;
   int               freeIndex = 0;
 
@@ -52,7 +52,7 @@ static LOOPEDDOODADDESC *__fastcall FindFreeDoodadLoop(int soundID, int &freeSlo
   return 0;
 }
 
-int __fastcall DoodadLoopHandler(const void* dataPtr, void* param) {
+int DoodadLoopHandler(const void* dataPtr, void* param) {
   s_elapsed += static_cast<int>(*static_cast<const float *>(dataPtr) * 1000.0f);
   NTempest::C3Vector listener(0.0f);
   Sound::GetListenerPosition(listener);
@@ -62,11 +62,11 @@ int __fastcall DoodadLoopHandler(const void* dataPtr, void* param) {
   return 1;
 }
 
-void __fastcall SoundInterfaceDoodadInitialize() {
+void SoundInterfaceDoodadInitialize() {
   EventRegister(EVENT_ID_IDLE, DoodadLoopHandler);
 }
 
-void __fastcall SoundInterfaceDoodadDestroy() {
+void SoundInterfaceDoodadDestroy() {
   EventUnregister(EVENT_ID_IDLE, DoodadLoopHandler);
   for (unsigned int i = 0; i < 8; ++i) {
     Sound::KillSound(s_doodadLoopedInfo[i].sound);
@@ -150,7 +150,7 @@ int LOOPEDDOODADDESC::FindFreeSlot() const {
   return 0;
 }
 
-int __fastcall SndInterfaceHandleDoodadLoopStart(unsigned int soundID, const NTempest::C3Vector &pos) {
+int SndInterfaceHandleDoodadLoopStart(unsigned int soundID, const NTempest::C3Vector &pos) {
   int freeSlot;
   int soundIndex;
 
@@ -169,13 +169,13 @@ int __fastcall SndInterfaceHandleDoodadLoopStart(unsigned int soundID, const NTe
   return (soundIndex << 16) | (freeSlot & 0xFF);
 }
 
-void __fastcall SndInterfaceHandleDoodadLoopStop(unsigned int soundHandle) {
+void SndInterfaceHandleDoodadLoopStop(unsigned int soundHandle) {
   if (soundHandle) {
     s_doodadLoopedInfo[soundHandle >> 16].posInUseFlags &= ~(1 << static_cast<unsigned char>(soundHandle));
   }
 }
 
-void __fastcall SndInterfaceHandleDoodadOneShot(unsigned int soundID, const NTempest::C3Vector &position) {
+void SndInterfaceHandleDoodadOneShot(unsigned int soundID, const NTempest::C3Vector &position) {
   if (soundID) {
     NTempest::C3Vector adjustedPosition(position.x, position.y, position.z + 2.0f);
     SndInterfacePlaySound(soundID, adjustedPosition, -1, 1.0f);

@@ -56,7 +56,7 @@ static void PlayMusic() {
   }
 }
 
-static int __fastcall ZoneMusicIdle(const void* dataPtr, void* ptr) {
+static int ZoneMusicIdle(const void* dataPtr, void* ptr) {
   const EVENT_DATA_IDLE* data = static_cast<const EVENT_DATA_IDLE*>(dataPtr);
   if (!(s_flags & 1) && s_currentMusic
       && (s_currentMusic->m_Sounds[0] || s_currentMusic->m_Sounds[1])) {
@@ -71,21 +71,21 @@ static int __fastcall ZoneMusicIdle(const void* dataPtr, void* ptr) {
   return 1;
 }
 
-void __fastcall InitializeZoneMusic() {
+void InitializeZoneMusic() {
   s_flags |= 2;
   EventRegister(EVENT_ID_IDLE, ZoneMusicIdle);
   s_elapsed = 0;
   s_nextPlay = -1;
 }
 
-void __fastcall ShutdownZoneMusic() {
+void ShutdownZoneMusic() {
   EventUnregister(EVENT_ID_IDLE, ZoneMusicIdle);
   s_flags &= ~2;
   s_currentMusic = 0;
   Sound::KillSound(s_sound);
 }
 
-void __fastcall SndInterfaceRegisterNewZone(unsigned int musicID) {
+void SndInterfaceRegisterNewZone(unsigned int musicID) {
   ZoneMusicRec *previousMusic = s_currentMusic;
   s_currentMusic = g_zoneMusicDB.GetRecord(musicID);
 
@@ -95,7 +95,7 @@ void __fastcall SndInterfaceRegisterNewZone(unsigned int musicID) {
   }
 }
 
-void __fastcall SndInterfacePauseZoneMusic(int pause) {
+void SndInterfacePauseZoneMusic(int pause) {
   if (pause) {
     SndInterfaceZoneIntroStop();
     Sound::KillSound(s_sound);
@@ -105,6 +105,6 @@ void __fastcall SndInterfacePauseZoneMusic(int pause) {
   }
 }
 
-int __fastcall SndInterfaceIsZoneMusicPaused() {
+int SndInterfaceIsZoneMusicPaused() {
   return s_flags & 1;
 }

@@ -11,20 +11,20 @@
 
 static const char WOW_DATA_PATH[35] = "\\\\Guldan\\Drive2\\Projects\\WoW\\Data\\";
 
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
-unsigned char *__fastcall MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status);
-int __fastcall            MDLFileRead(const char *path, MDLDATA *data, CStatus *status);
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+unsigned char *MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status);
+int MDLFileRead(const char *path, MDLDATA *data, CStatus *status);
 
-CParticleEmitter2 *__fastcall CreateEmitter(unsigned char *emitterData, const MDLTEXTURESECTION *textures, unsigned int flags, CStatus *status);
-static CParticleEmitter2 *__fastcall CreateEmitter(
+CParticleEmitter2 *CreateEmitter(unsigned char *emitterData, const MDLTEXTURESECTION *textures, unsigned int flags, CStatus *status);
+static CParticleEmitter2 *CreateEmitter(
     const MDLPARTICLEEMITTER2 &emitterData,
     const TSGrowableArray<MDLTEXTURESECTION> &textures,
     unsigned int flags,
     CStatus *status
 );
-HTEXTURE __fastcall           LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
+HTEXTURE LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
 
-static CParticleEmitter2 *__fastcall CreateEmitterObject(unsigned int type) {
+static CParticleEmitter2 *CreateEmitterObject(unsigned int type) {
   ParticleSystemManager *manager = ParticleSystemManager::GetInstance();
   ASSERT(manager);
 
@@ -37,7 +37,7 @@ static CParticleEmitter2 *__fastcall CreateEmitterObject(unsigned int type) {
   return manager->CreateQuadEmitter();
 }
 
-static void __fastcall SetMaterialBlendMode(unsigned int blendMode, CParticleMat *mat) {
+static void SetMaterialBlendMode(unsigned int blendMode, CParticleMat *mat) {
   switch (blendMode) {
     case 0:
       mat->alpha = GxBlend_Alpha;
@@ -61,7 +61,7 @@ static void __fastcall SetMaterialBlendMode(unsigned int blendMode, CParticleMat
   }
 }
 
-static void __fastcall SetParticleStyle(const MDLPARTICLEEMITTER2 &emitterData, CParticleEmitter2 *emitter) {
+static void SetParticleStyle(const MDLPARTICLEEMITTER2 &emitterData, CParticleEmitter2 *emitter) {
   unsigned int flags = emitterData.flags;
   if (flags & 0x00080000) {
     emitter->SetUseModelSpace(1);
@@ -110,11 +110,11 @@ static void __fastcall SetParticleStyle(const MDLPARTICLEEMITTER2 &emitterData, 
   }
 }
 
-static unsigned int __fastcall GetEmitterFlags(const unsigned char *emitterData) {
+static unsigned int GetEmitterFlags(const unsigned char *emitterData) {
   return *reinterpret_cast<const unsigned int *>(emitterData + 0x5C);
 }
 
-unsigned int __fastcall SetParticleStyle(const unsigned char *emitterData, unsigned int flags, CParticleEmitter2 *emitter) {
+unsigned int SetParticleStyle(const unsigned char *emitterData, unsigned int flags, CParticleEmitter2 *emitter) {
   const unsigned int style = *reinterpret_cast<const unsigned int *>(emitterData);
   const float        tailLength = *reinterpret_cast<const float *>(emitterData + 4);
 
@@ -166,7 +166,7 @@ unsigned int __fastcall SetParticleStyle(const unsigned char *emitterData, unsig
   return 8;
 }
 
-static unsigned char *__fastcall SetKeyColors(unsigned char *emitterData, CParticleKey *key1, CParticleKey *key2) {
+static unsigned char *SetKeyColors(unsigned char *emitterData, CParticleKey *key1, CParticleKey *key2) {
   NTempest::CImVector startColor;
   NTempest::CImVector middleColor;
   NTempest::CImVector endColor;
@@ -192,7 +192,7 @@ static unsigned char *__fastcall SetKeyColors(unsigned char *emitterData, CParti
   return const_cast<unsigned char *>(alpha + 3);
 }
 
-unsigned char *__fastcall SetParticleKeys(unsigned char *emitterData, float lifeSpan, CParticleEmitter2 *emitter) {
+unsigned char *SetParticleKeys(unsigned char *emitterData, float lifeSpan, CParticleEmitter2 *emitter) {
   CParticleKey key2;
   CParticleKey key1;
   float        middleScale;
@@ -237,7 +237,7 @@ unsigned char *__fastcall SetParticleKeys(unsigned char *emitterData, float life
   return reinterpret_cast<unsigned char *>(const_cast<int *>(cells));
 }
 
-static void __fastcall SetParticleKeys(const MDLPARTICLEEMITTER2 &emitterData, CParticleEmitter2 *emitter) {
+static void SetParticleKeys(const MDLPARTICLEEMITTER2 &emitterData, CParticleEmitter2 *emitter) {
   CParticleKey key1;
   CParticleKey key2;
 
@@ -278,7 +278,7 @@ static void __fastcall SetParticleKeys(const MDLPARTICLEEMITTER2 &emitterData, C
   emitter->SetKey(1, key2);
 }
 
-HTEXTURE __fastcall LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status) {
+HTEXTURE LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status) {
   if (!(modelLoadFlags & 0x4000) || texturePath[1] == ':' || texturePath[0] == '\\') {
     return TextureCreate(texturePath, texLoadFlags, status, 0);
   }
@@ -289,7 +289,7 @@ HTEXTURE __fastcall LoadModelTexture(const char *texturePath, unsigned int model
   return TextureCreate(path, texLoadFlags, status, 0);
 }
 
-static unsigned char *__fastcall CreateParticleMaterial(
+static unsigned char *CreateParticleMaterial(
     unsigned char           *emitterData,
     const MDLTEXTURESECTION *textures,
     unsigned int             emitterFlags,
@@ -326,7 +326,7 @@ static unsigned char *__fastcall CreateParticleMaterial(
   return emitterData;
 }
 
-static void __fastcall CreateParticleMaterial(
+static void CreateParticleMaterial(
     const MDLPARTICLEEMITTER2 &emitterData,
     const TSGrowableArray<MDLTEXTURESECTION> &textures,
     unsigned int flags,
@@ -356,7 +356,7 @@ static void __fastcall CreateParticleMaterial(
   HandleClose(hTexture);
 }
 
-static unsigned char *__fastcall CreateChildEmitter(unsigned char *emitterData, unsigned int flags, CStatus *status, CParticleEmitter2 *parent) {
+static unsigned char *CreateChildEmitter(unsigned char *emitterData, unsigned int flags, CStatus *status, CParticleEmitter2 *parent) {
   char *childPath = reinterpret_cast<char *>(emitterData);
   emitterData += 260;
   if (!SStrLen(childPath)) {
@@ -391,7 +391,7 @@ static unsigned char *__fastcall CreateChildEmitter(unsigned char *emitterData, 
   return emitterData;
 }
 
-static void __fastcall CreateChildEmitter(
+static void CreateChildEmitter(
     const MDLPARTICLEEMITTER2 &emitterData,
     unsigned int flags,
     CStatus *status,
@@ -417,7 +417,7 @@ static void __fastcall CreateChildEmitter(
   }
 }
 
-unsigned char *__fastcall SetParticleTumble(unsigned char *emitterData, CParticleEmitter2 *emitter) {
+unsigned char *SetParticleTumble(unsigned char *emitterData, CParticleEmitter2 *emitter) {
   const float *tumble = reinterpret_cast<const float *>(emitterData);
   emitter->SetTumbleX(NTempest::C2Vector(tumble[0], tumble[1]));
   emitter->SetTumbleY(NTempest::C2Vector(tumble[2], tumble[3]));
@@ -425,7 +425,7 @@ unsigned char *__fastcall SetParticleTumble(unsigned char *emitterData, CParticl
   return emitterData + 6 * sizeof(float);
 }
 
-static unsigned char *__fastcall LoadC3Vector(unsigned char *emitterData, NTempest::C3Vector *vector) {
+static unsigned char *LoadC3Vector(unsigned char *emitterData, NTempest::C3Vector *vector) {
   const float *values = reinterpret_cast<const float *>(emitterData);
   vector->x = values[0];
   vector->y = values[1];
@@ -433,7 +433,7 @@ static unsigned char *__fastcall LoadC3Vector(unsigned char *emitterData, NTempe
   return emitterData + 3 * sizeof(float);
 }
 
-static CParticleEmitter2 *__fastcall CreateEmitter(
+static CParticleEmitter2 *CreateEmitter(
     const MDLPARTICLEEMITTER2 &emitterData,
     const TSGrowableArray<MDLTEXTURESECTION> &textures,
     unsigned int flags,
@@ -492,7 +492,7 @@ static CParticleEmitter2 *__fastcall CreateEmitter(
   return emitter;
 }
 
-CParticleEmitter2 *__fastcall CreateEmitter(unsigned char *emitterData, const MDLTEXTURESECTION *textures, unsigned int flags, CStatus *status) {
+CParticleEmitter2 *CreateEmitter(unsigned char *emitterData, const MDLTEXTURESECTION *textures, unsigned int flags, CStatus *status) {
   const unsigned int emitterFlags = GetEmitterFlags(emitterData);
   unsigned char     *cursor = emitterData;
   cursor += *reinterpret_cast<unsigned int *>(cursor) + 4;
@@ -581,7 +581,7 @@ CParticleEmitter2 *__fastcall CreateEmitter(unsigned char *emitterData, const MD
   return emitter;
 }
 
-int __fastcall MdlReadLoadEmitters2(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared, unsigned int flags, CStatus* status) {
+int MdlReadLoadEmitters2(const MDLDATA& data, CModelComplex* modelptr, CModelShared* shared, unsigned int flags, CStatus* status) {
   FATALASSERT(modelptr);
   FATALASSERT(shared);
 
@@ -597,7 +597,7 @@ int __fastcall MdlReadLoadEmitters2(const MDLDATA& data, CModelComplex* modelptr
   return 1;
 }
 
-void __fastcall
+void
 MdxReadEmitters2(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status) {
   ASSERT(data);
   ASSERT(modelptr);

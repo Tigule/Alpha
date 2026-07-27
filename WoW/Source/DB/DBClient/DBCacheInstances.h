@@ -25,9 +25,9 @@ extern DBCache<PageTextCache_C, int, HASHKEY_INT>         g_pageTextCache;
 extern DBCache<PetNameCache, int, HASHKEY_INT>            g_petNameCache;
 extern DBCache<CGPetition, int, HASHKEY_INT>              g_petitionCache;
 
-void __fastcall DBCache_Initialize();
-void __fastcall DBCache_Destroy();
-void __fastcall DBCache_RegisterHandlers();
-void __fastcall DBCache_ClearHandlers();
+void DBCache_Initialize();
+void DBCache_Destroy();
+void DBCache_RegisterHandlers();
+void DBCache_ClearHandlers();
 
 #endif

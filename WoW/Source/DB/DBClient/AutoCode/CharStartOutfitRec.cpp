@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall CharStartOutfitRec::GetFilename() {
+const char *CharStartOutfitRec::GetFilename() {
   return "DBFilesClient\\CharStartOutfit.dbc";
 }
 

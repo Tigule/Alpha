@@ -39,64 +39,64 @@ struct TradeSkillSubClassInfo {
 static int __cdecl QSortSkills(const void *a, const void *b);
 static int __cdecl QSortSubClasses(const void *a, const void *b);
 
-const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
+const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
 extern const int *const               g_ITEMTYPEARRAY;
 
 class CGTradeSkillInfo {
  public:
-  static void __fastcall EnterWorld();
-  static void __fastcall LeaveWorld();
-  static void __fastcall ShutdownGame();
-  static void __fastcall Close();
-  static void __fastcall ClearItemCallbacks();
-  static void __fastcall RefreshList(int resetFilters);
-  static void __fastcall DecrementPendingItem() {
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void ShutdownGame();
+  static void Close();
+  static void ClearItemCallbacks();
+  static void RefreshList(int resetFilters);
+  static void DecrementPendingItem() {
     if (!m_itemsPending || !--m_itemsPending) {
       RefreshList(1);
     }
   }
-  static void __fastcall SetSkillLine(int id);
-  static void __fastcall SetSelection(int index);
-  static int __fastcall  GetSelectionIndex();
-  static int __fastcall  GetSkillLine() {
+  static void SetSkillLine(int id);
+  static void SetSelection(int index);
+  static int GetSelectionIndex();
+  static int GetSkillLine() {
     return m_skillLine;
   }
-  static int __fastcall GetNumTradeSkills() {
+  static int GetNumTradeSkills() {
     return m_filteredSkills;
   }
-  static TradeSkillInfo *__fastcall GetTradeSkillInfo(unsigned int index) {
+  static TradeSkillInfo *GetTradeSkillInfo(unsigned int index) {
     return index < m_numSkills ? m_skills[index] : 0;
   }
-  static unsigned int __fastcall GetNumSubClasses() {
+  static unsigned int GetNumSubClasses() {
     return m_numSubClasses;
   }
-  static TradeSkillSubClassInfo *__fastcall GetSubClass(unsigned int index) {
+  static TradeSkillSubClassInfo *GetSubClass(unsigned int index) {
     return index < m_numSubClasses ? m_subClasses[index] : 0;
   }
-  static int __fastcall GetSubClassIndexFromSkill(unsigned int index);
-  static int __fastcall IsCollpasedHeader(unsigned int index);
-  static int __fastcall GetSubClassFilter() {
+  static int GetSubClassIndexFromSkill(unsigned int index);
+  static int IsCollpasedHeader(unsigned int index);
+  static int GetSubClassFilter() {
     return m_subClassFilter;
   }
-  static int __fastcall GetInvTypeFilter() {
+  static int GetInvTypeFilter() {
     return m_invTypeFilter;
   }
-  static int __fastcall GetCollapseFilter() {
+  static int GetCollapseFilter() {
     return m_collapseFilter;
   }
-  static int __fastcall GetAvailableSlots() {
+  static int GetAvailableSlots() {
     return m_availableSlots;
   }
-  static void __fastcall SetSubClassFilter(int filter);
-  static void __fastcall SetInvTypeFilter(int filter);
-  static void __fastcall SetCollapseFilter(int filter);
+  static void SetSubClassFilter(int filter);
+  static void SetInvTypeFilter(int filter);
+  static void SetCollapseFilter(int filter);
 
  private:
   friend int __cdecl QSortSkills(const void *a, const void *b);
   friend int __cdecl QSortSubClasses(const void *a, const void *b);
 
  protected:
-  static void __fastcall FilterAndSortSkills();
+  static void FilterAndSortSkills();
 
  private:
   static int                                       m_skillLine;
@@ -133,21 +133,21 @@ static const char *s_invSlotTokens[24] = {"HEADSLOT",    "NECKSLOT",    "SHOULDE
 
 static const char s_skillCategoryStrings[4][32] = {"optimal", "medium", "easy", "trivial"};
 
-bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
+bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 
-static void __fastcall TradeSkillItemCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void TradeSkillItemCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     CGTradeSkillInfo::RefreshList(0);
   }
 }
 
-static void __fastcall TradeSkillListItemCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void TradeSkillListItemCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     CGTradeSkillInfo::DecrementPendingItem();
   }
 }
 
-void __fastcall CGTradeSkillInfo::EnterWorld() {
+void CGTradeSkillInfo::EnterWorld() {
   m_skillLine = 0;
   m_currentSelection = 0;
   m_numSkills = 0;
@@ -155,21 +155,21 @@ void __fastcall CGTradeSkillInfo::EnterWorld() {
   m_numSubClasses = 0;
 }
 
-void __fastcall CGTradeSkillInfo::LeaveWorld() {
+void CGTradeSkillInfo::LeaveWorld() {
   ClearItemCallbacks();
 }
 
-void __fastcall CGTradeSkillInfo::ShutdownGame() {
+void CGTradeSkillInfo::ShutdownGame() {
   m_skills.Clear();
   m_subClasses.Clear();
 }
 
-void __fastcall CGTradeSkillInfo::Close() {
+void CGTradeSkillInfo::Close() {
   m_skillLine = 0;
   FrameScript_SignalEvent(292);
 }
 
-void __fastcall CGTradeSkillInfo::ClearItemCallbacks() {
+void CGTradeSkillInfo::ClearItemCallbacks() {
   if (m_itemsPending) {
     for (unsigned int i = 0; i < m_numSkills; ++i) {
       g_itemDBCache.CancelCallback(m_skills[i]->spellID, TradeSkillListItemCallback, 0);
@@ -178,7 +178,7 @@ void __fastcall CGTradeSkillInfo::ClearItemCallbacks() {
   }
 }
 
-void __fastcall CGTradeSkillInfo::SetSkillLine(int id) {
+void CGTradeSkillInfo::SetSkillLine(int id) {
   ClearItemCallbacks();
   if (id == m_skillLine) {
     m_skillLine = 0;
@@ -193,7 +193,7 @@ void __fastcall CGTradeSkillInfo::SetSkillLine(int id) {
   }
 }
 
-void __fastcall CGTradeSkillInfo::SetSelection(int index) {
+void CGTradeSkillInfo::SetSelection(int index) {
   if (index >= 0 && static_cast<unsigned int>(index) < m_numSkills && m_skills[index]->spellID > 0) {
     m_currentSelection = m_skills[index]->spellID;
     g_itemDBCache.GetRecord(
@@ -204,7 +204,7 @@ void __fastcall CGTradeSkillInfo::SetSelection(int index) {
   }
 }
 
-int __fastcall CGTradeSkillInfo::GetSelectionIndex() {
+int CGTradeSkillInfo::GetSelectionIndex() {
   if (!m_currentSelection) {
     return -1;
   }
@@ -303,7 +303,7 @@ static int __cdecl QSortSubClasses(const void *a, const void *b) {
   return name1 && name2 ? SStrCmp(name1, name2, 0x7FFFFFFF) : 0;
 }
 
-void __fastcall CGTradeSkillInfo::RefreshList(int resetFilters) {
+void CGTradeSkillInfo::RefreshList(int resetFilters) {
   unsigned int i;
   unsigned int j;
 
@@ -426,7 +426,7 @@ void __fastcall CGTradeSkillInfo::RefreshList(int resetFilters) {
   FrameScript_SignalEvent(291);
 }
 
-void __fastcall CGTradeSkillInfo::FilterAndSortSkills() {
+void CGTradeSkillInfo::FilterAndSortSkills() {
   unsigned int i;
   unsigned int j;
 
@@ -472,7 +472,7 @@ void __fastcall CGTradeSkillInfo::FilterAndSortSkills() {
   qsort(m_skills.Ptr(), m_numSkills, sizeof(TradeSkillInfo *), QSortSkills);
 }
 
-int __fastcall CGTradeSkillInfo::GetSubClassIndexFromSkill(unsigned int index) {
+int CGTradeSkillInfo::GetSubClassIndexFromSkill(unsigned int index) {
   TradeSkillInfo *skill = GetTradeSkillInfo(index);
   if (!skill || skill->spellID >= 0) {
     return -1;
@@ -486,40 +486,40 @@ int __fastcall CGTradeSkillInfo::GetSubClassIndexFromSkill(unsigned int index) {
   return -1;
 }
 
-int __fastcall CGTradeSkillInfo::IsCollpasedHeader(unsigned int index) {
+int CGTradeSkillInfo::IsCollpasedHeader(unsigned int index) {
   int subClass = GetSubClassIndexFromSkill(index);
   return subClass >= 0 && !(m_collapseFilter & (1 << subClass));
 }
 
-void __fastcall CGTradeSkillInfo::SetSubClassFilter(int filter) {
+void CGTradeSkillInfo::SetSubClassFilter(int filter) {
   m_subClassFilter = filter;
   FilterAndSortSkills();
   FrameScript_SignalEvent(291);
 }
 
-void __fastcall CGTradeSkillInfo::SetInvTypeFilter(int filter) {
+void CGTradeSkillInfo::SetInvTypeFilter(int filter) {
   m_invTypeFilter = filter;
   FilterAndSortSkills();
   FrameScript_SignalEvent(291);
 }
 
-void __fastcall CGTradeSkillInfo::SetCollapseFilter(int filter) {
+void CGTradeSkillInfo::SetCollapseFilter(int filter) {
   m_collapseFilter = filter;
   FilterAndSortSkills();
   FrameScript_SignalEvent(291);
 }
 
-static int __fastcall Script_CloseTradeSkill(lua_State *__formal) {
+static int Script_CloseTradeSkill(lua_State *__formal) {
   CGTradeSkillInfo::Close();
   return 0;
 }
 
-static int __fastcall Script_GetNumTradeSkills(lua_State *L) {
+static int Script_GetNumTradeSkills(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGTradeSkillInfo::GetNumTradeSkills()));
   return 1;
 }
 
-static int __fastcall Script_GetTradeSkillInfo(lua_State *L) {
+static int Script_GetTradeSkillInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillInfo(index)");
   }
@@ -561,7 +561,7 @@ static int __fastcall Script_GetTradeSkillInfo(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_SelectTradeSkill(lua_State *L) {
+static int Script_SelectTradeSkill(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SelectTradeSkill(index)");
   }
@@ -569,12 +569,12 @@ static int __fastcall Script_SelectTradeSkill(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetTradeSkillSelectionIndex(lua_State *L) {
+static int Script_GetTradeSkillSelectionIndex(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGTradeSkillInfo::GetSelectionIndex() + 1));
   return 1;
 }
 
-static int __fastcall Script_GetTradeSkillIcon(lua_State *L) {
+static int Script_GetTradeSkillIcon(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillIcon(index)");
   }
@@ -603,13 +603,13 @@ static int __fastcall Script_GetTradeSkillIcon(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTradeSkillLine(lua_State *L) {
+static int Script_GetTradeSkillLine(lua_State *L) {
   const SkillLineRec *line = g_skillLineDB.GetRecord(CGTradeSkillInfo::GetSkillLine());
   lua_pushstring(L, line ? line->m_displayName_lang[CURRENT_LANGUAGE] : "UNKNOWN");
   return 1;
 }
 
-static int __fastcall Script_GetTradeSkillItemStats(lua_State *L) {
+static int Script_GetTradeSkillItemStats(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillItemStats(index)");
   }
@@ -631,7 +631,7 @@ static int __fastcall Script_GetTradeSkillItemStats(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTradeSkillItemLink(lua_State *L) {
+static int Script_GetTradeSkillItemLink(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillItemLink(index)");
   }
@@ -651,7 +651,7 @@ static int __fastcall Script_GetTradeSkillItemLink(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTradeSkillNumReagents(lua_State *L) {
+static int Script_GetTradeSkillNumReagents(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillNumReagents(index)");
   }
@@ -669,7 +669,7 @@ static int __fastcall Script_GetTradeSkillNumReagents(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTradeSkillReagentInfo(lua_State *L) {
+static int Script_GetTradeSkillReagentInfo(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: GetTradeSkillReagentInfo(index, reagentIndex)");
   }
@@ -711,7 +711,7 @@ static int __fastcall Script_GetTradeSkillReagentInfo(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_GetTradeSkillTools(lua_State *L) {
+static int Script_GetTradeSkillTools(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillTools(index)");
   }
@@ -738,7 +738,7 @@ static int __fastcall Script_GetTradeSkillTools(lua_State *L) {
   return count;
 }
 
-static int __fastcall Script_GetTradeSkillSubClasses(lua_State *L) {
+static int Script_GetTradeSkillSubClasses(lua_State *L) {
   unsigned int count = 0;
   for (unsigned int i = 0; i < CGTradeSkillInfo::GetNumSubClasses(); ++i) {
     TradeSkillSubClassInfo *info = CGTradeSkillInfo::GetSubClass(i);
@@ -758,7 +758,7 @@ static int __fastcall Script_GetTradeSkillSubClasses(lua_State *L) {
   return count;
 }
 
-static int __fastcall Script_GetTradeSkillInvSlots(lua_State *L) {
+static int Script_GetTradeSkillInvSlots(lua_State *L) {
   int available = CGTradeSkillInfo::GetAvailableSlots();
   int count = 0;
   for (unsigned int i = 0; i < 24; ++i) {
@@ -770,7 +770,7 @@ static int __fastcall Script_GetTradeSkillInvSlots(lua_State *L) {
   return count;
 }
 
-static int __fastcall Script_SetTradeSkillSubClassFilter(lua_State *L) {
+static int Script_SetTradeSkillSubClassFilter(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SetTradeSkillSubClassFilter(index, onOff [, exclusive])");
   }
@@ -795,7 +795,7 @@ static int __fastcall Script_SetTradeSkillSubClassFilter(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetTradeSkillSubClassFilter(lua_State *L) {
+static int Script_GetTradeSkillSubClassFilter(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillSubClassFilter(index)");
   }
@@ -822,7 +822,7 @@ static int __fastcall Script_GetTradeSkillSubClassFilter(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_SetTradeSkillInvSlotFilter(lua_State *L) {
+static int Script_SetTradeSkillInvSlotFilter(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SetTradeSkillInvSlotFilter(index, onOff [, exclusive])");
   }
@@ -859,7 +859,7 @@ static int __fastcall Script_SetTradeSkillInvSlotFilter(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetTradeSkillInvSlotFilter(lua_State *L) {
+static int Script_GetTradeSkillInvSlotFilter(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillInvSlotFilter(index)");
   }
@@ -896,7 +896,7 @@ static int __fastcall Script_GetTradeSkillInvSlotFilter(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_CollapseTradeSkillSubClass(lua_State *L) {
+static int Script_CollapseTradeSkillSubClass(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: CollapseTradeSkillSubClass(index)");
   }
@@ -913,7 +913,7 @@ static int __fastcall Script_CollapseTradeSkillSubClass(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ExpandTradeSkillSubClass(lua_State *L) {
+static int Script_ExpandTradeSkillSubClass(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: ExpandTradeSkillSubClass(index)");
   }
@@ -930,7 +930,7 @@ static int __fastcall Script_ExpandTradeSkillSubClass(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_DoTradeSkill(lua_State *L) {
+static int Script_DoTradeSkill(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: DoTradeSkill(index)");
   }
@@ -965,13 +965,13 @@ static FrameScript_Method s_ScriptFunctions[21] = {
     {               "DoTradeSkill",                Script_DoTradeSkill}
 };
 
-void __fastcall TradeSkillRegisterScriptFunctions() {
+void TradeSkillRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 21; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall TradeSkillUnregisterScriptFunctions() {
+void TradeSkillUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 21; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

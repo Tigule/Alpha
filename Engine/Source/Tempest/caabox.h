@@ -91,16 +91,16 @@ namespace NTempest {
     void AlignBottomZ(const CAaBox &value);
     void AlignTopZ(const CAaBox &value);
 
-    static CAaBox __fastcall Lerp(const CAaBox &a, const CAaBox &b, const CAaBox &t);
-    static CAaBox __fastcall Intersection(const CAaBox &a, const CAaBox &b, const CAaBox &c);
-    static CAaBox __fastcall Intersection(const CAaBox &a, const CAaBox &b);
-    static CAaBox __fastcall Union(const CAaBox &a, const CAaBox &b);
+    static CAaBox Lerp(const CAaBox &a, const CAaBox &b, const CAaBox &t);
+    static CAaBox Intersection(const CAaBox &a, const CAaBox &b, const CAaBox &c);
+    static CAaBox Intersection(const CAaBox &a, const CAaBox &b);
+    static CAaBox Union(const CAaBox &a, const CAaBox &b);
     CAaBox                  Intersect(const CAaBox &value) const;
     CAaBox                  Unite(const CAaBox &value) const;
 
-    static CAaBox __fastcall Bounding(const CDynTable<unsigned long> &indices, const CDynTable<C3Vector> &vectors);
-    static CAaBox __fastcall Bounding(const CDynTable<C3Vector> &vectors);
-    static CAaBox __fastcall Bounding(const C3Vector *vectors, unsigned long count);
+    static CAaBox Bounding(const CDynTable<unsigned long> &indices, const CDynTable<C3Vector> &vectors);
+    static CAaBox Bounding(const CDynTable<C3Vector> &vectors);
+    static CAaBox Bounding(const C3Vector *vectors, unsigned long count);
 
     C3Vector b;
     C3Vector t;

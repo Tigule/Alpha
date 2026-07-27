@@ -25,7 +25,7 @@ typedef HCHARGEOSET__ *HCHARGEOSET;
 template <class T>
 class TSStackArray;
 
-void __fastcall UnitUpdateMovementAnim(const unsigned __int64 &unit);
+void UnitUpdateMovementAnim(const unsigned __int64 &unit);
 
 enum UNITEFFECTSPECIALS {
   SPECIALEFFECT_LOOTART = 0,
@@ -526,19 +526,19 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void UpdateMoveInfo(unsigned long eventTime, CClientMoveUpdate &update);
 
   static unsigned __int64        m_activeMover;
-  static void __fastcall         Initialize();
-  static void __fastcall         PostShutdown();
-  static void __fastcall         Shutdown();
-  static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);
-  static void __fastcall         SetActiveMover(const unsigned __int64 &guid);
-  static void __fastcall         StopMoveHeartbeatTimer();
-  static void __fastcall         StartMoveHeartbeatTimer();
-  static int __fastcall          GetAnimPriority(int state);
-  static void __fastcall         NamePlateShow(int show);
+  static void Initialize();
+  static void PostShutdown();
+  static void Shutdown();
+  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
+  static void SetActiveMover(const unsigned __int64 &guid);
+  static void StopMoveHeartbeatTimer();
+  static void StartMoveHeartbeatTimer();
+  static int GetAnimPriority(int state);
+  static void NamePlateShow(int show);
   int                            GetCreatureType();
   int                            CanBeLooted(unsigned long currentTime) const;
-  static void __fastcall         UpdateUnitNameplates(CGWorldFrame *worldFrame);
-  static void __fastcall         RemoveAllNamePlates();
+  static void UpdateUnitNameplates(CGWorldFrame *worldFrame);
+  static void RemoveAllNamePlates();
 
   virtual const char        *GetObjectName() const;
   virtual int                GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
@@ -557,7 +557,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   );
   void                       InitializeUnitName();
   void                       CreateFadeInMount();
-  static void __fastcall     ResortAllUnitNameplates(CGWorldFrame *worldFrame);
+  static void ResortAllUnitNameplates(CGWorldFrame *worldFrame);
   virtual NTempest::C3Vector GetPosition() const;
   virtual void               GetPosition(NTempest::C3Vector &vec) const;
   virtual float              GetFacing() const;
@@ -605,12 +605,12 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int  ShouldShuffle() const;
 
  public:
-  friend void __fastcall SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit);
-  friend void __fastcall CreatureQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
-  friend int __fastcall  UnitModeUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param);
-  friend int __fastcall  OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+  friend void SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit);
+  friend void CreatureQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
+  friend int UnitModeUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param);
+  friend int OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
 
-  static void __fastcall
+  static void
   InitializeTextureVariations(const CreatureDisplayInfoRec *displayInfo, HMODEL theModel, const CreatureModelDataRec *modelData);
 
  public:
@@ -895,9 +895,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   const SkillLineAbilityRec      *LookupAbility(int spellID) const;
   bool                            IsSpellSuperceded(int spellID) const;
   int                             GetSpellSkillLine(int spellID) const;
-  static bool __fastcall          FactionHasReputation(int faction);
+  static bool FactionHasReputation(int faction);
   UNIT_REACTION                   UnitReaction(const CGUnit_C *unit) const;
-  static UNIT_REACTION __fastcall UnitReaction(int factionID, const CGUnit_C *unit, int trueSight);
+  static UNIT_REACTION UnitReaction(int factionID, const CGUnit_C *unit, int trueSight);
   bool                            CanAttack(const CGUnit_C *unit) const;
   bool                            CanAssist(const CGUnit_C *unit) const;
   bool                            CanCooperate(const CGUnit_C *unit) const;
@@ -909,8 +909,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void                            ProcessChannelObject();
   void                            SetAuraMirrorHandlers();
   void                            UnsetAuraMirrorHandlers();
-  void SetAuraMirrorHandler(unsigned int slot, int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));
-  void UnsetAuraMirrorHandler(unsigned int slot, int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));
+  void SetAuraMirrorHandler(unsigned int slot, int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));
+  void UnsetAuraMirrorHandler(unsigned int slot, int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));
   void OnAuraChanged(unsigned int slot, int previousValue);
   void SignalDisplayHealthUpdate() const;
   void UpdateDisplayHealth();
@@ -1045,7 +1045,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void             OnNPCGoodbye();
   int              PlayNPCSound(NPCSOUNDS sound, unsigned int index);
 
-  friend void __fastcall MovementFixOutOfBoundsUnit(unsigned __int64 guid);
+  friend void MovementFixOutOfBoundsUnit(unsigned __int64 guid);
 
   int                                                    m_questCountKilled;
   int                                                    m_questCountNeeded;
@@ -1197,6 +1197,6 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void PrintAttackSeqErrorMsg(unsigned int sequence, unsigned int fallBack) const;
 };
 
-void __fastcall CGUnit_C_RenderBowStrings(NTempest::C3Vector &c);
+void CGUnit_C_RenderBowStrings(NTempest::C3Vector &c);
 
-void __fastcall ClearSpecialEffects(HMODEL model);
+void ClearSpecialEffects(HMODEL model);

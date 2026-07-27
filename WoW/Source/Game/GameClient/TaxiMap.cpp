@@ -24,7 +24,7 @@ static __int64                   s_knownNodes;
 static HTEXTURE                  s_solidColor;
 static TSGrowableArray<TAXILINE> s_lines;
 
-static void __fastcall FixupRegionRect(NTempest::CRect &rect) {
+static void FixupRegionRect(NTempest::CRect &rect) {
   float xSlide = 0.0f;
   float ySlide = 0.0f;
   if (rect.r > 17066.666f) {
@@ -43,7 +43,7 @@ static void __fastcall FixupRegionRect(NTempest::CRect &rect) {
   rect.b += ySlide;
 }
 
-static void __fastcall TextureUpdateFunc(
+static void TextureUpdateFunc(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -59,7 +59,7 @@ static void __fastcall TextureUpdateFunc(
   }
 }
 
-static void __fastcall UglifyMapTexture() {
+static void UglifyMapTexture() {
   C4Pixel      color;
   unsigned int index;
 
@@ -73,7 +73,7 @@ static void __fastcall UglifyMapTexture() {
   }
 }
 
-static unsigned int __fastcall UpdateTexture(int continentID) {
+static unsigned int UpdateTexture(int continentID) {
   if (continentID == s_continent) {
     return 1;
   }
@@ -113,14 +113,14 @@ static unsigned int __fastcall UpdateTexture(int continentID) {
   return 1;
 }
 
-static NTempest::C2Vector __fastcall CalculateNormalizedCoords(const NTempest::C2Vector &vec) {
+static NTempest::C2Vector CalculateNormalizedCoords(const NTempest::C2Vector &vec) {
   NTempest::C2Vector v;
   v.x = (vec.x - s_visibleWorldRect.l) / s_visibleWorldRect.Width();
   v.y = (s_visibleWorldRect.b - vec.y) / s_visibleWorldRect.Height();
   return v;
 }
 
-static void __fastcall GenerateRouteInfo(__int64 allNodes, int currentContinent) {
+static void GenerateRouteInfo(__int64 allNodes, int currentContinent) {
   int i;
   int j;
 
@@ -172,7 +172,7 @@ static void __fastcall GenerateRouteInfo(__int64 allNodes, int currentContinent)
   }
 }
 
-void __fastcall TaxiMapInitialize() {
+void TaxiMapInitialize() {
   CGxTexParmsEx params;
   CGxTex       *tex;
 
@@ -217,7 +217,7 @@ void __fastcall TaxiMapInitialize() {
   }
 }
 
-void __fastcall TaxiMapShutdown() {
+void TaxiMapShutdown() {
   if (s_texture) {
     HandleClose(s_texture);
   }
@@ -235,11 +235,11 @@ void __fastcall TaxiMapShutdown() {
   s_solidColor = 0;
 }
 
-HTEXTURE __fastcall TaxiMapGetTexture() {
+HTEXTURE TaxiMapGetTexture() {
   return s_texture;
 }
 
-int __fastcall TaxiMapUpdatePosition(int currentTaxiNode, __int64 reachable, __int64 known, NTempest::CRect &rect) {
+int TaxiMapUpdatePosition(int currentTaxiNode, __int64 reachable, __int64 known, NTempest::CRect &rect) {
   TaxiNodesRec *currentNode = g_taxiNodesDB.GetRecord(currentTaxiNode);
   if (currentTaxiNode >= 0 && currentNode && UpdateTexture(currentNode->m_ContinentID)) {
     s_currentTaxiNode = currentTaxiNode;
@@ -268,7 +268,7 @@ int __fastcall TaxiMapUpdatePosition(int currentTaxiNode, __int64 reachable, __i
   return 0;
 }
 
-unsigned int __fastcall TaxiNodeCost(unsigned int srcNode, unsigned int dstNode) {
+unsigned int TaxiNodeCost(unsigned int srcNode, unsigned int dstNode) {
   if (srcNode && dstNode && srcNode <= 63 && dstNode <= 63) {
     TaxiPathRec *path = s_taxiPathCosts[srcNode][dstNode];
     if (path) {
@@ -278,11 +278,11 @@ unsigned int __fastcall TaxiNodeCost(unsigned int srcNode, unsigned int dstNode)
   return 0;
 }
 
-NTempest::CRect __fastcall TaxiMapGetRect() {
+NTempest::CRect TaxiMapGetRect() {
   return s_taxiTextureRect;
 }
 
-TAXNODE_TYPE __fastcall TaxiNodeGetNodeType(int nodeID) {
+TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
   if (nodeID == s_currentTaxiNode) {
     return TAXNODE_CURRENT;
   }
@@ -305,7 +305,7 @@ TAXNODE_TYPE __fastcall TaxiNodeGetNodeType(int nodeID) {
   return TAXNODE_NONE;
 }
 
-HMODEL __fastcall TaxiGetRouteModel(float width, float height) {
+HMODEL TaxiGetRouteModel(float width, float height) {
   unsigned int lines = s_lines.Count();
   if (!lines) {
     return 0;
@@ -358,7 +358,7 @@ HMODEL __fastcall TaxiGetRouteModel(float width, float height) {
   );
 }
 
-unsigned int __fastcall TaxiRouteExists(int fromNode, int toNode) {
+unsigned int TaxiRouteExists(int fromNode, int toNode) {
   return fromNode > 0 && toNode > 0 && fromNode <= 63 && toNode <= 63 && s_taxiPathCosts[fromNode][toNode] != 0;
 }
 

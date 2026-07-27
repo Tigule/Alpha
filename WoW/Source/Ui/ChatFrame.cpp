@@ -93,12 +93,12 @@ static TSHashTable<WORDLIST, HASHKEY_LANGUAGE>                s_wordLists;
 static int                                                    s_loggingEnabled;
 static HSLOG                                                  s_logHandle;
 
-unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
+unsigned __int64 Script_GetGUIDFromName(const char *name);
 
 int CGChat::m_paused = 1;
 int CGChat::m_filterChat = 1;
 
-void __fastcall CGChat::InitializeGame() {
+void CGChat::InitializeGame() {
   unsigned int numEntries = g_languageWordsDB.GetNumRecords();
   for (unsigned int i = 0; i < numEntries; ++i) {
     LanguageWordsRec *wordRec = g_languageWordsDB.GetRecordByIndex(i);
@@ -113,7 +113,7 @@ void __fastcall CGChat::InitializeGame() {
   }
 }
 
-void __fastcall CGChat::ShutdownGame() {
+void CGChat::ShutdownGame() {
   s_wordLists.Destroy();
 
   PENDINGCHAT *pending;
@@ -136,16 +136,16 @@ void __fastcall CGChat::ShutdownGame() {
   s_channels.Clear();
 }
 
-void __fastcall CGChat::EnterWorld() {
+void CGChat::EnterWorld() {
   m_paused = 0;
   GetPendingChatMessages();
 }
 
-void __fastcall CGChat::LeaveWorld() {
+void CGChat::LeaveWorld() {
   m_paused = 1;
 }
 
-static void __fastcall SendChatEvent(
+static void SendChatEvent(
     const char      *text,
     SLASH_COMMAND_ID type,
     const char      *player,
@@ -172,7 +172,7 @@ static void __fastcall SendChatEvent(
   FrameScript_SignalEvent(s_events[type], "%s%s%s%s%s%s", text, player, "", channel, player2, specialFlag);
 }
 
-void __fastcall CGChat::AddChatMessage(
+void CGChat::AddChatMessage(
     const char      *text,
     SLASH_COMMAND_ID type,
     const char      *player,
@@ -187,7 +187,7 @@ void __fastcall CGChat::AddChatMessage(
   SendChatEvent(text, type, player, language, channel, player2, specialFlag);
 }
 
-void __fastcall CGChat::AddTextEmoteMessage(const unsigned __int64 &senderGUID, int textEmoteID, const char *target) {
+void CGChat::AddTextEmoteMessage(const unsigned __int64 &senderGUID, int textEmoteID, const char *target) {
   NameCache *nc = const_cast<NameCache *>(g_nameDBCache.GetRecord(senderGUID, senderGUID, 0, 0));
   if (!nc) {
     return;
@@ -214,7 +214,7 @@ static void CopyWordCase(char *buffer, const char *token, const char *word, unsi
   buffer[i] = 0;
 }
 
-void __fastcall CGChat::TranslateMessage(unsigned int language, unsigned int skill, const char *text, char *buffer, unsigned int size, int passXML) {
+void CGChat::TranslateMessage(unsigned int language, unsigned int skill, const char *text, char *buffer, unsigned int size, int passXML) {
   if (!size) {
     return;
   }
@@ -263,11 +263,11 @@ void __fastcall CGChat::TranslateMessage(unsigned int language, unsigned int ski
   }
 }
 
-void __fastcall CGChat::UpdateLanguages() {
+void CGChat::UpdateLanguages() {
   FrameScript_SignalEvent(242);
 }
 
-void __fastcall CGChat::AddChannel(const char *name) {
+void CGChat::AddChannel(const char *name) {
   unsigned int index;
   for (index = 0; index < s_channels.Count(); ++index) {
     if (!s_channels[index].localID) {
@@ -280,7 +280,7 @@ void __fastcall CGChat::AddChannel(const char *name) {
   SStrCopy(channel->name, name, sizeof(channel->name));
 }
 
-void __fastcall CGChat::RemoveChannel(const char *name) {
+void CGChat::RemoveChannel(const char *name) {
   for (unsigned int index = 0; index < s_channels.Count(); ++index) {
     ChatChannel &channel = s_channels[index];
     if (!SStrCmpI(channel.name, name, 0x7FFFFFFF)) {
@@ -291,12 +291,12 @@ void __fastcall CGChat::RemoveChannel(const char *name) {
   }
 }
 
-int __fastcall CGChat::GetChannelID(const char *name) {
+int CGChat::GetChannelID(const char *name) {
   ChatChannel *channel = GetChannel(name);
   return channel ? channel->localID : 0;
 }
 
-const char *__fastcall CGChat::GetChannelName(int localID) {
+const char *CGChat::GetChannelName(int localID) {
   if (localID < 1 || static_cast<unsigned int>(localID) > s_channels.Count()) {
     return 0;
   }
@@ -304,7 +304,7 @@ const char *__fastcall CGChat::GetChannelName(int localID) {
   return channel.localID == localID ? channel.name : 0;
 }
 
-ChatChannel *__fastcall CGChat::GetChannel(const char *name) {
+ChatChannel *CGChat::GetChannel(const char *name) {
   for (unsigned int index = 0; index < s_channels.Count(); ++index) {
     if (!SStrCmpI(s_channels[index].name, name, 0x7FFFFFFF)) {
       return &s_channels[index];
@@ -313,7 +313,7 @@ ChatChannel *__fastcall CGChat::GetChannel(const char *name) {
   return 0;
 }
 
-void __fastcall CGChat::ChannelNotify(CDataStore *msg) {
+void CGChat::ChannelNotify(CDataStore *msg) {
   char             namebuffer[256] = "";
   char             buffer[512] = "";
   char             channel[128];
@@ -504,7 +504,7 @@ void __fastcall CGChat::ChannelNotify(CDataStore *msg) {
   }
 }
 
-void __fastcall CGChat::ChannelList(CDataStore *msg) {
+void CGChat::ChannelList(CDataStore *msg) {
   char         channelName[128];
   int          count;
   int          i;
@@ -537,7 +537,7 @@ void __fastcall CGChat::ChannelList(CDataStore *msg) {
     DisplayPendingUserList(channel);
 }
 
-void __fastcall CGChat::DisplayPendingUserList(ChatChannel *channel) {
+void CGChat::DisplayPendingUserList(ChatChannel *channel) {
   char line[256] = "";
   char buffer[58];
   int  namesThisLine = 0;
@@ -569,7 +569,7 @@ void __fastcall CGChat::DisplayPendingUserList(ChatChannel *channel) {
   channel->pendingNames.Clear();
 }
 
-void __fastcall CGChat::QueueChatText(
+void CGChat::QueueChatText(
     int              slashCmd,
     unsigned __int64 guid,
     char            *text,
@@ -592,7 +592,7 @@ void __fastcall CGChat::QueueChatText(
   SStrCopy(pending->specialFlag, specialFlag ? specialFlag : "", sizeof(pending->specialFlag));
 }
 
-void __fastcall CGChat::QueueTextEmote(const unsigned __int64 &sender, int textEmoteID, const char *target, int waitingForUI) {
+void CGChat::QueueTextEmote(const unsigned __int64 &sender, int textEmoteID, const char *target, int waitingForUI) {
   PENDINGTEXTEMOTE *pending = s_pendingTextEmote.NewNode(LIST_TAIL, 0, 0);
   pending->sender = sender;
   pending->textEmoteID = textEmoteID;
@@ -600,7 +600,7 @@ void __fastcall CGChat::QueueTextEmote(const unsigned __int64 &sender, int textE
   pending->waitingForUI = waitingForUI;
 }
 
-void __fastcall CGChat::NameQueryCallback(int, const unsigned __int64 &, void *, bool) {
+void CGChat::NameQueryCallback(int, const unsigned __int64 &, void *, bool) {
   for (unsigned int i = 0; i < s_channels.Count(); ++i) {
     if (!s_channels[i].pendingNames.IsEmpty()) {
       DisplayPendingUserList(&s_channels[i]);
@@ -609,7 +609,7 @@ void __fastcall CGChat::NameQueryCallback(int, const unsigned __int64 &, void *,
   GetPendingChatMessages();
 }
 
-void __fastcall CGChat::TextEmoteNameQueryCallback(int, const unsigned __int64 &, void *, bool) {
+void CGChat::TextEmoteNameQueryCallback(int, const unsigned __int64 &, void *, bool) {
   for (PENDINGTEXTEMOTE *pending = s_pendingTextEmote.Head(); pending;) {
     PENDINGTEXTEMOTE *next = s_pendingTextEmote.Next(pending);
     if (g_nameDBCache.GetRecord(pending->sender, pending->sender, 0, 0)) {
@@ -624,7 +624,7 @@ void __fastcall CGChat::TextEmoteNameQueryCallback(int, const unsigned __int64 &
   }
 }
 
-void __fastcall CGChat::GetPendingChatMessages() {
+void CGChat::GetPendingChatMessages() {
   if (m_paused)
     return;
   for (PENDINGCHAT *pending = s_pendingChat.Head(); pending;) {
@@ -644,9 +644,9 @@ void __fastcall CGChat::GetPendingChatMessages() {
   }
 }
 
-extern bool __fastcall QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
+extern bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
 
-int __fastcall CGChat::ChatHandler(CDataStore *msg) {
+int CGChat::ChatHandler(CDataStore *msg) {
   char             message[512] = "";
   char             buffer[512] = "";
   char             name[48] = "";
@@ -712,7 +712,7 @@ int __fastcall CGChat::ChatHandler(CDataStore *msg) {
   return 1;
 }
 
-int __fastcall CGChat::HandleTextEmote(CDataStore *msg) {
+int CGChat::HandleTextEmote(CDataStore *msg) {
   char             target[128];
   unsigned __int64 sender;
   int              textEmoteID;
@@ -731,12 +731,12 @@ int __fastcall CGChat::HandleTextEmote(CDataStore *msg) {
   return 1;
 }
 
-const char *__fastcall CGChat::GetChannelString(const char *commandString) {
+const char *CGChat::GetChannelString(const char *commandString) {
   unsigned int localID = SStrToUnsigned(commandString);
   return localID ? GetChannelName(localID) : commandString;
 }
 
-void __fastcall CGChat::CheckFlagChanged(
+void CGChat::CheckFlagChanged(
     unsigned __int64,
     const NameCache *nc,
     unsigned char    oldFlags,
@@ -753,7 +753,7 @@ void __fastcall CGChat::CheckFlagChanged(
   }
 }
 
-void __fastcall CGChat::HandleFlagsChanged(unsigned __int64 guid, unsigned char oldFlags, unsigned char newFlags, const char *channel) {
+void CGChat::HandleFlagsChanged(unsigned __int64 guid, unsigned char oldFlags, unsigned char newFlags, const char *channel) {
   const NameCache *nc = g_nameDBCache.GetRecord(guid, guid, NameQueryCallback, 0);
   if (!nc)
     return;
@@ -761,7 +761,7 @@ void __fastcall CGChat::HandleFlagsChanged(unsigned __int64 guid, unsigned char 
   CheckFlagChanged(guid, nc, oldFlags, newFlags, channel, 4, "SET_VOICE", "UNSET_VOICE");
 }
 
-static int __fastcall StringToChatType(const char *string, SLASH_COMMAND_ID &slashCmd) {
+static int StringToChatType(const char *string, SLASH_COMMAND_ID &slashCmd) {
   static const struct {
     const char *name;
     int         type;
@@ -786,7 +786,7 @@ static int __fastcall StringToChatType(const char *string, SLASH_COMMAND_ID &sla
   return 0;
 }
 
-static int __fastcall StringToLanguage(const char *string, unsigned int &language) {
+static int StringToLanguage(const char *string, unsigned int &language) {
   int numEntries = g_languagesDB.GetNumRecords();
   for (int i = 0; i < numEntries; ++i) {
     const LanguagesRec *rec = g_languagesDB.GetRecordByIndex(i);
@@ -798,7 +798,7 @@ static int __fastcall StringToLanguage(const char *string, unsigned int &languag
   return 0;
 }
 
-static int __fastcall Script_SendChatMessage(lua_State *L) {
+static int Script_SendChatMessage(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -850,7 +850,7 @@ static int __fastcall Script_SendChatMessage(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetNumLanguages(lua_State *L) {
+static int Script_GetNumLanguages(lua_State *L) {
   CGPlayer_C  *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   unsigned int count = 0;
   if (player) {
@@ -866,7 +866,7 @@ static int __fastcall Script_GetNumLanguages(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetLanguageByIndex(lua_State *L) {
+static int Script_GetLanguageByIndex(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetLanguageByIndex(index)");
   }
@@ -887,7 +887,7 @@ static int __fastcall Script_GetLanguageByIndex(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetDefaultLanguage(lua_State *L) {
+static int Script_GetDefaultLanguage(lua_State *L) {
   CGPlayer_C         *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   const ChrRacesRec  *race = player ? g_chrRacesDB.GetRecord(player->GetUnitData()->race) : 0;
   const LanguagesRec *language = race ? g_languagesDB.GetRecord(race->m_BaseLanguage) : 0;
@@ -898,7 +898,7 @@ static int __fastcall Script_GetDefaultLanguage(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_DoEmote(lua_State *L) {
+static int Script_DoEmote(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: DoEmote(emote [, unit])");
   }
@@ -923,7 +923,7 @@ static int __fastcall Script_DoEmote(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ChatFrameLog(lua_State *L) {
+static int Script_ChatFrameLog(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     s_loggingEnabled = static_cast<int>(lua_tonumber(L, 1));
     if (s_logHandle) {
@@ -948,7 +948,7 @@ static int __fastcall Script_ChatFrameLog(lua_State *L) {
   return 1;
 }
 
-static void __fastcall ChannelPlayerCommand(lua_State *L, int messageCode, const char *funcName) {
+static void ChannelPlayerCommand(lua_State *L, int messageCode, const char *funcName) {
   char buffer[512];
   SStrPrintf(buffer, sizeof(buffer), "Usage: %s(channel, player)", funcName);
   if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -967,7 +967,7 @@ static void __fastcall ChannelPlayerCommand(lua_State *L, int messageCode, const
   ClientServices_Send(&msg);
 }
 
-static void __fastcall ChannelCommand(lua_State *L, int messageCode, const char *funcname) {
+static void ChannelCommand(lua_State *L, int messageCode, const char *funcname) {
   char buffer[512];
   SStrPrintf(buffer, sizeof(buffer), "Usage: %s(channel)", funcname);
   if (!lua_isstring(L, 1)) {
@@ -985,7 +985,7 @@ static void __fastcall ChannelCommand(lua_State *L, int messageCode, const char 
   ClientServices_Send(&msg);
 }
 
-static int __fastcall Script_JoinChannelByName(lua_State *L) {
+static int Script_JoinChannelByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: JoinChannelByName(channel [, password])");
   }
@@ -999,17 +999,17 @@ static int __fastcall Script_JoinChannelByName(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_LeaveChannelByName(lua_State *L) {
+static int Script_LeaveChannelByName(lua_State *L) {
   ChannelCommand(L, CMSG_LEAVE_CHANNEL, "LeaveChannelByName");
   return 0;
 }
 
-static int __fastcall Script_ListChannelByName(lua_State *L) {
+static int Script_ListChannelByName(lua_State *L) {
   ChannelCommand(L, CMSG_CHANNEL_LIST, "ListChannelByName");
   return 0;
 }
 
-static int __fastcall Script_ListChannels(lua_State *L) {
+static int Script_ListChannels(lua_State *L) {
   char buffer[138];
   char line[256] = "";
   for (unsigned int i = 0; i < s_channels.Count(); ++i) {
@@ -1027,7 +1027,7 @@ static int __fastcall Script_ListChannels(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetChannelPassword(lua_State *L) {
+static int Script_SetChannelPassword(lua_State *L) {
   if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
     return luaL_error(L, "Usage: SetChannelPassword(channel, password)");
   }
@@ -1044,17 +1044,17 @@ static int __fastcall Script_SetChannelPassword(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetChannelOwner(lua_State *L) {
+static int Script_SetChannelOwner(lua_State *L) {
   ChannelPlayerCommand(L, CMSG_CHANNEL_SET_OWNER, "SetChannelOwner");
   return 0;
 }
 
-static int __fastcall Script_DisplayChannelOwner(lua_State *L) {
+static int Script_DisplayChannelOwner(lua_State *L) {
   ChannelCommand(L, CMSG_CHANNEL_OWNER, "DisplayChannelOwner");
   return 0;
 }
 
-static int __fastcall Script_GetChannelName(lua_State *L) {
+static int Script_GetChannelName(lua_State *L) {
   int         channel;
   const char *name;
   if (lua_isnumber(L, 1)) {
@@ -1078,52 +1078,52 @@ static int __fastcall Script_GetChannelName(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_ChannelModerator(lua_State *L) {
+static int Script_ChannelModerator(lua_State *L) {
   ChannelPlayerCommand(L, CMSG_CHANNEL_MODERATOR, "ChannelModerator");
   return 0;
 }
 
-static int __fastcall Script_ChannelUnmoderator(lua_State *L) {
+static int Script_ChannelUnmoderator(lua_State *L) {
   ChannelPlayerCommand(L, CMSG_CHANNEL_UNMODERATOR, "ChannelUnmoderator");
   return 0;
 }
 
-static int __fastcall Script_ChannelMute(lua_State *L) {
+static int Script_ChannelMute(lua_State *L) {
   ChannelPlayerCommand(L, CMSG_CHANNEL_MUTE, "ChannelMute");
   return 0;
 }
 
-static int __fastcall Script_ChannelUnmute(lua_State *L) {
+static int Script_ChannelUnmute(lua_State *L) {
   ChannelPlayerCommand(L, CMSG_CHANNEL_UNMUTE, "ChannelUnmute");
   return 0;
 }
 
-static int __fastcall Script_ChannelInvite(lua_State *L) {
+static int Script_ChannelInvite(lua_State *L) {
   ChannelPlayerCommand(L, CMSG_CHANNEL_INVITE, "ChannelInvite");
   return 0;
 }
 
-static int __fastcall Script_ChannelKick(lua_State *L) {
+static int Script_ChannelKick(lua_State *L) {
   ChannelPlayerCommand(L, CMSG_CHANNEL_KICK, "ChannelKick");
   return 0;
 }
 
-static int __fastcall Script_ChannelBan(lua_State *L) {
+static int Script_ChannelBan(lua_State *L) {
   ChannelPlayerCommand(L, CMSG_CHANNEL_BAN, "ChannelBan");
   return 0;
 }
 
-static int __fastcall Script_ChannelUnban(lua_State *L) {
+static int Script_ChannelUnban(lua_State *L) {
   ChannelPlayerCommand(L, CMSG_CHANNEL_UNBAN, "ChannelUnban");
   return 0;
 }
 
-static int __fastcall Script_ChannelToggleAnnouncements(lua_State *L) {
+static int Script_ChannelToggleAnnouncements(lua_State *L) {
   ChannelCommand(L, CMSG_CHANNEL_ANNOUNCEMENTS, "ChannelToggleAnnouncements");
   return 0;
 }
 
-static int __fastcall Script_ChannelModerate(lua_State *L) {
+static int Script_ChannelModerate(lua_State *L) {
   ChannelCommand(L, CMSG_CHANNEL_MODERATE, "ChannelModerate");
   return 0;
 }
@@ -1155,13 +1155,13 @@ static FrameScript_Method s_ScriptFunctions[24] = {
     {           "ChannelModerate",            Script_ChannelModerate}
 };
 
-void __fastcall ChatRegisterScriptFunctions() {
+void ChatRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 24; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall ChatUnregisterScriptFunctions() {
+void ChatUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 24; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

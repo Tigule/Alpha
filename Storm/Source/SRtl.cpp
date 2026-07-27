@@ -1,13 +1,13 @@
 #include <storm.h>
 
-void __fastcall StormRtlDestroy() {
+void StormRtlDestroy() {
   SErrSetLogCallback(NULL);
   SMemDestroy();
   SErrDestroy();
   SLogDestroy();
 }
 
-void __fastcall StormRtlInitialize() {
+void StormRtlInitialize() {
   SLogInitialize();
   SMemInitialize();
 }

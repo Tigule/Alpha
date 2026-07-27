@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall TransportAnimationRec::GetFilename() {
+const char *TransportAnimationRec::GetFilename() {
   return "DBFilesClient\\TransportAnimation.dbc";
 }
 

@@ -10,7 +10,7 @@ CStringRep      CStringRep::s_nullRep;
 RCString        RCString::s_nullString;
 CStringManager *CStringManager::s_stringManager;
 
-CStringManager *__fastcall CStringManager::Get() {
+CStringManager *CStringManager::Get() {
   if (!s_stringManager) {
     s_stringManager = NEW(CStringManager);
   }
@@ -18,7 +18,7 @@ CStringManager *__fastcall CStringManager::Get() {
   return s_stringManager;
 }
 
-void __fastcall CStringManager::DestroyManager() {
+void CStringManager::DestroyManager() {
   if (s_stringManager) {
     DEL(s_stringManager);
   }

@@ -16,7 +16,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-void __fastcall UnitCombatLogFactionChanged(int faction, int delta);
+void UnitCombatLogFactionChanged(int faction, int delta);
 
 unsigned int CGReputationInfo::m_numFactions;
 unsigned int CGReputationInfo::m_factionFlags[64];
@@ -25,7 +25,7 @@ int          CGReputationInfo::m_factionStandings[64];
 int          CGReputationInfo::m_factionMap[64];
 int          CGReputationInfo::m_factionSorting[64];
 
-void __fastcall CGReputationInfo::EnterWorld() {
+void CGReputationInfo::EnterWorld() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   FATALASSERT(player);
 
@@ -52,29 +52,29 @@ void __fastcall CGReputationInfo::EnterWorld() {
   SortFactions();
 }
 
-void __fastcall CGReputationInfo::LeaveWorld() {
+void CGReputationInfo::LeaveWorld() {
 }
 
-void __fastcall CGReputationInfo::ShutdownGame() {
+void CGReputationInfo::ShutdownGame() {
   m_numFactions = 0;
 }
 
-int __fastcall CGReputationInfo::FactionToIndex(int faction) {
+int CGReputationInfo::FactionToIndex(int faction) {
   FactionRec *rec = g_factionDB.GetRecord(faction);
   FATALASSERT(rec);
   FATALASSERT(rec->m_reputationIndex >= 0 && rec->m_reputationIndex < 64);
   return rec->m_reputationIndex;
 }
 
-unsigned int __fastcall CGReputationInfo::GetNumFactions() {
+unsigned int CGReputationInfo::GetNumFactions() {
   return m_numFactions;
 }
 
-int __fastcall CGReputationInfo::IndexToFaction(int index) {
+int CGReputationInfo::IndexToFaction(int index) {
   return m_factionMap[index];
 }
 
-void __fastcall CGReputationInfo::OnInitializeFactions(CDataStore *msg) {
+void CGReputationInfo::OnInitializeFactions(CDataStore *msg) {
   int          standing;
   int          numFactions;
   unsigned int flags;
@@ -95,7 +95,7 @@ void __fastcall CGReputationInfo::OnInitializeFactions(CDataStore *msg) {
   }
 }
 
-void __fastcall CGReputationInfo::OnSetFactionVisible(CDataStore *msg) {
+void CGReputationInfo::OnSetFactionVisible(CDataStore *msg) {
   int factionIndex;
 
   msg->Get(factionIndex);
@@ -108,7 +108,7 @@ void __fastcall CGReputationInfo::OnSetFactionVisible(CDataStore *msg) {
   }
 }
 
-void __fastcall CGReputationInfo::OnSetFactionStanding(CDataStore *msg) {
+void CGReputationInfo::OnSetFactionStanding(CDataStore *msg) {
   int standing;
   int factionIndex;
 
@@ -152,20 +152,20 @@ static int __cdecl QSortFactions(const void *a, const void *b) {
   return recordA && recordB ? SStrCmpI(recordA->m_name_lang[CURRENT_LANGUAGE], recordB->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
-void __fastcall CGReputationInfo::SortFactions() {
+void CGReputationInfo::SortFactions() {
   qsort(m_factionSorting, m_numFactions, sizeof(m_factionSorting[0]), QSortFactions);
 }
 
-int __fastcall CGReputationInfo::GetFactionFromSortIndex(unsigned int index) {
+int CGReputationInfo::GetFactionFromSortIndex(unsigned int index) {
   return index < m_numFactions ? IndexToFaction(m_factionSorting[index]) : 0;
 }
 
-void __fastcall CGReputationInfo::SetFactionFlags(int index, unsigned char flags) {
+void CGReputationInfo::SetFactionFlags(int index, unsigned char flags) {
   FATALASSERT(index >= 0 && index < 64);
   m_factionFlags[index] = flags;
 }
 
-void __fastcall CGReputationInfo::SetAtWar(int faction, unsigned int state) {
+void CGReputationInfo::SetAtWar(int faction, unsigned int state) {
   int          index = FactionToIndex(faction);
   unsigned int flags = m_factionFlags[index];
   if (state) {
@@ -185,18 +185,18 @@ void __fastcall CGReputationInfo::SetAtWar(int faction, unsigned int state) {
   ClientServices_Send(&msg);
 }
 
-bool __fastcall CGReputationInfo::IsAtWar(int faction) {
+bool CGReputationInfo::IsAtWar(int faction) {
   return (m_factionFlags[FactionToIndex(faction)] & 2) != 0;
 }
 
-void __fastcall CGReputationInfo::SetFactionStanding(int factionIndex, int standing) {
+void CGReputationInfo::SetFactionStanding(int factionIndex, int standing) {
   FATALASSERT(factionIndex >= 0 && factionIndex < 64);
   m_factionStandings[factionIndex] = standing;
   int faction = IndexToFaction(factionIndex);
   UnitCombatLogFactionChanged(faction, GetFactionStanding(faction));
 }
 
-int __fastcall CGReputationInfo::GetFactionStanding(int faction) {
+int CGReputationInfo::GetFactionStanding(int faction) {
   if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     return 0;
   }
@@ -205,7 +205,7 @@ int __fastcall CGReputationInfo::GetFactionStanding(int faction) {
   return m_factionStandings[index] + m_factionBase[index];
 }
 
-UNIT_REACTION __fastcall CGReputationInfo::GetFactionStandingReaction(int faction) {
+UNIT_REACTION CGReputationInfo::GetFactionStandingReaction(int faction) {
   int standing = GetFactionStanding(faction);
   if (standing >= 2100) {
     return UNIT_REACTION_REVERED;
@@ -225,12 +225,12 @@ UNIT_REACTION __fastcall CGReputationInfo::GetFactionStandingReaction(int factio
   return standing >= -600 ? UNIT_REACTION_HOSTILE : UNIT_REACTION_HATED;
 }
 
-static int __fastcall Script_GetNumFactions(lua_State *L) {
+static int Script_GetNumFactions(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGReputationInfo::GetNumFactions()));
   return 1;
 }
 
-static int __fastcall Script_GetFactionInfo(lua_State *L) {
+static int Script_GetFactionInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetFactionInfo(index)");
   }
@@ -258,7 +258,7 @@ static int __fastcall Script_GetFactionInfo(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_FactionToggleAtWar(lua_State *L) {
+static int Script_FactionToggleAtWar(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: FactionToggleAtWar(index)");
   }
@@ -282,13 +282,13 @@ static FrameScript_Method s_ScriptFunctions[3] = {
     {"FactionToggleAtWar", Script_FactionToggleAtWar}
 };
 
-void __fastcall ReputationInfoRegisterScriptFunctions() {
+void ReputationInfoRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 3; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall ReputationInfoUnregisterScriptFunctions() {
+void ReputationInfoUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 3; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

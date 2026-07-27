@@ -11,7 +11,7 @@ namespace {
 
 }  // namespace
 
-int __fastcall OsBeep(unsigned long dwFreq, unsigned long dwDuration) {
+int OsBeep(unsigned long dwFreq, unsigned long dwDuration) {
   return Beep(dwFreq, dwDuration);
 }
 
@@ -24,7 +24,7 @@ void __cdecl OsOutputDebugString(const char *format, ...) {
   OutputDebugStringA(buffer);
 }
 
-void __fastcall OsOutputDebugStringV(const char *format, char *args) {
+void OsOutputDebugStringV(const char *format, char *args) {
   char buffer[256];
 
   _vsnprintf(buffer, sizeof(buffer), format, args);

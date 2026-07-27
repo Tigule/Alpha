@@ -15,7 +15,7 @@ static const unsigned char bytesFromUTF8[256] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 static const unsigned long firstByteMark[7] = {0x00UL, 0x00UL, 0xC0UL, 0xE0UL, 0xF0UL, 0xF8UL, 0xFCUL};
 
-int __fastcall ConvertUTF16toUTF8Length(const unsigned short *src, unsigned int srcMaxChars, unsigned int *srcChars) {
+int ConvertUTF16toUTF8Length(const unsigned short *src, unsigned int srcMaxChars, unsigned int *srcChars) {
   const unsigned short *srcStart;
   const unsigned short *srcEnd;
   int                   result;
@@ -85,7 +85,7 @@ finished:
   return result;
 }
 
-int __fastcall ConvertUTF16toUTF8(
+int ConvertUTF16toUTF8(
     char                 *dst,
     unsigned int          dstMaxChars,
     const unsigned short *src,
@@ -192,7 +192,7 @@ finished:
   return result;
 }
 
-int __fastcall ConvertUTF8toUTF16Length(const char *src, unsigned int srcMaxChars, unsigned int *srcChars) {
+int ConvertUTF8toUTF16Length(const char *src, unsigned int srcMaxChars, unsigned int *srcChars) {
   const char *srcStart;
   const char *srcEnd;
   int         result;
@@ -266,7 +266,7 @@ finished:
   return result;
 }
 
-int __fastcall ConvertUTF8toUTF16(
+int ConvertUTF8toUTF16(
     unsigned short *dst,
     unsigned int    dstMaxChars,
     const char     *src,
@@ -356,7 +356,7 @@ finished:
   return result;
 }
 
-unsigned int __fastcall sgetu8(const unsigned char *strptr, int *chars) {
+unsigned int sgetu8(const unsigned char *strptr, int *chars) {
   unsigned int c;
   int          remaining;
 
@@ -417,7 +417,7 @@ unsigned int __fastcall sgetu8(const unsigned char *strptr, int *chars) {
   return c;
 }
 
-char *__fastcall sputu8(unsigned int c, char *strptr) {
+char *sputu8(unsigned int c, char *strptr) {
   char *result = strptr;
 
   if (!strptr) {

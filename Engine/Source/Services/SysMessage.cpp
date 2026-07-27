@@ -52,8 +52,8 @@ static unsigned int   s_categoryFilter = 0xFFFFFFFF;
 static HOSFILE        s_osFile;
 static SYSMSGCALLBACK s_callback;
 
-static void __fastcall GenerateMaskString(char *buffer, unsigned int size, unsigned int maskString);
-static int __fastcall  DetermineFileName(const char *curDir, char *buffer, unsigned int size);
+static void GenerateMaskString(char *buffer, unsigned int size, unsigned int maskString);
+static int DetermineFileName(const char *curDir, char *buffer, unsigned int size);
 
 void MSGBUFFER::SetInfo(const char *newString, SYSMSG_TYPE newSeverity, unsigned int categories) {
   FREEIFUSED(string);
@@ -68,7 +68,7 @@ void MSGBUFFER::SetInfo(const char *newString, SYSMSG_TYPE newSeverity, unsigned
   categoryMask = categories;
 }
 
-static void __fastcall GenerateMaskString(char *buffer, unsigned int size, unsigned int maskString) {
+static void GenerateMaskString(char *buffer, unsigned int size, unsigned int maskString) {
   char         maskLetters[7];
   unsigned int i;
 
@@ -81,7 +81,7 @@ static void __fastcall GenerateMaskString(char *buffer, unsigned int size, unsig
   );
 }
 
-static int __fastcall DetermineFileName(const char *curDir, char *buffer, unsigned int size) {
+static int DetermineFileName(const char *curDir, char *buffer, unsigned int size) {
   unsigned int index;
 
   for (index = 0; index < 1000; ++index) {
@@ -96,7 +96,7 @@ static int __fastcall DetermineFileName(const char *curDir, char *buffer, unsign
   return 0;
 }
 
-int __fastcall SysMsgAdd(const char *msg, SYSMSG_TYPE severity, unsigned int categoryMask) {
+int SysMsgAdd(const char *msg, SYSMSG_TYPE severity, unsigned int categoryMask) {
   char          string[512];
   char          maskString[32] = "";
   unsigned long dummy;
@@ -121,7 +121,7 @@ int __fastcall SysMsgAdd(const char *msg, SYSMSG_TYPE severity, unsigned int cat
   return 1;
 }
 
-int __fastcall SysMsgAdd(const CStatus &status, unsigned int categoryMask) {
+int SysMsgAdd(const CStatus &status, unsigned int categoryMask) {
   char *msg;
   int   result;
 
@@ -152,15 +152,15 @@ int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, unsigned int categoryMask, const 
   return SysMsgVPrintf(severity, categoryMask, format, arglist);
 }
 
-void __fastcall SysMsgEnable(int enable) {
+void SysMsgEnable(int enable) {
   s_enabled = enable;
 }
 
-int __fastcall SysMsgEnabled() {
+int SysMsgEnabled() {
   return s_enabled;
 }
 
-void __fastcall SysMsgSetMinDisplayLevel(SYSMSG_TYPE minSeverity) {
+void SysMsgSetMinDisplayLevel(SYSMSG_TYPE minSeverity) {
   ASSERT(minSeverity < SYSMSG_NUMTYPES);
 
   s_minSeverity = minSeverity;
@@ -169,7 +169,7 @@ void __fastcall SysMsgSetMinDisplayLevel(SYSMSG_TYPE minSeverity) {
   }
 }
 
-void __fastcall SysMsgSetMaxDisplayLevel(SYSMSG_TYPE maxSeverity) {
+void SysMsgSetMaxDisplayLevel(SYSMSG_TYPE maxSeverity) {
   ASSERT(maxSeverity < SYSMSG_NUMTYPES);
 
   s_maxSeverity = maxSeverity;
@@ -178,40 +178,40 @@ void __fastcall SysMsgSetMaxDisplayLevel(SYSMSG_TYPE maxSeverity) {
   }
 }
 
-SYSMSG_TYPE __fastcall SysMsgGetMinDisplayLevel() {
+SYSMSG_TYPE SysMsgGetMinDisplayLevel() {
   return s_minSeverity;
 }
 
-SYSMSG_TYPE __fastcall SysMsgGetMaxDisplayLevel() {
+SYSMSG_TYPE SysMsgGetMaxDisplayLevel() {
   return s_maxSeverity;
 }
 
-void __fastcall SysMsgSetFilter(unsigned int categoryFilter) {
+void SysMsgSetFilter(unsigned int categoryFilter) {
   s_categoryFilter = categoryFilter;
 }
 
-unsigned int __fastcall SysMsgGetFilter() {
+unsigned int SysMsgGetFilter() {
   return s_categoryFilter;
 }
 
-void __fastcall SysMsgGetSeverityColor(SYSMSG_TYPE severity, float &r, float &g, float &b) {
+void SysMsgGetSeverityColor(SYSMSG_TYPE severity, float &r, float &g, float &b) {
   r = s_severityDisplay[severity].red * 0.0039215689f;
   g = s_severityDisplay[severity].green * 0.0039215689f;
   b = s_severityDisplay[severity].blue * 0.0039215689f;
 }
 
-float __fastcall SysMsgGetSeverityDuration(SYSMSG_TYPE severity) {
+float SysMsgGetSeverityDuration(SYSMSG_TYPE severity) {
   return s_severityDisplay[severity].timeVisible;
 }
 
-void __fastcall SysMsgInitialize() {
+void SysMsgInitialize() {
   s_enabled = 1;
   s_minSeverity = SYSMSG_INFO;
   s_maxSeverity = SYSMSG_FATAL;
   s_categoryFilter = 0xFFFFFFFF;
 }
 
-void __fastcall SysMsgShutdown() {
+void SysMsgShutdown() {
   MSGBUFFER *msg;
 
   s_enabled = 0;
@@ -224,7 +224,7 @@ void __fastcall SysMsgShutdown() {
   SysMsgDisableFileLog();
 }
 
-void __fastcall SysMsgEnableFileLog(const char *baseDir) {
+void SysMsgEnableFileLog(const char *baseDir) {
   char fileName[MAX_PATH];
   char file[MAX_PATH] = "";
 
@@ -251,13 +251,13 @@ void __fastcall SysMsgEnableFileLog(const char *baseDir) {
   }
 }
 
-void __fastcall SysMsgDisableFileLog() {
+void SysMsgDisableFileLog() {
   if (s_osFile) {
     OsCloseFile(s_osFile);
   }
   s_osFile = 0;
 }
 
-void __fastcall SysMsgSetCallback(SYSMSGCALLBACK callback) {
+void SysMsgSetCallback(SYSMSGCALLBACK callback) {
   s_callback = callback;
 }

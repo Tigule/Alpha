@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall AreaMIDIAmbiencesRec::GetFilename() {
+const char *AreaMIDIAmbiencesRec::GetFilename() {
   return "DBFilesClient\\AreaMIDIAmbiences.dbc";
 }
 

@@ -184,10 +184,10 @@ enum OS_MOUSE_MODE {
   OS_MOUSE_MODES = 2
 };
 
-typedef int(__fastcall *EVENTHANDLER)(const void *data, void *param);
-typedef int(__fastcall *EVENTGUIDHANDLER)(const void *data, unsigned __int64 guid, void *param);
-typedef void(__fastcall *EVENTSCANHANDLER)(EVENTID id, const void *data, void *param);
-typedef int(__fastcall *EVENTCONFIRMCLOSEHANDLER)(void *param);
+typedef int(*EVENTHANDLER)(const void *data, void *param);
+typedef int(*EVENTGUIDHANDLER)(const void *data, unsigned __int64 guid, void *param);
+typedef void(*EVENTSCANHANDLER)(EVENTID id, const void *data, void *param);
+typedef int(*EVENTCONFIRMCLOSEHANDLER)(void *param);
 
 const float EVENT_PRIORITY_NORMAL = 0.0f;
 
@@ -242,41 +242,41 @@ struct EVENT_DATA_TIMER {
   DWORD currTime;
 };
 
-void __fastcall EventInitialize(unsigned int threadCount, int netServer);
-void __fastcall EventDestroy();
-void __fastcall EventDoMessageLoop();
-void __fastcall EventInitiateShutdown();
+void EventInitialize(unsigned int threadCount, int netServer);
+void EventDestroy();
+void EventDoMessageLoop();
+void EventInitiateShutdown();
 
-HEVENTCONTEXT __fastcall
+HEVENTCONTEXT
 EventCreateContextEx(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags);
-void __fastcall          EventCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler);
-int __fastcall           EventIsContextInteractive();
-HEVENTCONTEXT __fastcall EventGetCurrentContext();
-void __fastcall          EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext);
-DWORD __fastcall         EventGetContextIdleTime(HEVENTCONTEXT hContext);
-void __fastcall          EventPostClose();
-void __fastcall          EventPostCloseEx(HEVENTCONTEXT hContext);
-int __fastcall           EventIsButtonDown(MOUSEBUTTON button);
-int __fastcall           EventIsKeyDown(KEY key);
-void __fastcall          EventInputGetMousePosition(float *x, float *y);
-void __fastcall          EventInputSetMousePosition(float x, float y);
-int __fastcall           EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, const void *data, unsigned int bytes);
-int __fastcall           EventQueueScan(EVENTSCANHANDLER scanner, void *param);
-void __fastcall          EventSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam);
-int __fastcall           EventInputProcess(HEVENTCONTEXT hContext);
-void __fastcall          EventSetMouseMode(MOUSEMODE mode, unsigned int holdButton);
-void __fastcall          EventSetMouseBoundingRect(NTempest::CRect *rect);
+void EventCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler);
+int EventIsContextInteractive();
+HEVENTCONTEXT EventGetCurrentContext();
+void EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext);
+DWORD EventGetContextIdleTime(HEVENTCONTEXT hContext);
+void EventPostClose();
+void EventPostCloseEx(HEVENTCONTEXT hContext);
+int EventIsButtonDown(MOUSEBUTTON button);
+int EventIsKeyDown(KEY key);
+void EventInputGetMousePosition(float *x, float *y);
+void EventInputSetMousePosition(float x, float y);
+int EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, const void *data, unsigned int bytes);
+int EventQueueScan(EVENTSCANHANDLER scanner, void *param);
+void EventSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam);
+int EventInputProcess(HEVENTCONTEXT hContext);
+void EventSetMouseMode(MOUSEMODE mode, unsigned int holdButton);
+void EventSetMouseBoundingRect(NTempest::CRect *rect);
 
-unsigned int __fastcall EventSetTimer(float timeout, EVENTHANDLER handler, void *param);
-unsigned int __fastcall EventSetTimer(float timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2);
-unsigned int __fastcall EventSetTimer(unsigned int timeout, EVENTHANDLER handler, void *param);
-unsigned int __fastcall EventSetTimer(unsigned int timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2);
-unsigned int __fastcall EventSetTimerAbsolute(DWORD triggerTime, EVENTHANDLER handler, void *param);
-unsigned int __fastcall EventSetTimerAbsolute(DWORD triggerTime, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2);
-void __fastcall         EventKillTimer(unsigned int timerId, EVENTHANDLER handlerFunction, const char *functionName);
-float __fastcall        EventGetRemainingTime(unsigned int timerId);
+unsigned int EventSetTimer(float timeout, EVENTHANDLER handler, void *param);
+unsigned int EventSetTimer(float timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2);
+unsigned int EventSetTimer(unsigned int timeout, EVENTHANDLER handler, void *param);
+unsigned int EventSetTimer(unsigned int timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2);
+unsigned int EventSetTimerAbsolute(DWORD triggerTime, EVENTHANDLER handler, void *param);
+unsigned int EventSetTimerAbsolute(DWORD triggerTime, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2);
+void EventKillTimer(unsigned int timerId, EVENTHANDLER handlerFunction, const char *functionName);
+float EventGetRemainingTime(unsigned int timerId);
 
-void __fastcall EventRegister(EVENTID id, EVENTHANDLER handler);
-void __fastcall EventRegisterEx(EVENTID id, EVENTHANDLER handler, void *param, float priority);
-void __fastcall EventUnregister(EVENTID id, EVENTHANDLER handler);
-void __fastcall EventUnregisterEx(EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags);
+void EventRegister(EVENTID id, EVENTHANDLER handler);
+void EventRegisterEx(EVENTID id, EVENTHANDLER handler, void *param, float priority);
+void EventUnregister(EVENTID id, EVENTHANDLER handler);
+void EventUnregisterEx(EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags);

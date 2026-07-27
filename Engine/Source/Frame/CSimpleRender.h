@@ -24,16 +24,16 @@ struct HTEXTFONT__;
 struct HTEXTURE__;
 struct CGxString;
 
-const char *__fastcall TextBlockGetFontName(HTEXTFONT__ *font);
-unsigned int __fastcall TextBlockGetFontFlags(HTEXTFONT__ *font);
-CGxString *__fastcall TextBlockGetStringPtr(HTEXTBLOCK__ *text);
+const char *TextBlockGetFontName(HTEXTFONT__ *font);
+unsigned int TextBlockGetFontFlags(HTEXTFONT__ *font);
+CGxString *TextBlockGetStringPtr(HTEXTBLOCK__ *text);
 
 class CRenderBatch;
 class CSimpleMessageScrollFrame;
 
 class CSimpleRender {
  public:
-  static void __fastcall DrawBatch(CRenderBatch *batch);
+  static void DrawBatch(CRenderBatch *batch);
 
  protected:
   static NTempest::C3Vector s_normal;
@@ -41,7 +41,7 @@ class CSimpleRender {
 };
 
 struct RENDERCALLBACKNODE : public TSLinkedNode<RENDERCALLBACKNODE> {
-  void(__fastcall *callback)(void *);
+  void(*callback)(void *);
   void *param;
 };
 
@@ -54,7 +54,7 @@ class CRenderBatch {
 
   void Clear();
   void Finish();
-  void QueueCallback(void(__fastcall *callback)(void *), void *param);
+  void QueueCallback(void(*callback)(void *), void *param);
   void QueueFontString(CSimpleFontString *string);
   void QueueTexture(CSimpleTexture *texture);
 
@@ -214,8 +214,8 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   CSimpleFontString(CSimpleFrame *frame, unsigned int drawlayer, int show);
   virtual ~CSimpleFontString();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   virtual const char *GetName() const {
     return m_name;
@@ -370,8 +370,8 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
   CSimpleTexture(CSimpleFrame *frame, unsigned int drawlayer, int show);
   virtual ~CSimpleTexture();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   virtual const char *GetName() const {
     return m_name;

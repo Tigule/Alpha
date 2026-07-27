@@ -23,13 +23,13 @@ struct TEXTBLOCK : public CHandleObject {
   CGxString *string;
 };
 
-HTEXTFONT __fastcall    TextBlockGenerateFont(const char *fontName, unsigned int fontFlags, float fontHeight);
-const char *__fastcall  TextBlockGetFontName(HTEXTFONT fontHandle);
-unsigned int __fastcall TextBlockGetFontFlags(HTEXTFONT fontHandle);
-CGxFont *__fastcall     TextBlockGetFontPtr(HTEXTFONT fontHandle);
-CGxString *__fastcall   TextBlockGetStringPtr(HTEXTBLOCK text);
-void __fastcall         TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempest::C2Vector &shadowOffset);
-HTEXTBLOCK __fastcall   TextBlockCreate(
+HTEXTFONT TextBlockGenerateFont(const char *fontName, unsigned int fontFlags, float fontHeight);
+const char *TextBlockGetFontName(HTEXTFONT fontHandle);
+unsigned int TextBlockGetFontFlags(HTEXTFONT fontHandle);
+CGxFont *TextBlockGetFontPtr(HTEXTFONT fontHandle);
+CGxString *TextBlockGetStringPtr(HTEXTBLOCK text);
+void TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempest::C2Vector &shadowOffset);
+HTEXTBLOCK TextBlockCreate(
     HTEXTFONT                  font,
     const char                *text,
     const NTempest::CImVector &color,
@@ -41,9 +41,9 @@ HTEXTBLOCK __fastcall   TextBlockCreate(
     float                      charSpacing,
     float                      lineSpacing
 );
-void __fastcall TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos);
-void __fastcall TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor);
-void __fastcall TextBlockGetTextExtent(
+void TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos);
+void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor);
+void TextBlockGetTextExtent(
     HTEXTFONT    font,
     const char  *text,
     unsigned int numChars,
@@ -52,9 +52,9 @@ void __fastcall TextBlockGetTextExtent(
     float        charSpacing,
     unsigned int flags
 );
-float __fastcall
+float
 TextBlockGetWrappedTextHeight(HTEXTFONT font, const char *text, float fontHeight, float blockWidth, float spacing, unsigned int flags);
-unsigned int __fastcall TextBlockGetMaxCharsWithinWidthFromEnd(
+unsigned int TextBlockGetMaxCharsWithinWidthFromEnd(
     HTEXTFONT    font,
     const char  *text,
     float        height,
@@ -64,7 +64,7 @@ unsigned int __fastcall TextBlockGetMaxCharsWithinWidthFromEnd(
     float        charSpacing,
     unsigned int flags
 );
-unsigned int __fastcall TextBlockWrapText(
+unsigned int TextBlockWrapText(
     HTEXTFONT     font,
     const char   *text,
     float         height,
@@ -74,4 +74,4 @@ unsigned int __fastcall TextBlockWrapText(
     float         charSpacing,
     unsigned int  flags
 );
-int __fastcall TextBlockSetGradient(HTEXTBLOCK text, int startChar, int length);
+int TextBlockSetGradient(HTEXTBLOCK text, int startChar, int length);

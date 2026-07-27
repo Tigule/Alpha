@@ -36,7 +36,7 @@ int CGxDeviceD3d::TexCreate(
     EGxTexFormat format,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     CGxTex *&texId
 ) {
   return CGxDevice::TexCreate(width, height, format, flags, userArg, userFunc, texId);
@@ -51,7 +51,7 @@ int CGxDeviceD3d::TexCreate(
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     CGxTex *&texId
 ) {
   return CGxDevice::TexCreate(target, width, height, depth, format, dataFormat, flags, userArg, userFunc, texId);

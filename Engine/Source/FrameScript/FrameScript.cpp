@@ -31,14 +31,14 @@ static lua_State                            *s_context;
 static int                                   s_errorFunction;
 static char                                  s_argName[] = "arg0";
 
-static int __fastcall  getglobal(lua_State *state);
-static int __fastcall  next(lua_State *state);
-static int __fastcall  debuginfo(lua_State *state);
-static void __fastcall print_variable(lua_State *state, const char *name, int depth);
-static void __fastcall PushThisStack(FrameScript_Object *object);
-static void __fastcall PopThisStack();
+static int getglobal(lua_State *state);
+static int next(lua_State *state);
+static int debuginfo(lua_State *state);
+static void print_variable(lua_State *state, const char *name, int depth);
+static void PushThisStack(FrameScript_Object *object);
+static void PopThisStack();
 
-void __fastcall GetErrorFunction(lua_State *state) {
+void GetErrorFunction(lua_State *state) {
   if (s_errorFunction <= 0) {
     lua_getglobal(state, "_ERRORMESSAGE");
     s_errorFunction = luaL_ref(state, LUA_REGISTRYINDEX);
@@ -115,7 +115,7 @@ void FrameScript_Object::UnregisterScriptObject(const char *name) {
   }
 }
 
-void __fastcall FrameScript_Object::FillScriptMethodTable(
+void FrameScript_Object::FillScriptMethodTable(
     FrameScript_Method                                   *methods,
     int                                                   methodCount,
     TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable
@@ -133,7 +133,7 @@ void __fastcall FrameScript_Object::FillScriptMethodTable(
   }
 }
 
-void __fastcall FrameScript_Object::EmptyScriptMethodTable(TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable) {
+void FrameScript_Object::EmptyScriptMethodTable(TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable) {
   lua_State                  *state = FrameScript_GetContext();
   FrameScriptObject_Variable *entry = methodTable.Head();
 
@@ -143,7 +143,7 @@ void __fastcall FrameScript_Object::EmptyScriptMethodTable(TSHashTable<FrameScri
   }
 }
 
-int __fastcall FrameScript_Object::LookupScriptMethod(
+int FrameScript_Object::LookupScriptMethod(
     lua_State                                            *state,
     const char                                           *name,
     TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable
@@ -158,7 +158,7 @@ int __fastcall FrameScript_Object::LookupScriptMethod(
   return 1;
 }
 
-int __fastcall FrameScript_Object::LookupScriptMethod(lua_State *state) {
+int FrameScript_Object::LookupScriptMethod(lua_State *state) {
   FrameScript_Object *object;
 
   lua_rawgeti(state, 1, 0);
@@ -302,14 +302,14 @@ void __cdecl FrameScript_Object::OnScriptEvent(const char *name, const char *for
   lua_setglobal(state, "event");
 }
 
-static int __fastcall getglobal(lua_State *state) {
+static int getglobal(lua_State *state) {
   const char *name = lua_tostring(state, 1);
 
   lua_getglobal(state, name);
   return 1;
 }
 
-static int __fastcall next(lua_State *state) {
+static int next(lua_State *state) {
   luaL_checktype(state, 1, LUA_TTABLE);
   lua_settop(state, 2);
   if (lua_next(state, 1)) {
@@ -320,7 +320,7 @@ static int __fastcall next(lua_State *state) {
   return 1;
 }
 
-static int __fastcall debuginfo(lua_State *state) {
+static int debuginfo(lua_State *state) {
   lua_Debug   debugInfo;
   int         present;
   char        arg;
@@ -382,7 +382,7 @@ static int __fastcall debuginfo(lua_State *state) {
   return 0;
 }
 
-static void __fastcall print_variable(lua_State *state, const char *name, int depth) {
+static void print_variable(lua_State *state, const char *name, int depth) {
   FrameScript_Object *object;
   const char         *tableName;
   lua_Debug           debugInfo;
@@ -469,7 +469,7 @@ static void __fastcall print_variable(lua_State *state, const char *name, int de
   }
 }
 
-int __fastcall FrameScript_Initialize() {
+int FrameScript_Initialize() {
   void         *buffer;
   unsigned long bytes;
 
@@ -515,14 +515,14 @@ int __fastcall FrameScript_Initialize() {
   return 1;
 }
 
-void __fastcall FrameScript_Flush() {
+void FrameScript_Flush() {
   if (s_context) {
     FrameScript_Destroy();
     FrameScript_Initialize();
   }
 }
 
-void __fastcall FrameScript_Destroy() {
+void FrameScript_Destroy() {
   ASSERT(s_context);
 
   lua_close(s_context);
@@ -531,7 +531,7 @@ void __fastcall FrameScript_Destroy() {
   s_objectCount = 0;
 }
 
-void __fastcall FrameScript_MemoryCleanup(int enableGC) {
+void FrameScript_MemoryCleanup(int enableGC) {
   lua_State *state = FrameScript_GetContext();
 
   lua_enablegc(state);
@@ -541,11 +541,11 @@ void __fastcall FrameScript_MemoryCleanup(int enableGC) {
   }
 }
 
-int __fastcall FrameScript_LoadTextTables(const char *filename) {
+int FrameScript_LoadTextTables(const char *filename) {
   return FrameScript_ExecuteFile(filename);
 }
 
-const char *__fastcall FrameScript_GetText(const char *text, int unk, FRAMESCRIPT_GENDER gender) {
+const char *FrameScript_GetText(const char *text, int unk, FRAMESCRIPT_GENDER gender) {
   const char *result = "";
   lua_State  *state;
   int         errorIndex;
@@ -582,7 +582,7 @@ const char *__fastcall FrameScript_GetText(const char *text, int unk, FRAMESCRIP
   return result;
 }
 
-unsigned int __fastcall FrameScript_GetPluralIndex(int value) {
+unsigned int FrameScript_GetPluralIndex(int value) {
   unsigned int result = 0;
   lua_State   *state = FrameScript_GetContext();
 
@@ -598,7 +598,7 @@ unsigned int __fastcall FrameScript_GetPluralIndex(int value) {
   return result;
 }
 
-void __fastcall FrameScript_CreateEvents(const char **const names, unsigned int count) {
+void FrameScript_CreateEvents(const char **const names, unsigned int count) {
   unsigned int index;
 
   s_scriptEvents.Clear();
@@ -614,7 +614,7 @@ void __fastcall FrameScript_CreateEvents(const char **const names, unsigned int 
   }
 }
 
-void __fastcall FrameScript_SignalEvent(unsigned int index) {
+void FrameScript_SignalEvent(unsigned int index) {
   FrameScript_EventObject *eventObject;
   EVENTLISTENERNODE       *listener;
 
@@ -649,11 +649,11 @@ void __cdecl FrameScript_SignalEvent(unsigned int index, const char *format, ...
   va_end(arguments);
 }
 
-void __fastcall FrameScript_DestroyEvents() {
+void FrameScript_DestroyEvents() {
   s_scriptEvents.Clear();
 }
 
-lua_State *__fastcall FrameScript_GetContext() {
+lua_State *FrameScript_GetContext() {
   ASSERT(s_context);
   return s_context;
 }
@@ -668,28 +668,28 @@ void __cdecl FrameScript_DisplayError(const char *format, ...) {
   va_end(arguments);
 }
 
-void __fastcall FrameScript_RegisterFunction(const char *name, int(__fastcall *function)(lua_State *state)) {
+void FrameScript_RegisterFunction(const char *name, int(*function)(lua_State *state)) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushcfunction(state, function);
   lua_setglobal(state, name);
 }
 
-void __fastcall FrameScript_UnregisterFunction(const char *name) {
+void FrameScript_UnregisterFunction(const char *name) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushnil(state);
   lua_setglobal(state, name);
 }
 
-void __fastcall FrameScript_SetVariable(const char *name, int value) {
+void FrameScript_SetVariable(const char *name, int value) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushnumber(state, value);
   lua_setglobal(state, name);
 }
 
-int __fastcall FrameScript_GetVariable(const char *name, int &value) {
+int FrameScript_GetVariable(const char *name, int &value) {
   int        result = 0;
   lua_State *state = FrameScript_GetContext();
 
@@ -703,14 +703,14 @@ int __fastcall FrameScript_GetVariable(const char *name, int &value) {
   return result;
 }
 
-void __fastcall FrameScript_SetVariable(const char *name, float value) {
+void FrameScript_SetVariable(const char *name, float value) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushnumber(state, value);
   lua_setglobal(state, name);
 }
 
-int __fastcall FrameScript_GetVariable(const char *name, float &value) {
+int FrameScript_GetVariable(const char *name, float &value) {
   int        result = 0;
   lua_State *state = FrameScript_GetContext();
 
@@ -724,7 +724,7 @@ int __fastcall FrameScript_GetVariable(const char *name, float &value) {
   return result;
 }
 
-void __fastcall FrameScript_SetVariable(const char *name, const char *value) {
+void FrameScript_SetVariable(const char *name, const char *value) {
   lua_State *state = FrameScript_GetContext();
 
   if (value && *value) {
@@ -735,7 +735,7 @@ void __fastcall FrameScript_SetVariable(const char *name, const char *value) {
   lua_setglobal(state, name);
 }
 
-int __fastcall FrameScript_GetVariable(const char *name, const char *&value) {
+int FrameScript_GetVariable(const char *name, const char *&value) {
   int        found = 0;
   lua_State *state = FrameScript_GetContext();
 
@@ -748,14 +748,14 @@ int __fastcall FrameScript_GetVariable(const char *name, const char *&value) {
   return found;
 }
 
-void __fastcall FrameScript_UnsetVariable(const char *name) {
+void FrameScript_UnsetVariable(const char *name) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushnil(state);
   lua_setglobal(state, name);
 }
 
-int __fastcall FrameScript_ExecuteFile(const char *filename) {
+int FrameScript_ExecuteFile(const char *filename) {
   void         *buffer;
   unsigned long bytes;
   int           result;
@@ -769,7 +769,7 @@ int __fastcall FrameScript_ExecuteFile(const char *filename) {
   return result;
 }
 
-int __fastcall FrameScript_ExecuteBuffer(void *buffer, unsigned long bytes, const char *filename) {
+int FrameScript_ExecuteBuffer(void *buffer, unsigned long bytes, const char *filename) {
   lua_State *state = FrameScript_GetContext();
 
   GetErrorFunction(state);
@@ -790,7 +790,7 @@ int __fastcall FrameScript_ExecuteBuffer(void *buffer, unsigned long bytes, cons
   return 1;
 }
 
-int __fastcall FrameScript_CompileFunction(const char *source, const char *description) {
+int FrameScript_CompileFunction(const char *source, const char *description) {
   lua_State *state = FrameScript_GetContext();
 
   if (luaL_loadbuffer(state, source, SStrLen(source), description)) {
@@ -800,17 +800,17 @@ int __fastcall FrameScript_CompileFunction(const char *source, const char *descr
   return luaL_ref(state, LUA_REGISTRYINDEX);
 }
 
-void __fastcall FrameScript_ReleaseFunction(int function) {
+void FrameScript_ReleaseFunction(int function) {
   lua_State *state = FrameScript_GetContext();
 
   luaL_unref(state, LUA_REGISTRYINDEX, function);
 }
 
-void __fastcall FrameScript_Execute(const char *buffer, const char *filename) {
+void FrameScript_Execute(const char *buffer, const char *filename) {
   FrameScript_ExecuteBuffer(const_cast<char *>(buffer), SStrLen(buffer), filename);
 }
 
-void __fastcall FrameScript_Execute(int function) {
+void FrameScript_Execute(int function) {
   lua_State *state = FrameScript_GetContext();
 
   GetErrorFunction(state);
@@ -821,7 +821,7 @@ void __fastcall FrameScript_Execute(int function) {
   lua_pop(state, 1);
 }
 
-void __fastcall FrameScript_Execute(int function, FrameScript_Object *objectTHIS) {
+void FrameScript_Execute(int function, FrameScript_Object *objectTHIS) {
   lua_State *state;
 
   FATALASSERT(function);
@@ -841,7 +841,7 @@ void __fastcall FrameScript_Execute(int function, FrameScript_Object *objectTHIS
   PopThisStack();
 }
 
-static void __fastcall PushThisStack(FrameScript_Object *object) {
+static void PushThisStack(FrameScript_Object *object) {
   if (s_objectStack.Count() == s_objectCount) {
     s_objectStack.SetCount(s_objectCount + 1);
   }
@@ -853,7 +853,7 @@ static void __fastcall PushThisStack(FrameScript_Object *object) {
   ++s_objectCount;
 }
 
-static void __fastcall PopThisStack() {
+static void PopThisStack() {
   --s_objectCount;
   s_objectStack[s_objectCount]->UnregisterScriptObject("this");
   if (s_objectCount) {

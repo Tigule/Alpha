@@ -37,19 +37,19 @@ namespace NTempest {
       return C2iVector(x, y);
     }
 
-    static C3iVector __fastcall Min(const C3iVector &a, const C3iVector &b) {
+    static C3iVector Min(const C3iVector &a, const C3iVector &b) {
       return C3iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z);
     }
 
-    static C3iVector __fastcall Max(const C3iVector &a, const C3iVector &b) {
+    static C3iVector Max(const C3iVector &a, const C3iVector &b) {
       return C3iVector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z);
     }
 
-    static long __fastcall Dot(const C3iVector &a, const C3iVector &b) {
+    static long Dot(const C3iVector &a, const C3iVector &b) {
       return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    static C3iVector __fastcall Cross(const C3iVector &a, const C3iVector &b) {
+    static C3iVector Cross(const C3iVector &a, const C3iVector &b) {
       return C3iVector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
     }
 

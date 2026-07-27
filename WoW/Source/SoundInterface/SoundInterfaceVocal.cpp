@@ -17,7 +17,7 @@ struct MACRODESC {
 
 static TSGrowableArray<MACRODESC> s_macroRaceDescs;
 
-static int __fastcall Script_PlayVocalCategory(lua_State *L) {
+static int Script_PlayVocalCategory(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: PlayVocalCategory(category)");
   }
@@ -33,7 +33,7 @@ static FrameScript_Method s_ScriptFunctions[1] = {
     {"PlayVocalCategory", Script_PlayVocalCategory}
 };
 
-void __fastcall SndInterfaceRegisterVocalScriptFunctions() {
+void SndInterfaceRegisterVocalScriptFunctions() {
   s_macroRaceDescs.SetCount(g_chrRacesDB.GetMaxID() + 1);
   for (int i = 0; i < g_soundCharacterMacroLinesDB.GetNumRecords(); ++i) {
     SoundCharacterMacroLinesRec *record = g_soundCharacterMacroLinesDB.GetRecordByIndex(i);
@@ -44,12 +44,12 @@ void __fastcall SndInterfaceRegisterVocalScriptFunctions() {
   FrameScript_RegisterFunction(s_ScriptFunctions[0].name, s_ScriptFunctions[0].method);
 }
 
-void __fastcall SndInterfaceUnregisterVocalScriptFunctions() {
+void SndInterfaceUnregisterVocalScriptFunctions() {
   s_macroRaceDescs.Clear();
   FrameScript_UnregisterFunction(s_ScriptFunctions[0].name);
 }
 
-void __fastcall SoundInterfacePlayVocalMacro(CGPlayer_C *player, int category) {
+void SoundInterfacePlayVocalMacro(CGPlayer_C *player, int category) {
   if (player && (player->GetType() & TYPE_PLAYER) && category < 12) {
     const CGUnitData  *unitData = player->GetUnitData();
     unsigned int       race = unitData->race;

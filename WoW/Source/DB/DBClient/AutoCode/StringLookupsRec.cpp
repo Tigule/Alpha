@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall StringLookupsRec::GetFilename() {
+const char *StringLookupsRec::GetFilename() {
   return "DBFilesClient\\StringLookups.dbc";
 }
 

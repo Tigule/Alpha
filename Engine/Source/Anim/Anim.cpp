@@ -86,7 +86,7 @@ void CKeyFrameTrack<T, U>::Interpolate(const CKeyTrackStatus &keyStat, unsigned 
   }
 }
 
-void __fastcall
+void
 FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
   ASSERT(NTempest::CMath::fabs_(direction.SquaredMag()) >= 0.00000023841858f);
   *xprime = direction;
@@ -103,7 +103,7 @@ FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, N
   *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
 }
 
-static void __fastcall LookAtPoint(const NTempest::C3Vector &position, const NTempest::C3Vector &point, NTempest::C4Quaternion *result) {
+static void LookAtPoint(const NTempest::C3Vector &position, const NTempest::C3Vector &point, NTempest::C4Quaternion *result) {
   NTempest::C3Vector direction = point - position;
   direction.Normalize();
 
@@ -131,7 +131,7 @@ static void __fastcall LookAtPoint(const NTempest::C3Vector &position, const NTe
   result->w = parentRotation.w * value.w - parentRotation.x * value.x - parentRotation.y * value.y - parentRotation.z * value.z;
 }
 
-void __fastcall RotateViewBillboarded(const NTempest::C3Vector &cameraVector) {
+void RotateViewBillboarded(const NTempest::C3Vector &cameraVector) {
   NTempest::C3Vector xprime;
   NTempest::C3Vector yprime;
   NTempest::C3Vector zprime;
@@ -141,7 +141,7 @@ void __fastcall RotateViewBillboarded(const NTempest::C3Vector &cameraVector) {
   WorldMatrixBasis(xprime, yprime, zprime);
 }
 
-void __fastcall RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVector) {
+void RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVector) {
   ASSERT(NTempest::CMath::fabs_(cameraVector.SquaredMag()) >= 0.00000023841858f);
   NTempest::C3Vector xprime;
   NTempest::C3Vector zprime;
@@ -155,7 +155,7 @@ void __fastcall RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVecto
   WorldMatrixBasis(xprime, yprime, zprime);
 }
 
-void __fastcall RotateViewYAxisBillboarded(const NTempest::C3Vector &cameraVector) {
+void RotateViewYAxisBillboarded(const NTempest::C3Vector &cameraVector) {
   ASSERT(NTempest::CMath::fabs_(cameraVector.SquaredMag()) >= 0.00000023841858f);
   NTempest::C3Vector xprime;
   NTempest::C3Vector yprime;
@@ -169,7 +169,7 @@ void __fastcall RotateViewYAxisBillboarded(const NTempest::C3Vector &cameraVecto
   WorldMatrixBasis(xprime, yprime, zprime);
 }
 
-void __fastcall RotateViewXAxisBillboarded(const NTempest::C3Vector &cameraVector) {
+void RotateViewXAxisBillboarded(const NTempest::C3Vector &cameraVector) {
   ASSERT(NTempest::CMath::fabs_(cameraVector.SquaredMag()) >= 0.00000023841858f);
   NTempest::C3Vector yprime;
   NTempest::C3Vector xprime;
@@ -186,19 +186,19 @@ void __fastcall RotateViewXAxisBillboarded(const NTempest::C3Vector &cameraVecto
 namespace {
 
   template <class T, class U>
-  static const T *__fastcall AnimKeyValue(const CKeyFrameTrack<T, U> &track, unsigned int key) {
+  static const T *AnimKeyValue(const CKeyFrameTrack<T, U> &track, unsigned int key) {
     const unsigned char *p = reinterpret_cast<const unsigned char *>(track.m_keyFrames) + track.m_keyFrameSize * key + sizeof(int);
     return reinterpret_cast<const T *>(p);
   }
 
-  static inline float __fastcall
+  static inline float
   AnimFloat(CKeyFrameTrack<float, float> &track, CBaseStatus &base, CKeyTrackStatus &keyStatus, const InterpInfo &info, float fallback) {
     float value;
     track.InterpolateRetained(info, base, &keyStatus, fallback, &value);
     return value;
   }
 
-  static inline NTempest::C3Vector __fastcall AnimVector(
+  static inline NTempest::C3Vector AnimVector(
       CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector> &track,
       CBaseStatus                                            &base,
       CKeyTrackStatus                                        &keyStatus,
@@ -210,7 +210,7 @@ namespace {
     return value;
   }
 
-  static inline C3Color __fastcall
+  static inline C3Color
   AnimColor(CKeyFrameTrack<C3Color, C3Color> &track, CBaseStatus &base, CKeyTrackStatus &keyStatus, const InterpInfo &info) {
     C3Color fallback;
     C3Color result;
@@ -219,16 +219,6 @@ namespace {
   }
 
 }  // namespace
-
-template <>
-int CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::InterpolateVolatileFewKeys(
-    const CKeyTrackStatus  &keyStat,
-    NTempest::C4Quaternion *transform
-) {
-  ASSERT(transform);
-  *transform = reinterpret_cast<const CLinearKeyFrame<NTempest::C4QuaternionCompressed> *>(GetKeyFrame(keyStat.currKey))->transform;
-  return 1;
-}
 
 template <>
 void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::Interpolate(
@@ -595,7 +585,7 @@ static void SetRibbonValues(const AnimInfo& animInfo, CAnimRibbonObj* currobj) {
   emitter->SetPos(orient, animInfo.cameraWorldPos);
 }
 
-static void __fastcall PlaceObject(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos) {
+static void PlaceObject(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos) {
   CAnimObjStatus *status = animInfo.unique->status[currobj->animObjId];
 
   if (currobj->type == 1 || currobj->type == 3 || currobj->type == 6) {
@@ -704,7 +694,7 @@ static void __fastcall PlaceObject(const AnimInfo &animInfo, CAnimObj *currobj, 
   }
 }
 
-static void __fastcall ApplyFaceDir(const AnimInfo &animInfo, CAnimObj *currobj) {
+static void ApplyFaceDir(const AnimInfo &animInfo, CAnimObj *currobj) {
   CAnimObjStatus *status = animInfo.unique->status[currobj->animObjId];
   status->base.flags &= ~4;
   if (!(status->base.flags & 0x40)) {
@@ -724,7 +714,7 @@ static void __fastcall ApplyFaceDir(const AnimInfo &animInfo, CAnimObj *currobj)
   WorldMatrixRotate(transform);
 }
 
-static int __fastcall ApplyLookAt(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos) {
+static int ApplyLookAt(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos) {
   CAnimObjStatus *status = animInfo.unique->status[currobj->animObjId];
   status->base.flags &= ~4;
   if (!(status->base.flags & 2)) {
@@ -746,7 +736,7 @@ static int __fastcall ApplyLookAt(const AnimInfo &animInfo, CAnimObj *currobj, c
   return 1;
 }
 
-static void __fastcall
+static void
 TransformObjectView(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos, const NTempest::C3Vector &parentPos) {
   CAnimObjStatus *status = animInfo.unique->status[currobj->animObjId];
   if (animInfo.unique->flags & 0x10) {
@@ -795,7 +785,7 @@ TransformObjectView(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest:
   ScaleView(animInfo, currobj);
 }
 
-static void __fastcall PrepareObjectHierarchyViews(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &parentPos) {
+static void PrepareObjectHierarchyViews(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &parentPos) {
   ASSERT(animInfo.shared);
   ASSERT(currobj);
 
@@ -816,7 +806,7 @@ static void __fastcall PrepareObjectHierarchyViews(const AnimInfo &animInfo, CAn
   WorldMatrixPop();
 }
 
-static void __fastcall RotateTexture(const AnimInfo &animInfo, CAnimTransform *texAnim, CAnimObjStatus *status, NTempest::C34Matrix *transform) {
+static void RotateTexture(const AnimInfo &animInfo, CAnimTransform *texAnim, CAnimObjStatus *status, NTempest::C34Matrix *transform) {
   NTempest::C4Quaternion rotation;
   if (texAnim->rotation.InterpolateVolatile(animInfo, status->base, &status->rotation, NTempest::C4Quaternion(), &rotation)) {
     NTempest::C3Vector texCenter(0.5f, 0.5f, 0.0f);
@@ -826,7 +816,7 @@ static void __fastcall RotateTexture(const AnimInfo &animInfo, CAnimTransform *t
   }
 }
 
-static void __fastcall ScaleTexture(const AnimInfo &animInfo, CAnimTransform *texAnim, CAnimObjStatus *status, NTempest::C34Matrix *transform) {
+static void ScaleTexture(const AnimInfo &animInfo, CAnimTransform *texAnim, CAnimObjStatus *status, NTempest::C34Matrix *transform) {
   NTempest::C3Vector scale;
   if (texAnim->scale.InterpolateVolatile(animInfo, status->base, &status->scale, NTempest::C3Vector(1.0f), &scale)) {
     NTempest::C3Vector texCenter(0.5f, 0.5f, 0.0f);
@@ -836,14 +826,14 @@ static void __fastcall ScaleTexture(const AnimInfo &animInfo, CAnimTransform *te
   }
 }
 
-static void __fastcall TranslateTexture(const AnimInfo &animInfo, CAnimTransform *texAnim, CAnimObjStatus *status, NTempest::C34Matrix *transform) {
+static void TranslateTexture(const AnimInfo &animInfo, CAnimTransform *texAnim, CAnimObjStatus *status, NTempest::C34Matrix *transform) {
   NTempest::C3Vector position;
   if (texAnim->translation.InterpolateVolatile(animInfo, status->base, &status->translation, NTempest::C3Vector(0.0f), &position)) {
     transform->Translate(position);
   }
 }
 
-static void __fastcall AnimateTextureMap(const AnimInfo &animInfo, CAnimTransform *texAnim, CAnimObjStatus *status, NTempest::C34Matrix *transform) {
+static void AnimateTextureMap(const AnimInfo &animInfo, CAnimTransform *texAnim, CAnimObjStatus *status, NTempest::C34Matrix *transform) {
   ASSERT(texAnim);
   transform->Identity();
   RotateTexture(animInfo, texAnim, status, transform);
@@ -1011,7 +1001,7 @@ static void ISetSequenceUnchanged(CAnim* container, CAnimData* animptr) {
   container->flags |= setAllObjects ? 1 : 2;
 }
 
-void __fastcall AnimProcessEvents(HANIM anim, const TSFixedArray<NTempest::C3Vector> &positions) {
+void AnimProcessEvents(HANIM anim, const TSFixedArray<NTempest::C3Vector> &positions) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -1044,7 +1034,7 @@ void __fastcall AnimProcessEvents(HANIM anim, const TSFixedArray<NTempest::C3Vec
   }
 }
 
-void __fastcall AnimAnimateCameras(HANIM anim, const TSFixedArray<HCAMERA> &cameras) {
+void AnimAnimateCameras(HANIM anim, const TSFixedArray<HCAMERA> &cameras) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -1074,7 +1064,7 @@ void __fastcall AnimAnimateCameras(HANIM anim, const TSFixedArray<HCAMERA> &came
   }
 }
 
-void __fastcall IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnimationData &data) {
+void IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnimationData &data) {
   ASSERT(shared->flags & 1);
   ASSERT(!(shared->flags & 4));
   ASSERT(data.boneMtx || !data.numBones);
@@ -1130,7 +1120,7 @@ void __fastcall IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnima
     unique->flags |= 2;
 }
 
-void __fastcall AnimAnimateModel(HANIM anim, const CAnimationData &data) {
+void AnimAnimateModel(HANIM anim, const CAnimationData &data) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -1142,12 +1132,12 @@ void __fastcall AnimAnimateModel(HANIM anim, const CAnimationData &data) {
   IAnimAnimateModel(unique, shared, data);
 }
 
-void __fastcall AnimSetBoneProjectCallback(ANIMBONEPROJECTCALLBACK callback, float distance) {
+void AnimSetBoneProjectCallback(ANIMBONEPROJECTCALLBACK callback, float distance) {
   s_AnimBoneProjectCallback = callback;
   s_animBoneProjectDistance = distance;
 }
 
-void __fastcall AnimGetBoneProjectCallback(ANIMBONEPROJECTCALLBACK &callback, float &distance) {
+void AnimGetBoneProjectCallback(ANIMBONEPROJECTCALLBACK &callback, float &distance) {
   callback = s_AnimBoneProjectCallback;
   distance = s_animBoneProjectDistance;
 }

@@ -22,7 +22,7 @@
    we'll disable it for now on that platform.  It may be reconsidered
    for a future release if it can be made more effective.
 */
-/* #define FASTCALL __fastcall */
+/* #define FASTCALL */
 #endif
 
 #ifndef FASTCALL

@@ -5,7 +5,7 @@
 #include <Model/IModel.h>
 #include <Services/AsyncFileRead.h>
 
-void __fastcall CMap::PrepareUpdate() {
+void CMap::PrepareUpdate() {
   bspRecurseCount = 0;
   mapGetFacetsCount = 0;
   oldSelectLightParm = 0;
@@ -16,7 +16,7 @@ void __fastcall CMap::PrepareUpdate() {
   PrepareDoodadDefs();
 }
 
-void __fastcall CMap::PrepareAreas() {
+void CMap::PrepareAreas() {
   CMapBaseObjLink *areaLink = areaLinkList.Head();
 
   while (reinterpret_cast<long>(areaLink) > 0) {
@@ -40,7 +40,7 @@ void __fastcall CMap::PrepareAreas() {
   }
 }
 
-void __fastcall CMap::PrepareMapObjDefs() {
+void CMap::PrepareMapObjDefs() {
   CMapObjDef *mapObjDef = mapObjDefHash.Head();
   while (mapObjDef) {
     CMapObj    *mapObj = mapObjDef->mapObj;
@@ -90,7 +90,7 @@ void __fastcall CMap::PrepareMapObjDefs() {
   }
 }
 
-void __fastcall CMap::PrepareDoodadDefs() {
+void CMap::PrepareDoodadDefs() {
   unsigned int     count = 0;
   CMapDoodadDef *doodadDef = doodadDefHash.Head();
   while (doodadDef) {
@@ -118,7 +118,7 @@ void __fastcall CMap::PrepareDoodadDefs() {
   }
 }
 
-void __fastcall CMap::QueryLightmap(CMapDoodadDef *doodadDef) {
+void CMap::QueryLightmap(CMapDoodadDef *doodadDef) {
   CMapBaseObjLink *mapObjDefGroupLink = doodadDef->parentLinkList.Head();
   CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(mapObjDefGroupLink->ref);
   CMapBaseObjLink *mapObjDefLink = mapObjDefGroup->parentLinkList.Head();
@@ -128,7 +128,7 @@ void __fastcall CMap::QueryLightmap(CMapDoodadDef *doodadDef) {
   doodadDef->QueryLightmap(mapObjDef, mapObjGroup);
 }
 
-void __fastcall CMap::UpdateMapObjDefGroupDoodads(
+void CMap::UpdateMapObjDefGroupDoodads(
     CMapObj         *mapObj,
     CMapObjGroup    *mapObjGroup,
     CMapObjDef      *mapObjDef,
@@ -170,7 +170,7 @@ void __fastcall CMap::UpdateMapObjDefGroupDoodads(
   }
 }
 
-void __fastcall CMap::PrepareMapObjDef(CMapObjDef *mapObjDef, CMapObj *mapObj) {
+void CMap::PrepareMapObjDef(CMapObjDef *mapObjDef, CMapObj *mapObj) {
   FATALASSERT(mapObjDef);
   FATALASSERT(mapObj);
 
@@ -190,7 +190,7 @@ void __fastcall CMap::PrepareMapObjDef(CMapObjDef *mapObjDef, CMapObj *mapObj) {
   CreateMapObjDefGroups(mapObj, mapObjDef);
 }
 
-void __fastcall CMap::PrepareChunks() {
+void CMap::PrepareChunks() {
   FATALASSERT(wdtFile);
 
   nChunksPrepared = 0;
@@ -243,7 +243,7 @@ void __fastcall CMap::PrepareChunks() {
   }
 }
 
-void __fastcall CMap::PrepareArea(int x, int y) {
+void CMap::PrepareArea(int x, int y) {
   FATALASSERT(wdtFile);
 
   unsigned long index = x + 64 * y;
@@ -269,7 +269,7 @@ void __fastcall CMap::PrepareArea(int x, int y) {
   area->Load(&areaInfo[index]);
 }
 
-void __fastcall CMap::PrepareChunk(CMapArea *area, int x, int y) {
+void CMap::PrepareChunk(CMapArea *area, int x, int y) {
   FATALASSERT(area);
   FATALASSERT(wdtFile);
 
@@ -293,7 +293,7 @@ void __fastcall CMap::PrepareChunk(CMapArea *area, int x, int y) {
   chunk->Load(&area->chunkInfo[index]);
 }
 
-void __fastcall CMap::CreateChunkNeighborPtrs(CMapChunk *chunk) {
+void CMap::CreateChunkNeighborPtrs(CMapChunk *chunk) {
   FATALASSERT(chunk);
 
   CMapArea *area = static_cast<CMapArea *>(chunk->parentLinkList.Head()->ref);

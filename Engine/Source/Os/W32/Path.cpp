@@ -12,9 +12,9 @@ static const char *s_invalidFileNames[22] = {
     "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"
 };
 
-void __fastcall OsPathStripFilename(char *buffer);
+void OsPathStripFilename(char *buffer);
 
-DWORD __fastcall OsPathGetRootChars(const char *path) {
+DWORD OsPathGetRootChars(const char *path) {
   DWORD pathChars = SStrLen(path);
 
   if (pathChars < 2) {
@@ -41,24 +41,24 @@ DWORD __fastcall OsPathGetRootChars(const char *path) {
   return 0;
 }
 
-const char* __fastcall OsGetCommandLine() {
+const char* OsGetCommandLine() {
   return GetCommandLineA();
 }
 
-void __fastcall OsGetExeName(char *buffer, DWORD chars) {
+void OsGetExeName(char *buffer, DWORD chars) {
   GetModuleFileNameA(0, buffer, chars);
 }
 
-void __fastcall OsGetExePath(char *buffer, DWORD chars) {
+void OsGetExePath(char *buffer, DWORD chars) {
   OsGetExeName(buffer, chars);
   OsPathStripFilename(buffer);
 }
 
-void __fastcall OsGetStormName(char* buffer, unsigned long chars) {
+void OsGetStormName(char* buffer, unsigned long chars) {
   GetModuleFileNameA(StormGetInstance(), buffer, chars);
 }
 
-int __fastcall OsGetModuleName(unsigned long moduleId, char* buffer, unsigned long chars) {
+int OsGetModuleName(unsigned long moduleId, char* buffer, unsigned long chars) {
   buffer[0] = 0;
   for (unsigned int i = 0; i < 8; ++i) {
     if (s_modules[i].m_id == moduleId) {
@@ -69,7 +69,7 @@ int __fastcall OsGetModuleName(unsigned long moduleId, char* buffer, unsigned lo
   return 0;
 }
 
-int __fastcall OsSetModuleHandle(unsigned long moduleId, HINSTANCE__* moduleHandle) {
+int OsSetModuleHandle(unsigned long moduleId, HINSTANCE__* moduleHandle) {
   FATALASSERT(moduleId);
   FATALASSERT(moduleHandle);
 
@@ -83,7 +83,7 @@ int __fastcall OsSetModuleHandle(unsigned long moduleId, HINSTANCE__* moduleHand
   return 0;
 }
 
-void __fastcall OsClearModuleHandle(unsigned long moduleId) {
+void OsClearModuleHandle(unsigned long moduleId) {
   for (unsigned int i = 0; i < 8; ++i) {
     if (s_modules[i].m_id == moduleId) {
       s_modules[i].m_id = 0;
@@ -93,7 +93,7 @@ void __fastcall OsClearModuleHandle(unsigned long moduleId) {
   }
 }
 
-void __fastcall OsPathStripFilename(char *buffer) {
+void OsPathStripFilename(char *buffer) {
   char *filename = SStrChrR(buffer, '\\');
 
   if (filename) {
@@ -107,7 +107,7 @@ void __fastcall OsPathStripFilename(char *buffer) {
   }
 }
 
-void __fastcall OsPathStripLastDir(char* buffer) {
+void OsPathStripLastDir(char* buffer) {
   unsigned long pathChars = SStrLen(buffer);
   unsigned long rootChars = OsPathGetRootChars(buffer);
   if (pathChars > rootChars) {
@@ -118,14 +118,14 @@ void __fastcall OsPathStripLastDir(char* buffer) {
   }
 }
 
-void __fastcall OsPathGetFilename(const char* path, char* buffer, unsigned int size) {
+void OsPathGetFilename(const char* path, char* buffer, unsigned int size) {
   FATALASSERT(path && buffer && size);
   buffer[0] = 0;
   const char *filename = SStrChrR(path, '\\');
   SStrCopy(buffer, filename ? filename + 1 : path, size);
 }
 
-void __fastcall OsPathGetLastDirectory(const char* string, char* buffer, unsigned int size) {
+void OsPathGetLastDirectory(const char* string, char* buffer, unsigned int size) {
   FATALASSERT(string && buffer && size);
 
   char path[260];
@@ -144,11 +144,11 @@ void __fastcall OsPathGetLastDirectory(const char* string, char* buffer, unsigne
   }
 }
 
-int __fastcall OsPathIsRelative(const char* path) {
+int OsPathIsRelative(const char* path) {
   return OsPathGetRootChars(path) == 0;
 }
 
-int __fastcall OsPathHasInvalidChars(const char* path) {
+int OsPathHasInvalidChars(const char* path) {
   const char *invalidChars = "*/:><|&+^?\"";
   while (*invalidChars) {
     if (SStrChr(path, *invalidChars++)) {
@@ -158,7 +158,7 @@ int __fastcall OsPathHasInvalidChars(const char* path) {
   return 0;
 }
 
-int __fastcall OsFileNameHasInvalidChars(const char* filename) {
+int OsFileNameHasInvalidChars(const char* filename) {
   const char *invalidChars = "\\*/:><|&+^?\"";
   while (*invalidChars) {
     if (SStrChr(filename, *invalidChars++)) {
@@ -168,7 +168,7 @@ int __fastcall OsFileNameHasInvalidChars(const char* filename) {
   return 0;
 }
 
-int __fastcall OsFileNameIsValid(const char* filename) {
+int OsFileNameIsValid(const char* filename) {
   if (OsFileNameHasInvalidChars(filename)) {
     return 0;
   }
@@ -189,7 +189,7 @@ int __fastcall OsFileNameIsValid(const char* filename) {
   return 1;
 }
 
-void __fastcall OsGetSystemFontDirectory(char* buffer, unsigned int chars) {
+void OsGetSystemFontDirectory(char* buffer, unsigned int chars) {
   unsigned int charsCopied = GetWindowsDirectoryA(buffer, chars);
   FATALASSERT(charsCopied);
 
@@ -199,6 +199,6 @@ void __fastcall OsGetSystemFontDirectory(char* buffer, unsigned int chars) {
   SStrCopy(&buffer[charsCopied], "fonts\\", chars - charsCopied);
 }
 
-void __fastcall OsBuildFontFilePath(const char *fileName, char *buffer, unsigned int size) {
+void OsBuildFontFilePath(const char *fileName, char *buffer, unsigned int size) {
   SStrPrintf(buffer, size, "%s\\%s", "Fonts", fileName);
 }

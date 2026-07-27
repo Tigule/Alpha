@@ -18,7 +18,7 @@
   }                                                                \
   ASSERT(object)
 
-static int __fastcall CSimpleEditBox_Insert(lua_State *L) {
+static int CSimpleEditBox_Insert(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
 
   if (lua_isstring(L, 2)) {
@@ -28,7 +28,7 @@ static int __fastcall CSimpleEditBox_Insert(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleEditBox_SetText(lua_State *L) {
+static int CSimpleEditBox_SetText(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
 
   if (lua_gettop(L) != 2) {
@@ -39,14 +39,14 @@ static int __fastcall CSimpleEditBox_SetText(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleEditBox_GetText(lua_State *L) {
+static int CSimpleEditBox_GetText(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
 
   lua_pushstring(L, object->GetText());
   return 1;
 }
 
-static int __fastcall CSimpleEditBox_AddHistoryLine(lua_State *L) {
+static int CSimpleEditBox_AddHistoryLine(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
 
   if (lua_gettop(L) != 2) {
@@ -57,7 +57,7 @@ static int __fastcall CSimpleEditBox_AddHistoryLine(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleEditBox_SetTextInsets(lua_State *L) {
+static int CSimpleEditBox_SetTextInsets(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
 
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4) || !lua_isnumber(L, 5)) {
@@ -71,7 +71,7 @@ static int __fastcall CSimpleEditBox_SetTextInsets(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleEditBox_SetTextColor(lua_State *L) {
+static int CSimpleEditBox_SetTextColor(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
 
   NTempest::CImVector color;
@@ -89,14 +89,14 @@ static int __fastcall CSimpleEditBox_SetTextColor(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleEditBox_SetFocus(lua_State *L) {
+static int CSimpleEditBox_SetFocus(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
 
   CSimpleEditBox::SetKeyboardFocus(object);
   return 0;
 }
 
-static int __fastcall CSimpleEditBox_ClearFocus(lua_State *L) {
+static int CSimpleEditBox_ClearFocus(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
 
   CSimpleEditBox::ClearKeyboardFocus(object);
@@ -118,11 +118,11 @@ static FrameScript_Method SimpleEditBoxMethods[8] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleEditBox::s_scriptMethods;
 
-void __fastcall CSimpleEditBox::RegisterScriptMethods() {
+void CSimpleEditBox::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleEditBoxMethods, 8, s_scriptMethods);
 }
 
-void __fastcall CSimpleEditBox::UnregisterScriptMethods() {
+void CSimpleEditBox::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

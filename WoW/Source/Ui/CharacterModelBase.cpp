@@ -12,11 +12,11 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
+unsigned __int64 Script_GetGUIDFromName(const char *name);
 
-static int __fastcall Script_SetUnit(lua_State *L);
-static int __fastcall Script_UpdateModel(lua_State *L);
-static int __fastcall Script_SetRotation(lua_State *L);
+static int Script_SetUnit(lua_State *L);
+static int Script_UpdateModel(lua_State *L);
+static int Script_SetRotation(lua_State *L);
 
 static FrameScript_Method CGCharacterModelBaseMethods[3] = {
     {    "SetUnit",     Script_SetUnit},
@@ -114,7 +114,7 @@ CGCharacterModelBase::CGCharacterModelBase(CSimpleFrame *parent) : CSimpleModel(
   }                                                                      \
   FATALASSERT(object)
 
-static int __fastcall Script_SetUnit(lua_State *L) {
+static int Script_SetUnit(lua_State *L) {
   GET_CHARACTER_MODEL_THIS(L, object);
   if (!lua_isstring(L, 2)) {
     return luaL_error(L, "Usage: SetUnit(\"unit\")");
@@ -123,13 +123,13 @@ static int __fastcall Script_SetUnit(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_UpdateModel(lua_State *L) {
+static int Script_UpdateModel(lua_State *L) {
   GET_CHARACTER_MODEL_THIS(L, object);
   object->UpdateModel();
   return 0;
 }
 
-static int __fastcall Script_SetRotation(lua_State *L) {
+static int Script_SetRotation(lua_State *L) {
   GET_CHARACTER_MODEL_THIS(L, object);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: SetRotation(rotation (in radians))");
@@ -140,11 +140,11 @@ static int __fastcall Script_SetRotation(lua_State *L) {
 
 #undef GET_CHARACTER_MODEL_THIS
 
-void __fastcall CGCharacterModelBase::RegisterScriptMethods() {
+void CGCharacterModelBase::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(CGCharacterModelBaseMethods, 3, s_scriptMethods);
 }
 
-void __fastcall CGCharacterModelBase::UnregisterScriptMethods() {
+void CGCharacterModelBase::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

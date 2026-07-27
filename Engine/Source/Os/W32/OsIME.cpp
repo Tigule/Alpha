@@ -15,7 +15,7 @@ extern "C" BOOL WINAPI ImmAssociateContextEx(HWND, HIMC, DWORD);
 static HIMC s_IMC;
 static int  s_IMEActive;
 
-OS_IME_LANGUAGEMODE __fastcall OsIMEGetLanguageMode() {
+OS_IME_LANGUAGEMODE OsIMEGetLanguageMode() {
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
   HIMC context = ImmGetContext(wnd);
   if (!context) {
@@ -61,15 +61,15 @@ static int GetCompositionString(int which, char* string, int maxlen) {
   return 1;
 }
 
-int __fastcall OsIMEGetCompositionString(char* string, unsigned int maxlen) {
+int OsIMEGetCompositionString(char* string, unsigned int maxlen) {
   return GetCompositionString(GCS_COMPSTR, string, maxlen);
 }
 
-int __fastcall OsIMEGetCompositionResult(char* string, unsigned int maxlen) {
+int OsIMEGetCompositionResult(char* string, unsigned int maxlen) {
   return GetCompositionString(GCS_RESULTSTR, string, maxlen);
 }
 
-int __fastcall OsIMEGetClauseInfo(unsigned int& clauseLeft, unsigned int& clauseRight, unsigned int& cursorPos) {
+int OsIMEGetClauseInfo(unsigned int& clauseLeft, unsigned int& clauseRight, unsigned int& cursorPos) {
   unsigned int codePage = OsInputGetCodePage();
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
   HIMC context = ImmGetContext(wnd);
@@ -124,7 +124,7 @@ int __fastcall OsIMEGetClauseInfo(unsigned int& clauseLeft, unsigned int& clause
   return 1;
 }
 
-int __fastcall OsIMEGetCandidates(
+int OsIMEGetCandidates(
     unsigned long which,
     unsigned int &pageSize,
     unsigned int &count,
@@ -220,7 +220,7 @@ int __fastcall OsIMEGetCandidates(
   return 1;
 }
 
-void __fastcall OsIMEEnable(int enabled) {
+void OsIMEEnable(int enabled) {
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
   if (enabled) {
     if (++s_IMEActive == 1) {
@@ -231,11 +231,11 @@ void __fastcall OsIMEEnable(int enabled) {
   }
 }
 
-void __fastcall OsIMEInitialize() {
+void OsIMEInitialize() {
   s_IMC = ImmAssociateContext((HWND)OsGuiGetWindow(0), 0);
 }
 
-void __fastcall OsIMEDestroy() {
+void OsIMEDestroy() {
   ImmAssociateContextEx((HWND)OsGuiGetWindow(0), 0, IACE_DEFAULT);
   s_IMC = 0;
 }

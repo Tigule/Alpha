@@ -1,11 +1,11 @@
 #ifndef WOW_SOURCE_GAME_GAMECLIENT_GUILDCLIENT_H
 #define WOW_SOURCE_GAME_GAMECLIENT_GUILDCLIENT_H
 
-unsigned int __fastcall GuildGetTabardCost();
+unsigned int GuildGetTabardCost();
 
-bool __fastcall GuildGetGuildTabard(
+bool GuildGetGuildTabard(
     unsigned int guildID,
-    void(__fastcall *callback)(int, const unsigned __int64 &, void *, bool),
+    void(*callback)(int, const unsigned __int64 &, void *, bool),
     int &eStyle,
     int &eColor,
     int &bStyle,

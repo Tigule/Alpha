@@ -153,7 +153,7 @@ class CGxDeviceOpenGl : public CGxDevice {
       EGxVertexBufferFormat format,
       unsigned int          numVertices,
       unsigned int          numIndices,
-      void(__fastcall *userCallback)(CGxBufCommand &, CGxBuf *),
+      void(*userCallback)(CGxBufCommand &, CGxBuf *),
       void *userArg
   );
   virtual void BufLock(CGxBuf *b);
@@ -167,7 +167,7 @@ class CGxDeviceOpenGl : public CGxDevice {
       EGxTexFormat format,
       CGxTexFlags  flags,
       void        *userArg,
-      void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
       CGxTex *&texId
   );
   virtual void TexDestroy(CGxTex *texId);

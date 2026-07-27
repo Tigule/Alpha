@@ -214,11 +214,13 @@ if (WIN32)
 endif()
 
 if(MSVC_VERSION EQUAL 1200)
+    target_compile_options(Engine PRIVATE /Gr)
+
     set_source_files_properties(
         Source/regex/regfree.c
         Source/regex/regcomp.c
         Source/regex/regexec.c
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob1")
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1")
 
     set_source_files_properties(
         Source/FrameXML/FrameXML.cpp
@@ -232,16 +234,16 @@ if(MSVC_VERSION EQUAL 1200)
 
     set_source_files_properties(
         Source/Gxu/GxuFont.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /GX- /Ob2 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")
     set_source_files_properties(
         Source/Gxu/GxuFontUtil.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /GX- /Ob1 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
     set_source_files_properties(
         Source/Gxu/IGxuFontGlyph.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr")
+        PROPERTIES COMPILE_FLAGS "/G6")
     set_source_files_properties(
         Source/Gxu/GxuFontFace.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /GX-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX-")
 
     set_source_files_properties(
         Source/Event/EvtSched.cpp
@@ -270,7 +272,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy-")
     set_source_files_properties(
         Source/Os/W32/OsISoundCache.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob2 /Oy- /GX-")
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob2 /Oy- /GX-")
     set_source_files_properties(
         Source/Os/W32/OsFile.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy-")
@@ -318,7 +320,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-")
     set_source_files_properties(
         Source/FrameScript/FrameScript.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob0")
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob0")
     set_source_files_properties(
         Source/Gx/GxApi/GxApi.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")
@@ -412,7 +414,7 @@ if(MSVC_VERSION EQUAL 1200)
         Source/Frame/CSimpleScrollFrameScript.cpp
         Source/Frame/CSimpleSliderScript.cpp
         Source/Frame/CSimpleStatusBarScript.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /GX- /Ob1 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
     set_source_files_properties(
         Source/Frame/SimpleFrameRegistry.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1")

@@ -27,7 +27,7 @@ namespace NTempest {
     SetSeed(CRandom::Seed(password));
   }
 
-  unsigned long __fastcall CRandom::Seed(char *password) {
+  unsigned long CRandom::Seed(char *password) {
     ASSERT(password);
     unsigned long length = SStrLen(password);
     unsigned long seed = static_cast<unsigned char>(password[0]);
@@ -37,7 +37,7 @@ namespace NTempest {
     return seed;
   }
 
-  C3Vector __fastcall CRandom::C3Vector_(CRndSeed &seed) {
+  C3Vector CRandom::C3Vector_(CRndSeed &seed) {
     const float z = reals_(seed);
     const float angle = real_(seed) * 6.28318530717958647692f;
 
@@ -50,68 +50,68 @@ namespace NTempest {
     return C3Vector(x, y, z);
   }
 
-  C2Vector __fastcall CRandom::C2Vector_(CRndSeed &seed) {
+  C2Vector CRandom::C2Vector_(CRndSeed &seed) {
     float angle = real_(seed) * 6.2831855f;
     return C2Vector(CMath::cos_(angle), CMath::sin_(angle));
   }
 
-  void __fastcall CRandom::array_(unsigned long *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(unsigned long *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = uint32_(seed);
   }
 
-  void __fastcall CRandom::array_(long *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(long *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     array_(reinterpret_cast<unsigned long *>(buf), count, seed);
   }
 
-  void __fastcall CRandom::array_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(float *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = real_(seed);
   }
 
-  void __fastcall CRandom::array_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(double *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = lreal_(seed);
   }
 
-  void __fastcall CRandom::arrayp_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrayp_(float *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = realp_(seed);
   }
 
-  void __fastcall CRandom::arrayp_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrayp_(double *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = lrealp_(seed);
   }
 
-  void __fastcall CRandom::arrays_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrays_(float *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = reals_(seed);
   }
 
-  void __fastcall CRandom::arrays_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrays_(double *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = lreals_(seed);
   }
 
-  float __fastcall CRandom::reale_(CRndSeed &seed) {
+  float CRandom::reale_(CRndSeed &seed) {
     return static_cast<float>(CMath::log2_(realp_(seed)) * -0.69314718);
   }
 
-  double __fastcall CRandom::lreale_(CRndSeed &seed) {
+  double CRandom::lreale_(CRndSeed &seed) {
     return CMath::log2_(lrealp_(seed)) * -0.6931471805599453;
   }
 
-  float __fastcall CRandom::reale_(float mean, CRndSeed &seed) {
+  float CRandom::reale_(float mean, CRndSeed &seed) {
     return reale_(seed) * mean;
   }
 
-  double __fastcall CRandom::lreale_(double mean, CRndSeed &seed) {
+  double CRandom::lreale_(double mean, CRndSeed &seed) {
     return lreale_(seed) * mean;
   }
 
-  float __fastcall CRandom::realg_(CRndSeed &seed) {
+  float CRandom::realg_(CRndSeed &seed) {
     static float cache = 0.0f;
     if (cache != 0.0f) {
       float result = cache;
@@ -128,7 +128,7 @@ namespace NTempest {
     return cosine * radius;
   }
 
-  double __fastcall CRandom::lrealg_(CRndSeed &seed) {
+  double CRandom::lrealg_(CRndSeed &seed) {
     static double cache = 0.0;
     if (cache != 0.0) {
       double result = cache;
@@ -145,75 +145,75 @@ namespace NTempest {
     return cosine * radius;
   }
 
-  float __fastcall CRandom::realg_(float mean, float variation, CRndSeed &seed) {
+  float CRandom::realg_(float mean, float variation, CRndSeed &seed) {
     return realg_(seed) * variation + mean;
   }
 
-  double __fastcall CRandom::lrealg_(double mean, double variation, CRndSeed &seed) {
+  double CRandom::lrealg_(double mean, double variation, CRndSeed &seed) {
     return lrealg_(seed) * variation + mean;
   }
 
-  void __fastcall CRandom::arraye_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arraye_(float *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = reale_(seed);
   }
 
-  void __fastcall CRandom::arraye_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arraye_(double *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = lreale_(seed);
   }
 
-  void __fastcall CRandom::arraye_(float *buf, unsigned long count, float mean, CRndSeed &seed) {
+  void CRandom::arraye_(float *buf, unsigned long count, float mean, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = reale_(mean, seed);
   }
 
-  void __fastcall CRandom::arraye_(double *buf, unsigned long count, double mean, CRndSeed &seed) {
+  void CRandom::arraye_(double *buf, unsigned long count, double mean, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = lreale_(mean, seed);
   }
 
-  void __fastcall CRandom::arrayg_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrayg_(float *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = realg_(seed);
   }
 
-  void __fastcall CRandom::arrayg_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrayg_(double *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = lrealg_(seed);
   }
 
-  void __fastcall CRandom::arrayg_(float *buf, unsigned long count, float mean, float variation, CRndSeed &seed) {
+  void CRandom::arrayg_(float *buf, unsigned long count, float mean, float variation, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = realg_(mean, variation, seed);
   }
 
-  void __fastcall CRandom::arrayg_(double *buf, unsigned long count, double mean, double variation, CRndSeed &seed) {
+  void CRandom::arrayg_(double *buf, unsigned long count, double mean, double variation, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = lrealg_(mean, variation, seed);
   }
 
-  void __fastcall CRandom::array_(C2Vector *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(C2Vector *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = C2Vector_(seed);
   }
 
-  void __fastcall CRandom::array_(C3Vector *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(C3Vector *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 0; i < count; ++i) buf[i] = C3Vector_(seed);
   }
 
-  void __fastcall CRandom::shuffle_(char *buf, CRndSeed &seed) {
+  void CRandom::shuffle_(char *buf, CRndSeed &seed) {
     ASSERT(buf);
     shuffle_(reinterpret_cast<unsigned char *>(buf), SStrLen(buf), seed);
   }
 
-  void __fastcall CRandom::shuffle_(char *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(char *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     shuffle_(reinterpret_cast<unsigned char *>(buf), count, seed);
   }
 
-  void __fastcall CRandom::shuffle_(unsigned char *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(unsigned char *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
       unsigned char value = buf[i];
@@ -223,12 +223,12 @@ namespace NTempest {
     }
   }
 
-  void __fastcall CRandom::shuffle_(short *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(short *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     shuffle_(reinterpret_cast<unsigned short *>(buf), count, seed);
   }
 
-  void __fastcall CRandom::shuffle_(unsigned short *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(unsigned short *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
       unsigned short value = buf[i];
@@ -238,12 +238,12 @@ namespace NTempest {
     }
   }
 
-  void __fastcall CRandom::shuffle_(long *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(long *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     shuffle_(reinterpret_cast<unsigned long *>(buf), count, seed);
   }
 
-  void __fastcall CRandom::shuffle_(unsigned long *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(unsigned long *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
       unsigned long value = buf[i];
@@ -253,7 +253,7 @@ namespace NTempest {
     }
   }
 
-  void __fastcall CRandom::shuffle_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(float *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
       float value = buf[i];
@@ -263,7 +263,7 @@ namespace NTempest {
     }
   }
 
-  void __fastcall CRandom::shuffle_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(double *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
       double value = buf[i];
@@ -273,7 +273,7 @@ namespace NTempest {
     }
   }
 
-  void __fastcall CRandom::crypt_(char *buf, unsigned long size, unsigned long seedNumber) {
+  void CRandom::crypt_(char *buf, unsigned long size, unsigned long seedNumber) {
     ASSERT((reinterpret_cast<unsigned long>(buf) & 3) == 0);
     CRndSeed seed(seedNumber);
     unsigned long offset = -reinterpret_cast<unsigned long>(buf) & 3;
@@ -284,37 +284,37 @@ namespace NTempest {
     }
   }
 
-  void __fastcall CRandom::crypt_(char *buf, unsigned long size, char *password) {
+  void CRandom::crypt_(char *buf, unsigned long size, char *password) {
     ASSERT(password);
     crypt_(buf, size, Seed(password));
   }
 
-  unsigned long __fastcall CRandom::lattice_(long x) {
+  unsigned long CRandom::lattice_(long x) {
     return ::lattice_(x);
   }
 
-  unsigned long __fastcall CRandom::lattice_(long x, long y) {
+  unsigned long CRandom::lattice_(long x, long y) {
     unsigned long value = lattice_(y);
     return lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
   }
 
-  unsigned long __fastcall CRandom::lattice_(long x, long y, long z) {
+  unsigned long CRandom::lattice_(long x, long y, long z) {
     unsigned long value = lattice_(y, z);
     return lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
   }
 
-  unsigned long __fastcall CRandom::lattice_(long x, long y, long z, long w) {
+  unsigned long CRandom::lattice_(long x, long y, long z, long w) {
     unsigned long value = lattice_(y, z, w);
     return lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
   }
 
-  void __fastcall CRandom::lattice2_(long x, unsigned long *vertices) {
+  void CRandom::lattice2_(long x, unsigned long *vertices) {
     ASSERT(vertices);
     vertices[0] = lattice_(x);
     vertices[1] = lattice_(x + 1);
   }
 
-  void __fastcall CRandom::lattice4_(long x, long y, unsigned long *vertices) {
+  void CRandom::lattice4_(long x, long y, unsigned long *vertices) {
     ASSERT(vertices);
     vertices[0] = lattice_(x, y);
     vertices[1] = lattice_(x + 1, y);
@@ -322,7 +322,7 @@ namespace NTempest {
     vertices[3] = lattice_(x + 1, y + 1);
   }
 
-  void __fastcall CRandom::lattice8_(long x, long y, long z, unsigned long *vertices) {
+  void CRandom::lattice8_(long x, long y, long z, unsigned long *vertices) {
     ASSERT(vertices);
     vertices[0] = lattice_(x, y, z);
     vertices[1] = lattice_(x + 1, y, z);
@@ -334,14 +334,14 @@ namespace NTempest {
     vertices[7] = lattice_(x + 1, y + 1, z + 1);
   }
 
-  void __fastcall CRandom::lattice3_(long x, unsigned long *vertices) {
+  void CRandom::lattice3_(long x, unsigned long *vertices) {
     ASSERT(vertices);
     vertices[0] = lattice_(x - 1);
     vertices[1] = lattice_(x);
     vertices[2] = lattice_(x + 1);
   }
 
-  void __fastcall CRandom::lattice9_(long x, long y, unsigned long *vertices) {
+  void CRandom::lattice9_(long x, long y, unsigned long *vertices) {
     ASSERT(vertices);
     unsigned long index = 0;
     for (long j = -1; j <= 1; ++j)
@@ -349,7 +349,7 @@ namespace NTempest {
         vertices[index++] = lattice_(x + i, y + j);
   }
 
-  void __fastcall CRandom::lattice27_(long x, long y, long z, unsigned long *vertices) {
+  void CRandom::lattice27_(long x, long y, long z, unsigned long *vertices) {
     ASSERT(vertices);
     unsigned long index = 0;
     for (long k = -1; k <= 1; ++k)
@@ -358,7 +358,7 @@ namespace NTempest {
           vertices[index++] = lattice_(x + i, y + j, z + k);
   }
 
-  float __fastcall CRandom::noise_(double x) {
+  float CRandom::noise_(double x) {
     long integer = static_cast<long>(x);
     if (x < 0.0) --integer;
     double fraction = x - integer;
@@ -382,7 +382,7 @@ namespace NTempest {
     return static_cast<float>((3.0 - value - value) * value * value);
   }
 
-  float __fastcall CRandom::noise_(double x, double y) {
+  float CRandom::noise_(double x, double y) {
     long xi = static_cast<long>(x);
     long yi = static_cast<long>(y);
     if (x < 0.0) --xi;
@@ -427,7 +427,7 @@ namespace NTempest {
     return (1.17188f - value * 0.48828f) * value * value;
   }
 
-  float __fastcall CRandom::noise_(double x, double y, double z) {
+  float CRandom::noise_(double x, double y, double z) {
     long xi = static_cast<long>(x);
     long yi = static_cast<long>(y);
     long zi = static_cast<long>(z);
@@ -495,7 +495,7 @@ namespace NTempest {
     return (3.0f - value - value) * value * value;
   }
 
-  float __fastcall CRandom::noise_(double x, double y, double z, C3Vector &derivative) {
+  float CRandom::noise_(double x, double y, double z, C3Vector &derivative) {
     long xi = static_cast<long>(x);
     long yi = static_cast<long>(y);
     long zi = static_cast<long>(z);
@@ -609,7 +609,7 @@ namespace NTempest {
     return (3.0f - value - value) * value * value;
   }
 
-  float __fastcall CRandom::turbulence_(double x, double y, double z, C3Vector &derivative, unsigned long) {
+  float CRandom::turbulence_(double x, double y, double z, C3Vector &derivative, unsigned long) {
     C3Vector octaveDerivative(0.0f, 0.0f, 0.0f);
     float value = noise_(x, y, z, derivative);
     value += noise_(x * 2.0, y * 2.0, z * 2.0, octaveDerivative) * 0.5f;

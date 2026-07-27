@@ -7,7 +7,7 @@
 
 static int s_debugCollision;
 
-int __fastcall ToggleCollisionInfo() {
+int ToggleCollisionInfo() {
   unsigned __int64 watchTarget = 0;
 
   s_debugCollision = !s_debugCollision;
@@ -23,7 +23,7 @@ int __fastcall ToggleCollisionInfo() {
   return s_debugCollision;
 }
 
-void __fastcall RenderCollisionInfo() {
+void RenderCollisionInfo() {
   if (!s_debugCollision) {
     return;
   }

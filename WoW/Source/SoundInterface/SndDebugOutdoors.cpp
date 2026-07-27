@@ -88,7 +88,7 @@ void OUTDOORSCHUNKHASHOBJ::PrintInfo(FILE *outFile) {
   fprintf(outFile, "%d\n", desc.Environment);
 }
 
-int __fastcall DumpChunksOUTDOORS(const char *command, const char *arguments) {
+int DumpChunksOUTDOORS(const char *command, const char *arguments) {
   unsigned int chunks = s_chunkList.Count();
   if (!chunks) {
     ConsoleWrite("Error, no chunk information to dump!", DEFAULT_COLOR);
@@ -118,7 +118,7 @@ int __fastcall DumpChunksOUTDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall ShowCurrentChunkOUTDOORS(const char *command, const char *arguments) {
+int ShowCurrentChunkOUTDOORS(const char *command, const char *arguments) {
   if (!s_chunkList.Count()) {
     ConsoleWrite("No chunks created!", DEFAULT_COLOR);
   } else if (s_currentChunk >= s_chunkList.Count()) {
@@ -130,7 +130,7 @@ int __fastcall ShowCurrentChunkOUTDOORS(const char *command, const char *argumen
   return 1;
 }
 
-int __fastcall SetChunkPropertyOUTDOORS(const char *command, const char *arguments) {
+int SetChunkPropertyOUTDOORS(const char *command, const char *arguments) {
   if (s_currentChunk > s_chunkList.Count()) {
     ConsoleWrite("Error, the current chunk is invalid!", DEFAULT_COLOR);
     return 1;
@@ -217,7 +217,7 @@ int __fastcall SetChunkPropertyOUTDOORS(const char *command, const char *argumen
   return 1;
 }
 
-int __fastcall SetCurrentChunkOUTDOORS(const char *command, const char *arguments) {
+int SetCurrentChunkOUTDOORS(const char *command, const char *arguments) {
   if (arguments && *arguments) {
     unsigned int chunk = SStrToUnsigned(arguments);
     if (chunk < s_chunkList.Count()) {
@@ -232,7 +232,7 @@ int __fastcall SetCurrentChunkOUTDOORS(const char *command, const char *argument
   return 1;
 }
 
-int __fastcall CreateChunkOUTDOORS(const char *command, const char *arguments) {
+int CreateChunkOUTDOORS(const char *command, const char *arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!object) {
     ConsoleWrite("Error, can't locate player!", DEFAULT_COLOR);
@@ -272,7 +272,7 @@ int __fastcall CreateChunkOUTDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall SndDebugListChunksOUTDOORS(const char *command, const char *arguments) {
+int SndDebugListChunksOUTDOORS(const char *command, const char *arguments) {
   unsigned int i;
   for (i = 0; i < s_chunkList.Count(); ++i) {
     ASSERT(s_chunkList[i]);
@@ -282,11 +282,11 @@ int __fastcall SndDebugListChunksOUTDOORS(const char *command, const char *argum
   return 1;
 }
 
-void __fastcall OutdoorsShutdown() {
+void OutdoorsShutdown() {
   s_chunkHash.Clear();
   s_chunkList.Clear();
 }
 
-void __fastcall SndDebugRegisterContinent(unsigned int continent) {
+void SndDebugRegisterContinent(unsigned int continent) {
   s_currentContinent = continent;
 }

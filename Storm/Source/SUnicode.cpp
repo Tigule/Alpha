@@ -516,7 +516,7 @@ extern "C" char *APIENTRY SUniSPutUTF8(unsigned long c, char *strptr) {
   return strptr;
 }
 
-static int __fastcall FindUTF8Character(const char *utf8String, int index, int direction) {
+static int FindUTF8Character(const char *utf8String, int index, int direction) {
   while (index > 0 && utf8String[index] && (((unsigned char)utf8String[index] & 0xC0) == 0x80)) {
     index += direction;
   }
@@ -531,7 +531,7 @@ extern "C" int APIENTRY SUniFindAfterUTF8Chr(const char *utf8String, int index) 
   return FindUTF8Character(utf8String, index + 1, 1);
 }
 
-static DWORD __fastcall SUniConvertUTF16ToCP(unsigned short *codepage, char *dest, const unsigned short *source, DWORD destsize) {
+static DWORD SUniConvertUTF16ToCP(unsigned short *codepage, char *dest, const unsigned short *source, DWORD destsize) {
   char *start;
 
   if (!destsize) {
@@ -568,7 +568,7 @@ static DWORD __fastcall SUniConvertUTF16ToCP(unsigned short *codepage, char *des
   return (DWORD)(dest - start);
 }
 
-static DWORD __fastcall SUniConvertCPToUTF16(unsigned short *codepage, unsigned short *dest, const char *source, DWORD destsize) {
+static DWORD SUniConvertCPToUTF16(unsigned short *codepage, unsigned short *dest, const char *source, DWORD destsize) {
   unsigned short *start;
 
   if (!destsize) {

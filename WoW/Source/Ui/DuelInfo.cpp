@@ -14,30 +14,30 @@
 #include <lua.h>
 
 class CGItem_C;
-unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
-bool __fastcall             Spell_C_CastSpell(int spellID, const CGItem_C *item);
+unsigned __int64 Script_GetGUIDFromName(const char *name);
+bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 
 class CGDuelInfo {
  public:
-  static void __fastcall InitializeGame();
-  static void __fastcall ShutdownGame();
-  static void __fastcall StartDuel();
-  static void __fastcall AcceptDuel();
-  static void __fastcall CancelDuel();
+  static void InitializeGame();
+  static void ShutdownGame();
+  static void StartDuel();
+  static void AcceptDuel();
+  static void CancelDuel();
 
  protected:
-  static int __fastcall OnDuelRequested(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-  static int __fastcall OnDuelOutOfBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-  static int __fastcall OnDuelInBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-  static int __fastcall OnDuelComplete(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-  static int __fastcall OnDuelWinner(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+  static int OnDuelRequested(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+  static int OnDuelOutOfBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+  static int OnDuelInBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+  static int OnDuelComplete(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+  static int OnDuelWinner(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
 
   static unsigned __int64 m_arbiter;
 };
 
 unsigned __int64 CGDuelInfo::m_arbiter;
 
-void __fastcall CGDuelInfo::InitializeGame() {
+void CGDuelInfo::InitializeGame() {
   ClientServices_SetMessageHandler(SMSG_DUEL_REQUESTED, OnDuelRequested, 0);
   ClientServices_SetMessageHandler(SMSG_DUEL_OUTOFBOUNDS, OnDuelOutOfBounds, 0);
   ClientServices_SetMessageHandler(SMSG_DUEL_INBOUNDS, OnDuelInBounds, 0);
@@ -45,7 +45,7 @@ void __fastcall CGDuelInfo::InitializeGame() {
   ClientServices_SetMessageHandler(SMSG_DUEL_WINNER, OnDuelWinner, 0);
 }
 
-void __fastcall CGDuelInfo::ShutdownGame() {
+void CGDuelInfo::ShutdownGame() {
   ClientServices_ClearMessageHandler(SMSG_DUEL_REQUESTED);
   ClientServices_ClearMessageHandler(SMSG_DUEL_OUTOFBOUNDS);
   ClientServices_ClearMessageHandler(SMSG_DUEL_INBOUNDS);
@@ -53,25 +53,25 @@ void __fastcall CGDuelInfo::ShutdownGame() {
   ClientServices_ClearMessageHandler(SMSG_DUEL_WINNER);
 }
 
-void __fastcall CGDuelInfo::StartDuel() {
+void CGDuelInfo::StartDuel() {
   Spell_C_CastSpell(CGSpellBook::GetDuelSpell(), 0);
 }
 
-void __fastcall CGDuelInfo::AcceptDuel() {
+void CGDuelInfo::AcceptDuel() {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_DUEL_ACCEPTED));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-void __fastcall CGDuelInfo::CancelDuel() {
+void CGDuelInfo::CancelDuel() {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_DUEL_CANCELLED));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-int __fastcall CGDuelInfo::OnDuelRequested(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int CGDuelInfo::OnDuelRequested(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned __int64 requestedBy;
   msg->Get(m_arbiter);
   msg->Get(requestedBy);
@@ -91,17 +91,17 @@ int __fastcall CGDuelInfo::OnDuelRequested(void *__formal, NETMESSAGE msgId, uns
   return 1;
 }
 
-int __fastcall CGDuelInfo::OnDuelOutOfBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int CGDuelInfo::OnDuelOutOfBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   FrameScript_SignalEvent(364);
   return 1;
 }
 
-int __fastcall CGDuelInfo::OnDuelInBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int CGDuelInfo::OnDuelInBounds(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   FrameScript_SignalEvent(365);
   return 1;
 }
 
-int __fastcall CGDuelInfo::OnDuelComplete(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int CGDuelInfo::OnDuelComplete(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned char started;
   msg->Get(started);
   if (m_arbiter) {
@@ -114,7 +114,7 @@ int __fastcall CGDuelInfo::OnDuelComplete(void *__formal, NETMESSAGE msgId, unsi
   return 1;
 }
 
-int __fastcall CGDuelInfo::OnDuelWinner(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int CGDuelInfo::OnDuelWinner(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned int fled;
   char         message[1024];
   char         beaten[48];
@@ -128,7 +128,7 @@ int __fastcall CGDuelInfo::OnDuelWinner(void *__formal, NETMESSAGE msgId, unsign
   return 1;
 }
 
-static int __fastcall Script_StartDuel(lua_State *L) {
+static int Script_StartDuel(lua_State *L) {
   CGDuelInfo::StartDuel();
   if (lua_isstring(L, 1)) {
     unsigned __int64 guid = CGGameUI::ClosestObjectMatch(lua_tostring(L, 1), TYPE_UNIT);
@@ -140,7 +140,7 @@ static int __fastcall Script_StartDuel(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_StartDuelUnit(lua_State *L) {
+static int Script_StartDuelUnit(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: StartDuelUnit(\"unit\")");
   }
@@ -153,12 +153,12 @@ static int __fastcall Script_StartDuelUnit(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_AcceptDuel(lua_State *L) {
+static int Script_AcceptDuel(lua_State *L) {
   CGDuelInfo::AcceptDuel();
   return 0;
 }
 
-static int __fastcall Script_CancelDuel(lua_State *L) {
+static int Script_CancelDuel(lua_State *L) {
   CGDuelInfo::CancelDuel();
   return 0;
 }
@@ -170,13 +170,13 @@ static FrameScript_Method s_ScriptFunctions[4] = {
     {   "CancelDuel",    Script_CancelDuel}
 };
 
-void __fastcall DuelInfoRegisterScriptFunctions() {
+void DuelInfoRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 4; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall DuelInfoUnregisterScriptFunctions() {
+void DuelInfoUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 4; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

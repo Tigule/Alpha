@@ -13,7 +13,7 @@ struct FindItemClassData {
   int subclassMask;
 };
 
-static int __fastcall GetItemTypeCountCallback(const CGItem_C *item, void *param) {
+static int GetItemTypeCountCallback(const CGItem_C *item, void *param) {
   GetItemTypeCountData *data = static_cast<GetItemTypeCountData *>(param);
   if (item->GetEntryID() == data->entryID) {
     data->count += item->GetStackCount();
@@ -21,7 +21,7 @@ static int __fastcall GetItemTypeCountCallback(const CGItem_C *item, void *param
   return 0;
 }
 
-static int __fastcall FindItemIDCallback(const CGItem_C *item, void *param) {
+static int FindItemIDCallback(const CGItem_C *item, void *param) {
   return item->GetEntryID() == *static_cast<int *>(param);
 }
 
@@ -52,7 +52,7 @@ int CGBag_C::GetItemTypeCount(int entryID, unsigned int flags) const {
   return data.count;
 }
 
-static int __fastcall FindItemClassCallback(const CGItem_C *item, void *param) {
+static int FindItemClassCallback(const CGItem_C *item, void *param) {
   FindItemClassData *data = static_cast<FindItemClassData *>(param);
   return item->GetClassID() == data->classID && (data->subclassMask & (1 << item->GetSubtypeID()));
 }
@@ -70,14 +70,14 @@ CGItem_C *CGBag_C::FindItemOfClass(int classID, int subclassMask, unsigned __int
   return FindItem(FindItemClassCallback, &data, bagGUID, slot, flags);
 }
 
-CGItem_C *CGBag_C::FindItem(int(__fastcall *func)(const CGItem_C *, void *), void *param, unsigned int flags) const {
+CGItem_C *CGBag_C::FindItem(int(*func)(const CGItem_C *, void *), void *param, unsigned int flags) const {
   unsigned __int64 bagGUID;
   unsigned int     slot;
   return FindItem(func, param, bagGUID, slot, flags);
 }
 
 CGItem_C *CGBag_C::FindItem(
-    int(__fastcall *func)(const CGItem_C *, void *),
+    int(*func)(const CGItem_C *, void *),
     void             *param,
     unsigned __int64 &bagGUID,
     unsigned int     &slot,
@@ -103,7 +103,7 @@ CGItem_C *CGBag_C::FindItem(
   return 0;
 }
 
-GAME_ERROR_TYPE __fastcall CGBag_C::GetGameError(BAG_RESULT result) {
+GAME_ERROR_TYPE CGBag_C::GetGameError(BAG_RESULT result) {
   static const GAME_ERROR_TYPE errors[55] = {
       static_cast<GAME_ERROR_TYPE>(297), static_cast<GAME_ERROR_TYPE>(1),   static_cast<GAME_ERROR_TYPE>(2),   static_cast<GAME_ERROR_TYPE>(5),
       static_cast<GAME_ERROR_TYPE>(6),   static_cast<GAME_ERROR_TYPE>(8),   static_cast<GAME_ERROR_TYPE>(9),   static_cast<GAME_ERROR_TYPE>(4),

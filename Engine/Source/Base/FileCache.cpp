@@ -7,7 +7,7 @@
 
 struct PrefetchNode;
 
-static void __fastcall IBaseFileWaitForLoad(PrefetchNode *theFile);
+static void IBaseFileWaitForLoad(PrefetchNode *theFile);
 
 struct PrefetchNode : public TSHashObject<PrefetchNode, HASHKEY_STRI> {
   void        *buffer;
@@ -38,7 +38,7 @@ typedef TSExplicitList<UncachableNode, -572662307> UncachableList;
 
 static PrefetchNode* IBaseFileStartLoad(const char* fileName);
 
-static void __fastcall IBaseFileWaitForLoad(PrefetchNode *theFile) {
+static void IBaseFileWaitForLoad(PrefetchNode *theFile) {
   ASSERT(theFile != 0);
 
   SFile::WaitOverlapped(&theFile->overlapped);
@@ -92,7 +92,7 @@ HASHKEY_STR &HASHKEY_STR::operator=(const char *str) {
   return *this;
 }
 
-int __fastcall IBaseFileLoad(const char* fileName, const void** fileBuffer, unsigned long* fileSize) {
+int IBaseFileLoad(const char* fileName, const void** fileBuffer, unsigned long* fileSize) {
   PrefetchNode *theFile = IBaseFileStartLoad(fileName);
   if (!theFile) {
     return 0;
@@ -108,7 +108,7 @@ int __fastcall IBaseFileLoad(const char* fileName, const void** fileBuffer, unsi
   return 1;
 }
 
-void __fastcall IBaseFileUnload(const char* fileName) {
+void IBaseFileUnload(const char* fileName) {
   PrefetchNode *theFile = s_activeFiles.Ptr(fileName);
   ASSERT(theFile);
 
@@ -118,17 +118,17 @@ void __fastcall IBaseFileUnload(const char* fileName) {
   }
 }
 
-void __fastcall BaseFileInitialize() {
+void BaseFileInitialize() {
 }
 
-void __fastcall BaseFileDestroy() {
+void BaseFileDestroy() {
   s_critSect.Enter();
   s_activeFiles.Clear();
   s_uncachableFiles.Clear();
   s_critSect.Leave();
 }
 
-int __fastcall BaseFilePrefetch(const char* fileName) {
+int BaseFilePrefetch(const char* fileName) {
   FATALASSERT(fileName);
 
   s_critSect.Enter();
@@ -140,7 +140,7 @@ int __fastcall BaseFilePrefetch(const char* fileName) {
   return success;
 }
 
-int __fastcall BaseFileIsFetched(const char* fileName) {
+int BaseFileIsFetched(const char* fileName) {
   FATALASSERT(fileName);
 
   s_critSect.Enter();
@@ -153,7 +153,7 @@ int __fastcall BaseFileIsFetched(const char* fileName) {
   return success;
 }
 
-int __fastcall BaseFileLoad(const char* fileName, void** fileBuffer, unsigned long* fileSize) {
+int BaseFileLoad(const char* fileName, void** fileBuffer, unsigned long* fileSize) {
   FATALASSERT(fileName);
   FATALASSERT(fileBuffer);
 
@@ -185,14 +185,14 @@ int __fastcall BaseFileLoad(const char* fileName, void** fileBuffer, unsigned lo
   return success;
 }
 
-void __fastcall BaseFileFlush() {
+void BaseFileFlush() {
   s_critSect.Enter();
   s_activeFiles.Clear();
   s_numActiveFiles = 0;
   s_critSect.Leave();
 }
 
-void __fastcall BaseFileRegisterUncachable(const char *fileName) {
+void BaseFileRegisterUncachable(const char *fileName) {
   FATALASSERT(fileName);
 
   s_critSect.Enter();
@@ -202,7 +202,7 @@ void __fastcall BaseFileRegisterUncachable(const char *fileName) {
   s_critSect.Leave();
 }
 
-void __fastcall BaseFileUnregisterUncachable(const char* fileName) {
+void BaseFileUnregisterUncachable(const char* fileName) {
   FATALASSERT(fileName);
 
   s_critSect.Enter();
@@ -213,7 +213,7 @@ void __fastcall BaseFileUnregisterUncachable(const char* fileName) {
   s_critSect.Leave();
 }
 
-void __fastcall BaseFileDumpStats() {
+void BaseFileDumpStats() {
   HSLOG log;
   if (SLogCreate("BaseFileCacheDump.txt", 0, &log)) {
     SLogSetTimestamp(log, 0);

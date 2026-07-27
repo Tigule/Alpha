@@ -54,7 +54,7 @@ namespace NTempest {
       return b - t;
     }
 
-    static CRect __fastcall Intersection(const CRect &left, const CRect &right) {
+    static CRect Intersection(const CRect &left, const CRect &right) {
       CRect result;
 
       result.t = left.t > right.t ? left.t : right.t;

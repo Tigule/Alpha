@@ -4,15 +4,15 @@ class CStatus;
 class CSimpleFrame;
 class XMLNode;
 
-typedef CSimpleFrame *(__fastcall *FRAMEFACTORY)(CSimpleFrame *parent);
-typedef void(__fastcall *FRAMELOADPROGRESSCALLBACK)(int index, int total);
+typedef CSimpleFrame *(*FRAMEFACTORY)(CSimpleFrame *parent);
+typedef void(*FRAMELOADPROGRESSCALLBACK)(int index, int total);
 
-int __fastcall            FrameXML_GetDebugLevel();
-void __fastcall           FrameXML_SetDebugLevel(int level);
-CSimpleFrame *__fastcall  FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, CStatus *status);
-int __fastcall            FrameXML_CreateFrames(const char *path, CStatus *status);
-const XMLNode *__fastcall FrameXML_FindHashNode(const char *name);
-int __fastcall            FrameXML_RegisterFactory(const char *type, FRAMEFACTORY factory);
-int __fastcall            FrameXML_RegisterDefault();
-void __fastcall           FrameXML_RegisterLoadProgressCallback(FRAMELOADPROGRESSCALLBACK callback);
-void __fastcall           FrameXML_ClearFactories();
+int FrameXML_GetDebugLevel();
+void FrameXML_SetDebugLevel(int level);
+CSimpleFrame *FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, CStatus *status);
+int FrameXML_CreateFrames(const char *path, CStatus *status);
+const XMLNode *FrameXML_FindHashNode(const char *name);
+int FrameXML_RegisterFactory(const char *type, FRAMEFACTORY factory);
+int FrameXML_RegisterDefault();
+void FrameXML_RegisterLoadProgressCallback(FRAMELOADPROGRESSCALLBACK callback);
+void FrameXML_ClearFactories();

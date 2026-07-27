@@ -48,9 +48,9 @@ struct QuestItemInfo {
   int requestAmount;
 };
 
-bool __fastcall QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
+bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
 
-static void __fastcall QuestItemStatsCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void QuestItemStatsCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(280);
   }
@@ -58,14 +58,14 @@ static void __fastcall QuestItemStatsCallback(int, const unsigned __int64 &, voi
 
 class CGQuestInfo {
  public:
-  static void __fastcall EnterWorld();
-  static void __fastcall LeaveWorld();
-  static void __fastcall SetState(unsigned __int64 guid, QUEST_STATE state, const char *text, int quest);
-  static void __fastcall SetLogDescription(const char *desc);
-  static void __fastcall AddQuest(int quest, const char *desc, int questLevel, int turnIn);
-  static void __fastcall AddQuestInProgress(int quest, const char *desc, int questLevel);
-  static void __fastcall EndQuestList();
-  static void __fastcall AddReward(
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void SetState(unsigned __int64 guid, QUEST_STATE state, const char *text, int quest);
+  static void SetLogDescription(const char *desc);
+  static void AddQuest(int quest, const char *desc, int questLevel, int turnIn);
+  static void AddQuestInProgress(int quest, const char *desc, int questLevel);
+  static void EndQuestList();
+  static void AddReward(
       const char *title,
       int        *itemChoice,
       int        *choiceDisplay,
@@ -78,47 +78,47 @@ class CGQuestInfo {
       int         money,
       int         autoLaunched
   );
-  static void __fastcall
+  static void
   AddItemRequest(const char *title, int *items, int *itemAmount, int *itemDisplay, int numItems, int completed, int autoLaunched);
-  static void __fastcall                    QuestGiverFinished();
-  static const unsigned __int64 &__fastcall GetQuestGiver();
-  static int __fastcall                     GetCurrentQuest() {
+  static void QuestGiverFinished();
+  static const unsigned __int64 &GetQuestGiver();
+  static int GetCurrentQuest() {
     return m_currentQuest;
   }
-  static int __fastcall         IsCompletable();
-  static int __fastcall         GetLastChosenItem();
-  static void __fastcall        ClearLastChosenItem();
-  static const char *__fastcall GetTitleText() {
+  static int IsCompletable();
+  static int GetLastChosenItem();
+  static void ClearLastChosenItem();
+  static const char *GetTitleText() {
     return m_questTitle;
   }
-  static const char *__fastcall GetGreetingText() {
+  static const char *GetGreetingText() {
     return m_greetingText;
   }
-  static const char *__fastcall GetQuestText() {
+  static const char *GetQuestText() {
     return m_questText;
   }
-  static const char *__fastcall GetQuestLogText() {
+  static const char *GetQuestLogText() {
     return m_questLogText;
   }
-  static const char *__fastcall GetProgressText() {
+  static const char *GetProgressText() {
     return m_progressText;
   }
-  static const char *__fastcall GetRewardText() {
+  static const char *GetRewardText() {
     return m_rewardText;
   }
-  static void __fastcall QueryQuest(unsigned int index);
-  static void __fastcall CompleteQuest(unsigned int index);
-  static void __fastcall AcceptQuest();
-  static void __fastcall DeclineQuest();
-  static void __fastcall GiveQuestItems();
-  static int __fastcall  GetReward(int choice);
-  static int __fastcall  GetRewardMoney() {
+  static void QueryQuest(unsigned int index);
+  static void CompleteQuest(unsigned int index);
+  static void AcceptQuest();
+  static void DeclineQuest();
+  static void GiveQuestItems();
+  static int GetReward(int choice);
+  static int GetRewardMoney() {
     return m_rewardMoney;
   }
-  static unsigned int __fastcall GetNumQuestRewards();
-  static unsigned int __fastcall GetNumQuestChoices();
-  static unsigned int __fastcall GetNumQuestItems();
-  static int __fastcall          GetQuestItemInfo(
+  static unsigned int GetNumQuestRewards();
+  static unsigned int GetNumQuestChoices();
+  static unsigned int GetNumQuestItems();
+  static int GetQuestItemInfo(
       const char   *type,
       unsigned int  index,
       char         *name,
@@ -129,27 +129,27 @@ class CGQuestInfo {
       int          &quality,
       int          &usable
   );
-  static int __fastcall  GetQuestItemID(const char *type, unsigned int index);
-  static void __fastcall ConfirmAcceptQuest(int questID, const char *questTitle, const unsigned __int64 &initiatedBy);
-  static int __fastcall  GetPendingConfirmQuest() {
+  static int GetQuestItemID(const char *type, unsigned int index);
+  static void ConfirmAcceptQuest(int questID, const char *questTitle, const unsigned __int64 &initiatedBy);
+  static int GetPendingConfirmQuest() {
     return m_pendingQuest;
   }
-  static int __fastcall GetNumQuests() {
+  static int GetNumQuests() {
     return m_numQuests;
   }
-  static int __fastcall GetNumInProgress() {
+  static int GetNumInProgress() {
     return m_numInProgress;
   }
-  static const char *__fastcall GetQuestName(unsigned int index) {
+  static const char *GetQuestName(unsigned int index) {
     return index < m_numQuests ? m_quests[index].desc : 0;
   }
-  static const char *__fastcall GetInProgressName(unsigned int index) {
+  static const char *GetInProgressName(unsigned int index) {
     return index < m_numInProgress ? m_inProgress[index].desc : 0;
   }
-  static int __fastcall GetQuestLevel(unsigned int index) {
+  static int GetQuestLevel(unsigned int index) {
     return index < m_numQuests ? m_quests[index].questLevel : 0;
   }
-  static int __fastcall GetInProgressLevel(unsigned int index) {
+  static int GetInProgressLevel(unsigned int index) {
     return index < m_numInProgress ? m_inProgress[index].questLevel : 0;
   }
 
@@ -207,7 +207,7 @@ char             CGQuestInfo::m_progressText[1024];
 char             CGQuestInfo::m_rewardText[1024];
 int              CGQuestInfo::m_pendingQuest;
 
-void __fastcall CGQuestInfo::EnterWorld() {
+void CGQuestInfo::EnterWorld() {
   m_npc = 0;
   m_state = QUEST_GREETING;
   m_currentQuest = 0;
@@ -229,11 +229,11 @@ void __fastcall CGQuestInfo::EnterWorld() {
   memset(m_questItems, 0, sizeof(m_questItems));
 }
 
-void __fastcall CGQuestInfo::LeaveWorld() {
+void CGQuestInfo::LeaveWorld() {
   QuestGiverFinished();
 }
 
-void __fastcall CGQuestInfo::SetState(unsigned __int64 guid, QUEST_STATE state, const char *text, int quest) {
+void CGQuestInfo::SetState(unsigned __int64 guid, QUEST_STATE state, const char *text, int quest) {
   FATALASSERT(state < QUEST_STATE_NUM_TYPES);
 
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
@@ -281,7 +281,7 @@ void __fastcall CGQuestInfo::SetState(unsigned __int64 guid, QUEST_STATE state, 
   m_lastChosenItem = 0;
 }
 
-void __fastcall CGQuestInfo::SetLogDescription(const char *desc) {
+void CGQuestInfo::SetLogDescription(const char *desc) {
   if (desc && *desc) {
     char             parsed[1024];
     unsigned __int64 player = ClntObjMgrGetActivePlayer();
@@ -292,7 +292,7 @@ void __fastcall CGQuestInfo::SetLogDescription(const char *desc) {
   }
 }
 
-void __fastcall CGQuestInfo::AddQuest(int quest, const char *desc, int questLevel, int turnIn) {
+void CGQuestInfo::AddQuest(int quest, const char *desc, int questLevel, int turnIn) {
   FATALASSERT(m_state == QUEST_GREETING);
   FATALASSERT((m_numQuests + m_numInProgress) < 8);
 
@@ -306,7 +306,7 @@ void __fastcall CGQuestInfo::AddQuest(int quest, const char *desc, int questLeve
   ++m_numQuests;
 }
 
-void __fastcall CGQuestInfo::AddQuestInProgress(int quest, const char *desc, int questLevel) {
+void CGQuestInfo::AddQuestInProgress(int quest, const char *desc, int questLevel) {
   FATALASSERT(m_state == QUEST_GREETING);
   FATALASSERT((m_numQuests + m_numInProgress) < 7);
 
@@ -320,11 +320,11 @@ void __fastcall CGQuestInfo::AddQuestInProgress(int quest, const char *desc, int
   ++m_numInProgress;
 }
 
-void __fastcall CGQuestInfo::EndQuestList() {
+void CGQuestInfo::EndQuestList() {
   FrameScript_SignalEvent(277);
 }
 
-void __fastcall CGQuestInfo::AddReward(
+void CGQuestInfo::AddReward(
     const char *title,
     int        *itemChoice,
     int        *choiceDisplay,
@@ -368,7 +368,7 @@ void __fastcall CGQuestInfo::AddReward(
   FrameScript_SignalEvent(m_state == QUEST_DETAIL ? 278 : 280);
 }
 
-void __fastcall CGQuestInfo::AddItemRequest(
+void CGQuestInfo::AddItemRequest(
     const char *title,
     int        *items,
     int        *itemAmount,
@@ -399,7 +399,7 @@ void __fastcall CGQuestInfo::AddItemRequest(
   FrameScript_SignalEvent(279);
 }
 
-void __fastcall CGQuestInfo::QuestGiverFinished() {
+void CGQuestInfo::QuestGiverFinished() {
   if (m_npc) {
     FrameScript_SignalEvent(281);
     CGGameUI::ClearInteractTarget(m_npc);
@@ -407,19 +407,19 @@ void __fastcall CGQuestInfo::QuestGiverFinished() {
   }
 }
 
-const unsigned __int64 &__fastcall CGQuestInfo::GetQuestGiver() {
+const unsigned __int64 &CGQuestInfo::GetQuestGiver() {
   return m_npc;
 }
 
-int __fastcall CGQuestInfo::GetLastChosenItem() {
+int CGQuestInfo::GetLastChosenItem() {
   return m_lastChosenItem;
 }
 
-void __fastcall CGQuestInfo::ClearLastChosenItem() {
+void CGQuestInfo::ClearLastChosenItem() {
   m_lastChosenItem = 0;
 }
 
-int __fastcall CGQuestInfo::IsCompletable() {
+int CGQuestInfo::IsCompletable() {
   if (!m_completable) {
     return 0;
   }
@@ -436,7 +436,7 @@ int __fastcall CGQuestInfo::IsCompletable() {
   return 1;
 }
 
-void __fastcall CGQuestInfo::QueryQuest(unsigned int index) {
+void CGQuestInfo::QueryQuest(unsigned int index) {
   if (index >= m_numQuests) {
     return;
   }
@@ -450,7 +450,7 @@ void __fastcall CGQuestInfo::QueryQuest(unsigned int index) {
   }
 }
 
-void __fastcall CGQuestInfo::CompleteQuest(unsigned int index) {
+void CGQuestInfo::CompleteQuest(unsigned int index) {
   if (index >= m_numInProgress) {
     return;
   }
@@ -460,7 +460,7 @@ void __fastcall CGQuestInfo::CompleteQuest(unsigned int index) {
   }
 }
 
-void __fastcall CGQuestInfo::AcceptQuest() {
+void CGQuestInfo::AcceptQuest() {
   if (m_state != QUEST_DETAIL) {
     return;
   }
@@ -471,7 +471,7 @@ void __fastcall CGQuestInfo::AcceptQuest() {
   }
 }
 
-void __fastcall CGQuestInfo::DeclineQuest() {
+void CGQuestInfo::DeclineQuest() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player && m_npc) {
     player->CancelQuest(m_npc);
@@ -479,7 +479,7 @@ void __fastcall CGQuestInfo::DeclineQuest() {
   QuestGiverFinished();
 }
 
-void __fastcall CGQuestInfo::GiveQuestItems() {
+void CGQuestInfo::GiveQuestItems() {
   if (m_state != QUEST_PROGRESS) {
     return;
   }
@@ -489,7 +489,7 @@ void __fastcall CGQuestInfo::GiveQuestItems() {
   }
 }
 
-int __fastcall CGQuestInfo::GetReward(int choice) {
+int CGQuestInfo::GetReward(int choice) {
   if (m_state != QUEST_REWARD) {
     return 1;
   }
@@ -508,28 +508,28 @@ int __fastcall CGQuestInfo::GetReward(int choice) {
   return 1;
 }
 
-unsigned int __fastcall CGQuestInfo::GetNumQuestRewards() {
+unsigned int CGQuestInfo::GetNumQuestRewards() {
   unsigned int index;
   for (index = 0; index < 6 && m_questItems[index].itemReward; ++index) {
   }
   return index;
 }
 
-unsigned int __fastcall CGQuestInfo::GetNumQuestChoices() {
+unsigned int CGQuestInfo::GetNumQuestChoices() {
   unsigned int index;
   for (index = 0; index < 6 && m_questItems[index].itemChoice; ++index) {
   }
   return index;
 }
 
-unsigned int __fastcall CGQuestInfo::GetNumQuestItems() {
+unsigned int CGQuestInfo::GetNumQuestItems() {
   unsigned int index;
   for (index = 0; index < 6 && m_questItems[index].itemRequest; ++index) {
   }
   return index;
 }
 
-int __fastcall CGQuestInfo::GetQuestItemInfo(
+int CGQuestInfo::GetQuestItemInfo(
     const char   *type,
     unsigned int  index,
     char         *name,
@@ -581,7 +581,7 @@ int __fastcall CGQuestInfo::GetQuestItemInfo(
   return 1;
 }
 
-int __fastcall CGQuestInfo::GetQuestItemID(const char *type, unsigned int index) {
+int CGQuestInfo::GetQuestItemID(const char *type, unsigned int index) {
   if (index >= 6) {
     return 0;
   }
@@ -597,59 +597,59 @@ int __fastcall CGQuestInfo::GetQuestItemID(const char *type, unsigned int index)
   return 0;
 }
 
-void __fastcall CGQuestInfo::ConfirmAcceptQuest(int questID, const char *questTitle, const unsigned __int64 &initiatedBy) {
+void CGQuestInfo::ConfirmAcceptQuest(int questID, const char *questTitle, const unsigned __int64 &initiatedBy) {
   m_pendingQuest = questID;
   const NameCache *nc = g_nameDBCache.GetRecord(initiatedBy, initiatedBy, 0, 0);
   FATALASSERT(nc);
   FrameScript_SignalEvent(325, "%s%s", nc->m_name, questTitle);
 }
 
-static int __fastcall Script_CloseQuest(lua_State *__formal) {
+static int Script_CloseQuest(lua_State *__formal) {
   CGQuestInfo::QuestGiverFinished();
   return 0;
 }
 
-static int __fastcall Script_GetTitleText(lua_State *L) {
+static int Script_GetTitleText(lua_State *L) {
   lua_pushstring(L, CGQuestInfo::GetTitleText());
   return 1;
 }
 
-static int __fastcall Script_GetGreetingText(lua_State *L) {
+static int Script_GetGreetingText(lua_State *L) {
   lua_pushstring(L, CGQuestInfo::GetGreetingText());
   return 1;
 }
 
-static int __fastcall Script_GetQuestText(lua_State *L) {
+static int Script_GetQuestText(lua_State *L) {
   lua_pushstring(L, CGQuestInfo::GetQuestText());
   return 1;
 }
 
-static int __fastcall Script_GetObjectiveText(lua_State *L) {
+static int Script_GetObjectiveText(lua_State *L) {
   lua_pushstring(L, CGQuestInfo::GetQuestLogText());
   return 1;
 }
 
-static int __fastcall Script_GetProgressText(lua_State *L) {
+static int Script_GetProgressText(lua_State *L) {
   lua_pushstring(L, CGQuestInfo::GetProgressText());
   return 1;
 }
 
-static int __fastcall Script_GetRewardText(lua_State *L) {
+static int Script_GetRewardText(lua_State *L) {
   lua_pushstring(L, CGQuestInfo::GetRewardText());
   return 1;
 }
 
-static int __fastcall Script_GetNumAvailableQuests(lua_State *L) {
+static int Script_GetNumAvailableQuests(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumQuests()));
   return 1;
 }
 
-static int __fastcall Script_GetNumActiveQuests(lua_State *L) {
+static int Script_GetNumActiveQuests(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumInProgress()));
   return 1;
 }
 
-static int __fastcall Script_GetAvailableTitle(lua_State *L) {
+static int Script_GetAvailableTitle(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetAvailableTitle(index)");
   }
@@ -657,7 +657,7 @@ static int __fastcall Script_GetAvailableTitle(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetActiveTitle(lua_State *L) {
+static int Script_GetActiveTitle(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetActiveTitle(index)");
   }
@@ -665,7 +665,7 @@ static int __fastcall Script_GetActiveTitle(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetAvailableLevel(lua_State *L) {
+static int Script_GetAvailableLevel(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetGetAvailableLevel(index)");
   }
@@ -673,7 +673,7 @@ static int __fastcall Script_GetAvailableLevel(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetActiveLevel(lua_State *L) {
+static int Script_GetActiveLevel(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetGetActiveLevel(index)");
   }
@@ -681,7 +681,7 @@ static int __fastcall Script_GetActiveLevel(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_SelectAvailableQuest(lua_State *L) {
+static int Script_SelectAvailableQuest(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SelectAvailableQuest(index)");
   }
@@ -689,7 +689,7 @@ static int __fastcall Script_SelectAvailableQuest(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SelectActiveQuest(lua_State *L) {
+static int Script_SelectActiveQuest(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SelectActiveQuest(index)");
   }
@@ -697,17 +697,17 @@ static int __fastcall Script_SelectActiveQuest(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_AcceptQuest(lua_State *__formal) {
+static int Script_AcceptQuest(lua_State *__formal) {
   CGQuestInfo::AcceptQuest();
   return 0;
 }
 
-static int __fastcall Script_DeclineQuest(lua_State *__formal) {
+static int Script_DeclineQuest(lua_State *__formal) {
   CGQuestInfo::DeclineQuest();
   return 0;
 }
 
-static int __fastcall Script_IsQuestCompletable(lua_State *L) {
+static int Script_IsQuestCompletable(lua_State *L) {
   if (CGQuestInfo::IsCompletable()) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -716,12 +716,12 @@ static int __fastcall Script_IsQuestCompletable(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_CompleteQuest(lua_State *__formal) {
+static int Script_CompleteQuest(lua_State *__formal) {
   CGQuestInfo::GiveQuestItems();
   return 0;
 }
 
-static int __fastcall Script_GetQuestReward(lua_State *L) {
+static int Script_GetQuestReward(lua_State *L) {
   int choice = lua_isnumber(L, 1) ? static_cast<int>(lua_tonumber(L, 1)) - 1 : 0;
   if (!CGQuestInfo::GetReward(choice)) {
     return luaL_error(L, "Invalid reward choice in GetQuestReward");
@@ -729,27 +729,27 @@ static int __fastcall Script_GetQuestReward(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetRewardMoney(lua_State *L) {
+static int Script_GetRewardMoney(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetRewardMoney()));
   return 1;
 }
 
-static int __fastcall Script_GetNumQuestRewards(lua_State *L) {
+static int Script_GetNumQuestRewards(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumQuestRewards()));
   return 1;
 }
 
-static int __fastcall Script_GetNumQuestChoices(lua_State *L) {
+static int Script_GetNumQuestChoices(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumQuestChoices()));
   return 1;
 }
 
-static int __fastcall Script_GetNumQuestItems(lua_State *L) {
+static int Script_GetNumQuestItems(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumQuestItems()));
   return 1;
 }
 
-static int __fastcall Script_GetQuestItemInfo(lua_State *L) {
+static int Script_GetQuestItemInfo(lua_State *L) {
   if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Invalid quest item in GetQuestItemInfo(\"type\", index)");
   }
@@ -776,12 +776,12 @@ static int __fastcall Script_GetQuestItemInfo(lua_State *L) {
   return 5;
 }
 
-static int __fastcall Script_QuestChooseRewardError(lua_State *__formal) {
+static int Script_QuestChooseRewardError(lua_State *__formal) {
   CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(129));
   return 0;
 }
 
-static int __fastcall Script_ConfirmAcceptQuest(lua_State *__formal) {
+static int Script_ConfirmAcceptQuest(lua_State *__formal) {
   int quest = CGQuestInfo::GetPendingConfirmQuest();
   if (quest) {
     CDataStore msg;
@@ -793,7 +793,7 @@ static int __fastcall Script_ConfirmAcceptQuest(lua_State *__formal) {
   return 0;
 }
 
-static int __fastcall Script_GetQuestBackgroundMaterial(lua_State *L) {
+static int Script_GetQuestBackgroundMaterial(lua_State *L) {
   const CGObject_C *object = ClntObjMgrObjectPtr(CGQuestInfo::GetQuestGiver(), __FILE__, __LINE__);
   if (object && object->IsA(TYPE_GAMEOBJECT)) {
     lua_pushstring(L, "Stone");
@@ -836,14 +836,14 @@ static FrameScript_Method s_ScriptFunctions[28] = {
     {"GetQuestBackgroundMaterial", Script_GetQuestBackgroundMaterial}
 };
 
-void __fastcall QuestInfoRegisterScriptFunctions() {
+void QuestInfoRegisterScriptFunctions() {
   unsigned int index;
   for (index = 0; index < 28; ++index) {
     FrameScript_RegisterFunction(s_ScriptFunctions[index].name, s_ScriptFunctions[index].method);
   }
 }
 
-void __fastcall QuestInfoUnregisterScriptFunctions() {
+void QuestInfoUnregisterScriptFunctions() {
   unsigned int index;
   for (index = 0; index < 28; ++index) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[index].name);

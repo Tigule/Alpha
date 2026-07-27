@@ -25,10 +25,10 @@ class WDataStore : public CDataStore {
       int             lineNumber
   );
 
-  static void __fastcall  StaticInitialize();
-  static void __fastcall  StaticDestroy();
-  static void *__fastcall AllocBuffer(unsigned int size);
-  static void __fastcall  FreeBuffer(void *buffer, unsigned int size);
+  static void StaticInitialize();
+  static void StaticDestroy();
+  static void *AllocBuffer(unsigned int size);
+  static void FreeBuffer(void *buffer, unsigned int size);
 
  private:
   void *m_bufferObj;

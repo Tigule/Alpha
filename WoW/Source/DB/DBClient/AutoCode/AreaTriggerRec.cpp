@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall AreaTriggerRec::GetFilename() {
+const char *AreaTriggerRec::GetFilename() {
   return "DBFilesClient\\AreaTrigger.dbc";
 }
 

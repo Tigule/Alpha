@@ -31,7 +31,7 @@ static int          AXIS_THRESHOLD = 0x1FFF;
 
 CGInputControl *CGInputControl::s_inputControl;
 
-static bool __fastcall JoystickCallback(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
+static bool JoystickCallback(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
   if (*newValue == '1') {
     if (s_joystickID == -1) {
       s_joystickID = OsOpenJoystick(0);
@@ -44,7 +44,7 @@ static bool __fastcall JoystickCallback(CVar *cvar, const char *oldValue, const 
   return true;
 }
 
-static int __fastcall Script_ToggleAutoRun(lua_State *L) {
+static int Script_ToggleAutoRun(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
 
@@ -53,119 +53,119 @@ static int __fastcall Script_ToggleAutoRun(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_MoveForwardStart(lua_State *L) {
+static int Script_MoveForwardStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_MOVE_PLAYER_FORWARD_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_MoveForwardStop(lua_State *L) {
+static int Script_MoveForwardStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_MOVE_PLAYER_FORWARD_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_MoveBackwardStart(lua_State *L) {
+static int Script_MoveBackwardStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_MOVE_PLAYER_BACKWARD_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_MoveBackwardStop(lua_State *L) {
+static int Script_MoveBackwardStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_MOVE_PLAYER_BACKWARD_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_TurnLeftStart(lua_State *L) {
+static int Script_TurnLeftStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_TURN_PLAYER_LEFT_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_TurnLeftStop(lua_State *L) {
+static int Script_TurnLeftStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_TURN_PLAYER_LEFT_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_TurnRightStart(lua_State *L) {
+static int Script_TurnRightStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_TURN_PLAYER_RIGHT_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_TurnRightStop(lua_State *L) {
+static int Script_TurnRightStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_TURN_PLAYER_RIGHT_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_StrafeLeftStart(lua_State *L) {
+static int Script_StrafeLeftStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_STRAFE_PLAYER_LEFT_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_StrafeLeftStop(lua_State *L) {
+static int Script_StrafeLeftStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_STRAFE_PLAYER_LEFT_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_StrafeRightStart(lua_State *L) {
+static int Script_StrafeRightStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_STRAFE_PLAYER_RIGHT_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_StrafeRightStop(lua_State *L) {
+static int Script_StrafeRightStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_STRAFE_PLAYER_RIGHT_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_PitchUpStart(lua_State *L) {
+static int Script_PitchUpStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_PITCH_PLAYER_UP_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_PitchUpStop(lua_State *L) {
+static int Script_PitchUpStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_PITCH_PLAYER_UP_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_PitchDownStart(lua_State *L) {
+static int Script_PitchDownStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_PITCH_PLAYER_DOWN_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_PitchDownStop(lua_State *L) {
+static int Script_PitchDownStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_PITCH_PLAYER_DOWN_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_TurnOrActionStart(lua_State *L) {
+static int Script_TurnOrActionStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
@@ -174,14 +174,14 @@ static int __fastcall Script_TurnOrActionStart(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_TurnOrActionStop(lua_State *L) {
+static int Script_TurnOrActionStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   control->SetControlBit(INPUT_TURN_PLAYER, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
-static int __fastcall Script_CameraOrSelectOrMoveStart(lua_State *L) {
+static int Script_CameraOrSelectOrMoveStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
@@ -190,7 +190,7 @@ static int __fastcall Script_CameraOrSelectOrMoveStart(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_CameraOrSelectOrMoveStop(lua_State *L) {
+static int Script_CameraOrSelectOrMoveStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
@@ -228,31 +228,31 @@ static const FrameScript_Method s_ScriptFunctions[21] = {
     { "CameraOrSelectOrMoveStop",  Script_CameraOrSelectOrMoveStop}
 };
 
-static CGCamera *__fastcall Camera() {
+static CGCamera *Camera() {
   CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
   FATALASSERT(worldFrame);
   return CGWorldFrame::GetActiveCamera();
 }
 
-void __fastcall InputControlInitialize() {
+void InputControlInitialize() {
   CVar::Register("Joystick", "enable joystick control", 0, "0", JoystickCallback, DEFAULT, false, 0);
 
   CGInputControl::Initialize();
 }
 
-void __fastcall InputControlRegisterScriptFunctions() {
+void InputControlRegisterScriptFunctions() {
   for (int i = 0; i < 21; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall InputControlUnregisterScriptFunctions() {
+void InputControlUnregisterScriptFunctions() {
   for (int i = 0; i < 21; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }
 
-void __fastcall InputControlDestroy() {
+void InputControlDestroy() {
   CGInputControl::Destroy();
 }
 
@@ -263,7 +263,7 @@ CGInputControl::CGInputControl() {
   m_initializeTime = OsGetAsyncTimeMs();
 }
 
-CGInputControl *__fastcall CGInputControl::GetActive() {
+CGInputControl *CGInputControl::GetActive() {
   ASSERT(s_inputControl);
   return s_inputControl;
 }

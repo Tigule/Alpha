@@ -11,7 +11,7 @@ typedef TSHashTable<CVar, HASHKEY_STRI> CVarHashTable;
 
 static CVarHashTable  s_registeredCVars;
 static const char    *s_filename;
-static int __fastcall s_CreatePathDirectories(const char *szPath) {
+static int s_CreatePathDirectories(const char *szPath) {
   char        dwPartialPath[MAX_PATH];
   int         success = 1;
   const char *separator;
@@ -56,7 +56,7 @@ CVar::~CVar() {
   FREEIFUSED(m_latchedValue);
 }
 
-static int __fastcall CvarCommandHandler(const char *command, const char *arguments) {
+static int CvarCommandHandler(const char *command, const char *arguments) {
   CVar *cvar = CVar::Lookup(command);
   ASSERT(cvar);
 
@@ -73,7 +73,7 @@ static int __fastcall CvarCommandHandler(const char *command, const char *argume
   return 1;
 }
 
-static int __fastcall SetCommandHandler(const char *command, const char *arguments) {
+static int SetCommandHandler(const char *command, const char *arguments) {
   char cvarValue[256];
   char cvarName[32];
 
@@ -90,7 +90,7 @@ static int __fastcall SetCommandHandler(const char *command, const char *argumen
   return 1;
 }
 
-static int __fastcall CvarResetCommandHandler(const char *command, const char *arguments) {
+static int CvarResetCommandHandler(const char *command, const char *arguments) {
   char cvarName[32];
 
   SStrTokenize(&arguments, cvarName, sizeof(cvarName), whitespace, 0);
@@ -115,7 +115,7 @@ static int __fastcall CvarResetCommandHandler(const char *command, const char *a
   return 1;
 }
 
-static int __fastcall CvarDefaultCommandHandler(const char *command, const char *arguments) {
+static int CvarDefaultCommandHandler(const char *command, const char *arguments) {
   char cvarName[32];
 
   SStrTokenize(&arguments, cvarName, sizeof(cvarName), whitespace, 0);
@@ -140,7 +140,7 @@ static int __fastcall CvarDefaultCommandHandler(const char *command, const char 
   return 1;
 }
 
-static int __fastcall CvarListCommandHandler(const char *command, const char *arguments) {
+static int CvarListCommandHandler(const char *command, const char *arguments) {
   char  text[256];
   char  text2[256];
   CVar *cvar = s_registeredCVars.Head();
@@ -165,14 +165,14 @@ static int __fastcall CvarListCommandHandler(const char *command, const char *ar
   return 1;
 }
 
-static int __fastcall CVarLoadFile() {
+static int CVarLoadFile() {
   char command[MAX_PATH];
   SStrPrintf(command, sizeof(command), "run %s", s_filename);
   ConsoleCommandExecute(command, 1);
   return 1;
 }
 
-static int __fastcall CVarSaveFile() {
+static int CVarSaveFile() {
   char          buffer[MAX_PATH];
   char          fileName[MAX_PATH];
   unsigned long count;
@@ -203,7 +203,7 @@ static int __fastcall CVarSaveFile() {
   return 1;
 }
 
-void __fastcall CVar::Initialize(const char *filename) {
+void CVar::Initialize(const char *filename) {
   char path[MAX_PATH];
 
   ASSERT(filename);
@@ -220,7 +220,7 @@ void __fastcall CVar::Initialize(const char *filename) {
   CVarLoadFile();
 }
 
-void __fastcall CVar::Destroy() {
+void CVar::Destroy() {
   CVarSaveFile();
   ConsoleCommandUnregister("set");
   ConsoleCommandUnregister("cvar_reset");
@@ -229,7 +229,7 @@ void __fastcall CVar::Destroy() {
   s_registeredCVars.Clear();
 }
 
-CVar *__fastcall CVar::Register(
+CVar *CVar::Register(
     const char  *name,
     const char  *help,
     unsigned int flags,
@@ -284,7 +284,7 @@ CVar *__fastcall CVar::Register(
   return cvar;
 }
 
-CVar *__fastcall CVar::Lookup(const char *name) {
+CVar *CVar::Lookup(const char *name) {
   return s_registeredCVars.Ptr(name);
 }
 

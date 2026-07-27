@@ -60,7 +60,7 @@ namespace {
 
 }  // namespace
 
-void __fastcall OsCallInitialize(const char *threadName) {
+void OsCallInitialize(const char *threadName) {
   s_critsect.Enter();
 
   if (!s_initCount++) {
@@ -87,7 +87,7 @@ void __fastcall OsCallInitialize(const char *threadName) {
   s_critsect.Leave();
 }
 
-void __fastcall OsCallDestroy() {
+void OsCallDestroy() {
   s_critsect.Enter();
 
   if (s_initCount) {
@@ -111,11 +111,11 @@ void __fastcall OsCallDestroy() {
   s_critsect.Leave();
 }
 
-void __fastcall OsCallGlobalEnable(int enable) {
+void OsCallGlobalEnable(int enable) {
   s_enable = enable;
 }
 
-void __fastcall OsCallEnable(int enable) {
+void OsCallEnable(int enable) {
   if (s_initCount) {
     ThreadData *threadData = static_cast<ThreadData *>(OsTlsGetValue(s_tlsIndex));
     if (threadData) {
@@ -124,7 +124,7 @@ void __fastcall OsCallEnable(int enable) {
   }
 }
 
-void *__fastcall OsCallInitializeContext(const char *contextName) {
+void *OsCallInitializeContext(const char *contextName) {
   ContextData *contextData = NEWZERO(ContextData);
 
   SStrCopy(contextData->m_title, contextName, sizeof(contextData->m_title));
@@ -138,7 +138,7 @@ void *__fastcall OsCallInitializeContext(const char *contextName) {
   return contextData;
 }
 
-void __fastcall OsCallDestroyContext(void *contextDataPtr) {
+void OsCallDestroyContext(void *contextDataPtr) {
   ContextData *contextData = static_cast<ContextData *>(contextDataPtr);
   if (!contextData) {
     return;
@@ -155,7 +155,7 @@ void __fastcall OsCallDestroyContext(void *contextDataPtr) {
   s_critsect.Leave();
 }
 
-void __fastcall OsCallSetContext(void *contextDataPtr) {
+void OsCallSetContext(void *contextDataPtr) {
   ContextData *contextData = static_cast<ContextData *>(contextDataPtr);
   if (!s_initCount || !contextData) {
     return;
@@ -175,7 +175,7 @@ void __fastcall OsCallSetContext(void *contextDataPtr) {
   s_critsect.Leave();
 }
 
-void __fastcall OsCallResetContext(void *contextDataPtr) {
+void OsCallResetContext(void *contextDataPtr) {
   ContextData *contextData = static_cast<ContextData *>(contextDataPtr);
   if (!s_initCount || !contextData) {
     return;
@@ -199,7 +199,7 @@ void __fastcall OsCallResetContext(void *contextDataPtr) {
   s_critsect.Leave();
 }
 
-void __fastcall OsCallBeginTurn() {
+void OsCallBeginTurn() {
   if (!s_initCount) {
     return;
   }
@@ -219,7 +219,7 @@ void __fastcall OsCallBeginTurn() {
   }
 }
 
-unsigned long __fastcall OsCallEndTurn() {
+unsigned long OsCallEndTurn() {
   if (!s_initCount) {
     return 0;
   }
@@ -227,7 +227,7 @@ unsigned long __fastcall OsCallEndTurn() {
   return threadData && threadData->m_contextData ? ~threadData->m_contextData->m_checksum : 0;
 }
 
-void __fastcall OsCallCompleteTurn() {
+void OsCallCompleteTurn() {
   if (!s_initCount) {
     return;
   }
@@ -296,7 +296,7 @@ static void OsCallDumpContextData(_iobuf* file, const ContextData* contextData) 
 static void OsCallDumpProfileData(const char* fileName, const ContextData* contextData) {
 }
 
-void __fastcall OsCallDump(const char* fileName) {
+void OsCallDump(const char* fileName) {
   s_critsect.Enter();
 
   if (!fileName) {
@@ -374,7 +374,7 @@ unsigned long __cdecl OsCallExit() {
   return threadData->m_funcStack[--threadData->m_funcStackIndex].m_retAddr;
 }
 
-void __fastcall OsCallData(unsigned long data) {
+void OsCallData(unsigned long data) {
   if (!s_initCount) {
     return;
   }
@@ -394,6 +394,6 @@ void __fastcall OsCallData(unsigned long data) {
   }
 }
 
-void __fastcall OsCallData(float data) {
+void OsCallData(float data) {
   OsCallData(*reinterpret_cast<unsigned long *>(&data));
 }

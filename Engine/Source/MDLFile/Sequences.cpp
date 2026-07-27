@@ -9,7 +9,7 @@
 #include <storm.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void IAnimAddErrors(TSet &errors) {
@@ -135,7 +135,7 @@ static void IReadAnim(
   errors.Complete(status);
 }
 
-int __fastcall ReadSequences(
+int ReadSequences(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -216,7 +216,7 @@ static void IWriteSequence(
   WriteLine(buffer, "\t}\n");
 }
 
-int __fastcall WriteSequences(
+int WriteSequences(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -279,7 +279,7 @@ static unsigned int IReadGlobalSeqs(
   return actual;
 }
 
-int __fastcall ReadGlobalSequences(
+int ReadGlobalSequences(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *
@@ -303,7 +303,7 @@ int __fastcall ReadGlobalSequences(
   return !parse.FoundError();
 }
 
-int __fastcall WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+int WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (!static_cast<const char *>(data.model.animationFile)[0] && data.globalSeqs.Count()) {
     WriteLine(buffer, "%s %d {\n", TokenText(0x106), data.globalSeqs.Count());
     for (unsigned int i = 0; i < data.globalSeqs.Count(); ++i) {
@@ -314,7 +314,7 @@ int __fastcall WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &
   return 1;
 }
 
-int __fastcall ReadBinGlobalSequences(
+int ReadBinGlobalSequences(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -333,7 +333,7 @@ int __fastcall ReadBinGlobalSequences(
   return 1;
 }
 
-int __fastcall WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+int WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
   if (!static_cast<const char *>(data.model.animationFile)[0] && data.globalSeqs.Count()) {
     buffer.AddDword('SBLG');
     buffer.AddUint(4 * data.globalSeqs.Count());
@@ -344,7 +344,7 @@ int __fastcall WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buffer, 
   return 1;
 }
 
-int __fastcall ReadBinSequences(
+int ReadBinSequences(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -379,7 +379,7 @@ int __fastcall ReadBinSequences(
   return 1;
 }
 
-int __fastcall WriteBinSequences(
+int WriteBinSequences(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *

@@ -2,7 +2,7 @@
 
 #include "Console/ConsoleClient.h"
 
-WowConnectionNet::WowConnectionNet(int numThreads, void(__fastcall *threadinit)()) : m_stopEvent(0, 0), m_workerSem(0, numThreads) {
+WowConnectionNet::WowConnectionNet(int numThreads, void(*threadinit)()) : m_stopEvent(0, 0), m_workerSem(0, numThreads) {
   m_numWorkers = numThreads;
   m_threadinit = threadinit;
   m_stop = 0;

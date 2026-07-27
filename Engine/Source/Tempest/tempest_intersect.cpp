@@ -20,7 +20,7 @@ NTempest::C2iVector projAxisTable[3] = {
 
 namespace NTempest {
 
-  bool __fastcall Intersect(const C3Ray &ray, const CAaBox &box, float *t, C3Vector *p) {
+  bool Intersect(const C3Ray &ray, const CAaBox &box, float *t, C3Vector *p) {
     float localT;
     C3Vector localP;
     if (!t) {
@@ -85,7 +85,7 @@ namespace NTempest {
     return true;
   }
 
-  bool __fastcall Intersect(const C3Ray &ray, const CAaSphere &sphere, float *t, C3Vector *p) {
+  bool Intersect(const C3Ray &ray, const CAaSphere &sphere, float *t, C3Vector *p) {
     C3Vector toCenter = sphere.c - ray.origin;
     float projection = C3Vector::Dot(toCenter, ray.dir);
     float centerDistanceSquared = toCenter.SquaredMag();
@@ -110,7 +110,7 @@ namespace NTempest {
     return true;
   }
 
-  bool __fastcall Intersect(const CAaBox &box, const CAaSphere &sphere, SolidIntersect mode) {
+  bool Intersect(const CAaBox &box, const CAaSphere &sphere, SolidIntersect mode) {
     float radiusSquared = sphere.r * sphere.r;
     float minDistanceSquared = 0.0f;
     float maxDistanceSquared = 0.0f;
@@ -149,11 +149,11 @@ namespace NTempest {
     }
   }
 
-  bool __fastcall Intersect2d(const CAaBox &box, const CAaSphere &sphere, SolidIntersect mode) {
+  bool Intersect2d(const CAaBox &box, const CAaSphere &sphere, SolidIntersect mode) {
     return Intersect(box, sphere, mode);
   }
 
-  bool __fastcall Intersect(const C3Ray &ray, const C4Plane &plane, float *t, C3Vector *p) {
+  bool Intersect(const C3Ray &ray, const C4Plane &plane, float *t, C3Vector *p) {
     float denom = C3Vector::Dot(plane.n, ray.dir);
     if (CMath::fabs_(denom) < 0.0001f) {
       if (CMath::fabs_(C3Vector::Dot(plane.n, ray.origin) + plane.d) >= 0.01f) {
@@ -182,7 +182,7 @@ namespace NTempest {
     return true;
   }
 
-  bool __fastcall Intersect(const C3Vector &point, const C3Vector *polygon, unsigned int nPoints, C3Vector::EAxis axis) {
+  bool Intersect(const C3Vector &point, const C3Vector *polygon, unsigned int nPoints, C3Vector::EAxis axis) {
     FATALASSERT(axis <= C3Vector::C3AXIS_Z);
 
     unsigned int x = projAxisTable[axis].x;
@@ -207,7 +207,7 @@ namespace NTempest {
     return inside;
   }
 
-  bool __fastcall Intersect(
+  bool Intersect(
       const C3Vector &point, const C3Vector *polygon, const unsigned short *indices, unsigned int nPoints, C3Vector::EAxis axis
   ) {
     FATALASSERT(axis <= C3Vector::C3AXIS_Z);
@@ -231,7 +231,7 @@ namespace NTempest {
     return inside;
   }
 
-  bool __fastcall Intersect(
+  bool Intersect(
       const C3Vector &point, const C3Vector *polygon, const unsigned long *indices, unsigned int nPoints, C3Vector::EAxis axis
   ) {
     ASSERT(polygon);
@@ -257,7 +257,7 @@ namespace NTempest {
     return inside;
   }
 
-  bool __fastcall Intersect(const C3Ray &ray, const CFacet &facet, float *t, C3Vector *p) {
+  bool Intersect(const C3Ray &ray, const CFacet &facet, float *t, C3Vector *p) {
     float denom = C3Vector::Dot(facet.plane.n, ray.dir);
     if (denom == 0.0f) {
       return false;
@@ -287,7 +287,7 @@ namespace NTempest {
     return true;
   }
 
-  bool __fastcall Intersect(const C3Ray &ray, const C3Vector *verts, float *t, C2Vector *bary) {
+  bool Intersect(const C3Ray &ray, const C3Vector *verts, float *t, C2Vector *bary) {
     ASSERT(verts);
     C3Vector edge1 = verts[1] - verts[0];
     C3Vector edge2 = verts[2] - verts[0];
@@ -320,7 +320,7 @@ namespace NTempest {
     return true;
   }
 
-  bool __fastcall IntersectCull(const C3Ray &ray, const C3Vector *verts, float *t, C2Vector *bary) {
+  bool IntersectCull(const C3Ray &ray, const C3Vector *verts, float *t, C2Vector *bary) {
     ASSERT(verts);
     C3Vector edge1 = verts[1] - verts[0];
     C3Vector edge2 = verts[2] - verts[0];
@@ -356,14 +356,14 @@ namespace NTempest {
     return true;
   }
 
-  bool __fastcall Intersect(const C3Vector &point, const CCone &cone) {
+  bool Intersect(const C3Vector &point, const CCone &cone) {
     C3Vector offset = point - cone.position;
     float axialDistance = C3Vector::Dot(offset, cone.axis);
     bool inside = cone.CosAngle() * cone.CosAngle() * offset.SquaredMag() <= axialDistance * axialDistance;
     return cone.height == 0.0f ? inside : axialDistance <= cone.height && inside;
   }
 
-  bool __fastcall Intersect(const C3Ray &ray, const CCone &cone, float *t, C3Vector *p) {
+  bool Intersect(const C3Ray &ray, const CCone &cone, float *t, C3Vector *p) {
     float localT;
     C3Vector localP;
     if (!t) {
@@ -420,7 +420,7 @@ namespace NTempest {
     return cone.height == 0.0f || axialDistance < cone.height;
   }
 
-  bool __fastcall Intersect(const CObBox &a, const CObBox &b) {
+  bool Intersect(const CObBox &a, const CObBox &b) {
     float c[3][3];
     float absC[3][3];
     const C3Vector aAxis[3] = {a.b.Row0(), a.b.Row1(), a.b.Row2()};
@@ -467,7 +467,7 @@ namespace NTempest {
 
 }  // namespace NTempest
 
-bool __fastcall NTempest::Intersect(
+bool NTempest::Intersect(
     const C2Vector &a0, const C2Vector &a1, const C2Vector &b0, const C2Vector &b1
 ) {
   float ax = a1.x - a0.x;
@@ -485,7 +485,7 @@ bool __fastcall NTempest::Intersect(
   return false;
 }
 
-bool __fastcall NTempest::Intersect(
+bool NTempest::Intersect(
     const C2Vector &a0, const C2Vector &a1, const C2Vector &b0, const C2Vector &b1, C2Vector &point
 ) {
   float denominator =
@@ -555,7 +555,7 @@ static unsigned char CoplanarTriIntersectTri(const NTempest::CFacet& facet0, con
   return PointInTri(v[0], u[0], u[1], u[2]) || PointInTri(u[0], v[0], v[1], v[2]);
 }
 
-bool __fastcall NTempest::Intersect(const CFacet &facet0, const CFacet &facet1) {
+bool NTempest::Intersect(const CFacet &facet0, const CFacet &facet1) {
   float distances[3];
   int sides[3];
   int counts[3] = {0, 0, 0};

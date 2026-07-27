@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall GroundEffectDoodadRec::GetFilename() {
+const char *GroundEffectDoodadRec::GetFilename() {
   return "DBFilesClient\\GroundEffectDoodad.dbc";
 }
 

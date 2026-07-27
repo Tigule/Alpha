@@ -9,7 +9,7 @@
 
 namespace MDL {
 
-  const char *__fastcall TokenText(unsigned int token);
+  const char *TokenText(unsigned int token);
   void __cdecl           WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 }  // namespace MDL
@@ -24,7 +24,7 @@ static TOKENFLAG s_textureFlags[2] = {
     {0x2, 0x1DC}
 };
 
-void __fastcall IWriteTextureFlags(unsigned int flags, TSGrowableArray<char> &buffer) {
+void IWriteTextureFlags(unsigned int flags, TSGrowableArray<char> &buffer) {
   for (unsigned int i = 0; i < 2; ++i) {
     if (flags & s_textureFlags[i].flag) {
       MDL::WriteLine(buffer, "\t\t%s,\n", MDL::TokenText(s_textureFlags[i].token));
@@ -96,7 +96,7 @@ static void IWriteTexture(const MDLTEXTURESECTION &texture, TSGrowableArray<char
 
 namespace MDL {
 
-int __fastcall ReadTextures(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+int ReadTextures(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   unsigned int savedToken;
   const char *tokenText;
   long count = parse.GetOptionalInt(&savedToken, &tokenText, 0);
@@ -123,7 +123,7 @@ int __fastcall ReadTextures(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   return !parse.FoundError();
 }
 
-int __fastcall WriteTextures(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+int WriteTextures(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   unsigned int count = data.textures.Count();
   FATALASSERT(count > 0 || data.bones.Count() == 0);
   if (count) {
@@ -136,7 +136,7 @@ int __fastcall WriteTextures(const MDLDATA &data, TSGrowableArray<char> &buffer,
   return 1;
 }
 
-int __fastcall ReadBinTextures(
+int ReadBinTextures(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -159,7 +159,7 @@ int __fastcall ReadBinTextures(
   return 1;
 }
 
-int __fastcall WriteBinTextures(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+int WriteBinTextures(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
   unsigned int count = data.textures.Count();
   FATALASSERT(count > 0 || data.bones.Count() == 0);
   if (count) {

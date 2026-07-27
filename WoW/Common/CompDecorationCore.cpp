@@ -9,7 +9,7 @@
 static const char *const s_texComponentBasePath = "Item\\TextureComponents\\";
 static char *const       s_sexSuffixNames[UNITSEX_LAST] = {"M", "F", "U"};
 
-void __fastcall CompDecorateObjName(const char *string, char *buffer, unsigned int size, unsigned int race, unsigned int sex) {
+void CompDecorateObjName(const char *string, char *buffer, unsigned int size, unsigned int race, unsigned int sex) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   buffer[0] = 0;
@@ -32,7 +32,7 @@ void __fastcall CompDecorateObjName(const char *string, char *buffer, unsigned i
   SStrPrintf(buffer, size, "%s_%s%s%s", inputFile, raceRec->m_ClientPrefix, s_sexSuffixNames[sex], extension);
 }
 
-static void __fastcall
+static void
 BuildTexComponentPath(const char *string, TEXCOMPONENT_SECTIONS section, char *buffer, unsigned int size, UNIT_SEX sex, int includeSex) {
   static const char *sectionNames[NUM_TEXCOMPONENT_SECTIONS] = {"ArmUpperTexture",  "ArmLowerTexture",   "HandTexture",       "HeadUpperTexture",
                                                                 "HeadLowerTexture", "TorsoUpperTexture", "TorsoLowerTexture", "LegUpperTexture",
@@ -59,7 +59,7 @@ BuildTexComponentPath(const char *string, TEXCOMPONENT_SECTIONS section, char *b
   SStrPrintf(buffer, size, "%s%s\\%s%s%s", s_texComponentBasePath, sectionNames[section], stringBuffer, suffixBuffer, ".BLP");
 }
 
-static int __fastcall ComponentUtilImageFileExists(const char *fileName) {
+static int ComponentUtilImageFileExists(const char *fileName) {
   if (SFile::FileExists(fileName)) {
     return 1;
   }
@@ -70,7 +70,7 @@ static int __fastcall ComponentUtilImageFileExists(const char *fileName) {
   return SFile::FileExists(alternate);
 }
 
-void __fastcall
+void
 CompDecorateTexName(const char *string, TEXCOMPONENT_SECTIONS section, char *buffer, unsigned int size, unsigned int sex, int includeSex) {
   char finalName[MAX_PATH];
 

@@ -25,15 +25,15 @@ static const unsigned int    NUM_UNDERWEARHIDESECTIONS = 2;
 static TEXCOMPONENT_SECTIONS s_underwearSections[2] = {TCS_UPPERTORSO, TCS_LEGUPPER};
 static TEXCOMPONENT_SECTIONS s_tabardSections[2] = {TCS_UPPERTORSO, TCS_LOWERTORSO};
 
-static HMODEL __fastcall ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, const ItemDisplayInfoRec *displayInfoRec);
-static void __fastcall   AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, unsigned int numSubComponents, unsigned int inventoryType);
-static void __fastcall
+static HMODEL ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, const ItemDisplayInfoRec *displayInfoRec);
+static void AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, unsigned int numSubComponents, unsigned int inventoryType);
+static void
 DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, unsigned int numSubComponents, unsigned int race, unsigned int sex);
 
 MipBits    *CTexturePiece::m_destImage;
 TEXTUREINFO CTexturePiece::m_destTextureInfo;
 
-static void __fastcall PasteOpaque(
+static void PasteOpaque(
     MipBits            *dstMips,
     const MipBits      *srcMips,
     NTempest::C2iVector dstPos,
@@ -78,7 +78,7 @@ static void __fastcall PasteOpaque(
   }
 }
 
-static void __fastcall PasteTransparentOneBit(
+static void PasteTransparentOneBit(
     MipBits            *dstMips,
     const MipBits      *srcMips,
     NTempest::C2iVector dstPos,
@@ -136,7 +136,7 @@ static void __fastcall PasteTransparentOneBit(
   }
 }
 
-static void __fastcall PasteTransparentFull(
+static void PasteTransparentFull(
     MipBits            *dstMips,
     const MipBits      *srcMips,
     NTempest::C2iVector dstPos,
@@ -730,7 +730,7 @@ void CTexComponent::IncUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SE
   }
 }
 
-void __fastcall UpdateComponentTexture(
+void UpdateComponentTexture(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -764,7 +764,7 @@ void __fastcall UpdateComponentTexture(
   }
 }
 
-HTEXCOMPONENT __fastcall
+HTEXCOMPONENT
 TexComponentCreate(HTEXTURE texture, unsigned int race, unsigned int sex, unsigned int skinID, int isNPC, int ignoreExistingTexture) {
   unsigned int sectionFlags[NUM_TEXLAYERS];
 
@@ -796,7 +796,7 @@ TexComponentCreate(HTEXTURE texture, unsigned int race, unsigned int sex, unsign
   return reinterpret_cast<HTEXCOMPONENT>(HandleCreate(component, "HTEXCOMPONENT"));
 }
 
-void __fastcall TexComponentAdd(
+void TexComponentAdd(
     CStatus                  *status,
     int                       playerSex,
     HTEXCOMPONENT             component,
@@ -851,7 +851,7 @@ void __fastcall TexComponentAdd(
   componentptr->UpdateUnderwearVisibility();
 }
 
-void __fastcall TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperHead, const char *lowerHead, unsigned int layer) {
+void TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperHead, const char *lowerHead, unsigned int layer) {
   CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentptr);
 
@@ -890,7 +890,7 @@ void CTexComponent::SetLowerHeadTexture(const char *lowerHead) {
   SStrCopy(m_lowerFaceTexture, lowerHead, sizeof(m_lowerFaceTexture));
 }
 
-void __fastcall HeadGeosetHideCharGeosets(
+void HeadGeosetHideCharGeosets(
     HCHARGEOSET               geosetHandle,
     const ItemDisplayInfoRec *displayInfoRec,
     unsigned int              raceID,
@@ -932,7 +932,7 @@ void __fastcall HeadGeosetHideCharGeosets(
   }
 }
 
-static void __fastcall UpdateSubComponentPathNames(SUBCOMPONENTDESC *subComponent, const char *modelName) {
+static void UpdateSubComponentPathNames(SUBCOMPONENTDESC *subComponent, const char *modelName) {
   FATALASSERT(subComponent);
   if (subComponent->modelName) {
     SMemFree(subComponent->modelName, __FILE__, __LINE__, 0);
@@ -945,7 +945,7 @@ static void __fastcall UpdateSubComponentPathNames(SUBCOMPONENTDESC *subComponen
   }
 }
 
-static void __fastcall AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, unsigned int numSubComponents, unsigned int inventoryType) {
+static void AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, unsigned int numSubComponents, unsigned int inventoryType) {
   static const char *const inventoryNames[INDEX_NUMSLOTS] = {"UNUSED", "Head",   "Neck",   "Shoulder", "Body",   "Chest",   "Waist",
                                                              "Legs",   "Feet",   "Wrist",  "Hand",     "Finger", "Trinket", "Weapon",
                                                              "Shield", "Weapon", "Ammo",   "Weapon",   "Bag",    "UNUSED",  "UNUSED",
@@ -971,7 +971,7 @@ static void __fastcall AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, 
   }
 }
 
-static void __fastcall
+static void
 DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, unsigned int numSubComponents, unsigned int race, unsigned int sex) {
   if (!subComponents || !numSubComponents) {
     return;
@@ -988,7 +988,7 @@ DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, unsigned int numSubC
   }
 }
 
-static HMODEL __fastcall ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, const ItemDisplayInfoRec *displayInfoRec) {
+static HMODEL ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, const ItemDisplayInfoRec *displayInfoRec) {
   FATALASSERT(subComponent);
   FATALASSERT(displayInfoRec);
   if (!subComponent->modelName || !*subComponent->modelName) {
@@ -1022,7 +1022,7 @@ static HMODEL __fastcall ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComp
   return subCompModel;
 }
 
-int __fastcall ObjComponentAdd(
+int ObjComponentAdd(
     int                       unitSex,
     int                       unitRace,
     int                       unitPlayer,
@@ -1066,7 +1066,7 @@ int __fastcall ObjComponentAdd(
   return 1;
 }
 
-int __fastcall TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce) {
+int TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce) {
   CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
 
   if (!componentPtr) {
@@ -1084,7 +1084,7 @@ int __fastcall TexComponentCommitSections(CStatus *status, HTEXCOMPONENT compone
   return 1;
 }
 
-int __fastcall TexComponentCheckSections(HTEXCOMPONENT component, int bForce) {
+int TexComponentCheckSections(HTEXCOMPONENT component, int bForce) {
   if (component) {
     return reinterpret_cast<CTexComponent *>(component)->CheckSections(bForce);
   }
@@ -1153,7 +1153,7 @@ void CTexComponent::RemoveHolds() {
   }
 }
 
-void __fastcall TexComponentRemoveSections(
+void TexComponentRemoveSections(
     HTEXCOMPONENT                component,
     const TEXCOMPONENT_SECTIONS *sectionPointers,
     const unsigned int          *startLayerList,
@@ -1165,25 +1165,25 @@ void __fastcall TexComponentRemoveSections(
   }
 }
 
-void __fastcall TexComponentRemoveAllHolds(HTEXCOMPONENT component) {
+void TexComponentRemoveAllHolds(HTEXCOMPONENT component) {
   CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentPtr);
   componentPtr->RemoveHolds();
 }
 
-void __fastcall TexComponentAddHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section) {
+void TexComponentAddHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section) {
   CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentPtr);
   componentPtr->AddHold(inventory, section);
 }
 
-void __fastcall TexComponentRemoveHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section) {
+void TexComponentRemoveHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section) {
   CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentPtr);
   componentPtr->RemoveHold(inventory, section);
 }
 
-void __fastcall ComponentInitialize() {
+void ComponentInitialize() {
   unsigned int section;
 
   if (s_textureCacheHandle) {
@@ -1205,7 +1205,7 @@ void __fastcall ComponentInitialize() {
   CTexturePiece::m_destTextureInfo.opaque = 1;
 }
 
-void __fastcall ComponentShutdown() {
+void ComponentShutdown() {
   if (s_textureCacheHandle) {
     HandleClose(s_textureCacheHandle);
   }
@@ -1214,7 +1214,7 @@ void __fastcall ComponentShutdown() {
   TextureFreeMippedImg(CTexturePiece::m_destImage);
 }
 
-int __fastcall
+int
 GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool isPlayer, bool useAlternate, HMODEL *models, int *attachmentPoints) {
   SUBCOMPONENTDESC subComponents[2];
   int              added;
@@ -1245,7 +1245,7 @@ GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool is
   return added;
 }
 
-bool __fastcall ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle, int eColor, int bStyle, int bColor, int b) {
+bool ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle, int eColor, int bStyle, int bColor, int b) {
   CTexComponent               *componentptr = reinterpret_cast<CTexComponent *>(component);
   const TEXCOMPONENT_SECTIONS *section;
 
@@ -1274,19 +1274,19 @@ bool __fastcall ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle,
   return true;
 }
 
-void __fastcall GetTabardBackgroundFileName(int section, int background, char *buffer, int size) {
+void GetTabardBackgroundFileName(int section, int background, char *buffer, int size) {
   SStrPrintf(buffer, size, "Textures\\GuildEmblems\\Background_%02d%s_U", background, s_tabardSectionSuffix[section]);
 }
 
-void __fastcall GetTabardEmblemFileName(int section, int emblem, int color, char *buffer, int size) {
+void GetTabardEmblemFileName(int section, int emblem, int color, char *buffer, int size) {
   SStrPrintf(buffer, size, "Textures\\GuildEmblems\\Emblem_%02d_%02d%s_U", emblem, color, s_tabardSectionSuffix[section]);
 }
 
-void __fastcall GetTabardBorderFileName(int section, int border, int color, char *buffer, int size) {
+void GetTabardBorderFileName(int section, int border, int color, char *buffer, int size) {
   SStrPrintf(buffer, size, "Textures\\GuildEmblems\\Border_%02d_%02d%s_U", border, color, s_tabardSectionSuffix[section]);
 }
 
-void __fastcall ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, ItemDisplayInfoRec *displayInfo, int inventoryType) {
+void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, ItemDisplayInfoRec *displayInfo, int inventoryType) {
   CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentptr);
 
@@ -1305,14 +1305,14 @@ bool CTexComponent::HasTabard() const {
   return m_emblemStyle != -1 && m_emblemColor != -1 && m_borderStyle != -1 && m_borderColor != -1 && m_background != -1;
 }
 
-void __fastcall ComponentForceTabardDraw(HTEXCOMPONENT component) {
+void ComponentForceTabardDraw(HTEXCOMPONENT component) {
   CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentptr);
   componentptr->m_flags |= 2;
   componentptr->m_dirtyFlags |= 0x60;
 }
 
-void __fastcall TexComponentCopy(HTEXCOMPONENT d, HTEXCOMPONENT s) {
+void TexComponentCopy(HTEXCOMPONENT d, HTEXCOMPONENT s) {
   if (d && s) {
     *d = *s;
   }
@@ -1375,7 +1375,7 @@ CTexturePiece &CTexturePiece::operator=(const CTexturePiece &rhs) {
   return *this;
 }
 
-HMODEL __fastcall ObjComponentBuildAmmoModel(ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration) {
+HMODEL ObjComponentBuildAmmoModel(ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration) {
   seqDuration = 0;
   if (!displayInfoRec || !displayInfoRec->m_modelName[1] || !displayInfoRec->m_modelTexture[1] || !inventoryType || inventoryType >= INDEX_NUMSLOTS) {
     return 0;

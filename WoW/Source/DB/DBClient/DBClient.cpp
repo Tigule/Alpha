@@ -234,17 +234,17 @@ enum {
   NUM_WEAPONATTACKSEQS = 6
 };
 
-void __fastcall        StaticDBLoadAll();
-void __fastcall        CheckDamageClassConsistency();
-void __fastcall        InitTerrainSoundTypeIDs();
-void __fastcall        InitWeaponSubclasses();
-void __fastcall        InitSoundProviderPreferences();
-static void __fastcall LocateWeaponSubclass();
+void StaticDBLoadAll();
+void CheckDamageClassConsistency();
+void InitTerrainSoundTypeIDs();
+void InitWeaponSubclasses();
+void InitSoundProviderPreferences();
+static void LocateWeaponSubclass();
 
-void __fastcall SDBItemSubclassInitialize();
-void __fastcall SDBItemSubclassDestroy();
+void SDBItemSubclassInitialize();
+void SDBItemSubclassDestroy();
 
-void __fastcall CheckDamageClassConsistency() {
+void CheckDamageClassConsistency() {
   unsigned int numDamageClasses = g_resistancesDB.GetNumRecords();
 
   s_physicalDamageClassID = -1;
@@ -294,7 +294,7 @@ void __fastcall CheckDamageClassConsistency() {
   }
 }
 
-void __fastcall InitTerrainSoundTypeIDs() {
+void InitTerrainSoundTypeIDs() {
   unsigned int numTerrainTypes = g_terrainTypeDB.GetMaxID() + 1;
   unsigned int i;
   s_terrainSoundType.SetCount(numTerrainTypes);
@@ -308,7 +308,7 @@ void __fastcall InitTerrainSoundTypeIDs() {
   }
 }
 
-static void __fastcall LocateWeaponSubclass() {
+static void LocateWeaponSubclass() {
   int i;
   s_weaponClassRecPtr = 0;
   for (i = g_itemClassDB.GetNumRecords(); i;) {
@@ -325,7 +325,7 @@ static void __fastcall LocateWeaponSubclass() {
     ASSERT(!"Error, at least one entry in the ItemClass has to be a weapon!");
 }
 
-void __fastcall InitWeaponSubclasses() {
+void InitWeaponSubclasses() {
   int numWeaponSubclasses = 0;
   int weaponClass;
   int i;
@@ -370,7 +370,7 @@ void __fastcall InitWeaponSubclasses() {
   }
 }
 
-void __fastcall InitSoundProviderPreferences() {
+void InitSoundProviderPreferences() {
   int i;
 
   s_defaultOutdoorProviderPrefs = 0;
@@ -389,7 +389,7 @@ void __fastcall InitSoundProviderPreferences() {
   }
 }
 
-void __fastcall ClientDBInitialize() {
+void ClientDBInitialize() {
   StaticDBLoadAll();
   CheckDamageClassConsistency();
   InitTerrainSoundTypeIDs();
@@ -398,13 +398,13 @@ void __fastcall ClientDBInitialize() {
   SDBItemSubclassInitialize();
 }
 
-void __fastcall ClientDBShutdown() {
+void ClientDBShutdown() {
   s_damageTypeRecordIDs.Clear();
   s_terrainSoundType.Clear();
   SDBItemSubclassDestroy();
 }
 
-const char *__fastcall ClientDBStringLookup(STRINGLOOKUP lookup) {
+const char *ClientDBStringLookup(STRINGLOOKUP lookup) {
   const StringLookupsRec *record;
 
   ASSERT(lookup < NUM_STRINGLOOKUPS);
@@ -413,69 +413,69 @@ const char *__fastcall ClientDBStringLookup(STRINGLOOKUP lookup) {
   return record ? record->m_String : 0;
 }
 
-unsigned int __fastcall GetPhysicalDamageClassID() {
+unsigned int GetPhysicalDamageClassID() {
   ASSERT(s_physicalDamageClassID != -1);
   return s_physicalDamageClassID;
 }
 
-unsigned int __fastcall GetFirstNonPhysicalID() {
+unsigned int GetFirstNonPhysicalID() {
   ASSERT(s_firstNonPhysicalDamageClass != -1);
   return s_firstNonPhysicalDamageClass;
 }
 
-const ResistancesRec *__fastcall GetDamageClassRecord(unsigned int record) {
+const ResistancesRec *GetDamageClassRecord(unsigned int record) {
   return g_resistancesDB.GetRecord(record);
 }
 
-unsigned int __fastcall ClientDBLookupTerrainSoundID(unsigned int terrainType) {
+unsigned int ClientDBLookupTerrainSoundID(unsigned int terrainType) {
   return terrainType < s_terrainSoundType.Count() ? s_terrainSoundType.Ptr()[terrainType] : 0;
 }
 
 WEAPONPARRYSEQ
-__fastcall ClientDBGetWeaponSubclassParrySeq(unsigned int subclassID) {
+ClientDBGetWeaponSubclassParrySeq(unsigned int subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
   return static_cast<WEAPONPARRYSEQ>(s_weaponSubClasses[subclassID]->m_weaponParrySeq);
 }
 
 WEAPONREADYSEQ
-__fastcall ClientDBGetWeaponSubclassReadySeq(unsigned int subclassID) {
+ClientDBGetWeaponSubclassReadySeq(unsigned int subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
   return static_cast<WEAPONREADYSEQ>(s_weaponSubClasses[subclassID]->m_weaponReadySeq);
 }
 
 WEAPONATTACKSEQ
-__fastcall ClientDBGetWeaponSubclassWeaponSeq(unsigned int subclassID) {
+ClientDBGetWeaponSubclassWeaponSeq(unsigned int subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
   return static_cast<WEAPONATTACKSEQ>(s_weaponSubClasses[subclassID]->m_weaponAttackSeq);
 }
 
-unsigned int __fastcall ClientDBGetNumWeaponSubclasses() {
+unsigned int ClientDBGetNumWeaponSubclasses() {
   return s_weaponSubClasses.Count();
 }
 
-int __fastcall ClientDBWeaponSubclassSetsFingerSeq(unsigned int subclassID) {
+int ClientDBWeaponSubclassSetsFingerSeq(unsigned int subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
   return s_weaponSubClasses[subclassID]->m_flags & 0x2;
 }
 
-unsigned int __fastcall ClientDBGetUnarmedWeapon() {
+unsigned int ClientDBGetUnarmedWeapon() {
   ASSERT(s_unarmedWeaponSubclass);
   return s_unarmedWeaponSubclass->m_subClassID;
 }
 
-const SoundProviderPreferencesRec *__fastcall ClientDBGetDefaultIndoorProviderPrefs() {
+const SoundProviderPreferencesRec *ClientDBGetDefaultIndoorProviderPrefs() {
   return s_defaultIndoorProviderPrefs;
 }
 
-const SoundProviderPreferencesRec *__fastcall ClientDBGetDefaultOutdoorProviderPrefs() {
+const SoundProviderPreferencesRec *ClientDBGetDefaultOutdoorProviderPrefs() {
   return s_defaultOutdoorProviderPrefs;
 }
 
-void __fastcall StaticDBLoadAll() {
+void StaticDBLoadAll() {
   g_groundEffectTextureDB.Load();
   g_groundEffectDoodadDB.Load();
   g_cameraShakesDB.Load();

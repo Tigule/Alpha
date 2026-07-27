@@ -22,20 +22,20 @@ static const ARGLIST s_argList[CMDOPTS] = {
     {  SCMD_TYPE_BOOL, CMD_NO_WARNINGS, "nowarnings", 0}
 };
 
-int __fastcall CmdLineGetBool(CMDOPT opt) {
+int CmdLineGetBool(CMDOPT opt) {
   return SCmdGetBool(opt);
 }
 
-const char *__fastcall CmdLineGetString(CMDOPT opt) {
+const char *CmdLineGetString(CMDOPT opt) {
   SCmdGetString(opt, buffer, sizeof(buffer));
   return buffer;
 }
 
-unsigned int __fastcall CmdLineGetUint(CMDOPT opt) {
+unsigned int CmdLineGetUint(CMDOPT opt) {
   return SCmdGetNum(opt);
 }
 
-int __fastcall CmdLineProcess() {
+int CmdLineProcess() {
   SCmdRegisterArgList(s_argList, CMDOPTS);
   return SCmdProcessCommandLine(0, 0);
 }

@@ -18,7 +18,7 @@
   }                                                              \
   ASSERT(object)
 
-static int __fastcall CSimpleModel_SetModel(lua_State *L) {
+static int CSimpleModel_SetModel(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, model);
 
   if (!lua_isstring(L, 2)) {
@@ -36,14 +36,14 @@ static int __fastcall CSimpleModel_SetModel(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_ClearModel(lua_State *L) {
+static int CSimpleModel_ClearModel(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   object->SetModel(0);
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetPosition(lua_State *L) {
+static int CSimpleModel_SetPosition(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   NTempest::C3Vector pos;
@@ -54,7 +54,7 @@ static int __fastcall CSimpleModel_SetPosition(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetFacing(lua_State *L) {
+static int CSimpleModel_SetFacing(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -65,7 +65,7 @@ static int __fastcall CSimpleModel_SetFacing(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetScale(lua_State *L) {
+static int CSimpleModel_SetScale(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -76,7 +76,7 @@ static int __fastcall CSimpleModel_SetScale(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetSequence(lua_State *L) {
+static int CSimpleModel_SetSequence(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -87,7 +87,7 @@ static int __fastcall CSimpleModel_SetSequence(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetSequenceTime(lua_State *L) {
+static int CSimpleModel_SetSequenceTime(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -98,7 +98,7 @@ static int __fastcall CSimpleModel_SetSequenceTime(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetAlpha(lua_State *L) {
+static int CSimpleModel_SetAlpha(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -109,7 +109,7 @@ static int __fastcall CSimpleModel_SetAlpha(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetCamera(lua_State *L) {
+static int CSimpleModel_SetCamera(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -120,7 +120,7 @@ static int __fastcall CSimpleModel_SetCamera(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetLight(lua_State *L) {
+static int CSimpleModel_SetLight(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, model);
 
   if (!lua_isnumber(L, 2)) {
@@ -169,7 +169,7 @@ static int __fastcall CSimpleModel_SetLight(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_GetPosition(lua_State *L) {
+static int CSimpleModel_GetPosition(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   NTempest::C3Vector pos = object->GetPosition();
@@ -179,28 +179,28 @@ static int __fastcall CSimpleModel_GetPosition(lua_State *L) {
   return 3;
 }
 
-static int __fastcall CSimpleModel_GetFacing(lua_State *L) {
+static int CSimpleModel_GetFacing(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   lua_pushnumber(L, object->GetFacing());
   return 1;
 }
 
-static int __fastcall CSimpleModel_GetScale(lua_State *L) {
+static int CSimpleModel_GetScale(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   lua_pushnumber(L, object->GetScale());
   return 1;
 }
 
-static int __fastcall CSimpleModel_AdvanceTime(lua_State *L) {
+static int CSimpleModel_AdvanceTime(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   object->AdvanceTime();
   return 0;
 }
 
-static int __fastcall CSimpleModel_ReplaceIconTexture(lua_State *L) {
+static int CSimpleModel_ReplaceIconTexture(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   if (!lua_isstring(L, 2)) {
@@ -211,7 +211,7 @@ static int __fastcall CSimpleModel_ReplaceIconTexture(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetFogColor(lua_State *L) {
+static int CSimpleModel_SetFogColor(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   float red = static_cast<float>(lua_tonumber(L, 2));
@@ -229,7 +229,7 @@ static int __fastcall CSimpleModel_SetFogColor(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetFogNear(lua_State *L) {
+static int CSimpleModel_SetFogNear(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -240,7 +240,7 @@ static int __fastcall CSimpleModel_SetFogNear(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_SetFogFar(lua_State *L) {
+static int CSimpleModel_SetFogFar(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -251,7 +251,7 @@ static int __fastcall CSimpleModel_SetFogFar(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleModel_ClearFog(lua_State *L) {
+static int CSimpleModel_ClearFog(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
   object->SetFog(0);
@@ -284,11 +284,11 @@ static FrameScript_Method SimpleModelMethods[19] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleModel::s_scriptMethods;
 
-void __fastcall CSimpleModel::RegisterScriptMethods() {
+void CSimpleModel::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleModelMethods, 19, s_scriptMethods);
 }
 
-void __fastcall CSimpleModel::UnregisterScriptMethods() {
+void CSimpleModel::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall CreatureModelDataRec::GetFilename() {
+const char *CreatureModelDataRec::GetFilename() {
   return "DBFilesClient\\CreatureModelData.dbc";
 }
 

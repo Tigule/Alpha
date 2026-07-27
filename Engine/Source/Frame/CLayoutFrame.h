@@ -78,8 +78,8 @@ class CLayoutFrame {
   int   IsResizePending();
   int   PtInFrameRect(const NTempest::C2Vector &pt);
   void  Resize(int force);
-  static unsigned int __fastcall ResizePending();
-  static void __fastcall         ClearResizePendingList();
+  static unsigned int ResizePending();
+  static void ClearResizePendingList();
   void                           SetWidth(float width);
   void                           SetHeight(float height);
   void                           CageMouseInFrame(int enable);
@@ -108,7 +108,7 @@ class CLayoutFrame {
 
  protected:
   void                   DestroyLayout();
-  static void __fastcall RemoveFromResizeList(CLayoutFrame *pFrame);
+  static void RemoveFromResizeList(CLayoutFrame *pFrame);
 
  private:
   float GetFirstPointX(const FRAMEPOINT *const pointarray, int elements);

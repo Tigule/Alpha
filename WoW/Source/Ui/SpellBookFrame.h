@@ -13,20 +13,20 @@ class CGSpellBook {
   friend class CGGameObject_C;
 
  public:
-  static void __fastcall         InitializeGame();
-  static void __fastcall         ShutdownGame();
-  static void __fastcall         ClearSpells();
-  static unsigned int __fastcall IsSpellKnown(int spellID);
-  static unsigned int __fastcall IsPetSpellKnown(int spellID);
-  static void __fastcall         ClearPetSpells();
-  static void __fastcall         AddPetSpell(int spellID);
+  static void InitializeGame();
+  static void ShutdownGame();
+  static void ClearSpells();
+  static unsigned int IsSpellKnown(int spellID);
+  static unsigned int IsPetSpellKnown(int spellID);
+  static void ClearPetSpells();
+  static void AddPetSpell(int spellID);
   static void                    SetKnowsPetSpells() {
     m_knowsPetSpells = 1;
   }
-  static void __fastcall UpdateSpells();
-  static void __fastcall ReplaceSpell(int oldSpell, int newSpell);
-  static void __fastcall UpdateSelection();
-  static void __fastcall UpdateCooldowns();
+  static void UpdateSpells();
+  static void ReplaceSpell(int oldSpell, int newSpell);
+  static void UpdateSelection();
+  static void UpdateCooldowns();
   static int             GetLanguageSpell(unsigned int language) {
     return m_languageSpells[language];
   }
@@ -37,22 +37,22 @@ class CGSpellBook {
     return m_duelSpell;
   }
 
-  static void __fastcall                  AddKnownSpell(int spellID, int slot, int learned);
-  static void __fastcall                  DelKnownSpell(int spellID);
-  static void __fastcall                  SetSpell(int slot, int spellID, UI_SPELL_TYPE type);
-  static void __fastcall                  SendSpellSlot(int slot, UI_SPELL_TYPE type);
-  static void __fastcall                  PickupSpell(int slot, UI_SPELL_TYPE type);
-  static void __fastcall                  CastSpell(int slot, UI_SPELL_TYPE type);
-  static int __fastcall                   GetSpell(unsigned int slot, UI_SPELL_TYPE type);
-  static int __fastcall                   IsSelectedSlot(int slot, UI_SPELL_TYPE type);
-  static int __fastcall                   IsToggledSpell(int slot, UI_SPELL_TYPE type);
-  static TSGrowableArray<int> &__fastcall GetShapeshiftForms() {
+  static void AddKnownSpell(int spellID, int slot, int learned);
+  static void DelKnownSpell(int spellID);
+  static void SetSpell(int slot, int spellID, UI_SPELL_TYPE type);
+  static void SendSpellSlot(int slot, UI_SPELL_TYPE type);
+  static void PickupSpell(int slot, UI_SPELL_TYPE type);
+  static void CastSpell(int slot, UI_SPELL_TYPE type);
+  static int GetSpell(unsigned int slot, UI_SPELL_TYPE type);
+  static int IsSelectedSlot(int slot, UI_SPELL_TYPE type);
+  static int IsToggledSpell(int slot, UI_SPELL_TYPE type);
+  static TSGrowableArray<int> &GetShapeshiftForms() {
     return m_shapeshiftForms;
   }
-  static int __fastcall KnowsSpells() {
+  static int KnowsSpells() {
     return m_knowsSpells;
   }
-  static int __fastcall KnowsPetSpells() {
+  static int KnowsPetSpells() {
     return m_knowsPetSpells;
   }
 

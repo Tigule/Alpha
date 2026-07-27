@@ -64,7 +64,7 @@ struct CGPlayerData {
 };
 
 class CGPlayer {
-  friend int __fastcall Spell_C_GetManaCost(int id, int isPet);
+  friend int Spell_C_GetManaCost(int id, int isPet);
 
  public:
   unsigned short GetMirrorSkillID(int index) const {
@@ -151,8 +151,8 @@ enum SPELL_CAST_UI_TYPE {
 };
 
 class CGPlayer_C : public CGUnit_C, public CGPlayer {
-  friend bool __fastcall Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
-  friend bool __fastcall Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
+  friend bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
+  friend bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
 
  public:
   CGPlayer_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
@@ -220,36 +220,36 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void                               SetStorage(unsigned long *storage);
   void                               PostInit(const CClientObjCreate &init);
   void                               GuildInfoLoaded(const TSGrowableArray<unsigned int> &guildList);
-  static ITEMEXPIRATION *__fastcall  GetPendingItemExpirationNode(const unsigned __int64 &itemGUID);
-  static void __fastcall             Initialize();
-  static void __fastcall             InstallGMHandlers();
-  static void __fastcall             UninstallGMHandlers();
-  static void __fastcall             GMIdle();
-  static void __fastcall             StartGhosting(const char *name);
-  static void __fastcall             StartGhosting(unsigned __int64 guid);
-  static void __fastcall             StopGhosting();
-  static void __fastcall             SetRealActivePlayer(unsigned __int64 guid);
-  static void __fastcall             SetActive(CGPlayer_C *playerPtr);
-  static unsigned __int64 __fastcall GetActive() {
+  static ITEMEXPIRATION *GetPendingItemExpirationNode(const unsigned __int64 &itemGUID);
+  static void Initialize();
+  static void InstallGMHandlers();
+  static void UninstallGMHandlers();
+  static void GMIdle();
+  static void StartGhosting(const char *name);
+  static void StartGhosting(unsigned __int64 guid);
+  static void StopGhosting();
+  static void SetRealActivePlayer(unsigned __int64 guid);
+  static void SetActive(CGPlayer_C *playerPtr);
+  static unsigned __int64 GetActive() {
     return ClntObjMgrGetActivePlayer();
   }
-  static unsigned __int64 __fastcall GetRealActivePlayer();
-  static unsigned int __fastcall     GetNewContinentID();
-  static unsigned int __fastcall     OffsetOf(OBJECT_TYPE_ID type);
-  static unsigned int __fastcall     GetProficiency(unsigned char type);
-  static void __fastcall             UpdateTaxiStatusAll();
-  static void __fastcall             UpdateBindStatusAll();
-  static unsigned int __fastcall     GetLootItem(unsigned int slot);
-  static unsigned int __fastcall     GetLootItemDisplayID(unsigned int slot);
-  static unsigned int __fastcall     GetLootItemQuantity(unsigned int slot);
+  static unsigned __int64 GetRealActivePlayer();
+  static unsigned int GetNewContinentID();
+  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
+  static unsigned int GetProficiency(unsigned char type);
+  static void UpdateTaxiStatusAll();
+  static void UpdateBindStatusAll();
+  static unsigned int GetLootItem(unsigned int slot);
+  static unsigned int GetLootItemDisplayID(unsigned int slot);
+  static unsigned int GetLootItemQuantity(unsigned int slot);
   void                               OnLootGameObject(const unsigned __int64 &gameObject, bool lootAnim);
-  static void __fastcall             TogglePlayerBounds();
-  static void __fastcall             AddDeferredDamage(int normal, unsigned int flags, unsigned int damage, unsigned __int64 victim);
-  static void __fastcall             AddDeferredSpellMiss(unsigned __int64 victim, MISS_REASON reason, int spellID);
-  static void __fastcall             ProcessDeferredDamage();
-  static void __fastcall             ProcessDeferredSpellMiss();
-  static void __fastcall             XBuyItem(unsigned __int64 merchant, unsigned int itemID, unsigned int quantity, unsigned int autoEquip);
-  static void __fastcall             Shutdown();
+  static void TogglePlayerBounds();
+  static void AddDeferredDamage(int normal, unsigned int flags, unsigned int damage, unsigned __int64 victim);
+  static void AddDeferredSpellMiss(unsigned __int64 victim, MISS_REASON reason, int spellID);
+  static void ProcessDeferredDamage();
+  static void ProcessDeferredSpellMiss();
+  static void XBuyItem(unsigned __int64 merchant, unsigned int itemID, unsigned int quantity, unsigned int autoEquip);
+  static void Shutdown();
   void                               TrySheathingWeapon();
   void                               SheatheWeapon(unsigned int sheathe);
   void                               SetFarSightFocus(CGObject_C *obj);
@@ -263,15 +263,15 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   }
   CGUnit_C                *GetPossessedUnit();
   int                      CanLoot(CGUnit_C *unitPtr);
-  static bool __fastcall IsGiftWrapping();
-  static void __fastcall CancelGiftWrap();
+  static bool IsGiftWrapping();
+  static void CancelGiftWrap();
   void                   SetCombatMode(int state);
   void                   ReadItemResult(NETMESSAGE msgID, CDataStore *msg);
   void                   ReceiveResurrectRequest(const char *name);
   void                   InspectPlayer(const unsigned __int64 &guid);
   void                   AcceptResurrectRequest(int accept);
-  void SetInventoryMirrorHandler(unsigned int slot, int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));
-  void UnsetInventoryMirrorHandler(unsigned int slot, int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));
+  void SetInventoryMirrorHandler(unsigned int slot, int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));
+  void UnsetInventoryMirrorHandler(unsigned int slot, int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *));
   void SetPlayerMirrorHandlers();
   void UnsetPlayerMirrorHandlers();
   void SetActiveMirrorHandlers();
@@ -307,7 +307,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
       int              ignoreOwnershipRules
   );
   void                                  AutoEquipItem(unsigned __int64 container, unsigned int slot, int force);
-  static void __fastcall                SellItem(unsigned __int64 merchant, unsigned __int64 item, unsigned int amount);
+  static void SellItem(unsigned __int64 merchant, unsigned __int64 item, unsigned int amount);
   void                                  AutoEquipCursorItem(int force);
   void                                  ClearPendingEquip(unsigned int index, int equip);
   int                                   OnAttackIconPressed();
@@ -324,7 +324,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void                                  AutoStoreLootItem(unsigned char slot);
   void                                  LootMoney();
   void                                  OpenWrappedItem(CGItem_C *item);
-  static void __fastcall                StartGiftWrap(CGItem_C *wrapper);
+  static void StartGiftWrap(CGItem_C *wrapper);
   void                                  RequestPetitionSignatures(unsigned __int64 item);
   int                                   InviteToGroup(unsigned __int64 target);
   void                                  InviteToGroup(const char *target);
@@ -344,7 +344,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   int                                   ReportBagItemSubtypeMismatch(unsigned int bagSlot) const;
   void                                  SaveDeathMessage(unsigned __int64 guid);
   void                                  CheckKillerFeedback();
-  static void __fastcall                SaveBindPoint(CDataStore *msg);
+  static void SaveBindPoint(CDataStore *msg);
   void                                  HandleMountResult(unsigned int result);
   void                                  HandleDismountResult(unsigned int result);
   void                                  OnTaxiNodeStatus(CDataStore *msg);
@@ -406,7 +406,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void                                  ReadItem(unsigned int packSlot, unsigned int slot);
   void                                  ReadItem(unsigned __int64 containerGUID, unsigned char slot);
   int                                   DeathBindDistanceCompare(NTempest::C3Vector &bindStonePosition);
-  static NTempest::C3Vector &__fastcall GetBindPoint();
+  static NTempest::C3Vector &GetBindPoint();
   int                                   GetLanguageSkill(unsigned int language, unsigned int &skill);
   TSGrowableArray<int>                 *GetTradeSkills(int skillLine);
   TSGrowableArray<int>                 *GetCraftSkills(SPELL_CAST_UI_TYPE type);
@@ -452,11 +452,11 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
 };
 class CreatureModelDataRec;
 
-const CreatureModelDataRec *__fastcall Player_C_GetModelName(unsigned int race, unsigned int sex);
-unsigned int __fastcall                Player_C_GetDisplayId(unsigned int race, unsigned int sex);
-int __fastcall                         Player_C_AppFocusMovementHandler(int focus);
-int __fastcall                         Player_C_ZoneUpdateHandler(const void *eventData, void *arg);
-int __fastcall                         Player_C_SetPlayerRender(int enable);
-void __fastcall                        Player_C_ClearGuildIDs();
-void __fastcall                        PlayerClientInitialize();
-void __fastcall                        PlayerClientShutdown();
+const CreatureModelDataRec *Player_C_GetModelName(unsigned int race, unsigned int sex);
+unsigned int Player_C_GetDisplayId(unsigned int race, unsigned int sex);
+int Player_C_AppFocusMovementHandler(int focus);
+int Player_C_ZoneUpdateHandler(const void *eventData, void *arg);
+int Player_C_SetPlayerRender(int enable);
+void Player_C_ClearGuildIDs();
+void PlayerClientInitialize();
+void PlayerClientShutdown();

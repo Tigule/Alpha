@@ -48,21 +48,21 @@ static unsigned int  s_lastFrame;
 static unsigned long s_currTime;
 static unsigned int  s_elapsedTime;
 
-static void __fastcall RemoveTranslation(const NTempest::C3Vector &position) {
+static void RemoveTranslation(const NTempest::C3Vector &position) {
   WorldMatrixRemove(1);
   WorldMatrixTranslate(position);
 }
 
-static void __fastcall RemoveScale(const NTempest::C3Vector &scale) {
+static void RemoveScale(const NTempest::C3Vector &scale) {
   WorldMatrixRemove(2);
   WorldMatrixScale(scale);
 }
 
-static float __fastcall Length(const NTempest::C3Vector &v) {
+static float Length(const NTempest::C3Vector &v) {
   return NTempest::CMath::sqrt_(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-static void __fastcall InvScale(NTempest::C3Vector *v, float factor) {
+static void InvScale(NTempest::C3Vector *v, float factor) {
   if (factor != 0.0f) {
     float inverse = 1.0f / factor;
 
@@ -72,7 +72,7 @@ static void __fastcall InvScale(NTempest::C3Vector *v, float factor) {
   }
 }
 
-static int __fastcall WrapAnimTime(int milliseconds, int looptime) {
+static int WrapAnimTime(int milliseconds, int looptime) {
   if (!looptime) {
     return 0;
   }
@@ -84,7 +84,7 @@ static int __fastcall WrapAnimTime(int milliseconds, int looptime) {
   return milliseconds % looptime;
 }
 
-static void __fastcall ISetSequenceInfo(CAnim *unique, CBaseStatus *status, unsigned int index, int resetTime) {
+static void ISetSequenceInfo(CAnim *unique, CBaseStatus *status, unsigned int index, int resetTime) {
   if (resetTime || index != status->currSeq) {
     status->flags |= 0x10;
   }
@@ -101,13 +101,13 @@ static void __fastcall ISetSequenceInfo(CAnim *unique, CBaseStatus *status, unsi
   }
 }
 
-static void __fastcall ISetSequenceInfo(CAnim *unique, CBaseStatus *status, unsigned int index, unsigned int prevIndex, int resetTime) {
+static void ISetSequenceInfo(CAnim *unique, CBaseStatus *status, unsigned int index, unsigned int prevIndex, int resetTime) {
   if (status->currSeq == prevIndex) {
     ISetSequenceInfo(unique, status, index, resetTime);
   }
 }
 
-static void __fastcall ISetSequenceReset(CAnim *unique, CAnimObj *currobj, unsigned int index, unsigned int blendTime, int resetTime) {
+static void ISetSequenceReset(CAnim *unique, CAnimObj *currobj, unsigned int index, unsigned int blendTime, int resetTime) {
   CAnimObjStatus *status = unique->status[currobj->animObjId];
   if (!(status->base.flags & 0x20)) {
     ISetSequenceInfo(unique, &status->base, index, resetTime);
@@ -123,7 +123,7 @@ static void __fastcall ISetSequenceReset(CAnim *unique, CAnimObj *currobj, unsig
   }
 }
 
-static void __fastcall
+static void
 ISetSequence(CAnim *unique, CAnimObj *currobj, unsigned int index, unsigned int prevIndex, unsigned int blendTime, int resetTime) {
   CAnimObjStatus *status = unique->status[currobj->animObjId];
   if (!(status->base.flags & 0x20)) {
@@ -142,18 +142,18 @@ ISetSequence(CAnim *unique, CAnimObj *currobj, unsigned int index, unsigned int 
   }
 }
 
-static void __fastcall RemoveRotation(const InterpInfo &animInfo) {
+static void RemoveRotation(const InterpInfo &animInfo) {
   WorldMatrixRemove(4);
   WorldMatrixBasis(animInfo.basisX, animInfo.basisY, animInfo.basisZ);
 }
 
-static void __fastcall RemoveRotationAndScaling(const InterpInfo &animInfo) {
+static void RemoveRotationAndScaling(const InterpInfo &animInfo) {
   WorldMatrixRemove(6);
   WorldMatrixScale(animInfo.basisScale);
   WorldMatrixBasis(animInfo.basisX, animInfo.basisY, animInfo.basisZ);
 }
 
-void __fastcall TranslateView(const InterpInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos, const NTempest::C3Vector &parentPos) {
+void TranslateView(const InterpInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos, const NTempest::C3Vector &parentPos) {
   ASSERT(currobj);
   CAnimObjStatus    *status = animInfo.unique->status[currobj->animObjId];
   NTempest::C3Vector transform(0.0f);
@@ -187,7 +187,7 @@ void __fastcall TranslateView(const InterpInfo &animInfo, CAnimObj *currobj, con
   WorldMatrixTranslate(transform);
 }
 
-void __fastcall RotateView(const InterpInfo &animInfo, CAnimObj *currobj) {
+void RotateView(const InterpInfo &animInfo, CAnimObj *currobj) {
   ASSERT(currobj);
   if ((currobj->flags & 7) == 4) {
     RemoveRotation(animInfo);
@@ -212,7 +212,7 @@ void __fastcall RotateView(const InterpInfo &animInfo, CAnimObj *currobj) {
   }
 }
 
-void __fastcall ScaleView(const InterpInfo &animInfo, CAnimObj *currobj) {
+void ScaleView(const InterpInfo &animInfo, CAnimObj *currobj) {
   ASSERT(currobj);
   if ((currobj->flags & 3) == 2) {
     if (currobj->flags & 4) {
@@ -241,7 +241,7 @@ void __fastcall ScaleView(const InterpInfo &animInfo, CAnimObj *currobj) {
   }
 }
 
-static void __fastcall SetGlobalSequenceTime(CAnim *anim, CAnimData *data, int elapsedTime) {
+static void SetGlobalSequenceTime(CAnim *anim, CAnimData *data, int elapsedTime) {
   ASSERT(anim);
   ASSERT(data);
 
@@ -251,7 +251,7 @@ static void __fastcall SetGlobalSequenceTime(CAnim *anim, CAnimData *data, int e
   }
 }
 
-static int __fastcall CallSeqFinishedHandlers(CAnim *unique, unsigned int seqIndex) {
+static int CallSeqFinishedHandlers(CAnim *unique, unsigned int seqIndex) {
   ASSERT(unique);
 
   if (unique->anySeqFinished.callback && !unique->anySeqFinished.callback(unique->anySeqFinished.param)) {
@@ -265,7 +265,7 @@ static int __fastcall CallSeqFinishedHandlers(CAnim *unique, unsigned int seqInd
   return unique->seq[seqIndex].finished.callback(unique->seq[seqIndex].finished.param) != 0;
 }
 
-static int __fastcall SetSequenceTime(CAnim *unique, unsigned int sequence, const CAnimSequence *seq, CSeqInfo *seqInfo, int seqTime) {
+static int SetSequenceTime(CAnim *unique, unsigned int sequence, const CAnimSequence *seq, CSeqInfo *seqInfo, int seqTime) {
   ASSERT(unique);
 
   if (!seqInfo->useCount) {
@@ -313,7 +313,7 @@ static int __fastcall SetSequenceTime(CAnim *unique, unsigned int sequence, cons
   return result;
 }
 
-static int __fastcall GetSeqSyncTime(CAnim *unique, CAnimData *shared, unsigned int currSeq, unsigned int prevSeq) {
+static int GetSeqSyncTime(CAnim *unique, CAnimData *shared, unsigned int currSeq, unsigned int prevSeq) {
   CAnimSequence *currSharedSeq = &shared->seq[currSeq];
 
   if (!(currSharedSeq->flags & 2) || !(shared->seq[prevSeq].flags & 2)) {
@@ -326,7 +326,7 @@ static int __fastcall GetSeqSyncTime(CAnim *unique, CAnimData *shared, unsigned 
   return syncTime < 0.0f ? -static_cast<int>(-syncTime + 0.5f) : static_cast<int>(syncTime + 0.5f);
 }
 
-static void __fastcall SetObjectSequencesReset(CAnim *unique, CAnimData *shared, unsigned int sequence, unsigned int blendTime, int resetTime) {
+static void SetObjectSequencesReset(CAnim *unique, CAnimData *shared, unsigned int sequence, unsigned int blendTime, int resetTime) {
   CAnimObj **currobj = shared->headarray.Ptr();
   for (unsigned int objectIndex = 0; objectIndex < shared->headarray.Count(); ++objectIndex, ++currobj) {
     ISetSequenceReset(unique, *currobj, sequence, blendTime, resetTime);
@@ -349,7 +349,7 @@ static void __fastcall SetObjectSequencesReset(CAnim *unique, CAnimData *shared,
   }
 }
 
-static void __fastcall
+static void
 SetObjectSequences(CAnim *unique, CAnimData *shared, unsigned int sequence, unsigned int prevSeq, unsigned int blendTime, int resetTime) {
   CAnimObj **currobj = shared->headarray.Ptr();
   for (unsigned int objectIndex = 0; objectIndex < shared->headarray.Count(); ++objectIndex, ++currobj) {
@@ -373,7 +373,7 @@ SetObjectSequences(CAnim *unique, CAnimData *shared, unsigned int sequence, unsi
   }
 }
 
-static int __fastcall RandomInRange(const NTempest::CiRange &range) {
+static int RandomInRange(const NTempest::CiRange &range) {
   int delta = range.h - range.l;
   if (!delta) {
     return range.l;
@@ -382,7 +382,7 @@ static int __fastcall RandomInRange(const NTempest::CiRange &range) {
   return range.l + (rand() >> 2) % delta;
 }
 
-static void __fastcall SetSequence(CAnim *unique, CAnimData *shared, unsigned char sequence, unsigned int flags) {
+static void SetSequence(CAnim *unique, CAnimData *shared, unsigned char sequence, unsigned int flags) {
   ASSERT(unique);
 
   const unsigned int numSeqs = unique->seq.Count();
@@ -432,7 +432,7 @@ static void __fastcall SetSequence(CAnim *unique, CAnimData *shared, unsigned ch
   unique->flags &= ~5;
 }
 
-void __fastcall GetWorldTransform(InterpInfo *animInfo) {
+void GetWorldTransform(InterpInfo *animInfo) {
   WorldMatrixGetRow(0, &animInfo->basisX);
   animInfo->basisScale.x = Length(animInfo->basisX);
   InvScale(&animInfo->basisX, animInfo->basisScale.x);
@@ -448,7 +448,7 @@ void __fastcall GetWorldTransform(InterpInfo *animInfo) {
   WorldMatrixGetRow(3, &animInfo->basisPosition);
 }
 
-static int __fastcall AdvanceTime(CAnim *unique, CAnimData *shared) {
+static int AdvanceTime(CAnim *unique, CAnimData *shared) {
   ASSERT(unique);
   ASSERT(shared);
 
@@ -560,7 +560,7 @@ static void SetGeosetAlpha(
   }
 }
 
-void __fastcall CalcGeosetColor(
+void CalcGeosetColor(
     const InterpInfo &animInfo, CAnimGeoset *geoset, CAnimGeosetObjStatus *geoStatus, CGeosetColor *color
 ) {
   ASSERT(geoset);
@@ -575,7 +575,7 @@ void __fastcall CalcGeosetColor(
   }
 }
 
-static int __fastcall PickRandomSequence(const CVariations &selection, const CArray<CAnimSequence> &seqs) {
+static int PickRandomSequence(const CVariations &selection, const CArray<CAnimSequence> &seqs) {
   if (!selection.variation.Count()) {
     return selection.primary;
   }
@@ -603,7 +603,7 @@ static int __fastcall PickRandomSequence(const CVariations &selection, const CAr
   return result;
 }
 
-static void __fastcall SetSplitBodySequence(CAnim *unique, CAnimData *shared, unsigned int sequence, unsigned int objectId, unsigned int flags) {
+static void SetSplitBodySequence(CAnim *unique, CAnimData *shared, unsigned int sequence, unsigned int objectId, unsigned int flags) {
   if (!(flags & 2)) {
     CAnimObj       *object = shared->obj[objectId];
     CAnimObjStatus *status = unique->status[object->animObjId];
@@ -632,7 +632,7 @@ static void __fastcall SetSplitBodySequence(CAnim *unique, CAnimData *shared, un
   unique->flags &= ~5;
 }
 
-static unsigned int __fastcall FindSequenceVariationInUse(CAnim *unique, CAnimData *shared, unsigned int index) {
+static unsigned int FindSequenceVariationInUse(CAnim *unique, CAnimData *shared, unsigned int index) {
   CVariations &variations = shared->seqOrder[unique->seqMapIndex].order[index];
   unsigned int sequence = variations.primary;
 
@@ -655,23 +655,23 @@ static unsigned int __fastcall FindSequenceVariationInUse(CAnim *unique, CAnimDa
   return 0xFF;
 }
 
-void __fastcall IAnimInitializeTime() {
+void IAnimInitializeTime() {
   s_lastFrame = (unsigned int)-1;
   s_currTime = OsGetAsyncTimeMsPrecise();
   s_elapsedTime = 0;
 }
 
-unsigned long __fastcall IAnimGetCurrTimeMs() {
+unsigned long IAnimGetCurrTimeMs() {
   return s_currTime;
 }
 
-void __fastcall AnimSetTimeScale(HANIM anim, float timeScale) {
+void AnimSetTimeScale(HANIM anim, float timeScale) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   unique->seq[unique->primarySeq].seqTimeScale = timeScale;
 }
 
-int __fastcall AnimSetObjectTimeScale(HANIM anim, unsigned int objectId, float timeScale) {
+int AnimSetObjectTimeScale(HANIM anim, unsigned int objectId, float timeScale) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -691,13 +691,13 @@ int __fastcall AnimSetObjectTimeScale(HANIM anim, unsigned int objectId, float t
   return 1;
 }
 
-float __fastcall AnimGetTimeScale(HANIM anim) {
+float AnimGetTimeScale(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   return unique->seq[unique->primarySeq].seqTimeScale;
 }
 
-float __fastcall AnimGetObjectTimeScale(HANIM anim, unsigned int objectId) {
+float AnimGetObjectTimeScale(HANIM anim, unsigned int objectId) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -716,15 +716,15 @@ float __fastcall AnimGetObjectTimeScale(HANIM anim, unsigned int objectId) {
   return unique->seq[sequence].seqTimeScale;
 }
 
-void __fastcall AnimSetGlobalTimeScale(float timeScale) {
+void AnimSetGlobalTimeScale(float timeScale) {
   s_timeScale = timeScale;
 }
 
-float __fastcall AnimGetGlobalTimeScale() {
+float AnimGetGlobalTimeScale() {
   return s_timeScale;
 }
 
-int __fastcall AnimForceCurrentSequenceTime(HANIM anim, int time) {
+int AnimForceCurrentSequenceTime(HANIM anim, int time) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -736,7 +736,7 @@ int __fastcall AnimForceCurrentSequenceTime(HANIM anim, int time) {
   return SetSequenceTime(unique, sequence, &shared->seq[sequence], &unique->seq[sequence], time);
 }
 
-int __fastcall AnimForceSequenceTime(HANIM anim, unsigned int index, int time) {
+int AnimForceSequenceTime(HANIM anim, unsigned int index, int time) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -752,7 +752,7 @@ int __fastcall AnimForceSequenceTime(HANIM anim, unsigned int index, int time) {
   return SetSequenceTime(unique, sequence, &shared->seq[sequence], &unique->seq[sequence], time);
 }
 
-int __fastcall AnimSetRandomSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned int flags) {
+int AnimSetRandomSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned int flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -770,7 +770,7 @@ int __fastcall AnimSetRandomSequenceFidget(HANIM anim, unsigned int seqIndex, un
   return 1;
 }
 
-unsigned int __fastcall AnimGetNumSequenceFidgets(HANIM anim, unsigned int seqIndex) {
+unsigned int AnimGetNumSequenceFidgets(HANIM anim, unsigned int seqIndex) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -784,7 +784,7 @@ unsigned int __fastcall AnimGetNumSequenceFidgets(HANIM anim, unsigned int seqIn
   return ordering.variation.Count() + 1;
 }
 
-int __fastcall AnimSetRandomSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
+int AnimSetRandomSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -807,7 +807,7 @@ int __fastcall AnimSetRandomSequenceFidget(HANIM anim, unsigned int seqIndex, un
   return 1;
 }
 
-int __fastcall AnimSetSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned int fidgetId, unsigned int flags) {
+int AnimSetSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned int fidgetId, unsigned int flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -825,7 +825,7 @@ int __fastcall AnimSetSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned
   return 1;
 }
 
-int __fastcall AnimSetSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned int fidgetId, unsigned int objectId, unsigned int flags) {
+int AnimSetSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned int fidgetId, unsigned int objectId, unsigned int flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -848,7 +848,7 @@ int __fastcall AnimSetSequenceFidget(HANIM anim, unsigned int seqIndex, unsigned
   return 1;
 }
 
-int __fastcall AnimSetSequence(HANIM anim, unsigned int seqIndex, unsigned int flags) {
+int AnimSetSequence(HANIM anim, unsigned int seqIndex, unsigned int flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -876,7 +876,7 @@ int __fastcall AnimSetSequence(HANIM anim, unsigned int seqIndex, unsigned int f
   return 1;
 }
 
-int __fastcall AnimSetSequence(HANIM anim, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
+int AnimSetSequence(HANIM anim, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -900,7 +900,7 @@ int __fastcall AnimSetSequence(HANIM anim, unsigned int seqIndex, unsigned int o
   return 1;
 }
 
-int __fastcall AnimMatchSequence(HANIM anim, unsigned int objectId, unsigned int sameAsObjectId, unsigned int flags) {
+int AnimMatchSequence(HANIM anim, unsigned int objectId, unsigned int sameAsObjectId, unsigned int flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -922,13 +922,13 @@ int __fastcall AnimMatchSequence(HANIM anim, unsigned int objectId, unsigned int
   return 1;
 }
 
-void __fastcall AnimResetGlobalSequenceTimes(HANIM anim) {
+void AnimResetGlobalSequenceTimes(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   memset(unique->globalSeqElapsed.m_data, 0, unique->globalSeqElapsed.Count() * sizeof(unsigned int));
 }
 
-int __fastcall AnimAdvanceTime(HANIM anim, unsigned int currentFrame) {
+int AnimAdvanceTime(HANIM anim, unsigned int currentFrame) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   FATALASSERT(unique);
 
@@ -945,13 +945,13 @@ int __fastcall AnimAdvanceTime(HANIM anim, unsigned int currentFrame) {
   return AdvanceTime(unique, shared);
 }
 
-static int __fastcall IAnimManualAdvanceTime(CAnim *unique, CAnimData *shared, int timeChange) {
+static int IAnimManualAdvanceTime(CAnim *unique, CAnimData *shared, int timeChange) {
   s_elapsedTime = timeChange;
   s_currTime = unique->seqLastTime + timeChange;
   return AdvanceTime(unique, shared);
 }
 
-int __fastcall AnimManualAdvanceTime(HANIM anim, int timeChange) {
+int AnimManualAdvanceTime(HANIM anim, int timeChange) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -960,11 +960,11 @@ int __fastcall AnimManualAdvanceTime(HANIM anim, int timeChange) {
   return IAnimManualAdvanceTime(unique, shared, timeChange);
 }
 
-unsigned int __fastcall AnimGetElapsedTime() {
+unsigned int AnimGetElapsedTime() {
   return s_elapsedTime;
 }
 
-void __fastcall AnimPauseTime(HANIM anim, int pause) {
+void AnimPauseTime(HANIM anim, int pause) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   if (pause) {
@@ -974,7 +974,7 @@ void __fastcall AnimPauseTime(HANIM anim, int pause) {
   }
 }
 
-void __fastcall AnimPauseGlobalTime(int pause) {
+void AnimPauseGlobalTime(int pause) {
   if (pause) {
     s_animFlags |= 8;
   } else {
@@ -982,7 +982,7 @@ void __fastcall AnimPauseGlobalTime(int pause) {
   }
 }
 
-int __fastcall AnimGetSequenceTime(HANIM anim, unsigned int seqIndex) {
+int AnimGetSequenceTime(HANIM anim, unsigned int seqIndex) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   FATALASSERT(unique);
 

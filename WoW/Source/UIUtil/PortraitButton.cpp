@@ -20,16 +20,16 @@
 #include <stdio.h>
 #include <storm.h>
 
-void __fastcall Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
+void Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
 
-static int __fastcall CCommand_PLightInfo(const char *command, const char *arguments);
-static int __fastcall CCommand_PLightEnable(const char *command, const char *arguments);
-static int __fastcall CCommand_PLightOmni(const char *command, const char *arguments);
-static int __fastcall CCommand_PLightDir(const char *command, const char *arguments);
-static int __fastcall CCommand_PLightAmbColor(const char *command, const char *arguments);
-static int __fastcall CCommand_PLightDirColor(const char *command, const char *arguments);
-static int __fastcall CCommand_PLightAmbIntens(const char *command, const char *arguments);
-static int __fastcall CCommand_PLightDirIntens(const char *command, const char *arguments);
+static int CCommand_PLightInfo(const char *command, const char *arguments);
+static int CCommand_PLightEnable(const char *command, const char *arguments);
+static int CCommand_PLightOmni(const char *command, const char *arguments);
+static int CCommand_PLightDir(const char *command, const char *arguments);
+static int CCommand_PLightAmbColor(const char *command, const char *arguments);
+static int CCommand_PLightDirColor(const char *command, const char *arguments);
+static int CCommand_PLightAmbIntens(const char *command, const char *arguments);
+static int CCommand_PLightDirIntens(const char *command, const char *arguments);
 
 struct PortraitData {
   HTEXTURE                             texture;
@@ -57,7 +57,7 @@ static HASHKEY_NONE                              s_nullHashKey;
 static TSList<DIRTYFACE, TSGetLink<DIRTYFACE> >  s_dirtyFaces;
 static TSList<DIRTYFACE, TSGetLink<DIRTYFACE> >  s_freeDirtyFaces;
 
-static TSFixedArray<unsigned char> &__fastcall GetAlphaMask(unsigned int size) {
+static TSFixedArray<unsigned char> &GetAlphaMask(unsigned int size) {
   CBLPFile                     image;
   CTgaFile                     alpha;
   unsigned int                 stride;
@@ -118,7 +118,7 @@ static TSFixedArray<unsigned char> &__fastcall GetAlphaMask(unsigned int size) {
   return mask;
 }
 
-static void __fastcall TextureUpdate(
+static void TextureUpdate(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -153,7 +153,7 @@ static struct {
     {1, 1, -1.0f, -1.0f, 1.0f,  0.0f,  0.0f, 0.0f, 0.02f, 0.53f, 0.68f,  0.0f, 0.5f}
 };
 
-static int __fastcall CCommand_PLightInfo(const char *command, const char *arguments) {
+static int CCommand_PLightInfo(const char *command, const char *arguments) {
   unsigned int index = SStrToInt(arguments);
 
   if (index > 2) {
@@ -179,7 +179,7 @@ static int __fastcall CCommand_PLightInfo(const char *command, const char *argum
   return 1;
 }
 
-static int __fastcall CCommand_PLightEnable(const char *command, const char *arguments) {
+static int CCommand_PLightEnable(const char *command, const char *arguments) {
   unsigned int enable;
   unsigned int index;
 
@@ -192,7 +192,7 @@ static int __fastcall CCommand_PLightEnable(const char *command, const char *arg
   return 1;
 }
 
-static int __fastcall CCommand_PLightOmni(const char *command, const char *arguments) {
+static int CCommand_PLightOmni(const char *command, const char *arguments) {
   unsigned int omni;
   unsigned int index;
 
@@ -205,7 +205,7 @@ static int __fastcall CCommand_PLightOmni(const char *command, const char *argum
   return 1;
 }
 
-static int __fastcall CCommand_PLightDir(const char *command, const char *arguments) {
+static int CCommand_PLightDir(const char *command, const char *arguments) {
   float        z;
   float        y;
   float        x;
@@ -222,7 +222,7 @@ static int __fastcall CCommand_PLightDir(const char *command, const char *argume
   return 1;
 }
 
-static int __fastcall CCommand_PLightAmbColor(const char *command, const char *arguments) {
+static int CCommand_PLightAmbColor(const char *command, const char *arguments) {
   float        b;
   float        g;
   float        r;
@@ -239,7 +239,7 @@ static int __fastcall CCommand_PLightAmbColor(const char *command, const char *a
   return 1;
 }
 
-static int __fastcall CCommand_PLightDirColor(const char *command, const char *arguments) {
+static int CCommand_PLightDirColor(const char *command, const char *arguments) {
   float        b;
   float        g;
   float        r;
@@ -256,7 +256,7 @@ static int __fastcall CCommand_PLightDirColor(const char *command, const char *a
   return 1;
 }
 
-static int __fastcall CCommand_PLightAmbIntens(const char *command, const char *arguments) {
+static int CCommand_PLightAmbIntens(const char *command, const char *arguments) {
   float        intens;
   unsigned int index;
 
@@ -269,7 +269,7 @@ static int __fastcall CCommand_PLightAmbIntens(const char *command, const char *
   return 1;
 }
 
-static int __fastcall CCommand_PLightDirIntens(const char *command, const char *arguments) {
+static int CCommand_PLightDirIntens(const char *command, const char *arguments) {
   float        intens;
   unsigned int index;
 
@@ -282,7 +282,7 @@ static int __fastcall CCommand_PLightDirIntens(const char *command, const char *
   return 1;
 }
 
-void __fastcall PortraitInitialize() {
+void PortraitInitialize() {
   ConsoleCommandRegister("PLightInfo", CCommand_PLightInfo, DEBUG, 0);
   ConsoleCommandRegister("PLightEnable", CCommand_PLightEnable, DEBUG, 0);
   ConsoleCommandRegister("PLightOmni", CCommand_PLightOmni, DEBUG, 0);
@@ -293,7 +293,7 @@ void __fastcall PortraitInitialize() {
   ConsoleCommandRegister("PLightDirIntens", CCommand_PLightDirIntens, DEBUG, 0);
 }
 
-void __fastcall PortraitShutdown() {
+void PortraitShutdown() {
   s_playerPortraits.Clear();
   s_unitPortraits.Clear();
   alphaMasks[0].Clear();
@@ -308,7 +308,7 @@ void __fastcall PortraitShutdown() {
   }
 }
 
-void __fastcall UpdatePortraits() {
+void UpdatePortraits() {
   while (DIRTYFACE *dirty = s_dirtyFaces.Head()) {
     unsigned __int64 guid = dirty->guid;
     CHashKeyGUID     hashkey(guid);
@@ -323,7 +323,7 @@ void __fastcall UpdatePortraits() {
   }
 }
 
-void __fastcall UpdatePortraitTexture(const unsigned __int64 &guid) {
+void UpdatePortraitTexture(const unsigned __int64 &guid) {
   DIRTYFACE *dirty;
   for (dirty = s_dirtyFaces.Head(); dirty; dirty = s_dirtyFaces.Next(dirty)) {
     if (dirty->guid == guid) {
@@ -341,7 +341,7 @@ void __fastcall UpdatePortraitTexture(const unsigned __int64 &guid) {
   dirty->guid = guid;
 }
 
-void __fastcall SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int sex, unsigned __int64 guid) {
+void SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int sex, unsigned __int64 guid) {
   char buf[64];
 
   if (!texture) {
@@ -368,7 +368,7 @@ void __fastcall SetPortraitTexture(CSimpleTexture *texture, unsigned int race, u
   texture->SetTexture(buf, 0);
 }
 
-void __fastcall SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit) {
+void SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit) {
   PortraitData       *portrait;
   NTempest::CRect     screenRect;
   NTempest::CRect     viewRect;

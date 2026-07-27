@@ -36,9 +36,9 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
 };
 
 class CACHEOBJECT : public CHandleObject {
-  friend HTEXTURECACHE __fastcall TextureCacheCreateSizeCache(unsigned int cacheSize);
-  friend HTEXTURECACHE __fastcall TextureCacheCreateInstanceCache(unsigned int instances);
-  friend HTEXTURECACHE __fastcall TextureCacheCreatTimeCache(unsigned int milliSeconds);
+  friend HTEXTURECACHE TextureCacheCreateSizeCache(unsigned int cacheSize);
+  friend HTEXTURECACHE TextureCacheCreateInstanceCache(unsigned int instances);
+  friend HTEXTURECACHE TextureCacheCreatTimeCache(unsigned int milliSeconds);
 
  public:
   CACHEOBJECT();
@@ -182,7 +182,7 @@ HMIPPEDTEXTURE CACHEOBJECT::GetTexture(const char *fileName, TEXTUREINFO *info) 
   return reinterpret_cast<HMIPPEDTEXTURE>(HandleDuplicate(object->m_selfReference));
 }
 
-HTEXTURECACHE __fastcall TextureCacheCreateSizeCache(unsigned int cacheSize) {
+HTEXTURECACHE TextureCacheCreateSizeCache(unsigned int cacheSize) {
   void        *storage;
   CACHEOBJECT *cacheObject;
 
@@ -201,7 +201,7 @@ HTEXTURECACHE __fastcall TextureCacheCreateSizeCache(unsigned int cacheSize) {
   return reinterpret_cast<HTEXTURECACHE>(HandleCreate(cacheObject, "HTEXTURECACHE"));
 }
 
-HTEXTURECACHE __fastcall TextureCacheCreateInstanceCache(unsigned int instances) {
+HTEXTURECACHE TextureCacheCreateInstanceCache(unsigned int instances) {
   void        *storage;
   CACHEOBJECT *cacheObject;
 
@@ -220,7 +220,7 @@ HTEXTURECACHE __fastcall TextureCacheCreateInstanceCache(unsigned int instances)
   return reinterpret_cast<HTEXTURECACHE>(HandleCreate(cacheObject, "HTEXTURECACHE"));
 }
 
-HTEXTURECACHE __fastcall TextureCacheCreatTimeCache(unsigned int milliSeconds) {
+HTEXTURECACHE TextureCacheCreatTimeCache(unsigned int milliSeconds) {
   void        *storage;
   CACHEOBJECT *cacheObject;
 
@@ -239,7 +239,7 @@ HTEXTURECACHE __fastcall TextureCacheCreatTimeCache(unsigned int milliSeconds) {
   return reinterpret_cast<HTEXTURECACHE>(HandleCreate(cacheObject, "HTEXTURECACHE"));
 }
 
-HMIPPEDTEXTURE __fastcall TextureCacheGetTexture(HTEXTURECACHE cache, const char *fileName, TEXTUREINFO *info) {
+HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, const char *fileName, TEXTUREINFO *info) {
   CACHEOBJECT *cacheObject = reinterpret_cast<CACHEOBJECT *>(cache);
 
   FATALASSERT(cache);
@@ -252,7 +252,7 @@ HMIPPEDTEXTURE __fastcall TextureCacheGetTexture(HTEXTURECACHE cache, const char
   return cacheObject->GetTexture(fileName, info);
 }
 
-const MipBits *__fastcall TextureCacheGetImage(HMIPPEDTEXTURE texture) {
+const MipBits *TextureCacheGetImage(HMIPPEDTEXTURE texture) {
   CACHEENTRY *object = reinterpret_cast<CACHEENTRY *>(texture);
 
   if (!object) {
@@ -262,7 +262,7 @@ const MipBits *__fastcall TextureCacheGetImage(HMIPPEDTEXTURE texture) {
   return TextureGetMips(object->m_texture, 1);
 }
 
-int __fastcall TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, int bForce) {
+int TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, int bForce) {
   CACHEENTRY *object = reinterpret_cast<CACHEENTRY *>(texture);
 
   if (!object) {
@@ -285,7 +285,7 @@ int __fastcall TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, in
   return 1;
 }
 
-HMIPPEDTEXTURE __fastcall TextureCacheAllocUncachedImage(EGxTexFormat format, unsigned int width, unsigned int height, TEXTUREINFO *textureInfo) {
+HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, unsigned int width, unsigned int height, TEXTUREINFO *textureInfo) {
   CACHEENTRY *newObj;
 
   ASSERT(!(width & (width - 1)));

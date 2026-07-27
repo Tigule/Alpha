@@ -1,15 +1,15 @@
 #include "EvtInt.h"
 
-void __fastcall ObserverInitialize();
-void __fastcall ObserverDestroy();
-void __fastcall InputObserverInitialize();
-void __fastcall InputObserverDestroy();
-int __fastcall  IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
-int __fastcall  IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
-void __fastcall IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param);
-void __fastcall IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER callback, void *param);
+void ObserverInitialize();
+void ObserverDestroy();
+void InputObserverInitialize();
+void InputObserverDestroy();
+int IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
+int IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
+void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param);
+void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER callback, void *param);
 
-void __fastcall EventInitialize(unsigned int threadCount, int netServer) {
+void EventInitialize(unsigned int threadCount, int netServer) {
   ObserverInitialize();
   InputObserverInitialize();
   IEvtQueueInitialize();
@@ -22,7 +22,7 @@ void __fastcall EventInitialize(unsigned int threadCount, int netServer) {
   IEvtSchedulerInitialize(threadCount, netServer);
 }
 
-void __fastcall EventDestroy() {
+void EventDestroy() {
   IEvtSchedulerDestroy();
   IEvtInputDestroy();
   IEvtQueueDestroy();
@@ -30,24 +30,24 @@ void __fastcall EventDestroy() {
   ObserverDestroy();
 }
 
-void __fastcall EventDoMessageLoop() {
+void EventDoMessageLoop() {
   IEvtSchedulerProcess();
 }
 
-void __fastcall EventInitiateShutdown() {
+void EventInitiateShutdown() {
   IEvtSchedulerShutdown();
 }
 
-HEVENTCONTEXT __fastcall
+HEVENTCONTEXT
 EventCreateContextEx(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags) {
   return IEvtSchedulerCreateContext(interactive, initializeHandler, destroyHandler, idleTime, debugFlags);
 }
 
-void __fastcall EventCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler) {
+void EventCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler) {
   EventCreateContextEx(interactive, initializeHandler, destroyHandler, interactive ? 1 : 500, 0);
 }
 
-int __fastcall EventIsContextInteractive() {
+int EventIsContextInteractive() {
   INSTANCELOCK instanceLock;
   DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
@@ -56,11 +56,11 @@ int __fastcall EventIsContextInteractive() {
   return interactive;
 }
 
-HEVENTCONTEXT __fastcall EventGetCurrentContext() {
+HEVENTCONTEXT EventGetCurrentContext() {
   return reinterpret_cast<HEVENTCONTEXT>(PropGet(PROP_EVENTCONTEXT));
 }
 
-void __fastcall EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext) {
+void EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext) {
   INSTANCELOCK instanceLock;
   DWORD        id = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
@@ -72,7 +72,7 @@ void __fastcall EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext) 
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-DWORD __fastcall EventGetContextIdleTime(HEVENTCONTEXT hContext) {
+DWORD EventGetContextIdleTime(HEVENTCONTEXT hContext) {
   INSTANCELOCK instanceLock;
   DWORD        id = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
@@ -88,7 +88,7 @@ DWORD __fastcall EventGetContextIdleTime(HEVENTCONTEXT hContext) {
   return idleTime;
 }
 
-int __fastcall EventIsButtonDown(MOUSEBUTTON button) {
+int EventIsButtonDown(MOUSEBUTTON button) {
   INSTANCELOCK instanceLock;
   DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
@@ -97,7 +97,7 @@ int __fastcall EventIsButtonDown(MOUSEBUTTON button) {
   return down;
 }
 
-int __fastcall EventIsKeyDown(KEY key) {
+int EventIsKeyDown(KEY key) {
   INSTANCELOCK instanceLock;
   DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
@@ -106,11 +106,11 @@ int __fastcall EventIsKeyDown(KEY key) {
   return down;
 }
 
-void __fastcall EventPostClose() {
+void EventPostClose() {
   EventPostCloseEx(0);
 }
 
-void __fastcall EventPostCloseEx(HEVENTCONTEXT hContext) {
+void EventPostCloseEx(HEVENTCONTEXT hContext) {
   INSTANCELOCK instanceLock;
   DWORD        id = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
@@ -120,7 +120,7 @@ void __fastcall EventPostCloseEx(HEVENTCONTEXT hContext) {
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-int __fastcall EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, const void *data, unsigned int bytes) {
+int EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, const void *data, unsigned int bytes) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -135,7 +135,7 @@ int __fastcall EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, const void *da
   return result;
 }
 
-int __fastcall EventQueueScan(EVENTSCANHANDLER scanner, void *param) {
+int EventQueueScan(EVENTSCANHANDLER scanner, void *param) {
   INSTANCELOCK instanceLock;
   DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
@@ -150,11 +150,11 @@ int __fastcall EventQueueScan(EVENTSCANHANDLER scanner, void *param) {
   return result;
 }
 
-void __fastcall EventRegister(EVENTID id, EVENTHANDLER handler) {
+void EventRegister(EVENTID id, EVENTHANDLER handler) {
   EventRegisterEx(id, handler, 0, EVENT_PRIORITY_NORMAL);
 }
 
-void __fastcall EventRegisterEx(EVENTID id, EVENTHANDLER handler, void *param, float priority) {
+void EventRegisterEx(EVENTID id, EVENTHANDLER handler, void *param, float priority) {
   HEVENTCONTEXT hContext;
   EvtContext   *context;
 
@@ -171,11 +171,11 @@ void __fastcall EventRegisterEx(EVENTID id, EVENTHANDLER handler, void *param, f
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-void __fastcall EventUnregister(EVENTID id, EVENTHANDLER handler) {
+void EventUnregister(EVENTID id, EVENTHANDLER handler) {
   EventUnregisterEx(id, handler, 0, 0xFFFFFFFF);
 }
 
-void __fastcall EventUnregisterEx(EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags) {
+void EventUnregisterEx(EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -185,11 +185,11 @@ void __fastcall EventUnregisterEx(EVENTID id, EVENTHANDLER handler, void *param,
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-void __fastcall EventSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam) {
+void EventSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam) {
   IEvtInputSetConfirmCloseCallback(inFunc, inParam);
 }
 
-int __fastcall EventInputProcess(HEVENTCONTEXT hContext) {
+int EventInputProcess(HEVENTCONTEXT hContext) {
   INSTANCELOCK instanceLock;
   DWORD        id = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
@@ -203,7 +203,7 @@ int __fastcall EventInputProcess(HEVENTCONTEXT hContext) {
   return result;
 }
 
-unsigned int __fastcall EventSetTimer(float timeout, EVENTHANDLER handler, void *param) {
+unsigned int EventSetTimer(float timeout, EVENTHANDLER handler, void *param) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -212,7 +212,7 @@ unsigned int __fastcall EventSetTimer(float timeout, EVENTHANDLER handler, void 
   return timerId;
 }
 
-unsigned int __fastcall EventSetTimer(float timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2) {
+unsigned int EventSetTimer(float timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -221,7 +221,7 @@ unsigned int __fastcall EventSetTimer(float timeout, EVENTGUIDHANDLER handler, u
   return timerId;
 }
 
-unsigned int __fastcall EventSetTimer(unsigned int timeout, EVENTHANDLER handler, void *param) {
+unsigned int EventSetTimer(unsigned int timeout, EVENTHANDLER handler, void *param) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -230,7 +230,7 @@ unsigned int __fastcall EventSetTimer(unsigned int timeout, EVENTHANDLER handler
   return timerId;
 }
 
-unsigned int __fastcall EventSetTimer(unsigned int timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2) {
+unsigned int EventSetTimer(unsigned int timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -239,7 +239,7 @@ unsigned int __fastcall EventSetTimer(unsigned int timeout, EVENTGUIDHANDLER han
   return timerId;
 }
 
-unsigned int __fastcall EventSetTimerAbsolute(DWORD triggerTime, EVENTHANDLER handler, void *param) {
+unsigned int EventSetTimerAbsolute(DWORD triggerTime, EVENTHANDLER handler, void *param) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -248,7 +248,7 @@ unsigned int __fastcall EventSetTimerAbsolute(DWORD triggerTime, EVENTHANDLER ha
   return timerId;
 }
 
-unsigned int __fastcall EventSetTimerAbsolute(DWORD triggerTime, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2) {
+unsigned int EventSetTimerAbsolute(DWORD triggerTime, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -257,7 +257,7 @@ unsigned int __fastcall EventSetTimerAbsolute(DWORD triggerTime, EVENTGUIDHANDLE
   return timerId;
 }
 
-void __fastcall EventKillTimer(unsigned int timerId, EVENTHANDLER handlerFunction, const char *functionName) {
+void EventKillTimer(unsigned int timerId, EVENTHANDLER handlerFunction, const char *functionName) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -267,7 +267,7 @@ void __fastcall EventKillTimer(unsigned int timerId, EVENTHANDLER handlerFunctio
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-float __fastcall EventGetRemainingTime(unsigned int timerId) {
+float EventGetRemainingTime(unsigned int timerId) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -276,7 +276,7 @@ float __fastcall EventGetRemainingTime(unsigned int timerId) {
   return result;
 }
 
-void __fastcall EventSetMouseMode(MOUSEMODE mode, unsigned int holdButton) {
+void EventSetMouseMode(MOUSEMODE mode, unsigned int holdButton) {
   INSTANCELOCK  instanceLock;
   HEVENTCONTEXT hContext;
   EvtContext   *context;
@@ -291,7 +291,7 @@ void __fastcall EventSetMouseMode(MOUSEMODE mode, unsigned int holdButton) {
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-void __fastcall EventInputGetMousePosition(float *x, float *y) {
+void EventInputGetMousePosition(float *x, float *y) {
   HEVENTCONTEXT hContext;
   INSTANCELOCK  instanceLock;
   EvtContext   *context;
@@ -307,7 +307,7 @@ void __fastcall EventInputGetMousePosition(float *x, float *y) {
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-void __fastcall EventInputSetMousePosition(float x, float y) {
+void EventInputSetMousePosition(float x, float y) {
   HEVENTCONTEXT hContext;
   INSTANCELOCK  instanceLock;
   EvtContext   *context;
@@ -323,7 +323,7 @@ void __fastcall EventInputSetMousePosition(float x, float y) {
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-void __fastcall EventSetMouseBoundingRect(NTempest::CRect *rect) {
+void EventSetMouseBoundingRect(NTempest::CRect *rect) {
   INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT)), 0, instanceLock, __FILE__, __LINE__);
 

@@ -5,10 +5,10 @@
 #include "Base/MsgBuffer.h"
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
-int __fastcall ReadHelper(
+int ReadHelper(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -45,7 +45,7 @@ int __fastcall ReadHelper(
   return !parse.FoundError();
 }
 
-int __fastcall WriteHelpers(
+int WriteHelpers(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -66,7 +66,7 @@ int __fastcall WriteHelpers(
   return 1;
 }
 
-int __fastcall WriteBinHelpers(
+int WriteBinHelpers(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status
@@ -88,7 +88,7 @@ int __fastcall WriteBinHelpers(
   return 1;
 }
 
-int __fastcall ReadBinHelpers(
+int ReadBinHelpers(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

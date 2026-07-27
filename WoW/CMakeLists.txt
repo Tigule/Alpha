@@ -297,6 +297,8 @@ add_library(WowShared STATIC
 )
 
 if(MSVC_VERSION EQUAL 1200)
+    target_compile_options(WowShared PRIVATE /Gr)
+
     set_source_files_properties(
         Source/Ui/GameUI.cpp
         PROPERTIES COMPILE_FLAGS "/GX-"
@@ -375,11 +377,11 @@ if(MSVC_VERSION EQUAL 1200)
     set_source_files_properties(
         Source/SoundInterface/SoundInterface.cpp
         Source/SoundInterface/ISoundInterface.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob1 /Oy- /GX-"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX-"
     )
     set_source_files_properties(
         Source/UIUtil/ScriptEvents.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob1 /GX-"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-"
     )
     set_source_files_properties(
         Source/Console/ConsoleCommand.cpp
@@ -393,7 +395,7 @@ if(MSVC_VERSION EQUAL 1200)
         Source/SoundInterface/SndDebug.cpp
         Source/SoundInterface/SndDebugIndoors.cpp
         Source/SoundInterface/SndDebugOutdoors.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob1 /GX-"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-"
     )
     set_source_files_properties(
         Source/SoundInterface/SoundInterfaceGlueMusic.cpp
@@ -424,15 +426,15 @@ if(MSVC_VERSION EQUAL 1200)
     )
     set_source_files_properties(
         Source/Glue/CharCreateInfo.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob1 /GX-"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-"
     )
     set_source_files_properties(
         Source/Glue/CharSelectInfo.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob1 /Oy- /GX-"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX-"
     )
     set_source_files_properties(
         Source/Glue/GlueScriptEvents.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob1 /GX-"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-"
     )
     set_source_files_properties(
         Source/Console/ConsoleVar.cpp
@@ -444,7 +446,7 @@ if(MSVC_VERSION EQUAL 1200)
     )
     set_source_files_properties(
         Source/Console/ConsoleClient.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Gr /Ob1 /Oy- /GX-"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX-"
     )
     set_source_files_properties(
         Source/ClientCommands.cpp
@@ -688,51 +690,6 @@ if(MSVC_VERSION EQUAL 1200)
 endif()
 
 if(MSVC_VERSION EQUAL 1200)
-    set_property(SOURCE
-        Source/Glue/CharCreateInfo.cpp
-        Source/Glue/CharSelectInfo.cpp
-        Source/Glue/GlueScriptEvents.cpp
-        Source/Magic/MagicClient/Spell_C.cpp
-        Source/SoundInterface/SoundInterface.cpp
-        Source/SoundInterface/SoundInterfaceVocal.cpp
-        Source/UIUtil/Camera.cpp
-        Source/UIUtil/InputControl.cpp
-        Source/UIUtil/ScriptEvents.cpp
-        Source/UIUtil/Tooltip.cpp
-        Source/Ui/ActionBarFrame.cpp
-        Source/Ui/BankFrame.cpp
-        Source/Ui/BuffFrame.cpp
-        Source/Ui/CharacterModelBase.cpp
-        Source/Ui/ChatFrame.cpp
-        Source/Ui/ClassTrainerFrame.cpp
-        Source/Ui/ContainerFrame.cpp
-        Source/Ui/CraftInfo.cpp
-        Source/Ui/DuelInfo.cpp
-        Source/Ui/GameUI.cpp
-        Source/Ui/GuildRegistrar.cpp
-        Source/Ui/ItemTextFrame.cpp
-        Source/Ui/LootFrame.cpp
-        Source/Ui/MerchantFrame.cpp
-        Source/Ui/MinimapFrame.cpp
-        Source/Ui/PaperDollInfoFrame.cpp
-        Source/Ui/PartyFrame.cpp
-        Source/Ui/PetInfo.cpp
-        Source/Ui/PetitionInfo.cpp
-        Source/Ui/QuestFrame.cpp
-        Source/Ui/QuestLog.cpp
-        Source/Ui/ReputationInfo.cpp
-        Source/Ui/SpellBookFrame.cpp
-        Source/Ui/TabardCreationFrame.cpp
-        Source/Ui/TabardModelFrame.cpp
-        Source/Ui/TaxiMapFrame.cpp
-        Source/Ui/TradeFrame.cpp
-        Source/Ui/TradeSkillFrame.cpp
-        Source/Ui/Tutorial.cpp
-        Source/Ui/UIBindings.cpp
-        Source/Ui/WorldMap.cpp
-        Source/WowSvcs/WowSvcsClient/FriendList.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " /Gr")
-
     set_source_files_properties(
         Source/WowServices/WDataStore.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX-"
@@ -754,7 +711,7 @@ if(WIN32)
     )
 
     if(MSVC_VERSION EQUAL 1200)
-        target_compile_options(Wow PRIVATE /GX- /GR- /Oy-)
+        target_compile_options(Wow PRIVATE /Gr /GX- /GR- /Oy-)
         target_compile_definitions(Wow PRIVATE WOW_STORM_ENTRYPOINT=1)
         set_property(TARGET Wow APPEND_STRING PROPERTY LINK_FLAGS " /ENTRY:StormStaticEntryPoint")
     endif()
@@ -785,6 +742,10 @@ if(WIN32)
         Source/UpdateClient/UpdateClient.cpp
     )
 
+    if(MSVC_VERSION EQUAL 1200)
+        target_compile_options(UpdateClient PRIVATE /Gr)
+    endif()
+
     target_link_libraries(UpdateClient Storm)
 
 
@@ -792,12 +753,20 @@ if(WIN32)
         Source/WowError/WowError.cpp
     )
 
+    if(MSVC_VERSION EQUAL 1200)
+        target_compile_options(WowError PRIVATE /Gr)
+    endif()
+
     target_link_libraries(WowError Storm)
 
 
     add_executable(WowUpdateHelper
         Source/WowUpdateHelper/WowUpdateHelper.cpp
     )
+
+    if(MSVC_VERSION EQUAL 1200)
+        target_compile_options(WowUpdateHelper PRIVATE /Gr)
+    endif()
 
     target_link_libraries(WowUpdateHelper Storm)
 

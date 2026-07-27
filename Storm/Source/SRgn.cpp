@@ -41,27 +41,27 @@ typedef TSExportTableSync<RGN, HSRGN, HLOCKEDRGN, CCritSect, 1> SRGNEXPORTTABLE;
 
 static SRGNEXPORTTABLE s_rgntable;
 
-static void __fastcall AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const RECTF *rect);
-static void __fastcall AddSourceRect(TSGrowableArray<SRGNSOURCE> *, const RECTF *, void *, int, DWORD);
-static int __fastcall  CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect);
-static void __fastcall ClearRegion(RGN *rgnptr);
-static void __fastcall CombineRectangles(TSGrowableArray<RECTF> *combinedarray);
-static int __fastcall  CompareRects(const RECTF *rect1, const RECTF *rect2);
-static void __fastcall DeleteCombinedRect(TSGrowableArray<RECTF> *combinedarray, DWORD index);
-static void __fastcall DeleteRect(RECTF *rect);
-static void __fastcall DeleteSourceRect(TSGrowableArray<SRGNSOURCE> *, DWORD);
-static void __fastcall FindSourceParams(RGN *rgnptr, const RECTF *rect);
-static void __fastcall FragmentCombinedRectangles(TSGrowableArray<RECTF> *combinedarray, DWORD firstindex, DWORD lastindex, const RECTF *rect);
-static void __fastcall FragmentSourceRectangles(TSGrowableArray<SRGNSOURCE> *, DWORD, DWORD, BOOL, const RECTF *, void *, int);
-static void __fastcall InvalidateRegion(RGN *rgnptr);
-static int __fastcall  IsNullRect(const RECTF *rect);
-static void __fastcall OptimizeSource(TSGrowableArray<SRGNSOURCE> *);
-static void __fastcall ProcessBooleanOperation(TSGrowableArray<SRGNSOURCE> *, int);
-static void __fastcall ProduceCombinedRectangles(RGN *rgnptr);
+static void AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const RECTF *rect);
+static void AddSourceRect(TSGrowableArray<SRGNSOURCE> *, const RECTF *, void *, int, DWORD);
+static int CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect);
+static void ClearRegion(RGN *rgnptr);
+static void CombineRectangles(TSGrowableArray<RECTF> *combinedarray);
+static int CompareRects(const RECTF *rect1, const RECTF *rect2);
+static void DeleteCombinedRect(TSGrowableArray<RECTF> *combinedarray, DWORD index);
+static void DeleteRect(RECTF *rect);
+static void DeleteSourceRect(TSGrowableArray<SRGNSOURCE> *, DWORD);
+static void FindSourceParams(RGN *rgnptr, const RECTF *rect);
+static void FragmentCombinedRectangles(TSGrowableArray<RECTF> *combinedarray, DWORD firstindex, DWORD lastindex, const RECTF *rect);
+static void FragmentSourceRectangles(TSGrowableArray<SRGNSOURCE> *, DWORD, DWORD, BOOL, const RECTF *, void *, int);
+static void InvalidateRegion(RGN *rgnptr);
+static int IsNullRect(const RECTF *rect);
+static void OptimizeSource(TSGrowableArray<SRGNSOURCE> *);
+static void ProcessBooleanOperation(TSGrowableArray<SRGNSOURCE> *, int);
+static void ProduceCombinedRectangles(RGN *rgnptr);
 static int __cdecl     SortFoundParamsCallback(const void *elem1, const void *elem2);
 static int __cdecl     SortRectCallback(const void *elem1, const void *elem2);
 
-static inline void __fastcall AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const RECTF *rect) {
+static inline void AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const RECTF *rect) {
   RECTF *entry;
 
   entry = combinedarray->NewElement();
@@ -70,7 +70,7 @@ static inline void __fastcall AddCombinedRect(TSGrowableArray<RECTF> *combinedar
   }
 }
 
-static inline void __fastcall AddSourceRect(TSGrowableArray<SRGNSOURCE> *sourcearray, const RECTF *rect, void *param, int sequence, DWORD flags) {
+static inline void AddSourceRect(TSGrowableArray<SRGNSOURCE> *sourcearray, const RECTF *rect, void *param, int sequence, DWORD flags) {
   SRGNSOURCEPTR source;
 
   source = sourcearray->NewElement();
@@ -84,12 +84,12 @@ static inline void __fastcall AddSourceRect(TSGrowableArray<SRGNSOURCE> *sourcea
   source->flags = flags;
 }
 
-static int __fastcall CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect) {
+static int CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect) {
   return sourcerect->left < targetrect->right && sourcerect->bottom < targetrect->top && sourcerect->right > targetrect->left &&
          sourcerect->top > targetrect->bottom;
 }
 
-static void __fastcall ClearRegion(RGN *rgnptr) {
+static void ClearRegion(RGN *rgnptr) {
   rgnptr->source.SetNumElements(0);
   rgnptr->combined.SetNumElements(0);
   rgnptr->foundparams.SetNumElements(0);
@@ -98,7 +98,7 @@ static void __fastcall ClearRegion(RGN *rgnptr) {
   rgnptr->dirty = 0;
 }
 
-static void __fastcall CombineRectangles(TSGrowableArray<RECTF> *combinedarray) {
+static void CombineRectangles(TSGrowableArray<RECTF> *combinedarray) {
   DWORD outer;
 
   for (outer = 1; outer < combinedarray->NumElements(); ++outer) {
@@ -172,29 +172,29 @@ static void __fastcall CombineRectangles(TSGrowableArray<RECTF> *combinedarray) 
   }
 }
 
-static int __fastcall CompareRects(const RECTF *rect1, const RECTF *rect2) {
+static int CompareRects(const RECTF *rect1, const RECTF *rect2) {
   return rect1->left == rect2->left && rect1->bottom == rect2->bottom && rect1->right == rect2->right && rect1->top == rect2->top;
 }
 
-static void __fastcall DeleteCombinedRect(TSGrowableArray<RECTF> *combinedarray, DWORD index) {
+static void DeleteCombinedRect(TSGrowableArray<RECTF> *combinedarray, DWORD index) {
   DeleteRect(&(*combinedarray)[index]);
 }
 
-static void __fastcall DeleteRect(RECTF *rect) {
+static void DeleteRect(RECTF *rect) {
   rect->left = SRGN_SENTINEL;
   rect->bottom = SRGN_SENTINEL;
   rect->right = SRGN_SENTINEL;
   rect->top = SRGN_SENTINEL;
 }
 
-static void __fastcall DeleteSourceRect(TSGrowableArray<SRGNSOURCE> *sourcearray, DWORD index) {
+static void DeleteSourceRect(TSGrowableArray<SRGNSOURCE> *sourcearray, DWORD index) {
   DeleteRect(&(*sourcearray)[index].rect);
   (*sourcearray)[index].param = NULL;
   (*sourcearray)[index].sequence = -1;
   (*sourcearray)[index].flags = 0;
 }
 
-static void __fastcall FindSourceParams(RGN *rgnptr, const RECTF *rect) {
+static void FindSourceParams(RGN *rgnptr, const RECTF *rect) {
   DWORD loop;
   DWORD sourcerects;
   DWORD params;
@@ -234,7 +234,7 @@ static void __fastcall FindSourceParams(RGN *rgnptr, const RECTF *rect) {
   }
 }
 
-static void __fastcall FragmentCombinedRectangles(TSGrowableArray<RECTF> *combinedarray, DWORD firstindex, DWORD lastindex, const RECTF *rect) {
+static void FragmentCombinedRectangles(TSGrowableArray<RECTF> *combinedarray, DWORD firstindex, DWORD lastindex, const RECTF *rect) {
   RECTF newrect[4];
 
   for (; firstindex < lastindex; ++firstindex) {
@@ -275,7 +275,7 @@ static void __fastcall FragmentCombinedRectangles(TSGrowableArray<RECTF> *combin
   AddCombinedRect(combinedarray, rect);
 }
 
-static void __fastcall FragmentSourceRectangles(
+static void FragmentSourceRectangles(
     TSGrowableArray<SRGNSOURCE> *sourcearray,
     DWORD                        firstindex,
     DWORD                        lastindex,
@@ -366,16 +366,16 @@ static void __fastcall FragmentSourceRectangles(
   AddSourceRect(sourcearray, rect, param, sequence, SRGN_SOURCE_ADDING | (overlapsexisting ? SRGN_SOURCE_OVERLAPS : 0));
 }
 
-static void __fastcall InvalidateRegion(RGN *rgnptr) {
+static void InvalidateRegion(RGN *rgnptr) {
   rgnptr->dirty = 1;
   DeleteRect(&rgnptr->foundparamsrect);
 }
 
-static int __fastcall IsNullRect(const RECTF *rect) {
+static int IsNullRect(const RECTF *rect) {
   return !(rect->left < rect->right && rect->bottom < rect->top);
 }
 
-static void __fastcall OptimizeSource(TSGrowableArray<SRGNSOURCE> *sourcearray) {
+static void OptimizeSource(TSGrowableArray<SRGNSOURCE> *sourcearray) {
   DWORD index;
 
   index = 0;
@@ -389,7 +389,7 @@ static void __fastcall OptimizeSource(TSGrowableArray<SRGNSOURCE> *sourcearray) 
   }
 }
 
-static void __fastcall ProcessBooleanOperation(TSGrowableArray<SRGNSOURCE> *sourcearray, int combinemode) {
+static void ProcessBooleanOperation(TSGrowableArray<SRGNSOURCE> *sourcearray, int combinemode) {
   DWORD index;
   DWORD flags;
   BOOL  remove;
@@ -425,7 +425,7 @@ static void __fastcall ProcessBooleanOperation(TSGrowableArray<SRGNSOURCE> *sour
   }
 }
 
-static void __fastcall ProduceCombinedRectangles(RGN *rgnptr) {
+static void ProduceCombinedRectangles(RGN *rgnptr) {
   DWORD         count;
   SRGNSOURCEPTR source;
 

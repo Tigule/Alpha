@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall ItemDisplayInfoRec::GetFilename() {
+const char *ItemDisplayInfoRec::GetFilename() {
   return "DBFilesClient\\ItemDisplayInfo.dbc";
 }
 

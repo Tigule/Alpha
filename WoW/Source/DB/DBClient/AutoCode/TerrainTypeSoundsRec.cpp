@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall TerrainTypeSoundsRec::GetFilename() {
+const char *TerrainTypeSoundsRec::GetFilename() {
   return "DBFilesClient\\TerrainTypeSounds.dbc";
 }
 

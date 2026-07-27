@@ -20,7 +20,7 @@ struct FONTHASHOBJ : public CHandleObject, public TSHashObject<FONTHASHOBJ, HASH
 
 static TSHashTable<FONTHASHOBJ, HASHKEY_STR> s_fontHash;
 
-HTEXTFONT __fastcall TextBlockGenerateFont(const char *fontName, unsigned int fontFlags, float fontHeight) {
+HTEXTFONT TextBlockGenerateFont(const char *fontName, unsigned int fontFlags, float fontHeight) {
   char         buffer[0x114];
   FONTHASHOBJ *fontObj;
   unsigned int gxFontFlags;
@@ -62,13 +62,13 @@ HTEXTFONT __fastcall TextBlockGenerateFont(const char *fontName, unsigned int fo
   return 0;
 }
 
-const char *__fastcall TextBlockGetFontName(HTEXTFONT fontHandle) {
+const char *TextBlockGetFontName(HTEXTFONT fontHandle) {
   FATALASSERT(fontHandle);
 
   return GxuFontGetFontName(reinterpret_cast<FONTHASHOBJ *>(fontHandle)->font);
 }
 
-unsigned int __fastcall TextBlockGetFontFlags(HTEXTFONT fontHandle) {
+unsigned int TextBlockGetFontFlags(HTEXTFONT fontHandle) {
   unsigned int flags;
   unsigned int textFlags;
 
@@ -89,19 +89,19 @@ unsigned int __fastcall TextBlockGetFontFlags(HTEXTFONT fontHandle) {
   return textFlags;
 }
 
-CGxFont *__fastcall TextBlockGetFontPtr(HTEXTFONT fontHandle) {
+CGxFont *TextBlockGetFontPtr(HTEXTFONT fontHandle) {
   FATALASSERT(fontHandle);
 
   return reinterpret_cast<FONTHASHOBJ *>(fontHandle)->font;
 }
 
-CGxString *__fastcall TextBlockGetStringPtr(HTEXTBLOCK text) {
+CGxString *TextBlockGetStringPtr(HTEXTBLOCK text) {
   FATALASSERT(text);
 
   return reinterpret_cast<TEXTBLOCK *>(text)->string;
 }
 
-float __fastcall TextBlockGetOneToOneHeight(HTEXTFONT__* fontHandle) {
+float TextBlockGetOneToOneHeight(HTEXTFONT__* fontHandle) {
   ASSERT(fontHandle);
   FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(fontHandle);
   ASSERT(fontPtr->font);
@@ -110,7 +110,7 @@ float __fastcall TextBlockGetOneToOneHeight(HTEXTFONT__* fontHandle) {
   return height;
 }
 
-void __fastcall TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempest::C2Vector &shadowOffset) {
+void TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempest::C2Vector &shadowOffset) {
   NTempest::C2Vector offset;
 
   FATALASSERT(text);
@@ -119,7 +119,7 @@ void __fastcall TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, c
   GxuFontAddShadow(reinterpret_cast<TEXTBLOCK *>(text)->string, color, offset);
 }
 
-HTEXTBLOCK __fastcall TextBlockCreate(
+HTEXTBLOCK TextBlockCreate(
     HTEXTFONT                  font,
     const char                *text,
     const NTempest::CImVector &color,
@@ -208,7 +208,7 @@ HTEXTBLOCK __fastcall TextBlockCreate(
   return reinterpret_cast<HTEXTBLOCK>(HandleCreate(textPtr, "HTEXTBLOCK"));
 }
 
-void __fastcall TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) {
+void TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) {
   FATALASSERT(htb);
 
   NTempest::C3Vector position;
@@ -217,25 +217,25 @@ void __fastcall TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) 
   GxuFontSetStringPosition(reinterpret_cast<TEXTBLOCK *>(htb)->string, position);
 }
 
-void __fastcall TextBlockRender(HTEXTBLOCK__* htb) {
+void TextBlockRender(HTEXTBLOCK__* htb) {
   FATALASSERT(htb);
   GxuFontRender(reinterpret_cast<TEXTBLOCK *>(htb)->string);
 }
 
-void __fastcall TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor) {
+void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor) {
   FATALASSERT(htb);
 
   GxuFontSetStringColor(reinterpret_cast<TEXTBLOCK *>(htb)->string, textColor);
 }
 
-float __fastcall TextBlockGetHeight(HTEXTBLOCK__* htb) {
+float TextBlockGetHeight(HTEXTBLOCK__* htb) {
   FATALASSERT(htb);
   float height = GxuFontGetStringHeight(reinterpret_cast<TEXTBLOCK *>(htb)->string);
   NDCToDDC(0.0f, height, 0, &height);
   return height;
 }
 
-void __fastcall TextBlockGetTextExtent(
+void TextBlockGetTextExtent(
     HTEXTFONT    font,
     const char  *text,
     unsigned int numChars,
@@ -294,7 +294,7 @@ void __fastcall TextBlockGetTextExtent(
   NDCToDDC(*extent, 0.0f, extent, 0);
 }
 
-void __fastcall TextBlockGetWrapPoint(HTEXTFONT__* font, const char* text, float fontHeight, float blockWidth, unsigned int* numBytes, float* pExtent, const char** pNextText, float spacing, unsigned int flags) {
+void TextBlockGetWrapPoint(HTEXTFONT__* font, const char* text, float fontHeight, float blockWidth, unsigned int* numBytes, float* pExtent, const char** pNextText, float spacing, unsigned int flags) {
   FATALASSERT(font);
   FATALASSERT(text);
   FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
@@ -305,7 +305,7 @@ void __fastcall TextBlockGetWrapPoint(HTEXTFONT__* font, const char* text, float
   NDCToDDC(*pExtent, 0.0f, pExtent, 0);
 }
 
-float __fastcall
+float
 TextBlockGetWrappedTextHeight(HTEXTFONT font, const char *text, float fontHeight, float blockWidth, float spacing, unsigned int flags) {
   FONTHASHOBJ *fontPtr;
   unsigned int gxFlags;
@@ -357,7 +357,7 @@ TextBlockGetWrappedTextHeight(HTEXTFONT font, const char *text, float fontHeight
   return height;
 }
 
-unsigned int __fastcall TextBlockGetMaxCharsWithinWidth(HTEXTFONT__* font, const char* text, float height, float maxWidth, unsigned int lineBytes, float* extent, float charSpacing, unsigned int flags) {
+unsigned int TextBlockGetMaxCharsWithinWidth(HTEXTFONT__* font, const char* text, float height, float maxWidth, unsigned int lineBytes, float* extent, float charSpacing, unsigned int flags) {
   FATALASSERT(font);
   FATALASSERT(text);
   FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
@@ -381,7 +381,7 @@ unsigned int __fastcall TextBlockGetMaxCharsWithinWidth(HTEXTFONT__* font, const
   return chars;
 }
 
-unsigned int __fastcall TextBlockGetMaxCharsWithinWidthFromEnd(
+unsigned int TextBlockGetMaxCharsWithinWidthFromEnd(
     HTEXTFONT    font,
     const char  *text,
     float        height,
@@ -441,7 +441,7 @@ unsigned int __fastcall TextBlockGetMaxCharsWithinWidthFromEnd(
   return chars;
 }
 
-unsigned int __fastcall TextBlockWrapText(
+unsigned int TextBlockWrapText(
     HTEXTFONT     font,
     const char   *text,
     float         height,
@@ -498,7 +498,7 @@ unsigned int __fastcall TextBlockWrapText(
   return GxuFontWrapText(fontPtr->font, text, SStrLen(text), height, maxWidth, outputList, outputListElements, charSpacing, gxFlags);
 }
 
-int __fastcall TextBlockSetGradient(HTEXTBLOCK text, int startChar, int length) {
+int TextBlockSetGradient(HTEXTBLOCK text, int startChar, int length) {
   ASSERT(text);
 
   TEXTBLOCK *textPtr = reinterpret_cast<TEXTBLOCK *>(text);

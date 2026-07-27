@@ -5,15 +5,15 @@ class CSimpleFontString;
 class CSimpleFrame;
 class CSimpleTexture;
 
-int __fastcall                SimpleFrameRegistryAddEntry(const char *name, CSimpleFrame *object, unsigned int context);
-void __fastcall               SimpleFrameRegistryRemoveEntry(const char *name, unsigned int context);
-int __fastcall                SimpleFontStringRegistryAddEntry(const char *name, CSimpleFontString *object, unsigned int context);
-void __fastcall               SimpleFontStringRegistryRemoveEntry(const char *name, unsigned int context);
-int __fastcall                SimpleTextureRegistryAddEntry(const char *name, CSimpleTexture *object, unsigned int context);
-void __fastcall               SimpleTextureRegistryRemoveEntry(const char *name, unsigned int context);
-CSimpleFrame *__fastcall      SimpleFrameRegistryGetEntry(const char *name, unsigned int context);
-CSimpleTexture *__fastcall    SimpleTextureRegistryGetEntry(const char *name, unsigned int context);
-CSimpleFontString *__fastcall SimpleFontStringRegistryGetEntry(const char *name, unsigned int context);
-void __fastcall               SimpleFrameRegistryClear();
+int SimpleFrameRegistryAddEntry(const char *name, CSimpleFrame *object, unsigned int context);
+void SimpleFrameRegistryRemoveEntry(const char *name, unsigned int context);
+int SimpleFontStringRegistryAddEntry(const char *name, CSimpleFontString *object, unsigned int context);
+void SimpleFontStringRegistryRemoveEntry(const char *name, unsigned int context);
+int SimpleTextureRegistryAddEntry(const char *name, CSimpleTexture *object, unsigned int context);
+void SimpleTextureRegistryRemoveEntry(const char *name, unsigned int context);
+CSimpleFrame *SimpleFrameRegistryGetEntry(const char *name, unsigned int context);
+CSimpleTexture *SimpleTextureRegistryGetEntry(const char *name, unsigned int context);
+CSimpleFontString *SimpleFontStringRegistryGetEntry(const char *name, unsigned int context);
+void SimpleFrameRegistryClear();
 
 #endif

@@ -18,13 +18,13 @@ static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DIST
 
 class CGBankInfo {
  public:
-  static void __fastcall  EnterWorld();
-  static void __fastcall  LeaveWorld();
-  static void __fastcall  OpenBank(const unsigned __int64 &guid);
-  static void __fastcall  CloseBank();
-  static void __fastcall  OnCloseBank();
-  static void __fastcall  PickupItem(int slot, int isBag, int slotIsButtonID);
-  static void __fastcall  SplitItem(int slot, int split);
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void OpenBank(const unsigned __int64 &guid);
+  static void CloseBank();
+  static void OnCloseBank();
+  static void PickupItem(int slot, int isBag, int slotIsButtonID);
+  static void SplitItem(int slot, int split);
   static unsigned __int64 GetBanker() {
     return m_unit;
   }
@@ -33,23 +33,23 @@ class CGBankInfo {
 
 unsigned __int64 CGBankInfo::m_unit;
 
-static unsigned int __fastcall GetBankSlotCost(int bankSlot) {
+static unsigned int GetBankSlotCost(int bankSlot) {
   BankBagSlotPricesRec *record = g_bankBagSlotPricesDB.GetRecord(bankSlot);
   return record ? record->m_Cost : 0;
 }
 
-static unsigned int __fastcall GetPlayerBankSlots(CGPlayer_C *player) {
+static unsigned int GetPlayerBankSlots(CGPlayer_C *player) {
   return player ? player->GetNumBankSlots() : 0;
 }
 
-static int __fastcall Script_GetBankSlotCost(lua_State *L) {
+static int Script_GetBankSlotCost(lua_State *L) {
   CGPlayer_C  *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   unsigned int cost = player ? GetBankSlotCost(GetPlayerBankSlots(player) + 1) : 0;
   lua_pushnumber(L, static_cast<double>(cost));
   return 1;
 }
 
-static int __fastcall Script_GetNumBankSlots(lua_State *L) {
+static int Script_GetNumBankSlots(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   int         slots = GetPlayerBankSlots(player);
   lua_pushnumber(L, static_cast<double>(slots));
@@ -60,19 +60,19 @@ static int __fastcall Script_GetNumBankSlots(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_CloseBankFrame(lua_State *L) {
+static int Script_CloseBankFrame(lua_State *L) {
   CGBankInfo::CloseBank();
   return 0;
 }
 
-static int __fastcall Script_PickupBankGenericItem(lua_State *L) {
+static int Script_PickupBankGenericItem(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     CGBankInfo::PickupItem(static_cast<int>(lua_tonumber(L, 1)) - 1, lua_isnumber(L, 2), 1);
   }
   return 0;
 }
 
-static int __fastcall Script_SplitBankGenericItem(lua_State *L) {
+static int Script_SplitBankGenericItem(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: SplitBankGenericItem(slot, amount)");
   }
@@ -80,11 +80,11 @@ static int __fastcall Script_SplitBankGenericItem(lua_State *L) {
   return 0;
 }
 
-static int __fastcall ButtonIDToSlotID(int ID, int isBag) {
+static int ButtonIDToSlotID(int ID, int isBag) {
   return isBag ? ID + 59 : ID + 39;
 }
 
-static int __fastcall Script_BankButtonIDToInvSlotID(lua_State *L) {
+static int Script_BankButtonIDToInvSlotID(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return 0;
   }
@@ -94,7 +94,7 @@ static int __fastcall Script_BankButtonIDToInvSlotID(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_PutItemInBankBag(lua_State *L) {
+static int Script_PutItemInBankBag(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: Script_PutItemInBankBag(unit, slot)");
   }
@@ -105,7 +105,7 @@ static int __fastcall Script_PutItemInBankBag(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ContainerIDToInventoryID(lua_State *L) {
+static int Script_ContainerIDToInventoryID(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return 0;
   }
@@ -114,11 +114,11 @@ static int __fastcall Script_ContainerIDToInventoryID(lua_State *L) {
   return 1;
 }
 
-static void __fastcall SignalBankSlotsChanged() {
+static void SignalBankSlotsChanged() {
   FrameScript_SignalEvent(329);
 }
 
-static int __fastcall Script_PurchaseSlot(lua_State *L) {
+static int Script_PurchaseSlot(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -140,7 +140,7 @@ static int __fastcall Script_PurchaseSlot(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_PickupBagFromBankSlot(lua_State *L) {
+static int Script_PickupBagFromBankSlot(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: PickupBagFromBankSlot(invSlot)");
   }
@@ -151,12 +151,12 @@ static int __fastcall Script_PickupBagFromBankSlot(lua_State *L) {
   return 0;
 }
 
-static int __fastcall BankUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int BankUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   SignalBankSlotsChanged();
   return 1;
 }
 
-void __fastcall CGBankInfo::PickupItem(int slot, int isBag, int slotIsButtonID) {
+void CGBankInfo::PickupItem(int slot, int isBag, int slotIsButtonID) {
   if (!m_unit) {
     return;
   }
@@ -198,7 +198,7 @@ void __fastcall CGBankInfo::PickupItem(int slot, int isBag, int slotIsButtonID) 
   }
 }
 
-void __fastcall CGBankInfo::SplitItem(int slot, int split) {
+void CGBankInfo::SplitItem(int slot, int split) {
   if (!m_unit) {
     return;
   }
@@ -218,7 +218,7 @@ void __fastcall CGBankInfo::SplitItem(int slot, int split) {
   CGGameUI::LockItem(itemGUID);
 }
 
-void __fastcall CGBankInfo::OpenBank(const unsigned __int64 &guid) {
+void CGBankInfo::OpenBank(const unsigned __int64 &guid) {
   OnCloseBank();
   if (guid) {
     m_unit = guid;
@@ -227,25 +227,25 @@ void __fastcall CGBankInfo::OpenBank(const unsigned __int64 &guid) {
   }
 }
 
-void __fastcall CGBankInfo::CloseBank() {
+void CGBankInfo::CloseBank() {
   FrameScript_SignalEvent(328);
 }
 
-void __fastcall CGBankInfo::OnCloseBank() {
+void CGBankInfo::OnCloseBank() {
   if (m_unit) {
     CGGameUI::ClearInteractTarget(m_unit);
   }
   m_unit = 0;
 }
 
-void __fastcall CGBankInfo::EnterWorld() {
+void CGBankInfo::EnterWorld() {
   unsigned __int64 player = ClntObjMgrGetActivePlayer();
   unsigned int     playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
   ClntObjMgrSetObjMirrorHandler(player, playerOffset + 1370, 1, BankUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   SignalBankSlotsChanged();
 }
 
-void __fastcall CGBankInfo::LeaveWorld() {
+void CGBankInfo::LeaveWorld() {
   unsigned __int64 player = ClntObjMgrGetActivePlayer();
   unsigned int     playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
   ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + 1370, BankUpdateHandler, 0);
@@ -264,13 +264,13 @@ static FrameScript_Method s_ScriptFunctions[10] = {
     {   "PickupBagFromBankSlot",    Script_PickupBagFromBankSlot}
 };
 
-void __fastcall BankRegisterScriptFunctions() {
+void BankRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 10; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall BankUnregisterScriptFunctions() {
+void BankUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 10; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

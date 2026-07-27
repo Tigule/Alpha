@@ -5,7 +5,7 @@ typedef BOOL(WINAPI *TRYENTERCRITSECT)(LPCRITICAL_SECTION);
 static TRYENTERCRITSECT s_tryEnterPtr;
 static HMODULE          s_kernel32lib;
 
-void __fastcall SServerInitialize() {
+void SServerInitialize() {
   if (!s_tryEnterPtr) {
     s_kernel32lib = LoadLibraryA("kernel32.dll");
     if (s_kernel32lib) {
@@ -14,13 +14,13 @@ void __fastcall SServerInitialize() {
   }
 }
 
-void __fastcall SServerDestroy() {
+void SServerDestroy() {
   if (s_kernel32lib) {
     FreeLibrary(s_kernel32lib);
   }
 }
 
-int __fastcall STryEnterCriticalSection(void *opaqueData) {
+int STryEnterCriticalSection(void *opaqueData) {
   if (!s_tryEnterPtr) {
     FATALERROR(("TryEnterCriticalSection not found on this OS."));
   }

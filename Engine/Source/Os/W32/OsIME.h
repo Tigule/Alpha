@@ -13,16 +13,16 @@ struct OsIMECandidate {
   char candidate[1024];
 };
 
-OS_IME_LANGUAGEMODE __fastcall OsIMEGetLanguageMode();
-int __fastcall OsIMEGetCompositionString(char *string, unsigned int maxlen);
-int __fastcall OsIMEGetCompositionResult(char *string, unsigned int maxlen);
-int __fastcall OsIMEGetClauseInfo(unsigned int &clauseLeft, unsigned int &clauseRight, unsigned int &cursorPos);
-int __fastcall OsIMEGetCandidates(
+OS_IME_LANGUAGEMODE OsIMEGetLanguageMode();
+int OsIMEGetCompositionString(char *string, unsigned int maxlen);
+int OsIMEGetCompositionResult(char *string, unsigned int maxlen);
+int OsIMEGetClauseInfo(unsigned int &clauseLeft, unsigned int &clauseRight, unsigned int &cursorPos);
+int OsIMEGetCandidates(
     unsigned long which,
     unsigned int &pageSize,
     unsigned int &count,
     unsigned int &selection,
     TSGrowableArray<OsIMECandidate> &candidates);
-void __fastcall OsIMEEnable(int enabled);
-void __fastcall OsIMEInitialize();
-void __fastcall OsIMEDestroy();
+void OsIMEEnable(int enabled);
+void OsIMEInitialize();
+void OsIMEDestroy();

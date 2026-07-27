@@ -78,7 +78,7 @@ static int IOsGetProcessorFeatures(unsigned char *const vendor, unsigned long *f
   return 1;
 }
 
-unsigned long __fastcall OsGetProcessorFeaturesEx(int &vendorID) {
+unsigned long OsGetProcessorFeaturesEx(int &vendorID) {
   unsigned char vendor[12];
   unsigned long featuresStd;
   unsigned long featuresExt;
@@ -117,12 +117,12 @@ unsigned long __fastcall OsGetProcessorFeaturesEx(int &vendorID) {
   return s_processorFeatures;
 }
 
-unsigned long __fastcall OsGetProcessorFeatures() {
+unsigned long OsGetProcessorFeatures() {
   int manufacturer;
   return OsGetProcessorFeaturesEx(manufacturer);
 }
 
-unsigned int __fastcall OsGetProcessorCount() {
+unsigned int OsGetProcessorCount() {
   SYSTEM_INFO si;
   memset(&si, 0, sizeof(si));
   GetSystemInfo(&si);
@@ -134,30 +134,30 @@ unsigned int __fastcall OsGetProcessorCount() {
   return si.dwNumberOfProcessors;
 }
 
-void __fastcall OsSleep(unsigned long ms) {
+void OsSleep(unsigned long ms) {
   Sleep(ms);
 }
 
-int __fastcall OsSleepInBackground() {
+int OsSleepInBackground() {
   return s_sleepInBackground;
 }
 
-void __fastcall OsSetSleepInBackground(int sleepInBackground) {
+void OsSetSleepInBackground(int sleepInBackground) {
   s_sleepInBackground = sleepInBackground;
 }
 
-DWORD __fastcall OsGetBackgroundSleepMs() {
+DWORD OsGetBackgroundSleepMs() {
   return s_backgroundSleepMs;
 }
 
-void __fastcall OsSetBackgroundSleepMs(DWORD sleepMs) {
+void OsSetBackgroundSleepMs(DWORD sleepMs) {
   s_backgroundSleepMs = sleepMs;
 }
 
-void __fastcall OsPause() {
+void OsPause() {
 }
 
-OsType __fastcall OsGetVersion() {
+OsType OsGetVersion() {
   OSVERSIONINFOEX osvi;
   OsType          retVal = OsType_Unknown;
 
@@ -213,7 +213,7 @@ OsType __fastcall OsGetVersion() {
   return retVal;
 }
 
-void __fastcall OsGetVersionString(char *string, int length) {
+void OsGetVersionString(char *string, int length) {
   const char *osName = s_osNames[OsGetVersion()];
   if (!osName) {
     osName = s_osNames[OsType_Unknown];
@@ -222,25 +222,25 @@ void __fastcall OsGetVersionString(char *string, int length) {
   SStrCopy(string, osName, length);
 }
 
-int __fastcall OsGetComputerName(char *computerName, unsigned long *computerNameLen) {
+int OsGetComputerName(char *computerName, unsigned long *computerNameLen) {
   return GetComputerName(computerName, computerNameLen);
 }
 
-int __fastcall OsGetUserName(char *userName, unsigned long *userNameLen) {
+int OsGetUserName(char *userName, unsigned long *userNameLen) {
   return GetUserName(userName, userNameLen);
 }
 
-unsigned long __fastcall OsGetPhysicalMemory() {
+unsigned long OsGetPhysicalMemory() {
   MEMORYSTATUS mem;
   GlobalMemoryStatus(&mem);
   return mem.dwTotalPhys;
 }
 
-void __fastcall OsSystemObjectCreate(const char *inName) {
+void OsSystemObjectCreate(const char *inName) {
   CreateEventA(NULL, TRUE, FALSE, inName);
 }
 
-int __fastcall OsSystemObjectExists(const char *inName) {
+int OsSystemObjectExists(const char *inName) {
   HANDLE handle;
   DWORD  error;
 
@@ -254,7 +254,7 @@ int __fastcall OsSystemObjectExists(const char *inName) {
   return error == ERROR_ALREADY_EXISTS ? 1 : 0;
 }
 
-int __fastcall OsLaunchURL(const char *url) {
+int OsLaunchURL(const char *url) {
   HWND        activeWindow;
   char        fixedURL[1024];
   char        browserFilename[256];
@@ -316,15 +316,15 @@ int __fastcall OsLaunchURL(const char *url) {
   return reinterpret_cast<unsigned long>(launchResult) > 32;
 }
 
-void __fastcall OsClearFP(int errCheck) {
+void OsClearFP(int errCheck) {
   _clearfp();
   _control87(0x9001F, 0xFFFFF);
 }
 
-int __fastcall OsGetCurrentThreadPriority() {
+int OsGetCurrentThreadPriority() {
   return GetThreadPriority(GetCurrentThread());
 }
 
-void __fastcall OsSetCurrentThreadPriority(int priority) {
+void OsSetCurrentThreadPriority(int priority) {
   SetThreadPriority(GetCurrentThread(), priority);
 }

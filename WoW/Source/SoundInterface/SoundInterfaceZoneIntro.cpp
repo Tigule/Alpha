@@ -10,28 +10,28 @@ static int    s_lastPlayTime = -1;
 static Sound *s_sound;
 static int    s_priority = -1;
 
-void __fastcall SndInterfaceZoneIntroIdler() {
+void SndInterfaceZoneIntroIdler() {
   if (s_sound && !s_sound->IsPlaying()) {
     Sound::KillSound(s_sound);
   }
 }
 
-static int __fastcall CCommand_ZoneIntroReset(const char* command, const char* arguments) {
+static int CCommand_ZoneIntroReset(const char* command, const char* arguments) {
   s_lastPlayTime = -1;
   return 1;
 }
 
-void __fastcall SndInterfaceZoneIntroInitialize() {
+void SndInterfaceZoneIntroInitialize() {
   ConsoleCommandRegister("zoneintroreset", CCommand_ZoneIntroReset, DEBUG, 0);
 }
 
-void __fastcall SndInterfaceZoneIntroDestroy() {
+void SndInterfaceZoneIntroDestroy() {
   Sound::KillSound(s_sound);
   s_lastPlayTime = -1;
   ConsoleCommandUnregister("zoneintroreset");
 }
 
-void __fastcall SndInterfaceRegisterNewZoneIntro(int soundID, int priority) {
+void SndInterfaceRegisterNewZoneIntro(int soundID, int priority) {
   if (soundID && !SndInterfaceIsZoneMusicPaused()) {
     if (!s_sound || !s_sound->IsPlaying() || priority > s_priority) {
       Sound::KillSound(s_sound);
@@ -60,6 +60,6 @@ void __fastcall SndInterfaceRegisterNewZoneIntro(int soundID, int priority) {
   }
 }
 
-void __fastcall SndInterfaceZoneIntroStop() {
+void SndInterfaceZoneIntroStop() {
   Sound::KillSound(s_sound);
 }

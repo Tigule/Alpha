@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellFocusObjectRec::GetFilename() {
+const char *SpellFocusObjectRec::GetFilename() {
   return "DBFilesClient\\SpellFocusObject.dbc";
 }
 

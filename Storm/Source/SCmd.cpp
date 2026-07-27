@@ -44,7 +44,7 @@ CMDDEF::CMDDEF() {
 CMDDEF::~CMDDEF() {
 }
 
-static void __fastcall ConvertBool(CMDDEF *ptr, const char *string, int *datachars) {
+static void ConvertBool(CMDDEF *ptr, const char *string, int *datachars) {
   BOOL enabled;
 
   if (string[0] == '-') {
@@ -70,7 +70,7 @@ static void __fastcall ConvertBool(CMDDEF *ptr, const char *string, int *datacha
   }
 }
 
-static void __fastcall ConvertNumber(CMDDEF *ptr, const char *string, int *datachars) {
+static void ConvertNumber(CMDDEF *ptr, const char *string, int *datachars) {
   char *endptr = NULL;
   DWORD bytes;
 
@@ -87,7 +87,7 @@ static void __fastcall ConvertNumber(CMDDEF *ptr, const char *string, int *datac
   }
 }
 
-static void __fastcall ConvertString(CMDDEF *ptr, const char *string, int *datachars) {
+static void ConvertString(CMDDEF *ptr, const char *string, int *datachars) {
   *datachars = (int)SStrLen(string);
   if (ptr->currvaluestr) {
     SMemFree(ptr->currvaluestr, __FILE__, __LINE__, 0);
@@ -99,7 +99,7 @@ static void __fastcall ConvertString(CMDDEF *ptr, const char *string, int *datac
   }
 }
 
-static CMDDEF *__fastcall FindFlagDef(const char *string, CMDDEF *firstdef, int minlength) {
+static CMDDEF *FindFlagDef(const char *string, CMDDEF *firstdef, int minlength) {
   int     strlength;
   CMDDEF *bestptr = NULL;
   int     bestchars;
@@ -121,7 +121,7 @@ static CMDDEF *__fastcall FindFlagDef(const char *string, CMDDEF *firstdef, int 
   return bestptr;
 }
 
-static void __fastcall GenerateError(SCMDERRORCALLBACK errorcallback, DWORD errorcode, const char *itemstring) {
+static void GenerateError(SCMDERRORCALLBACK errorcallback, DWORD errorcode, const char *itemstring) {
   char     errorstr[0x100];
   char     buffer[0x100];
   CMDERROR data;
@@ -170,7 +170,7 @@ static void __fastcall GenerateError(SCMDERRORCALLBACK errorcallback, DWORD erro
   errorcallback(&data);
 }
 
-static BOOL __fastcall PerformConversion(CMDDEF *ptr, const char *string, int *datachars) {
+static BOOL PerformConversion(CMDDEF *ptr, const char *string, int *datachars) {
   CMDPARAMS    params;
   CMDDEF_LIST *list;
   CMDDEF      *other;
@@ -236,7 +236,7 @@ static BOOL __fastcall PerformConversion(CMDDEF *ptr, const char *string, int *d
   return TRUE;
 }
 
-static BOOL __fastcall ProcessCurrentFlag(const char *string, PROCESSING *processing, int *datachars) {
+static BOOL ProcessCurrentFlag(const char *string, PROCESSING *processing, int *datachars) {
   CMDDEF *cmd;
   int     currdatachars;
 
@@ -257,10 +257,10 @@ static BOOL __fastcall ProcessCurrentFlag(const char *string, PROCESSING *proces
   return TRUE;
 }
 
-static BOOL __fastcall
+static BOOL
 ProcessString(const char **stringptr, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback);
 
-static BOOL __fastcall
+static BOOL
 ProcessFile(const char *filename, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
   const char *curr;
   DWORD       bytesread;
@@ -289,7 +289,7 @@ ProcessFile(const char *filename, PROCESSING *processing, CMDDEF **nextarg, SCMD
   return result;
 }
 
-static BOOL __fastcall ProcessFlags(const char *string, PROCESSING *processing, SCMDERRORCALLBACK errorcallback) {
+static BOOL ProcessFlags(const char *string, PROCESSING *processing, SCMDERRORCALLBACK errorcallback) {
   char lastflag[0x100];
   int  datachars;
   int  strlength;
@@ -345,7 +345,7 @@ static BOOL __fastcall ProcessFlags(const char *string, PROCESSING *processing, 
   return TRUE;
 }
 
-static BOOL __fastcall ProcessToken(
+static BOOL ProcessToken(
     const char         *string,
     int                 quoted,
     PROCESSING         *processing,
@@ -354,7 +354,7 @@ static BOOL __fastcall ProcessToken(
     SCMDERRORCALLBACK   errorcallback
 );
 
-static BOOL __fastcall
+static BOOL
 ProcessString(const char **stringptr, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
   char        buffer[0x100];
   const char *nextptr;
@@ -372,7 +372,7 @@ ProcessString(const char **stringptr, PROCESSING *processing, CMDDEF **nextarg, 
   return !**stringptr;
 }
 
-static BOOL __fastcall ProcessToken(
+static BOOL ProcessToken(
     const char         *string,
     int                 quoted,
     PROCESSING         *processing,

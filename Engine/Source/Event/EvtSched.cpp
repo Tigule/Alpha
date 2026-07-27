@@ -6,12 +6,12 @@
 #include <string.h>
 #include <stpl.h>
 
-unsigned int __fastcall OsGetProcessorCount();
-void __fastcall         OsNetPump(DWORD timeout);
+unsigned int OsGetProcessorCount();
+void OsNetPump(DWORD timeout);
 
-void __fastcall  OsCallInitialize(const char *name);
-void __fastcall  OsCallDestroy();
-void *__fastcall OsCallInitializeContext(const char *name);
+void OsCallInitialize(const char *name);
+void OsCallDestroy();
+void *OsCallInitializeContext(const char *name);
 int              s_watchdogActive;
 
 static unsigned int                             s_hThread;
@@ -29,22 +29,22 @@ static long                                     s_interactiveCount;
 static int                                      s_originalThreadPriority;
 static unsigned int                             s_mainThread;
 
-static int __fastcall           SynthesizeInitialize(EvtContext *context);
-static void __fastcall          SynthesizeDestroy(EvtContext *context);
-static void __fastcall          SynthesizeIdle(EvtContext *context);
-static void __fastcall          SynthesizePoll(EvtContext *context);
-static void __fastcall          SynthesizePaint(EvtContext *context);
-static unsigned int __fastcall  InitializeSchedulerThread();
-static void __fastcall          DestroySchedulerThread(unsigned int hThread);
-static void __fastcall          DetachContextFromThread(unsigned int hThread, EvtContext *context);
-static EvtContext *__fastcall   GetNextContext(unsigned int hThread);
-static SEvent *__fastcall       GetWakeEvent(unsigned int hThread);
-static void __fastcall          PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
-static HEVENTCONTEXT __fastcall AttachContextToThread(EvtContext *context);
+static int SynthesizeInitialize(EvtContext *context);
+static void SynthesizeDestroy(EvtContext *context);
+static void SynthesizeIdle(EvtContext *context);
+static void SynthesizePoll(EvtContext *context);
+static void SynthesizePaint(EvtContext *context);
+static unsigned int InitializeSchedulerThread();
+static void DestroySchedulerThread(unsigned int hThread);
+static void DetachContextFromThread(unsigned int hThread, EvtContext *context);
+static EvtContext *GetNextContext(unsigned int hThread);
+static SEvent *GetWakeEvent(unsigned int hThread);
+static void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
+static HEVENTCONTEXT AttachContextToThread(EvtContext *context);
 static unsigned int APIENTRY    SchedulerThreadProc(void *mainThread);
 static unsigned int APIENTRY    ShutdownThreadProc(void *pEvent);
 
-static int __fastcall SynthesizeInitialize(EvtContext *context) {
+static int SynthesizeInitialize(EvtContext *context) {
   if (context->SchedGetFlags(0x1)) {
     return 0;
   }
@@ -54,7 +54,7 @@ static int __fastcall SynthesizeInitialize(EvtContext *context) {
   return 1;
 }
 
-static void __fastcall SynthesizeDestroy(EvtContext *context) {
+static void SynthesizeDestroy(EvtContext *context) {
   INSTANCELOCK instanceLock;
 
   if (!context->SchedGetFlags(0x1)) {
@@ -78,7 +78,7 @@ static void __fastcall SynthesizeDestroy(EvtContext *context) {
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-static void __fastcall SynthesizeIdle(EvtContext *context) {
+static void SynthesizeIdle(EvtContext *context) {
   EVENT_DATA_IDLE data;
   float           elapsedSec;
   DWORD           currTime;
@@ -98,13 +98,13 @@ static void __fastcall SynthesizeIdle(EvtContext *context) {
   IEvtQueueDispatch(context, EVENT_ID_IDLE, &data);
 }
 
-static void __fastcall SynthesizePoll(EvtContext *context) {
+static void SynthesizePoll(EvtContext *context) {
   if (!context->SchedGetClosed()) {
     IEvtQueueDispatch(context, EVENT_ID_POLL, 0);
   }
 }
 
-static void __fastcall SynthesizePaint(EvtContext *context) {
+static void SynthesizePaint(EvtContext *context) {
   if (context->SchedGetClosed()) {
     return;
   }
@@ -114,7 +114,7 @@ static void __fastcall SynthesizePaint(EvtContext *context) {
   }
 }
 
-static unsigned int __fastcall InitializeSchedulerThread() {
+static unsigned int InitializeSchedulerThread() {
   unsigned int slot;
   unsigned int bestSlot = s_threadSlotCount;
   EvtThread   *thread;
@@ -147,7 +147,7 @@ static unsigned int __fastcall InitializeSchedulerThread() {
   return bestSlot;
 }
 
-static void __fastcall DestroySchedulerThread(unsigned int hThread) {
+static void DestroySchedulerThread(unsigned int hThread) {
   TSGrowableArray<EvtContext *> contextArray;
   EvtThread                    *thread;
   EvtContextQueue              *queue;
@@ -186,7 +186,7 @@ static void __fastcall DestroySchedulerThread(unsigned int hThread) {
   }
 }
 
-static HEVENTCONTEXT __fastcall AttachContextToThread(EvtContext *context) {
+static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
   EvtThread              *thread;
   EvtThread              *candidate;
   EvtContextQueue        *queue;
@@ -231,7 +231,7 @@ static HEVENTCONTEXT __fastcall AttachContextToThread(EvtContext *context) {
   return reinterpret_cast<HEVENTCONTEXT>(contextId);
 }
 
-static void __fastcall DetachContextFromThread(unsigned int hThread, EvtContext *context) {
+static void DetachContextFromThread(unsigned int hThread, EvtContext *context) {
   EvtThread   *thread;
   EvtThread   *other;
   unsigned int amount;
@@ -260,7 +260,7 @@ static void __fastcall DetachContextFromThread(unsigned int hThread, EvtContext 
   SInterlockedDecrement(&s_threadListContention);
 }
 
-static EvtContext *__fastcall GetNextContext(unsigned int hThread) {
+static EvtContext *GetNextContext(unsigned int hThread) {
   EvtThread       *thread;
   EvtContextQueue *queue;
   EvtContext      *context = 0;
@@ -274,13 +274,13 @@ static EvtContext *__fastcall GetNextContext(unsigned int hThread) {
   return context;
 }
 
-static SEvent *__fastcall GetWakeEvent(unsigned int hThread) {
+static SEvent *GetWakeEvent(unsigned int hThread) {
   EvtThread *thread = s_threadSlots[hThread];
   ASSERT(thread);
   return &thread->m_wakeEvent;
 }
 
-static void __fastcall PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
+static void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
   TSTimerPriority<DWORD> *priority = &context->m_schedNextWakeTime;
   EvtThread              *thread;
   EvtThread              *candidate;
@@ -481,13 +481,13 @@ static unsigned int APIENTRY SchedulerThreadProc(void *mainThread) {
   return 0;
 }
 
-void __fastcall IEvtSchedulerProcess() {
+void IEvtSchedulerProcess() {
   s_startEvent.Set();
   SchedulerThreadProc(reinterpret_cast<void *>(1));
   s_mainThread = 0;
 }
 
-void __fastcall IEvtSchedulerInitialize(unsigned int threadCount, int netServer) {
+void IEvtSchedulerInitialize(unsigned int threadCount, int netServer) {
   unsigned int threadSlotCount = 1;
   unsigned int remaining;
   SThread     *thread;
@@ -531,7 +531,7 @@ void __fastcall IEvtSchedulerInitialize(unsigned int threadCount, int netServer)
   }
 }
 
-void __fastcall IEvtSchedulerDestroy() {
+void IEvtSchedulerDestroy() {
   unsigned int processorCount;
   unsigned int index;
   SThread     *threadPtr;
@@ -595,7 +595,7 @@ void __fastcall IEvtSchedulerDestroy() {
   s_threadSlotCount = 0;
 }
 
-void __fastcall IEvtSchedulerShutdown() {
+void IEvtSchedulerShutdown() {
   unsigned int slot;
   EvtThread   *thread;
 
@@ -612,7 +612,7 @@ void __fastcall IEvtSchedulerShutdown() {
   }
 }
 
-HEVENTCONTEXT __fastcall
+HEVENTCONTEXT
 IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags) {
   char        contextName[256];
   int         startWatchdog;
@@ -657,11 +657,11 @@ IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVEN
   return AttachContextToThread(context);
 }
 
-int __fastcall IEvtSchedulerIsContextInteractive(EvtContext *context) {
+int IEvtSchedulerIsContextInteractive(EvtContext *context) {
   return context->SchedGetFlags(0x2) != 0;
 }
 
-void __fastcall EventProcessStart() {
+void EventProcessStart() {
   char callName[64];
 
   PropSelectContext(0);
@@ -671,7 +671,7 @@ void __fastcall EventProcessStart() {
   s_watchdogActive = 0;
 }
 
-void __fastcall EventProcessOnce() {
+void EventProcessOnce() {
   EvtContext *context;
   DWORD       nextDelay = INFINITE;
   DWORD       currTime;
@@ -758,7 +758,7 @@ void __fastcall EventProcessOnce() {
   PutContext(s_hThread, context, currTime + nextDelay, context->SchedGetSmoothWeight());
 }
 
-void __fastcall EventProcessDone() {
+void EventProcessDone() {
   if (s_watchdogActive) {
     SErrStopWatchdog();
   }

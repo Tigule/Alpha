@@ -1,6 +1,6 @@
 #pragma once
 
-int __fastcall   OsClipboardGetString(char *buf, unsigned int bufSize);
-char *__fastcall OsClipboardGetString();
-void __fastcall  OsClipboardFreeString(char *string);
-int __fastcall   OsClipboardPutString(const char *string);
+int OsClipboardGetString(char *buf, unsigned int bufSize);
+char *OsClipboardGetString();
+void OsClipboardFreeString(char *string);
+int OsClipboardPutString(const char *string);

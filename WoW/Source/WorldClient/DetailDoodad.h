@@ -44,8 +44,8 @@ class CDetailDoodadData {
   CDetailDoodadGeom *geom;
 
  private:
-  static void __fastcall MdlReadCallback(unsigned int *fileData, unsigned int fileBytes, CDetailDoodadData *detailDoodad);
-  static void __fastcall MdlReadCallback(MDLDATA &data, CDetailDoodadData *detailDoodad);
+  static void MdlReadCallback(unsigned int *fileData, unsigned int fileBytes, CDetailDoodadData *detailDoodad);
+  static void MdlReadCallback(MDLDATA &data, CDetailDoodadData *detailDoodad);
 };
 
 class CDetailDoodadInst {
@@ -67,15 +67,15 @@ class CDetailDoodadInst {
 
 class CDetailDoodad {
  public:
-  static void __fastcall               Initialize();
-  static void __fastcall               Destroy();
-  static void __fastcall               Clear();
-  static CDetailDoodadInst *__fastcall AllocInst();
-  static void __fastcall               FreeInst(CDetailDoodadInst *inst);
-  static CDetailDoodadGeom *__fastcall AllocGeom();
-  static void __fastcall               FreeGeom(CDetailDoodadGeom *geom);
-  static CGxBuf *__fastcall            AllocGxBuf(unsigned int vertexCount, unsigned int indexCount);
-  static void __fastcall               FreeGxBuf(CGxBuf *gxBuf);
+  static void Initialize();
+  static void Destroy();
+  static void Clear();
+  static CDetailDoodadInst *AllocInst();
+  static void FreeInst(CDetailDoodadInst *inst);
+  static CDetailDoodadGeom *AllocGeom();
+  static void FreeGeom(CDetailDoodadGeom *geom);
+  static CGxBuf *AllocGxBuf(unsigned int vertexCount, unsigned int indexCount);
+  static void FreeGxBuf(CGxBuf *gxBuf);
 
   static TSExplicitList<CDetailDoodadGeom, 104> geomList;
   static TSExplicitList<CDetailDoodadInst, 16>  instList;
@@ -83,9 +83,9 @@ class CDetailDoodad {
   static CGxTex                                *alphaRampTexture;
 
  private:
-  static void __fastcall GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
-  static void __fastcall CreateAlphaRampTexture(const void *&texels);
-  static void __fastcall UpdateAlphaRampTexture(
+  static void GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
+  static void CreateAlphaRampTexture(const void *&texels);
+  static void UpdateAlphaRampTexture(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,

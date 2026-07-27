@@ -10,8 +10,8 @@ class CSimpleCheckbox : public CSimpleButton {
   CSimpleCheckbox(CSimpleFrame *parent);
   virtual ~CSimpleCheckbox();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void Enable(int enabled);

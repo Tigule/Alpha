@@ -110,7 +110,7 @@ PLAYERNAMEDESC::~PLAYERNAMEDESC() {
   }
 }
 
-static void __fastcall PlayerNameRenderCallback(HMODEL__* model, const NTempest::C34Matrix& basis, void* param) {
+static void PlayerNameRenderCallback(HMODEL__* model, const NTempest::C34Matrix& basis, void* param) {
   FATALASSERT(param);
   NTempest::C44Matrix matrix(
       basis.a0, basis.a1, basis.a2, 0.0f,
@@ -142,10 +142,10 @@ static const UNITNAMESTRINGS s_cvarStrings[8] = {
     {"UnitNameUnitSummonedBy", "1", "Toggles showing units' owners in worldname"}
 };
 
-static bool __fastcall   UnitNameShowTypeCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static void __fastcall   TriggerNameRegenerate();
-void __fastcall          PlayerNameShutdown();
-HWORLDTEXT__ *__fastcall WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride);
+static bool UnitNameShowTypeCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static void TriggerNameRegenerate();
+void PlayerNameShutdown();
+HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride);
 
 static void CalculateBillboardRotation(const NTempest::C3Vector& direction, NTempest::C44Matrix& matrix) {
   NTempest::C3Vector zprime(direction);
@@ -231,13 +231,13 @@ void PLAYERNAMEDESC::UpdateWorldText() {
   UpdateWorldPos();
 }
 
-static void __fastcall TriggerNameRegenerate() {
+static void TriggerNameRegenerate() {
   for (PLAYERNAMEDESC *desc = s_playerNames.Head(); desc; desc = s_playerNames.Next(desc)) {
     desc->m_flags |= 1;
   }
 }
 
-static bool __fastcall UnitNameShowTypeCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool UnitNameShowTypeCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   unsigned int index = reinterpret_cast<unsigned int>(arg);
   ASSERT(index < sizeof(s_cvarInfo) / sizeof(s_cvarInfo[0]));
 
@@ -258,7 +258,7 @@ static bool __fastcall UnitNameShowTypeCallback(CVar *h, const char *oldValue, c
   return true;
 }
 
-void __fastcall PlayerNameInitialize() {
+void PlayerNameInitialize() {
   PlayerNameShutdown();
 
   const char *fontName;
@@ -281,7 +281,7 @@ void __fastcall PlayerNameInitialize() {
   }
 }
 
-void __fastcall PlayerNameShutdown() {
+void PlayerNameShutdown() {
   if (s_playerNameFont) {
     GxuFontDestroyFont(s_playerNameFont);
   }
@@ -290,11 +290,11 @@ void __fastcall PlayerNameShutdown() {
   ConsoleCommandUnregister("PlayerNames");
 }
 
-void __fastcall PlayerNameShow(int show) {
+void PlayerNameShow(int show) {
   s_showNames = show;
 }
 
-HPLAYERNAME__* __fastcall PlayerNameCreate(CGUnit_C* unitPtr) {
+HPLAYERNAME__* PlayerNameCreate(CGUnit_C* unitPtr) {
   FATALASSERT(unitPtr);
   void *storage = SMemAlloc(sizeof(PLAYERNAMEDESC), "HPLAYERNAME", -2, 0);
   PLAYERNAMEDESC *desc = storage ? new (storage) PLAYERNAMEDESC : 0;
@@ -316,13 +316,13 @@ HPLAYERNAME__* __fastcall PlayerNameCreate(CGUnit_C* unitPtr) {
   return reinterpret_cast<HPLAYERNAME__ *>(HandleCreate(desc, "HPLAYERNAME"));
 }
 
-void __fastcall PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name) {
+void PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name) {
   if (name) {
     reinterpret_cast<PLAYERNAMEDESC *>(name)->m_flags |= 2;
   }
 }
 
-void __fastcall PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, const char *text, const NTempest::CImVector *colorOverride) {
+void PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, const char *text, const NTempest::CImVector *colorOverride) {
   if (ClntObjMgrGetPlayerType()) {
     return;
   }
@@ -333,17 +333,17 @@ void __fastcall PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, co
   }
 }
 
-void __fastcall PlayerNameUpdateWorldText(HPLAYERNAME__* name) {
+void PlayerNameUpdateWorldText(HPLAYERNAME__* name) {
   if (name) {
     reinterpret_cast<PLAYERNAMEDESC *>(name)->UpdateWorldText();
   }
 }
 
-void __fastcall PlayerNameUpdateEarly() {
+void PlayerNameUpdateEarly() {
   ++s_lastRenderFrame;
 }
 
-void __fastcall PlayerNameUpdateLate() {
+void PlayerNameUpdateLate() {
   for (PLAYERNAMEDESC *desc = s_playerNames.Head(); desc; desc = s_playerNames.Next(desc)) {
     if (desc->m_lastRenderFrame != s_lastRenderFrame) {
       desc->ShowWorldText(0);
@@ -351,13 +351,13 @@ void __fastcall PlayerNameUpdateLate() {
   }
 }
 
-void __fastcall PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name) {
+void PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name) {
   if (name) {
     reinterpret_cast<PLAYERNAMEDESC *>(name)->m_flags |= 1;
   }
 }
 
-void __fastcall PlayerNameChangeLocation(HPLAYERNAME__* name, const NTempest::C3Vector& namePosition) {
+void PlayerNameChangeLocation(HPLAYERNAME__* name, const NTempest::C3Vector& namePosition) {
   if (name) {
     reinterpret_cast<PLAYERNAMEDESC *>(name)->MoveGeoset(
         namePosition);
@@ -374,12 +374,12 @@ void PLAYERNAMEDESC::MoveGeoset(const NTempest::C3Vector &pos) {
   }
 }
 
-unsigned int __fastcall PlayerNameGetUnitNameMode() {
+unsigned int PlayerNameGetUnitNameMode() {
   FATALASSERT(s_unitShowMode);
   return s_unitShowMode->GetInt();
 }
 
-void __fastcall PlayerNameRenderWorldText() {
+void PlayerNameRenderWorldText() {
   for (PLAYERNAMEDESC *desc = s_playerNames.Head(); desc; desc = s_playerNames.Next(desc)) {
     desc->RenderWorldText();
   }

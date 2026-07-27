@@ -6,7 +6,7 @@
 
 #include <storm.h>
 
-HTEXTURE __fastcall CMap::LoadTexture(const char *fileName) {
+HTEXTURE CMap::LoadTexture(const char *fileName) {
   CStatus     status;
   CGxTexFlags texFlags(
       CWorld::enables & CWorld::Enable_Anisotropic ? GxTex_Anisotropic

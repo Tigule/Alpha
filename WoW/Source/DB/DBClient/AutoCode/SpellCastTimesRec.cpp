@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellCastTimesRec::GetFilename() {
+const char *SpellCastTimesRec::GetFilename() {
   return "DBFilesClient\\SpellCastTimes.dbc";
 }
 

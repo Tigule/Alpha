@@ -4,7 +4,7 @@
 
 namespace NTempest {
 
-  void __fastcall RGBtoHSV(const C3Vector &rgb, C3Vector &hsv) {
+  void RGBtoHSV(const C3Vector &rgb, C3Vector &hsv) {
     unsigned int max = rgb.MajorAxis();
     unsigned int min = rgb.MinorAxis();
 
@@ -41,7 +41,7 @@ namespace NTempest {
     }
   }
 
-  void __fastcall HSVtoRGB(const C3Vector &hsv, C3Vector &rgb) {
+  void HSVtoRGB(const C3Vector &hsv, C3Vector &rgb) {
     if (hsv.y == 0.0f) {
       rgb.x = hsv.z;
       rgb.y = hsv.z;

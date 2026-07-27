@@ -55,11 +55,11 @@ class ClientConnection : public NetClient {
   void              AccountLogout();
   void              GetRealmList();
   int               GetRealmListCount();
-  int               EnumerateRealms(void(__fastcall *fcn)(REALM_INFO &info, void *param), void *param);
+  int               EnumerateRealms(void(*fcn)(REALM_INFO &info, void *param), void *param);
   const REALM_INFO *GetRealmInfoByIndex(int index);
   void              GetCharacterList();
   int               GetCharacterListCount();
-  int               EnumerateCharacters(void(__fastcall *fcn)(CHARACTER_INFO &info, void *param), void *param);
+  int               EnumerateCharacters(void(*fcn)(CHARACTER_INFO &info, void *param), void *param);
   void              CharacterCreate(const CHARACTER_CREATE_INFO &info);
   void              CharacterDelete(unsigned __int64 guid);
   void              CharacterLogin(unsigned __int64 id);

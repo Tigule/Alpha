@@ -24,7 +24,7 @@ static __int64      stop;
 static unsigned int tail;
 static float        frequency;
 
-static unsigned int __fastcall UpdateFrameRate() {
+static unsigned int UpdateFrameRate() {
   __int64      total = 0;
   unsigned int frameRate;
 
@@ -213,7 +213,7 @@ CGxTex::CGxTex(
     EGxTexFormat format,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
 )
     : m_updateRect(), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
   Init(GxTex_2d, width, height, 0, format, format, flags, userArg, userFunc);
@@ -228,7 +228,7 @@ CGxTex::CGxTex(
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
 )
     : m_updateRect(), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
   Init(target, width, height, depth, format, dataFormat, flags, userArg, userFunc);
@@ -243,7 +243,7 @@ void CGxTex::Init(
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
 ) {
   m_needsUpdate = 1;
   m_needsFlagUpdate = 1;
@@ -1225,7 +1225,7 @@ CGxBuf *CGxDevice::BufCreate(
     EGxVertexBufferFormat format,
     unsigned int          numVertices,
     unsigned int          numIndices,
-    void(__fastcall *userCallback)(CGxBufCommand &, CGxBuf *),
+    void(*userCallback)(CGxBufCommand &, CGxBuf *),
     void *userArg
 ) {
   ASSERT(numVertices <= 0xFFFF);
@@ -1276,7 +1276,7 @@ int CGxDevice::TexCreate(
     EGxTexFormat format,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     CGxTex *&texId
 ) {
   CGxTex *tex = NEW(CGxTex)(width, height, format, flags, userArg, userFunc);
@@ -1296,7 +1296,7 @@ int CGxDevice::TexCreate(
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
     void        *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     CGxTex *&texId
 ) {
   CGxTex *tex = NEW(CGxTex)(target, width, height, depth, format, dataFormat, flags, userArg, userFunc);
@@ -1377,7 +1377,7 @@ void CGxDevice::ITexBind(CGxTex *texId) {
 
 void CGxDevice::TexSetUserData(
     CGxTex *texId,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
     void *userArg
 ) {
   texId->m_userFunc = userFunc;
@@ -1585,7 +1585,7 @@ void CGxDevice::PerfCountersLatch() {
   m_perfCountersAcc[GxPerf_FrameNum] = m_perfCountersLatched[GxPerf_FrameNum];
 }
 
-float __fastcall CGxDevice::CpuFrequency() {
+float CGxDevice::CpuFrequency() {
   __int64      start;
   unsigned int millisecond;
 
@@ -1603,7 +1603,7 @@ float __fastcall CGxDevice::CpuFrequency() {
   return frequency;
 }
 
-__int64 __fastcall CGxDevice::CpuTicks() {
+__int64 CGxDevice::CpuTicks() {
   return OsGetAsyncTimeClocks();
 }
 
@@ -1618,13 +1618,13 @@ void __cdecl CGxDevice::DbgPrintf(const char *format, ...) {
   va_end(arguments);
 }
 
-void __fastcall CGxDevice::LogOpen() {
+void CGxDevice::LogOpen() {
   if (!m_log) {
     SLogCreate("gx.log", 0, &m_log);
   }
 }
 
-void __fastcall CGxDevice::LogClose() {
+void CGxDevice::LogClose() {
   if (m_log) {
     SLogClose(m_log);
     m_log = 0;

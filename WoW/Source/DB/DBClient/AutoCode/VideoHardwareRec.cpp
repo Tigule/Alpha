@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall VideoHardwareRec::GetFilename() {
+const char *VideoHardwareRec::GetFilename() {
   return "DBFilesClient\\VideoHardware.dbc";
 }
 

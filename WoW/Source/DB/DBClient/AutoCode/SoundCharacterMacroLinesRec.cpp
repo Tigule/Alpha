@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SoundCharacterMacroLinesRec::GetFilename() {
+const char *SoundCharacterMacroLinesRec::GetFilename() {
   return "DBFilesClient\\SoundCharacterMacroLines.dbc";
 }
 

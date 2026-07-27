@@ -18,7 +18,7 @@
   }                                                                    \
   ASSERT(object)
 
-static int __fastcall CSimpleScrollFrame_SetHorizontalScroll(lua_State *L) {
+static int CSimpleScrollFrame_SetHorizontalScroll(lua_State *L) {
   GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -30,7 +30,7 @@ static int __fastcall CSimpleScrollFrame_SetHorizontalScroll(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleScrollFrame_SetVerticalScroll(lua_State *L) {
+static int CSimpleScrollFrame_SetVerticalScroll(lua_State *L) {
   GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -42,35 +42,35 @@ static int __fastcall CSimpleScrollFrame_SetVerticalScroll(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleScrollFrame_GetHorizontalScroll(lua_State *L) {
+static int CSimpleScrollFrame_GetHorizontalScroll(lua_State *L) {
   GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
 
   lua_pushnumber(L, object->GetHorizontalScroll() * 1024.0f * 1.25f);
   return 1;
 }
 
-static int __fastcall CSimpleScrollFrame_GetVerticalScroll(lua_State *L) {
+static int CSimpleScrollFrame_GetVerticalScroll(lua_State *L) {
   GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
 
   lua_pushnumber(L, object->GetVerticalScroll() * 1024.0f * 1.25f);
   return 1;
 }
 
-static int __fastcall CSimpleScrollFrame_GetHorizontalScrollRange(lua_State *L) {
+static int CSimpleScrollFrame_GetHorizontalScrollRange(lua_State *L) {
   GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
 
   lua_pushnumber(L, object->GetHorizontalScrollRange() * 1024.0f * 1.25f);
   return 1;
 }
 
-static int __fastcall CSimpleScrollFrame_GetVerticalScrollRange(lua_State *L) {
+static int CSimpleScrollFrame_GetVerticalScrollRange(lua_State *L) {
   GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
 
   lua_pushnumber(L, object->GetVerticalScrollRange() * 1024.0f * 1.25f);
   return 1;
 }
 
-static int __fastcall CSimpleScrollFrame_UpdateScrollChildRect(lua_State *L) {
+static int CSimpleScrollFrame_UpdateScrollChildRect(lua_State *L) {
   GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
 
   object->UpdateScrollChildRect();
@@ -91,11 +91,11 @@ static FrameScript_Method SimpleScrollFrameMethods[7] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleScrollFrame::s_scriptMethods;
 
-void __fastcall CSimpleScrollFrame::RegisterScriptMethods() {
+void CSimpleScrollFrame::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleScrollFrameMethods, 7, s_scriptMethods);
 }
 
-void __fastcall CSimpleScrollFrame::UnregisterScriptMethods() {
+void CSimpleScrollFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

@@ -2,7 +2,7 @@
 
 namespace NTempest {
 
-  float __fastcall CMath::sinoid_(float x, float oneOverPi) {
+  float CMath::sinoid_(float x, float oneOverPi) {
     float fraction;
     long integer;
     split_(x * oneOverPi - 0.5f, fraction, integer);
@@ -10,7 +10,7 @@ namespace NTempest {
     return integer & 1 ? -result : result;
   }
 
-  float __fastcall CMath::cosoid_(float x, float oneOverPi) {
+  float CMath::cosoid_(float x, float oneOverPi) {
     float fraction;
     long integer;
     split_(x * oneOverPi, fraction, integer);
@@ -18,153 +18,153 @@ namespace NTempest {
     return integer & 1 ? -result : result;
   }
 
-  long __fastcall CMath::mulhw_(long x, long y) {
+  long CMath::mulhw_(long x, long y) {
     return static_cast<long>((static_cast<__int64>(x) * y) >> 32);
   }
 
-  unsigned long __fastcall CMath::mulhwu_(unsigned long x, unsigned long y) {
+  unsigned long CMath::mulhwu_(unsigned long x, unsigned long y) {
     return static_cast<unsigned long>((static_cast<unsigned __int64>(x) * y) >> 32);
   }
 
-  unsigned long __fastcall CMath::div3_(unsigned long n) { return mulhwu_(0xAAAAAAAB, n) >> 1; }
-  long __fastcall CMath::div3_(long n) { return mulhw_(1431655766, n); }
+  unsigned long CMath::div3_(unsigned long n) { return mulhwu_(0xAAAAAAAB, n) >> 1; }
+  long CMath::div3_(long n) { return mulhw_(1431655766, n); }
 
-  unsigned long __fastcall CMath::div5_(unsigned long x) {
+  unsigned long CMath::div5_(unsigned long x) {
     unsigned long q = ((3 * x >> 4) + 3 * x) >> 8;
     return ((q + (3 * x >> 4) + 3 * x >> 16) + q + (3 * x >> 4) + 3 * x + 2) >> 4;
   }
 
-  long __fastcall CMath::div5_(long x) {
+  long CMath::div5_(long x) {
     long q = (((3 * x) >> 4) + 3 * x) >> 8;
     return (((q + ((3 * x) >> 4) + 3 * x) >> 16) + q + ((3 * x) >> 4) + 3 * x + 15) >> 4;
   }
 
-  unsigned long __fastcall CMath::div9_(unsigned long x) {
+  unsigned long CMath::div9_(unsigned long x) {
     unsigned long q = ((7 * x >> 6) + 7 * x) >> 12;
     return ((q + (7 * x >> 6) + 7 * x >> 24) + q + (7 * x >> 6) + 7 * x + 2) >> 6;
   }
 
-  long __fastcall CMath::div9_(long x) {
+  long CMath::div9_(long x) {
     long q = (((7 * x) >> 6) + 7 * x) >> 12;
     return (((q + ((7 * x) >> 6) + 7 * x) >> 24) + q + ((7 * x) >> 6) + 7 * x + 62) >> 6;
   }
 
-  long __fastcall CMath::min_(long a, long b, long c) { return a < b ? (a < c ? a : c) : (b < c ? b : c); }
-  long __fastcall CMath::med_(long a, long b, long c) {
+  long CMath::min_(long a, long b, long c) { return a < b ? (a < c ? a : c) : (b < c ? b : c); }
+  long CMath::med_(long a, long b, long c) {
     if (((a - b) ^ (c - b)) < 0) return b;
     if (((a - b) ^ (a - c)) < 0) return a;
     return c;
   }
-  long __fastcall CMath::max_(long a, long b, long c) { return a > b ? (a > c ? a : c) : (b > c ? b : c); }
-  long __fastcall CMath::span_(long a, long b, long c) { return max_(a, b, c) - min_(a, b, c); }
-  long __fastcall CMath::mean_(long a, long b, long c) { return div3_(a + b + c); }
-  long __fastcall CMath::min_(long a, long b, long c, long d, long e) { return min_(min_(a, b, c), d, e); }
-  long __fastcall CMath::med_(long a, long b, long c, long d, long e) {
+  long CMath::max_(long a, long b, long c) { return a > b ? (a > c ? a : c) : (b > c ? b : c); }
+  long CMath::span_(long a, long b, long c) { return max_(a, b, c) - min_(a, b, c); }
+  long CMath::mean_(long a, long b, long c) { return div3_(a + b + c); }
+  long CMath::min_(long a, long b, long c, long d, long e) { return min_(min_(a, b, c), d, e); }
+  long CMath::med_(long a, long b, long c, long d, long e) {
     long ablo = a < b ? a : b, abhi = a > b ? a : b;
     long deLo = d < e ? d : e, deHi = d > e ? d : e;
     return med_(abhi < deHi ? abhi : deHi, c, ablo > deLo ? ablo : deLo);
   }
-  long __fastcall CMath::max_(long a, long b, long c, long d, long e) { return max_(max_(a, b, c), d, e); }
-  long __fastcall CMath::span_(long a, long b, long c, long d, long e) { return max_(a, b, c, d, e) - min_(a, b, c, d, e); }
-  long __fastcall CMath::mean_(long a, long b, long c, long d, long e) { return div5_(a + b + c + d + e); }
-  long __fastcall CMath::min_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+  long CMath::max_(long a, long b, long c, long d, long e) { return max_(max_(a, b, c), d, e); }
+  long CMath::span_(long a, long b, long c, long d, long e) { return max_(a, b, c, d, e) - min_(a, b, c, d, e); }
+  long CMath::mean_(long a, long b, long c, long d, long e) { return div5_(a + b + c + d + e); }
+  long CMath::min_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     return min_(min_(a, b, c, d, e), min_(f, g, h), i);
   }
-  long __fastcall CMath::med_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+  long CMath::med_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     long v[9] = { a, b, c, d, e, f, g, h, i };
     for (unsigned long p = 0; p < 5; ++p)
       for (unsigned long q = p + 1; q < 9; ++q)
         if (v[q] < v[p]) { long t = v[p]; v[p] = v[q]; v[q] = t; }
     return v[4];
   }
-  long __fastcall CMath::max_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+  long CMath::max_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     return max_(max_(a, b, c, d, e), max_(f, g, h), i);
   }
-  long __fastcall CMath::span_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+  long CMath::span_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     return max_(a, b, c, d, e, f, g, h, i) - min_(a, b, c, d, e, f, g, h, i);
   }
-  long __fastcall CMath::mean_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+  long CMath::mean_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     return div9_(a + b + c + d + e + f + g + h + i);
   }
 
-  void __fastcall CMath::normalize_(double &x, double &y) {
+  void CMath::normalize_(double &x, double &y) {
     double inverse = 1.0 / sqrt_(x * x + y * y);
     x *= inverse; y *= inverse;
   }
-  void __fastcall CMath::normalize_(float &x, float &y) {
+  void CMath::normalize_(float &x, float &y) {
     float inverse = 1.0f / sqrt_(x * x + y * y);
     x *= inverse; y *= inverse;
   }
-  void __fastcall CMath::normalize_(double &x, double &y, double &z) {
+  void CMath::normalize_(double &x, double &y, double &z) {
     double inverse = 1.0 / sqrt_(x * x + y * y + z * z);
     x *= inverse; y *= inverse; z *= inverse;
   }
-  void __fastcall CMath::normalize_(float &x, float &y, float &z) {
+  void CMath::normalize_(float &x, float &y, float &z) {
     float inverse = 1.0f / sqrt_(x * x + y * y + z * z);
     x *= inverse; y *= inverse; z *= inverse;
   }
 
-  float __fastcall CMath::frsqrte_(float x, unsigned long magic) {
+  float CMath::frsqrte_(float x, unsigned long magic) {
     unsigned long bits = *reinterpret_cast<unsigned long *>(&x);
     bits = magic - ((bits >> 1) & 0x3FFFFFFF);
     return *reinterpret_cast<float *>(&bits);
   }
-  double __fastcall CMath::frsqrte_(double x, unsigned long magic) {
+  double CMath::frsqrte_(double x, unsigned long magic) {
     reinterpret_cast<unsigned long *>(&x)[1] = magic - ((reinterpret_cast<unsigned long *>(&x)[1] >> 1) & 0x3FFFFFFF);
     return x;
   }
-  float __fastcall CMath::frsqrte_(float *x, unsigned long magic) { *x = frsqrte_(*x, magic); return *x; }
-  double __fastcall CMath::frsqrte_(double *x, unsigned long magic) { *x = frsqrte_(*x, magic); return *x; }
-  float __fastcall CMath::fres_(float x, unsigned long magic) {
+  float CMath::frsqrte_(float *x, unsigned long magic) { *x = frsqrte_(*x, magic); return *x; }
+  double CMath::frsqrte_(double *x, unsigned long magic) { *x = frsqrte_(*x, magic); return *x; }
+  float CMath::fres_(float x, unsigned long magic) {
     unsigned long bits = magic - *reinterpret_cast<unsigned long *>(&x);
     return *reinterpret_cast<float *>(&bits);
   }
-  double __fastcall CMath::fres_(double x, unsigned long magic) {
+  double CMath::fres_(double x, unsigned long magic) {
     reinterpret_cast<unsigned long *>(&x)[1] = magic - reinterpret_cast<unsigned long *>(&x)[1];
     return x;
   }
-  float __fastcall CMath::fres_(float *x, unsigned long magic) { *x = fres_(*x, magic); return *x; }
-  double __fastcall CMath::fres_(double *x, unsigned long magic) { *x = fres_(*x, magic); return *x; }
+  float CMath::fres_(float *x, unsigned long magic) { *x = fres_(*x, magic); return *x; }
+  double CMath::fres_(double *x, unsigned long magic) { *x = fres_(*x, magic); return *x; }
 
-  void __fastcall CMath::split_(double x, double &fraction, long &integer) {
+  void CMath::split_(double x, double &fraction, long &integer) {
     integer = static_cast<long>(x);
     if (x < 0.0) --integer;
     fraction = x - integer;
   }
-  void __fastcall CMath::split_(float x, float &fraction, long &integer) {
+  void CMath::split_(float x, float &fraction, long &integer) {
     integer = static_cast<long>(x);
     if (x < 0.0f) --integer;
     fraction = x - integer;
   }
-  void __fastcall CMath::splitr_(double x, double &fraction, double &integer) {
+  void CMath::splitr_(double x, double &fraction, double &integer) {
     integer = static_cast<long>(x);
     if (x < 0.0) integer -= 1.0;
     fraction = x - integer;
   }
-  void __fastcall CMath::splitr_(float x, float &fraction, float &integer) {
+  void CMath::splitr_(float x, float &fraction, float &integer) {
     integer = static_cast<float>(static_cast<long>(x));
     if (x < 0.0f) integer -= 1.0f;
     fraction = x - integer;
   }
 
-  float __fastcall CMath::step_(float x, float a) { return x >= a ? 1.0f : 0.0f; }
-  float __fastcall CMath::pulse_(float x, float a, float b) { return step_(x, a) - step_(x, b); }
-  float __fastcall CMath::bstep_(float x, float a, float b) { return clamp_((x - a) / (b - a), 0.0f, 1.0f); }
-  float __fastcall CMath::smoothstep_(float x, float a, float b) {
+  float CMath::step_(float x, float a) { return x >= a ? 1.0f : 0.0f; }
+  float CMath::pulse_(float x, float a, float b) { return step_(x, a) - step_(x, b); }
+  float CMath::bstep_(float x, float a, float b) { return clamp_((x - a) / (b - a), 0.0f, 1.0f); }
+  float CMath::smoothstep_(float x, float a, float b) {
     if (x < a) return 0.0f;
     if (x >= b) return 1.0f;
     float t = (x - a) / (b - a);
     return t * (3.0f - 2.0f * t) * t;
   }
-  double __fastcall CMath::gammai_(float x, float g) { return pow(x, g); }
-  double __fastcall CMath::gamma_(float x, float g) { return gammai_(x, 1.0f / g); }
-  double __fastcall CMath::bias_(float x, float g) { return pow(x, -log2_(static_cast<double>(g))); }
-  double __fastcall CMath::gain_(float x, float g) {
+  double CMath::gammai_(float x, float g) { return pow(x, g); }
+  double CMath::gamma_(float x, float g) { return gammai_(x, 1.0f / g); }
+  double CMath::bias_(float x, float g) { return pow(x, -log2_(static_cast<double>(g))); }
+  double CMath::gain_(float x, float g) {
     return x < 0.5f ? bias_(x + x, 1.0f - g) * 0.5 : 1.0 - bias_(2.0f - x - x, 1.0f - g) * 0.5;
   }
-  double __fastcall CMath::sinc_(double x, double a) { double v = x * a * 3.141592653589793; return sin(v) / v; }
-  double __fastcall CMath::sinc_(double x) { double v = x * 3.141592653589793; return sin(v) / v; }
-  float __fastcall CMath::sinc_(float x, float a) { float v = x * a * 3.1415927f; return static_cast<float>(sin(v) / v); }
-  float __fastcall CMath::sinc_(float x) { float v = x * 3.1415927f; return static_cast<float>(sin(v) / v); }
+  double CMath::sinc_(double x, double a) { double v = x * a * 3.141592653589793; return sin(v) / v; }
+  double CMath::sinc_(double x) { double v = x * 3.141592653589793; return sin(v) / v; }
+  float CMath::sinc_(float x, float a) { float v = x * a * 3.1415927f; return static_cast<float>(sin(v) / v); }
+  float CMath::sinc_(float x) { float v = x * 3.1415927f; return static_cast<float>(sin(v) / v); }
 
 }

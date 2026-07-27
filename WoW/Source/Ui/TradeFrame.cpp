@@ -14,19 +14,19 @@
 #include <lua.h>
 #include <storm.h>
 
-void __fastcall         Trade_C_CancelTrade();
-int __fastcall          Trade_C_UseCursorItem();
-int __fastcall          Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot);
-unsigned int __fastcall Trade_C_GetPlayerTradeGold();
-unsigned int __fastcall Trade_C_GetTargetTradeGold();
-unsigned __int64 __fastcall Trade_C_GetTradeTarget();
-bool __fastcall         Trade_C_AddItem(unsigned __int64 item, unsigned __int64 itemContainer, unsigned int itemSlot, unsigned int tradeSlot);
-void __fastcall         Trade_C_RemoveItem(unsigned int slot);
-void __fastcall         Trade_C_AcceptTrade();
-void __fastcall         Trade_C_UnacceptTrade();
-void __fastcall         Trade_C_AddMoney(unsigned int money);
-void __fastcall         Trade_C_RemoveMoney(unsigned int money);
-void __fastcall         TradeItemStatsCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
+void Trade_C_CancelTrade();
+int Trade_C_UseCursorItem();
+int Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot);
+unsigned int Trade_C_GetPlayerTradeGold();
+unsigned int Trade_C_GetTargetTradeGold();
+unsigned __int64 Trade_C_GetTradeTarget();
+bool Trade_C_AddItem(unsigned __int64 item, unsigned __int64 itemContainer, unsigned int itemSlot, unsigned int tradeSlot);
+void Trade_C_RemoveItem(unsigned int slot);
+void Trade_C_AcceptTrade();
+void Trade_C_UnacceptTrade();
+void Trade_C_AddMoney(unsigned int money);
+void Trade_C_RemoveMoney(unsigned int money);
+void TradeItemStatsCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
 
 static const float MAX_TRADE_DISTANCE = 11.111111f;
 static const float MAX_TRADE_DISTANCE_SQUARED = MAX_TRADE_DISTANCE * MAX_TRADE_DISTANCE;
@@ -60,34 +60,34 @@ enum TRADE_STATUS {
 
 class CGTradeInfo {
  public:
-  static void __fastcall             EnterWorld();
-  static void __fastcall             LeaveWorld();
-  static unsigned __int64 __fastcall GetTradePartner();
-  static void __fastcall             SetTradePartner(unsigned __int64 partner);
-  static void __fastcall             Update(TradeItemData *items);
-  static void __fastcall             PlayerAccept(int accept);
-  static void __fastcall             TargetAccept(int accept);
-  static void __fastcall             HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
-  static int __fastcall              SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot);
-  static void __fastcall             RemovePlayerItem(unsigned __int64 guid);
-  static void __fastcall             UpdatePlayerItem(unsigned __int64 guid);
-  static void __fastcall             UnlockTradeItems();
-  static GAME_ERROR_TYPE __fastcall  GetGameError(BAG_RESULT bagResult, int myFailure);
-  static void __fastcall             GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot);
-  static int __fastcall              GetTargetTradeItem(int index);
-  static int __fastcall GetTargetTradeItemCount(int index) {
+  static void EnterWorld();
+  static void LeaveWorld();
+  static unsigned __int64 GetTradePartner();
+  static void SetTradePartner(unsigned __int64 partner);
+  static void Update(TradeItemData *items);
+  static void PlayerAccept(int accept);
+  static void TargetAccept(int accept);
+  static void HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
+  static int SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot);
+  static void RemovePlayerItem(unsigned __int64 guid);
+  static void UpdatePlayerItem(unsigned __int64 guid);
+  static void UnlockTradeItems();
+  static GAME_ERROR_TYPE GetGameError(BAG_RESULT bagResult, int myFailure);
+  static void GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot);
+  static int GetTargetTradeItem(int index);
+  static int GetTargetTradeItemCount(int index) {
     return index >= 0 && index < 8 ? m_targetItemCount[index] : 0;
   }
-  static int __fastcall GetTargetTradeItemEnachantment(int index) {
+  static int GetTargetTradeItemEnachantment(int index) {
     return index >= 0 && index < 8 ? m_targetItemEnchantment[index] : 0;
   }
-  static unsigned __int64 __fastcall GetTargetTradeItemCreator(int index) {
+  static unsigned __int64 GetTargetTradeItemCreator(int index) {
     return index >= 0 && index < 8 ? m_targetItemCreator[index] : 0;
   }
-  static int __fastcall GetPlayerEnchantSlot() {
+  static int GetPlayerEnchantSlot() {
     return m_playerEnchantSlot;
   }
-  static int __fastcall GetTargetEnchantSlot() {
+  static int GetTargetEnchantSlot() {
     return m_targetEnchantSlot;
   }
 
@@ -123,11 +123,11 @@ int              CGTradeInfo::m_targetEnchantSlot = -1;
 unsigned int     CGTradeInfo::m_playerMoney;
 unsigned int     CGTradeInfo::m_targetMoney;
 
-int __fastcall CGTradeInfo::GetTargetTradeItem(int index) {
+int CGTradeInfo::GetTargetTradeItem(int index) {
   return index >= 0 && index < 8 ? m_targetItems[index] : 0;
 }
 
-void __fastcall CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID) {
+void CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID) {
   switch (status) {
     case TRADE_STATUS_INITIATED:
       SetTradePartner(Trade_C_GetTradeTarget());
@@ -170,13 +170,13 @@ void __fastcall CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT 
   }
 }
 
-void __fastcall TradeItemStatsCallback(int, const unsigned __int64 &, void *, bool granted) {
+void TradeItemStatsCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(298);
   }
 }
 
-void __fastcall CGTradeInfo::EnterWorld() {
+void CGTradeInfo::EnterWorld() {
   m_playerEnchantSlot = -1;
   m_targetEnchantSlot = -1;
   memset(m_targetItemEnchantment, 0, sizeof(m_targetItemEnchantment));
@@ -192,25 +192,25 @@ void __fastcall CGTradeInfo::EnterWorld() {
   m_targetMoney = 0;
 }
 
-void __fastcall CGTradeInfo::LeaveWorld() {
+void CGTradeInfo::LeaveWorld() {
   Trade_C_CancelTrade();
 }
 
-void __fastcall CGTradeInfo::PlayerAccept(int accept) {
+void CGTradeInfo::PlayerAccept(int accept) {
   if (m_playerAccepted != accept) {
     m_playerAccepted = accept;
     FrameScript_SignalEvent(298);
   }
 }
 
-void __fastcall CGTradeInfo::TargetAccept(int accept) {
+void CGTradeInfo::TargetAccept(int accept) {
   if (m_targetAccepted != accept) {
     m_targetAccepted = accept;
     FrameScript_SignalEvent(299);
   }
 }
 
-void __fastcall CGTradeInfo::Update(TradeItemData *items) {
+void CGTradeInfo::Update(TradeItemData *items) {
   PlayerAccept(0);
   TargetAccept(0);
 
@@ -253,11 +253,11 @@ void __fastcall CGTradeInfo::Update(TradeItemData *items) {
   }
 }
 
-unsigned __int64 __fastcall CGTradeInfo::GetTradePartner() {
+unsigned __int64 CGTradeInfo::GetTradePartner() {
   return m_tradingPlayer;
 }
 
-void __fastcall CGTradeInfo::SetTradePartner(unsigned __int64 partner) {
+void CGTradeInfo::SetTradePartner(unsigned __int64 partner) {
   if (!partner) {
     if (m_tradingPlayer) {
       FrameScript_SignalEvent(297);
@@ -300,7 +300,7 @@ void __fastcall CGTradeInfo::SetTradePartner(unsigned __int64 partner) {
   FrameScript_SignalEvent(296);
 }
 
-int __fastcall CGTradeInfo::SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot) {
+int CGTradeInfo::SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot) {
   if (index < 0 || index >= 8) {
     return 0;
   }
@@ -314,7 +314,7 @@ int __fastcall CGTradeInfo::SetPlayerItem(int index, unsigned __int64 guid, unsi
   return 1;
 }
 
-void __fastcall CGTradeInfo::RemovePlayerItem(unsigned __int64 guid) {
+void CGTradeInfo::RemovePlayerItem(unsigned __int64 guid) {
   if (!guid) {
     return;
   }
@@ -327,7 +327,7 @@ void __fastcall CGTradeInfo::RemovePlayerItem(unsigned __int64 guid) {
   }
 }
 
-void __fastcall CGTradeInfo::UpdatePlayerItem(unsigned __int64 guid) {
+void CGTradeInfo::UpdatePlayerItem(unsigned __int64 guid) {
   if (!guid) {
     return;
   }
@@ -340,7 +340,7 @@ void __fastcall CGTradeInfo::UpdatePlayerItem(unsigned __int64 guid) {
   }
 }
 
-void __fastcall CGTradeInfo::UnlockTradeItems() {
+void CGTradeInfo::UnlockTradeItems() {
   for (int index = 0; index < 8; ++index) {
     if (m_playerItems[index]) {
       CGGameUI::UnlockItem(m_playerItems[index]);
@@ -348,7 +348,7 @@ void __fastcall CGTradeInfo::UnlockTradeItems() {
   }
 }
 
-GAME_ERROR_TYPE __fastcall CGTradeInfo::GetGameError(BAG_RESULT bagResult, int myFailure) {
+GAME_ERROR_TYPE CGTradeInfo::GetGameError(BAG_RESULT bagResult, int myFailure) {
   if (bagResult == static_cast<BAG_RESULT>(4)) {
     return static_cast<GAME_ERROR_TYPE>(175 - (myFailure != 0));
   }
@@ -358,7 +358,7 @@ GAME_ERROR_TYPE __fastcall CGTradeInfo::GetGameError(BAG_RESULT bagResult, int m
   return CGBag_C::GetGameError(bagResult);
 }
 
-void __fastcall CGTradeInfo::GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot) {
+void CGTradeInfo::GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot) {
   if (index >= 0 && index < 8) {
     guid = m_playerItems[index];
     bag = m_playerItemBag[index];
@@ -370,12 +370,12 @@ void __fastcall CGTradeInfo::GetPlayerItemInfo(int index, unsigned __int64 &guid
   }
 }
 
-static int __fastcall Script_CloseTrade(lua_State *__formal) {
+static int Script_CloseTrade(lua_State *__formal) {
   Trade_C_CancelTrade();
   return 0;
 }
 
-static int __fastcall Script_ClickTradeButton(lua_State *L) {
+static int Script_ClickTradeButton(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: ClickTradeButton(slot)");
   }
@@ -406,7 +406,7 @@ static int __fastcall Script_ClickTradeButton(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ClickTargetTradeButton(lua_State *L) {
+static int Script_ClickTargetTradeButton(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: ClickTargetTradeButton(slot)");
   }
@@ -419,7 +419,7 @@ static int __fastcall Script_ClickTargetTradeButton(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetTradeTargetItemInfo(lua_State *L) {
+static int Script_GetTradeTargetItemInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeTargetItemInfo(index)");
   }
@@ -454,7 +454,7 @@ static int __fastcall Script_GetTradeTargetItemInfo(lua_State *L) {
   return 6;
 }
 
-static int __fastcall Script_GetTradeTargetItemLink(lua_State *L) {
+static int Script_GetTradeTargetItemLink(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeTargetItemLink(index)");
   }
@@ -470,7 +470,7 @@ static int __fastcall Script_GetTradeTargetItemLink(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetTradePlayerItemInfo(lua_State *L) {
+static int Script_GetTradePlayerItemInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradePlayerItemInfo(index)");
   }
@@ -511,7 +511,7 @@ static int __fastcall Script_GetTradePlayerItemInfo(lua_State *L) {
   return 5;
 }
 
-static int __fastcall Script_GetTradePlayerItemLink(lua_State *L) {
+static int Script_GetTradePlayerItemLink(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradePlayerItemLink(index)");
   }
@@ -533,27 +533,27 @@ static int __fastcall Script_GetTradePlayerItemLink(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_AcceptTrade(lua_State *__formal) {
+static int Script_AcceptTrade(lua_State *__formal) {
   Trade_C_AcceptTrade();
   return 0;
 }
 
-static int __fastcall Script_CancelTradeAccept(lua_State *__formal) {
+static int Script_CancelTradeAccept(lua_State *__formal) {
   Trade_C_UnacceptTrade();
   return 0;
 }
 
-static int __fastcall Script_GetPlayerTradeMoney(lua_State *L) {
+static int Script_GetPlayerTradeMoney(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGTradeInfo::GetTradePartner() ? Trade_C_GetPlayerTradeGold() : 0));
   return 1;
 }
 
-static int __fastcall Script_GetTargetTradeMoney(lua_State *L) {
+static int Script_GetTargetTradeMoney(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(Trade_C_GetTargetTradeGold()));
   return 1;
 }
 
-static int __fastcall Script_PickupTradeMoney(lua_State *L) {
+static int Script_PickupTradeMoney(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: PickupTradeMoney(amount)");
   }
@@ -565,7 +565,7 @@ static int __fastcall Script_PickupTradeMoney(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_AddTradeMoney(lua_State *__formal) {
+static int Script_AddTradeMoney(lua_State *__formal) {
   if (CGGameUI::GetCursorMoney()) {
     Trade_C_AddMoney(CGGameUI::GetCursorMoney());
     CGGameUI::ClearCursor(1);
@@ -589,13 +589,13 @@ static FrameScript_Method s_ScriptFunctions[13] = {
     {         "AddTradeMoney",          Script_AddTradeMoney}
 };
 
-void __fastcall TradeInfoRegisterScriptFunctions() {
+void TradeInfoRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 13; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall TradeInfoUnregisterScriptFunctions() {
+void TradeInfoUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 13; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

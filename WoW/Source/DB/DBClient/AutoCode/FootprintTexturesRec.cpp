@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall FootprintTexturesRec::GetFilename() {
+const char *FootprintTexturesRec::GetFilename() {
   return "DBFilesClient\\FootprintTextures.dbc";
 }
 

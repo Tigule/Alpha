@@ -38,8 +38,8 @@ class CSimpleStatusBar : public CSimpleFrame {
 
   virtual void SetStatusBarColor(const NTempest::CImVector &color);
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   void SetOnValueChangedScript(const char *source) {
     char description[1024];

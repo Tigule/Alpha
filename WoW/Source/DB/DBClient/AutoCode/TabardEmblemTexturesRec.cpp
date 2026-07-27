@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall TabardEmblemTexturesRec::GetFilename() {
+const char *TabardEmblemTexturesRec::GetFilename() {
   return "DBFilesClient\\TabardEmblemTextures.dbc";
 }
 

@@ -8,16 +8,16 @@
 #include <storm.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 }
 
-void __fastcall ReadVertices(
+void ReadVertices(
     Parser &parse,
     const char *title,
     TSGrowableArray<NTempest::C3Vector> *vertices
 );
-void __fastcall WriteVertices(
+void WriteVertices(
     const TSGrowableArray<NTempest::C3Vector> &vertices,
     unsigned int title,
     TSGrowableArray<char> &buffer
@@ -537,7 +537,7 @@ static void IReadParticleEmitter2(
 
 namespace MDL {
 
-int __fastcall ReadParticleEmitter2(
+int ReadParticleEmitter2(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -884,7 +884,7 @@ static void IWriteParticleEmitter2(
 
 namespace MDL {
 
-int __fastcall WriteParticleEmitters2(
+int WriteParticleEmitters2(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -1223,7 +1223,7 @@ static int ReadBinParticleEmitter2(
 
 namespace MDL {
 
-int __fastcall WriteBinParticleEmitters2(
+int WriteBinParticleEmitters2(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status
@@ -1245,7 +1245,7 @@ int __fastcall WriteBinParticleEmitters2(
   return 1;
 }
 
-int __fastcall ReadBinParticleEmitters2(
+int ReadBinParticleEmitters2(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

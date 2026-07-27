@@ -32,31 +32,31 @@
 #include <stpl.h>
 #include <storm.h>
 
-int __fastcall    DeathHoldEventTimerHandler(const void *packetData, void *param);
-void __fastcall   SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
-HMODEL __fastcall InitializeModel(const char *fileName, void(__fastcall *callback)(const char *, const NTempest::C3Vector &, void *), void *param);
-static void __fastcall DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size);
-static void __fastcall SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
-void __fastcall SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
-void __fastcall SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
-void __fastcall UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim);
-static int __fastcall  OneShotEndHandler(void *param);
-static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
-static int __fastcall  PurgeTimerHandler(const void *timerData, void *userData);
-void __fastcall        UnitEffectOneShot(
+int DeathHoldEventTimerHandler(const void *packetData, void *param);
+void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
+HMODEL InitializeModel(const char *fileName, void(*callback)(const char *, const NTempest::C3Vector &, void *), void *param);
+static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size);
+static void SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
+void SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
+void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
+void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim);
+static int OneShotEndHandler(void *param);
+static void SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
+static int PurgeTimerHandler(const void *timerData, void *userData);
+void UnitEffectOneShot(
     const SpellVisualEffectNameRec       *effectRec,
     const NTempest::C3Vector             &location,
     const TSStackArray<unsigned __int64> *objects,
     float                           facing,
     float                           scale
 );
-void __fastcall PreloadModel(int effectID, CStatus *status);
-void __fastcall PreloadModelsByKit(int record, CStatus *status);
+void PreloadModel(int effectID, CStatus *status);
+void PreloadModelsByKit(int record, CStatus *status);
 
 static const char *s_sequenceNames[3] = {"Stand", "Hold", "Decay"};
 static const char *s_objNames[1] = {"$DTH"};
 
-HMODEL __fastcall CreateModel(const char *fileName, CStatus *status) {
+HMODEL CreateModel(const char *fileName, CStatus *status) {
   CModelCreate createData;
   createData.flags = 0x2006;
   createData.sequenceNames = s_sequenceNames;
@@ -68,7 +68,7 @@ HMODEL __fastcall CreateModel(const char *fileName, CStatus *status) {
   return ModelCreate(fileName, &createData, status);
 }
 
-void __fastcall PreloadModel(int effectID, CStatus *status) {
+void PreloadModel(int effectID, CStatus *status) {
   const SpellVisualEffectNameRec *effect = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (effect) {
     HMODEL model = CreateModel(effect->m_fileName, status);
@@ -78,7 +78,7 @@ void __fastcall PreloadModel(int effectID, CStatus *status) {
   }
 }
 
-void __fastcall PreloadModelsByKit(int record, CStatus *status) {
+void PreloadModelsByKit(int record, CStatus *status) {
   const SpellVisualKitRec *kit = g_spellVisualKitDB.GetRecord(record);
   if (!kit) {
     return;
@@ -212,7 +212,7 @@ static const GEOCOMPONENTLINKS g_attachmentPoints[12] = {
     static_cast<GEOCOMPONENTLINKS>(24), static_cast<GEOCOMPONENTLINKS>(25), static_cast<GEOCOMPONENTLINKS>(16), static_cast<GEOCOMPONENTLINKS>(15)
 };
 
-static void __fastcall SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
   ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
   unsigned int       event = *reinterpret_cast<const unsigned int *>(eventName);
 
@@ -268,7 +268,7 @@ void ONESHOTEFFECTNODE::ReleaseDeathHolds() {
   }
 }
 
-static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
   ONESHOTSTANDALONEEFFECTNODE *node = static_cast<ONESHOTSTANDALONEEFFECTNODE *>(param);
   unsigned int                 event = *reinterpret_cast<const unsigned int *>(eventName);
 
@@ -306,7 +306,7 @@ static void __fastcall SpellAreaAnimEventCallback(const char *eventName, const N
   }
 }
 
-static int __fastcall OneShotEndHandler(void *param) {
+static int OneShotEndHandler(void *param) {
   FATALASSERT(param);
 
   ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
@@ -317,7 +317,7 @@ static int __fastcall OneShotEndHandler(void *param) {
   return 0;
 }
 
-HMODEL __fastcall InitializeModel(const char *fileName, void(__fastcall *callback)(const char *, const NTempest::C3Vector &, void *), void *param) {
+HMODEL InitializeModel(const char *fileName, void(*callback)(const char *, const NTempest::C3Vector &, void *), void *param) {
   CStatus status;
   HMODEL  model = CreateModel(fileName, &status);
   if (callback) {
@@ -351,7 +351,7 @@ static void RenderModel(HMODEL__* model, const NTempest::C3Vector& position, con
   }
 }
 
-int __fastcall GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID) {
+int GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID) {
   SpellRec *spellRec = g_spellDB.GetRecord(spellID);
   if (!spellRec) {
     return 1;
@@ -370,7 +370,7 @@ static void RecycleMissileNode(MISSILENODE *node) {
   s_freeMissiles.PutData(node, 0, 0);
 }
 
-void __fastcall GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position) {
+void GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position) {
   FATALASSERT(target);
   FATALASSERT(hitLocation <= 2);
   FATALASSERT(target->GetType() & TYPE_UNIT);
@@ -509,7 +509,7 @@ static void RenderMissiles(CGCamera *camera) {
   }
 }
 
-int __fastcall DeathHoldEventTimerHandler(const void *packetData, void *param) {
+int DeathHoldEventTimerHandler(const void *packetData, void *param) {
   FATALASSERT(param);
 
   NODEBASE *node = static_cast<NODEBASE *>(param);
@@ -545,7 +545,7 @@ void ONESHOTSTANDALONEEFFECTNODE::CheckModelLoadStatus() {
   }
 }
 
-static void __fastcall DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size) {
+static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size) {
   FATALASSERT(object);
   FATALASSERT(buffer);
   FATALASSERT(size);
@@ -646,11 +646,11 @@ void MISSILENODE::CheckModelLoadStatus() {
   }
 }
 
-void __fastcall UnitEffectsInitialize() {
+void UnitEffectsInitialize() {
   s_showEffectsStandalone = CVar::Register("showEffectsStandalone", 0, 0, "1", 0, 5, false, 0);
 }
 
-void __fastcall UnitEffectsShutdown() {
+void UnitEffectsShutdown() {
   while (reinterpret_cast<long>(s_missiles.Head()) > 0) {
     MISSILENODE *node = s_missiles.Head();
     node->~MISSILENODE();
@@ -669,7 +669,7 @@ void __fastcall UnitEffectsShutdown() {
   }
 }
 
-void __fastcall UnitEffectUpdate(CGCamera *camera) {
+void UnitEffectUpdate(CGCamera *camera) {
   if (s_showEffectsStandalone->GetInt()) {
     RenderMissiles(camera);
   }
@@ -691,7 +691,7 @@ void __fastcall UnitEffectUpdate(CGCamera *camera) {
   }
 }
 
-static void __fastcall CheckReinitTimer(int current, unsigned int duration) {
+static void CheckReinitTimer(int current, unsigned int duration) {
   int triggerTime = current + duration;
   if (s_purgeTimer) {
     if (triggerTime >= s_purgeTime) {
@@ -704,7 +704,7 @@ static void __fastcall CheckReinitTimer(int current, unsigned int duration) {
   s_purgeTime = triggerTime;
 }
 
-static int __fastcall PurgeTimerHandler(const void *timerData, void *userData) {
+static int PurgeTimerHandler(const void *timerData, void *userData) {
   s_purgeTimer = 0;
 
   int                          current = static_cast<const EvtContext *>(timerData)->m_currTime;
@@ -732,7 +732,7 @@ static int __fastcall PurgeTimerHandler(const void *timerData, void *userData) {
   return 1;
 }
 
-void __fastcall UnitEffectClear(CGObject_C* object) {
+void UnitEffectClear(CGObject_C* object) {
   if (object) {
     unsigned __int64 guid = object->GetGUID();
     CHashKeyGUID key(guid);
@@ -743,7 +743,7 @@ void __fastcall UnitEffectClear(CGObject_C* object) {
   }
 }
 
-void __fastcall UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
+void UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
   if (!object) {
     return;
   }
@@ -764,23 +764,23 @@ void __fastcall UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
   }
 }
 
-int __fastcall UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber) {
+int UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber) {
   return g_specialSpellIDs[effectNumber];
 }
 
-void __fastcall SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position) {
+void SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position) {
   if (eventName && *eventName) {
     SpellVisualsPlayCameraShakeID(SStrToInt(eventName), position);
   }
 }
 
-void __fastcall SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position) {
+void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position) {
   if (eventName && *eventName) {
     SndInterfacePlaySound(SStrToInt(eventName), position, -1, 1.0f);
   }
 }
 
-void __fastcall UnitEffectOneShot(
+void UnitEffectOneShot(
     const SpellVisualEffectNameRec *effect,
     CGObject_C                     *object,
     UNITEFFECTATTACHPPOINT          attachPoint,
@@ -862,13 +862,13 @@ void __fastcall UnitEffectOneShot(
   HandleClose(objectModel);
 }
 
-GEOCOMPONENTLINKS __fastcall UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach) {
+GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach) {
   FATALASSERT(attach >= 0);
   FATALASSERT(static_cast<unsigned int>(attach) < sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0]));
   return g_attachmentPoints[attach];
 }
 
-HMODEL __fastcall UnitEffectCreateAuraModel(unsigned int effectID) {
+HMODEL UnitEffectCreateAuraModel(unsigned int effectID) {
   SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (effectRec) {
     return InitializeModel(effectRec->m_fileName, 0, 0);
@@ -878,7 +878,7 @@ HMODEL __fastcall UnitEffectCreateAuraModel(unsigned int effectID) {
   return 0;
 }
 
-void __fastcall UnitEffectOneShot(
+void UnitEffectOneShot(
     const SpellVisualEffectNameRec       *effectRec,
     const NTempest::C3Vector             &location,
     const TSStackArray<unsigned __int64> *objects,
@@ -936,7 +936,7 @@ void __fastcall UnitEffectOneShot(
   }
 }
 
-unsigned int __fastcall UnitEffectIsAuraWorldObject(unsigned int effectID, unsigned int &isWorldObj) {
+unsigned int UnitEffectIsAuraWorldObject(unsigned int effectID, unsigned int &isWorldObj) {
   SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (!effectRec) {
     return 0;
@@ -946,7 +946,7 @@ unsigned int __fastcall UnitEffectIsAuraWorldObject(unsigned int effectID, unsig
   return 1;
 }
 
-unsigned long __fastcall UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest::C3Vector &location, float facing) {
+unsigned long UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest::C3Vector &location, float facing) {
   if (!effect) {
     return 0;
   }
@@ -966,7 +966,7 @@ unsigned long __fastcall UnitEffectCreateWorldModelAura(unsigned int effect, con
   return object;
 }
 
-void __fastcall UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset) {
+void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset) {
   NTempest::C3Vector endPos;
   CGObject_C        *target = desc.target ? ClntObjMgrObjectPtr(desc.target, __FILE__, __LINE__) : 0;
   if (desc.target && !target) {
@@ -1040,7 +1040,7 @@ void __fastcall UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffs
   }
 }
 
-void __fastcall UnitEffectOneShot(
+void UnitEffectOneShot(
     UNITEFFECTSPECIALS        effectNumber,
     unsigned __int64          target,
     const NTempest::C3Vector *attachPos,
@@ -1069,7 +1069,7 @@ void __fastcall UnitEffectOneShot(
   }
 }
 
-void __fastcall UnitEffectPreloadSpellEffects(int spellID) {
+void UnitEffectPreloadSpellEffects(int spellID) {
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
     return;

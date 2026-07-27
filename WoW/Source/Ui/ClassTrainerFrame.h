@@ -40,12 +40,12 @@ enum TRAINER_TYPE {
 
 class CGClassTrainer {
  public:
-  static void __fastcall InitializeGame();
-  static void __fastcall ShutdownGame();
-  static void __fastcall EnterWorld();
-  static void __fastcall LeaveWorld();
-  static void __fastcall SetTrainer(unsigned __int64 trainerGUID, TRAINER_TYPE type);
-  static void __fastcall AddServices(
+  static void InitializeGame();
+  static void ShutdownGame();
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void SetTrainer(unsigned __int64 trainerGUID, TRAINER_TYPE type);
+  static void AddServices(
       unsigned int   count,
       int           *spellID,
       unsigned int  *moneyCost,
@@ -58,38 +58,38 @@ class CGClassTrainer {
       unsigned char  *usable,
       const char    *greeting
   );
-  static void __fastcall                SetSelection(unsigned int index);
-  static int __fastcall                 GetSelectionIndex();
-  static void __fastcall                RefreshList();
-  static void __fastcall                FilterAndSortServices();
-  static TrainerServiceInfo *__fastcall GetService(unsigned int index);
-  static int __fastcall                 GetNumServices() {
+  static void SetSelection(unsigned int index);
+  static int GetSelectionIndex();
+  static void RefreshList();
+  static void FilterAndSortServices();
+  static TrainerServiceInfo *GetService(unsigned int index);
+  static int GetNumServices() {
     return m_filteredServices;
   }
-  static const char *__fastcall  GetServiceName(unsigned int index);
-  static const char *__fastcall  GetServiceSubtext(unsigned int index);
-  static const char *__fastcall  GetServiceType(unsigned int index);
-  static unsigned int __fastcall GetNumSkillLines() {
+  static const char *GetServiceName(unsigned int index);
+  static const char *GetServiceSubtext(unsigned int index);
+  static const char *GetServiceType(unsigned int index);
+  static unsigned int GetNumSkillLines() {
     return m_numSkillLines;
   }
-  static int __fastcall GetSkillLine(unsigned int index) {
+  static int GetSkillLine(unsigned int index) {
     return index < m_numSkillLines ? m_skillLines[index]->skillLine : 0;
   }
-  static int __fastcall GetSkillLineIndexFromService(unsigned int index);
-  static int __fastcall IsCollpasedHeader(unsigned int index);
-  static int __fastcall GetServiceTypeFilter() {
+  static int GetSkillLineIndexFromService(unsigned int index);
+  static int IsCollpasedHeader(unsigned int index);
+  static int GetServiceTypeFilter() {
     return m_serviceTypeFilter;
   }
-  static int __fastcall GetSkillLineFilter() {
+  static int GetSkillLineFilter() {
     return m_skillLineFilter;
   }
-  static int __fastcall GetCollapseFilter() {
+  static int GetCollapseFilter() {
     return m_collapseFilter;
   }
-  static void __fastcall        SetServiceTypeFilter(int filter);
-  static void __fastcall        SetSkillLineFilter(int filter);
-  static void __fastcall        SetCollapseFilter(int filter);
-  static const char *__fastcall GetGreetingText() {
+  static void SetServiceTypeFilter(int filter);
+  static void SetSkillLineFilter(int filter);
+  static void SetCollapseFilter(int filter);
+  static const char *GetGreetingText() {
     return m_greetingText;
   }
 

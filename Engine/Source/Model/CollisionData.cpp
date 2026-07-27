@@ -8,12 +8,12 @@
 #include <float.h>
 #include <string.h>
 
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
 static const unsigned short vertIndices[36] = {4, 6, 0, 0, 6, 2, 4, 0, 5, 5, 0, 1, 0, 2, 1, 1, 2, 3,
                                                2, 6, 3, 3, 6, 7, 1, 3, 5, 5, 3, 7, 5, 7, 4, 4, 7, 6};
 
-int __fastcall TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts) {
+int TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts) {
   return (triVerts[0].x < bounds.b.x && triVerts[1].x < bounds.b.x && triVerts[2].x < bounds.b.x) ||
          (triVerts[0].x > bounds.t.x && triVerts[1].x > bounds.t.x && triVerts[2].x > bounds.t.x) ||
          (triVerts[0].y < bounds.b.y && triVerts[1].y < bounds.b.y && triVerts[2].y < bounds.b.y) ||
@@ -22,7 +22,7 @@ int __fastcall TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempe
          (triVerts[0].z > bounds.t.z && triVerts[1].z > bounds.t.z && triVerts[2].z > bounds.t.z);
 }
 
-void __fastcall CollisionDataAddFacets(
+void CollisionDataAddFacets(
     HCOLLISIONDATA                     handle,
     const NTempest::C34Matrix         &toWorld,
     float                              scale,
@@ -112,7 +112,7 @@ static void ComputeSurfaceNormals(CCollisionData* collide, unsigned int numSurfa
   }
 }
 
-HCOLLISIONDATA __fastcall CollisionDataCreate(const NTempest::CAaBox &bounds) {
+HCOLLISIONDATA CollisionDataCreate(const NTempest::CAaBox &bounds) {
   void           *storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", -2, 0);
   CCollisionData *collision = storage ? new (storage) CCollisionData : 0;
   if (!collision) {
@@ -147,7 +147,7 @@ HCOLLISIONDATA __fastcall CollisionDataCreate(const NTempest::CAaBox &bounds) {
   return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
 }
 
-HCOLLISIONDATA __fastcall CollisionDataCreate(const MDLDATA &data) {
+HCOLLISIONDATA CollisionDataCreate(const MDLDATA &data) {
   if (!data.collision.vertices.Count()) {
     return 0;
   }
@@ -166,16 +166,16 @@ HCOLLISIONDATA __fastcall CollisionDataCreate(const MDLDATA &data) {
   return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
 }
 
-void __fastcall ModelCustGeosetAdd(
+void ModelCustGeosetAdd(
     HMODEL                    model,
     const NTempest::C3Vector &modelSpacePosition,
-    void(__fastcall *renderCallback)(HMODEL, const NTempest::C34Matrix &, void *),
+    void(*renderCallback)(HMODEL, const NTempest::C34Matrix &, void *),
     void         *renderParam,
     unsigned int *custGeosetId
 );
-void __fastcall ModelCustGeosetRemove(HMODEL model, unsigned int custGeosetId);
+void ModelCustGeosetRemove(HMODEL model, unsigned int custGeosetId);
 
-HCOLLISIONDATA __fastcall CollisionDataCreate(unsigned char *fileData, unsigned int fileBytes) {
+HCOLLISIONDATA CollisionDataCreate(unsigned char *fileData, unsigned int fileBytes) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x44494C43);
   if (!section) {
     return 0;
@@ -225,7 +225,7 @@ HCOLLISIONDATA __fastcall CollisionDataCreate(unsigned char *fileData, unsigned 
   return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
 }
 
-void __fastcall ModelAddCollisionFacets(
+void ModelAddCollisionFacets(
     HMODEL                             model,
     const NTempest::C34Matrix         &toWorld,
     float                              scale,
@@ -238,7 +238,7 @@ void __fastcall ModelAddCollisionFacets(
   }
 }
 
-int __fastcall ModelCollisionVectorIntersect(HMODEL__* model, const NTempest::C34Matrix& basis, const NTempest::C3Vector& p0, const NTempest::C3Vector& p1, float& t) {
+int ModelCollisionVectorIntersect(HMODEL__* model, const NTempest::C34Matrix& basis, const NTempest::C3Vector& p0, const NTempest::C3Vector& p1, float& t) {
   t = FLT_MAX;
   CModelShared *shared;
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared) && shared->collision) {
@@ -247,7 +247,7 @@ int __fastcall ModelCollisionVectorIntersect(HMODEL__* model, const NTempest::C3
   return 0;
 }
 
-void __fastcall ModelShowCollision(HMODEL model, int show) {
+void ModelShowCollision(HMODEL model, int show) {
   FATALASSERT(model);
 
   CModelBase   *unique;
@@ -267,7 +267,7 @@ void __fastcall ModelShowCollision(HMODEL model, int show) {
   }
 }
 
-void __fastcall ModelShowCollisionAaBox(HMODEL model, int show) {
+void ModelShowCollisionAaBox(HMODEL model, int show) {
   FATALASSERT(model);
 
   CModelBase   *unique;
@@ -291,7 +291,7 @@ void __fastcall ModelShowCollisionAaBox(HMODEL model, int show) {
   }
 }
 
-void __fastcall ModelShowModel(HMODEL model, int show) {
+void ModelShowModel(HMODEL model, int show) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -307,7 +307,7 @@ void __fastcall ModelShowModel(HMODEL model, int show) {
   }
 }
 
-void __fastcall ModelGetCollisionExtents(HMODEL model, NTempest::CAaBox *extents) {
+void ModelGetCollisionExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelShared *shared;
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared) && shared->collision) {
     *extents = reinterpret_cast<CCollisionData *>(shared->collision)->extents;

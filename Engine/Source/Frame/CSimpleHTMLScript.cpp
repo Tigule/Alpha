@@ -18,14 +18,14 @@
   }                                                                     \
   ASSERT(object)
 
-int __fastcall CSimpleHTML_SetText(lua_State *L) {
+int CSimpleHTML_SetText(lua_State *L) {
   GET_SIMPLE_HTML_THIS(L, object);
 
   object->SetText(lua_tostring(L, 2), 0);
   return 0;
 }
 
-int __fastcall CSimpleHTML_SetTextColor(lua_State *L) {
+int CSimpleHTML_SetTextColor(lua_State *L) {
   GET_SIMPLE_HTML_THIS(L, object);
 
   float red = static_cast<float>(lua_tonumber(L, 2));
@@ -55,11 +55,11 @@ static FrameScript_Method SimpleHTMLMethods[2] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleHTML::s_scriptMethods;
 
-void __fastcall CSimpleHTML::RegisterScriptMethods() {
+void CSimpleHTML::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleHTMLMethods, 2, s_scriptMethods);
 }
 
-void __fastcall CSimpleHTML::UnregisterScriptMethods() {
+void CSimpleHTML::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

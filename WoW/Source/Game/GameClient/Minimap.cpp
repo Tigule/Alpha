@@ -338,7 +338,7 @@ static void SetupMapObj(unsigned long hWorldObject, NTempest::C44Matrix &minimap
   }
 }
 
-void __fastcall LoadMD5Names() {
+void LoadMD5Names() {
   char        md5file[260];
   char        line[260];
   char       *space;
@@ -374,7 +374,7 @@ void __fastcall LoadMD5Names() {
   SFileUnloadFile(buffer);
 }
 
-int __fastcall MinimapInitialize(int continentID) {
+int MinimapInitialize(int continentID) {
   unsigned int numPoints = 0;
 
   for (int pass = 0; pass < 2; ++pass) {
@@ -427,7 +427,7 @@ int __fastcall MinimapInitialize(int continentID) {
   return 1;
 }
 
-void __fastcall MinimapShutdown() {
+void MinimapShutdown() {
   s_currentContinent = -1;
   s_currentPosition = NTempest::C3Vector(0.0f, 0.0f, -1.0f);
   s_currentUpperLeftArea = NTempest::C2iVector(-1);
@@ -501,7 +501,7 @@ static int MinimapUpdatePosition(
   return 1;
 }
 
-int __fastcall MinimapUpdate(
+int MinimapUpdate(
     unsigned long             hWorldObject,
     unsigned int              continent,
     const NTempest::C3Vector &pos,
@@ -608,7 +608,7 @@ int __fastcall MinimapUpdate(
   return needsWork != 0;
 }
 
-void __fastcall MinimapSetZoom(unsigned int zoomFactor) {
+void MinimapSetZoom(unsigned int zoomFactor) {
   char          buf[8];
   unsigned int &zoom = s_isInside ? s_currentInsideZoom : s_currentZoom;
   unsigned int  oldZoom = zoom;
@@ -628,15 +628,15 @@ void __fastcall MinimapSetZoom(unsigned int zoomFactor) {
   }
 }
 
-unsigned int __fastcall MinimapGetZoom() {
+unsigned int MinimapGetZoom() {
   return s_isInside ? s_currentInsideZoom : s_currentZoom;
 }
 
-unsigned int __fastcall MinimapGetZoomLevels() {
+unsigned int MinimapGetZoomLevels() {
   return 6;
 }
 
-float __fastcall MinimapGetViewRadius() {
+float MinimapGetViewRadius() {
   if (s_isInside) {
     return s_minimapZoomSize[s_currentInsideZoom];
   }
@@ -644,13 +644,13 @@ float __fastcall MinimapGetViewRadius() {
   return s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f * 33.333332f;
 }
 
-TSGrowableArray<const AreaPOIRec *> &__fastcall MinimapGetPOI(int &updatePOI) {
+TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI) {
   updatePOI = s_updatePOI;
   s_updatePOI = 0;
   return s_visiblePOI;
 }
 
-int __fastcall MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData) {
+int MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData) {
   unsigned int i;
 
   if (s_updateDistantPOI) {
@@ -674,7 +674,7 @@ int __fastcall MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &direction
   return 0;
 }
 
-float __fastcall MinimapGetWorldRadius() {
+float MinimapGetWorldRadius() {
   if (s_isInside) {
     return s_minimapZoomSize[s_currentInsideZoom];
   }
@@ -683,7 +683,7 @@ float __fastcall MinimapGetWorldRadius() {
   return s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f * 33.333332f;
 }
 
-void __fastcall MinimapSetQuestPOI(float x, float y, int priority, const char *name) {
+void MinimapSetQuestPOI(float x, float y, int priority, const char *name) {
   s_questPOI.m_x = x;
   s_questPOI.m_y = y;
   s_questPOI.m_importance = priority;
@@ -691,7 +691,7 @@ void __fastcall MinimapSetQuestPOI(float x, float y, int priority, const char *n
   s_updatePOI = 1;
 }
 
-void __fastcall MinimapGetPartyMembers(PARTYMEMBERINFO *array) {
+void MinimapGetPartyMembers(PARTYMEMBERINFO *array) {
   if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     return;
   }

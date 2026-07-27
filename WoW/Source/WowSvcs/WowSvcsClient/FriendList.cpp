@@ -62,7 +62,7 @@ FriendList::FriendList() : m_friendNamesPending(0), m_selectedFriend(0), m_ignor
   memset(m_ignore, 0, sizeof(m_ignore));
 }
 
-static int __fastcall FriendListStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int FriendListStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   unsigned char result;
   unsigned __int64 guid;
   msg->Get(result);
@@ -73,7 +73,7 @@ static int __fastcall FriendListStatusHandler(void*, NETMESSAGE, unsigned long, 
   return 1;
 }
 
-static void __fastcall FriendListNameCallbackWithSort(int id, const unsigned __int64& guid, void* arg, bool granted) {
+static void FriendListNameCallbackWithSort(int id, const unsigned __int64& guid, void* arg, bool granted) {
   GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(reinterpret_cast<unsigned int>(arg));
   if (granted) {
     unsigned __int64 cacheGuid = 0;
@@ -97,7 +97,7 @@ static void __fastcall FriendListNameCallbackWithSort(int id, const unsigned __i
   }
 }
 
-static void __fastcall IgnoreListNameCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
+static void IgnoreListNameCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
   GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(reinterpret_cast<unsigned int>(arg));
   if (granted) {
     unsigned __int64 cacheGuid = 0;
@@ -123,31 +123,31 @@ static void __fastcall IgnoreListNameCallback(int id, const unsigned __int64& gu
 FriendList::~FriendList() {
 }
 
-static int __fastcall FriendListHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int FriendListHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   if (g_friendList) {
     g_friendList->AddFriends(msg);
   }
   return 1;
 }
 
-static int __fastcall CCommand_Friends(const char* command, const char* arguments) {
+static int CCommand_Friends(const char* command, const char* arguments) {
   CDataStore msg;
   msg.Put(102);
   ClientServices_Send(&msg);
   return 1;
 }
 
-static int __fastcall CCommand_AddFriend(const char* command, const char* arguments) {
+static int CCommand_AddFriend(const char* command, const char* arguments) {
   g_friendList->AddFriend(arguments);
   return 1;
 }
 
-static int __fastcall CCommand_RemoveFriend(const char* command, const char* arguments) {
+static int CCommand_RemoveFriend(const char* command, const char* arguments) {
   g_friendList->RemoveFriend(arguments);
   return 1;
 }
 
-static int __fastcall WhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int WhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   char name[256];
   msg->GetString(name, 0x7FFFFFFF);
   ConsoleWrite(name, DEFAULT_COLOR);
@@ -185,7 +185,7 @@ void FriendList::RemoveFriend(unsigned int index) {
   ClientServices_Send(&msg);
 }
 
-static int __fastcall ReverseWhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int ReverseWhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   unsigned int numAccounts = 0;
   msg->Get(numAccounts);
   if (numAccounts == static_cast<unsigned int>(-1)) {
@@ -220,7 +220,7 @@ static int __fastcall ReverseWhoisResponseHandler(void*, NETMESSAGE, unsigned lo
   return 1;
 }
 
-static int __fastcall CCommand_Whois(const char*, const char* args) {
+static int CCommand_Whois(const char*, const char* args) {
   CDataStore msg;
   msg.Put(100);
   msg.PutString(args);
@@ -228,7 +228,7 @@ static int __fastcall CCommand_Whois(const char*, const char* args) {
   return 1;
 }
 
-static int __fastcall CCommand_RWhois(const char*, const char* args) {
+static int CCommand_RWhois(const char*, const char* args) {
   CDataStore msg;
   msg.Put(494);
   msg.PutString(args);
@@ -236,12 +236,12 @@ static int __fastcall CCommand_RWhois(const char*, const char* args) {
   return 1;
 }
 
-static int __fastcall Script_GetNumFriends(lua_State *L) {
+static int Script_GetNumFriends(lua_State *L) {
   lua_pushnumber(L, g_friendList ? g_friendList->GetNumFriends() : 0);
   return 1;
 }
 
-static int __fastcall Script_GetFriendInfo(lua_State *L) {
+static int Script_GetFriendInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetFriendInfo(index)");
   }
@@ -260,7 +260,7 @@ static int __fastcall Script_GetFriendInfo(lua_State *L) {
   return 6;
 }
 
-static int __fastcall Script_SetSelectedFriend(lua_State *L) {
+static int Script_SetSelectedFriend(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SetSelectedFriend(index)");
   }
@@ -270,7 +270,7 @@ static int __fastcall Script_SetSelectedFriend(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetSelectedFriend(lua_State *L) {
+static int Script_GetSelectedFriend(lua_State *L) {
   lua_pushnumber(L, g_friendList ? g_friendList->GetFriendSelectionIndex() + 1 : 0);
   return 1;
 }
@@ -292,7 +292,7 @@ void FriendList::DelIgnore(const char *name) {
   }
 }
 
-static int __fastcall Script_AddFriend(lua_State *L) {
+static int Script_AddFriend(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: AddFriend(\"name\")");
   }
@@ -302,7 +302,7 @@ static int __fastcall Script_AddFriend(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_RemoveFriend(lua_State *L) {
+static int Script_RemoveFriend(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: RemoveFriend(index)");
   }
@@ -312,14 +312,14 @@ static int __fastcall Script_RemoveFriend(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ShowFriends(lua_State *L) {
+static int Script_ShowFriends(lua_State *L) {
   if (g_friendList) {
     g_friendList->ShowFriends();
   }
   return 0;
 }
 
-static int __fastcall Script_SendWho(lua_State *L) {
+static int Script_SendWho(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SendWho(\"filter\")");
   }
@@ -329,12 +329,12 @@ static int __fastcall Script_SendWho(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetNumIgnores(lua_State *L) {
+static int Script_GetNumIgnores(lua_State *L) {
   lua_pushnumber(L, g_friendList ? g_friendList->GetNumIgnores() : 0);
   return 1;
 }
 
-static int __fastcall Script_GetIgnoreName(lua_State *L) {
+static int Script_GetIgnoreName(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetIgnoreName(index)");
   }
@@ -347,7 +347,7 @@ static int __fastcall Script_GetIgnoreName(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetSelectedIgnore(lua_State *L) {
+static int Script_SetSelectedIgnore(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SetSelectedIgnore(index)");
   }
@@ -357,12 +357,12 @@ static int __fastcall Script_SetSelectedIgnore(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetSelectedIgnore(lua_State *L) {
+static int Script_GetSelectedIgnore(lua_State *L) {
   lua_pushnumber(L, g_friendList ? g_friendList->GetIgnoreSelectionIndex() + 1 : 0);
   return 1;
 }
 
-static int __fastcall Script_AddOrDelIgnore(lua_State *L) {
+static int Script_AddOrDelIgnore(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: AddOrDelIgnore(\"name\")");
   }
@@ -372,7 +372,7 @@ static int __fastcall Script_AddOrDelIgnore(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_AddIgnore(lua_State *L) {
+static int Script_AddIgnore(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: AddIgnore(\"name\")");
   }
@@ -382,7 +382,7 @@ static int __fastcall Script_AddIgnore(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_DelIgnore(lua_State *L) {
+static int Script_DelIgnore(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: DelIgnore(\"name\")");
   }
@@ -392,13 +392,13 @@ static int __fastcall Script_DelIgnore(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetNumWhoResults(lua_State *L) {
+static int Script_GetNumWhoResults(lua_State *L) {
   lua_pushnumber(L, s_numWhos);
   lua_pushnumber(L, s_totalNumWhos);
   return 2;
 }
 
-static int __fastcall Script_GetWhoInfo(lua_State *L) {
+static int Script_GetWhoInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetWhoInfo(index)");
   }
@@ -420,7 +420,7 @@ static int __fastcall Script_GetWhoInfo(lua_State *L) {
   return 7;
 }
 
-static int __fastcall Script_SetWhoToUI(lua_State *L) {
+static int Script_SetWhoToUI(lua_State *L) {
   s_whoToUI = lua_toboolean(L, 1);
   return 0;
 }
@@ -431,18 +431,18 @@ static int __cdecl QSortWho(const void *a, const void *b) {
   return SStrCmpI(entry1->name, entry2->name, 0x7FFFFFFF);
 }
 
-static int __fastcall Script_SortWho(lua_State *L) {
+static int Script_SortWho(lua_State *L) {
   qsort(s_whoList, s_numWhos, sizeof(WhoListEntry), QSortWho);
   return 0;
 }
 
-void __fastcall FriendList::RegisterScriptFunctions() {
+void FriendList::RegisterScriptFunctions() {
   for (int i = 0; i < 19; ++i) {
     FrameScript_RegisterFunction(s_FriendListScriptFunctions[i].name, s_FriendListScriptFunctions[i].method);
   }
 }
 
-void __fastcall FriendList::UnregisterScriptFunctions() {
+void FriendList::UnregisterScriptFunctions() {
   for (int i = 0; i < 19; ++i) {
     FrameScript_UnregisterFunction(s_FriendListScriptFunctions[i].name);
   }
@@ -468,7 +468,7 @@ static void PrintWho(const char* name, const char* guild, int level, int classID
   CGChat::AddChatMessage(line, static_cast<SLASH_COMMAND_ID>(1), 0, 0, 0, 0, 0);
 }
 
-static int __fastcall OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
   FATALASSERT(msg);
   unsigned int count;
   msg->Get(count);
@@ -506,14 +506,14 @@ static int __fastcall OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime
   return 1;
 }
 
-static int __fastcall OnIgnoreList(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int OnIgnoreList(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   if (g_friendList) {
     g_friendList->IgnoreList(msg);
   }
   return 1;
 }
 
-void __fastcall FriendList::Initialize() {
+void FriendList::Initialize() {
   if (g_friendList) {
     return;
   }
@@ -539,7 +539,7 @@ void __fastcall FriendList::Initialize() {
   }
 }
 
-void __fastcall FriendList::Destroy() {
+void FriendList::Destroy() {
   if (g_friendList) {
     ClientServices_ClearMessageHandler(SMSG_WHO);
     ClientServices_ClearMessageHandler(SMSG_WHOIS);
@@ -854,7 +854,7 @@ void FriendList::HandleStatus(FRIEND_RESULT result, unsigned __int64 guid, CData
   }
 
   bool ignoreResult = result >= FRIEND_IGNORE_ALREADY;
-  void (__fastcall *callback)(int, const unsigned __int64 &, void *, bool) =
+  void (*callback)(int, const unsigned __int64 &, void *, bool) =
       ignoreResult ? IgnoreListNameCallback : FriendListNameCallbackWithSort;
   const NameCache *name = g_nameDBCache.GetRecord(
       guid, guid, callback, reinterpret_cast<void *>(297));
@@ -868,7 +868,7 @@ void FriendList::HandleStatus(FRIEND_RESULT result, unsigned __int64 guid, CData
   }
 }
 
-char *__fastcall StripQuotes(char *string) {
+char *StripQuotes(char *string) {
   if (!string) {
     return 0;
   }

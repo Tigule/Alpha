@@ -6,7 +6,7 @@
 
 #include <storm.h>
 
-int __fastcall StringToFramePoint(const char *string, FRAMEPOINT &point) {
+int StringToFramePoint(const char *string, FRAMEPOINT &point) {
   struct FRAMEPOINTNAME {
     FRAMEPOINT  point;
     const char *name;
@@ -35,7 +35,7 @@ int __fastcall StringToFramePoint(const char *string, FRAMEPOINT &point) {
   return 0;
 }
 
-int __fastcall StringToDrawLayer(const char *string, unsigned int &drawLayer) {
+int StringToDrawLayer(const char *string, unsigned int &drawLayer) {
   struct DRAWLAYERNAME {
     unsigned int drawLayer;
     const char  *name;
@@ -60,7 +60,7 @@ int __fastcall StringToDrawLayer(const char *string, unsigned int &drawLayer) {
   return 0;
 }
 
-int __fastcall StringToBlendMode(const char *string, EGxBlend &blendMode) {
+int StringToBlendMode(const char *string, EGxBlend &blendMode) {
   struct BLENDMODENAME {
     EGxBlend    blendMode;
     const char *name;
@@ -84,7 +84,7 @@ int __fastcall StringToBlendMode(const char *string, EGxBlend &blendMode) {
   return 0;
 }
 
-int __fastcall StringToJustify(const char *string, unsigned int &justify) {
+int StringToJustify(const char *string, unsigned int &justify) {
   struct JUSTIFYNAME {
     unsigned int justify;
     const char  *name;
@@ -110,7 +110,7 @@ int __fastcall StringToJustify(const char *string, unsigned int &justify) {
   return 0;
 }
 
-int __fastcall StringToBOOL(const char *string) {
+int StringToBOOL(const char *string) {
   if (string && !SStrCmpI(string, "true", 0x7FFFFFFF)) {
     return 1;
   }
@@ -122,7 +122,7 @@ int __fastcall StringToBOOL(const char *string) {
   return 0;
 }
 
-int __fastcall LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
+int LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
   const XMLNode *child;
   const char    *attribute;
 
@@ -156,7 +156,7 @@ int __fastcall LoadXML_Value(const XMLNode *node, float &value, CStatus *status)
   return 0;
 }
 
-int __fastcall LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatus *status) {
+int LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatus *status) {
   const XMLNode *child;
   const char    *value;
 
@@ -201,7 +201,7 @@ int __fastcall LoadXML_Dimensions(const XMLNode *node, float &width, float &heig
   return 0;
 }
 
-int __fastcall LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, float &bottom, CStatus *status) {
+int LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, float &bottom, CStatus *status) {
   const XMLNode *child;
   const char    *attribute;
 
@@ -268,7 +268,7 @@ int __fastcall LoadXML_Insets(const XMLNode *node, float &left, float &right, fl
   return 0;
 }
 
-int __fastcall LoadXML_Color(const XMLNode *node, NTempest::CImVector &color, CStatus *status) {
+int LoadXML_Color(const XMLNode *node, NTempest::CImVector &color, CStatus *status) {
   const char *attribute;
   float       alpha = 1.0f;
   float       red = 0.0f;
@@ -299,7 +299,7 @@ int __fastcall LoadXML_Color(const XMLNode *node, NTempest::CImVector &color, CS
   return 1;
 }
 
-CSimpleTexture *__fastcall LoadXML_Texture(const XMLNode *node, CSimpleFrame *frame, CStatus *status) {
+CSimpleTexture *LoadXML_Texture(const XMLNode *node, CSimpleFrame *frame, CStatus *status) {
   CSimpleTexture *texture = new (ALLOC(sizeof(CSimpleTexture))) CSimpleTexture(frame, 2, 1);
 
   texture->PreLoadXML(node, status);
@@ -308,7 +308,7 @@ CSimpleTexture *__fastcall LoadXML_Texture(const XMLNode *node, CSimpleFrame *fr
   return texture;
 }
 
-CSimpleFontString *__fastcall LoadXML_String(const XMLNode *node, CSimpleFrame *frame, CStatus *status) {
+CSimpleFontString *LoadXML_String(const XMLNode *node, CSimpleFrame *frame, CStatus *status) {
   CSimpleFontString *fontString = new (ALLOC(sizeof(CSimpleFontString))) CSimpleFontString(frame, 2, 1);
 
   fontString->PreLoadXML(node, status);

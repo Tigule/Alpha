@@ -9,7 +9,7 @@
 #include <stpl.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 }
 
@@ -195,7 +195,7 @@ static void IReadParticleEmitter(
 
 namespace MDL {
 
-int __fastcall ReadParticleEmitter(
+int ReadParticleEmitter(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -330,7 +330,7 @@ static void IWriteParticleEmitter(
 
 namespace MDL {
 
-int __fastcall WriteParticleEmitters(
+int WriteParticleEmitters(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -482,7 +482,7 @@ static int ReadBinParticleEmitter(
 
 namespace MDL {
 
-int __fastcall WriteBinParticleEmitters(
+int WriteBinParticleEmitters(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status
@@ -508,7 +508,7 @@ int __fastcall WriteBinParticleEmitters(
   return 1;
 }
 
-int __fastcall ReadBinParticleEmitters(
+int ReadBinParticleEmitters(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

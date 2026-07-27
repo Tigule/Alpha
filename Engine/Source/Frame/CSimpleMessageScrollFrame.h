@@ -112,8 +112,8 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
   virtual void OnLayerUpdate(float elapsedSec);
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
  protected:
   virtual int LookupScriptMethod(lua_State *L, const char *name);

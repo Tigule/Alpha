@@ -66,12 +66,12 @@ class CGCursor {
 
 extern CGCursor *g_cursor;
 
-void __fastcall CursorInitialize();
-void __fastcall CursorDestroy();
-int __fastcall  CursorGrabSpell(HMODEL model);
-int __fastcall  CursorGrabSpell(const char *filename);
-void __fastcall CursorDropMoney();
-void __fastcall CursorDropSpell();
-void __fastcall CursorModelSetSequence(CURSORANIMATIONS sequence);
+void CursorInitialize();
+void CursorDestroy();
+int CursorGrabSpell(HMODEL model);
+int CursorGrabSpell(const char *filename);
+void CursorDropMoney();
+void CursorDropSpell();
+void CursorModelSetSequence(CURSORANIMATIONS sequence);
 
 #endif

@@ -24,8 +24,8 @@ enum CHARSET {
   CHARSET_KOREAN = 2
 };
 
-void __fastcall                 ValidateNameInitialize();
-void __fastcall                 ValidateNameDestroy();
-VALIDATE_NAME_RESULT __fastcall ValidateCharacterName(WOW_LOCALE locale, const char *name);
+void ValidateNameInitialize();
+void ValidateNameDestroy();
+VALIDATE_NAME_RESULT ValidateCharacterName(WOW_LOCALE locale, const char *name);
 
 #endif

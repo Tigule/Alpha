@@ -9,6 +9,6 @@ struct ObjDataDescriptor {
   unsigned int fieldMirrorFlags;
 };
 
-void __fastcall MirrorInitialize();
+void MirrorInitialize();
 
 #endif

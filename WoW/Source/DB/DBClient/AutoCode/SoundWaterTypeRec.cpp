@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SoundWaterTypeRec::GetFilename() {
+const char *SoundWaterTypeRec::GetFilename() {
   return "DBFilesClient\\SoundWaterType.dbc";
 }
 

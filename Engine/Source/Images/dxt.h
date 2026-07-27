@@ -80,16 +80,16 @@ struct DxtRect {
   unsigned int h;
 };
 
-inline unsigned char __fastcall Dxt3A4(unsigned int alphaBits) {
+inline unsigned char Dxt3A4(unsigned int alphaBits) {
   return static_cast<unsigned char>(alphaBits);
 }
 
-inline unsigned char __fastcall Dxt3A8(unsigned int alphaBits) {
+inline unsigned char Dxt3A8(unsigned int alphaBits) {
   return static_cast<unsigned char>(alphaBits | (alphaBits << 4));
 }
 
 template <class Pixel>
-inline void __fastcall DxtMakeTableAlpha(const DxtColorBlock &block, Pixel *table) {
+inline void DxtMakeTableAlpha(const DxtColorBlock &block, Pixel *table) {
   table[0] = block.color0;
   table[1] = block.color1;
 
@@ -114,7 +114,7 @@ inline void __fastcall DxtMakeTableAlpha(const DxtColorBlock &block, Pixel *tabl
 }
 
 template <class Pixel>
-inline void __fastcall DxtDecompress(const Dxt1Block *block, Pixel **dest, const DxtRect &rect) {
+inline void DxtDecompress(const Dxt1Block *block, Pixel **dest, const DxtRect &rect) {
   static Pixel colorTable[4];
   DxtMakeTableAlpha(block->color, colorTable);
 
@@ -132,7 +132,7 @@ inline void __fastcall DxtDecompress(const Dxt1Block *block, Pixel **dest, const
 }
 
 template <class Pixel>
-inline void __fastcall DxtDecompress(const Dxt3Block *block, Pixel **dest, const DxtRect &rect, unsigned char(__fastcall *afunc)(unsigned int)) {
+inline void DxtDecompress(const Dxt3Block *block, Pixel **dest, const DxtRect &rect, unsigned char(*afunc)(unsigned int)) {
   static Pixel colorTable[4];
   colorTable[0] = block->color.color0;
   colorTable[1] = block->color.color1;
@@ -167,14 +167,14 @@ struct MipBits {
   C4Pixel *mip[1];
 };
 
-unsigned int __fastcall GetBitDepth(unsigned int fourCC);
-unsigned int __fastcall CalcLevelSize(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC);
-unsigned int __fastcall CalcLevelOffset(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC);
-unsigned int __fastcall CalcLevelCount(unsigned int width, unsigned int height);
-unsigned int __fastcall MippedImgCalcSize(unsigned int fourCC, unsigned int width, unsigned int height);
-MipBits *__fastcall     MippedImgAllocA(unsigned int fourCC, unsigned int width, unsigned int height, const char *fileName, int lineNumber);
-void __fastcall         MippedImgSet(unsigned int fourCC, unsigned int width, unsigned int height, MipBits *bits);
-void __fastcall         FullShrink(
+unsigned int GetBitDepth(unsigned int fourCC);
+unsigned int CalcLevelSize(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC);
+unsigned int CalcLevelOffset(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC);
+unsigned int CalcLevelCount(unsigned int width, unsigned int height);
+unsigned int MippedImgCalcSize(unsigned int fourCC, unsigned int width, unsigned int height);
+MipBits *MippedImgAllocA(unsigned int fourCC, unsigned int width, unsigned int height, const char *fileName, int lineNumber);
+void MippedImgSet(unsigned int fourCC, unsigned int width, unsigned int height, MipBits *bits);
+void FullShrink(
     C4Pixel             *dest,
     unsigned int         destWidth,
     unsigned int         destHeight,

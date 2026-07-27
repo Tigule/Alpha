@@ -1,5 +1,5 @@
 struct lua_State;
-static int __fastcall Script_HasFullControl(lua_State *L);
+static int Script_HasFullControl(lua_State *L);
 
 #include <FrameScript/FrameScript.h>
 #include <Frame/CSimpleRender.h>
@@ -23,53 +23,53 @@ static int __fastcall Script_HasFullControl(lua_State *L);
 #include <storm.h>
 #include <windows.h>
 
-static int __fastcall Script_GetTime(lua_State *L);
-static int __fastcall Script_GetGameTime(lua_State *L);
-static int __fastcall Script_UnitExists(lua_State *L);
-static int __fastcall Script_UnitIsUnit(lua_State *L);
-static int __fastcall Script_UnitIsPlayer(lua_State *L);
-static int __fastcall Script_UnitIsPartyLeader(lua_State *L);
-static int __fastcall Script_UnitInParty(lua_State *L);
-static int __fastcall Script_UnitReaction(lua_State *L);
-static int __fastcall Script_UnitIsEnemy(lua_State *L);
-static int __fastcall Script_UnitIsFriend(lua_State *L);
-static int __fastcall Script_UnitCanCooperate(lua_State *L);
-static int __fastcall Script_UnitIsCharmed(lua_State *L);
-static int __fastcall Script_UnitIsPlusMob(lua_State *L);
-static int __fastcall Script_UnitName(lua_State *L);
-static int __fastcall Script_UnitXP(lua_State *L);
-static int __fastcall Script_UnitXPMax(lua_State *L);
-static int __fastcall Script_UnitHealth(lua_State *L);
-static int __fastcall Script_UnitHealthMax(lua_State *L);
-static int __fastcall Script_UnitMana(lua_State *L);
-static int __fastcall Script_UnitManaMax(lua_State *L);
-static int __fastcall Script_UnitPowerType(lua_State *L);
-static int __fastcall Script_UnitIsDead(lua_State *L);
-static int __fastcall Script_UnitIsConnected(lua_State *L);
-static int __fastcall Script_UnitSex(lua_State *L);
-static int __fastcall Script_UnitLevel(lua_State *L);
-static int __fastcall Script_UnitMoney(lua_State *L);
-static int __fastcall Script_UnitRace(lua_State *L);
-static int __fastcall Script_UnitClass(lua_State *L);
-static int __fastcall Script_UnitResistance(lua_State *L);
-static int __fastcall Script_UnitStat(lua_State *L);
-static int __fastcall Script_UnitAttackBothHands(lua_State *L);
-static int __fastcall Script_UnitDamage(lua_State *L);
-static int __fastcall Script_UnitAttackSpeed(lua_State *L);
-static int __fastcall Script_UnitDefense(lua_State *L);
-static int __fastcall Script_UnitArmor(lua_State *L);
-static int __fastcall Script_UnitCharacterPoints(lua_State *L);
-static int __fastcall Script_SetPortraitTexture(lua_State *L);
-static int __fastcall Script_GetComboPoints(lua_State *L);
-static int __fastcall Script_IsInGuild(lua_State *L);
+static int Script_GetTime(lua_State *L);
+static int Script_GetGameTime(lua_State *L);
+static int Script_UnitExists(lua_State *L);
+static int Script_UnitIsUnit(lua_State *L);
+static int Script_UnitIsPlayer(lua_State *L);
+static int Script_UnitIsPartyLeader(lua_State *L);
+static int Script_UnitInParty(lua_State *L);
+static int Script_UnitReaction(lua_State *L);
+static int Script_UnitIsEnemy(lua_State *L);
+static int Script_UnitIsFriend(lua_State *L);
+static int Script_UnitCanCooperate(lua_State *L);
+static int Script_UnitIsCharmed(lua_State *L);
+static int Script_UnitIsPlusMob(lua_State *L);
+static int Script_UnitName(lua_State *L);
+static int Script_UnitXP(lua_State *L);
+static int Script_UnitXPMax(lua_State *L);
+static int Script_UnitHealth(lua_State *L);
+static int Script_UnitHealthMax(lua_State *L);
+static int Script_UnitMana(lua_State *L);
+static int Script_UnitManaMax(lua_State *L);
+static int Script_UnitPowerType(lua_State *L);
+static int Script_UnitIsDead(lua_State *L);
+static int Script_UnitIsConnected(lua_State *L);
+static int Script_UnitSex(lua_State *L);
+static int Script_UnitLevel(lua_State *L);
+static int Script_UnitMoney(lua_State *L);
+static int Script_UnitRace(lua_State *L);
+static int Script_UnitClass(lua_State *L);
+static int Script_UnitResistance(lua_State *L);
+static int Script_UnitStat(lua_State *L);
+static int Script_UnitAttackBothHands(lua_State *L);
+static int Script_UnitDamage(lua_State *L);
+static int Script_UnitAttackSpeed(lua_State *L);
+static int Script_UnitDefense(lua_State *L);
+static int Script_UnitArmor(lua_State *L);
+static int Script_UnitCharacterPoints(lua_State *L);
+static int Script_SetPortraitTexture(lua_State *L);
+static int Script_GetComboPoints(lua_State *L);
+static int Script_IsInGuild(lua_State *L);
 
 static char  s_unitNameArray[4][32];
 static char *s_unitNames[4] = {s_unitNameArray[0], s_unitNameArray[1], s_unitNameArray[2], s_unitNameArray[3]};
 
-CGUnit_C *__fastcall        Script_GetUnitFromName(const char *name);
-unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
-void __fastcall             SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit);
-void __fastcall             SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int sex, unsigned __int64 guid);
+CGUnit_C *Script_GetUnitFromName(const char *name);
+unsigned __int64 Script_GetGUIDFromName(const char *name);
+void SetPortraitTexture(CSimpleTexture *texture, CGUnit_C *unit);
+void SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int sex, unsigned __int64 guid);
 
 class ScriptPartyInfoAccess : public CGPartyInfo {
  public:
@@ -77,7 +77,7 @@ class ScriptPartyInfoAccess : public CGPartyInfo {
   using CGPartyInfo::m_members;
 };
 
-CGUnit_C *__fastcall Script_GetUnitFromName(const char *name) {
+CGUnit_C *Script_GetUnitFromName(const char *name) {
   unsigned __int64 guid;
   CGObject_C      *object;
   CGUnit_C        *player;
@@ -111,7 +111,7 @@ CGUnit_C *__fastcall Script_GetUnitFromName(const char *name) {
   return object && (object->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
 }
 
-CGObject_C *__fastcall Script_GetObjectFromName(const char *name) {
+CGObject_C *Script_GetObjectFromName(const char *name) {
   unsigned __int64 guid = ClntObjMgrGetActivePlayer();
   CGObject_C      *playerObject = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   CGUnit_C        *player =
@@ -144,7 +144,7 @@ CGObject_C *__fastcall Script_GetObjectFromName(const char *name) {
   return ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
 }
 
-unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name) {
+unsigned __int64 Script_GetGUIDFromName(const char *name) {
   CGUnit_C        *unit = Script_GetUnitFromName(name);
   unsigned __int64 guid;
   CGObject_C      *object;
@@ -181,7 +181,7 @@ unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name) {
   return 0;
 }
 
-char **__fastcall Script_GetNamesFromGUID(const unsigned __int64 &guid, int &numnames) {
+char **Script_GetNamesFromGUID(const unsigned __int64 &guid, int &numnames) {
   numnames = 0;
   if (!guid) {
     return 0;
@@ -223,7 +223,7 @@ char **__fastcall Script_GetNamesFromGUID(const unsigned __int64 &guid, int &num
   return s_unitNames;
 }
 
-void __fastcall Script_SendUnitSignal(const unsigned __int64 &guid, int signal) {
+void Script_SendUnitSignal(const unsigned __int64 &guid, int signal) {
   int    numnames;
   char **names = Script_GetNamesFromGUID(guid, numnames);
   for (int index = 0; index < numnames; ++index) {
@@ -300,19 +300,19 @@ static int PlayerXPUpdateHandler(unsigned __int64 guid, unsigned int offset, uns
   return 1;
 }
 
-static int __fastcall Script_GetTime(lua_State *L) {
+static int Script_GetTime(lua_State *L) {
   double currentTime = static_cast<double>(OsGetAsyncTimeMs()) * 0.001;
   lua_pushnumber(L, currentTime);
   return 1;
 }
 
-static int __fastcall Script_GetGameTime(lua_State *L) {
+static int Script_GetGameTime(lua_State *L) {
   lua_pushnumber(L, g_clientGameTime.m_hour);
   lua_pushnumber(L, g_clientGameTime.m_minute);
   return 2;
 }
 
-static void __fastcall PushBoolean(lua_State *L, int value) {
+static void PushBoolean(lua_State *L, int value) {
   if (value) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -320,11 +320,11 @@ static void __fastcall PushBoolean(lua_State *L, int value) {
   }
 }
 
-static CGUnit_C *__fastcall GetScriptUnit(lua_State *L, int index) {
+static CGUnit_C *GetScriptUnit(lua_State *L, int index) {
   return Script_GetUnitFromName(lua_tostring(L, index));
 }
 
-static int __fastcall Script_UnitExists(lua_State *L) {
+static int Script_UnitExists(lua_State *L) {
   unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   CGObject_C      *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
 
@@ -332,7 +332,7 @@ static int __fastcall Script_UnitExists(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitIsUnit(lua_State *L) {
+static int Script_UnitIsUnit(lua_State *L) {
   if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
     luaL_error(L, "Usage: UnitIsUnit(\"unit\", \"otherUnit\")");
   }
@@ -341,7 +341,7 @@ static int __fastcall Script_UnitIsUnit(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitIsPlayer(lua_State *L) {
+static int Script_UnitIsPlayer(lua_State *L) {
   unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   CGObject_C      *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
 
@@ -349,18 +349,18 @@ static int __fastcall Script_UnitIsPlayer(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitIsPartyLeader(lua_State *L) {
+static int Script_UnitIsPartyLeader(lua_State *L) {
   PushBoolean(L, Script_GetGUIDFromName(lua_tostring(L, 1)) == ScriptPartyInfoAccess::m_leader);
   return 1;
 }
 
-static int __fastcall Script_UnitInParty(lua_State *L) {
+static int Script_UnitInParty(lua_State *L) {
   unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   PushBoolean(L, CGPartyInfo::IsMember(guid));
   return 1;
 }
 
-static int __fastcall Script_UnitReaction(lua_State *L) {
+static int Script_UnitReaction(lua_State *L) {
   CGUnit_C *unit;
   CGUnit_C *otherUnit;
 
@@ -378,7 +378,7 @@ static int __fastcall Script_UnitReaction(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitIsEnemy(lua_State *L) {
+static int Script_UnitIsEnemy(lua_State *L) {
   CGUnit_C *unit;
   CGUnit_C *otherUnit;
 
@@ -392,7 +392,7 @@ static int __fastcall Script_UnitIsEnemy(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitIsFriend(lua_State *L) {
+static int Script_UnitIsFriend(lua_State *L) {
   const char      *name1;
   const char      *name2;
   unsigned __int64 unitGUID;
@@ -417,7 +417,7 @@ static int __fastcall Script_UnitIsFriend(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitCanCooperate(lua_State *L) {
+static int Script_UnitCanCooperate(lua_State *L) {
   CGUnit_C *unit;
   CGUnit_C *otherUnit;
 
@@ -431,32 +431,32 @@ static int __fastcall Script_UnitCanCooperate(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitIsCharmed(lua_State *L) {
+static int Script_UnitIsCharmed(lua_State *L) {
   CGUnit_C *unit = GetScriptUnit(L, 1);
   PushBoolean(L, unit && unit->GetUnitData()->charmedBy != 0);
   return 1;
 }
 
-static int __fastcall Script_UnitIsPlusMob(lua_State *L) {
+static int Script_UnitIsPlusMob(lua_State *L) {
   CGUnit_C *unit = GetScriptUnit(L, 1);
   PushBoolean(L, unit && (unit->GetUnitData()->flags & 0x40) != 0);
   return 1;
 }
 
-static int __fastcall Script_IsInGuild(lua_State *L) {
+static int Script_IsInGuild(lua_State *L) {
   CGUnit_C            *player = Script_GetUnitFromName("player");
   const unsigned long *playerData = player ? player->GetStorage() : 0;
   PushBoolean(L, playerData && playerData[145] != 0);
   return 1;
 }
 
-static void __fastcall NameQueryCallback(int, const unsigned __int64 &guid, void *, bool granted) {
+static void NameQueryCallback(int, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     CGGameUI::UnitNameUpdate(guid);
   }
 }
 
-static int __fastcall Script_UnitName(lua_State *L) {
+static int Script_UnitName(lua_State *L) {
   unsigned __int64 guid;
   CGUnit_C        *unit;
   const NameCache *name;
@@ -476,7 +476,7 @@ static int __fastcall Script_UnitName(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitXP(lua_State *L) {
+static int Script_UnitXP(lua_State *L) {
   CGUnit_C            *unit;
   const unsigned long *data;
 
@@ -489,7 +489,7 @@ static int __fastcall Script_UnitXP(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitXPMax(lua_State *L) {
+static int Script_UnitXPMax(lua_State *L) {
   CGUnit_C            *unit;
   const unsigned long *data;
 
@@ -502,7 +502,7 @@ static int __fastcall Script_UnitXPMax(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitHealth(lua_State *L) {
+static int Script_UnitHealth(lua_State *L) {
   CGUnit_C *unit;
 
   if (!lua_isstring(L, 1)) {
@@ -513,7 +513,7 @@ static int __fastcall Script_UnitHealth(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitHealthMax(lua_State *L) {
+static int Script_UnitHealthMax(lua_State *L) {
   CGUnit_C *unit;
 
   if (!lua_isstring(L, 1)) {
@@ -524,11 +524,11 @@ static int __fastcall Script_UnitHealthMax(lua_State *L) {
   return 1;
 }
 
-static unsigned int __fastcall PowerDisplayMod(unsigned int powerType) {
+static unsigned int PowerDisplayMod(unsigned int powerType) {
   return powerType == 1 ? 10 : 1;
 }
 
-static int __fastcall Script_UnitMana(lua_State *L) {
+static int Script_UnitMana(lua_State *L) {
   CGUnit_C    *unit;
   unsigned int powerType;
 
@@ -541,7 +541,7 @@ static int __fastcall Script_UnitMana(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitManaMax(lua_State *L) {
+static int Script_UnitManaMax(lua_State *L) {
   CGUnit_C    *unit;
   unsigned int powerType;
 
@@ -554,7 +554,7 @@ static int __fastcall Script_UnitManaMax(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitPowerType(lua_State *L) {
+static int Script_UnitPowerType(lua_State *L) {
   CGUnit_C *unit;
 
   if (!lua_isstring(L, 1)) {
@@ -565,7 +565,7 @@ static int __fastcall Script_UnitPowerType(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitIsDead(lua_State *L) {
+static int Script_UnitIsDead(lua_State *L) {
   CGUnit_C *unit;
 
   if (!lua_isstring(L, 1)) {
@@ -576,7 +576,7 @@ static int __fastcall Script_UnitIsDead(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitIsConnected(lua_State *L) {
+static int Script_UnitIsConnected(lua_State *L) {
   CGUnit_C *unit;
 
   if (!lua_isstring(L, 1)) {
@@ -587,7 +587,7 @@ static int __fastcall Script_UnitIsConnected(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitSex(lua_State *L) {
+static int Script_UnitSex(lua_State *L) {
   CGUnit_C *unit;
 
   if (!lua_isstring(L, 1)) {
@@ -602,7 +602,7 @@ static int __fastcall Script_UnitSex(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitLevel(lua_State *L) {
+static int Script_UnitLevel(lua_State *L) {
   unsigned __int64 guid;
   CGUnit_C        *unit;
 
@@ -622,7 +622,7 @@ static int __fastcall Script_UnitLevel(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitMoney(lua_State *L) {
+static int Script_UnitMoney(lua_State *L) {
   CGUnit_C *unit;
 
   if (!lua_isstring(L, 1)) {
@@ -633,7 +633,7 @@ static int __fastcall Script_UnitMoney(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitRace(lua_State *L) {
+static int Script_UnitRace(lua_State *L) {
   CGUnit_C          *unit;
   const ChrRacesRec *race;
 
@@ -650,7 +650,7 @@ static int __fastcall Script_UnitRace(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitClass(lua_State *L) {
+static int Script_UnitClass(lua_State *L) {
   CGUnit_C            *unit;
   const ChrClassesRec *unitClass;
 
@@ -667,7 +667,7 @@ static int __fastcall Script_UnitClass(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UnitResistance(lua_State *L) {
+static int Script_UnitResistance(lua_State *L) {
   unsigned int resistance;
   CGUnit_C    *unit;
   int          r = 0;
@@ -696,7 +696,7 @@ static int __fastcall Script_UnitResistance(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_UnitStat(lua_State *L) {
+static int Script_UnitStat(lua_State *L) {
   unsigned int stat;
   CGUnit_C    *unit;
   int          base = 0;
@@ -719,7 +719,7 @@ static int __fastcall Script_UnitStat(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_UnitAttackBothHands(lua_State *L) {
+static int Script_UnitAttackBothHands(lua_State *L) {
   CGUnit_C    *unit;
   int          base[2] = {0, 0};
   int          modifier[2] = {0, 0};
@@ -741,7 +741,7 @@ static int __fastcall Script_UnitAttackBothHands(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_UnitDamage(lua_State *L) {
+static int Script_UnitDamage(lua_State *L) {
   CGUnit_C    *unit;
   unsigned int i;
 
@@ -757,7 +757,7 @@ static int __fastcall Script_UnitDamage(lua_State *L) {
   return 8;
 }
 
-static int __fastcall Script_UnitAttackSpeed(lua_State *L) {
+static int Script_UnitAttackSpeed(lua_State *L) {
   CGUnit_C *unit;
   CGItem_C *offhand = 0;
 
@@ -782,7 +782,7 @@ static int __fastcall Script_UnitAttackSpeed(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_UnitDefense(lua_State *L) {
+static int Script_UnitDefense(lua_State *L) {
   CGUnit_C *unit;
   int       base = 0;
   int       modifier = 0;
@@ -799,7 +799,7 @@ static int __fastcall Script_UnitDefense(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_UnitArmor(lua_State *L) {
+static int Script_UnitArmor(lua_State *L) {
   CGUnit_C    *unit;
   unsigned int resistance = GetPhysicalDamageClassID();
   int          r = 0;
@@ -824,7 +824,7 @@ static int __fastcall Script_UnitArmor(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_UnitCharacterPoints(lua_State *L) {
+static int Script_UnitCharacterPoints(lua_State *L) {
   CGUnit_C            *unit;
   const unsigned long *data;
 
@@ -838,13 +838,13 @@ static int __fastcall Script_UnitCharacterPoints(lua_State *L) {
   return 2;
 }
 
-static void __fastcall PortraitQueryCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void PortraitQueryCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(181);
   }
 }
 
-static int __fastcall Script_SetPortraitTexture(lua_State *L) {
+static int Script_SetPortraitTexture(lua_State *L) {
   CSimpleTexture  *texture = 0;
   unsigned __int64 guid;
   CGUnit_C        *unit;
@@ -872,13 +872,13 @@ static int __fastcall Script_SetPortraitTexture(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_HasFullControl(lua_State *L) {
+static int Script_HasFullControl(lua_State *L) {
   CGUnit_C *player = Script_GetUnitFromName("player");
   PushBoolean(L, player && !(player->GetUnitData()->flags & 0x100000) && player->GetUnitData()->health > 0 && CGGameUI::m_hasControl);
   return 1;
 }
 
-static int __fastcall Script_GetComboPoints(lua_State *L) {
+static int Script_GetComboPoints(lua_State *L) {
   CGUnit_C *player = Script_GetUnitFromName("player");
   if (player && player->GetUnitData()->comboTarget == CGGameUI::GetLockedTarget()) {
     lua_pushnumber(L, player->GetUnitData()->comboPoints);
@@ -890,7 +890,7 @@ static int __fastcall Script_GetComboPoints(lua_State *L) {
 
 const char *g_scriptEvents[0x177];
 
-void __fastcall ScriptEventsInitialize() {
+void ScriptEventsInitialize() {
   g_scriptEvents[136] = "UNIT_RESISTANCE";
   g_scriptEvents[137] = "UNIT_RESISTANCE";
   g_scriptEvents[138] = "UNIT_RESISTANCE";
@@ -1144,7 +1144,7 @@ void __fastcall ScriptEventsInitialize() {
   g_scriptEvents[374] = "PETITION_CLOSED";
 }
 
-void __fastcall ScriptEventsRegisterFunctions() {
+void ScriptEventsRegisterFunctions() {
   unsigned int i;
 
   for (i = 0; i < sizeof(s_SystemFunctions) / sizeof(s_SystemFunctions[0]); ++i) {
@@ -1156,7 +1156,7 @@ void __fastcall ScriptEventsRegisterFunctions() {
   }
 }
 
-void __fastcall ScriptEventsUnregisterFunctions() {
+void ScriptEventsUnregisterFunctions() {
   unsigned int i;
 
   for (i = 0; i < sizeof(s_SystemFunctions) / sizeof(s_SystemFunctions[0]); ++i) {
@@ -1168,7 +1168,7 @@ void __fastcall ScriptEventsUnregisterFunctions() {
   }
 }
 
-void __fastcall ScriptEventsRegisterUnit(CGUnit_C* unit) {
+void ScriptEventsRegisterUnit(CGUnit_C* unit) {
   if (!unit) {
     return;
   }
@@ -1216,7 +1216,7 @@ void __fastcall ScriptEventsRegisterUnit(CGUnit_C* unit) {
   }
 }
 
-void __fastcall ScriptEventsUnregisterUnit(CGUnit_C* unit) {
+void ScriptEventsUnregisterUnit(CGUnit_C* unit) {
   if (!unit) {
     return;
   }

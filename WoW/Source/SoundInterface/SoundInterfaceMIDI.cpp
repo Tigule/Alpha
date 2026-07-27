@@ -9,7 +9,7 @@ static AreaMIDIAmbiencesRec *s_ambienceRecUnderwater;
 static bool                  s_paused;
 static float                 s_volume = 1.0f;
 
-static bool __fastcall AmbienceVolumeHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
+static bool AmbienceVolumeHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
   s_volume = SStrToFloat(newValue);
   SndInterfaceWaterUpdateVolume(s_volume);
   Sound::MIDI_SetVolume(s_volume);
@@ -31,7 +31,7 @@ static bool __fastcall AmbienceVolumeHandler(CVar *cvar, const char *oldValue, c
   return true;
 }
 
-static bool __fastcall EnableAmbienceHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
+static bool EnableAmbienceHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
   unsigned int enabled = SStrToInt(newValue);
   CVar        *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
   if (masterSoundEffects && !masterSoundEffects->m_intValue) {
@@ -43,23 +43,23 @@ static bool __fastcall EnableAmbienceHandler(CVar *cvar, const char *oldValue, c
   return true;
 }
 
-void __fastcall SoundInterfaceInitializeWorldMIDICVars() {
+void SoundInterfaceInitializeWorldMIDICVars() {
   CVar::Register("AmbienceVolume", "ambience volume (0.0 to 1.0)", 0, "1.0", AmbienceVolumeHandler, SOUND, false, 0);
   CVar::Register("EnableAmbience", "MIDI ambience", 0, "1", EnableAmbienceHandler, SOUND, false, 0);
 }
 
-void __fastcall SoundInterfaceInitializeWorldMIDI() {
+void SoundInterfaceInitializeWorldMIDI() {
   SoundInterfaceInitializeWorldMIDICVars();
   Sound::MIDI_Initialize();
   s_ambienceRecNormal = 0;
   s_ambienceRecUnderwater = 0;
 }
 
-void __fastcall SoundInterfaceShutdownWorldMIDI() {
+void SoundInterfaceShutdownWorldMIDI() {
   Sound::MIDI_Shutdown();
 }
 
-static void __fastcall StartAmbience() {
+static void StartAmbience() {
   Sound::MIDI_Stop();
 
   AreaMIDIAmbiencesRec *ambienceRec = g_underWater ? s_ambienceRecUnderwater : s_ambienceRecNormal;
@@ -71,7 +71,7 @@ static void __fastcall StartAmbience() {
   }
 }
 
-void __fastcall SndInterfaceSetMIDIArea(int normal, int underwater) {
+void SndInterfaceSetMIDIArea(int normal, int underwater) {
   AreaMIDIAmbiencesRec *normalRec = g_areaMIDIAmbiencesDB.GetRecord(normal);
   AreaMIDIAmbiencesRec *underwaterRec = g_areaMIDIAmbiencesDB.GetRecord(underwater);
 
@@ -92,21 +92,21 @@ void __fastcall SndInterfaceSetMIDIArea(int normal, int underwater) {
   StartAmbience();
 }
 
-void __fastcall SndInterfaceClearMIDI() {
+void SndInterfaceClearMIDI() {
   s_ambienceRecNormal = 0;
   s_ambienceRecUnderwater = 0;
   Sound::MIDI_Stop();
 }
 
-void __fastcall SndInterfaceMIDIAmbienceChanged() {
+void SndInterfaceMIDIAmbienceChanged() {
   StartAmbience();
 }
 
-void __fastcall SndInterfaceMIDIUnderwaterChanged() {
+void SndInterfaceMIDIUnderwaterChanged() {
   StartAmbience();
 }
 
-void __fastcall SndInterfaceMIDISetPaused(bool paused) {
+void SndInterfaceMIDISetPaused(bool paused) {
   s_paused = paused;
   if (paused) {
     Sound::MIDI_Stop();

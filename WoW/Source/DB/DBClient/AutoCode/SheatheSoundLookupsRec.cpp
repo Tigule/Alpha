@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SheatheSoundLookupsRec::GetFilename() {
+const char *SheatheSoundLookupsRec::GetFilename() {
   return "DBFilesClient\\SheatheSoundLookups.dbc";
 }
 

@@ -8,16 +8,16 @@
 #include <new>
 #include <typeinfo>
 
-static void *__fastcall FreeTypeAllocFunction(FT_Memory memory, long size) {
+static void *FreeTypeAllocFunction(FT_Memory memory, long size) {
   ASSERT(size > 0);
   return ALLOC(size);
 }
 
-static void __fastcall FreeTypeFreeFunction(FT_Memory memory, void *block) {
+static void FreeTypeFreeFunction(FT_Memory memory, void *block) {
   FREEIFUSED(block);
 }
 
-static void *__fastcall FreeTypeReallocFunction(FT_Memory memory, long currentSize, long newSize, void *block) {
+static void *FreeTypeReallocFunction(FT_Memory memory, long currentSize, long newSize, void *block) {
   ASSERT(newSize > 0);
   return SMemReAlloc(block, newSize, __FILE__, __LINE__, 0);
 }
@@ -30,19 +30,19 @@ static float                                              s_pixelWidth;
 static CGxStringBatch                                     s_stringBatch;
 static FT_MemoryRec_ s_GxuMemoryRecord = {0, FreeTypeAllocFunction, FreeTypeFreeFunction, FreeTypeReallocFunction};
 
-float __fastcall SignOf(float value) {
+float SignOf(float value) {
   return value >= 0.0f ? 1.0f : -1.0f;
 }
-FT_LibraryRec_ *__fastcall GetFreeTypeLibrary() {
+FT_LibraryRec_ *GetFreeTypeLibrary() {
   return s_FTLibrary;
 }
-unsigned int __fastcall GetScreenPixelHeight() {
+unsigned int GetScreenPixelHeight() {
   return g_heightPixels;
 }
-unsigned int __fastcall GetScreenPixelWidth() {
+unsigned int GetScreenPixelWidth() {
   return g_widthPixels;
 }
-float __fastcall ScreenToPixelHeight(int billboarded, float height) {
+float ScreenToPixelHeight(int billboarded, float height) {
   float pixelCoords;
 
   if (billboarded) {
@@ -52,7 +52,7 @@ float __fastcall ScreenToPixelHeight(int billboarded, float height) {
   pixelCoords = g_heightPixels * height;
   return static_cast<float>(static_cast<int>(pixelCoords + SignOf(pixelCoords) * 0.5f));
 }
-float __fastcall ScreenToPixelWidth(int billboarded, float width) {
+float ScreenToPixelWidth(int billboarded, float width) {
   float pixelCoords;
 
   if (billboarded) {
@@ -62,7 +62,7 @@ float __fastcall ScreenToPixelWidth(int billboarded, float width) {
   pixelCoords = g_widthPixels * width;
   return static_cast<float>(static_cast<int>(pixelCoords + SignOf(pixelCoords) * 0.5f));
 }
-void __fastcall GxuFontWindowSizeChanged() {
+void GxuFontWindowSizeChanged() {
   static NTempest::CRect s_currentRect;
   NTempest::CRect        rect;
   CGxFont               *font;
@@ -89,7 +89,7 @@ void __fastcall GxuFontWindowSizeChanged() {
     font->HandleScreenSizeChange();
   }
 }
-void __fastcall GxuFontInitialize() {
+void GxuFontInitialize() {
   FT_Error error = FT_New_Library(&s_GxuMemoryRecord, &s_FTLibrary);
 
   FT_Add_Default_Modules(s_FTLibrary);
@@ -98,7 +98,7 @@ void __fastcall GxuFontInitialize() {
   GxuFontWindowSizeChanged();
   IGxuStringInitialize();
 }
-void __fastcall GxuFontShutdown() {
+void GxuFontShutdown() {
   IGxuStringShutdown();
   g_strings.Clear();
   s_fonts.Clear();
@@ -113,7 +113,7 @@ void __fastcall GxuFontShutdown() {
   s_FTLibrary = 0;
 }
 
-int __fastcall GxuFontCreateFont(const char *name, float fontHeight, CGxFont *&face, unsigned int flags) {
+int GxuFontCreateFont(const char *name, float fontHeight, CGxFont *&face, unsigned int flags) {
   CGxFont *newFace;
   int      result;
 
@@ -146,13 +146,13 @@ int __fastcall GxuFontCreateFont(const char *name, float fontHeight, CGxFont *&f
   face = newFace;
   return result;
 }
-const char *__fastcall GxuFontGetFontName(CGxFont *fontName) {
+const char *GxuFontGetFontName(CGxFont *fontName) {
   return fontName ? fontName->GetName() : 0;
 }
-unsigned int __fastcall GxuFontGetFontFlags(CGxFont *fontName) {
+unsigned int GxuFontGetFontFlags(CGxFont *fontName) {
   return fontName ? fontName->m_flags : 0;
 }
-void __fastcall GxuFontDestroyFont(CGxFont *&face) {
+void GxuFontDestroyFont(CGxFont *&face) {
   CGxFont *oldFace = face;
 
   if (oldFace) {
@@ -161,7 +161,7 @@ void __fastcall GxuFontDestroyFont(CGxFont *&face) {
   }
   face = 0;
 }
-int __fastcall GxuFontCreateString(
+int GxuFontCreateString(
     CGxFont                   *face,
     const char                *text,
     float                      fontHeight,
@@ -210,14 +210,14 @@ int __fastcall GxuFontCreateString(
   string = newString;
   return result;
 }
-void __fastcall GxuFontDestroyString(CGxString *&string) {
+void GxuFontDestroyString(CGxString *&string) {
   if (string) {
     string->m_link.Unlink();
     string->Recycle();
     string = 0;
   }
 }
-int __fastcall GxuFontRenderString(
+int GxuFontRenderString(
     CGxFont                  *font,
     const char               *text,
     float                     textHeight,
@@ -252,20 +252,20 @@ int __fastcall GxuFontRenderString(
   }
   return result;
 }
-void __fastcall GxuFontRender(CGxString *string) {
+void GxuFontRender(CGxString *string) {
   if (string) {
     string->Render();
   }
 }
-void __fastcall GxuFontRender(CGxString *string, const NTempest::C44Matrix &xform) {
+void GxuFontRender(CGxString *string, const NTempest::C44Matrix &xform) {
   if (string) {
     string->Render(xform);
   }
 }
-float __fastcall GxuFontGetStringHeight(CGxString *string) {
+float GxuFontGetStringHeight(CGxString *string) {
   return string ? string->m_stringHeight : 0.0f;
 }
-CGxStringBatch *__fastcall GxuFontCreateBatch() {
+CGxStringBatch *GxuFontCreateBatch() {
   CGxStringBatch *batch = s_unusedBatches.Head();
 
   if (batch) {
@@ -276,35 +276,35 @@ CGxStringBatch *__fastcall GxuFontCreateBatch() {
 
   return batch;
 }
-int __fastcall GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string) {
+int GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string) {
   if (!batch || !string) {
     return 0;
   }
   batch->AddString(string);
   return 1;
 }
-int __fastcall GxuFontRemoveFromBatch(CGxString *string) {
+int GxuFontRemoveFromBatch(CGxString *string) {
   if (!string) {
     return 0;
   }
   string->m_batchedStringLink.Unlink();
   return 1;
 }
-int __fastcall GxuFontRenderBatch(CGxStringBatch *batch) {
+int GxuFontRenderBatch(CGxStringBatch *batch) {
   if (!batch) {
     return 0;
   }
   batch->RenderBatch();
   return 1;
 }
-int __fastcall GxuFontClearBatch(CGxStringBatch *batch) {
+int GxuFontClearBatch(CGxStringBatch *batch) {
   if (!batch) {
     return 0;
   }
   batch->Clear();
   return 1;
 }
-int __fastcall GxuFontDestroyBatch(CGxStringBatch *batch) {
+int GxuFontDestroyBatch(CGxStringBatch *batch) {
   if (!batch) {
     return 0;
   }
@@ -312,22 +312,22 @@ int __fastcall GxuFontDestroyBatch(CGxStringBatch *batch) {
   s_unusedBatches.LinkNode(batch, LIST_TAIL, 0);
   return 1;
 }
-int __fastcall GxuFontAddToInternalBatch(CGxString *string) {
+int GxuFontAddToInternalBatch(CGxString *string) {
   if (!string) {
     return 0;
   }
   s_stringBatch.AddString(string);
   return 1;
 }
-void __fastcall GxuFontRenderInternalBatch() {
+void GxuFontRenderInternalBatch() {
   s_stringBatch.RenderBatch();
   s_stringBatch.Clear();
 }
-void __fastcall
+void
 GxuFontGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, float charSpacing, unsigned int flags) {
   InternalGetTextExtent(face, text, numBytes, height, extent, flags);
 }
-void __fastcall GxuFontGetWrapPoint(
+void GxuFontGetWrapPoint(
     CGxFont      *face,
     const char   *text,
     float         fontHeight,
@@ -344,7 +344,7 @@ void __fastcall GxuFontGetWrapPoint(
 
   CalcWrapPoint(face, text, fontHeight, blockWidth, numBytes, pExtent, pNextText, flags);
 }
-float __fastcall
+float
 GxuFontGetWrappedTextHeight(CGxFont *face, const char *text, float fontHeight, float blockWidth, float lineSpacing, unsigned int flags) {
   unsigned int advance;
   float        extent;
@@ -385,7 +385,7 @@ GxuFontGetWrappedTextHeight(CGxFont *face, const char *text, float fontHeight, f
 
   return static_cast<float>(lines - 1) * lineSpacing + static_cast<float>(lines) * fontHeight;
 }
-unsigned int __fastcall GxuFontGetMaxCharsWithinWidth(
+unsigned int GxuFontGetMaxCharsWithinWidth(
     CGxFont     *face,
     const char  *text,
     float        height,
@@ -397,7 +397,7 @@ unsigned int __fastcall GxuFontGetMaxCharsWithinWidth(
 ) {
   return InternalGetMaxCharsWithinWidth(face, text, height, maxWidth, lineBytes, extent, flags, 0, 0, 0);
 }
-unsigned int __fastcall GxuFontGetMaxCharsWithinWidthFromEnd(
+unsigned int GxuFontGetMaxCharsWithinWidthFromEnd(
     CGxFont     *font,
     const char  *text,
     float        fontHeight,
@@ -450,7 +450,7 @@ unsigned int __fastcall GxuFontGetMaxCharsWithinWidthFromEnd(
   }
   return bytesInString - charsToRemove;
 }
-unsigned int __fastcall GxuFontWrapText(
+unsigned int GxuFontWrapText(
     CGxFont      *font,
     const char   *text,
     unsigned int  lineBytes,
@@ -516,7 +516,7 @@ unsigned int __fastcall GxuFontWrapText(
 
   return lines;
 }
-float __fastcall GxuFontGetOneToOneHeight(CGxFont *font) {
+float GxuFontGetOneToOneHeight(CGxFont *font) {
   FATALASSERT(font);
 
   ASSERT(font->m_cellHeight);
@@ -524,7 +524,7 @@ float __fastcall GxuFontGetOneToOneHeight(CGxFont *font) {
 
   return static_cast<float>(font->m_pixelSize) / static_cast<float>(g_heightPixels);
 }
-const char *__fastcall
+const char *
 GxuFontStripEscapeCodes(const char *inputString, unsigned int numBytes, unsigned int flags, char *buffer, unsigned int bufferSize) {
   static struct {
     unsigned int stripFlags;
@@ -616,7 +616,7 @@ done:
   buffer[outputBytes] = 0;
   return buffer;
 }
-int __fastcall GxuFontGetLastColorCode(const char *string, unsigned int numBytes, NTempest::CImVector *color) {
+int GxuFontGetLastColorCode(const char *string, unsigned int numBytes, NTempest::CImVector *color) {
   unsigned int        wide;
   unsigned int        advance;
   NTempest::CImVector colorCode;
@@ -642,7 +642,7 @@ int __fastcall GxuFontGetLastColorCode(const char *string, unsigned int numBytes
   }
   return found;
 }
-int __fastcall GxuFontGenerateColorString(char *buf, unsigned int bufSize, const NTempest::CImVector &color) {
+int GxuFontGenerateColorString(char *buf, unsigned int bufSize, const NTempest::CImVector &color) {
   if (!buf || bufSize < 11) {
     return 0;
   }
@@ -650,31 +650,31 @@ int __fastcall GxuFontGenerateColorString(char *buf, unsigned int bufSize, const
   SStrPrintf(buf, bufSize, "|C%2.2x%2.2x%2.2x%2.2x", color.a, color.r, color.g, color.b);
   return 1;
 }
-int __fastcall GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor) {
+int GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor) {
   FATALASSERT(string);
   string->SetColor(newColor);
   return 1;
 }
-void __fastcall GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos) {
+void GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos) {
   FATALASSERT(string);
   string->SetStringPosition(pos);
 }
-void __fastcall GxuFontSetCharSpacing(CGxString *string, float spacing) {
+void GxuFontSetCharSpacing(CGxString *string, float spacing) {
 }
-void __fastcall GxuFontAddShadow(CGxString *string, const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
+void GxuFontAddShadow(CGxString *string, const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
   if (string && !(string->m_flags & 0x80)) {
     string->AddShadow(offset, color);
   }
 }
-void __fastcall GxuFontRemoveShadow(CGxString *string) {
+void GxuFontRemoveShadow(CGxString *string) {
   if (string) {
     string->RemoveShadow();
   }
 }
-CGxString *__fastcall GxuFontDuplicateString(const CGxString *rhs) {
+CGxString *GxuFontDuplicateString(const CGxString *rhs) {
   return rhs ? rhs->Duplicate() : 0;
 }
-int __fastcall GxuFontGetStringWidth(CGxString *string, float *width) {
+int GxuFontGetStringWidth(CGxString *string, float *width) {
   FATALASSERT(width);
 
   if (string) {
@@ -682,7 +682,7 @@ int __fastcall GxuFontGetStringWidth(CGxString *string, float *width) {
   }
   return string != 0;
 }
-int __fastcall GxuFontGetStringHeight(CGxString *string, float *height) {
+int GxuFontGetStringHeight(CGxString *string, float *height) {
   FATALASSERT(height);
 
   if (string) {
@@ -690,10 +690,10 @@ int __fastcall GxuFontGetStringHeight(CGxString *string, float *height) {
   }
   return string != 0;
 }
-unsigned int __fastcall GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list) {
+unsigned int GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list) {
   return string ? string->GetHyperLinkInfo(list) : 0;
 }
-int __fastcall GxuFontStringSetGradient(CGxString *string, int startCharacter, int length) {
+int GxuFontStringSetGradient(CGxString *string, int startCharacter, int length) {
   if (!string) {
     return -1;
   }

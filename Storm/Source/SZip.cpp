@@ -255,16 +255,16 @@ ZipFileDirEntry *ZipDirTable::Ptr(const char *str) {
   return 0;
 }
 
-void __fastcall ZipFileUnloadFile(void *buffer);
+void ZipFileUnloadFile(void *buffer);
 
-static void __fastcall ConvertUInt16FromBinary(WORD &value) {
+static void ConvertUInt16FromBinary(WORD &value) {
   BYTE *bytes;
 
   bytes = (BYTE *)&value;
   value = (WORD)(((WORD)bytes[1] << 8) | bytes[0]);
 }
 
-static void __fastcall ConvertUInt32FromBinary(unsigned int &value) {
+static void ConvertUInt32FromBinary(unsigned int &value) {
   BYTE *bytes;
 
   bytes = (BYTE *)&value;
@@ -443,7 +443,7 @@ int ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader) 
   }
   return 1;
 }
-static void __fastcall ConvertFromZip(char *str) {
+static void ConvertFromZip(char *str) {
   while (*str) {
     if (*str == '/') {
       *str = '\\';
@@ -537,7 +537,7 @@ ZipFileDirEntry::ZipFileDirEntry() {
   startOffset = 0;
 }
 
-static int __fastcall GetDirEntry(const char *filename, ZipFileDirEntry **dirEntry) {
+static int GetDirEntry(const char *filename, ZipFileDirEntry **dirEntry) {
   ZipFileDirEntry *found = s_directory.Ptr(filename);
 
   if (!found) {
@@ -552,17 +552,17 @@ static int __fastcall GetDirEntry(const char *filename, ZipFileDirEntry **dirEnt
 ZipFileDirEntry::~ZipFileDirEntry() {
 }
 
-static void *__fastcall zalloc(void *opaque, unsigned int count, unsigned int size) {
+static void *zalloc(void *opaque, unsigned int count, unsigned int size) {
   (void)opaque;
   return SMemAlloc(count * size, __FILE__, __LINE__, 8);
 }
 
-static void __fastcall zfree(void *opaque, void *ptr) {
+static void zfree(void *opaque, void *ptr) {
   (void)opaque;
   SMemFree(ptr, __FILE__, __LINE__, 0);
 }
 
-unsigned long __fastcall ZipFileOpenArchive(const char *archivename) {
+unsigned long ZipFileOpenArchive(const char *archivename) {
   ZipFileArchive        *archive;
   CentralDirectoryHeader cdirHeader;
 
@@ -576,17 +576,17 @@ unsigned long __fastcall ZipFileOpenArchive(const char *archivename) {
   return 0;
 }
 
-int __fastcall ZipFileCloseArchive(unsigned long handle) {
+int ZipFileCloseArchive(unsigned long handle) {
   FATALASSERT(((ZipFileArchive *)handle)->openFileCount == 0);
   s_archives.DeleteNode((ZipFileArchive *)handle);
   return 1;
 }
 
-int __fastcall ZipFileFileExists(const char *filename) {
+int ZipFileFileExists(const char *filename) {
   return GetDirEntry(filename, NULL);
 }
 
-ZipFileFCB *__fastcall ZipFileOpenFile(const char *filename, unsigned long archive) {
+ZipFileFCB *ZipFileOpenFile(const char *filename, unsigned long archive) {
   ZipFileArchive  *archiveptr;
   ZipFileDirEntry *dirEntry;
   ZipFileFCB      *fcb;
@@ -627,13 +627,13 @@ ZipFileFCB *__fastcall ZipFileOpenFile(const char *filename, unsigned long archi
   return fcb;
 }
 
-int __fastcall ZipFileCloseFile(ZipFileFCB *fcb) {
+int ZipFileCloseFile(ZipFileFCB *fcb) {
   --fcb->dirEntry->archive->openFileCount;
   delete fcb;
   return 1;
 }
 
-int __fastcall ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin) {
+int ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin) {
   DWORD target;
 
   FATALASSERT(fcb);
@@ -690,15 +690,15 @@ int __fastcall ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin) {
   return 1;
 }
 
-unsigned long __fastcall ZipFileGetFilePointer(ZipFileFCB *fcb) {
+unsigned long ZipFileGetFilePointer(ZipFileFCB *fcb) {
   return fcb->targetPosition;
 }
 
-unsigned long __fastcall ZipFileGetFileSize(ZipFileFCB *fcb) {
+unsigned long ZipFileGetFileSize(ZipFileFCB *fcb) {
   return fcb->dirEntry->uncompressedSize;
 }
 
-int __fastcall ZipFileReadFile(ZipFileFCB *fcb, void *buffer, unsigned int bytesToRead, unsigned int *bytesRead) {
+int ZipFileReadFile(ZipFileFCB *fcb, void *buffer, unsigned int bytesToRead, unsigned int *bytesRead) {
   FILE *file;
   DWORD bytesSkipped;
   DWORD bytesProduced;
@@ -802,7 +802,7 @@ int __fastcall ZipFileReadFile(ZipFileFCB *fcb, void *buffer, unsigned int bytes
   return 1;
 }
 
-int __fastcall ZipFileLoadFile(const char *filename, void **buffer, unsigned int *bytes) {
+int ZipFileLoadFile(const char *filename, void **buffer, unsigned int *bytes) {
   z_stream         stream;
   ZipFileDirEntry *dirEntry;
   BYTE            *compressedData;
@@ -863,11 +863,11 @@ int __fastcall ZipFileLoadFile(const char *filename, void **buffer, unsigned int
   return 0;
 }
 
-void __fastcall ZipFileUnloadFile(void *buffer) {
+void ZipFileUnloadFile(void *buffer) {
   SMemFree(buffer, __FILE__, __LINE__, 0);
 }
 
-int __fastcall ZipFileList(unsigned long archive, int(__fastcall *cb)(const char *, void *), void *param) {
+int ZipFileList(unsigned long archive, int(*cb)(const char *, void *), void *param) {
   ZipFileArchive  *archiveptr = (ZipFileArchive *)archive;
   ZipFileDirEntry *entry;
 
@@ -931,7 +931,7 @@ WowFile *WowFileSystem::Open(const char *filename) {
   return m_providerList->Open(filename);
 }
 
-void __fastcall FSTest() {
+void FSTest() {
   s_fileSystem.RegisterProvider(s_testProvider);
   WowFile *file = s_fileSystem.Open("c:\\boot.ini");
   file->Close();

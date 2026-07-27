@@ -12,7 +12,7 @@
 
 static unsigned char s_zoneIDMap[256][256];
 
-static int __fastcall ReceiveZoneMap(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveZoneMap(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned char *next = &s_zoneIDMap[0][0];
 
   while (!msg->IsRead()) {
@@ -33,16 +33,16 @@ static int __fastcall ReceiveZoneMap(void *, NETMESSAGE, unsigned long, CDataSto
   return 1;
 }
 
-void __fastcall ZoneDebugInitialize() {
+void ZoneDebugInitialize() {
   memset(s_zoneIDMap, 0, sizeof(s_zoneIDMap));
   ClientServices_SetMessageHandler(SMSG_ZONE_MAP, ReceiveZoneMap, 0);
 }
 
-void __fastcall ZoneDebugDestroy() {
+void ZoneDebugDestroy() {
   ClientServices_ClearMessageHandler(SMSG_ZONE_MAP);
 }
 
-bool __fastcall ZoneDebugIsInCurrentZone(float x, float y) {
+bool ZoneDebugIsInCurrentZone(float x, float y) {
   NTempest::C2iVector cellPos;
   cellPos.x = static_cast<int>((x * 36.0f + 614400.0f) * 0.00020833334f);
   cellPos.y = static_cast<int>((y * 36.0f + 614400.0f) * 0.00020833334f);

@@ -12,7 +12,7 @@ struct OS_FILE_DATA {
   char          fileName[260];
 };
 
-HOSFILE __fastcall OsCreateFile(
+HOSFILE OsCreateFile(
     const char   *fileName,
     unsigned long desiredAccess,
     unsigned long shareMode,
@@ -20,13 +20,13 @@ HOSFILE __fastcall OsCreateFile(
     unsigned long flagsAndAttributes,
     unsigned long extendedFileType
 );
-void __fastcall             OsCloseFile(HOSFILE fileHandle);
-int __fastcall              OsDeleteFile(const char *fileName);
-int __fastcall              OsDirectoryExists(const char *dirName);
-int __fastcall              OsFileExists(const char *path);
-int __fastcall              OsReadFile(HOSFILE fileHandle, void *buffer, unsigned long bytesToRead, unsigned long *bytesRead);
-int __fastcall              OsWriteFile(HOSFILE fileHandle, const void *buffer, unsigned long bytesToWrite, unsigned long *bytesWritten);
-unsigned __int64 __fastcall OsSetFilePointer(HOSFILE fileHandle, __int64 distanceToMove, unsigned long moveMethod);
-unsigned long __fastcall    OsGetFileAttributes(const char *fileName);
-int __fastcall              OsCreateDirectory(const char *pathName, int recursive);
-int __fastcall              OsSetCurrentDirectory(const char *pathName);
+void OsCloseFile(HOSFILE fileHandle);
+int OsDeleteFile(const char *fileName);
+int OsDirectoryExists(const char *dirName);
+int OsFileExists(const char *path);
+int OsReadFile(HOSFILE fileHandle, void *buffer, unsigned long bytesToRead, unsigned long *bytesRead);
+int OsWriteFile(HOSFILE fileHandle, const void *buffer, unsigned long bytesToWrite, unsigned long *bytesWritten);
+unsigned __int64 OsSetFilePointer(HOSFILE fileHandle, __int64 distanceToMove, unsigned long moveMethod);
+unsigned long OsGetFileAttributes(const char *fileName);
+int OsCreateDirectory(const char *pathName, int recursive);
+int OsSetCurrentDirectory(const char *pathName);

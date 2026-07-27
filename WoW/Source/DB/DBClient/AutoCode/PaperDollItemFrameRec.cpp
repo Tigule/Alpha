@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall PaperDollItemFrameRec::GetFilename() {
+const char *PaperDollItemFrameRec::GetFilename() {
   return "DBFilesClient\\PaperDollItemFrame.dbc";
 }
 

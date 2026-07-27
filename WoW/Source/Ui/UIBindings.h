@@ -32,12 +32,12 @@ struct KEYCOMMAND : public TSHashObject<KEYCOMMAND, HASHKEY_STRI> {
 
 class CGUIBindings {
  public:
-  static CGUIBindings *__fastcall Initialize(const char *commandsFile, CStatus *status);
-  static void __fastcall          Shutdown();
-  static void __fastcall          LoadBindings(int useDefault);
-  static void __fastcall          SaveBindings();
-  static const char *__fastcall   KeyEventToString(const CKeyEvent &evt, char *string, int maxLen);
-  static const char *__fastcall   MouseEventToString(const CMouseEvent &evt, char *string, int maxLen);
+  static CGUIBindings *Initialize(const char *commandsFile, CStatus *status);
+  static void Shutdown();
+  static void LoadBindings(int useDefault);
+  static void SaveBindings();
+  static const char *KeyEventToString(const CKeyEvent &evt, char *string, int maxLen);
+  static const char *MouseEventToString(const CMouseEvent &evt, char *string, int maxLen);
 
   static CGUIBindings *GetActive() {
     return s_bindings;
@@ -67,7 +67,7 @@ class CGUIBindings {
   }
 
  private:
-  static int __fastcall AddMetaPrefix(unsigned int metaKeyState, char *&string, int &maxLen);
+  static int AddMetaPrefix(unsigned int metaKeyState, char *&string, int &maxLen);
 
   static CGUIBindings *s_bindings;
 
@@ -77,7 +77,7 @@ class CGUIBindings {
   TSHashTable<KEYCOMMAND, HASHKEY_STRI> m_commands;
 };
 
-void __fastcall UIBindingsRegisterScriptFunctions();
-void __fastcall UIBindingsUnegisterScriptFunctions();
+void UIBindingsRegisterScriptFunctions();
+void UIBindingsUnegisterScriptFunctions();
 
 #endif

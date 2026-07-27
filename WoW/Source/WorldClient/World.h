@@ -75,7 +75,7 @@ class Particulate {
   }
   void                   Update();
   void                   Render();
-  static void __fastcall CustomRenderCallback(void *p1, int p2);
+  static void CustomRenderCallback(void *p1, int p2);
 
  private:
   void               InitMovement();
@@ -211,20 +211,20 @@ class CWTriData {
   static NTempest::C44Matrix idMatrix;
 };
 
-void __fastcall ProjectTex2d(NTempest::CAaBox &box, NTempest::CImVector color, NTempest::C44Matrix *basis, float fadeOffset);
+void ProjectTex2d(NTempest::CAaBox &box, NTempest::CImVector color, NTempest::C44Matrix *basis, float fadeOffset);
 
 class CWorld {
  public:
   typedef CWorldMinimapQuad MinimapQuad;
 
-  static HMODEL__ *__fastcall GetModel(unsigned long doodad);
-  static void __fastcall SetObjectRenderCallback(unsigned long hWorldObject, void(__fastcall *cb)(void *, const NTempest::C44Matrix &), void *param);
-  static void __fastcall SetObjectHandler(int(__fastcall *handler)(void *, unsigned long, unsigned __int64, unsigned long), void *handlerParam);
-  static void __fastcall SetObjectCollisionHandler(int(__fastcall *handler)(unsigned __int64, unsigned long, WorldObjCollisionHandlerData *));
-  static void __fastcall SetCameraTarget(unsigned long hWorldObject);
-  static unsigned long __fastcall AddObject(unsigned __int64 param64, unsigned long param32, HMODEL__ *hModel, unsigned int objFlags);
-  static void __fastcall          RemoveObject(unsigned long hWorldObject);
-  static unsigned long __fastcall AddDoodad(const char *fileName, HMODEL__ *hModel, const NTempest::C44Matrix &mat, unsigned int objFlags);
+  static HMODEL__ *GetModel(unsigned long doodad);
+  static void SetObjectRenderCallback(unsigned long hWorldObject, void(*cb)(void *, const NTempest::C44Matrix &), void *param);
+  static void SetObjectHandler(int(*handler)(void *, unsigned long, unsigned __int64, unsigned long), void *handlerParam);
+  static void SetObjectCollisionHandler(int(*handler)(unsigned __int64, unsigned long, WorldObjCollisionHandlerData *));
+  static void SetCameraTarget(unsigned long hWorldObject);
+  static unsigned long AddObject(unsigned __int64 param64, unsigned long param32, HMODEL__ *hModel, unsigned int objFlags);
+  static void RemoveObject(unsigned long hWorldObject);
+  static unsigned long AddDoodad(const char *fileName, HMODEL__ *hModel, const NTempest::C44Matrix &mat, unsigned int objFlags);
   enum Enables {
     Enable_Doodads = 0x00000001,
     Enable_Chunks = 0x00000002,
@@ -260,81 +260,81 @@ class CWorld {
     Enable_Anisotropic = 0x80000000
   };
 
-  static void __fastcall         Initialize();
-  static void __fastcall         Destroy();
-  static void __fastcall         LoadMap(const char *mapName, NTempest::C3Vector &position, int preLoad);
-  static void __fastcall         UnloadMap();
-  static void __fastcall         Preload(const NTempest::C3Vector &position);
-  static void __fastcall         PrepareUpdate(NTempest::C3Vector &position, NTempest::C3Vector &target);
-  static void __fastcall         SetUpdateTime(float elapsedSec, unsigned long pCurTimeMs);
-  static void __fastcall         Update();
-  static void __fastcall         ObjectGetExtents(unsigned int id, NTempest::CAaBox &extents);
-  static void __fastcall         ObjectEnableCollision(unsigned int id, int enable);
-  static bool __fastcall         ObjectTestConvexVolume(unsigned int id, const NTempest::C3Vector &pos);
-  static void __fastcall         ObjectDelete(unsigned int id);
-  static void __fastcall         SetHidden(unsigned long hWorldObject, int hidden);
-  static unsigned int __fastcall QueryAreaId(float x, float y);
-  static unsigned int __fastcall SceneCamLiquidStatus();
-  static int __fastcall          QueryObjectInside(unsigned long hWorldObject);
-  static int __fastcall          QueryLiquidSounds(unsigned long hWorldObject, float radius, int *lbool, NTempest::C3Vector *ldelta);
-  static int __fastcall          QueryMapObjZoneName(unsigned long hWorldObject, const char *&zoneName);
-  static int __fastcall          QueryMapObjSubzoneName(unsigned long hWorldObject, const char *&subzoneName, unsigned int &subzoneId);
-  static int __fastcall          QueryMapObjFileName(unsigned long hWorldObject, const char *&fileName);
-  static int __fastcall          QueryMapObjFog(unsigned long hWorldObject, SMOFog::Fogs &oFogs, float &oPct);
-  static unsigned int __fastcall QueryMapObjMinimap(unsigned long hWorldObject, NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads);
-  static unsigned int __fastcall QueryMapObjIDs(unsigned long hWorldObject, unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID);
-  static unsigned int __fastcall QueryMapObjMatrix(unsigned long hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
-  static const char *__fastcall  QueryChunkName();
-  static bool __fastcall  QueryMapObjAreaTable(unsigned long hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
-  static int __fastcall   QueryObjectLiquid(unsigned long hWorldObject, unsigned int &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep);
-  static bool __fastcall  QueryMountAllowed(unsigned long hWorldObject, bool &allowed);
-  static int __fastcall   QueryLiquidStatus(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir);
-  static void __fastcall  UpdateObject(unsigned long hWorldObject, NTempest::C44Matrix &mat, NTempest::CAaBox &aaBox);
-  static void __fastcall  ObjectUpdate(unsigned int id, NTempest::C3Vector &pos, float angle, int bSnap);
-  static unsigned int __fastcall ObjectCreate(
+  static void Initialize();
+  static void Destroy();
+  static void LoadMap(const char *mapName, NTempest::C3Vector &position, int preLoad);
+  static void UnloadMap();
+  static void Preload(const NTempest::C3Vector &position);
+  static void PrepareUpdate(NTempest::C3Vector &position, NTempest::C3Vector &target);
+  static void SetUpdateTime(float elapsedSec, unsigned long pCurTimeMs);
+  static void Update();
+  static void ObjectGetExtents(unsigned int id, NTempest::CAaBox &extents);
+  static void ObjectEnableCollision(unsigned int id, int enable);
+  static bool ObjectTestConvexVolume(unsigned int id, const NTempest::C3Vector &pos);
+  static void ObjectDelete(unsigned int id);
+  static void SetHidden(unsigned long hWorldObject, int hidden);
+  static unsigned int QueryAreaId(float x, float y);
+  static unsigned int SceneCamLiquidStatus();
+  static int QueryObjectInside(unsigned long hWorldObject);
+  static int QueryLiquidSounds(unsigned long hWorldObject, float radius, int *lbool, NTempest::C3Vector *ldelta);
+  static int QueryMapObjZoneName(unsigned long hWorldObject, const char *&zoneName);
+  static int QueryMapObjSubzoneName(unsigned long hWorldObject, const char *&subzoneName, unsigned int &subzoneId);
+  static int QueryMapObjFileName(unsigned long hWorldObject, const char *&fileName);
+  static int QueryMapObjFog(unsigned long hWorldObject, SMOFog::Fogs &oFogs, float &oPct);
+  static unsigned int QueryMapObjMinimap(unsigned long hWorldObject, NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads);
+  static unsigned int QueryMapObjIDs(unsigned long hWorldObject, unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID);
+  static unsigned int QueryMapObjMatrix(unsigned long hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
+  static const char *QueryChunkName();
+  static bool QueryMapObjAreaTable(unsigned long hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
+  static int QueryObjectLiquid(unsigned long hWorldObject, unsigned int &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep);
+  static bool QueryMountAllowed(unsigned long hWorldObject, bool &allowed);
+  static int QueryLiquidStatus(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir);
+  static void UpdateObject(unsigned long hWorldObject, NTempest::C44Matrix &mat, NTempest::CAaBox &aaBox);
+  static void ObjectUpdate(unsigned int id, NTempest::C3Vector &pos, float angle, int bSnap);
+  static unsigned int ObjectCreate(
       const char *name, NTempest::C3Vector &pos, float angle, int bWait, int bSnap, unsigned __int64 param64);
-  static void __fastcall  TickObject(unsigned long hWorldObject);
-  static void __fastcall  WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq);
-  static float __fastcall GetCurTimeSec() {
+  static void TickObject(unsigned long hWorldObject);
+  static void WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq);
+  static float GetCurTimeSec() {
     return curTimeSec;
   }
-  static float __fastcall GetTickTimeSec() {
+  static float GetTickTimeSec() {
     return tickTimeSec;
   }
-  static unsigned int __fastcall GetCurTimeMs() {
+  static unsigned int GetCurTimeMs() {
     return curTimeMs;
   }
-  static unsigned int __fastcall GetTickTimeMs() {
+  static unsigned int GetTickTimeMs() {
     return tickTimeMs;
   }
-  static const NTempest::C3Vector &__fastcall GetCamPos();
-  static const NTempest::C3Vector &__fastcall GetCamTarget();
-  static float __fastcall                     GetFramerate();
-  static void __fastcall                      GetCounts(int *const counts);
-  static void __fastcall                      SetEnvironment();
-  static void __fastcall                      UpdateDayNight(int forceFull, const NTempest::C3Vector *position);
-  static void __fastcall                      Render();
-  static void __fastcall                      RenderAlpha();
-  static void __fastcall
+  static const NTempest::C3Vector &GetCamPos();
+  static const NTempest::C3Vector &GetCamTarget();
+  static float GetFramerate();
+  static void GetCounts(int *const counts);
+  static void SetEnvironment();
+  static void UpdateDayNight(int forceFull, const NTempest::C3Vector *position);
+  static void Render();
+  static void RenderAlpha();
+  static void
   SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
-  static void __fastcall                      SetShadowColor(NTempest::CImVector &color);
-  static void __fastcall                      SetDetailDoodadDensity(unsigned int density);
-  static void __fastcall                      SetNearClip(float nearClip);
-  static void __fastcall                      SetFarClip(float farClip);
-  static void __fastcall                      SetTexLodBias(float bias);
-  static void __fastcall                      SetTexAnisotropy(unsigned int anisotropy);
-  static bool __fastcall                      SetLodDist(float dist);
-  static bool __fastcall                      SetTextureLodDist(float dist);
-  static float __fastcall                     CalcAltitude(float x, float y, float radius);
-  static bool __fastcall                      GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);
-  static bool __fastcall
+  static void SetShadowColor(NTempest::CImVector &color);
+  static void SetDetailDoodadDensity(unsigned int density);
+  static void SetNearClip(float nearClip);
+  static void SetFarClip(float farClip);
+  static void SetTexLodBias(float bias);
+  static void SetTexAnisotropy(unsigned int anisotropy);
+  static bool SetLodDist(float dist);
+  static bool SetTextureLodDist(float dist);
+  static float CalcAltitude(float x, float y, float radius);
+  static bool GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);
+  static bool
   Intersect(const NTempest::C3Vector *a, const NTempest::C3Vector *b, float radius, NTempest::C3Vector *ip, float *dist, unsigned int queryFlags);
-  static void __fastcall         GetFacets(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
-  static void __fastcall         GetFacets(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags);
-  static void __fastcall         TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, unsigned __int64 param64);
-  static unsigned int __fastcall GetTris(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
-  static int __fastcall NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTempest::C3Vector **&p_outVerts, unsigned int &p_outCount);
-  static unsigned int __fastcall NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate);
+  static void GetFacets(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
+  static void GetFacets(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags);
+  static void TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, unsigned __int64 param64);
+  static unsigned int GetTris(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
+  static int NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTempest::C3Vector **&p_outVerts, unsigned int &p_outCount);
+  static unsigned int NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate);
 
  private:
   friend class CDetailDoodadInst;
@@ -348,8 +348,8 @@ class CWorld {
   friend class CMap;
   friend class CMapArea;
   friend class CMapObjGroup;
-  friend void __fastcall        ShadowRender_LOD1(HMODEL__ *hModel, NTempest::C44Matrix &basis, void *param);
-  friend HTEXTURE__ *__fastcall CharCustomizationLoadSkin(
+  friend void ShadowRender_LOD1(HMODEL__ *hModel, NTempest::C44Matrix &basis, void *param);
+  friend HTEXTURE__ *CharCustomizationLoadSkin(
       HMODEL__    *characterModel,
       const char  *skinName,
       unsigned int raceID,
@@ -357,32 +357,32 @@ class CWorld {
       unsigned int textureNumber,
       int          isNPC
   );
-  friend HTEXTURE__ *__fastcall
+  friend HTEXTURE__ *
   CharCustomizationSetSkin(HMODEL__ *characterModel, unsigned int raceID, unsigned int sexID, unsigned int textureNumber, int isNPC);
 
-  static void __fastcall ModelGeoProjectCallback(NTempest::CAaBox &worldBox, NTempest::CImVector color, NTempest::C44Matrix &basis);
-  static int __fastcall  ParticleProjectCallback(const NTempest::C3Segment &seg, float &z);
-  static int __fastcall  AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z);
-  static void __fastcall CalcFPS();
-  static void __fastcall PrepareAreaOfInterest(NTempest::C3Vector &position, NTempest::C3Vector &target);
+  static void ModelGeoProjectCallback(NTempest::CAaBox &worldBox, NTempest::CImVector color, NTempest::C44Matrix &basis);
+  static int ParticleProjectCallback(const NTempest::C3Segment &seg, float &z);
+  static int AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z);
+  static void CalcFPS();
+  static void PrepareAreaOfInterest(NTempest::C3Vector &position, NTempest::C3Vector &target);
 
-  static int __fastcall ConsoleCommand_ShowDetailDoodads(const char *command, const char *arguments);
-  static int __fastcall ConsoleCommand_MaxLOD(const char *__formal, const char *arguments);
-  static int __fastcall ConsoleCommand_ShowCull(const char *command, const char *arguments);
-  static int __fastcall ConsoleCommand_SetShadow(const char *__formal, const char *arguments);
-  static int __fastcall ConsoleCommand_MapObjLightMode(const char *command, const char *arguments);
-  static int __fastcall ConsoleCommand_WaterShow(const char *command, const char *arguments);
-  static int __fastcall ConsoleCommand_WaterMaxLOD(const char *__formal, const char *arguments);
-  static int __fastcall ConsoleCommand_WaterWaves(const char *__formal, const char *arguments);
-  static int __fastcall ConsoleCommand_WaterSpecular(const char *__formal, const char *arguments);
-  static int __fastcall ConsoleCommand_WaterRipples(const char *__formal, const char *arguments);
-  static int __fastcall ConsoleCommand_WaterParticulates(const char *command, const char *arguments);
-  static int __fastcall ConsoleCommand_DetailDoodadAlpha(const char *__formal, const char *arguments);
-  static int __fastcall ConsoleCommand_ShowShadow(const char *command, const char *arguments);
-  static int __fastcall ConsoleCommand_ShowLowDetail(const char *command, const char *arguments);
-  static int __fastcall ConsoleCommand_ShowSimpleDoodads(const char *command, const char *arguments);
-  static int __fastcall ConsoleCommand_EnumTextures(const char *__formal, const char *name);
-  static int __fastcall ConsoleCommand_EnumTextureGxCache(const char *__formal, const char *name);
+  static int ConsoleCommand_ShowDetailDoodads(const char *command, const char *arguments);
+  static int ConsoleCommand_MaxLOD(const char *__formal, const char *arguments);
+  static int ConsoleCommand_ShowCull(const char *command, const char *arguments);
+  static int ConsoleCommand_SetShadow(const char *__formal, const char *arguments);
+  static int ConsoleCommand_MapObjLightMode(const char *command, const char *arguments);
+  static int ConsoleCommand_WaterShow(const char *command, const char *arguments);
+  static int ConsoleCommand_WaterMaxLOD(const char *__formal, const char *arguments);
+  static int ConsoleCommand_WaterWaves(const char *__formal, const char *arguments);
+  static int ConsoleCommand_WaterSpecular(const char *__formal, const char *arguments);
+  static int ConsoleCommand_WaterRipples(const char *__formal, const char *arguments);
+  static int ConsoleCommand_WaterParticulates(const char *command, const char *arguments);
+  static int ConsoleCommand_DetailDoodadAlpha(const char *__formal, const char *arguments);
+  static int ConsoleCommand_ShowShadow(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowLowDetail(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowSimpleDoodads(const char *command, const char *arguments);
+  static int ConsoleCommand_EnumTextures(const char *__formal, const char *name);
+  static int ConsoleCommand_EnumTextureGxCache(const char *__formal, const char *name);
 
   static unsigned long       enables;
   static float               curTimeSec;
@@ -456,9 +456,9 @@ class CMapArea : public CMapBaseObj {
   CMapArea();
   ~CMapArea();
 
-  static void __fastcall Initialize();
-  static void __fastcall AsyncPollHandler();
-  static void __fastcall Destroy();
+  static void Initialize();
+  static void AsyncPollHandler();
+  static void Destroy();
   void                   Load(SMAreaInfo *areaInfo);
   void                   Purge();
   void                   PurgeChunks();
@@ -493,71 +493,71 @@ class CMapArea : public CMapBaseObj {
   CMapChunk                         *chunkTable[256];
 
  private:
-  static void __fastcall          FreeAsyncLoadBuffer(unsigned int *buffer);
-  static void __fastcall          InitAsyncLoadBuffers();
-  static unsigned int *__fastcall AllocAsyncLoadBuffer();
+  static void FreeAsyncLoadBuffer(unsigned int *buffer);
+  static void InitAsyncLoadBuffers();
+  static unsigned int *AllocAsyncLoadBuffer();
   void                            Create(unsigned int *data);
   void                            LoadTextures(char *texNames, unsigned long size);
-  static void __fastcall          AsyncCallback(void *userArg);
+  static void AsyncCallback(void *userArg);
 };
 
 class CMap {
  public:
-  static void __fastcall           Initialize();
-  static void __fastcall           PrepareUpdate();
-  static void __fastcall           Update();
-  static void __fastcall           Unload();
-  static void __fastcall           Load(const char *fileName);
-  static void __fastcall           LoadWdl();
-  static void __fastcall           LoadWdt();
-  static void __fastcall           Preload();
-  static void __fastcall           Open();
-  static void __fastcall           GetCounts(int *const counts);
-  static void __fastcall           LoadDoodadNames();
-  static void __fastcall           LoadMapObjNames();
-  static CMapDoodadDef *__fastcall CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos);
-  static CMapDoodadDef *__fastcall CreateDoodadDef(
+  static void Initialize();
+  static void PrepareUpdate();
+  static void Update();
+  static void Unload();
+  static void Load(const char *fileName);
+  static void LoadWdl();
+  static void LoadWdt();
+  static void Preload();
+  static void Open();
+  static void GetCounts(int *const counts);
+  static void LoadDoodadNames();
+  static void LoadMapObjNames();
+  static CMapDoodadDef *CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos);
+  static CMapDoodadDef *CreateDoodadDef(
       const char *fileName, NTempest::C3Vector &pos, float angle, int bWait);
-  static CMapDoodadDef *__fastcall CreateDoodadDef(
+  static CMapDoodadDef *CreateDoodadDef(
       unsigned int         doodadRef,
       SMODoodadDef        &smoDoodadDef,
       const char          *fileName,
       unsigned int         mapObjDefId,
       NTempest::C44Matrix &mapObjDefMat
   );
-  static CMapObjDef *__fastcall CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &pos);
-  static CMapObjDef *__fastcall CreateMapObjDef(
+  static CMapObjDef *CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &pos);
+  static CMapObjDef *CreateMapObjDef(
       const char *fileName, NTempest::C3Vector &pos, float angle, int bWait);
-  static void __fastcall        CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef);
-  static void __fastcall
+  static void CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef);
+  static void
   CreateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
-  static void __fastcall CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
-  static HTEXTURE__ *__fastcall  LoadTexture(const char *fileName);
-  static void __fastcall         WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq);
-  static void __fastcall         UpdateEntity(CMapEntity *entity);
-  static void __fastcall         LinkEntityToMapObj(CMapStaticEntity *entity, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
-  static void __fastcall         LinkEntityToChunk(CMapStaticEntity *entity, CMapChunk *chunk);
-  static void __fastcall         LinkEntity(CMapStaticEntity *entity);
-  static unsigned int __fastcall LinkIntersectMapObjs(
+  static void CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
+  static HTEXTURE__ *LoadTexture(const char *fileName);
+  static void WaterRipple(NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq);
+  static void UpdateEntity(CMapEntity *entity);
+  static void LinkEntityToMapObj(CMapStaticEntity *entity, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
+  static void LinkEntityToChunk(CMapStaticEntity *entity, CMapChunk *chunk);
+  static void LinkEntity(CMapStaticEntity *entity);
+  static unsigned int LinkIntersectMapObjs(
       NTempest::C3Vector &lCen,
       NTempest::C3Vector &lEnd,
       float              &hitT,
       CMapObjDef        *&hitMapObjDef,
       CMapObjDefGroup   *&hitMapObjDefGroup
   );
-  static unsigned int __fastcall QueryShadow(NTempest::C3Vector &pos);
-  static unsigned int __fastcall
+  static unsigned int QueryShadow(NTempest::C3Vector &pos);
+  static unsigned int
   QueryLiquidStatus(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir, int &deep);
-  static void __fastcall QueryLiquidSounds(
+  static void QueryLiquidSounds(
       const NTempest::C3Vector &worldPos,
       float                      radius,
       int                       *lbool,
       NTempest::C3Vector        *ldelta,
       float                     *ldsquared
   );
-  static unsigned int __fastcall
+  static unsigned int
   QueryLiquidStatusMapObjsExt(NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir);
-  static bool __fastcall
+  static bool
   VectorIntersectTerrain(
       const NTempest::C3Vector *p0,
       const NTempest::C3Vector *p1,
@@ -565,14 +565,14 @@ class CMap {
       unsigned int              queryFlags,
       CMapChunk               **chunk
   );
-  static bool __fastcall VectorIntersect(
+  static bool VectorIntersect(
       const NTempest::C3Vector *p0,
       const NTempest::C3Vector *p1,
       NTempest::C3Vector       *ip,
       float                    *dist,
       unsigned int              queryFlags
   );
-  static bool __fastcall VectorIntersectMapObjs(
+  static bool VectorIntersectMapObjs(
       const NTempest::C3Vector *p0,
       const NTempest::C3Vector *p1,
       unsigned int              queryFlags,
@@ -582,49 +582,49 @@ class CMap {
       SMOPoly                 **poly,
       CMapObj                 **qMapObj
   );
-  static bool __fastcall VectorIntersectDoodadDefLinkList(
+  static bool VectorIntersectDoodadDefLinkList(
       TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkList,
       const NTempest::C3Vector           *p0,
       const NTempest::C3Vector           *p1,
       float                              *t,
       unsigned int                        queryFlags
   );
-  static bool __fastcall VectorIntersectGameObjLinkList(
+  static bool VectorIntersectGameObjLinkList(
       TSExplicitList<CMapBaseObjLink, 8> &gameObjLinkList,
       const NTempest::C3Vector           *p0,
       const NTempest::C3Vector           *p1,
       float                              *t,
       unsigned int                        queryFlags
   );
-  static bool __fastcall LocateViewerMapObjs(
+  static bool LocateViewerMapObjs(
       const NTempest::C3Vector &lCen,
       const NTempest::C3Vector &lEnd,
       float                    &maxT,
       CMapObjDef              *&hitMapObjDef,
       unsigned int             *hitGroupIDs
   );
-  static void __fastcall SetLightFuncs();
-  static void __fastcall GxuLightInitialize();
-  static void __fastcall GxuLightShutdown();
-  static unsigned long __fastcall GxuLightCreate();
-  static void __fastcall          GxuLightDestroy(unsigned long lightId);
-  static CGxLight *__fastcall     GxuLightLock(unsigned long lightId);
-  static void __fastcall          GxuLightUnlock(unsigned long lightId);
-  static void __fastcall          GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
-  static void __fastcall          SelectLight(CMapBaseObj *baseObj);
-  static void __fastcall  SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
-  static int __fastcall   GxuLightEnable(unsigned long lightId);
-  static void __fastcall  GxuLightEnableSet(unsigned long lightId, int enable);
-  static void __fastcall  GxuLightSetMaxLights(unsigned int maxLightsToUse);
-  static float __fastcall GxuLightBucketSize();
-  static void __fastcall  GxuLightBucketSizeSet(float bucketSize);
-  static void __fastcall  GxuLightResetCache();
-  static CMapLight *__fastcall CreateLight(bool dynamic);
-  static void __fastcall       DestroyLight(CMapLight *light);
-  static void __fastcall       UpdateLight(CMapLight *light);
-  static void __fastcall       UpdateLightBounds(CMapLight *light);
-  static void __fastcall       EnableLight(CMapLight *light);
-  static void __fastcall       DisableLight(CMapLight *light);
+  static void SetLightFuncs();
+  static void GxuLightInitialize();
+  static void GxuLightShutdown();
+  static unsigned long GxuLightCreate();
+  static void GxuLightDestroy(unsigned long lightId);
+  static CGxLight *GxuLightLock(unsigned long lightId);
+  static void GxuLightUnlock(unsigned long lightId);
+  static void GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
+  static void SelectLight(CMapBaseObj *baseObj);
+  static void SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
+  static int GxuLightEnable(unsigned long lightId);
+  static void GxuLightEnableSet(unsigned long lightId, int enable);
+  static void GxuLightSetMaxLights(unsigned int maxLightsToUse);
+  static float GxuLightBucketSize();
+  static void GxuLightBucketSizeSet(float bucketSize);
+  static void GxuLightResetCache();
+  static CMapLight *CreateLight(bool dynamic);
+  static void DestroyLight(CMapLight *light);
+  static void UpdateLight(CMapLight *light);
+  static void UpdateLightBounds(CMapLight *light);
+  static void EnableLight(CMapLight *light);
+  static void DisableLight(CMapLight *light);
   static unsigned int          EnablePixelShaders() {
     return enablePixelShaders;
   }
@@ -640,55 +640,55 @@ class CMap {
   static unsigned int EnableTerrainShader() {
     return enableTerrainShader;
   }
-  static void __fastcall              Destroy();
-  static void __fastcall              ClearDetailDoodads();
-  static float __fastcall             PointIntersect(float wx, float wy, float radius);
-  static void __fastcall              GxBufDynLowDetailCallback(CGxBufCommand &cmd, CGxBuf *buf);
-  static void __fastcall              CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf);
-  static void __fastcall              CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf);
-  static CMapBaseObjLink *__fastcall  AllocBaseObjLink(CMapBaseObj *owner);
-  static CMapObj *__fastcall          AllocMapObj();
-  static CMapObjGroup *__fastcall     AllocMapObjGroup();
-  static CChunkLayer *__fastcall      GetLayer();
-  static CChunkTex *__fastcall        GetTex();
-  static CMapArea *__fastcall         AllocArea();
-  static CMapChunk *__fastcall        AllocChunk();
-  static CMapDoodadDef *__fastcall    AllocDoodadDef();
-  static CMapEntity *__fastcall       AllocEntity();
-  static CMapObjDefGroup *__fastcall  AllocMapObjDefGroup();
-  static CMapObjDef *__fastcall       AllocMapObjDef();
-  static CChunkLiquid *__fastcall     AllocChunkLiquid();
-  static CMapSoundEmitter *__fastcall AllocSoundEmitter();
-  static CMapLight *__fastcall        AllocLight();
-  static CMapCacheLight *__fastcall   AllocCacheLight();
-  static void __fastcall              FreeBaseObjLink(CMapBaseObjLink *link);
-  static void __fastcall              FreeLight(CMapLight *light);
-  static void __fastcall              FreeCacheLight(CMapCacheLight *cacheLight);
-  static void __fastcall              FreeMapObj(CMapObj *mapObj);
-  static void __fastcall              FreeMapObjGroup(CMapObjGroup *group);
-  static void __fastcall              FreeArea(CMapArea *area);
-  static void __fastcall              FreeChunk(CMapChunk *chunk);
-  static void __fastcall              FreeLayer(CChunkLayer *layer);
-  static void __fastcall              FreeTex(CChunkTex *tex);
-  static void __fastcall              FreeDoodadDef(CMapDoodadDef *doodadDef);
-  static void __fastcall              FreeEntity(CMapEntity *entity);
-  static void __fastcall              InitializeDoodadBounds(CMapDoodadDef *doodadDef);
-  static int __fastcall               LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait);
-  static void __fastcall              PurgeDoodadDef(CMapDoodadDef *doodadDef);
-  static void __fastcall              FreeChunkLiquid(CChunkLiquid *&cl);
-  static void __fastcall              FreeSoundEmitter(CMapSoundEmitter *soundEmitter);
-  static void __fastcall              FreeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup);
-  static void __fastcall              FreeMapObjDef(CMapObjDef *mapObjDef);
-  static void __fastcall              PurgeMapObjDef(CMapObjDef *mapObjDef);
-  static void __fastcall              PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup);
-  static void __fastcall              PurgeArea(CMapArea *area);
-  static void __fastcall              PurgeChunk(CMapChunk *chunk);
-  static void __fastcall              ReloadDoodadModels();
-  static void __fastcall              UnloadLiquidTexture(unsigned int liquid);
-  static HTEXTURE__ *__fastcall       GetLiquidTexture(unsigned int liquid);
-  static void __fastcall              ProjectLights();
-  static void __fastcall              WaterInitialize();
-  static void __fastcall              WaterDiffTexCallback(
+  static void Destroy();
+  static void ClearDetailDoodads();
+  static float PointIntersect(float wx, float wy, float radius);
+  static void GxBufDynLowDetailCallback(CGxBufCommand &cmd, CGxBuf *buf);
+  static void CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf);
+  static void CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf);
+  static CMapBaseObjLink *AllocBaseObjLink(CMapBaseObj *owner);
+  static CMapObj *AllocMapObj();
+  static CMapObjGroup *AllocMapObjGroup();
+  static CChunkLayer *GetLayer();
+  static CChunkTex *GetTex();
+  static CMapArea *AllocArea();
+  static CMapChunk *AllocChunk();
+  static CMapDoodadDef *AllocDoodadDef();
+  static CMapEntity *AllocEntity();
+  static CMapObjDefGroup *AllocMapObjDefGroup();
+  static CMapObjDef *AllocMapObjDef();
+  static CChunkLiquid *AllocChunkLiquid();
+  static CMapSoundEmitter *AllocSoundEmitter();
+  static CMapLight *AllocLight();
+  static CMapCacheLight *AllocCacheLight();
+  static void FreeBaseObjLink(CMapBaseObjLink *link);
+  static void FreeLight(CMapLight *light);
+  static void FreeCacheLight(CMapCacheLight *cacheLight);
+  static void FreeMapObj(CMapObj *mapObj);
+  static void FreeMapObjGroup(CMapObjGroup *group);
+  static void FreeArea(CMapArea *area);
+  static void FreeChunk(CMapChunk *chunk);
+  static void FreeLayer(CChunkLayer *layer);
+  static void FreeTex(CChunkTex *tex);
+  static void FreeDoodadDef(CMapDoodadDef *doodadDef);
+  static void FreeEntity(CMapEntity *entity);
+  static void InitializeDoodadBounds(CMapDoodadDef *doodadDef);
+  static int LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait);
+  static void PurgeDoodadDef(CMapDoodadDef *doodadDef);
+  static void FreeChunkLiquid(CChunkLiquid *&cl);
+  static void FreeSoundEmitter(CMapSoundEmitter *soundEmitter);
+  static void FreeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup);
+  static void FreeMapObjDef(CMapObjDef *mapObjDef);
+  static void PurgeMapObjDef(CMapObjDef *mapObjDef);
+  static void PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup);
+  static void PurgeArea(CMapArea *area);
+  static void PurgeChunk(CMapChunk *chunk);
+  static void ReloadDoodadModels();
+  static void UnloadLiquidTexture(unsigned int liquid);
+  static HTEXTURE__ *GetLiquidTexture(unsigned int liquid);
+  static void ProjectLights();
+  static void WaterInitialize();
+  static void WaterDiffTexCallback(
       EGxTexCommand cmd,
       unsigned int  w,
       unsigned int  h,
@@ -698,18 +698,18 @@ class CMap {
       unsigned int &texelStrideInBytes,
       const void  *&texels
   );
-  static void __fastcall                    WaterDestroy();
-  static void __fastcall                    EnableDoodadFullAlpha(int enable);
-  static unsigned int __fastcall            QueryAreaId(float x, float y);
-  static bool __fastcall                    GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);
-  static unsigned int __fastcall            GetFacets(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
-  static unsigned int __fastcall            GetFacets(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags);
-  static unsigned int __fastcall            GetTris(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
-  static void __fastcall                    TestQueryAdd(const NTempest::CFacet &facet, NTempest::CImVector color, const NTempest::C44Matrix *basis);
-  static void __fastcall                    TestQueryRender();
-  static void __fastcall                    RenderLow();
-  static void __fastcall                    RenderAreaLow(CMapAreaLow *areaLow);
-  static unsigned long __fastcall           GetTextureUseage();
+  static void WaterDestroy();
+  static void EnableDoodadFullAlpha(int enable);
+  static unsigned int QueryAreaId(float x, float y);
+  static bool GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);
+  static unsigned int GetFacets(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
+  static unsigned int GetFacets(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags);
+  static unsigned int GetTris(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
+  static void TestQueryAdd(const NTempest::CFacet &facet, NTempest::CImVector color, const NTempest::C44Matrix *basis);
+  static void TestQueryRender();
+  static void RenderLow();
+  static void RenderAreaLow(CMapAreaLow *areaLow);
+  static unsigned long GetTextureUseage();
   static SFile                             *wdtFile;
   static unsigned long                      version;
   static SMMapHeader                        header;
@@ -760,9 +760,9 @@ class CMap {
   static TSGrowableArray<unsigned int>                  scCollideList;
   static unsigned int                                   scCollideCnt;
   static unsigned int                                   mapGetFacetsCount;
-  static int(__fastcall *entityHandler)(void *handlerParam, unsigned long event, unsigned __int64 guid, unsigned long flags);
+  static int(*entityHandler)(void *handlerParam, unsigned long event, unsigned __int64 guid, unsigned long flags);
   static void *entityHandlerParam;
-  static int(__fastcall *entityCollisionHandler)(unsigned __int64 guid, unsigned long flags, WorldObjCollisionHandlerData *data);
+  static int(*entityCollisionHandler)(unsigned __int64 guid, unsigned long flags, WorldObjCollisionHandlerData *data);
   static TSGrowableArray<CGxVertexPC>                 testQueryVerts;
   static TSGrowableArray<unsigned short>              testQueryIndices;
   static unsigned int                                 cCount;
@@ -786,61 +786,61 @@ class CMap {
  private:
   friend class CWorld;
   friend class CMapChunk;
-  static void __fastcall SnapBaseObjToSubChunk(CMapBaseObj *baseObj, NTempest::C3Vector &pos, float angle);
-  static void __fastcall UpdateDoodadDef(CMapDoodadDef *doodadDef, NTempest::C3Vector &pos, float angle);
-  static void __fastcall UpdateMapObjDefs();
-  static void __fastcall UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float angle);
-  static void __fastcall UpdateChunks(CMapArea *area);
-  static void __fastcall UpdateLiquidTextures();
-  static void __fastcall PrepareAreas();
-  static void __fastcall PrepareMapObjDefs();
-  static void __fastcall PrepareDoodadDefs();
-  static void __fastcall QueryLightmap(CMapDoodadDef *doodadDef);
-  static void __fastcall
+  static void SnapBaseObjToSubChunk(CMapBaseObj *baseObj, NTempest::C3Vector &pos, float angle);
+  static void UpdateDoodadDef(CMapDoodadDef *doodadDef, NTempest::C3Vector &pos, float angle);
+  static void UpdateMapObjDefs();
+  static void UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float angle);
+  static void UpdateChunks(CMapArea *area);
+  static void UpdateLiquidTextures();
+  static void PrepareAreas();
+  static void PrepareMapObjDefs();
+  static void PrepareDoodadDefs();
+  static void QueryLightmap(CMapDoodadDef *doodadDef);
+  static void
   UpdateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
-  static void __fastcall PrepareMapObjDef(CMapObjDef *mapObjDef, CMapObj *mapObj);
-  static void __fastcall PrepareChunks();
-  static void __fastcall PrepareArea(int x, int y);
-  static void __fastcall PrepareChunk(CMapArea *area, int x, int y);
-  static void __fastcall CreateChunkNeighborPtrs(CMapChunk *chunk);
+  static void PrepareMapObjDef(CMapObjDef *mapObjDef, CMapObj *mapObj);
+  static void PrepareChunks();
+  static void PrepareArea(int x, int y);
+  static void PrepareChunk(CMapArea *area, int x, int y);
+  static void CreateChunkNeighborPtrs(CMapChunk *chunk);
   static bool            enablePixelShaders;
   static bool            enableSpecular;
   static bool            enableSpecularTerrain;
   static bool            enableTerrainShader;
   static bool            enableSpecularWater;
-  static void __fastcall Purge();
-  static void __fastcall VectorIntersectSX(NTempest::CiRect &sRect);
-  static void __fastcall VectorIntersectSY(NTempest::CiRect &sRect);
-  static void __fastcall VectorIntersectDX(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, NTempest::CiRect &sRect);
-  static void __fastcall VectorIntersectDY(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, NTempest::CiRect &sRect);
-  static bool __fastcall VectorIntersectTri(
+  static void Purge();
+  static void VectorIntersectSX(NTempest::CiRect &sRect);
+  static void VectorIntersectSY(NTempest::CiRect &sRect);
+  static void VectorIntersectDX(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, NTempest::CiRect &sRect);
+  static void VectorIntersectDY(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, NTempest::CiRect &sRect);
+  static bool VectorIntersectTri(
       const NTempest::C3Vector *p,
       const NTempest::C3Vector *v0,
       const NTempest::C3Vector *v1,
       const NTempest::C3Vector *v2,
       const NTempest::C3Vector *n
   );
-  static bool __fastcall VectorIntersectSubchunks(
+  static bool VectorIntersectSubchunks(
       const NTempest::C3Vector *p0,
       const NTempest::C3Vector *p1,
       float                    *t,
       unsigned int              queryFlags,
       CMapChunk               **retChunk
   );
-  static bool __fastcall GetFacetTerrain(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);
-  static bool __fastcall GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);
-  static unsigned int __fastcall
+  static bool GetFacetTerrain(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);
+  static bool GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags);
+  static unsigned int
   GetChunkFacets(int cx, int cy, NTempest::CiRect &sRect, NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
-  static unsigned int __fastcall GetChunkFacets(int cx, int cy, NTempest::CiRect &sRect, CWFrustum &wFrustum, CWFacetData *facetData);
-  static unsigned int __fastcall GetFacetsMapObjs(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
-  static unsigned int __fastcall GetFacetsMapObjs(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags);
-  static unsigned int __fastcall GetTrisTerrain(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
-  static unsigned int __fastcall GetTrisMapObjs(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
-  static unsigned int __fastcall
+  static unsigned int GetChunkFacets(int cx, int cy, NTempest::CiRect &sRect, CWFrustum &wFrustum, CWFacetData *facetData);
+  static unsigned int GetFacetsMapObjs(NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
+  static unsigned int GetFacetsMapObjs(CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags);
+  static unsigned int GetTrisTerrain(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
+  static unsigned int GetTrisMapObjs(NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
+  static unsigned int
                          GetTrisChunk(int cx, int cy, NTempest::CiRect &sRect, NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
-  static void __fastcall CreateImpassableFacets(CMapChunk *chunk, NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
-  static void __fastcall LinkLightToMapObjDefs(CMapLight *light);
-  static void __fastcall LinkLightToChunks(CMapLight *light);
+  static void CreateImpassableFacets(CMapChunk *chunk, NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
+  static void LinkLightToMapObjDefs(CMapLight *light);
+  static void LinkLightToChunks(CMapLight *light);
 
   static int                                       counts[12];
   static int                                       freeCounts[12];
@@ -938,18 +938,18 @@ class CWorldScene {
   friend class CMapObj;
 
  public:
-  static void __fastcall Initialize();
-  static void __fastcall Destroy();
-  static void __fastcall PrepareRender(NTempest::C3Vector &position, NTempest::C3Vector &target);
-  static void __fastcall Update();
-  static void __fastcall Render();
-  static void __fastcall RenderAlpha();
-  static void __fastcall AddDoodadDef(CMapDoodadDef *doodadDef);
-  static void __fastcall AddMapObjDef(CMapObjDef *mapObjDef);
-  static void __fastcall AddMapChunk(CMapChunk *chunk, float sortDist);
-  static void __fastcall AddChunkLiquid(CChunkLiquid *liquid, unsigned int type);
-  static void __fastcall AddMapEntity(CMapEntity *entity);
-  static void __fastcall RenderChunks();
+  static void Initialize();
+  static void Destroy();
+  static void PrepareRender(NTempest::C3Vector &position, NTempest::C3Vector &target);
+  static void Update();
+  static void Render();
+  static void RenderAlpha();
+  static void AddDoodadDef(CMapDoodadDef *doodadDef);
+  static void AddMapObjDef(CMapObjDef *mapObjDef);
+  static void AddMapChunk(CMapChunk *chunk, float sortDist);
+  static void AddChunkLiquid(CChunkLiquid *liquid, unsigned int type);
+  static void AddMapEntity(CMapEntity *entity);
+  static void RenderChunks();
 
   static float                         cullSmallThreshold;
   static float                         cullDistance;
@@ -983,47 +983,47 @@ class CWorldScene {
   static char                          currentChunkName[64];
 
  private:
-  static CWFrustum *__fastcall AllocFrustum();
-  static void __fastcall       FreeFrustum(CWFrustum *frustum);
-  static void __fastcall       PrepareRenderLiquid();
-  static void __fastcall       CalcFrustumCorners(NTempest::C3Vector *corners);
-  static void __fastcall       ClipBufferUpdate(NTempest::C3Vector *vertices, const int *indicies, int nVertices, NTempest::C3Vector &corner);
-  static void __fastcall       ClipPortal(NTempest::C4Vector *inList, unsigned int &inCount);
-  static void __fastcall       LocateViewer();
-  static void __fastcall       AddViewerGroup2(unsigned int groupNum);
-  static void __fastcall       LocateViewer3();
-  static void __fastcall       LocateViewer2();
-  static void __fastcall       CullSortTable(NTempest::CRect &sRect);
-  static void __fastcall       CullHorizon(NTempest::CRect &sRect);
-  static void __fastcall       CullEntitys(CSortEntry *sortEntry);
-  static void __fastcall       CullDoodads(CSortEntry *sortEntry);
-  static void __fastcall       CullDoodads(TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkList);
-  static void __fastcall       CullChunkLiquid(CSortEntry *sortEntry, unsigned int type);
-  static void __fastcall       CullChunks(CSortEntry *sortEntry);
-  static void __fastcall       CullMapObjDefs(CSortEntry *sortEntry, NTempest::CRect &sRect);
-  static void __fastcall       CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<unsigned int> &inGroups);
-  static void __fastcall       CullMapObjDefGroup(const unsigned int groupNum, const void *userParam, const int rDrawSharedLiquidToggle);
-  static void __fastcall       RenderObjects();
-  static void __fastcall       RenderDoodads();
-  static void __fastcall       RenderHorizon();
-  static void __fastcall       RenderMapObjDefGroups();
-  static void __fastcall       RenderOcean();
-  static void __fastcall       RenderWater();
-  static void __fastcall       RenderMagma();
-  static void __fastcall       ClipBufferClear();
-  static int __fastcall        ClipBufferCull(NTempest::C3Vector &center, float radius, unsigned int cullFlags);
-  static int __fastcall        ClipBufferCull(NTempest::CAaBox &aaBox, unsigned int cullFlags);
-  static void __fastcall       FrustumSet(NTempest::CRect &sRect);
-  static void __fastcall       FrustumSet(NTempest::C3Vector *corners);
-  static void __fastcall       FrustumSet(NTempest::C3Vector *corners, NTempest::CRect &sRect);
-  static void __fastcall       FrustumSet(CWFrustum &frustum);
-  static void __fastcall       FrustumPush();
-  static void __fastcall       FrustumPop();
-  static CWFrustum &__fastcall FrustumGet();
-  static void __fastcall       FrustumXform(NTempest::C44Matrix &mat);
-  static int __fastcall        FrustumCull(NTempest::C3Vector &center, float radius);
-  static int __fastcall        FrustumCull(NTempest::CAaBox &aaBox);
-  static int __fastcall        FrustumCull(NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos);
+  static CWFrustum *AllocFrustum();
+  static void FreeFrustum(CWFrustum *frustum);
+  static void PrepareRenderLiquid();
+  static void CalcFrustumCorners(NTempest::C3Vector *corners);
+  static void ClipBufferUpdate(NTempest::C3Vector *vertices, const int *indicies, int nVertices, NTempest::C3Vector &corner);
+  static void ClipPortal(NTempest::C4Vector *inList, unsigned int &inCount);
+  static void LocateViewer();
+  static void AddViewerGroup2(unsigned int groupNum);
+  static void LocateViewer3();
+  static void LocateViewer2();
+  static void CullSortTable(NTempest::CRect &sRect);
+  static void CullHorizon(NTempest::CRect &sRect);
+  static void CullEntitys(CSortEntry *sortEntry);
+  static void CullDoodads(CSortEntry *sortEntry);
+  static void CullDoodads(TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkList);
+  static void CullChunkLiquid(CSortEntry *sortEntry, unsigned int type);
+  static void CullChunks(CSortEntry *sortEntry);
+  static void CullMapObjDefs(CSortEntry *sortEntry, NTempest::CRect &sRect);
+  static void CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<unsigned int> &inGroups);
+  static void CullMapObjDefGroup(const unsigned int groupNum, const void *userParam, const int rDrawSharedLiquidToggle);
+  static void RenderObjects();
+  static void RenderDoodads();
+  static void RenderHorizon();
+  static void RenderMapObjDefGroups();
+  static void RenderOcean();
+  static void RenderWater();
+  static void RenderMagma();
+  static void ClipBufferClear();
+  static int ClipBufferCull(NTempest::C3Vector &center, float radius, unsigned int cullFlags);
+  static int ClipBufferCull(NTempest::CAaBox &aaBox, unsigned int cullFlags);
+  static void FrustumSet(NTempest::CRect &sRect);
+  static void FrustumSet(NTempest::C3Vector *corners);
+  static void FrustumSet(NTempest::C3Vector *corners, NTempest::CRect &sRect);
+  static void FrustumSet(CWFrustum &frustum);
+  static void FrustumPush();
+  static void FrustumPop();
+  static CWFrustum &FrustumGet();
+  static void FrustumXform(NTempest::C44Matrix &mat);
+  static int FrustumCull(NTempest::C3Vector &center, float radius);
+  static int FrustumCull(NTempest::CAaBox &aaBox);
+  static int FrustumCull(NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos);
   static CWFrustum             frustumStack[16];
   static int                   frustumIndex;
   static NTempest::C4Vector    clipVertexBuffer[9];

@@ -28,18 +28,18 @@
 
 extern CVar *g_combatModeMaxDistance;
 
-void __fastcall UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp);
-void __fastcall UnitCombatLogXPGain(const unsigned __int64 &victim, CDataStore *msg, unsigned int count);
-void __fastcall UnitCombatLog(const ATTACKROUNDINFO &roundInfo);
-void __fastcall UnitCombatLog(const SPELLLOG &log);
-void __fastcall UnitCombatLog(SPELLMISSLOG &log);
-void __fastcall UnitCombatLog(const MIRRORTIMERDAMAGE &log);
-void __fastcall UnitCombatLog(ENVIRONMENTALDAMAGE &log);
-void __fastcall UnitCombatLogHeartbeatResist(RESISTLOG &log);
-void __fastcall UnitCombatLogEnchantment(ENCHANTMENTLOG &log);
-void __fastcall UnitCombatLogPartyKill(PARTYKILLLOG &log);
-void __fastcall UnitCombatLogInitialize();
-void __fastcall UnitCombatLogShutdown();
+void UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp);
+void UnitCombatLogXPGain(const unsigned __int64 &victim, CDataStore *msg, unsigned int count);
+void UnitCombatLog(const ATTACKROUNDINFO &roundInfo);
+void UnitCombatLog(const SPELLLOG &log);
+void UnitCombatLog(SPELLMISSLOG &log);
+void UnitCombatLog(const MIRRORTIMERDAMAGE &log);
+void UnitCombatLog(ENVIRONMENTALDAMAGE &log);
+void UnitCombatLogHeartbeatResist(RESISTLOG &log);
+void UnitCombatLogEnchantment(ENCHANTMENTLOG &log);
+void UnitCombatLogPartyKill(PARTYKILLLOG &log);
+void UnitCombatLogInitialize();
+void UnitCombatLogShutdown();
 
 struct CHANCES {
   unsigned int seq;
@@ -113,7 +113,7 @@ static unsigned char                      s_didHitConnect[NUM_VICTIMSTATES] = {0
 static unsigned int                       s_attackAnimHitStates[NUMHANDS] = {32, 34};
 static unsigned int                       s_attackAnimMissStates[NUMHANDS] = {30, 33};
 
-void __fastcall UnitEffectOneShot(
+void UnitEffectOneShot(
     UNITEFFECTSPECIALS        effectNumber,
     unsigned __int64          target,
     const NTempest::C3Vector *attachPos,
@@ -121,12 +121,12 @@ void __fastcall UnitEffectOneShot(
     float                     scale,
     bool                      forceEffectOnMount
 );
-int __fastcall    UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber);
-HMODEL __fastcall UnitEffectCreateAuraModel(unsigned int effectID);
-void __fastcall SndInterfacePlayWeaponSwooshSound(WEAPONSWING_SOUNDTYPES soundType, int criticalHit, const NTempest::C3Vector &position, int missed);
-unsigned int __fastcall SpellGetRangedPrecastHoldAnim(unsigned int loadAnim);
+int UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber);
+HMODEL UnitEffectCreateAuraModel(unsigned int effectID);
+void SndInterfacePlayWeaponSwooshSound(WEAPONSWING_SOUNDTYPES soundType, int criticalHit, const NTempest::C3Vector &position, int missed);
+unsigned int SpellGetRangedPrecastHoldAnim(unsigned int loadAnim);
 
-static unsigned int __fastcall FindAnimation(unsigned int ID) {
+static unsigned int FindAnimation(unsigned int ID) {
   static const struct {
     const char     *animName;
     ANIMENUMERATION anim;
@@ -152,7 +152,7 @@ static unsigned int __fastcall FindAnimation(unsigned int ID) {
   return static_cast<unsigned int>(-1);
 }
 
-static void __fastcall LoadAnimKitTable() {
+static void LoadAnimKitTable() {
   unsigned int count = g_attackAnimKitsDB.GetNumRecords();
   while (count) {
     AttackAnimKitsRec *rec = g_attackAnimKitsDB.GetRecordByIndex(--count);
@@ -351,7 +351,7 @@ void PARTYKILLLOG::UI(CDataStore &msg) {
   msg.Get(victim);
 }
 
-int __fastcall OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   switch (msgId) {
@@ -483,7 +483,7 @@ int __fastcall OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long
   }
 }
 
-int __fastcall OnUnitDamageDone(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnUnitDamageDone(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned __int64 attacker;
   unsigned __int64 guid;
   int              damage;
@@ -505,11 +505,11 @@ int __fastcall OnUnitDamageDone(void *__formal, NETMESSAGE msgId, unsigned long 
   return 1;
 }
 
-int __fastcall OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnUnitDamageDone(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnUnitDamageTaken(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnUnitDamageDone(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnUnitDamageTaken(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
 
-int __fastcall OnUnitDamageTaken(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnUnitDamageTaken(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned __int64 guid;
   unsigned int     flags;
   int              damage;
@@ -1363,7 +1363,7 @@ void CGUnit_C::CheckPendingVictimFeedback() {
   RecycleAnimNode(node);
 }
 
-void __fastcall UnitCombatClientInitialize() {
+void UnitCombatClientInitialize() {
   ClientServices_SetMessageHandler(SMSG_LOG_XPGAIN, OnUnitCombatEvent, 0);
   ClientServices_SetMessageHandler(SMSG_ATTACKERSTATEUPDATEDEBUGINFO, OnUnitCombatEvent, 0);
   ClientServices_SetMessageHandler(SMSG_ATTACKERSTATEUPDATEDEBUGINFOSPELL, OnUnitCombatEvent, 0);
@@ -1387,7 +1387,7 @@ void __fastcall UnitCombatClientInitialize() {
   LoadAnimKitTable();
 }
 
-void __fastcall UnitCombatClientShutdown() {
+void UnitCombatClientShutdown() {
   ClientServices_ClearMessageHandler(SMSG_LOG_XPGAIN);
   ClientServices_ClearMessageHandler(SMSG_ATTACKERSTATEUPDATEDEBUGINFO);
   ClientServices_ClearMessageHandler(SMSG_ATTACKERSTATEUPDATEDEBUGINFOSPELL);

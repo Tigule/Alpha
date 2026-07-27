@@ -3,17 +3,17 @@
 static DWORD s_alloccount;
 static DWORD s_freecount;
 
-void __fastcall StormOptCdThread(DWORD *threadId, void **hThread);
+void StormOptCdThread(DWORD *threadId, void **hThread);
 
 STORMOPTIONS g_opt = {
     0, 0, 0x10000, 0, 0, 0, 0, 0,
 };
 
-void __fastcall IncrementAllocCount() {
+void IncrementAllocCount() {
   ++s_alloccount;
 }
 
-void __fastcall IncrementFreeCount() {
+void IncrementFreeCount() {
   ++s_freecount;
 }
 

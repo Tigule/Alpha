@@ -49,22 +49,22 @@ enum CURSORANIMATIONS {
 
 class CGContainerInfo {
  public:
-  static void __fastcall UpdateCooldowns();
+  static void UpdateCooldowns();
 };
 
 class CGTradeInfo {
  public:
-  static int __fastcall GetTargetTradeItem(int index);
+  static int GetTargetTradeItem(int index);
 };
 
 class CGCraftInfo {
  public:
-  static void __fastcall SetCraftType(SPELL_CAST_UI_TYPE type);
+  static void SetCraftType(SPELL_CAST_UI_TYPE type);
 };
 
 class CGTradeSkillInfo {
  public:
-  static void __fastcall SetSkillLine(int id);
+  static void SetSkillLine(int id);
 };
 
 struct SpellCast {
@@ -155,43 +155,43 @@ static SpellHistory     s_spellHistory[2];
 static unsigned long    s_cleanupTime;
 static TSHashTable<ITEMCOOLDOWNHASHNODE, HASHKEY_NONE> s_itemCooldowns;
 
-void __fastcall CursorSetCursorMode(CURSORANIMATIONS mode);
-void __fastcall CursorModelSetSequence(CURSORANIMATIONS sequence);
-void __fastcall CursorResetCursor(int force);
+void CursorSetCursorMode(CURSORANIMATIONS mode);
+void CursorModelSetSequence(CURSORANIMATIONS sequence);
+void CursorResetCursor(int force);
 void            SendCast(SpellCast *cast);
-void __fastcall SpellPutCastTargets(SpellCast *cast, CDataStore *msg);
-void __fastcall SpellGetCastTargets(SpellCast *cast, CDataStore *msg);
-void __fastcall Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2);
-void __fastcall SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason);
-void __fastcall
+void SpellPutCastTargets(SpellCast *cast, CDataStore *msg);
+void SpellGetCastTargets(SpellCast *cast, CDataStore *msg);
+void Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2);
+void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason);
+void
 SpellVisualsHandleCastStart(int id, SpellCast &cast, CGUnit_C *caster, unsigned int duration, unsigned int animDuration, unsigned int wasProc);
-void __fastcall                   UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message);
-void __fastcall                   Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
-void __fastcall                   SpellVisualsPlayKit(CGUnit_C *target, unsigned int id);
-void __fastcall SpellVisualsHandleSpellStart(
+void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message);
+void Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
+void SpellVisualsPlayKit(CGUnit_C *target, unsigned int id);
+void SpellVisualsHandleSpellStart(
     int spellID, const SpellCast &cast, CGGameObject_C *caster,
     const TSStackArray<unsigned __int64> &targets, bool ignoreAreaEffect, bool hits);
-void __fastcall SpellVisualsHandleSpellStartHits(
+void SpellVisualsHandleSpellStartHits(
     int spellID, const SpellCast &cast, CGUnit_C *caster,
     const TSStackArray<unsigned __int64> &targets, int ammoDisplayID,
     int ammoInventoryType, int flags);
-void __fastcall SpellVisualsHandleSpellStartMisses(
+void SpellVisualsHandleSpellStartMisses(
     int spellID, const SpellCast &cast, CGUnit_C *caster,
     const TSStackArray<unsigned __int64> &targets,
     TSStackArray<MISS_REASON> &missReasons, int ammoDisplayID,
     int ammoInventoryType, int flags);
-void __fastcall UnitCombatLogCastGo(
+void UnitCombatLogCastGo(
     unsigned int spellID, unsigned __int64 casterUnit,
     unsigned __int64 target);
-bool __fastcall                   Spell_C_IsTargeting();
-bool __fastcall                   Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
-bool __fastcall                   Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
-bool __fastcall                   RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec);
-bool __fastcall                   Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec);
-void __fastcall                   UnitEffectPreloadSpellEffects(int spellID);
-const ItemSubClassRec *__fastcall SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
-bool __fastcall                   Spell_C_HandleSpriteClick(CGObject_C *object);
-const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
+bool Spell_C_IsTargeting();
+bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
+bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
+bool RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec);
+bool Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec);
+void UnitEffectPreloadSpellEffects(int spellID);
+const ItemSubClassRec *SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
+bool Spell_C_HandleSpriteClick(CGObject_C *object);
+const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
 
 void SpellHistory::AddHistory(
     int           spellID,
@@ -523,7 +523,7 @@ static void SpellMissingItemCallback(int id, const unsigned __int64& guid, void*
   CGGameUI::DisplayError(error, processedMessage);
 }
 
-void __fastcall Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2) {
+void Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2) {
   char            shapes[512];
   char            processedmessage[256];
   char            token[64];
@@ -906,7 +906,7 @@ static void SetItemCooldown(int itemID, int spellID, unsigned long startTime, un
   cooldown->needsEvent = needsEvent;
 }
 
-void __fastcall Spell_C_SetCooldownLeft(
+void Spell_C_SetCooldownLeft(
     int  spellID,
     int  itemID,
     int  category,
@@ -968,7 +968,7 @@ void __fastcall Spell_C_SetCooldownLeft(
   );
 }
 
-static void __fastcall ItemStatsCooldownCallback(int id, const unsigned __int64 &, void *, bool granted) {
+static void ItemStatsCooldownCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (!granted) {
     return;
   }
@@ -986,18 +986,18 @@ static void __fastcall ItemStatsCooldownCallback(int id, const unsigned __int64 
   }
 }
 
-int __fastcall Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable) {
+int Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable) {
   return s_spellHistory[isPet].GetCooldown(spell, 0, duration, startTime, enable);
 }
 
-static void __fastcall ItemCheckCooldownCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void ItemCheckCooldownCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     CGSpellBook::UpdateCooldowns();
     CGActionBar::UpdateCooldowns();
   }
 }
 
-int __fastcall Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable) {
+int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable) {
   unsigned __int64 guid = ClntObjMgrGetActivePlayer();
   const ItemStats *stats = g_itemDBCache.GetRecord(itemID, guid, reinterpret_cast<DBCACHECALLBACKPROC>(ItemCheckCooldownCallback), 0);
   if (!stats) {
@@ -1013,11 +1013,11 @@ int __fastcall Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsig
   return 0;
 }
 
-int __fastcall Spell_C_NeedsCooldownEvent(const SpellRec* srec, int isPet) {
+int Spell_C_NeedsCooldownEvent(const SpellRec* srec, int isPet) {
   return s_spellHistory[isPet].IsOnHold(srec->m_ID, 0);
 }
 
-int __fastcall Spell_C_NeedsCooldownEvent(int itemID) {
+int Spell_C_NeedsCooldownEvent(int itemID) {
   unsigned __int64 player = ClntObjMgrGetActivePlayer();
   const ItemStats *stats = g_itemDBCache.GetRecord(
       itemID,
@@ -1059,7 +1059,7 @@ static void Spell_C_ClearCooldowns(int isPet) {
   }
 }
 
-int __fastcall Spell_C_GetSpellByName(const char* name) {
+int Spell_C_GetSpellByName(const char* name) {
   for (int i = 0; i < g_spellDB.GetNumRecords(); ++i) {
     const SpellRec *spell = g_spellDB.GetRecordByIndex(i);
     if (!SStrCmpI(
@@ -1073,7 +1073,7 @@ int __fastcall Spell_C_GetSpellByName(const char* name) {
   return -1;
 }
 
-int __fastcall Spell_C_GetSpellLevel(int id, int isPet) {
+int Spell_C_GetSpellLevel(int id, int isPet) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (isPet) {
     if (!unit) {
@@ -1088,7 +1088,7 @@ int __fastcall Spell_C_GetSpellLevel(int id, int isPet) {
   return unit ? unit->GetSpellLevel(id) : 0;
 }
 
-int __fastcall Spell_C_GetManaCost(int id, int isPet) {
+int Spell_C_GetManaCost(int id, int isPet) {
   SpellRec *spell = g_spellDB.GetRecord(id);
   if (!spell) {
     return -1;
@@ -1104,7 +1104,7 @@ int __fastcall Spell_C_GetManaCost(int id, int isPet) {
       Spell_C_GetSpellLevel(id, isPet) * spell->m_manaCostPerLevel;
 }
 
-int __fastcall Spell_C_GetManaCostPerSecond(int id, int isPet) {
+int Spell_C_GetManaCostPerSecond(int id, int isPet) {
   SpellRec *spellRec = g_spellDB.GetRecord(id);
   if (!spellRec) {
     return -1;
@@ -1113,7 +1113,7 @@ int __fastcall Spell_C_GetManaCostPerSecond(int id, int isPet) {
       Spell_C_GetSpellLevel(id, isPet) * spellRec->m_manaPerSecondPerLevel;
 }
 
-int __fastcall Spell_C_GetCastTime(int id, int isPet) {
+int Spell_C_GetCastTime(int id, int isPet) {
   SpellRec *spellRec = g_spellDB.GetRecord(id);
   if (!spellRec) {
     return 0;
@@ -1128,7 +1128,7 @@ int __fastcall Spell_C_GetCastTime(int id, int isPet) {
   return result > castTime->m_minimum ? result : castTime->m_minimum;
 }
 
-void __fastcall Spell_C_GetMinMaxRange(int id, float *min, float *max) {
+void Spell_C_GetMinMaxRange(int id, float *min, float *max) {
   *min = 0.0f;
   *max = 0.0f;
 
@@ -1158,7 +1158,7 @@ void __fastcall Spell_C_GetMinMaxRange(int id, float *min, float *max) {
   }
 }
 
-void __fastcall Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet) {
+void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet) {
   *min = 0;
   *max = 0;
   if (!srec) {
@@ -1184,7 +1184,7 @@ void __fastcall Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, i
          dieSides * casterLevel * srec->m_effectDicePerLevel[effectIndex];
 }
 
-void __fastcall Spell_C_SetModal(int spellID, const CGItem_C *item) {
+void Spell_C_SetModal(int spellID, const CGItem_C *item) {
   if (spellID) {
     s_savedModalSpellID = s_modalSpellID;
     s_savedModalItemID = s_modalItemID;
@@ -1199,23 +1199,23 @@ void __fastcall Spell_C_SetModal(int spellID, const CGItem_C *item) {
   CGActionBar::UpdateSelection();
 }
 
-int __fastcall Spell_C_GetModalSpell() {
+int Spell_C_GetModalSpell() {
   return s_modalSpellID;
 }
 
-const unsigned __int64 &__fastcall Spell_C_GetModalItem() {
+const unsigned __int64 &Spell_C_GetModalItem() {
   return s_modalItemID;
 }
 
-bool __fastcall Spell_C_IsModal() {
+bool Spell_C_IsModal() {
   return s_modalSpellID != 0;
 }
 
-const unsigned __int64 &__fastcall Spell_C_GetCurrentCaster() {
+const unsigned __int64 &Spell_C_GetCurrentCaster() {
   return s_spellCast.caster;
 }
 
-const unsigned __int64 &__fastcall Spell_C_GetCurrentTarget() {
+const unsigned __int64 &Spell_C_GetCurrentTarget() {
   return s_spellCast.unitTarget;
 }
 
@@ -1316,7 +1316,7 @@ void SendCast(SpellCast *cast) {
   }
 }
 
-bool __fastcall Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec) {
+bool Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec) {
   s_needTargets = static_cast<unsigned short>(srec->m_targets);
   bool suppressTarget = false;
 
@@ -1369,7 +1369,7 @@ bool __fastcall Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec) {
   return Spell_C_HandleSpriteClick(ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
 }
 
-bool __fastcall Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report) {
+bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report) {
   unsigned int index;
   for (index = 0; index < 2; ++index) {
     if (spell->m_totem[index] && !player->m_inventory.FindItemOfType(spell->m_totem[index], 0)) {
@@ -1396,7 +1396,7 @@ struct FindAmmoData {
   unsigned int exoticAmmo;
 };
 
-static int __fastcall FindAmmoCallback(const CGItem_C *item, void *param) {
+static int FindAmmoCallback(const CGItem_C *item, void *param) {
   FindAmmoData *data = static_cast<FindAmmoData *>(param);
   if (item->GetClassID() != 6 || item->GetSubtypeID() != data->ammoType) {
     return 0;
@@ -1404,7 +1404,7 @@ static int __fastcall FindAmmoCallback(const CGItem_C *item, void *param) {
   return item->GetItemStaticFlag(ITEM_FLAG_EXOTIC) == static_cast<int>(data->exoticAmmo);
 }
 
-bool __fastcall Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report) {
+bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report) {
   if (spell->m_attributesEx & 0x10 || spell->m_equippedItemClass < 0 || !spell->m_equippedItemSubclass) {
     return true;
   }
@@ -1452,7 +1452,7 @@ bool __fastcall Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRe
   return true;
 }
 
-unsigned int __fastcall RangeCheck(CGPlayer_C *caster, CGObject_C *target, int spellID) {
+unsigned int RangeCheck(CGPlayer_C *caster, CGObject_C *target, int spellID) {
   float maxRange;
   float minRange;
   Spell_C_GetMinMaxRange(spellID, &minRange, &maxRange);
@@ -1467,7 +1467,7 @@ unsigned int __fastcall RangeCheck(CGPlayer_C *caster, CGObject_C *target, int s
   return 0;
 }
 
-bool __fastcall RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec) {
+bool RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec) {
   unsigned int checkRange;
   switch (srec->m_implicitTargetA[0]) {
     case 6:
@@ -1518,19 +1518,19 @@ bool __fastcall RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec) {
   return RangeCheck(caster, target, srec->m_ID) != 0;
 }
 
-bool __fastcall Spell_C_IsTargeting() {
+bool Spell_C_IsTargeting() {
   return s_needTargets != 0;
 }
 
-int __fastcall Spell_C_GetTargettingSpell() {
+int Spell_C_GetTargettingSpell() {
   return s_needTargets ? s_spellCast.spellID : 0;
 }
 
-void __fastcall Spell_C_StopTargeting() {
+void Spell_C_StopTargeting() {
   Spell_C_CancelSpell(0, 0, SPELL_FAILED_ERROR);
 }
 
-void __fastcall Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason) {
+void Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason) {
   CGUnit_C *caster = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_spellCast.caster, __FILE__, __LINE__));
 
   if (Spell_C_IsTargeting()) {
@@ -1594,7 +1594,7 @@ static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* 
   CWorld::ObjectEnableCollision(s_spellWorldModel, 0);
 }
 
-bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item) {
+bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
   SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell || (spell->m_attributes & 0x40)) {
     return false;
@@ -1748,7 +1748,7 @@ bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item) {
   return true;
 }
 
-bool __fastcall Spell_C_CastSpell(const char *spellName) {
+bool Spell_C_CastSpell(const char *spellName) {
   if (!SStrCmpI(spellName, "none", 0x7FFFFFFF)) {
     Spell_C_CancelSpell(1, 1, SPELL_FAILED_ERROR);
     return false;
@@ -1756,16 +1756,16 @@ bool __fastcall Spell_C_CastSpell(const char *spellName) {
   return Spell_C_CastSpell(Spell_C_GetSpellByName(spellName), 0);
 }
 
-bool __fastcall Spell_C_CanTargetObject(const CGObject_C *objectPtr) {
+bool Spell_C_CanTargetObject(const CGObject_C *objectPtr) {
   return (s_needTargets & 0x4800) && (objectPtr->GetType() & TYPE_GAMEOBJECT) &&
          static_cast<const CGGameObject_C *>(objectPtr)->IsValidTargetForSpell(s_spellCast.caster, s_spellCast.spellID);
 }
 
-bool __fastcall Spell_C_CanTargetObjects() {
+bool Spell_C_CanTargetObjects() {
   return (s_needTargets & 0x4800) != 0;
 }
 
-bool __fastcall Spell_C_HandleSpriteClick(CGObject_C *object) {
+bool Spell_C_HandleSpriteClick(CGObject_C *object) {
   if (!s_needTargets || !object) {
     return 0;
   }
@@ -1852,15 +1852,15 @@ bool __fastcall Spell_C_HandleSpriteClick(CGObject_C *object) {
   return handled;
 }
 
-bool __fastcall Spell_C_HandleSpriteClick(const CSpriteClickEvent &evt) {
+bool Spell_C_HandleSpriteClick(const CSpriteClickEvent &evt) {
   return Spell_C_HandleSpriteClick(ClntObjMgrObjectPtr(evt.objectGUID, __FILE__, __LINE__));
 }
 
-bool __fastcall Spell_C_CanTargetUnits() {
+bool Spell_C_CanTargetUnits() {
   return (s_needTargets & 0x58A) != 0;
 }
 
-bool __fastcall Spell_C_CanTargetMe() {
+bool Spell_C_CanTargetMe() {
   if (!(s_needTargets & 0x50A)) {
     return 0;
   }
@@ -1869,27 +1869,27 @@ bool __fastcall Spell_C_CanTargetMe() {
   return spell && !(spell->m_attributesEx & 0x80000);
 }
 
-bool __fastcall Spell_C_CanTargetParty() {
+bool Spell_C_CanTargetParty() {
   return (s_needTargets & 0x408) != 0;
 }
 
-bool __fastcall Spell_C_CanTargetFriends() {
+bool Spell_C_CanTargetFriends() {
   return (s_needTargets & 0x500) != 0;
 }
 
-bool __fastcall Spell_C_CanTargetEnemies() {
+bool Spell_C_CanTargetEnemies() {
   return (s_needTargets & 0x480) != 0;
 }
 
-bool __fastcall Spell_C_CanTargetDead() {
+bool Spell_C_CanTargetDead() {
   return (s_needTargets & 0x400) != 0;
 }
 
-bool __fastcall Spell_C_CanTargetItems() {
+bool Spell_C_CanTargetItems() {
   return (s_needTargets & 0x4010) != 0;
 }
 
-bool __fastcall Spell_C_HandleTerrainClick(const CTerrainClickEvent &evt) {
+bool Spell_C_HandleTerrainClick(const CTerrainClickEvent &evt) {
   if (!s_needTargets) {
     return 0;
   }
@@ -1915,11 +1915,11 @@ bool __fastcall Spell_C_HandleTerrainClick(const CTerrainClickEvent &evt) {
   return handled;
 }
 
-bool __fastcall Spell_C_CanTargetTerrain() {
+bool Spell_C_CanTargetTerrain() {
   return (s_needTargets & 0x60) != 0;
 }
 
-float __fastcall Spell_C_GetSpellRadius() {
+float Spell_C_GetSpellRadius() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   FATALASSERT(player);
 
@@ -1931,7 +1931,7 @@ float __fastcall Spell_C_GetSpellRadius() {
   return radius1 > radius2 ? radius1 : radius2;
 }
 
-bool __fastcall Spell_C_HandleSpriteRay(const CSpriteClickEvent &evt, bool checkRange) {
+bool Spell_C_HandleSpriteRay(const CSpriteClickEvent &evt, bool checkRange) {
   CGObject_C *object = ClntObjMgrObjectPtr(evt.objectGUID, __FILE__, __LINE__);
   if (!object) {
     return false;
@@ -2001,7 +2001,7 @@ bool __fastcall Spell_C_HandleSpriteRay(const CSpriteClickEvent &evt, bool check
   return minRange * minRange <= distance && maxRange * maxRange >= distance;
 }
 
-bool __fastcall Spell_C_HandleTerrainRay(const CTerrainClickEvent &evt, bool checkRange) {
+bool Spell_C_HandleTerrainRay(const CTerrainClickEvent &evt, bool checkRange) {
   if (!Spell_C_CanTargetTerrain()) {
     return false;
   }
@@ -2019,11 +2019,11 @@ bool __fastcall Spell_C_HandleTerrainRay(const CTerrainClickEvent &evt, bool che
   return minRange * minRange <= distance && maxRange * maxRange >= distance;
 }
 
-bool __fastcall Spell_C_WaitingForStringInput() {
+bool Spell_C_WaitingForStringInput() {
   return (s_needTargets >> 13) & 1;
 }
 
-int __fastcall Spell_C_TargetTradeItem(int tradeIndex) {
+int Spell_C_TargetTradeItem(int tradeIndex) {
   if (!(s_needTargets & 0x4010) ||
       tradeIndex < 0 ||
       tradeIndex >= 8 ||
@@ -2041,11 +2041,11 @@ int __fastcall Spell_C_TargetTradeItem(int tradeIndex) {
   return 1;
 }
 
-unsigned int __fastcall Spell_C_WorldObjectCursor() {
+unsigned int Spell_C_WorldObjectCursor() {
   return s_spellWorldModel;
 }
 
-float __fastcall Spell_C_WorldObjectFacing() {
+float Spell_C_WorldObjectFacing() {
   if (!s_needTargets) {
     CGObject_C *caster = ClntObjMgrObjectPtr(s_spellCast.caster, __FILE__, __LINE__);
     if (caster) {
@@ -2056,11 +2056,11 @@ float __fastcall Spell_C_WorldObjectFacing() {
   return s_spellWorldModelFacing;
 }
 
-bool __fastcall Spell_C_WorldObjectHousing() {
+bool Spell_C_WorldObjectHousing() {
   return s_spellWorldModelHousing != 0;
 }
 
-void __fastcall Spell_C_WorldObjectRotate() {
+void Spell_C_WorldObjectRotate() {
   s_spellWorldModelFacing += 1.5707964f;
   if (s_spellWorldModelFacing >= 6.2831855f) {
     s_spellWorldModelFacing -= 6.2831855f;
@@ -2072,7 +2072,7 @@ static int CCommand_Cast(const char*, const char* arguments) {
   return 1;
 }
 
-unsigned __int64 __fastcall Script_GetGUIDFromName(const char *name);
+unsigned __int64 Script_GetGUIDFromName(const char *name);
 
 static int CastResultHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   int spellID;
@@ -2758,12 +2758,12 @@ static int CCommand_SpellString(const char*, const char* arguments) {
   return 1;
 }
 
-static int __fastcall Script_SpellIsTargeting(lua_State *L) {
+static int Script_SpellIsTargeting(lua_State *L) {
   Spell_C_IsTargeting() ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
   return 1;
 }
 
-static int __fastcall Script_SpellCanTargetUnit(lua_State *L) {
+static int Script_SpellCanTargetUnit(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SpellCanTargetUnit(\"unit\")");
   }
@@ -2780,7 +2780,7 @@ static int __fastcall Script_SpellCanTargetUnit(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_SpellTargetUnit(lua_State *L) {
+static int Script_SpellTargetUnit(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SpellCanTargetUnit(\"unit\")");
   }
@@ -2792,20 +2792,20 @@ static int __fastcall Script_SpellTargetUnit(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SpellStopTargeting(lua_State *L) {
+static int Script_SpellStopTargeting(lua_State *L) {
   bool targeting = Spell_C_IsTargeting();
   Spell_C_StopTargeting();
   targeting ? lua_pushnumber(L, 1.0) : lua_pushnil(L);
   return 1;
 }
 
-void __fastcall SpellRegisterScriptFunctions() {
+void SpellRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 4; ++i) {
     FrameScript_RegisterFunction(s_SpellScriptFunctions[i].name, s_SpellScriptFunctions[i].method);
   }
 }
 
-void __fastcall SpellUnregisterScriptFunctions() {
+void SpellUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 4; ++i) {
     FrameScript_UnregisterFunction(s_SpellScriptFunctions[i].name);
   }
@@ -2818,7 +2818,7 @@ FrameScript_Method s_SpellScriptFunctions[4] = {
     {"SpellStopTargeting", Script_SpellStopTargeting}
 };
 
-void __fastcall Spell_C_CancelCombatSpell() {
+void Spell_C_CancelCombatSpell() {
   const SpellRec *spell = s_modalSpellID ? g_spellDB.GetRecord(s_modalSpellID) : 0;
   if (spell && (spell->m_attributes & 0x404)) {
     Spell_C_CancelSpell(0, 1, SPELL_FAILED_ERROR);
@@ -2843,7 +2843,7 @@ void __fastcall Spell_C_CancelCombatSpell() {
   }
 }
 
-void __fastcall Spell_C_CancelAura(int spellID) {
+void Spell_C_CancelAura(int spellID) {
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (spell->m_attributesEx & 0x2000) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(
@@ -2863,11 +2863,11 @@ void __fastcall Spell_C_CancelAura(int spellID) {
   ClientServices_Send(&msg);
 }
 
-unsigned int __fastcall Spell_C_GetPowerDisplayMod(POWER_TYPE type) {
+unsigned int Spell_C_GetPowerDisplayMod(POWER_TYPE type) {
   return type < 0 ? 1 : s_displayPowerMods[type];
 }
 
-void __fastcall Spell_C_Initialize() {
+void Spell_C_Initialize() {
   ClientServices_SetMessageHandler(SMSG_CAST_RESULT, CastResultHandler, 0);
   ClientServices_SetMessageHandler(SMSG_SPELL_START, SpellStartHandler, 0);
   ClientServices_SetMessageHandler(SMSG_SPELL_GO, SpellStartHandler, 0);
@@ -2913,7 +2913,7 @@ void __fastcall Spell_C_Initialize() {
       "specify a spell string. Eventually there will be an editbox.");
 }
 
-void __fastcall Spell_C_Destroy() {
+void Spell_C_Destroy() {
   ClientServices_ClearMessageHandler(SMSG_CAST_RESULT);
   ClientServices_ClearMessageHandler(SMSG_SPELL_START);
   ClientServices_ClearMessageHandler(SMSG_SPELL_GO);
@@ -2945,7 +2945,7 @@ void __fastcall Spell_C_Destroy() {
   s_spellHistory[1].ClearHistory();
 }
 
-bool __fastcall IsSpellAura(const SpellRec *rec) {
+bool IsSpellAura(const SpellRec *rec) {
   for (unsigned int effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 6 || rec->m_effect[effect] == 35) {
       return 1;

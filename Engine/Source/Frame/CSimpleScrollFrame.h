@@ -38,8 +38,8 @@ class CSimpleScrollFrame : public CSimpleFrame {
     m_updateScrollChild = 1;
   }
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   void SetOnHorizontalScrollScript(const char *source) {
     char description[1024];
@@ -88,7 +88,7 @@ class CSimpleScrollFrame : public CSimpleFrame {
   void SetScrollChild(CSimpleFrame *frame);
   void UpdateScrollChildRect(float w, float h);
   void UpdateScrollChild();
-  static void __fastcall RenderScrollChild(void *param);
+  static void RenderScrollChild(void *param);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 

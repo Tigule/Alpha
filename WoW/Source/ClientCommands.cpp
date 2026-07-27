@@ -40,14 +40,14 @@ struct CMemCmdDump {
   TSGrowableArray<CMemCmdItem> m_items;
 };
 
-char *__fastcall OsGetLastErrorStr();
-void __fastcall OsFreeLastErrorStr(char *msgBuf);
+char *OsGetLastErrorStr();
+void OsFreeLastErrorStr(char *msgBuf);
 static unsigned __int64 s_lastTarget;
 
-int __fastcall ModelRenderSceneLogToggle(const char *fileName);
-int __fastcall ModelAnimateLogToggle(const char *fileName);
-int __fastcall Player_C_TogglePlayerRender();
-void __fastcall ModelShowBoundingSphere(HMODEL model);
+int ModelRenderSceneLogToggle(const char *fileName);
+int ModelAnimateLogToggle(const char *fileName);
+int Player_C_TogglePlayerRender();
+void ModelShowBoundingSphere(HMODEL model);
 
 static int CCommand_DBLookup(const char* command, const char* string) {
   CDataStore message;
@@ -518,7 +518,7 @@ static int CCommand_TargetAttack(const char* command, const char* arguments) {
   return 1;
 }
 
-static int __fastcall CCommand_Save(const char *command, const char *arguments) {
+static int CCommand_Save(const char *command, const char *arguments) {
   CDataStore message;
   message.Put(CMSG_SAVE_PLAYER);
   message.Finalize();
@@ -562,7 +562,7 @@ static int CCommand_SendEvent(const char* command, const char* arguments) {
   return 1;
 }
 
-static int __fastcall CCommand_Recharge(const char *command, const char *arguments) {
+static int CCommand_Recharge(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(CMSG_RECHARGE);
   msg.Finalize();
@@ -705,7 +705,7 @@ static int CCommand_QuestCommand(const char* command, const char* arguments) {
   return 1;
 }
 
-static int __fastcall CCommand_TaxiClearAllNodes(const char *, const char *) {
+static int CCommand_TaxiClearAllNodes(const char *, const char *) {
   CDataStore msg;
   msg.Put(CMSG_TAXICLEARALLNODES);
   msg.Finalize();
@@ -713,7 +713,7 @@ static int __fastcall CCommand_TaxiClearAllNodes(const char *, const char *) {
   return 1;
 }
 
-static int __fastcall CCommand_TaxiEnableAllNodes(const char *, const char *) {
+static int CCommand_TaxiEnableAllNodes(const char *, const char *) {
   CDataStore msg;
   msg.Put(CMSG_TAXIENABLEALLNODES);
   msg.Finalize();
@@ -730,7 +730,7 @@ static int CCommand_ChangeCellZone(const char*, const char* args) {
   return 1;
 }
 
-static int __fastcall CCommand_Played(const char *, const char *) {
+static int CCommand_Played(const char *, const char *) {
   CDataStore msg;
   msg.Put(CMSG_PLAYED_TIME);
   msg.Finalize();
@@ -1053,7 +1053,7 @@ static int CCommand_Mem(const char* command, const char* arguments) {
   return 1;
 }
 
-void __fastcall InstallGameConsoleCommands() {
+void InstallGameConsoleCommands() {
   ConsoleCommandRegister("loc", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Loc), DEBUG, 0);
   ConsoleCommandRegister("dloc", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_DLoc), DEBUG, 0);
   ConsoleCommandRegister("facing", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Facing), DEBUG, 0);
@@ -1112,7 +1112,7 @@ void __fastcall InstallGameConsoleCommands() {
   InstallGMCommands();
 }
 
-void __fastcall UninstallGameConsoleCommands() {
+void UninstallGameConsoleCommands() {
   ConsoleCommandUnregister("loc");
   ConsoleCommandUnregister("dloc");
   ConsoleCommandUnregister("facing");

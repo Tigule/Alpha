@@ -12,16 +12,16 @@
 
 struct ZipFileFCB;
 
-unsigned long __fastcall ZipFileOpenArchive(const char *archivename);
-int __fastcall           ZipFileCloseArchive(unsigned long handle);
-ZipFileFCB *__fastcall   ZipFileOpenFile(const char *filename, unsigned long archive);
-int __fastcall           ZipFileCloseFile(ZipFileFCB *fcb);
-int __fastcall           ZipFileReadFile(ZipFileFCB *fcb, void *buffer, unsigned int bytesToRead, unsigned int *bytesRead);
-int __fastcall           ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin);
-unsigned long __fastcall ZipFileGetFilePointer(ZipFileFCB *fcb);
-unsigned long __fastcall ZipFileGetFileSize(ZipFileFCB *fcb);
-int __fastcall           ZipFileFileExists(const char *filename);
-int __fastcall           ZipFileList(unsigned long archive, int(__fastcall *cb)(const char *filename, void *param), void *param);
+unsigned long ZipFileOpenArchive(const char *archivename);
+int ZipFileCloseArchive(unsigned long handle);
+ZipFileFCB *ZipFileOpenFile(const char *filename, unsigned long archive);
+int ZipFileCloseFile(ZipFileFCB *fcb);
+int ZipFileReadFile(ZipFileFCB *fcb, void *buffer, unsigned int bytesToRead, unsigned int *bytesRead);
+int ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin);
+unsigned long ZipFileGetFilePointer(ZipFileFCB *fcb);
+unsigned long ZipFileGetFileSize(ZipFileFCB *fcb);
+int ZipFileFileExists(const char *filename);
+int ZipFileList(unsigned long archive, int(*cb)(const char *filename, void *param), void *param);
 void __cdecl             SOutputDebugString(const char *format, ...);
 
 class ASYNCREAD : public TSLinkedNode<ASYNCREAD> {
@@ -77,7 +77,7 @@ MD5::MD5() {
 NoPaqCompHdr::NoPaqCompHdr() {
 }
 
-static void __fastcall AddDirectoryToHash(const char *top, const char *sub, SDIR *dir) {
+static void AddDirectoryToHash(const char *top, const char *sub, SDIR *dir) {
   char         namebuf[MAX_PATH];
   struct _stat stats;
   DWORD        toplen;
@@ -163,7 +163,7 @@ static void __fastcall AddDirectoryToHash(const char *top, const char *sub, SDIR
   }
 }
 
-static void __fastcall BuildFileSystemHash() {
+static void BuildFileSystemHash() {
   const char *base;
   SDIR       *basedir;
   SDIR       *dir;
@@ -201,9 +201,9 @@ static void __fastcall BuildFileSystemHash() {
   s_findFileHashInitialized = true;
 }
 
-static int __fastcall OldFindFile(const char *filename, char *realname, int len, DWORD flags, SFILE_TYPE *type);
+static int OldFindFile(const char *filename, char *realname, int len, DWORD flags, SFILE_TYPE *type);
 
-static int __fastcall FindFile(const char *filename, char *realname, int len, DWORD flags, SFILE_TYPE *type) {
+static int FindFile(const char *filename, char *realname, int len, DWORD flags, SFILE_TYPE *type) {
   const char *base;
   FILEMAP    *mapped;
 
@@ -264,7 +264,7 @@ void APIENTRY SFile::RebuildHash() {
   s_findFileHashInitialized = false;
 }
 
-static int __fastcall OldFindFile(const char *filename, char *realname, int len, DWORD flags, SFILE_TYPE *type) {
+static int OldFindFile(const char *filename, char *realname, int len, DWORD flags, SFILE_TYPE *type) {
   struct _stat stats;
   const char  *backslash;
 
@@ -393,7 +393,7 @@ SFile::~SFile() {
   }
 }
 
-static DWORD __fastcall BuildDefaultOpenFlags() {
+static DWORD BuildDefaultOpenFlags() {
   DWORD flags;
 
   flags = 0;
@@ -409,7 +409,7 @@ static DWORD __fastcall BuildDefaultOpenFlags() {
   return flags;
 }
 
-void __fastcall SFile::DoAsyncRead(ASYNCREAD *ptr) {
+void SFile::DoAsyncRead(ASYNCREAD *ptr) {
   DWORD savedOffset;
   int   closeAfterLoad;
 
@@ -497,14 +497,14 @@ unsigned int APIENTRY SFile::ReadProc(void *__formal) {
   }
 }
 
-void __fastcall SFile::InitializeReadThread() {
+void SFile::InitializeReadThread() {
   if (!s_readThreadInitialized) {
     SThread::Create(ReadProc, NULL, s_readThread, NULL);
     s_readThreadInitialized = TRUE;
   }
 }
 
-void __fastcall SFile::QueueReadRequest(SFile *fileptr, void *buffer, DWORD bytestoread, SOVERLAPPED *overlapped) {
+void SFile::QueueReadRequest(SFile *fileptr, void *buffer, DWORD bytestoread, SOVERLAPPED *overlapped) {
   ASYNCREAD *request;
 
   ASSERT(!fileptr->m_asyncCount);
@@ -520,7 +520,7 @@ void __fastcall SFile::QueueReadRequest(SFile *fileptr, void *buffer, DWORD byte
   s_readQueueLock.Leave();
 }
 
-int __fastcall SFile::DoZRead(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread) {
+int SFile::DoZRead(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread) {
   int result;
   int read;
 
@@ -1068,7 +1068,7 @@ int APIENTRY SFile::PollOverlapped(SOVERLAPPED *overlapped) {
   return overlapped->hEvent->Wait(0) == WAIT_OBJECT_0;
 }
 
-void __fastcall SFile::Destroy() {
+void SFile::Destroy() {
   s_readQueueLock.Enter();
   s_exitReadThread = TRUE;
   s_readQueueEvent.Set();
@@ -1124,7 +1124,7 @@ int APIENTRY SFile::GetMD5(SFile *file, MD5 &sum) {
   return TRUE;
 }
 
-int APIENTRY SFile::List(SArchive *archive, int(__fastcall *cb)(const char *filename, void *param), void *param) {
+int APIENTRY SFile::List(SArchive *archive, int(*cb)(const char *filename, void *param), void *param) {
   unsigned int *list;
   BYTE         *cursor;
   BYTE         *end;

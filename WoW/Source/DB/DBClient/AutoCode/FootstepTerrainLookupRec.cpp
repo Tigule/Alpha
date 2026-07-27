@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall FootstepTerrainLookupRec::GetFilename() {
+const char *FootstepTerrainLookupRec::GetFilename() {
   return "DBFilesClient\\FootstepTerrainLookup.dbc";
 }
 

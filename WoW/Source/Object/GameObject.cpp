@@ -2,7 +2,7 @@
 
 #include "Tempest/c3vector.h"
 
-void __fastcall GenerateChairPoints(
+void GenerateChairPoints(
     const NTempest::C44Matrix &matrix,
     unsigned int slots,
     NTempest::C3Vector *out) {

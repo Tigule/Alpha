@@ -14,7 +14,7 @@ typedef struct SThreadLaunchInfo {
   HANDLE      handle;
 } SThreadLaunchInfo;
 
-typedef void(__fastcall *SPROCESSCOMPLETIONPROC)(void *);
+typedef void(*SPROCESSCOMPLETIONPROC)(void *);
 
 typedef struct SProcessCompletionInfo {
   SPROCESSCOMPLETIONPROC proc;
@@ -49,7 +49,7 @@ static unsigned int APIENTRY ProcessCompletionCallbackThread(void *vdata) {
   return 0;
 }
 
-int __fastcall SCreateProcess(const char *appName, char *commandLine, SPROCESSCOMPLETIONPROC callbackWhenProcessCompletes, void *callbackData) {
+int SCreateProcess(const char *appName, char *commandLine, SPROCESSCOMPLETIONPROC callbackWhenProcessCompletes, void *callbackData) {
   WCHAR               appNameW[MAX_PATH];
   WCHAR               commandLineW[MAX_PATH];
   STARTUPINFOW        startInfo;
@@ -84,15 +84,15 @@ int __fastcall SCreateProcess(const char *appName, char *commandLine, SPROCESSCO
   return 1;
 }
 
-DWORD __fastcall SGetCurrentThreadId() {
+DWORD SGetCurrentThreadId() {
   return GetCurrentThreadId();
 }
 
-int __fastcall SGetCurrentThreadPriority() {
+int SGetCurrentThreadPriority() {
   return GetThreadPriority(GetCurrentThread());
 }
 
-void __fastcall SSetCurrentThreadPriority(int priority) {
+void SSetCurrentThreadPriority(int priority) {
   SetThreadPriority(GetCurrentThread(), priority);
 }
 
@@ -122,7 +122,7 @@ DWORD WINAPI S_Thread::s_SLaunchThread(void *lpThreadParameter) {
   return threadVal;
 }
 
-void *__fastcall
+void *
 SCreateThread(DWORD dwStackSize, STHREADPROC lpStartAddress, void *lpParameter, DWORD dwCreationFlags, unsigned int *lpThreadId, char *threadName) {
   DWORD              buf[2];
   DWORD              bufsize;
@@ -183,6 +183,6 @@ SCreateThread(DWORD dwStackSize, STHREADPROC lpStartAddress, void *lpParameter, 
   return hThread;
 }
 
-void *__fastcall SCreateThread(STHREADPROC lpStartAddress, void *lpParameter, unsigned int *lpThreadId, void *linuxData, char *threadName) {
+void *SCreateThread(STHREADPROC lpStartAddress, void *lpParameter, unsigned int *lpThreadId, void *linuxData, char *threadName) {
   return SCreateThread(0, lpStartAddress, lpParameter, 0, lpThreadId, threadName);
 }

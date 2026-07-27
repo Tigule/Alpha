@@ -23,23 +23,23 @@ int                                CMapObj::bIntRender;
 unsigned int                       CMapObj::sMinimapTag;
 TSHashTable<CMapObj, HASHKEY_NONE> CMapObj::mapObjHash;
 HASHKEY_NONE                       CMapObj::nullHashKey;
-void(__fastcall *CMapObj::gRenderCallback)(const unsigned int, const void *, const int);
+void(*CMapObj::gRenderCallback)(const unsigned int, const void *, const int);
 void        *CMapObj::gRenderUserParam;
 unsigned int CMapObj::gRenderCount;
 
-void __fastcall CMapObj::Initialize() {
+void CMapObj::Initialize() {
   gRenderCount = 0;
   portalExtList.SetCount(2048);
   CMapObjGroup::extGxBufFreeList.SetCount(0);
   CMapObjGroup::intGxBufFreeList.SetCount(0);
 }
 
-void __fastcall CMapObj::Destroy() {
+void CMapObj::Destroy() {
   ClearCache(1);
   CMapObjGroup::Destroy();
 }
 
-void __fastcall CMapObj::ClearCache(int force) {
+void CMapObj::ClearCache(int force) {
   CMapObj *mapObj = mapObjHash.Head();
   CMapObj *mapObjnext_node;
 
@@ -54,7 +54,7 @@ void __fastcall CMapObj::ClearCache(int force) {
   }
 }
 
-CMapObj *__fastcall CMapObj::Create(const char *fileName) {
+CMapObj *CMapObj::Create(const char *fileName) {
   unsigned int hashval = SStrHashHT(fileName);
   CMapObj     *mapObj = mapObjHash.Ptr(hashval, nullHashKey);
   if (mapObj) {
@@ -73,7 +73,7 @@ CMapObj *__fastcall CMapObj::Create(const char *fileName) {
   return mapObj;
 }
 
-void __fastcall CMapObj::Delete(CMapObj *mapObj) {
+void CMapObj::Delete(CMapObj *mapObj) {
   --mapObj->refCount;
   if (mapObj->refCount <= 0) {
     mapObj->flushTime = 30.0f;

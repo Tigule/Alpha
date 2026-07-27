@@ -103,7 +103,7 @@ static unsigned short idx[4] = {0, 1, 2, 3};
 NTempest::C2Vector CGMinimapFrame::m_pingPosition;
 MinimapTexParams   CGMinimapFrame::s_minimapTexParams;
 
-NTempest::C2Vector __fastcall CGMinimapFrame::WorldPosToMinimapFrameCoords(
+NTempest::C2Vector CGMinimapFrame::WorldPosToMinimapFrameCoords(
     NTempest::C3Vector centerPoint,
     float              radius,
     float              x,
@@ -118,7 +118,7 @@ NTempest::C2Vector __fastcall CGMinimapFrame::WorldPosToMinimapFrameCoords(
 CGMinimapFrame::~CGMinimapFrame() {
 }
 
-int __fastcall CGMinimapFrame::ObjectEnumProc(unsigned __int64 object, void *param) {
+int CGMinimapFrame::ObjectEnumProc(unsigned __int64 object, void *param) {
   MINIMAPINFO *info = static_cast<MINIMAPINFO *>(param);
   FATALASSERT(info);
 
@@ -461,13 +461,13 @@ void CGMinimapFrame::OnFrameRender(CRenderBatch *batch, unsigned int layer) {
   batch->QueueCallback(RenderCallback, this);
 }
 
-void __fastcall CGMinimapFrame::RenderCallback(void *param) {
+void CGMinimapFrame::RenderCallback(void *param) {
   if (param) {
     static_cast<CGMinimapFrame *>(param)->Render();
   }
 }
 
-void __fastcall CGMinimapFrame::RenderInsideSortQuads(QUADDATA *&rHead) {
+void CGMinimapFrame::RenderInsideSortQuads(QUADDATA *&rHead) {
   for (unsigned int index = 0; index < 1024; ++index) {
     QUADDATA *quad = &s_quadData[index];
     if (quad->m_flags & 2) {
@@ -481,7 +481,7 @@ void __fastcall CGMinimapFrame::RenderInsideSortQuads(QUADDATA *&rHead) {
   }
 }
 
-void __fastcall CGMinimapFrame::RenderInsideQuad(QUADDATA *q) {
+void CGMinimapFrame::RenderInsideQuad(QUADDATA *q) {
   NTempest::C3Vector  geo[4];
   NTempest::C3Vector  t;
   NTempest::CImVector WHITE(0xFFFFFFFF);
@@ -507,7 +507,7 @@ void __fastcall CGMinimapFrame::RenderInsideQuad(QUADDATA *q) {
   GxPrimUnlockVertexPtrs();
 }
 
-void __fastcall CGMinimapFrame::RenderInsideTexture() {
+void CGMinimapFrame::RenderInsideTexture() {
   NTempest::C44Matrix oldViewMtx;
   NTempest::C44Matrix oldProjMtx;
   NTempest::C44Matrix projMtx;
@@ -597,7 +597,7 @@ void CGMinimapFrame::RenderInside(float minimapSize, const NTempest::C2Vector &l
   GxRsPop();
 }
 
-void __fastcall CGMinimapFrame::MinimapTextureCallback(
+void CGMinimapFrame::MinimapTextureCallback(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -652,7 +652,7 @@ void QUADDATA::Render(unsigned int quad, const NTempest::CImVector &color) const
   GxRsSet(GxRs_Texture1, 0);
 }
 
-void __fastcall CGMinimapFrame::Initialize(int continentID) {
+void CGMinimapFrame::Initialize(int continentID) {
   s_initialized = 1;
   MinimapInitialize(continentID);
 
@@ -922,7 +922,7 @@ void CGMinimapFrame::Render() {
   GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 }
 
-void __fastcall CGMinimapFrame::Shutdown() {
+void CGMinimapFrame::Shutdown() {
   MinimapShutdown();
 
   for (unsigned int quad = 0; quad < 1024; ++quad) {
@@ -1013,7 +1013,7 @@ void CGMinimapFrame::PostLoadXML(const XMLNode *node, CStatus *status) {
   FATALASSERT(m_tooltip);
 }
 
-void __fastcall CGMinimapFrame::SetPingPosition(const unsigned __int64 &sender, const NTempest::C2Vector &pos) {
+void CGMinimapFrame::SetPingPosition(const unsigned __int64 &sender, const NTempest::C2Vector &pos) {
   char               name[32];
   NTempest::C2Vector diff;
   CGPlayer_C        *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -1035,7 +1035,7 @@ void __fastcall CGMinimapFrame::SetPingPosition(const unsigned __int64 &sender, 
   FrameScript_SignalEvent(337, "%s%f%f", name, -diff.y * scale, diff.x * scale);
 }
 
-static int __fastcall CGMinimapFrame_GetZoomLevels(lua_State *L) {
+static int CGMinimapFrame_GetZoomLevels(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(MinimapGetZoomLevels()));
   return 1;
 }
@@ -1055,12 +1055,12 @@ static int __fastcall CGMinimapFrame_GetZoomLevels(lua_State *L) {
   }                                                                \
   FATALASSERT(object)
 
-static int __fastcall CGMinimapFrame_GetZoom(lua_State *L) {
+static int CGMinimapFrame_GetZoom(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(MinimapGetZoom()));
   return 1;
 }
 
-static int __fastcall CGMinimapFrame_SetZoom(lua_State *L) {
+static int CGMinimapFrame_SetZoom(lua_State *L) {
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: SetZoom(level)");
   }
@@ -1068,8 +1068,8 @@ static int __fastcall CGMinimapFrame_SetZoom(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CGMinimapFrame_PingLocation(lua_State *L);
-static int __fastcall CGMinimapFrame_GetPingPosition(lua_State *L);
+static int CGMinimapFrame_PingLocation(lua_State *L);
+static int CGMinimapFrame_GetPingPosition(lua_State *L);
 
 static FrameScript_Method CGMinimapFrameMethods[5] = {
     {  "GetZoomLevels",   CGMinimapFrame_GetZoomLevels},
@@ -1081,7 +1081,7 @@ static FrameScript_Method CGMinimapFrameMethods[5] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CGMinimapFrame::s_scriptMethods;
 
-static int __fastcall CGMinimapFrame_PingLocation(lua_State *L) {
+static int CGMinimapFrame_PingLocation(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -1114,7 +1114,7 @@ static int __fastcall CGMinimapFrame_PingLocation(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CGMinimapFrame_GetPingPosition(lua_State *L) {
+static int CGMinimapFrame_GetPingPosition(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     NTempest::C3Vector playerPosition = player->GetPosition();
@@ -1131,11 +1131,11 @@ static int __fastcall CGMinimapFrame_GetPingPosition(lua_State *L) {
 
 #undef GET_MINIMAP_THIS
 
-void __fastcall CGMinimapFrame::RegisterScriptMethods() {
+void CGMinimapFrame::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(CGMinimapFrameMethods, 5, s_scriptMethods);
 }
 
-void __fastcall CGMinimapFrame::UnregisterScriptMethods() {
+void CGMinimapFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

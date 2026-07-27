@@ -8,204 +8,204 @@ class Parser;
 class TSet;
 union UTokenData;
 
-void __fastcall ReadFloatKeyData(
+void ReadFloatKeyData(
     Parser &parse,
     float *entry,
     unsigned int elements
 );
-unsigned int __fastcall ReadFloatTrackHeader(
+unsigned int ReadFloatTrackHeader(
     Parser &parse,
     MDLKEYTRACK<NTempest::C3Vector> *track,
     const char **tokenText,
     UTokenData *tokenData
 );
-unsigned int __fastcall ReadIntTrackHeader(
+unsigned int ReadIntTrackHeader(
     Parser &parse,
     MDLSIMPLEKEYTRACK<MDLINTKEY> *track,
     const char **tokenText,
     UTokenData *tokenData
 );
-unsigned int __fastcall ReadFloatTrackHeader(
+unsigned int ReadFloatTrackHeader(
     Parser &parse,
     MDLKEYTRACK<NTempest::C4Quaternion> *track,
     const char **tokenText,
     UTokenData *tokenData
 );
-unsigned int __fastcall ReadFloatTrackHeader(
+unsigned int ReadFloatTrackHeader(
     Parser &parse,
     MDLKEYTRACK<float> *track,
     const char **tokenText,
     UTokenData *tokenData
 );
-void __fastcall ReadObjectFloatKeyframes(
+void ReadObjectFloatKeyframes(
     Parser &parse,
     MDLKEYTRACK<NTempest::C3Vector> *track
 );
-void __fastcall ReadObjectFloatKeyframes(
+void ReadObjectFloatKeyframes(
     Parser &parse,
     MDLKEYTRACK<float> *track
 );
-void __fastcall ReadObjectFloatKeyframes(
+void ReadObjectFloatKeyframes(
     Parser &parse,
     MDLKEYTRACK<C3Color> *track
 );
-void __fastcall WriteTrackHeader(
+void WriteTrackHeader(
     const char *indent,
     const MDLKEYTRACK<NTempest::C3Vector> &track,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteTrackHeader(
+void WriteTrackHeader(
     const char *indent,
     const MDLKEYTRACK<NTempest::C4Quaternion> &track,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteTrackHeader(
+void WriteTrackHeader(
     const char *indent,
     const MDLKEYTRACK<float> &track,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteTrackHeader(
+void WriteTrackHeader(
     const char *indent,
     const MDLKEYTRACK<C3Color> &track,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteFloatKeyFrames(
+void WriteFloatKeyFrames(
     unsigned int title,
     const char *indent,
     const MDLKEYTRACK<float> &keyframes,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteIntKeyFrames(
+void WriteIntKeyFrames(
     unsigned int title,
     const char *indent,
     const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteFloatKeyFrames(
+void WriteFloatKeyFrames(
     unsigned int title,
     const char *indent,
     const MDLKEYTRACK<C3Color> &keyframes,
     TSGrowableArray<char> &buffer
 );
-int __fastcall ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
-const float *__fastcall WriteKeyData(
+int ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
+const float *WriteKeyData(
     TSGrowableArray<char> &buffer,
     const float *entry,
     unsigned int elements
 );
-const unsigned int *__fastcall WriteUintKeyData(
+const unsigned int *WriteUintKeyData(
     TSGrowableArray<char> &buffer,
     const unsigned int *entry,
     unsigned int elements
 );
-void __fastcall AddObjectErrors(TSet &errors);
-void __fastcall ReadObjectName(Parser &parse, char *name);
-int __fastcall ReadObjectBody(
+void AddObjectErrors(TSet &errors);
+void ReadObjectName(Parser &parse, char *name);
+int ReadObjectBody(
     Parser &parse,
     unsigned int savedToken,
     NTempest::C3Vector *pivot,
     MDLGENOBJECT *object,
     CMDLStatus *status
 );
-void __fastcall ReadObjectEnd(
+void ReadObjectEnd(
     TSet &errors,
     MDLDATA &data,
     MDLGENOBJECT *object,
     unsigned long listIndex,
     unsigned long listMask
 );
-void __fastcall ReadBinObjectEnd(
+void ReadBinObjectEnd(
     MDLDATA &data,
     MDLGENOBJECT *object,
     unsigned long listIndex,
     unsigned long listMask
 );
-int __fastcall IExpectAnimation(
+int IExpectAnimation(
     Parser &parse,
     unsigned int *savedToken,
     const char **tokenText
 );
-void __fastcall WriteObjectTrailer(
+void WriteObjectTrailer(
     const MDLGENOBJECT &object,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteObjectHeader(
+void WriteObjectHeader(
     const MDLDATA &data,
     const MDLGENOBJECT &object,
     unsigned int title,
     int writeIndex,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteOptionalVertex(
+void WriteOptionalVertex(
     unsigned int title,
     const char *indent,
     const NTempest::C3Vector &vertex,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteOptionalFloat(
+void WriteOptionalFloat(
     unsigned int title,
     const char *indent,
     float value,
     TSGrowableArray<char> &buffer
 );
-void __fastcall WriteBounds(
+void WriteBounds(
     const CMdlBounds &bounds,
     const char *indent,
     TSGrowableArray<char> &buffer
 );
-void __fastcall SkipUnknown(CMsgBuffer &buffer, unsigned int &totalRead);
-unsigned int __fastcall GetBinGenObjectSize(const MDLGENOBJECT &object);
-int __fastcall WriteBinGenObject(
+void SkipUnknown(CMsgBuffer &buffer, unsigned int &totalRead);
+unsigned int GetBinGenObjectSize(const MDLGENOBJECT &object);
+int WriteBinGenObject(
     const MDLGENOBJECT &object,
     CMsgBuffer &buffer,
     CMDLStatus *status
 );
-int __fastcall ReadBinGenObject(
+int ReadBinGenObject(
     MDLGENOBJECT &object,
     CMsgBuffer &buffer,
     CMDLStatus *status,
     unsigned int &totalRead
 );
-void __fastcall WriteBinQuatKeyFrames(
+void WriteBinQuatKeyFrames(
     const MDLKEYTRACK<NTempest::C4Quaternion> &track,
     unsigned long magic,
     CMsgBuffer &buffer
 );
-int __fastcall ReadBinQuatKeyFrames(
+int ReadBinQuatKeyFrames(
     MDLKEYTRACK<NTempest::C4Quaternion> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
 );
-void __fastcall WriteBinFloatKeyFrames(
+void WriteBinFloatKeyFrames(
     const MDLKEYTRACK<float> &track,
     unsigned long magic,
     CMsgBuffer &buffer
 );
-int __fastcall ReadBinFloatKeyFrames(
+int ReadBinFloatKeyFrames(
     MDLKEYTRACK<float> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
 );
-int __fastcall ReadBinUintKeyFrames(
+int ReadBinUintKeyFrames(
     MDLSIMPLEKEYTRACK<MDLINTKEY> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
 );
-void __fastcall WriteBinUintKeyFrames(
+void WriteBinUintKeyFrames(
     const MDLSIMPLEKEYTRACK<MDLINTKEY> &track,
     unsigned long magic,
     CMsgBuffer &buffer
 );
-int __fastcall ReadBinFloatKeyFrames(
+int ReadBinFloatKeyFrames(
     MDLKEYTRACK<C3Color> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
 );
-int __fastcall ReadBinFloatKeyFrames(
+int ReadBinFloatKeyFrames(
     MDLKEYTRACK<NTempest::C3Vector> &track,
     CMsgBuffer &buffer,
     unsigned int &totalRead
 );
-unsigned int __fastcall GetBinQuatKeyFramesSize(
+unsigned int GetBinQuatKeyFramesSize(
     const MDLKEYTRACK<NTempest::C4Quaternion> &track
 );

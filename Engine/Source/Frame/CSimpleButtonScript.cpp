@@ -19,7 +19,7 @@
   }                                                               \
   ASSERT(object)
 
-static int __fastcall StringToButtonState(const char *string, CSimpleButtonState &state) {
+static int StringToButtonState(const char *string, CSimpleButtonState &state) {
   struct ButtonStateName {
     const char        *string;
     CSimpleButtonState state;
@@ -41,7 +41,7 @@ static int __fastcall StringToButtonState(const char *string, CSimpleButtonState
   return 0;
 }
 
-static const char *__fastcall ButtonStateToString(CSimpleButtonState state) {
+static const char *ButtonStateToString(CSimpleButtonState state) {
   switch (state) {
     case BUTTONSTATE_DISABLED:
       return "DISABLED";
@@ -54,35 +54,35 @@ static const char *__fastcall ButtonStateToString(CSimpleButtonState state) {
   }
 }
 
-static int __fastcall CSimpleButton_Enable(lua_State *L) {
+static int CSimpleButton_Enable(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   object->Enable(1);
   return 0;
 }
 
-static int __fastcall CSimpleButton_Disable(lua_State *L) {
+static int CSimpleButton_Disable(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   object->Enable(0);
   return 0;
 }
 
-static int __fastcall CSimpleButton_IsEnabled(lua_State *L) {
+static int CSimpleButton_IsEnabled(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   lua_pushnumber(L, object->IsEnabled() != 0);
   return 1;
 }
 
-static int __fastcall CSimpleButton_GetButtonState(lua_State *L) {
+static int CSimpleButton_GetButtonState(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   lua_pushstring(L, ButtonStateToString(object->GetButtonState()));
   return 1;
 }
 
-static int __fastcall CSimpleButton_SetButtonState(lua_State *L) {
+static int CSimpleButton_SetButtonState(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   CSimpleButtonState state = BUTTONSTATE_DISABLED;
@@ -101,7 +101,7 @@ static int __fastcall CSimpleButton_SetButtonState(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_SetText(lua_State *L) {
+static int CSimpleButton_SetText(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   if (!lua_isstring(L, 2)) {
@@ -115,7 +115,7 @@ static int __fastcall CSimpleButton_SetText(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_SetTextColor(lua_State *L) {
+static int CSimpleButton_SetTextColor(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   float red = static_cast<float>(lua_tonumber(L, 2));
@@ -132,7 +132,7 @@ static int __fastcall CSimpleButton_SetTextColor(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_SetDisabledTextColor(lua_State *L) {
+static int CSimpleButton_SetDisabledTextColor(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   float red = static_cast<float>(lua_tonumber(L, 2));
@@ -149,7 +149,7 @@ static int __fastcall CSimpleButton_SetDisabledTextColor(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_SetHighlightTextColor(lua_State *L) {
+static int CSimpleButton_SetHighlightTextColor(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   float red = static_cast<float>(lua_tonumber(L, 2));
@@ -166,7 +166,7 @@ static int __fastcall CSimpleButton_SetHighlightTextColor(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_SetNormalTexture(lua_State *L) {
+static int CSimpleButton_SetNormalTexture(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   if (lua_isstring(L, 2)) {
@@ -177,7 +177,7 @@ static int __fastcall CSimpleButton_SetNormalTexture(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_SetPushedTexture(lua_State *L) {
+static int CSimpleButton_SetPushedTexture(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   if (lua_isstring(L, 2)) {
@@ -188,7 +188,7 @@ static int __fastcall CSimpleButton_SetPushedTexture(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_SetDisabledTexture(lua_State *L) {
+static int CSimpleButton_SetDisabledTexture(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   if (lua_isstring(L, 2)) {
@@ -199,7 +199,7 @@ static int __fastcall CSimpleButton_SetDisabledTexture(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_SetHighlightTexture(lua_State *L) {
+static int CSimpleButton_SetHighlightTexture(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   if (lua_isstring(L, 2)) {
@@ -214,14 +214,14 @@ static int __fastcall CSimpleButton_SetHighlightTexture(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_GetText(lua_State *L) {
+static int CSimpleButton_GetText(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   lua_pushstring(L, object->GetTextString());
   return 1;
 }
 
-static int __fastcall CSimpleButton_GetTextWidth(lua_State *L) {
+static int CSimpleButton_GetTextWidth(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   CSimpleFontString *text = object->GetText();
@@ -230,7 +230,7 @@ static int __fastcall CSimpleButton_GetTextWidth(lua_State *L) {
   return 1;
 }
 
-static int __fastcall CSimpleButton_GetTextHeight(lua_State *L) {
+static int CSimpleButton_GetTextHeight(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   CSimpleFontString *text = object->GetText();
@@ -239,7 +239,7 @@ static int __fastcall CSimpleButton_GetTextHeight(lua_State *L) {
   return 1;
 }
 
-static int __fastcall CSimpleButton_RegisterForClicks(lua_State *L) {
+static int CSimpleButton_RegisterForClicks(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, button);
 
   unsigned int buttons = 0;
@@ -278,7 +278,7 @@ static int __fastcall CSimpleButton_RegisterForClicks(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_Click(lua_State *L) {
+static int CSimpleButton_Click(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   MOUSEBUTTON button = MOUSE_BUTTON_LEFT;
@@ -301,14 +301,14 @@ static int __fastcall CSimpleButton_Click(lua_State *L) {
   return 0;
 }
 
-static int __fastcall CSimpleButton_LockHighlight(lua_State *L) {
+static int CSimpleButton_LockHighlight(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   object->LockHighlight(1);
   return 0;
 }
 
-static int __fastcall CSimpleButton_UnlockHighlight(lua_State *L) {
+static int CSimpleButton_UnlockHighlight(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   object->LockHighlight(0);
@@ -342,11 +342,11 @@ static FrameScript_Method SimpleButtonMethods[20] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleButton::s_scriptMethods;
 
-void __fastcall CSimpleButton::RegisterScriptMethods() {
+void CSimpleButton::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleButtonMethods, 20, s_scriptMethods);
 }
 
-void __fastcall CSimpleButton::UnregisterScriptMethods() {
+void CSimpleButton::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

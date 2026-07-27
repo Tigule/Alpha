@@ -82,7 +82,7 @@ void CHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
   }
 }
 
-int __fastcall SndDebugListChunksINDOORS(const char *command, const char *arguments) {
+int SndDebugListChunksINDOORS(const char *command, const char *arguments) {
   unsigned int i;
   for (i = 0; i < s_chunkList.Count(); ++i) {
     ASSERT(s_chunkList[i]);
@@ -92,7 +92,7 @@ int __fastcall SndDebugListChunksINDOORS(const char *command, const char *argume
   return 1;
 }
 
-int __fastcall CreateChunkINDOORS(const char *command, const char *arguments) {
+int CreateChunkINDOORS(const char *command, const char *arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!object) {
     ConsoleWrite("Error, can't locate player!", DEFAULT_COLOR);
@@ -137,7 +137,7 @@ int __fastcall CreateChunkINDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall SetCurrentChunkINDOORS(const char *command, const char *arguments) {
+int SetCurrentChunkINDOORS(const char *command, const char *arguments) {
   if (arguments && *arguments) {
     unsigned int chunk = SStrToUnsigned(arguments);
     if (chunk < s_chunkList.Count()) {
@@ -152,7 +152,7 @@ int __fastcall SetCurrentChunkINDOORS(const char *command, const char *arguments
   return 1;
 }
 
-int __fastcall ShowCurrentChunkINDOORS(const char *command, const char *arguments) {
+int ShowCurrentChunkINDOORS(const char *command, const char *arguments) {
   if (!s_chunkList.Count()) {
     ConsoleWrite("No chunks created!", DEFAULT_COLOR);
   } else if (s_currentChunk >= s_chunkList.Count()) {
@@ -164,7 +164,7 @@ int __fastcall ShowCurrentChunkINDOORS(const char *command, const char *argument
   return 1;
 }
 
-int __fastcall SetChunkPropertyINDOORS(const char *command, const char *arguments) {
+int SetChunkPropertyINDOORS(const char *command, const char *arguments) {
   if (s_currentChunk > s_chunkList.Count()) {
     ConsoleWrite("Error, the current chunk is invalid!", DEFAULT_COLOR);
     return 1;
@@ -251,7 +251,7 @@ int __fastcall SetChunkPropertyINDOORS(const char *command, const char *argument
   return 1;
 }
 
-int __fastcall DumpChunksINDOORS(const char *command, const char *arguments) {
+int DumpChunksINDOORS(const char *command, const char *arguments) {
   unsigned int chunks = s_chunkList.Count();
   if (!chunks) {
     ConsoleWrite("Error, no chunk information to dump!", DEFAULT_COLOR);
@@ -281,7 +281,7 @@ int __fastcall DumpChunksINDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-void __fastcall IndoorsShutdown() {
+void IndoorsShutdown() {
   s_chunkHash.Clear();
   s_chunkList.Clear();
 }

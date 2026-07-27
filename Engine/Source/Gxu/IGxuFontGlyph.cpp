@@ -2,7 +2,7 @@
 
 #include <freetype/freetype.h>
 
-static int __fastcall FREETYPE_RenderGlyph(FT_Face face, unsigned int charCode, int noHinting, int monochrome) {
+static int FREETYPE_RenderGlyph(FT_Face face, unsigned int charCode, int noHinting, int monochrome) {
   ASSERT(face);
 
   FT_UInt glyphIndex = FT_Get_Char_Index(face, charCode);
@@ -23,7 +23,7 @@ static int __fastcall FREETYPE_RenderGlyph(FT_Face face, unsigned int charCode, 
   return FT_Render_Glyph(face->glyph, mode) == 0;
 }
 
-static void __fastcall CalculateYOffset(
+static void CalculateYOffset(
     FT_Face       face,
     unsigned int *yOffsetPtr,
     unsigned int *glyphYStart,
@@ -58,7 +58,7 @@ static void __fastcall CalculateYOffset(
   }
 }
 
-int __fastcall IGxuFontGlyphRenderGlyph(
+int IGxuFontGlyphRenderGlyph(
     FT_Face      face,
     unsigned int pixelHeight,
     unsigned int code,

@@ -15,23 +15,23 @@ struct TaxiNode {
 
 class CGTaxiMap {
  public:
-  static void __fastcall InitializeGame();
-  static void __fastcall ShutdownGame();
-  static void __fastcall EnterWorld();
-  static void __fastcall LeaveWorld();
-  static void __fastcall
+  static void InitializeGame();
+  static void ShutdownGame();
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void
   SetupMap(const unsigned __int64 &unit, unsigned int node, __int64 destNodes, __int64 knownNodes, NTempest::CRect &visibleArea);
-  static void __fastcall         CloseMap();
-  static unsigned int __fastcall NumTaxiNodes() {
+  static void CloseMap();
+  static unsigned int NumTaxiNodes() {
     return m_nodes.Count();
   }
-  static const char *__fastcall  TaxiNodeName(unsigned int slot);
-  static const char *__fastcall  TaxiNodeType(unsigned int slot);
-  static void __fastcall         TaxiNodePosition(unsigned int slot, float &x, float &y);
-  static unsigned int __fastcall TaxiNodeCost(unsigned int slot);
-  static void __fastcall         TakeTaxiNode(unsigned int slot);
-  static void __fastcall         RegisterScriptFunctions();
-  static void __fastcall         UnregisterScriptFunctions();
+  static const char *TaxiNodeName(unsigned int slot);
+  static const char *TaxiNodeType(unsigned int slot);
+  static void TaxiNodePosition(unsigned int slot, float &x, float &y);
+  static unsigned int TaxiNodeCost(unsigned int slot);
+  static void TakeTaxiNode(unsigned int slot);
+  static void RegisterScriptFunctions();
+  static void UnregisterScriptFunctions();
 
   static unsigned __int64 GetTaxiVendor() {
     return m_unit;

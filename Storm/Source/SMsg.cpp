@@ -17,14 +17,14 @@ static HWND                               s_defaultwindow;
 static RECT                               s_defaultwindowrect;
 static TSList<WNDREC, TSGetLink<WNDREC> > s_wndlist;
 
-static void __fastcall AddWindow(HWND window) {
+static void AddWindow(HWND window) {
   WNDRECPTR entry;
 
   entry = s_wndlist.NewNode(LIST_TAIL, 0, 0);
   entry->window = window;
 }
 
-static WNDRECPTR __fastcall FindWindowA(HWND window) {
+static WNDRECPTR FindWindowA(HWND window) {
   WNDRECPTR entry;
 
   entry = s_wndlist.Head();
@@ -38,7 +38,7 @@ static WNDRECPTR __fastcall FindWindowA(HWND window) {
   return NULL;
 }
 
-static void __fastcall DeleteWindow(HWND window) {
+static void DeleteWindow(HWND window) {
   WNDRECPTR entry;
 
   if (window == s_defaultwindow) {
@@ -73,7 +73,7 @@ static LRESULT CALLBACK GenericWndProc(HWND window, UINT message, WPARAM wparam,
   return DefWindowProcA(window, message, wparam, lparam);
 }
 
-static BOOL __fastcall InternalRegister(DWORD type, HWND window, DWORD id, void(APIENTRY *handler)(SMSGPARAMS *)) {
+static BOOL InternalRegister(DWORD type, HWND window, DWORD id, void(APIENTRY *handler)(SMSGPARAMS *)) {
   FATALASSERT(handler);
 
   if (!FindWindowA(window)) {
@@ -83,7 +83,7 @@ static BOOL __fastcall InternalRegister(DWORD type, HWND window, DWORD id, void(
   return SEvtRegisterHandler(type, (DWORD)window, id, 0, (SEVTHANDLER)handler);
 }
 
-static BOOL __fastcall InternalUnregister(DWORD type, HWND window, DWORD id, void(APIENTRY *handler)(SMSGPARAMS *)) {
+static BOOL InternalUnregister(DWORD type, HWND window, DWORD id, void(APIENTRY *handler)(SMSGPARAMS *)) {
   if (!FindWindowA(window)) {
     AddWindow(window);
   }

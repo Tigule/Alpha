@@ -90,7 +90,7 @@ static void ValueTableInit() {
   }
 }
 
-static inline float __fastcall Interp(float range1, float range2, float percent) {
+static inline float Interp(float range1, float range2, float percent) {
   if (range2 < range1) {
     return range1 - (range1 - range2) * percent;
   }
@@ -123,7 +123,7 @@ static NTempest::CImVector BlendColor(NTempest::CImVector from, NTempest::CImVec
   return color;
 }
 
-static float __fastcall InterpTable(NTempest::C2Vector *table, unsigned long size, float key) {
+static float InterpTable(NTempest::C2Vector *table, unsigned long size, float key) {
   unsigned long next;
   for (next = 0; next < size; ++next) {
     if (key <= table[next].x) {
@@ -768,7 +768,7 @@ void DNSky::GenSphere(float sphRadius) {
   m_sphRadius = sphRadius;
 }
 
-void __fastcall DNClouds::Callback_GxTex(
+void DNClouds::Callback_GxTex(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -1141,7 +1141,7 @@ void DNPlanet::GenGeometry(
   }
 }
 
-static int __fastcall ConsoleCommand_SkyCloudDensity(const char *__formal, const char *args) {
+static int ConsoleCommand_SkyCloudDensity(const char *__formal, const char *args) {
   char  msg[256];
   float density;
 
@@ -1166,7 +1166,7 @@ static int __fastcall ConsoleCommand_SkyCloudDensity(const char *__formal, const
   return 0;
 }
 
-static bool __fastcall CloudLODCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool CloudLODCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   char message[64];
   int  lod = SStrToInt(newValue);
 
@@ -1184,7 +1184,7 @@ static bool __fastcall CloudLODCallback(CVar *h, const char *oldValue, const cha
   return true;
 }
 
-static int __fastcall ConsoleCommand_SkyCloudLayers(const char *__formal, const char *args) {
+static int ConsoleCommand_SkyCloudLayers(const char *__formal, const char *args) {
   int layers = -1;
   sscanf(args, "%d", &layers);
   if (static_cast<unsigned int>(layers) > 1) {
@@ -1197,7 +1197,7 @@ static int __fastcall ConsoleCommand_SkyCloudLayers(const char *__formal, const 
   return 1;
 }
 
-static int __fastcall ConsoleCommand_SkySunGlare(const char *__formal, const char *args) {
+static int ConsoleCommand_SkySunGlare(const char *__formal, const char *args) {
   int glareOn;
   if (sscanf(args, "%d", &glareOn) && glareOn) {
     ConsoleWrite("SunGlare enabled.  Don't look directly at it.", DEFAULT_COLOR);
@@ -1216,7 +1216,7 @@ void DNStars::Update() {
   m_color.a = static_cast<unsigned char>(InterpTable(s_sidnTable, 4, s_dnInfo.dayProgression) * 254.0f + 1.0f);
 }
 
-static int __fastcall ConsoleCommand_SkyShow(const char *__formal, const char *args) {
+static int ConsoleCommand_SkyShow(const char *__formal, const char *args) {
   int skyOn;
   if (sscanf(args, "%d", &skyOn) && skyOn) {
     ConsoleWrite("Sky enabled", DEFAULT_COLOR);
@@ -1228,7 +1228,7 @@ static int __fastcall ConsoleCommand_SkyShow(const char *__formal, const char *a
   return 1;
 }
 
-void __fastcall DayNightInitialize(const char *litFile) {
+void DayNightInitialize(const char *litFile) {
   LoadLightsAndFog(litFile, &g_areaLights);
   ResetLightPos();
 
@@ -1307,7 +1307,7 @@ void __fastcall DayNightInitialize(const char *litFile) {
   s_dnInfo.eclipseAmount = 0;
 }
 
-void __fastcall DayNightDestroy() {
+void DayNightDestroy() {
   if (s_initialized) {
     s_clouds.Destroy();
 
@@ -1322,14 +1322,14 @@ void __fastcall DayNightDestroy() {
   }
 }
 
-void __fastcall DayNightForceFullUpdate() {
+void DayNightForceFullUpdate() {
   SetColors();
   SetDirection();
   SetPlanets();
   s_clouds.FullUpdate();
 }
 
-void __fastcall DayNightUpdateLighting() {
+void DayNightUpdateLighting() {
   if (s_dnInfo.cameraDir.y * s_dnInfo.cameraDir.y + s_dnInfo.cameraDir.x * s_dnInfo.cameraDir.x <= 0.0001f) {
     s_dnInfo.faceAngle = atan2(s_dnInfo.cameraDir.z, s_dnInfo.cameraDir.x);
   } else {
@@ -1349,33 +1349,33 @@ void __fastcall DayNightUpdateLighting() {
   }
 }
 
-void __fastcall DayNightSetEclipse(NTempest::CImVector color, float amount) {
+void DayNightSetEclipse(NTempest::CImVector color, float amount) {
   FATALASSERT(amount >= 0.0f && amount <= 1.0f);
 
   s_dnInfo.eclipseColor = color;
   s_dnInfo.eclipseAmount = static_cast<unsigned char>(NTempest::CMath::fuint_n(amount * 255.0f));
 }
 
-float __fastcall DayNightSI(float offset) {
+float DayNightSI(float offset) {
   return InterpTable(s_sidnTable, 4, s_dnInfo.dayProgression + offset);
 }
 
-float __fastcall DayNightUnitSelectColor() {
+float DayNightUnitSelectColor() {
   return InterpTable(s_unitColorTable, 2, s_dnInfo.dayProgression);
 }
 
-DNInfo *__fastcall DayNightGetInfo() {
+DNInfo *DayNightGetInfo() {
   return &s_dnInfo;
 }
 
-void __fastcall DayNightRenderGlares() {
+void DayNightRenderGlares() {
   if (s_initialized) {
     s_sunGlare.Render();
     s_moonGlare.Render();
   }
 }
 
-void __fastcall DayNightRenderSky() {
+void DayNightRenderSky() {
   if (s_dnInfo.showSky) {
     if (CWorld::SceneCamLiquidStatus() == 15) {
       GxSceneSetClearColor(NTempest::CImVector(0xFF000000));
@@ -1399,7 +1399,7 @@ void __fastcall DayNightRenderSky() {
   }
 }
 
-void __fastcall DayNightSkyTexCallback(
+void DayNightSkyTexCallback(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,

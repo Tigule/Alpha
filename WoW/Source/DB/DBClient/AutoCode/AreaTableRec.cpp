@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall AreaTableRec::GetFilename() {
+const char *AreaTableRec::GetFilename() {
   return "DBFilesClient\\AreaTable.dbc";
 }
 

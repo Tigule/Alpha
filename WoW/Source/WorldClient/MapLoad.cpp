@@ -17,12 +17,12 @@
 
 static const char *s_animationNames[1] = {"Stand"};
 
-static int __fastcall OnPickNextFidget(void *param) {
+static int OnPickNextFidget(void *param) {
   ModelSetRandomSequenceFidget(static_cast<HMODEL>(param), 0, 0);
   return 1;
 }
 
-static void __fastcall DoodadEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void DoodadEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
   CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(param);
   unsigned int   event = *reinterpret_cast<const unsigned int *>(eventName);
 
@@ -35,7 +35,7 @@ static void __fastcall DoodadEventCallback(const char *eventName, const NTempest
   }
 }
 
-void __fastcall CMap::Load(const char *fileName) {
+void CMap::Load(const char *fileName) {
   char lightPath[256];
 
   enablePixelShaders = (CWorld::enables & CWorld::Enable_PixelShaders) != 0;
@@ -75,7 +75,7 @@ void __fastcall CMap::Load(const char *fileName) {
   bPreload = 0;
 }
 
-void __fastcall CMap::LoadWdl() {
+void CMap::LoadWdl() {
   short         heights[545];
   char          wdlFilename[256];
   unsigned long version;
@@ -143,7 +143,7 @@ void __fastcall CMap::LoadWdl() {
   SFile::Close(wdlFile);
 }
 
-void __fastcall CMap::LoadWdt() {
+void CMap::LoadWdt() {
   SMMapObjDef        smMapObjDef;
   NTempest::C3Vector pos;
   SIffChunk          iffChunk;
@@ -177,7 +177,7 @@ void __fastcall CMap::LoadWdt() {
   }
 }
 
-void __fastcall CMap::Preload() {
+void CMap::Preload() {
   Purge();
   CMapObj::ClearCache(0);
   ModelCacheFlush();
@@ -188,10 +188,10 @@ void __fastcall CMap::Preload() {
   bPreload = 0;
 }
 
-void __fastcall CMap::Open() {
+void CMap::Open() {
 }
 
-void __fastcall CMap::LoadDoodadNames() {
+void CMap::LoadDoodadNames() {
   SIffChunk     iffChunk;
   unsigned long bRead;
   unsigned int  cnt;
@@ -214,7 +214,7 @@ void __fastcall CMap::LoadDoodadNames() {
   }
 }
 
-void __fastcall CMap::LoadMapObjNames() {
+void CMap::LoadMapObjNames() {
   SIffChunk     iffChunk;
   unsigned long bRead;
   unsigned int  cnt;
@@ -237,7 +237,7 @@ void __fastcall CMap::LoadMapObjNames() {
   }
 }
 
-CMapDoodadDef *__fastcall CMap::CreateDoodadDef(
+CMapDoodadDef *CMap::CreateDoodadDef(
     const char *fileName, NTempest::C3Vector &pos, float angle, int bWait
 ) {
   FATALASSERT(fileName);
@@ -270,7 +270,7 @@ CMapDoodadDef *__fastcall CMap::CreateDoodadDef(
   return doodadDef;
 }
 
-CMapDoodadDef *__fastcall CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos) {
+CMapDoodadDef *CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos) {
   HASHKEY_DWORD  key;
   CMapDoodadDef *doodadDef = doodadDefHash.Ptr(smDoodadDef.uniqueId, key);
   while (doodadDef) {
@@ -309,7 +309,7 @@ CMapDoodadDef *__fastcall CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempe
   return doodadDef;
 }
 
-CMapDoodadDef *__fastcall CMap::CreateDoodadDef(
+CMapDoodadDef *CMap::CreateDoodadDef(
     unsigned int         doodadRef,
     SMODoodadDef        &smoDoodadDef,
     const char          *fileName,
@@ -353,7 +353,7 @@ CMapDoodadDef *__fastcall CMap::CreateDoodadDef(
   return doodadDef;
 }
 
-CMapObjDef *__fastcall CMap::CreateMapObjDef(
+CMapObjDef *CMap::CreateMapObjDef(
     const char *fileName, NTempest::C3Vector &pos, float angle, int bWait
 ) {
   FATALASSERT(fileName);
@@ -400,7 +400,7 @@ CMapObjDef *__fastcall CMap::CreateMapObjDef(
   return mapObjDef;
 }
 
-CMapObjDef *__fastcall CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &pos) {
+CMapObjDef *CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &pos) {
   CMapObjDef *mapObjDef = mapObjDefHash.Ptr(smMapObjDef.uniqueId, nullHashKey);
   if (mapObjDef) {
     return mapObjDef;
@@ -442,7 +442,7 @@ CMapObjDef *__fastcall CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest:
   return mapObjDef;
 }
 
-void __fastcall CMap::InitializeDoodadBounds(CMapDoodadDef *doodadDef) {
+void CMap::InitializeDoodadBounds(CMapDoodadDef *doodadDef) {
   NTempest::CAaBox    localCollExtents;
   NTempest::CAaBox    localExtents;
   NTempest::CAaSphere localSphere;
@@ -459,7 +459,7 @@ void __fastcall CMap::InitializeDoodadBounds(CMapDoodadDef *doodadDef) {
   CWorldMath::TransformAABox(doodadDef->mat, localCollExtents, doodadDef->collideExt);
 }
 
-int __fastcall CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait) {
+int CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait) {
   FATALASSERT(doodadDef);
 
   CModelCreate createData;
@@ -500,7 +500,7 @@ int __fastcall CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait) {
   return 1;
 }
 
-void __fastcall CMap::ReloadDoodadModels() {
+void CMap::ReloadDoodadModels() {
   bPreload = 1;
 
   CMapDoodadDef *doodadDef = doodadDefHash.Head();
@@ -522,7 +522,7 @@ void __fastcall CMap::ReloadDoodadModels() {
   bPreload = 0;
 }
 
-void __fastcall CMap::EnableDoodadFullAlpha(int enable) {
+void CMap::EnableDoodadFullAlpha(int enable) {
   CMapDoodadDef *doodadDef = doodadDefHash.Head();
   while (doodadDef) {
     if (doodadDef->model) {
@@ -532,7 +532,7 @@ void __fastcall CMap::EnableDoodadFullAlpha(int enable) {
   }
 }
 
-void __fastcall CMap::CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef) {
+void CMap::CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef) {
   FATALASSERT(mapObj);
   FATALASSERT(mapObjDef);
 
@@ -560,7 +560,7 @@ void __fastcall CMap::CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjD
   }
 }
 
-void __fastcall CMap::CreateMapObjDefGroupDoodads(
+void CMap::CreateMapObjDefGroupDoodads(
     CMapObj         *mapObj,
     CMapObjGroup    *mapObjGroup,
     CMapObjDef      *mapObjDef,
@@ -595,7 +595,7 @@ void __fastcall CMap::CreateMapObjDefGroupDoodads(
   mapObjDefGroup->flags |= CMapBaseObj::Flag_HasDoodadRefs;
 }
 
-void __fastcall CMap::CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
+void CMap::CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
   FATALASSERT(mapObj);
   FATALASSERT(mapObjGroup);
   FATALASSERT(mapObjDef);

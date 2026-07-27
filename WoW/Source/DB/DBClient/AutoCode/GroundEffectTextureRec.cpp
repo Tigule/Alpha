@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall GroundEffectTextureRec::GetFilename() {
+const char *GroundEffectTextureRec::GetFilename() {
   return "DBFilesClient\\GroundEffectTexture.dbc";
 }
 

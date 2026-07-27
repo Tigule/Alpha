@@ -49,7 +49,7 @@ static void             InitializeUnitCombatSounds();
 static void             GenerateWeaponSwingCombatSounds();
 static void             InitializeWeaponImpactCombatSounds();
 static void             ParseWeaponImpactArmorField(const WeaponImpactSoundsRec *rec);
-unsigned int __fastcall BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *rec, const char *directory, int *equalFreqsPtr);
+unsigned int BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *rec, const char *directory, int *equalFreqsPtr);
 
 const char *SOUNDDEFINITION::GetRandomFileName(int index) {
   unsigned int targetFreq;
@@ -148,7 +148,7 @@ void SOUNDDEFINITION::Clear() {
   m_fileNames.SetCount(0);
 }
 
-unsigned int __fastcall
+unsigned int
 BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *rec, const char *directory, int *equalFreqsPtr) {
   char           buff[260];
   int            lastFreq = 0;
@@ -344,14 +344,14 @@ static void InitializeUnitCombatSounds() {
   InitializeWeaponImpactCombatSounds();
 }
 
-void __fastcall ISndInterfaceInitialize() {
+void ISndInterfaceInitialize() {
   ISndInterfaceShutdown();
   ReadFiles();
   InitializeInterfaceSounds();
   InitializeUnitCombatSounds();
 }
 
-void __fastcall ISndInterfaceShutdown() {
+void ISndInterfaceShutdown() {
   s_fileNameHash.Clear();
   s_numFileNameEntries = 0;
   g_sheathSoundList.Clear();
@@ -359,7 +359,7 @@ void __fastcall ISndInterfaceShutdown() {
   s_reverbTable.Clear();
 }
 
-SOUNDDEFINITION *__fastcall ISndInterfaceGetSndEntry(unsigned int soundID) {
+SOUNDDEFINITION *ISndInterfaceGetSndEntry(unsigned int soundID) {
   return s_fileNameHash.Ptr(soundID, s_nullHashKey);
 }
 
@@ -395,7 +395,7 @@ static bool InitializePrefTable(int index) {
   return 1;
 }
 
-_FSOUND_REVERB_CHANNELPROPERTIES *__fastcall GetReverbType(int index) {
+_FSOUND_REVERB_CHANNELPROPERTIES *GetReverbType(int index) {
   int maxID = g_soundSamplePreferencesDB.GetMaxID();
 
   if (index < 0 || index > maxID) {

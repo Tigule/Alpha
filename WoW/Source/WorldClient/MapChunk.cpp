@@ -115,10 +115,10 @@ TSGrowableArray<CGxBuf *> CMapChunk::gxBufFreeList;
 CGxBuf                   *CMapChunk::gxBufDyn;
 TSGrowableArray<CGxTex *> CMapChunk::gxAlphaTexFreeList;
 TSGrowableArray<CGxTex *> CMapChunk::gxShadowTexFreeList;
-void(__fastcall *CMapChunk::soundEmitterCreateHandler)(CWSoundEmitter &);
-void(__fastcall *CMapChunk::soundEmitterDestroyHandler)(unsigned long);
+void(*CMapChunk::soundEmitterCreateHandler)(CWSoundEmitter &);
+void(*CMapChunk::soundEmitterDestroyHandler)(unsigned long);
 
-static void __fastcall ValidateAsyncReadBuffer(unsigned int *buffer) {
+static void ValidateAsyncReadBuffer(unsigned int *buffer) {
   for (unsigned int index = 0; index < 16; ++index) {
     if (buffer == reinterpret_cast<unsigned int *>(s_asyncLoadBuffers[index].Ptr())) {
       return;
@@ -128,19 +128,19 @@ static void __fastcall ValidateAsyncReadBuffer(unsigned int *buffer) {
   FATALERROR(("%08x is not a valid map chunk async read buffer", buffer));
 }
 
-void __fastcall CMapChunk::FreeAsyncLoadBuffer(unsigned int *buffer) {
+void CMapChunk::FreeAsyncLoadBuffer(unsigned int *buffer) {
   ValidateAsyncReadBuffer(buffer);
   *reinterpret_cast<unsigned int **>(buffer) = s_freeAsyncBuffer;
   s_freeAsyncBuffer = buffer;
 }
 
-void __fastcall CMapChunk::InitAsyncLoadBuffers() {
+void CMapChunk::InitAsyncLoadBuffers() {
   for (unsigned int index = 0; index < 16; ++index) {
     FreeAsyncLoadBuffer(reinterpret_cast<unsigned int *>(s_asyncLoadBuffers[index].Ptr()));
   }
 }
 
-unsigned int *__fastcall CMapChunk::AllocAsyncLoadBuffer() {
+unsigned int *CMapChunk::AllocAsyncLoadBuffer() {
   if (!s_asyncBuffersInitialized) {
     InitAsyncLoadBuffers();
     s_asyncBuffersInitialized = 1;
@@ -167,7 +167,7 @@ CChunkLayer::~CChunkLayer() {
   ASSERT(tex == 0);
 }
 
-void __fastcall CMapChunk::Initialize() {
+void CMapChunk::Initialize() {
   CreateRenderLists();
   gxBufFreeList.SetChunkSize(0x100);
   gxAlphaTexFreeList.SetChunkSize(0x100);
@@ -181,12 +181,12 @@ void __fastcall CMapChunk::Initialize() {
   AsyncFileReadAddHandler(AsyncPollHandler);
 }
 
-void __fastcall CMapChunk::Destroy() {
+void CMapChunk::Destroy() {
   FreeLists();
   GxBufDestroy(gxBufDyn);
 }
 
-void __fastcall CMapChunk::FreeLists() {
+void CMapChunk::FreeLists() {
   unsigned int index;
 
   for (index = 0; index < gxBufFreeList.Count(); ++index) {
@@ -208,7 +208,7 @@ void __fastcall CMapChunk::FreeLists() {
   gxShadowTexFreeList.SetCount(0);
 }
 
-void __fastcall CMapChunk::AsyncPollHandler() {
+void CMapChunk::AsyncPollHandler() {
   CAsyncObject *object = s_asyncLoadList.Head();
 
   while (object) {
@@ -226,7 +226,7 @@ void __fastcall CMapChunk::AsyncPollHandler() {
   }
 }
 
-CGxBuf *__fastcall CMapChunk::AllocGxBuf(unsigned int indexCount) {
+CGxBuf *CMapChunk::AllocGxBuf(unsigned int indexCount) {
   CGxBuf *gxBuf;
 
   if (gxBufFreeList.Count()) {
@@ -243,15 +243,15 @@ CGxBuf *__fastcall CMapChunk::AllocGxBuf(unsigned int indexCount) {
   return gxBuf;
 }
 
-void __fastcall CMapChunk::FreeGxBuf(CGxBuf *gxBuf) {
+void CMapChunk::FreeGxBuf(CGxBuf *gxBuf) {
   FATALASSERT(gxBuf);
 
   gxBufFreeList.Add(&gxBuf);
 }
 
-CGxTex *__fastcall CMapChunk::AllocAlphaGxTex(
+CGxTex *CMapChunk::AllocAlphaGxTex(
     void *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
 ) {
   CGxTex *gxTex;
 
@@ -281,16 +281,16 @@ CGxTex *__fastcall CMapChunk::AllocAlphaGxTex(
   return gxTex;
 }
 
-void __fastcall CMapChunk::FreeAlphaGxTex(CGxTex *gxTex) {
+void CMapChunk::FreeAlphaGxTex(CGxTex *gxTex) {
   FATALASSERT(gxTex);
 
   GxTexSetUserData(gxTex, UpdateTextureDefault, 0);
   gxAlphaTexFreeList.Add(&gxTex);
 }
 
-CGxTex *__fastcall CMapChunk::AllocShadowGxTex(
+CGxTex *CMapChunk::AllocShadowGxTex(
     void *userArg,
-    void(__fastcall *userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
 ) {
   CGxTex *gxTex;
 
@@ -320,14 +320,14 @@ CGxTex *__fastcall CMapChunk::AllocShadowGxTex(
   return gxTex;
 }
 
-void __fastcall CMapChunk::FreeShadowGxTex(CGxTex *gxTex) {
+void CMapChunk::FreeShadowGxTex(CGxTex *gxTex) {
   FATALASSERT(gxTex);
 
   gxShadowTexFreeList.Add(&gxTex);
   GxTexSetUserData(gxTex, UpdateTextureDefault, 0);
 }
 
-void __fastcall CMapChunk::CreateRenderLists() {
+void CMapChunk::CreateRenderLists() {
   unsigned short index = 0;
   float          texCoordY = 0.0f;
   float          texCoordHalfY = 0.0625f;
@@ -425,7 +425,7 @@ void __fastcall CMapChunk::CreateRenderLists() {
   }
 }
 
-void __fastcall CMapChunk::AsyncCallback(void *userArg) {
+void CMapChunk::AsyncCallback(void *userArg) {
   CMapChunk *chunk = static_cast<CMapChunk *>(userArg);
   FATALASSERT(chunk);
 
@@ -1006,7 +1006,7 @@ void CMapChunk::CreateChunkShaderTex() {
   UnpackAlphaShadowBits(reinterpret_cast<NTempest::CImVector *>(shaderTexture->pixels), shadowBits, alpha, shadowOffs);
 }
 
-void __fastcall CMapChunk::UnpackAlphaShadowBits(
+void CMapChunk::UnpackAlphaShadowBits(
     NTempest::CImVector       *texels,
     unsigned long             *bits,
     const unsigned int *const *alpha,
@@ -1050,7 +1050,7 @@ void __fastcall CMapChunk::UnpackAlphaShadowBits(
   }
 }
 
-void __fastcall CMapChunk::UnpackAlphaBits(unsigned long *pixels, const unsigned int *alphaPixels) {
+void CMapChunk::UnpackAlphaBits(unsigned long *pixels, const unsigned int *alphaPixels) {
   FATALASSERT(pixels);
   FATALASSERT(alphaPixels);
 
@@ -1075,7 +1075,7 @@ void __fastcall CMapChunk::UnpackAlphaBits(unsigned long *pixels, const unsigned
   }
 }
 
-void __fastcall CMapChunk::UnpackShadowBits(unsigned long *pixels, unsigned long *shadowBits, const unsigned int *shadow) {
+void CMapChunk::UnpackShadowBits(unsigned long *pixels, unsigned long *shadowBits, const unsigned int *shadow) {
   FATALASSERT(pixels);
   FATALASSERT(shadowBits);
   FATALASSERT(shadow);
@@ -1111,7 +1111,7 @@ void __fastcall CMapChunk::UnpackShadowBits(unsigned long *pixels, unsigned long
   }
 }
 
-void __fastcall CMapChunk::UpdateLayerGxTexture(
+void CMapChunk::UpdateLayerGxTexture(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -1137,7 +1137,7 @@ void __fastcall CMapChunk::UpdateLayerGxTexture(
   }
 }
 
-void __fastcall CMapChunk::UpdateShadowGxTexture(
+void CMapChunk::UpdateShadowGxTexture(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -1163,7 +1163,7 @@ void __fastcall CMapChunk::UpdateShadowGxTexture(
   }
 }
 
-void __fastcall CMapChunk::UpdateShaderGxTexture(
+void CMapChunk::UpdateShaderGxTexture(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -1189,7 +1189,7 @@ void __fastcall CMapChunk::UpdateShaderGxTexture(
   }
 }
 
-void __fastcall CMapChunk::UpdateTextureDefault(
+void CMapChunk::UpdateTextureDefault(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,

@@ -7,7 +7,7 @@
 #include <storm.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void IAddAttachmentErrors(TSet &errors) {
@@ -96,7 +96,7 @@ static void IReadAttachment(
   parse.Expect('}', token, tokenText);
 }
 
-int __fastcall ReadAttachment(
+int ReadAttachment(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -122,7 +122,7 @@ int __fastcall ReadAttachment(
   return !parse.FoundError();
 }
 
-int __fastcall WriteAttachments(
+int WriteAttachments(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -304,7 +304,7 @@ static int ReadBinAttachment(
   return 1;
 }
 
-int __fastcall ReadBinAttachments(
+int ReadBinAttachments(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -361,7 +361,7 @@ static unsigned int GetParentGeosetAnimId(
   }
 }
 
-int __fastcall WriteBinAttachments(
+int WriteBinAttachments(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status

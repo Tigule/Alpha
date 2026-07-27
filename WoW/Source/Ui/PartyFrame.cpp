@@ -24,7 +24,7 @@ LOOT_METHOD              CGPartyInfo::m_lootMethod;
 unsigned __int64         CGPartyInfo::m_lootMaster;
 int                      CGPartyInfo::m_lookingForGroup;
 
-static int __fastcall OnLFGResponse(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+static int OnLFGResponse(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   int looking;
   msg->Get(looking);
   CGPartyInfo::SetLookingForGroup(looking);
@@ -32,7 +32,7 @@ static int __fastcall OnLFGResponse(void *__formal, NETMESSAGE msgId, unsigned l
   return 1;
 }
 
-void __fastcall CGPartyInfo::InitializeGame() {
+void CGPartyInfo::InitializeGame() {
   for (unsigned int i = 0; i < 4; ++i) {
     m_members[i] = 0;
   }
@@ -42,7 +42,7 @@ void __fastcall CGPartyInfo::InitializeGame() {
   m_lookingForGroup = 0;
 }
 
-void __fastcall CGPartyInfo::EnterWorld() {
+void CGPartyInfo::EnterWorld() {
   ClientServices_SetMessageHandler(MSG_LOOKING_FOR_GROUP, OnLFGResponse, 0);
 
   CDataStore msg;
@@ -51,14 +51,14 @@ void __fastcall CGPartyInfo::EnterWorld() {
   ClientServices_Send(&msg);
 }
 
-void __fastcall CGPartyInfo::LeaveWorld() {
+void CGPartyInfo::LeaveWorld() {
   ClientServices_ClearMessageHandler(MSG_LOOKING_FOR_GROUP);
 }
 
-void __fastcall CGPartyInfo::ShutdownGame() {
+void CGPartyInfo::ShutdownGame() {
 }
 
-int __fastcall CGPartyInfo::IsMember(const unsigned __int64 &guid) {
+int CGPartyInfo::IsMember(const unsigned __int64 &guid) {
   if (!guid) {
     return 0;
   }
@@ -76,7 +76,7 @@ int __fastcall CGPartyInfo::IsMember(const unsigned __int64 &guid) {
   return 0;
 }
 
-unsigned __int64 __fastcall CGPartyInfo::GetMemberByName(const char *name) {
+unsigned __int64 CGPartyInfo::GetMemberByName(const char *name) {
   for (unsigned int i = 0; i < 4; ++i) {
     if (m_members[i]) {
       const NameCache *entry = g_nameDBCache.GetRecord(m_members[i], m_members[i], 0, 0);
@@ -88,7 +88,7 @@ unsigned __int64 __fastcall CGPartyInfo::GetMemberByName(const char *name) {
   return 0;
 }
 
-void __fastcall CGPartyInfo::SetLeader(unsigned __int64 guid) {
+void CGPartyInfo::SetLeader(unsigned __int64 guid) {
   if (guid != m_leader) {
     m_leader = guid;
     m_leaderIndex = -1;
@@ -104,7 +104,7 @@ void __fastcall CGPartyInfo::SetLeader(unsigned __int64 guid) {
   }
 }
 
-void __fastcall CGPartyInfo::AddMember(unsigned __int64 guid, int connected) {
+void CGPartyInfo::AddMember(unsigned __int64 guid, int connected) {
   if (!guid) {
     return;
   }
@@ -127,7 +127,7 @@ void __fastcall CGPartyInfo::AddMember(unsigned __int64 guid, int connected) {
   }
 }
 
-void __fastcall CGPartyInfo::RemoveAll() {
+void CGPartyInfo::RemoveAll() {
   unsigned int index;
   for (index = 0; index < 4; ++index) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_members[index], __FILE__, __LINE__));
@@ -150,7 +150,7 @@ void __fastcall CGPartyInfo::RemoveAll() {
   FrameScript_SignalEvent(209);
 }
 
-void __fastcall CGPartyInfo::RemoveActivePlayer(unsigned __int64 guid) {
+void CGPartyInfo::RemoveActivePlayer(unsigned __int64 guid) {
   for (unsigned int i = 0; i < 4; ++i) {
     if (m_members[i] == guid) {
       memmove(&m_members[i], &m_members[i + 1], (3 - i) * sizeof(m_members[0]));
@@ -163,7 +163,7 @@ void __fastcall CGPartyInfo::RemoveActivePlayer(unsigned __int64 guid) {
   }
 }
 
-void __fastcall CGPartyInfo::EnableMember(unsigned __int64 guid, int enable) {
+void CGPartyInfo::EnableMember(unsigned __int64 guid, int enable) {
   RemoteStats *stats = GetRemoteStats(guid);
   if (stats && stats->connected != enable) {
     stats->connected = enable;
@@ -171,7 +171,7 @@ void __fastcall CGPartyInfo::EnableMember(unsigned __int64 guid, int enable) {
   }
 }
 
-unsigned int __fastcall CGPartyInfo::NumMembers() {
+unsigned int CGPartyInfo::NumMembers() {
   unsigned int count = 0;
   while (count < 4 && m_members[count]) {
     ++count;
@@ -179,7 +179,7 @@ unsigned int __fastcall CGPartyInfo::NumMembers() {
   return count;
 }
 
-void __fastcall CGPartyInfo::SetLootMethod(LOOT_METHOD method, unsigned __int64 master) {
+void CGPartyInfo::SetLootMethod(LOOT_METHOD method, unsigned __int64 master) {
   if (m_lootMethod != method) {
     m_lootMethod = method;
     switch (method) {
@@ -207,7 +207,7 @@ void __fastcall CGPartyInfo::SetLootMethod(LOOT_METHOD method, unsigned __int64 
   FrameScript_SignalEvent(213);
 }
 
-CGPartyInfo::RemoteStats *__fastcall CGPartyInfo::GetRemoteStats(unsigned __int64 guid) {
+CGPartyInfo::RemoteStats *CGPartyInfo::GetRemoteStats(unsigned __int64 guid) {
   if (!guid) {
     return 0;
   }
@@ -221,7 +221,7 @@ CGPartyInfo::RemoteStats *__fastcall CGPartyInfo::GetRemoteStats(unsigned __int6
   return 0;
 }
 
-void __fastcall CGPartyInfo::SetLookingForGroup(int looking) {
+void CGPartyInfo::SetLookingForGroup(int looking) {
   if (m_lookingForGroup != looking) {
     CDataStore msg;
     msg.Put(static_cast<unsigned int>(CMSG_SET_LOOKING_FOR_GROUP));
@@ -232,12 +232,12 @@ void __fastcall CGPartyInfo::SetLookingForGroup(int looking) {
   }
 }
 
-static int __fastcall Script_GetNumPartyMembers(lua_State *L) {
+static int Script_GetNumPartyMembers(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGPartyInfo::NumMembers()));
   return 1;
 }
 
-static int __fastcall Script_GetPartyMember(lua_State *L) {
+static int Script_GetPartyMember(lua_State *L) {
   if (!lua_isnumber(L, 1) ||
       static_cast<unsigned int>(lua_tonumber(L, 1)) - 1 >= 4) {
     return luaL_error(L, "Usage: GetPartyMember(index)");
@@ -251,12 +251,12 @@ static int __fastcall Script_GetPartyMember(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetPartyLeaderIndex(lua_State *L) {
+static int Script_GetPartyLeaderIndex(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGPartyInfo::GetLeaderIndex() + 1));
   return 1;
 }
 
-static int __fastcall Script_IsPartyLeader(lua_State *L) {
+static int Script_IsPartyLeader(lua_State *L) {
   if (CGPartyInfo::GetLeader() &&
       CGPartyInfo::GetLeader() == ClntObjMgrGetActivePlayer()) {
     lua_pushnumber(L, 1.0);
@@ -266,7 +266,7 @@ static int __fastcall Script_IsPartyLeader(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_LeaveParty(lua_State *L) {
+static int Script_LeaveParty(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->LeaveGroup();
@@ -274,7 +274,7 @@ static int __fastcall Script_LeaveParty(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetLootMethod(lua_State *L) {
+static int Script_GetLootMethod(lua_State *L) {
   static const char *methods[3] = {"freeforall", "roundrobin", "master"};
   LOOT_METHOD        method = CGPartyInfo::GetLootMethod();
   lua_pushstring(L, method < LOOT_METHOD_MAX ? methods[method] : "freeforall");
@@ -294,7 +294,7 @@ static int __fastcall Script_GetLootMethod(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_SetLootMethod(lua_State *L) {
+static int Script_SetLootMethod(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SetLootMethod(method, master)");
   }
@@ -323,7 +323,7 @@ static int __fastcall Script_SetLootMethod(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetLookingForGroup(lua_State *L) {
+static int Script_GetLookingForGroup(lua_State *L) {
   if (CGPartyInfo::IsLookingForGroup()) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -332,7 +332,7 @@ static int __fastcall Script_GetLookingForGroup(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_SetLookingForGroup(lua_State *L) {
+static int Script_SetLookingForGroup(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SetLookingForGroup(looking)");
   }
@@ -352,13 +352,13 @@ static FrameScript_Method s_ScriptFunctions[9] = {
     { "SetLookingForGroup",  Script_SetLookingForGroup}
 };
 
-void __fastcall PartyInfoRegisterScriptFunctions() {
+void PartyInfoRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 9; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall PartyInfoUnregisterScriptFunctions() {
+void PartyInfoUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 9; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

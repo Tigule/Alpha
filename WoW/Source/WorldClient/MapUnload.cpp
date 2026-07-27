@@ -4,7 +4,7 @@
 #include "DayNight.h"
 #include "WorldClient/CMapObj.h"
 
-void __fastcall CMap::Unload() {
+void CMap::Unload() {
   Purge();
 
   for (unsigned int i = 0; i < 4096; ++i) {

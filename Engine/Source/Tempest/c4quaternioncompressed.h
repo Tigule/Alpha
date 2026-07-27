@@ -74,7 +74,7 @@ namespace NTempest {
       Set(quaternion);
     }
 
-    static C4Quaternion __fastcall Slerp(
+    static C4Quaternion Slerp(
         float ratio,
         const C4QuaternionCompressed &start,
         const C4QuaternionCompressed &end
@@ -82,7 +82,7 @@ namespace NTempest {
       return C4Quaternion::Slerp(ratio, static_cast<C4Quaternion>(start), static_cast<C4Quaternion>(end));
     }
 
-    static C4Quaternion __fastcall Squad(
+    static C4Quaternion Squad(
         float ratio,
         const C4QuaternionCompressed &start,
         const C4QuaternionCompressed &end,

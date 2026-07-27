@@ -36,8 +36,8 @@
 
 class CGameObjectDef {
  public:
-  static int __fastcall GetPropNum(int typeId, int propId);
-  static const char *__fastcall NameFromTypeId(int typeId);
+  static int GetPropNum(int typeId, int propId);
+  static const char *NameFromTypeId(int typeId);
 };
 
 struct StateAnimInfo {
@@ -67,19 +67,19 @@ static const float MAX_BIND_DISTANCE = 10.0f;
 static const float MAX_SHOP_DISTANCE = 5.5555553f;
 static const float MAX_OBJ_INTEREST_RADIUS = 100.0f;
 
-void __fastcall ClntObjMgrHideObject(unsigned __int64 guid);
-void __fastcall ClntObjMgrShowObject(unsigned __int64 guid);
-void __fastcall MovementAddTransport(CGGameObject_C *transport);
-void __fastcall MovementRemoveTransport(CGGameObject_C *transport);
-void __fastcall Spell_C_GetMinMaxPoints(
+void ClntObjMgrHideObject(unsigned __int64 guid);
+void ClntObjMgrShowObject(unsigned __int64 guid);
+void MovementAddTransport(CGGameObject_C *transport);
+void MovementRemoveTransport(CGGameObject_C *transport);
+void Spell_C_GetMinMaxPoints(
     const SpellRec *spell, int effectIndex, int *min, int *max, unsigned int level, int isPet);
-void __fastcall Spell_C_GetMinMaxRange(int spellID, float *min, float *max);
-bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
-bool __fastcall Spell_C_HandleSpriteClick(CGObject_C *object);
-void __fastcall SpellVisualsPlayCameraShakeID(
+void Spell_C_GetMinMaxRange(int spellID, float *min, float *max);
+bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
+bool Spell_C_HandleSpriteClick(CGObject_C *object);
+void SpellVisualsPlayCameraShakeID(
     unsigned int shakeID, const NTempest::C3Vector &position);
 
-static int __fastcall PageTextHandler(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int PageTextHandler(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
   FATALASSERT(msg);
   unsigned __int64 gameObject;
   msg->Get(gameObject);
@@ -90,7 +90,7 @@ static int __fastcall PageTextHandler(void* param, NETMESSAGE msgId, unsigned lo
   return 1;
 }
 
-static int __fastcall CustomAnimHandler(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int CustomAnimHandler(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
   FATALASSERT(msg);
   unsigned __int64 gameObject;
   unsigned int anim;
@@ -164,7 +164,7 @@ void CGGameObject_C::LoadBaseObject(const GameObjectStats *stats) {
   m_baseObj->PostInit();
 }
 
-static void __fastcall GameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
+static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
   CGGameObject_C *object =
       static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (object) {
@@ -177,14 +177,14 @@ static void __fastcall GameObjectStatsCallback(int id, const unsigned __int64& g
   }
 }
 
-static void __fastcall AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
+static void AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
   FATALASSERT(param);
   CGGameObject_C *object = static_cast<CGGameObject_C *>(param);
   FATALASSERT(object->m_baseObj);
   object->m_baseObj->HandleAnimEvent(eventName, position);
 }
 
-static int __fastcall AnimFinishedCallback(void* param) {
+static int AnimFinishedCallback(void* param) {
   FATALASSERT(param);
   CGGameObject_C *object = static_cast<CGGameObject_C *>(param);
   FATALASSERT(object->m_baseObj);
@@ -192,7 +192,7 @@ static int __fastcall AnimFinishedCallback(void* param) {
   return 1;
 }
 
-static int __fastcall OnUpdateState(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int OnUpdateState(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
   CGGameObject_C *object =
       static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(object);
@@ -691,12 +691,12 @@ unsigned int CGGameObject_C::IsValidTargetForSpell(const unsigned __int64 &caste
   return 0;
 }
 
-void __fastcall CGGameObject_C::Initialize() {
+void CGGameObject_C::Initialize() {
   ClientServices_SetMessageHandler(SMSG_GAMEOBJECT_PAGETEXT, PageTextHandler, 0);
   ClientServices_SetMessageHandler(SMSG_GAMEOBJECT_CUSTOM_ANIM, CustomAnimHandler, 0);
 }
 
-void __fastcall CGGameObject_C::Shutdown() {
+void CGGameObject_C::Shutdown() {
   ClientServices_ClearMessageHandler(SMSG_GAMEOBJECT_PAGETEXT);
   ClientServices_ClearMessageHandler(SMSG_GAMEOBJECT_CUSTOM_ANIM);
 }
@@ -780,7 +780,7 @@ const char *CGGameObject_C::GetObjectName() const {
 }
 
 int CGGameObject_C::GetPageTextID(
-    void(__fastcall *)(int, const unsigned __int64 &, void *, bool)) const {
+    void(*)(int, const unsigned __int64 &, void *, bool)) const {
   return GetPropertyValue(CGameObjectDef::GetPropNum(GetType(), 15));
 }
 
@@ -821,7 +821,7 @@ void CGGameObject_C::UnsetMirrorHandlers() {
       GetGUID(), OffsetOf(ID_GAMEOBJECT) + 24, OnUpdateState, 0);
 }
 
-unsigned int __fastcall CGGameObject_C::OffsetOf(OBJECT_TYPE_ID type) {
+unsigned int CGGameObject_C::OffsetOf(OBJECT_TYPE_ID type) {
   if (type == ID_OBJECT) {
     return 0;
   }

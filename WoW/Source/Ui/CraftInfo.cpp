@@ -40,39 +40,39 @@ static int __cdecl QSortSkills(const void *a, const void *b);
 static int __cdecl QSortPetSkills(const void *a, const void *b);
 static int __cdecl QSortSkillLines(const void *a, const void *b);
 
-bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
-int __fastcall SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
+bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
+int SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
 
 class CGCraftInfo {
  public:
-  static void __fastcall               EnterWorld();
-  static void __fastcall               ShutdownGame();
-  static void __fastcall               Close();
-  static void __fastcall               SetSelection(int index);
-  static int __fastcall                GetSelectionIndex();
-  static SPELL_CAST_UI_TYPE __fastcall GetCraftType() {
+  static void EnterWorld();
+  static void ShutdownGame();
+  static void Close();
+  static void SetSelection(int index);
+  static int GetSelectionIndex();
+  static SPELL_CAST_UI_TYPE GetCraftType() {
     return m_craftType;
   }
-  static int __fastcall GetNumCrafts() {
+  static int GetNumCrafts() {
     return m_filteredSkills;
   }
-  static CraftInfo *__fastcall GetCraftInfo(unsigned int index) {
+  static CraftInfo *GetCraftInfo(unsigned int index) {
     return index < m_filteredSkills ? m_skills[index] : 0;
   }
-  static unsigned int __fastcall GetNumSkillLines() {
+  static unsigned int GetNumSkillLines() {
     return m_numSkillLines;
   }
-  static CraftSkillLineInfo *__fastcall GetSkillLine(unsigned int index) {
+  static CraftSkillLineInfo *GetSkillLine(unsigned int index) {
     return index < m_numSkillLines ? m_skillLines[index] : 0;
   }
-  static int __fastcall  GetSkillLineIndexFromCraft(unsigned int index);
-  static void __fastcall SetCraftType(SPELL_CAST_UI_TYPE type);
-  static void __fastcall RefreshList();
-  static int __fastcall  IsCollpasedHeader(unsigned int index);
-  static int __fastcall  GetCollapseFilter() {
+  static int GetSkillLineIndexFromCraft(unsigned int index);
+  static void SetCraftType(SPELL_CAST_UI_TYPE type);
+  static void RefreshList();
+  static int IsCollpasedHeader(unsigned int index);
+  static int GetCollapseFilter() {
     return m_collapseFilter;
   }
-  static void __fastcall SetCollapseFilter(int filter);
+  static void SetCollapseFilter(int filter);
 
  private:
   friend int __cdecl QSortSkills(const void *a, const void *b);
@@ -80,7 +80,7 @@ class CGCraftInfo {
   friend int __cdecl QSortSkillLines(const void *a, const void *b);
 
  protected:
-  static void __fastcall FilterAndSortSkills();
+  static void FilterAndSortSkills();
 
  private:
   static SPELL_CAST_UI_TYPE                    m_craftType;
@@ -105,13 +105,13 @@ TSGrowableArray<CraftSkillLineInfo *> CGCraftInfo::m_skillLines;
 static const char *s_craftButtonTokens[4] = {"USE", "TRAIN", "DISGUISE", "ENSCRIBE"};
 static const char  s_skillCategoryStrings[5][32] = {"none", "optimal", "medium", "easy", "trivial"};
 
-static void __fastcall CraftReagentItemCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void CraftReagentItemCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     CGCraftInfo::RefreshList();
   }
 }
 
-void __fastcall CGCraftInfo::EnterWorld() {
+void CGCraftInfo::EnterWorld() {
   m_craftType = SPELL_CAST_UI_NONE;
   m_currentSelection = 0;
   m_numSkills = 0;
@@ -119,17 +119,17 @@ void __fastcall CGCraftInfo::EnterWorld() {
   m_filteredSkills = 0;
 }
 
-void __fastcall CGCraftInfo::ShutdownGame() {
+void CGCraftInfo::ShutdownGame() {
   m_skills.Clear();
   m_skillLines.Clear();
 }
 
-void __fastcall CGCraftInfo::Close() {
+void CGCraftInfo::Close() {
   m_craftType = SPELL_CAST_UI_NONE;
   FrameScript_SignalEvent(345);
 }
 
-void __fastcall CGCraftInfo::SetCraftType(SPELL_CAST_UI_TYPE type) {
+void CGCraftInfo::SetCraftType(SPELL_CAST_UI_TYPE type) {
   if (type == m_craftType) {
     Close();
   } else {
@@ -141,12 +141,12 @@ void __fastcall CGCraftInfo::SetCraftType(SPELL_CAST_UI_TYPE type) {
   }
 }
 
-void __fastcall CGCraftInfo::SetSelection(int index) {
+void CGCraftInfo::SetSelection(int index) {
   CraftInfo *info = GetCraftInfo(index);
   m_currentSelection = info && info->spellID > 0 ? info->spellID : 0;
 }
 
-int __fastcall CGCraftInfo::GetSelectionIndex() {
+int CGCraftInfo::GetSelectionIndex() {
   if (!m_currentSelection) {
     return -1;
   }
@@ -265,7 +265,7 @@ static int __cdecl QSortSkillLines(const void *a, const void *b) {
   return line1 && line2 ? SStrCmp(line1->m_displayName_lang[CURRENT_LANGUAGE], line2->m_displayName_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
-void __fastcall CGCraftInfo::RefreshList() {
+void CGCraftInfo::RefreshList() {
   unsigned int i;
 
   m_numSkills = 0;
@@ -335,7 +335,7 @@ void __fastcall CGCraftInfo::RefreshList() {
   FrameScript_SignalEvent(344);
 }
 
-void __fastcall CGCraftInfo::FilterAndSortSkills() {
+void CGCraftInfo::FilterAndSortSkills() {
   unsigned int i;
   unsigned int j;
 
@@ -373,7 +373,7 @@ void __fastcall CGCraftInfo::FilterAndSortSkills() {
   qsort(m_skills.Ptr(), m_numSkills, sizeof(CraftInfo *), m_craftType == SPELL_CAST_UI_PET_TRAINING ? QSortPetSkills : QSortSkills);
 }
 
-int __fastcall CGCraftInfo::GetSkillLineIndexFromCraft(unsigned int index) {
+int CGCraftInfo::GetSkillLineIndexFromCraft(unsigned int index) {
   CraftInfo *info = GetCraftInfo(index);
   if (!info || info->spellID >= 0) {
     return -1;
@@ -386,40 +386,40 @@ int __fastcall CGCraftInfo::GetSkillLineIndexFromCraft(unsigned int index) {
   return -1;
 }
 
-int __fastcall CGCraftInfo::IsCollpasedHeader(unsigned int index) {
+int CGCraftInfo::IsCollpasedHeader(unsigned int index) {
   int line = GetSkillLineIndexFromCraft(index);
   return line >= 0 && !(m_collapseFilter & (1 << line));
 }
 
-void __fastcall CGCraftInfo::SetCollapseFilter(int filter) {
+void CGCraftInfo::SetCollapseFilter(int filter) {
   m_collapseFilter = filter;
   FilterAndSortSkills();
   FrameScript_SignalEvent(344);
 }
 
-static int __fastcall Script_CloseCraft(lua_State *__formal) {
+static int Script_CloseCraft(lua_State *__formal) {
   CGCraftInfo::Close();
   return 0;
 }
 
-static int __fastcall Script_GetCraftName(lua_State *L) {
+static int Script_GetCraftName(lua_State *L) {
   CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   const SpellRec *spell = player ? g_spellDB.GetRecord(player->GetCraftSkillActivator(CGCraftInfo::GetCraftType())) : 0;
   lua_pushstring(L, spell ? spell->m_name_lang[CURRENT_LANGUAGE] : 0);
   return 1;
 }
 
-static int __fastcall Script_GetCraftButtonToken(lua_State *L) {
+static int Script_GetCraftButtonToken(lua_State *L) {
   lua_pushstring(L, s_craftButtonTokens[CGCraftInfo::GetCraftType()]);
   return 1;
 }
 
-static int __fastcall Script_GetNumCrafts(lua_State *L) {
+static int Script_GetNumCrafts(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGCraftInfo::GetNumCrafts()));
   return 1;
 }
 
-static int __fastcall Script_GetCraftInfo(lua_State *L) {
+static int Script_GetCraftInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftInfo(index)");
   }
@@ -454,7 +454,7 @@ static int __fastcall Script_GetCraftInfo(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_SelectCraft(lua_State *L) {
+static int Script_SelectCraft(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SelectCraft(index)");
   }
@@ -462,12 +462,12 @@ static int __fastcall Script_SelectCraft(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_GetCraftSelectionIndex(lua_State *L) {
+static int Script_GetCraftSelectionIndex(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGCraftInfo::GetSelectionIndex() + 1));
   return 1;
 }
 
-static int __fastcall Script_GetCraftIcon(lua_State *L) {
+static int Script_GetCraftIcon(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillIcon(index)");
   }
@@ -478,7 +478,7 @@ static int __fastcall Script_GetCraftIcon(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetCraftSkillLine(lua_State *L) {
+static int Script_GetCraftSkillLine(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftSkillLine(index)");
   }
@@ -488,7 +488,7 @@ static int __fastcall Script_GetCraftSkillLine(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetCraftNumReagents(lua_State *L) {
+static int Script_GetCraftNumReagents(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftNumReagents(index)");
   }
@@ -506,7 +506,7 @@ static int __fastcall Script_GetCraftNumReagents(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetCraftReagentInfo(lua_State *L) {
+static int Script_GetCraftReagentInfo(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: GetCraftReagentInfo(index, reagentIndex)");
   }
@@ -548,7 +548,7 @@ static int __fastcall Script_GetCraftReagentInfo(lua_State *L) {
   return 4;
 }
 
-static int __fastcall Script_GetCraftSpellFocus(lua_State *L) {
+static int Script_GetCraftSpellFocus(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillSpellFocus(index)");
   }
@@ -575,7 +575,7 @@ static int __fastcall Script_GetCraftSpellFocus(lua_State *L) {
   return count;
 }
 
-static int __fastcall Script_GetCraftDescription(lua_State *L) {
+static int Script_GetCraftDescription(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftDescription(index)");
   }
@@ -603,7 +603,7 @@ static int __fastcall Script_GetCraftDescription(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_CollapseCraftSkillLine(lua_State *L) {
+static int Script_CollapseCraftSkillLine(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: CollapseCraftSkillLine(index)");
   }
@@ -620,7 +620,7 @@ static int __fastcall Script_CollapseCraftSkillLine(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ExpandCraftSkillLine(lua_State *L) {
+static int Script_ExpandCraftSkillLine(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: ExpandCraftSkillLine(index)");
   }
@@ -637,7 +637,7 @@ static int __fastcall Script_ExpandCraftSkillLine(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_DoCraft(lua_State *L) {
+static int Script_DoCraft(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: DoCraft(index)");
   }
@@ -667,13 +667,13 @@ static FrameScript_Method s_ScriptFunctions[16] = {
     {               "DoCraft",                Script_DoCraft}
 };
 
-void __fastcall CraftInfoRegisterScriptFunctions() {
+void CraftInfoRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 16; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall CraftInfoUnregisterScriptFunctions() {
+void CraftInfoUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 16; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

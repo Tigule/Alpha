@@ -48,14 +48,14 @@ namespace NTempest {
   class C4Plane;
 }  // namespace NTempest
 
-void __fastcall  OnPendingMoveStateChange(unsigned __int64 unit, int msgId, unsigned long eventTime);
-void __fastcall  OnCollideRedirected(unsigned __int64 unit, unsigned long eventTime);
-void __fastcall  OnCollideStuck(unsigned __int64 unit, unsigned long eventTime);
-void __fastcall  OnCollideFallLand(unsigned __int64 unit, unsigned long eventTime);
-void __fastcall  OnCollideFalling(unsigned __int64 unit, unsigned long eventTime);
-void __fastcall  UnitNotifyStopped(const unsigned __int64 &guid, bool moveComplete);
-int __fastcall   UnitGetObjectPosition(const unsigned __int64 &guid, NTempest::C3Vector *position);
-float __fastcall UnitCalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination);
+void OnPendingMoveStateChange(unsigned __int64 unit, int msgId, unsigned long eventTime);
+void OnCollideRedirected(unsigned __int64 unit, unsigned long eventTime);
+void OnCollideStuck(unsigned __int64 unit, unsigned long eventTime);
+void OnCollideFallLand(unsigned __int64 unit, unsigned long eventTime);
+void OnCollideFalling(unsigned __int64 unit, unsigned long eventTime);
+void UnitNotifyStopped(const unsigned __int64 &guid, bool moveComplete);
+int UnitGetObjectPosition(const unsigned __int64 &guid, NTempest::C3Vector *position);
+float UnitCalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination);
 enum FACET_COLOR {
   FACET_UNTESTED = 0,
   FACET_TESTED_UNTOUCHED = 1,
@@ -73,16 +73,16 @@ extern TSGrowableArray<unsigned short>      g_debugNormalIndices;
 extern TSGrowableArray<NTempest::C3Vector>  g_debugBoxVerts;
 extern TSGrowableArray<NTempest::CImVector> g_debugVertColors;
 
-void __fastcall CollisionInfoSetWatchGUID(const unsigned __int64 &guid);
-void __fastcall CollisionInfoReset();
-void __fastcall CollisionInfoSetFaces(const unsigned __int64 &guid, const TSGrowableArray<NTempest::CFacet> &faces);
-void __fastcall CollisionInfoColorFace(unsigned int faceId, FACET_COLOR color);
-void __fastcall CollisionInfoSetFallBox(const NTempest::C3Vector &position, float boxHalfDepth, float boxHeight);
-void __fastcall CollisionInfoAddBox(const NTempest::C3Vector &boxMin, const NTempest::C3Vector &boxMax);
-void __fastcall CollisionInfoAddVector(const NTempest::C3Vector &position, const NTempest::C3Vector &vector);
-int __fastcall  ToggleCollisionInfo();
-void __fastcall RenderCollisionInfo();
-void __fastcall ProcessLocalMoveEvent(unsigned int msgId);
+void CollisionInfoSetWatchGUID(const unsigned __int64 &guid);
+void CollisionInfoReset();
+void CollisionInfoSetFaces(const unsigned __int64 &guid, const TSGrowableArray<NTempest::CFacet> &faces);
+void CollisionInfoColorFace(unsigned int faceId, FACET_COLOR color);
+void CollisionInfoSetFallBox(const NTempest::C3Vector &position, float boxHalfDepth, float boxHeight);
+void CollisionInfoAddBox(const NTempest::C3Vector &boxMin, const NTempest::C3Vector &boxMax);
+void CollisionInfoAddVector(const NTempest::C3Vector &position, const NTempest::C3Vector &vector);
+int ToggleCollisionInfo();
+void RenderCollisionInfo();
+void ProcessLocalMoveEvent(unsigned int msgId);
 
 enum PLAYER_MOVE_EVT {
   PMOVE_MOVE_START_FWD = 0x00,
@@ -140,7 +140,7 @@ class CMovementData {
   int                SetTransport(unsigned __int64 guid);
   void               RemoveFromMoversList();
 
-  friend void __fastcall OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime);
+  friend void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime);
   friend class CGUnit_C;
   friend class CGPlayer_C;
   friend class CGInputControl;
@@ -231,22 +231,22 @@ class CMovement : public CMovementData {
 
   void SetServerInitData(float const runSpeed, float const walkSpeed, float const swimSpeed, float const turnRate);
 
-  static void __fastcall StartLogging();
-  static void __fastcall StopLogging();
-  static int __fastcall  ToggleLogging();
-  static int __fastcall  IsLoggingOn();
+  static void StartLogging();
+  static void StopLogging();
+  static int ToggleLogging();
+  static int IsLoggingOn();
   static void __cdecl    LogWrite(const char *format, ...);
   static void __cdecl    BothLogWrite(const char *format, ...);
 
-  static void __fastcall StartFallLogging();
-  static void __fastcall StopFallLogging();
-  static int __fastcall  ToggleFallLogging();
-  static int __fastcall  IsFallLoggingOn();
+  static void StartFallLogging();
+  static void StopFallLogging();
+  static int ToggleFallLogging();
+  static int IsFallLoggingOn();
   static void __cdecl    FallLogWrite(const char *format, ...);
 
-  static void __fastcall StopAllLogging();
-  static int __fastcall  MoversOnList();
-  static void __fastcall MoveUnits(unsigned long timeNow, unsigned long lastUpdate);
+  static void StopAllLogging();
+  static int MoversOnList();
+  static void MoveUnits(unsigned long timeNow, unsigned long lastUpdate);
   void                   MoveUnit(unsigned long timeNow, unsigned long lastUpdate, void *obj);
   void                   MoveLocalPlayer(unsigned long timeNow, unsigned long lastUpdate);
   void                   OnMoveStartLocal(unsigned long eventTime, int forward);
@@ -468,29 +468,29 @@ class CMovement : public CMovementData {
   float        CalcFallStartElevation(unsigned int timeFallen);
 };
 
-void *__fastcall MovementGetGlobals();
-void __fastcall  MovementSetGlobals(void *ptr);
-void __fastcall  MovementLockMoversList(int forWriting);
-void __fastcall  MovementUnlockMoversList(int fromWriting);
-void __fastcall  MovementDestroy();
-void __fastcall  MovementInitialize(const char *logFileName, bool needLocalHeap);
-int __fastcall   MovementIdleMoveUnits(const void *packetData, void *param);
-void *__fastcall MovementTryLock(unsigned __int64 guid);
-void __fastcall  MovementUnlock(void *obj);
-void __fastcall  MovementUpdateProxMap(void *obj);
-void __fastcall  MovementMoveTransports(unsigned long eventTime, float elapsed);
+void *MovementGetGlobals();
+void MovementSetGlobals(void *ptr);
+void MovementLockMoversList(int forWriting);
+void MovementUnlockMoversList(int fromWriting);
+void MovementDestroy();
+void MovementInitialize(const char *logFileName, bool needLocalHeap);
+int MovementIdleMoveUnits(const void *packetData, void *param);
+void *MovementTryLock(unsigned __int64 guid);
+void MovementUnlock(void *obj);
+void MovementUpdateProxMap(void *obj);
+void MovementMoveTransports(unsigned long eventTime, float elapsed);
 
-void __fastcall  DisconnectLocalMover(CMovement *mover);
-void __fastcall  MovementGetTransportMtx(unsigned __int64 transportGUID, NTempest::C34Matrix *transportMtx);
-NTempest::C3Vector __fastcall MovementGetTransportVector(unsigned __int64 transportGUID);
-float __fastcall MovementGetTransportFacing(unsigned __int64 transportGUID);
-int __fastcall MovementInsideTransport(unsigned __int64 transportGUID, const NTempest::C3Vector &position);
-void __fastcall  MovementAddToTransport(CMovementData *mover, unsigned __int64 transportGUID);
-void __fastcall  MovementFixUpMoveHistory(unsigned __int64 mover, const NTempest::C34Matrix &fixup);
-void __fastcall  MovementUpdateCameraYaw(unsigned __int64 transportGUID);
-int __fastcall   MovementGameObjIsTransport(unsigned __int64 transportGUID);
-void __fastcall  MovementNotifyZoneMgr(unsigned __int64 guid);
-void __fastcall  MovementFixOutOfBoundsUnit(unsigned __int64 guid);
+void DisconnectLocalMover(CMovement *mover);
+void MovementGetTransportMtx(unsigned __int64 transportGUID, NTempest::C34Matrix *transportMtx);
+NTempest::C3Vector MovementGetTransportVector(unsigned __int64 transportGUID);
+float MovementGetTransportFacing(unsigned __int64 transportGUID);
+int MovementInsideTransport(unsigned __int64 transportGUID, const NTempest::C3Vector &position);
+void MovementAddToTransport(CMovementData *mover, unsigned __int64 transportGUID);
+void MovementFixUpMoveHistory(unsigned __int64 mover, const NTempest::C34Matrix &fixup);
+void MovementUpdateCameraYaw(unsigned __int64 transportGUID);
+int MovementGameObjIsTransport(unsigned __int64 transportGUID);
+void MovementNotifyZoneMgr(unsigned __int64 guid);
+void MovementFixOutOfBoundsUnit(unsigned __int64 guid);
 void __stdcall   MovementSetGravityRate(float metersPerSecSqd);
 void __stdcall   MovementSetTerminalVelocity(float metersPerSec);
 float            MovementGetTerminalVelocity();

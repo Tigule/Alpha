@@ -6,7 +6,7 @@
 #include <stpl.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void IReadPivots(Parser &parse, TSGrowableArray<NTempest::C3Vector> *pivots) {
@@ -38,12 +38,12 @@ static void IReadPivots(Parser &parse, TSGrowableArray<NTempest::C3Vector> *pivo
   }
 }
 
-int __fastcall ReadPivotPoints(Parser &parse, MDLDATA &data, CMDLStatus *) {
+int ReadPivotPoints(Parser &parse, MDLDATA &data, CMDLStatus *) {
   IReadPivots(parse, &data.pivotPoints);
   return !parse.FoundError();
 }
 
-int __fastcall WritePivotPoints(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+int WritePivotPoints(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (data.pivotPoints.Count()) {
     WriteLine(buffer, "%s %d {\n", TokenText(0x111), data.pivotPoints.Count());
     for (unsigned int i = 0; i < data.pivotPoints.Count(); ++i) {
@@ -55,7 +55,7 @@ int __fastcall WritePivotPoints(const MDLDATA &data, TSGrowableArray<char> &buff
   return 1;
 }
 
-int __fastcall WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+int WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
   if (data.pivotPoints.Count()) {
     buffer.AddDword('TVIP');
     buffer.AddUint(12 * data.pivotPoints.Count());
@@ -64,7 +64,7 @@ int __fastcall WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buffer, CMDL
   return 1;
 }
 
-int __fastcall ReadBinPivotPoints(
+int ReadBinPivotPoints(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,

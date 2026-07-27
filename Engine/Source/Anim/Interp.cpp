@@ -330,13 +330,13 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
   *transform = NTempest::C4Quaternion::Slerp(ratio, curr, next);
 }
 
-void __fastcall Blend(const NTempest::C3Vector &previous, NTempest::C3Vector *current, int timeLeft, unsigned int blendTime) {
+void Blend(const NTempest::C3Vector &previous, NTempest::C3Vector *current, int timeLeft, unsigned int blendTime) {
   ASSERT(current);
   float ratio = static_cast<float>(blendTime - timeLeft) / static_cast<float>(blendTime);
   *current = previous * (1.0f - ratio) + *current * ratio;
 }
 
-void __fastcall Blend(const NTempest::C4Quaternion &previous, NTempest::C4Quaternion *current, int timeLeft, unsigned int blendTime) {
+void Blend(const NTempest::C4Quaternion &previous, NTempest::C4Quaternion *current, int timeLeft, unsigned int blendTime) {
   ASSERT(current);
   float ratio = static_cast<float>(blendTime - timeLeft) / static_cast<float>(blendTime);
   *current = NTempest::C4Quaternion::Slerp(ratio, previous, *current);

@@ -37,7 +37,7 @@ CVar *CWorldParam::cvar_fullAlpha;
 CVar *CWorldParam::cvar_smallCull;
 CVar *CWorldParam::cvar_specular;
 
-void __fastcall CWorldParam::Initialize() {
+void CWorldParam::Initialize() {
   cvar_lod = CVar::Register("lod", "Video option: Toggle Lod", 1, "1", LodCallback, GRAPHICS, false, 0);
   cvar_fullAlpha = CVar::Register("fullAlpha", "Video option: Toggle full alpha", 1, "0", FullAlphaCallback, GRAPHICS, false, 0);
   cvar_doodadAnim = CVar::Register("doodadAnim", "Video option: Toggle doodad anim", 1, "1", DoodadAnimCallback, GRAPHICS, false, 0);
@@ -65,10 +65,10 @@ void __fastcall CWorldParam::Initialize() {
   cvar_textureLodDist = CVar::Register("textureLodDist", "Video option: texture detail", 1, "777.0", TextureLodDistCallback, GRAPHICS, false, 0);
 }
 
-void __fastcall CWorldParam::Destroy() {
+void CWorldParam::Destroy() {
 }
 
-bool __fastcall CWorldParam::LodCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::LodCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (SStrToInt(newValue)) {
     ConsoleWrite("Terrain LOD enabled.", DEFAULT_COLOR);
     CWorld::enables |= CWorld::Enable_Lod;
@@ -80,7 +80,7 @@ bool __fastcall CWorldParam::LodCallback(CVar *h, const char *oldValue, const ch
   return true;
 }
 
-bool __fastcall CWorldParam::FullAlphaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::FullAlphaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (SStrToInt(newValue)) {
     ConsoleWrite("Full alpha on doodads enabled.", DEFAULT_COLOR);
     CWorld::enables &= ~CWorld::Enable_NoFullAlpha;
@@ -94,7 +94,7 @@ bool __fastcall CWorldParam::FullAlphaCallback(CVar *h, const char *oldValue, co
   return true;
 }
 
-bool __fastcall CWorldParam::DoodadAnimCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::DoodadAnimCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (SStrToInt(newValue)) {
     ConsoleWrite("Doodad animation enabled.", DEFAULT_COLOR);
     CWorld::enables &= ~CWorld::Enable_NoAnimation;
@@ -108,7 +108,7 @@ bool __fastcall CWorldParam::DoodadAnimCallback(CVar *h, const char *oldValue, c
   return true;
 }
 
-bool __fastcall CWorldParam::MapShadowsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::MapShadowsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (SStrToInt(newValue)) {
     ConsoleWrite("Terrain shadows enabled.", DEFAULT_COLOR);
     CWorld::enables |= CWorld::Enable_Shadow;
@@ -120,11 +120,11 @@ bool __fastcall CWorldParam::MapShadowsCallback(CVar *h, const char *oldValue, c
   return true;
 }
 
-bool __fastcall CWorldParam::LightMapsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::LightMapsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   return false;
 }
 
-bool __fastcall CWorldParam::LodDistCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::LodDistCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float dist;
 
   sscanf(newValue, "%f", &dist);
@@ -136,7 +136,7 @@ bool __fastcall CWorldParam::LodDistCallback(CVar *h, const char *oldValue, cons
   return CWorld::SetLodDist(dist);
 }
 
-bool __fastcall CWorldParam::SmallCullCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::SmallCullCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float thres;
 
   sscanf(newValue, "%f", &thres);
@@ -149,7 +149,7 @@ bool __fastcall CWorldParam::SmallCullCallback(CVar *h, const char *oldValue, co
   return true;
 }
 
-bool __fastcall CWorldParam::DistCullCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::DistCullCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float dist = SStrToFloat(newValue);
 
   if (dist < 1.0f || dist > 888.8889f) {
@@ -161,7 +161,7 @@ bool __fastcall CWorldParam::DistCullCallback(CVar *h, const char *oldValue, con
   return true;
 }
 
-bool __fastcall CWorldParam::MaxLightsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::MaxLightsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int lights = SStrToInt(newValue);
 
   if (lights < 1 || (unsigned int)lights > 8) {
@@ -173,7 +173,7 @@ bool __fastcall CWorldParam::MaxLightsCallback(CVar *h, const char *oldValue, co
   return true;
 }
 
-bool __fastcall CWorldParam::ShadowLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::ShadowLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (SStrToInt(newValue) > 1) {
     ConsoleWrite("Shadow mip level must be in range 0 - 1.", DEFAULT_COLOR);
     return false;
@@ -183,7 +183,7 @@ bool __fastcall CWorldParam::ShadowLevelCallback(CVar *h, const char *oldValue, 
   return true;
 }
 
-bool __fastcall CWorldParam::AlphaLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::AlphaLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (SStrToInt(newValue) > 1) {
     ConsoleWrite("Alpha mip level must be in range 0 - 1.", DEFAULT_COLOR);
     return false;
@@ -193,7 +193,7 @@ bool __fastcall CWorldParam::AlphaLevelCallback(CVar *h, const char *oldValue, c
   return true;
 }
 
-bool __fastcall CWorldParam::TexLodBiasCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::TexLodBiasCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float v = SStrToFloat(newValue);
 
   if (v < -1.0f || v > 1.0f) {
@@ -206,7 +206,7 @@ bool __fastcall CWorldParam::TexLodBiasCallback(CVar *h, const char *oldValue, c
   return true;
 }
 
-bool __fastcall CWorldParam::TrilinearCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::TrilinearCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (SStrToInt(newValue)) {
     ConsoleWrite("Trilinear filtering enabled upon restart.", DEFAULT_COLOR);
     CWorld::enables |= CWorld::Enable_Trilinear;
@@ -218,7 +218,7 @@ bool __fastcall CWorldParam::TrilinearCallback(CVar *h, const char *oldValue, co
   return true;
 }
 
-bool __fastcall CWorldParam::FarClipCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::FarClipCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float v = SStrToFloat(newValue);
 
   if (v < 177.0f || v > 777.0f) {
@@ -230,7 +230,7 @@ bool __fastcall CWorldParam::FarClipCallback(CVar *h, const char *oldValue, cons
   return true;
 }
 
-bool __fastcall CWorldParam::NearClipCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::NearClipCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float v = SStrToFloat(newValue);
 
   if (v < 0.01f || v > 1.0f) {
@@ -242,7 +242,7 @@ bool __fastcall CWorldParam::NearClipCallback(CVar *h, const char *oldValue, con
   return true;
 }
 
-bool __fastcall CWorldParam::FovCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::FovCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float fov = SStrToFloat(newValue);
 
   if (fov < 1.0f || fov > 179.0f) {
@@ -253,7 +253,7 @@ bool __fastcall CWorldParam::FovCallback(CVar *h, const char *oldValue, const ch
   return true;
 }
 
-bool __fastcall CWorldParam::DetailDoodadDensityCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::DetailDoodadDensityCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   unsigned int density = SStrToInt(newValue);
 
   if (density < 1 || density > 128) {
@@ -265,7 +265,7 @@ bool __fastcall CWorldParam::DetailDoodadDensityCallback(CVar *h, const char *ol
   return true;
 }
 
-bool __fastcall CWorldParam::SpecularCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::SpecularCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (SStrToInt(newValue)) {
     if (GxCaps().m_pixelShaderTarget <= -1) {
       ConsoleWrite("Specular unsupported on current API/HW.", DEFAULT_COLOR);
@@ -282,7 +282,7 @@ bool __fastcall CWorldParam::SpecularCallback(CVar *h, const char *oldValue, con
   return true;
 }
 
-bool __fastcall CWorldParam::PixelShadersCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::PixelShadersCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   if (SStrToInt(newValue)) {
     if (GxCaps().m_pixelShaderTarget <= -1) {
       ConsoleWrite("Pixel shaders unsupported on current API/HW.", DEFAULT_COLOR);
@@ -299,7 +299,7 @@ bool __fastcall CWorldParam::PixelShadersCallback(CVar *h, const char *oldValue,
   return true;
 }
 
-bool __fastcall CWorldParam::ParticleDensityCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::ParticleDensityCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float v = SStrToFloat(newValue);
 
   if (v < 0.3f || v > 1.0f) {
@@ -311,7 +311,7 @@ bool __fastcall CWorldParam::ParticleDensityCallback(CVar *h, const char *oldVal
   return true;
 }
 
-bool __fastcall CWorldParam::UnitDrawDistCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::UnitDrawDistCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float dist = SStrToFloat(newValue);
 
   if (dist < 20.0f || dist > 150.0f) {
@@ -323,7 +323,7 @@ bool __fastcall CWorldParam::UnitDrawDistCallback(CVar *h, const char *oldValue,
   return true;
 }
 
-bool __fastcall CWorldParam::WaterLodCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::WaterLodCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int lod = SStrToInt(newValue);
 
   if (lod < 0 || lod > 1) {
@@ -335,7 +335,7 @@ bool __fastcall CWorldParam::WaterLodCallback(CVar *h, const char *oldValue, con
   return true;
 }
 
-bool __fastcall CWorldParam::BaseMipCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::BaseMipCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int mip = SStrToInt(newValue);
 
   if (mip < 0 || mip > 1) {
@@ -348,7 +348,7 @@ bool __fastcall CWorldParam::BaseMipCallback(CVar *h, const char *oldValue, cons
   return true;
 }
 
-bool __fastcall CWorldParam::AnisotropicCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::AnisotropicCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   int anisotropy = SStrToInt(newValue);
 
   if ((unsigned int)anisotropy < 1 || (unsigned int)anisotropy > 16) {
@@ -376,7 +376,7 @@ bool __fastcall CWorldParam::AnisotropicCallback(CVar *h, const char *oldValue, 
   return true;
 }
 
-bool __fastcall CWorldParam::TextureLodDistCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+bool CWorldParam::TextureLodDistCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
   float dist;
 
   sscanf(newValue, "%f", &dist);

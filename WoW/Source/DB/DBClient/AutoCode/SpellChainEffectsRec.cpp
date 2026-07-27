@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellChainEffectsRec::GetFilename() {
+const char *SpellChainEffectsRec::GetFilename() {
   return "DBFilesClient\\SpellChainEffects.dbc";
 }
 

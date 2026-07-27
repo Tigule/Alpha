@@ -21,9 +21,9 @@ typedef int(__stdcall *FSOUND_READCALLBACK)(void *, int, unsigned int);
 typedef int(__stdcall *FSOUND_SEEKCALLBACK)(unsigned int, int, signed char);
 typedef int(__stdcall *FSOUND_TELLCALLBACK)(unsigned int);
 
-typedef bool(__fastcall *SOUND_GET_PARAM_INT)(const char *, int &);
-typedef bool(__fastcall *SOUND_GET_PARAM_FLOAT)(const char *, float &);
-typedef bool(__fastcall *SOUND_GET_PARAM_STRING)(const char *, const char *&);
+typedef bool(*SOUND_GET_PARAM_INT)(const char *, int &);
+typedef bool(*SOUND_GET_PARAM_FLOAT)(const char *, float &);
+typedef bool(*SOUND_GET_PARAM_STRING)(const char *, const char *&);
 
 extern "C" void __stdcall        FSOUND_3D_SetDistanceFactor(float factor);
 extern "C" void __stdcall        FSOUND_3D_SetDopplerFactor(float factor);
@@ -161,15 +161,15 @@ struct InitParams {
   int   cacheSizeMB;
 };
 
-unsigned char(__fastcall *Sound::m_positionUpdateCallback)(__int64, NTempest::C3Vector &);
+unsigned char(*Sound::m_positionUpdateCallback)(__int64, NTempest::C3Vector &);
 
 static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, void *buff, int len, int param);
 static void *__stdcall       FSoundAllocCallback(unsigned int size);
 static void *__stdcall       FSoundReallocCallback(void *ptr, unsigned int size);
 static void __stdcall        FSoundFreeCallback(void *ptr);
-static int __fastcall        SoundIdle(const void *, void *);
-static int __fastcall        CheckInitError(char success, const char *function, int parameter);
-static void __fastcall
+static int SoundIdle(const void *, void *);
+static int CheckInitError(char success, const char *function, int parameter);
+static void
 InitializeParams(InitParams &params, SOUND_GET_PARAM_INT GetParamInt, SOUND_GET_PARAM_FLOAT GetParamFloat, SOUND_GET_PARAM_STRING GetParamString);
 
 static void *__stdcall FSoundAllocCallback(unsigned int size) {
@@ -194,7 +194,7 @@ static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, void
   return 0;
 }
 
-static int __fastcall SoundIdle(const void *, void *) {
+static int SoundIdle(const void *, void *) {
   if (!s_globalPause) {
     Sound::Update();
   }
@@ -222,7 +222,7 @@ Sound::~Sound() {
   --s_activeSoundCount;
 }
 
-static int __fastcall CheckInitError(char success, const char *function, int parameter) {
+static int CheckInitError(char success, const char *function, int parameter) {
   if (!success) {
     int error = FSOUND_GetError();
     SLogWrite(s_log, "Error: %s(%i) returned %i", function, parameter, error);
@@ -232,7 +232,7 @@ static int __fastcall CheckInitError(char success, const char *function, int par
   return 0;
 }
 
-static void __fastcall
+static void
 InitializeParams(InitParams &params, SOUND_GET_PARAM_INT GetParamInt, SOUND_GET_PARAM_FLOAT GetParamFloat, SOUND_GET_PARAM_STRING GetParamString) {
   params.outputSystem = -1;
   params.driver = -1;
@@ -265,10 +265,10 @@ InitializeParams(InitParams &params, SOUND_GET_PARAM_INT GetParamInt, SOUND_GET_
   params.flags &= ~0x200;
 }
 
-int __fastcall Sound::Initialize(
-    bool(__fastcall *GetParamInt)(const char *, int &),
-    bool(__fastcall *GetParamFloat)(const char *, float &),
-    bool(__fastcall *GetParamString)(const char *, const char *&)
+int Sound::Initialize(
+    bool(*GetParamInt)(const char *, int &),
+    bool(*GetParamFloat)(const char *, float &),
+    bool(*GetParamString)(const char *, const char *&)
 ) {
   int          error = 0;
   InitParams   params;
@@ -436,7 +436,7 @@ done:
   return error;
 }
 
-void __fastcall Sound::Shutdown() {
+void Sound::Shutdown() {
   Sound *sound;
 
   sound = s_soundListActive.Head();
@@ -457,7 +457,7 @@ void __fastcall Sound::Shutdown() {
   }
 }
 
-void __fastcall Sound::Update() {
+void Sound::Update() {
   NTempest::C3Vector pos;
   NTempest::C3Vector listenerPos;
 
@@ -475,7 +475,7 @@ void __fastcall Sound::Update() {
   FSOUND_Update();
 }
 
-void __fastcall Sound::ProcessStopList() {
+void Sound::ProcessStopList() {
   s_soundSystemLock.Enter();
 
   while (Sound *sound = s_soundListStop.Head()) {
@@ -495,7 +495,7 @@ void __fastcall Sound::ProcessStopList() {
   s_soundSystemLock.Leave();
 }
 
-void __fastcall Sound::ProcessFadeList() {
+void Sound::ProcessFadeList() {
   unsigned int timestamp = OsGetAsyncTimeMs();
   Sound       *sound;
   Sound       *next;
@@ -537,7 +537,7 @@ void __fastcall Sound::ProcessFadeList() {
   }
 }
 
-void __fastcall Sound::ProcessUpdateList() {
+void Sound::ProcessUpdateList() {
   NTempest::C3Vector soundPosition;
   NTempest::C3Vector worldPosition;
 
@@ -561,7 +561,7 @@ void __fastcall Sound::ProcessUpdateList() {
   }
 }
 
-void __fastcall Sound::ProcessPanningList(const NTempest::C3Vector &listenerPos) {
+void Sound::ProcessPanningList(const NTempest::C3Vector &listenerPos) {
   NTempest::C34Matrix rotate;
   NTempest::C3Vector  soundVirtualPosition;
   NTempest::C3Vector  cross;
@@ -596,7 +596,7 @@ void __fastcall Sound::ProcessPanningList(const NTempest::C3Vector &listenerPos)
   }
 }
 
-void __fastcall Sound::ProcessCutoffList(const NTempest::C3Vector &listenerPos) {
+void Sound::ProcessCutoffList(const NTempest::C3Vector &listenerPos) {
   for (Sound *sound = s_soundListCutoff.Head(); sound; sound = sound->cutoffLink.Next()) {
     NTempest::C3Vector distance = sound->m_worldPosition - listenerPos;
 
@@ -617,7 +617,7 @@ void __fastcall Sound::ProcessCutoffList(const NTempest::C3Vector &listenerPos) 
   }
 }
 
-Sound *__fastcall Sound::Alloc(const char *name) {
+Sound *Sound::Alloc(const char *name) {
   Sound *sound = static_cast<Sound *>(s_soundListFree.GetData(0, typeid(Sound).raw_name(), -2));
 
   if (sound) {
@@ -632,7 +632,7 @@ Sound *__fastcall Sound::Alloc(const char *name) {
   return sound;
 }
 
-Sound *__fastcall Sound::Play(SOUNDCATEGORIES category, const char *filename, unsigned int mode, bool startPaused, int flags) {
+Sound *Sound::Play(SOUNDCATEGORIES category, const char *filename, unsigned int mode, bool startPaused, int flags) {
   Sound *sound = Alloc(filename);
   ASSERT(sound);
 
@@ -668,7 +668,7 @@ Sound *__fastcall Sound::Play(SOUNDCATEGORIES category, const char *filename, un
   return sound;
 }
 
-Sound *__fastcall Sound::Play2D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused) {
+Sound *Sound::Play2D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
     return 0;
   }
@@ -676,7 +676,7 @@ Sound *__fastcall Sound::Play2D(SOUNDCATEGORIES category, const char *filename, 
   return Play(category, filename, 0x2000, startPaused, flags);
 }
 
-Sound *__fastcall Sound::Play3D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused) {
+Sound *Sound::Play3D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
     return 0;
   }
@@ -694,7 +694,7 @@ Sound *__fastcall Sound::Play3D(SOUNDCATEGORIES category, const char *filename, 
   return sound;
 }
 
-Sound *__fastcall Sound::PlayLooped(SOUNDCATEGORIES category, const char *filename, int loopCount, unsigned int mode, bool startPaused, int flags) {
+Sound *Sound::PlayLooped(SOUNDCATEGORIES category, const char *filename, int loopCount, unsigned int mode, bool startPaused, int flags) {
   ASSERT(loopCount >= -1);
 
   Sound *sound = Alloc(filename);
@@ -738,7 +738,7 @@ Sound *__fastcall Sound::PlayLooped(SOUNDCATEGORIES category, const char *filena
   return sound;
 }
 
-Sound *__fastcall Sound::Play2DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused) {
+Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
     return 0;
   }
@@ -750,7 +750,7 @@ Sound *__fastcall Sound::Play2DLooped(SOUNDCATEGORIES category, const char *file
   return PlayLooped(category, filename, static_cast<int>(loopCount - 1), 0x2002, startPaused, flags);
 }
 
-Sound *__fastcall Sound::Play3DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused) {
+Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused) {
   Sound *sound;
 
   if (DupeCheckFailed(category, filename, flags)) {
@@ -772,7 +772,7 @@ Sound *__fastcall Sound::Play3DLooped(SOUNDCATEGORIES category, const char *file
   return sound;
 }
 
-void __fastcall Sound::KillSound(Sound *&sound) {
+void Sound::KillSound(Sound *&sound) {
   if (sound) {
     Sound *released = sound;
     released->~Sound();
@@ -1107,7 +1107,7 @@ void Sound::SetDistances(float min, float max) {
   }
 }
 
-void __fastcall Sound::SetListenerAttributes(
+void Sound::SetListenerAttributes(
     const NTempest::C3Vector &worldPosition,
     const NTempest::C3Vector *worldVelocity,
     const NTempest::C3Vector &worldForward,
@@ -1127,7 +1127,7 @@ void __fastcall Sound::SetListenerAttributes(
   );
 }
 
-void __fastcall Sound::GetListenerPosition(NTempest::C3Vector &position) {
+void Sound::GetListenerPosition(NTempest::C3Vector &position) {
   NTempest::C3Vector soundPos;
 
   FSOUND_3D_Listener_GetAttributes(&soundPos.x, 0, 0, 0, 0, 0, 0, 0);
@@ -1136,7 +1136,7 @@ void __fastcall Sound::GetListenerPosition(NTempest::C3Vector &position) {
   position.z = soundPos.y;
 }
 
-void __fastcall Sound::SetReverbProperties(const _FSOUND_REVERB_PROPERTIES *reverb) {
+void Sound::SetReverbProperties(const _FSOUND_REVERB_PROPERTIES *reverb) {
 }
 
 void Sound::AddToFadeList() {
@@ -1196,55 +1196,55 @@ void Sound::RemoveFromCutoffList() {
   }
 }
 
-unsigned int __fastcall SndGetCPUPerformance() {
+unsigned int SndGetCPUPerformance() {
   return static_cast<unsigned int>(FSOUND_GetCPUUsage());
 }
 
-int __fastcall Sound::GetNumOutputSystems() {
+int Sound::GetNumOutputSystems() {
   return 13;
 }
 
-const char *__fastcall Sound::GetOutputSystemName(int index) {
+const char *Sound::GetOutputSystemName(int index) {
   ASSERT(index >= 0 && index < 13);
   return s_outputSystemName[index];
 }
 
-int __fastcall Sound::GetNumDrivers() {
+int Sound::GetNumDrivers() {
   return FSOUND_GetNumDrivers();
 }
 
-const char *__fastcall Sound::GetDriverName(int index) {
+const char *Sound::GetDriverName(int index) {
   ASSERT(index >= 0 && index < FSOUND_GetNumDrivers());
   return FSOUND_GetDriverName(index);
 }
 
-int __fastcall Sound::GetNumMixers() {
+int Sound::GetNumMixers() {
   return 10;
 }
 
-const char *__fastcall Sound::GetMixerName(int index) {
+const char *Sound::GetMixerName(int index) {
   ASSERT(index >= 0 && index < 10);
   return s_mixerName[index];
 }
 
-void __fastcall Sound::SetSoundVolume(float volume) {
+void Sound::SetSoundVolume(float volume) {
   volume = min(max(0.0f, volume), 1.0f);
   s_soundVolume = volume;
   UpdateSoundVolumes(false);
 }
 
-void __fastcall Sound::SetMusicVolume(float volume) {
+void Sound::SetMusicVolume(float volume) {
   volume = min(max(0.0f, volume), 1.0f);
   s_musicVolume = volume;
   UpdateSoundVolumes(true);
 }
 
-void __fastcall Sound::SetMasterVolume(float volume) {
+void Sound::SetMasterVolume(float volume) {
   volume = min(max(0.0f, volume), 1.0f);
   FSOUND_SetSFXMasterVolume(NTempest::CMath::ftol_round_0_256_(volume * 255.0f));
 }
 
-void __fastcall Sound::MuteSFX(bool m) {
+void Sound::MuteSFX(bool m) {
   int    muted = m != false;
   Sound *sound;
   Sound *next;
@@ -1260,7 +1260,7 @@ void __fastcall Sound::MuteSFX(bool m) {
   }
 }
 
-void __fastcall Sound::UpdateSoundVolumes(bool music) {
+void Sound::UpdateSoundVolumes(bool music) {
   Sound *sound;
   Sound *next;
 
@@ -1272,7 +1272,7 @@ void __fastcall Sound::UpdateSoundVolumes(bool music) {
   }
 }
 
-bool __fastcall Sound::DupeCheckFailed(SOUNDCATEGORIES category, const char *fileName, int flags) {
+bool Sound::DupeCheckFailed(SOUNDCATEGORIES category, const char *fileName, int flags) {
   if (category >= SOUNDCATEGORIES_NUMCATEGORIES) {
     return true;
   }
@@ -1314,6 +1314,6 @@ void Sound::DecrementCategory(SOUNDCATEGORIES category) {
   }
 }
 
-int __fastcall Sound::GetMixRate() {
+int Sound::GetMixRate() {
   return s_mixRate;
 }

@@ -74,17 +74,17 @@ struct InitialSpellStruct {
 
 class CGTradeSkillInfo {
  public:
-  static void __fastcall RefreshList(int resetFilters);
+  static void RefreshList(int resetFilters);
 };
 
 class CGCraftInfo {
  public:
-  static void __fastcall RefreshList();
+  static void RefreshList();
 };
 
-const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
-void __fastcall UnitDebugCombatLogOnEnable(int enable);
-int __fastcall InvSlotToObjAttachSlot(int invSlot);
+const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
+void UnitDebugCombatLogOnEnable(int enable);
+int InvSlotToObjAttachSlot(int invSlot);
 
 struct ITEMSWAP {
   unsigned __int64 bagA;
@@ -169,23 +169,23 @@ enum PETITION_ERROR {
 
 class CGBuffBar {
  public:
-  static void __fastcall UpdateDuration(unsigned char slot, unsigned int duration);
+  static void UpdateDuration(unsigned char slot, unsigned int duration);
 };
 
 class CGContainerInfo {
  public:
-  static void __fastcall OpenContainer(unsigned __int64 container);
-  static void __fastcall UpdateItem(unsigned __int64 item);
+  static void OpenContainer(unsigned __int64 container);
+  static void UpdateItem(unsigned __int64 item);
 };
 
 class CGTradeInfo {
  public:
-  static void __fastcall UpdatePlayerItem(unsigned __int64 item);
+  static void UpdatePlayerItem(unsigned __int64 item);
 };
 
 class CGBankInfo {
  public:
-  static void __fastcall OpenBank(const unsigned __int64 &guid);
+  static void OpenBank(const unsigned __int64 &guid);
 };
 
 static TSGrowableArray<InitialSpellStruct> s_initialSpells;
@@ -217,7 +217,7 @@ static float                      s_attackBreakDistanceSquared = 100.0f;
 static unsigned int               s_playerProficiencies[16];
 static unsigned __int64           s_resurrectOffer;
 
-void __fastcall    ModelShowBoundingSphere(HMODEL model);
+void ModelShowBoundingSphere(HMODEL model);
 static const char *s_actionsArray[18] = {
     "ALWAYSBLOCK",
     "ALWAYSPARRY",
@@ -271,23 +271,23 @@ static LootItem                                                 s_lootItems[16];
 static int                                                      s_questFailedReason;
 CVar                                                           *g_combatModeMaxDistance;
 
-void __fastcall UnitCombatLogSetActivePlayer(CGPlayer_C *playerPtr);
-void __fastcall UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim);
+void UnitCombatLogSetActivePlayer(CGPlayer_C *playerPtr);
+void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim);
 
 enum CURSORANIMATIONS {
   POINT_CURSOR = 0,
   CAST_CURSOR = 1
 };
 
-void __fastcall CursorSetCursorMode(CURSORANIMATIONS mode);
+void CursorSetCursorMode(CURSORANIMATIONS mode);
 
 enum SPELL_FAILED_REASON {
   SPELL_FAILED_ERROR = 14
 };
 
-void __fastcall Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
-void __fastcall Spell_C_CancelCombatSpell();
-void __fastcall Spell_C_SetCooldownLeft(
+void Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
+void Spell_C_CancelCombatSpell();
+void Spell_C_SetCooldownLeft(
     int  spellID,
     int  itemID,
     int  category,
@@ -297,32 +297,32 @@ void __fastcall Spell_C_SetCooldownLeft(
     int  isPet,
     int  startRecoveryTimeLeft
 );
-void __fastcall                   PlayerInitializeSounds();
-void __fastcall                   PlayerShutdownSounds();
-const ItemSubClassRec *__fastcall SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
-int __fastcall                    SheatheTypeToSheathePoint(int sheatheType, int invSlot);
-void __fastcall                   Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
+void PlayerInitializeSounds();
+void PlayerShutdownSounds();
+const ItemSubClassRec *SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
+int SheatheTypeToSheathePoint(int sheatheType, int invSlot);
+void Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
 
 class CGTabardCreationFrame {
  public:
-  static void __fastcall Open(const unsigned __int64 &vendor);
+  static void Open(const unsigned __int64 &vendor);
 };
 
 class CGGuildRegistrar {
  public:
-  static void __fastcall SetRegistrar(unsigned __int64 registrar, PetitionVendorItem *petition);
+  static void SetRegistrar(unsigned __int64 registrar, PetitionVendorItem *petition);
 };
 
 class CGPetitionInfo {
  public:
-  static void __fastcall SetPetition(unsigned __int64 petition, int petitionID);
-  static void __fastcall SetSignatures(unsigned char count, unsigned __int64 *signers, int *choices);
+  static void SetPetition(unsigned __int64 petition, int petitionID);
+  static void SetSignatures(unsigned char count, unsigned __int64 *signers, int *choices);
 };
 
 class CGMerchantInfo {
  public:
-  static void __fastcall SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count);
-  static void __fastcall UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity);
+  static void SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count);
+  static void UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity);
 };
 
 enum QUEST_STATE {
@@ -335,15 +335,15 @@ enum QUEST_STATE {
 
 class CGQuestInfo {
  public:
-  static const unsigned __int64 &__fastcall GetQuestGiver();
-  static int __fastcall                     GetLastChosenItem();
-  static void __fastcall                    ClearLastChosenItem();
-  static void __fastcall                    SetState(unsigned __int64 guid, QUEST_STATE state, const char *text, int quest);
-  static void __fastcall                    SetLogDescription(const char *desc);
-  static void __fastcall                    AddQuest(int quest, const char *desc, int questLevel, int turnIn);
-  static void __fastcall                    AddQuestInProgress(int quest, const char *desc, int questLevel);
-  static void __fastcall                    EndQuestList();
-  static void __fastcall                    AddReward(
+  static const unsigned __int64 &GetQuestGiver();
+  static int GetLastChosenItem();
+  static void ClearLastChosenItem();
+  static void SetState(unsigned __int64 guid, QUEST_STATE state, const char *text, int quest);
+  static void SetLogDescription(const char *desc);
+  static void AddQuest(int quest, const char *desc, int questLevel, int turnIn);
+  static void AddQuestInProgress(int quest, const char *desc, int questLevel);
+  static void EndQuestList();
+  static void AddReward(
       const char *title,
       int        *itemChoice,
       int        *choiceDisplay,
@@ -356,94 +356,94 @@ class CGQuestInfo {
       int         money,
       int         autoLaunched
   );
-  static void __fastcall
+  static void
   AddItemRequest(const char *title, int *items, int *itemAmount, int *itemDisplay, int numItems, int completed, int autoLaunched);
-  static void __fastcall QuestGiverFinished();
-  static void __fastcall ConfirmAcceptQuest(int questID, const char *questTitle, const unsigned __int64 &initiatedBy);
+  static void QuestGiverFinished();
+  static void ConfirmAcceptQuest(int questID, const char *questTitle, const unsigned __int64 &initiatedBy);
 };
 
-void __fastcall        CurrencyBreakdown(int money, int *coins);
-const char *__fastcall CurrencyAbbreviation(int coinType);
+void CurrencyBreakdown(int money, int *coins);
+const char *CurrencyAbbreviation(int coinType);
 
-int __fastcall OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnVendorEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnLootEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnLearnedSpell(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnSupercededSpell(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnInitialSpells(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnActionButtons(void *__formal, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnPetSpells(void *__formal, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnGroupInvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGroupCancel(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGroupDecline(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGroupUninvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGroupNewLeader(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGroupDestroy(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGroupCommandResult(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGroupList(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnQuestGiverEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnTrainerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnProficiency(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnResurrectRequest(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnInspectNotify(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnFactionUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnReadItemResult(void *, NETMESSAGE msgID, unsigned long, CDataStore *msg);
-int __fastcall OnCancelCombat(void *, NETMESSAGE, unsigned long, CDataStore *);
-int __fastcall OnGuildInvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGuildDecline(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGuildInfo(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGuildRoster(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnGuildEvent(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnGuildCommandResult(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnGuildEmblemError(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnGuildEmblemActivate(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnNpcPetitionEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnPlayEmote(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall HandlePartyMemberStats(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-int __fastcall OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnQuestConfirm(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnMirrorTimerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
-int __fastcall OnItemEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnVendorEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnLootEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnLearnedSpell(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnSupercededSpell(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnInitialSpells(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnActionButtons(void *__formal, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnPetSpells(void *__formal, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnGroupInvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGroupCancel(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGroupDecline(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGroupUninvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGroupNewLeader(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGroupDestroy(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGroupCommandResult(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGroupList(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnQuestGiverEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnTrainerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnProficiency(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnResurrectRequest(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnInspectNotify(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnFactionUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnReadItemResult(void *, NETMESSAGE msgID, unsigned long, CDataStore *msg);
+int OnCancelCombat(void *, NETMESSAGE, unsigned long, CDataStore *);
+int OnGuildInvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGuildDecline(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGuildInfo(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGuildRoster(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnGuildEvent(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnGuildCommandResult(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnGuildEmblemError(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnGuildEmblemActivate(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnNpcPetitionEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnPlayEmote(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+int HandlePartyMemberStats(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+int OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnQuestConfirm(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnMirrorTimerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int OnItemEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
 
-int __fastcall BootMeHandler(const char *command, const char *arguments);
-int __fastcall RepopPlayerHandler(const char *command, const char *arguments);
-int __fastcall WhoCommandHandler(const char *command, const char *arguments);
-int __fastcall BuyCommandHandler(const char *command, const char *arguments);
-int __fastcall UndressMeHandler(const char *command, const char *arguments);
-int __fastcall GodmodeHandler(const char *command, const char *arguments);
-int __fastcall CCommand_LevelUp(const char *command, const char *arguments);
-int __fastcall CCommand_SetFaction(const char *command, const char *arguments);
-int __fastcall CCommand_Invite(const char *command, const char *arguments);
-int __fastcall CCommand_Accept(const char *command, const char *arguments);
-int __fastcall CCommand_Decline(const char *command, const char *arguments);
-int __fastcall CCommand_Disband(const char *command, const char *arguments);
-int __fastcall CCommand_NewLeader(const char *command, const char *arguments);
-int __fastcall CCommand_Uninvite(const char *command, const char *arguments);
-int __fastcall CCommand_AcceptRes(const char *, const char *);
-int __fastcall CCommand_DeclineRes(const char *, const char *);
-int __fastcall CCommand_ShowPet(const char *, const char *);
-int __fastcall CCommand_TaxiShowNodes(const char *, const char *);
-int __fastcall CCommand_GuildCreate(const char *command, const char *arguments);
-int __fastcall CCommand_TogglePVP(const char *command, const char *arguments);
-int __fastcall CCommand_Cinematic(const char *command, const char *arguments);
-int __fastcall CCommand_ForceActionSet(const char *command, const char *arguments);
-int __fastcall CCommand_ForceActionUnset(const char *command, const char *arguments);
-int __fastcall CCommand_ForceActionOnOtherSet(const char *command, const char *arguments);
-int __fastcall CCommand_ForceActionOnOtherUnset(const char *command, const char *arguments);
-int __fastcall CCommand_ForceActionShowFlags(const char *command, const char *arguments);
-int __fastcall CCommand_ForceMonsterAnim(const char *__formal, const char *arguments);
-int __fastcall CCommand_ResetMonsterAnim(const char *, const char *);
-int __fastcall CCommand_DumpDeathHoldLogs(const char *, const char *);
+int BootMeHandler(const char *command, const char *arguments);
+int RepopPlayerHandler(const char *command, const char *arguments);
+int WhoCommandHandler(const char *command, const char *arguments);
+int BuyCommandHandler(const char *command, const char *arguments);
+int UndressMeHandler(const char *command, const char *arguments);
+int GodmodeHandler(const char *command, const char *arguments);
+int CCommand_LevelUp(const char *command, const char *arguments);
+int CCommand_SetFaction(const char *command, const char *arguments);
+int CCommand_Invite(const char *command, const char *arguments);
+int CCommand_Accept(const char *command, const char *arguments);
+int CCommand_Decline(const char *command, const char *arguments);
+int CCommand_Disband(const char *command, const char *arguments);
+int CCommand_NewLeader(const char *command, const char *arguments);
+int CCommand_Uninvite(const char *command, const char *arguments);
+int CCommand_AcceptRes(const char *, const char *);
+int CCommand_DeclineRes(const char *, const char *);
+int CCommand_ShowPet(const char *, const char *);
+int CCommand_TaxiShowNodes(const char *, const char *);
+int CCommand_GuildCreate(const char *command, const char *arguments);
+int CCommand_TogglePVP(const char *command, const char *arguments);
+int CCommand_Cinematic(const char *command, const char *arguments);
+int CCommand_ForceActionSet(const char *command, const char *arguments);
+int CCommand_ForceActionUnset(const char *command, const char *arguments);
+int CCommand_ForceActionOnOtherSet(const char *command, const char *arguments);
+int CCommand_ForceActionOnOtherUnset(const char *command, const char *arguments);
+int CCommand_ForceActionShowFlags(const char *command, const char *arguments);
+int CCommand_ForceMonsterAnim(const char *__formal, const char *arguments);
+int CCommand_ResetMonsterAnim(const char *, const char *);
+int CCommand_DumpDeathHoldLogs(const char *, const char *);
 
-int __fastcall         AreaTriggerCheck(const void *eventData, void *arg);
-static void __fastcall AreaTriggersInitialize();
-static void __fastcall AreaTriggersShutdown();
+int AreaTriggerCheck(const void *eventData, void *arg);
+static void AreaTriggersInitialize();
+static void AreaTriggersShutdown();
 
-static int __fastcall  CountWeaponItemSubclasses(int *number);
-static int __fastcall  FindFirstSetBit(unsigned int field, int *whichBitSet);
-static void __fastcall InitializeWeaponSubclassSpells();
+static int CountWeaponItemSubclasses(int *number);
+static int FindFirstSetBit(unsigned int field, int *whichBitSet);
+static void InitializeWeaponSubclassSpells();
 
-int __fastcall PlayerAttackBreakHandler(const void *data, unsigned __int64 guid, void *param) {
+int PlayerAttackBreakHandler(const void *data, unsigned __int64 guid, void *param) {
   if (ClntObjMgrGetPlayerType() != PLAYER_BOT) {
     FATALASSERT(s_attackBreakTimer);
     s_attackBreakTimer = 0;
@@ -463,7 +463,7 @@ int __fastcall PlayerAttackBreakHandler(const void *data, unsigned __int64 guid,
   return 1;
 }
 
-static int __fastcall PlayerCombatModeHandler(const void *data, unsigned __int64 guid, void *param) {
+static int PlayerCombatModeHandler(const void *data, unsigned __int64 guid, void *param) {
   s_combatModeTimer = 0;
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
@@ -472,7 +472,7 @@ static int __fastcall PlayerCombatModeHandler(const void *data, unsigned __int64
   return 1;
 }
 
-int __fastcall Player_C_ZoneUpdateHandler(const void *eventData, void *arg) {
+int Player_C_ZoneUpdateHandler(const void *eventData, void *arg) {
   static unsigned int updateCount;
 
   if (++updateCount >= 10) {
@@ -487,7 +487,7 @@ int __fastcall Player_C_ZoneUpdateHandler(const void *eventData, void *arg) {
   return 1;
 }
 
-int __fastcall RepopPlayerHandler(const char *command, const char *arguments) {
+int RepopPlayerHandler(const char *command, const char *arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->HandleRepopRequest();
@@ -495,12 +495,12 @@ int __fastcall RepopPlayerHandler(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall WhoCommandHandler(const char *command, const char *arguments) {
+int WhoCommandHandler(const char *command, const char *arguments) {
   g_friendList->SendWho(arguments);
   return 1;
 }
 
-void __fastcall ShowForceActionFlags(unsigned int *flags) {
+void ShowForceActionFlags(unsigned int *flags) {
   for (unsigned int target = 0; target < 2; ++target) {
     ConsoleWrite(target ? "Victim force flags:" : "Self force flags:", DEFAULT_COLOR);
     for (unsigned int action = 0; action < 18; ++action) {
@@ -509,7 +509,7 @@ void __fastcall ShowForceActionFlags(unsigned int *flags) {
   }
 }
 
-void __fastcall RandomRollNameQueryCallback(int, const unsigned __int64 &guid, void *arg, bool granted) {
+void RandomRollNameQueryCallback(int, const unsigned __int64 &guid, void *arg, bool granted) {
   char            buf[256];
   RandomRollInfo *info = static_cast<RandomRollInfo *>(arg);
   FATALASSERT(info);
@@ -540,7 +540,7 @@ static int BankInvHandler(unsigned __int64 guid, unsigned int offset, unsigned i
   return 1;
 }
 
-int __fastcall OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   switch (msgId) {
@@ -875,7 +875,7 @@ int __fastcall OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eve
   }
 }
 
-int __fastcall OnItemEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnItemEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   unsigned __int64 itemGUID;
@@ -914,7 +914,7 @@ int __fastcall OnItemEvent(void *__formal, NETMESSAGE msgId, unsigned long event
   return 0;
 }
 
-int __fastcall OnNpcPetitionEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnNpcPetitionEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -934,7 +934,7 @@ int __fastcall OnNpcPetitionEvent(void *__formal, NETMESSAGE msgId, unsigned lon
   }
 }
 
-int __fastcall HandlePartyMemberStats(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int HandlePartyMemberStats(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned __int64 guid;
   int              maxPower;
   msg->Get(guid);
@@ -968,7 +968,7 @@ int __fastcall HandlePartyMemberStats(void *, NETMESSAGE, unsigned long, CDataSt
   return 1;
 }
 
-int __fastcall OnVendorEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnVendorEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -988,7 +988,7 @@ int __fastcall OnVendorEvent(void *__formal, NETMESSAGE msgId, unsigned long eve
   }
 }
 
-int __fastcall OnFactionUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnFactionUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   switch (msgId) {
     case SMSG_INITIALIZE_FACTIONS:
       CGReputationInfo::OnInitializeFactions(msg);
@@ -1010,7 +1010,7 @@ int __fastcall OnFactionUpdate(void *__formal, NETMESSAGE msgId, unsigned long e
   return 1;
 }
 
-int __fastcall OnQuestGiverEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnQuestGiverEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -1041,7 +1041,7 @@ int __fastcall OnQuestGiverEvent(void *__formal, NETMESSAGE msgId, unsigned long
   }
 }
 
-static int __fastcall OnQuestItemLoot(QuestCache *quest, int itemID, int quantity) {
+static int OnQuestItemLoot(QuestCache *quest, int itemID, int quantity) {
   ItemStats *stats;
 
   if (!quest) {
@@ -1078,7 +1078,7 @@ static int __fastcall OnQuestItemLoot(QuestCache *quest, int itemID, int quantit
   return 1;
 }
 
-static void __fastcall QuestLootQuestQueryCallback(int id, const unsigned __int64 &, void *arg, bool granted) {
+static void QuestLootQuestQueryCallback(int id, const unsigned __int64 &, void *arg, bool granted) {
   int *item = static_cast<int *>(arg);
   if (granted) {
     QuestCache *quest = const_cast<QuestCache *>(g_questDBCache.GetRecord(id, 0, 0, 0));
@@ -1087,7 +1087,7 @@ static void __fastcall QuestLootQuestQueryCallback(int id, const unsigned __int6
   delete item;
 }
 
-int __fastcall OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned __int64 monsterGUID;
   CGPlayer_C      *player;
   int              monsterID = 0;
@@ -1202,7 +1202,7 @@ int __fastcall OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eve
   }
 }
 
-int __fastcall OnQuestConfirm(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnQuestConfirm(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char             questTitle[1024];
   unsigned __int64 initiatedBy;
   int              questID;
@@ -1216,7 +1216,7 @@ int __fastcall OnQuestConfirm(void *__formal, NETMESSAGE msgId, unsigned long ev
   return 1;
 }
 
-int __fastcall OnTrainerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnTrainerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
   if (!activePlayer) {
     return 0;
@@ -1250,7 +1250,7 @@ int __fastcall OnTrainerEvent(void *__formal, NETMESSAGE msgId, unsigned long ev
   return 0;
 }
 
-int __fastcall OnLootEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnLootEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   FATALASSERT(playerPtr);
 
@@ -1274,7 +1274,7 @@ int __fastcall OnLootEvent(void *__formal, NETMESSAGE msgId, unsigned long event
   }
 }
 
-int __fastcall BootMeHandler(const char *command, const char *arguments) {
+int BootMeHandler(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_BOOTME));
   msg.Finalize();
@@ -1282,7 +1282,7 @@ int __fastcall BootMeHandler(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall OnLearnedSpell(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnLearnedSpell(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   short          slot;
   unsigned short spell;
 
@@ -1301,7 +1301,7 @@ int __fastcall OnLearnedSpell(void *__formal, NETMESSAGE msgId, unsigned long ev
   return 1;
 }
 
-int __fastcall OnSupercededSpell(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnSupercededSpell(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned short oldSpell;
   unsigned short newSpell;
 
@@ -1334,7 +1334,7 @@ int __fastcall OnSupercededSpell(void *__formal, NETMESSAGE msgId, unsigned long
   return 1;
 }
 
-int __fastcall OnInitialSpells(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnInitialSpells(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   int            recoveryTime;
   unsigned int   onHold;
   int            categoryRecoveryTime;
@@ -1369,7 +1369,7 @@ int __fastcall OnInitialSpells(void *__formal, NETMESSAGE msgId, unsigned long e
   return 1;
 }
 
-int __fastcall OnActionButtons(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnActionButtons(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   for (unsigned int index = 0; index < 120; ++index) {
     msg->Get(s_initialButtons[index]);
   }
@@ -1377,7 +1377,7 @@ int __fastcall OnActionButtons(void *, NETMESSAGE, unsigned long, CDataStore *ms
   return 1;
 }
 
-int __fastcall OnPetSpells(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnPetSpells(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned __int64 petGUID;
   int              spellDuration;
   unsigned int     petMode;
@@ -1433,7 +1433,7 @@ int __fastcall OnPetSpells(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   return 1;
 }
 
-int __fastcall OnPlayEmote(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnPlayEmote(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned __int64 guid;
   int              emoteID;
 
@@ -1448,7 +1448,7 @@ int __fastcall OnPlayEmote(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   return 1;
 }
 
-int __fastcall OnGroupInvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGroupInvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
   CGGameUI::OpenPartyInvite(name);
@@ -1456,7 +1456,7 @@ int __fastcall OnGroupInvite(void *__formal, NETMESSAGE msgId, unsigned long eve
   return 1;
 }
 
-int __fastcall OnGroupCancel(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGroupCancel(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char string[256];
   char name[48];
   msg->GetString(name, sizeof(name));
@@ -1466,14 +1466,14 @@ int __fastcall OnGroupCancel(void *__formal, NETMESSAGE msgId, unsigned long eve
   return 1;
 }
 
-int __fastcall OnGroupDecline(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGroupDecline(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
   CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(60), name);
   return 1;
 }
 
-int __fastcall OnGroupNewLeader(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGroupNewLeader(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
 
@@ -1487,21 +1487,21 @@ int __fastcall OnGroupNewLeader(void *__formal, NETMESSAGE msgId, unsigned long 
   return 1;
 }
 
-int __fastcall OnGroupUninvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGroupUninvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   CGPartyInfo::RemoveAll();
   CGPartyInfo::SetLeader(0);
   CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(62));
   return 1;
 }
 
-int __fastcall OnGroupDestroy(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGroupDestroy(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   CGPartyInfo::RemoveAll();
   CGPartyInfo::SetLeader(0);
   CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(59));
   return 1;
 }
 
-int __fastcall OnGroupCommandResult(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGroupCommandResult(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char name[48];
   int  command;
   int  result;
@@ -1550,7 +1550,7 @@ int __fastcall OnGroupCommandResult(void *__formal, NETMESSAGE msgId, unsigned l
   return 1;
 }
 
-int __fastcall OnGroupList(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGroupList(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned __int64 newMembers[5];
   char             string[32];
   unsigned __int64 oldMembers[5];
@@ -1643,7 +1643,7 @@ int __fastcall OnGroupList(void *__formal, NETMESSAGE msgId, unsigned long event
   return 1;
 }
 
-int __fastcall OnGuildInvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGuildInvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char guildName[96];
   char name[48];
   msg->GetString(name, sizeof(name));
@@ -1653,14 +1653,14 @@ int __fastcall OnGuildInvite(void *__formal, NETMESSAGE msgId, unsigned long eve
   return 1;
 }
 
-int __fastcall OnGuildDecline(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGuildDecline(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
   CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(77), name);
   return 1;
 }
 
-int __fastcall OnGuildInfo(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGuildInfo(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char         name[96];
   char         buf[128];
   char         temp[64];
@@ -1688,7 +1688,7 @@ int __fastcall OnGuildInfo(void *__formal, NETMESSAGE msgId, unsigned long event
   return 1;
 }
 
-int __fastcall OnGuildRoster(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGuildRoster(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   char         name[256];
   char         ranks[5][32];
   char         guildname[96];
@@ -1726,14 +1726,14 @@ int __fastcall OnGuildRoster(void *__formal, NETMESSAGE msgId, unsigned long eve
   return 1;
 }
 
-int __fastcall OnGuildEmblemActivate(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnGuildEmblemActivate(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned __int64 vendor;
   msg->Get(vendor);
   CGTabardCreationFrame::Open(vendor);
   return 1;
 }
 
-int __fastcall OnGuildEmblemError(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnGuildEmblemError(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   int error;
   msg->Get(error);
   if (static_cast<unsigned int>(error) < 7) {
@@ -1742,7 +1742,7 @@ int __fastcall OnGuildEmblemError(void *, NETMESSAGE, unsigned long, CDataStore 
   return 1;
 }
 
-int __fastcall OnGuildEvent(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnGuildEvent(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   char            string[2][256];
   unsigned int    numStrings;
   unsigned int    event;
@@ -1801,7 +1801,7 @@ int __fastcall OnGuildEvent(void *, NETMESSAGE, unsigned long, CDataStore *msg) 
   return 1;
 }
 
-int __fastcall OnGuildCommandResult(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnGuildCommandResult(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   char name[96];
   int  result;
   int  command;
@@ -1869,17 +1869,17 @@ int __fastcall OnGuildCommandResult(void *, NETMESSAGE, unsigned long, CDataStor
   return 1;
 }
 
-void __fastcall Player_C_RegisterGuildUpdate(unsigned int guildID) {
+void Player_C_RegisterGuildUpdate(unsigned int guildID) {
   s_guildIDs.Add(&guildID);
 }
 
-static void __fastcall GuildCallback(int guildID, const unsigned __int64 &, void *, bool granted) {
+static void GuildCallback(int guildID, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     Player_C_RegisterGuildUpdate(guildID);
   }
 }
 
-const char *__fastcall MirrorTimerToName(int timer) {
+const char *MirrorTimerToName(int timer) {
   switch (timer) {
     case 0:
       return "EXHAUSTION";
@@ -1892,7 +1892,7 @@ const char *__fastcall MirrorTimerToName(int timer) {
   }
 }
 
-const char *__fastcall MirrorTimerLabel(int timer, int spellID) {
+const char *MirrorTimerLabel(int timer, int spellID) {
   char            label[128];
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (spell) {
@@ -1903,7 +1903,7 @@ const char *__fastcall MirrorTimerLabel(int timer, int spellID) {
   return FrameScript_GetText(label, -1, GENDER_NOT_APPLICABLE);
 }
 
-int __fastcall OnMirrorTimerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnMirrorTimerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   switch (msgId) {
     case SMSG_START_MIRROR_TIMER: {
       int          value;
@@ -2221,7 +2221,7 @@ int CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
   return 1;
 }
 
-void __fastcall QuestCompleteCallback(int id, const unsigned __int64 &, void *, bool granted) {
+void QuestCompleteCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (!granted) {
     return;
   }
@@ -2242,7 +2242,7 @@ void __fastcall QuestCompleteCallback(int id, const unsigned __int64 &, void *, 
   }
 }
 
-void __fastcall QuestRewardItemCallback(int id, const unsigned __int64 &, void *, bool granted) {
+void QuestRewardItemCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (!granted) {
     return;
   }
@@ -2328,7 +2328,7 @@ int CGPlayer_C::OnQuestGiverQuestComplete(CDataStore *msg) {
   return 1;
 }
 
-void __fastcall QuestFailedCallback(int id, const unsigned __int64 &, void *, bool granted) {
+void QuestFailedCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (!granted) {
     return;
   }
@@ -2557,7 +2557,7 @@ int CGPlayer_C::OnSellResponse(CDataStore *msg) {
   return 1;
 }
 
-static int __fastcall GuildIDUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
+static int GuildIDUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     player->OnGuildChanged();
@@ -2565,7 +2565,7 @@ static int __fastcall GuildIDUpdateHandler(unsigned __int64 guid, unsigned int o
   return 1;
 }
 
-static int __fastcall DuelTeamUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
+static int DuelTeamUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     player->UpdatePlayerName();
@@ -2574,7 +2574,7 @@ static int __fastcall DuelTeamUpdateHandler(unsigned __int64 guid, unsigned int 
   return 1;
 }
 
-static int __fastcall OnUpdateInventoryComponent(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
+static int OnUpdateInventoryComponent(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     unsigned int     slot = offset >> 3;
@@ -2587,7 +2587,7 @@ static int __fastcall OnUpdateInventoryComponent(unsigned __int64 guid, unsigned
   return 1;
 }
 
-static int __fastcall OnUpdateMoney(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int OnUpdateMoney(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   CGActionBar::UpdateUsable();
   return 1;
 }
@@ -2602,7 +2602,7 @@ static void QuestAcceptedCallback(int id, const unsigned __int64&, void*, unsign
   }
 }
 
-static int __fastcall OnUpdateQuest(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
+static int OnUpdateQuest(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     player->UpdateQuestStatusAll();
@@ -2617,7 +2617,7 @@ static int OnUpdateShapeshiftForm(unsigned __int64 guid, unsigned int offset, un
   return 1;
 }
 
-static int __fastcall OnUpdatePlayerFlags(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
+static int OnUpdatePlayerFlags(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     player->OnFlagChanged(*static_cast<const unsigned char *>(prevValue));
@@ -2625,7 +2625,7 @@ static int __fastcall OnUpdatePlayerFlags(unsigned __int64 guid, unsigned int of
   return 1;
 }
 
-static void __fastcall GuildTimestampChanged(int id, const unsigned __int64 &guid, void *arg, bool granted) {
+static void GuildTimestampChanged(int id, const unsigned __int64 &guid, void *arg, bool granted) {
   if (granted) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
     if (player) {
@@ -2634,7 +2634,7 @@ static void __fastcall GuildTimestampChanged(int id, const unsigned __int64 &gui
   }
 }
 
-static int __fastcall OnUpdateGuild(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
+static int OnUpdateGuild(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     g_guildInfoCache.Invalidate(player->GetGuildID());
@@ -2643,12 +2643,12 @@ static int __fastcall OnUpdateGuild(unsigned __int64 guid, unsigned int offset, 
   return 1;
 }
 
-static int __fastcall CharmChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int CharmChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   CGActionBar::UpdateSelection();
   return 1;
 }
 
-static int __fastcall PetChangeHandler(unsigned __int64 unit, unsigned int, unsigned int, const void *oldValue, void *) {
+static int PetChangeHandler(unsigned __int64 unit, unsigned int, unsigned int, const void *oldValue, void *) {
   FATALASSERT(unit == ClntObjMgrGetActivePlayer());
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (player) {
@@ -2657,12 +2657,12 @@ static int __fastcall PetChangeHandler(unsigned __int64 unit, unsigned int, unsi
   return 1;
 }
 
-static int __fastcall FarsightChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int FarsightChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   FrameScript_SignalEvent(326);
   return 1;
 }
 
-static int __fastcall SkillRankChangeHandler(unsigned __int64 player, unsigned int offset, unsigned int, const void *oldValue, void *) {
+static int SkillRankChangeHandler(unsigned __int64 player, unsigned int offset, unsigned int, const void *oldValue, void *) {
   unsigned int skillOffset = (offset - 602) / 12;
   FATALASSERT(skillOffset < 64);
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(player, __FILE__, __LINE__));
@@ -2679,18 +2679,18 @@ static int __fastcall SkillRankChangeHandler(unsigned __int64 player, unsigned i
   return 1;
 }
 
-static int __fastcall SkillMaxRankChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int SkillMaxRankChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   CGActionBar::UpdateUsable();
   CGCharacterInfo::UpdateAllSkillLines();
   return 1;
 }
 
-static int __fastcall SkillModifierChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int SkillModifierChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   CGChat::UpdateLanguages();
   return 1;
 }
 
-static void __fastcall AnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void AnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
   FATALASSERT(param);
   static_cast<CGPlayer_C *>(param)->HandleAnimEvent(eventName, position);
 }
@@ -2729,7 +2729,7 @@ CGPlayer_C::CGPlayer_C(unsigned long *storage, unsigned long eventTime, CClientO
   memset(m_texComponentInfo, 0, sizeof(m_texComponentInfo));
 }
 
-static int __fastcall SetLocalPlayerInGame(const void *eventData, void *param) {
+static int SetLocalPlayerInGame(const void *eventData, void *param) {
   ClntObjMgrSetCurrent(static_cast<ClntObjMgr *>(param));
   ClientServices_CharacterSetInGame(1);
   AsyncFileReadWaitAll();
@@ -2746,14 +2746,14 @@ static int __fastcall SetLocalPlayerInGame(const void *eventData, void *param) {
 
 void CGPlayer_C::SetInventoryMirrorHandler(
     unsigned int slot,
-    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
+    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
 ) {
   ClntObjMgrSetObjMirrorHandler(GetGUID(), CGPlayer_C::OffsetOf(ID_PLAYER) + 8 * slot, 8, handler, 0, HANDLER_PRIORITY_HIGH);
 }
 
 void CGPlayer_C::UnsetInventoryMirrorHandler(
     unsigned int slot,
-    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
+    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
 ) {
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGPlayer_C::OffsetOf(ID_PLAYER) + 8 * slot, handler, 0);
 }
@@ -2786,7 +2786,7 @@ void CGPlayer_C::UnsetPlayerMirrorHandlers() {
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 1796, OnUpdateGuild, 0);
 }
 
-static int __fastcall SummonChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int SummonChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
   CGCharacterInfo::UpdateAllSkillLines();
   return 1;
 }
@@ -3601,7 +3601,7 @@ void CGPlayer_C::ClearPendingEquip(unsigned int index, int equip) {
   swap.pendingID = 0;
   s_pendingSwaps[index] = swap;
 }
-void __fastcall CGPlayer_C::TogglePlayerBounds() {
+void CGPlayer_C::TogglePlayerBounds() {
   static int  boundsPresent;
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   HMODEL      model = player ? player->GetCharacterModel(0) : 0;
@@ -3616,7 +3616,7 @@ void __fastcall CGPlayer_C::TogglePlayerBounds() {
   }
 }
 
-void __fastcall CGPlayer_C::SellItem(unsigned __int64 merchant, unsigned __int64 item, unsigned int amount) {
+void CGPlayer_C::SellItem(unsigned __int64 merchant, unsigned __int64 item, unsigned int amount) {
   CDataStore sellMsg;
   sellMsg.Put(static_cast<unsigned int>(CMSG_SELL_ITEM));
   sellMsg.Put(merchant);
@@ -3626,7 +3626,7 @@ void __fastcall CGPlayer_C::SellItem(unsigned __int64 merchant, unsigned __int64
   ClientServices_Send(&sellMsg);
 }
 
-void __fastcall CGPlayer_C::SetActive(CGPlayer_C *playerPtr) {
+void CGPlayer_C::SetActive(CGPlayer_C *playerPtr) {
   if (ClntObjMgrGetPlayerType() != PLAYER_BOT) {
     UnitCombatLogSetActivePlayer(playerPtr);
     unsigned __int64 guid = playerPtr ? playerPtr->GetGUID() : 0;
@@ -3635,7 +3635,7 @@ void __fastcall CGPlayer_C::SetActive(CGPlayer_C *playerPtr) {
   ConsolePrintf("Local player guid (0x%016I64X)\n", ClntObjMgrGetActivePlayer());
 }
 
-unsigned int __fastcall CGPlayer_C::OffsetOf(OBJECT_TYPE_ID type) {
+unsigned int CGPlayer_C::OffsetOf(OBJECT_TYPE_ID type) {
   switch (type) {
     case ID_OBJECT:
       return 0;
@@ -3652,11 +3652,11 @@ unsigned int __fastcall CGPlayer_C::OffsetOf(OBJECT_TYPE_ID type) {
   }
 }
 
-unsigned int __fastcall CGPlayer_C::GetProficiency(unsigned char type) {
+unsigned int CGPlayer_C::GetProficiency(unsigned char type) {
   return type < 16 ? s_playerProficiencies[type] : 0;
 }
 
-void __fastcall CGPlayer_C::XBuyItem(unsigned __int64 merchant, unsigned int itemID, unsigned int quantity, unsigned int autoEquip) {
+void CGPlayer_C::XBuyItem(unsigned __int64 merchant, unsigned int itemID, unsigned int quantity, unsigned int autoEquip) {
   CDataStore buyMsg;
   buyMsg.Put(static_cast<unsigned int>(CMSG_BUY_ITEM));
   buyMsg.Put(merchant);
@@ -3667,7 +3667,7 @@ void __fastcall CGPlayer_C::XBuyItem(unsigned __int64 merchant, unsigned int ite
   ClientServices_Send(&buyMsg);
 }
 
-int __fastcall BuyCommandHandler(const char *command, const char *arguments) {
+int BuyCommandHandler(const char *command, const char *arguments) {
   unsigned int itemID = SStrToInt(arguments);
   if (!itemID) {
     ConsoleWrite("Usage: buy <muid>, where <muid> is the item id", DEFAULT_COLOR);
@@ -3683,7 +3683,7 @@ int __fastcall BuyCommandHandler(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall UndressMeHandler(const char *command, const char *arguments) {
+int UndressMeHandler(const char *command, const char *arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->DeleteWornItems();
@@ -3691,7 +3691,7 @@ int __fastcall UndressMeHandler(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall GodmodeHandler(const char *command, const char *arguments) {
+int GodmodeHandler(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GODMODE));
   msg.Put(static_cast<unsigned char>(SStrToInt(arguments) != 0));
@@ -3700,7 +3700,7 @@ int __fastcall GodmodeHandler(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_LevelUp(const char *command, const char *arguments) {
+int CCommand_LevelUp(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_LEVELUP_CHEAT));
   msg.Finalize();
@@ -3708,7 +3708,7 @@ int __fastcall CCommand_LevelUp(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_SetFaction(const char *command, const char *arguments) {
+int CCommand_SetFaction(const char *command, const char *arguments) {
   CDataStore msg;
   int        level;
   int        i;
@@ -3748,7 +3748,7 @@ int __fastcall CCommand_SetFaction(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_Invite(const char *command, const char *arguments) {
+int CCommand_Invite(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GROUP_INVITE));
   msg.PutString(arguments);
@@ -3757,7 +3757,7 @@ int __fastcall CCommand_Invite(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_Accept(const char *command, const char *arguments) {
+int CCommand_Accept(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GROUP_ACCEPT));
   msg.Finalize();
@@ -3765,7 +3765,7 @@ int __fastcall CCommand_Accept(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_Decline(const char *command, const char *arguments) {
+int CCommand_Decline(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GROUP_DECLINE));
   msg.Finalize();
@@ -3773,7 +3773,7 @@ int __fastcall CCommand_Decline(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_Disband(const char *command, const char *arguments) {
+int CCommand_Disband(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GROUP_DISBAND));
   msg.Finalize();
@@ -3781,7 +3781,7 @@ int __fastcall CCommand_Disband(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_NewLeader(const char *command, const char *arguments) {
+int CCommand_NewLeader(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GROUP_SET_LEADER));
   msg.PutString(arguments);
@@ -3790,7 +3790,7 @@ int __fastcall CCommand_NewLeader(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_Uninvite(const char *command, const char *arguments) {
+int CCommand_Uninvite(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_GROUP_UNINVITE));
   msg.PutString(arguments);
@@ -3799,7 +3799,7 @@ int __fastcall CCommand_Uninvite(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_AcceptRes(const char *, const char *) {
+int CCommand_AcceptRes(const char *, const char *) {
   if (s_resurrectOffer) {
     CDataStore msg;
     msg.Put(static_cast<unsigned int>(CMSG_RESURRECT_RESPONSE));
@@ -3812,7 +3812,7 @@ int __fastcall CCommand_AcceptRes(const char *, const char *) {
   return 1;
 }
 
-int __fastcall CCommand_DeclineRes(const char *, const char *) {
+int CCommand_DeclineRes(const char *, const char *) {
   if (s_resurrectOffer) {
     CDataStore msg;
     msg.Put(static_cast<unsigned int>(CMSG_RESURRECT_RESPONSE));
@@ -3825,7 +3825,7 @@ int __fastcall CCommand_DeclineRes(const char *, const char *) {
   return 1;
 }
 
-int __fastcall CCommand_ForceMonsterAnim(const char *__formal, const char *arguments) {
+int CCommand_ForceMonsterAnim(const char *__formal, const char *arguments) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
   if (unit) {
     unit->SetForcedAnimation(arguments);
@@ -3835,7 +3835,7 @@ int __fastcall CCommand_ForceMonsterAnim(const char *__formal, const char *argum
   return 1;
 }
 
-int __fastcall CCommand_ResetMonsterAnim(const char *, const char *) {
+int CCommand_ResetMonsterAnim(const char *, const char *) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
   if (unit) {
     unit->ResetForcedAnimation();
@@ -3843,7 +3843,7 @@ int __fastcall CCommand_ResetMonsterAnim(const char *, const char *) {
   return 1;
 }
 
-int __fastcall DumpDeathLogEnumHandler(unsigned __int64 object, void *param) {
+int DumpDeathLogEnumHandler(unsigned __int64 object, void *param) {
   ASSERT(param);
   CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
   if (objectPtr && (objectPtr->GetType() & TYPE_UNIT)) {
@@ -3852,7 +3852,7 @@ int __fastcall DumpDeathLogEnumHandler(unsigned __int64 object, void *param) {
   return 1;
 }
 
-int __fastcall CCommand_DumpDeathHoldLogs(const char *, const char *) {
+int CCommand_DumpDeathHoldLogs(const char *, const char *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     HSLOG log;
@@ -3865,7 +3865,7 @@ int __fastcall CCommand_DumpDeathHoldLogs(const char *, const char *) {
   return 1;
 }
 
-int __fastcall CCommand_ShowPet(const char *, const char *) {
+int CCommand_ShowPet(const char *, const char *) {
   char        buffer[256];
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
@@ -3877,7 +3877,7 @@ int __fastcall CCommand_ShowPet(const char *, const char *) {
   return 1;
 }
 
-int __fastcall CCommand_TaxiShowNodes(const char *, const char *) {
+int CCommand_TaxiShowNodes(const char *, const char *) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_TAXISHOWNODES));
   msg.Finalize();
@@ -3885,7 +3885,7 @@ int __fastcall CCommand_TaxiShowNodes(const char *, const char *) {
   return 1;
 }
 
-int __fastcall CCommand_GuildCreate(const char *command, const char *arguments) {
+int CCommand_GuildCreate(const char *command, const char *arguments) {
   if (arguments && *arguments) {
     CDataStore msg;
     msg.Put(static_cast<unsigned int>(CMSG_GUILD_CREATE));
@@ -3898,7 +3898,7 @@ int __fastcall CCommand_GuildCreate(const char *command, const char *arguments) 
   return 1;
 }
 
-void __fastcall PrintForceActionUsage(const char *command) {
+void PrintForceActionUsage(const char *command) {
   ASSERT(command);
   ConsolePrintf("usage: %s [x] [0|1] where [x] is one of:", command);
   for (unsigned int i = 0; i < 18; ++i) {
@@ -3906,7 +3906,7 @@ void __fastcall PrintForceActionUsage(const char *command) {
   }
 }
 
-void __fastcall SendForceActionMessage(int set, int onSelf, unsigned int argument) {
+void SendForceActionMessage(int set, int onSelf, unsigned int argument) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(onSelf ? CMSG_FORCEACTION : CMSG_FORCEACTIONONOTHER));
   msg.Put(argument);
@@ -3915,7 +3915,7 @@ void __fastcall SendForceActionMessage(int set, int onSelf, unsigned int argumen
   ClientServices_Send(&msg);
 }
 
-int __fastcall CCommand_ForceActionSet(const char *command, const char *arguments) {
+int CCommand_ForceActionSet(const char *command, const char *arguments) {
   if (arguments && *arguments) {
     unsigned int argument = SStrToUnsigned(arguments);
     if (argument < 18) {
@@ -3929,7 +3929,7 @@ int __fastcall CCommand_ForceActionSet(const char *command, const char *argument
   return 1;
 }
 
-int __fastcall CCommand_ForceActionUnset(const char *command, const char *arguments) {
+int CCommand_ForceActionUnset(const char *command, const char *arguments) {
   if (arguments && *arguments) {
     unsigned int argument = SStrToUnsigned(arguments);
     if (argument < 18) {
@@ -3943,7 +3943,7 @@ int __fastcall CCommand_ForceActionUnset(const char *command, const char *argume
   return 1;
 }
 
-int __fastcall CCommand_ForceActionOnOtherSet(const char *command, const char *arguments) {
+int CCommand_ForceActionOnOtherSet(const char *command, const char *arguments) {
   if (arguments && *arguments) {
     unsigned int argument = SStrToUnsigned(arguments);
     if (argument < 18) {
@@ -3957,7 +3957,7 @@ int __fastcall CCommand_ForceActionOnOtherSet(const char *command, const char *a
   return 1;
 }
 
-int __fastcall CCommand_ForceActionOnOtherUnset(const char *command, const char *arguments) {
+int CCommand_ForceActionOnOtherUnset(const char *command, const char *arguments) {
   if (arguments && *arguments) {
     unsigned int argument = SStrToUnsigned(arguments);
     if (argument < 18) {
@@ -3971,7 +3971,7 @@ int __fastcall CCommand_ForceActionOnOtherUnset(const char *command, const char 
   return 1;
 }
 
-int __fastcall CCommand_ForceActionShowFlags(const char *command, const char *arguments) {
+int CCommand_ForceActionShowFlags(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_FORCEACTIONSHOW));
   msg.Finalize();
@@ -3979,7 +3979,7 @@ int __fastcall CCommand_ForceActionShowFlags(const char *command, const char *ar
   return 1;
 }
 
-int __fastcall CCommand_TogglePVP(const char *command, const char *arguments) {
+int CCommand_TogglePVP(const char *command, const char *arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     unsigned int enable = !(player->GetUnitData()->flags & 1);
@@ -3993,7 +3993,7 @@ int __fastcall CCommand_TogglePVP(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall CCommand_Cinematic(const char *command, const char *arguments) {
+int CCommand_Cinematic(const char *command, const char *arguments) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_TRIGGER_CINEMATIC_CHEAT));
   msg.Put(static_cast<unsigned int>(SStrToInt(arguments)));
@@ -4002,7 +4002,7 @@ int __fastcall CCommand_Cinematic(const char *command, const char *arguments) {
   return 1;
 }
 
-int __fastcall OnProficiency(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnProficiency(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned int proficiencyMask;
   unsigned int proficiencyClass;
   msg->Get(*reinterpret_cast<unsigned char *>(&proficiencyClass));
@@ -4013,7 +4013,7 @@ int __fastcall OnProficiency(void *, NETMESSAGE, unsigned long, CDataStore *msg)
   return 1;
 }
 
-void __fastcall ResurrectNameQueryCallback(int, const unsigned __int64 &, void *, bool) {
+void ResurrectNameQueryCallback(int, const unsigned __int64 &, void *, bool) {
   const NameCache *name = g_nameDBCache.GetRecord(s_resurrectOffer, s_resurrectOffer, 0, 0);
   if (name) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -4025,7 +4025,7 @@ void __fastcall ResurrectNameQueryCallback(int, const unsigned __int64 &, void *
   }
 }
 
-int __fastcall OnResurrectRequest(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnResurrectRequest(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned __int64 guid;
   msg->Get(guid);
   s_resurrectOffer = guid;
@@ -4041,7 +4041,7 @@ int __fastcall OnResurrectRequest(void *, NETMESSAGE, unsigned long, CDataStore 
   return 1;
 }
 
-int __fastcall OnInspectNotify(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+int OnInspectNotify(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned __int64 guid;
   msg->Get(guid);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
@@ -4063,7 +4063,7 @@ void CGPlayer_C::UpdateQuestStatus(CGUnit_C *unit) {
   UpdateQuestStatus(unit->GetGUID());
 }
 
-int __fastcall OnReadItemResult(void *, NETMESSAGE msgID, unsigned long, CDataStore *msg) {
+int OnReadItemResult(void *, NETMESSAGE msgID, unsigned long, CDataStore *msg) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->ReadItemResult(msgID, msg);
@@ -4071,7 +4071,7 @@ int __fastcall OnReadItemResult(void *, NETMESSAGE msgID, unsigned long, CDataSt
   return 1;
 }
 
-int __fastcall OnCancelCombat(void *, NETMESSAGE, unsigned long, CDataStore *) {
+int OnCancelCombat(void *, NETMESSAGE, unsigned long, CDataStore *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->SetCombatMode(0);
@@ -4079,7 +4079,7 @@ int __fastcall OnCancelCombat(void *, NETMESSAGE, unsigned long, CDataStore *) {
   return 1;
 }
 
-int __fastcall AreaTriggerCheck(const void *eventData, void *arg) {
+int AreaTriggerCheck(const void *eventData, void *arg) {
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
 
   if (playerPtr) {
@@ -4126,18 +4126,18 @@ reset_timer:
   return 1;
 }
 
-static void __fastcall AreaTriggersInitialize() {
+static void AreaTriggersInitialize() {
   s_areaTriggerCheck_TimerEvent = ClientSetTimer(100, AreaTriggerCheck, 0);
 }
 
-static void __fastcall AreaTriggersShutdown() {
+static void AreaTriggersShutdown() {
   if (s_areaTriggerCheck_TimerEvent) {
     ClientKillTimer(s_areaTriggerCheck_TimerEvent, AreaTriggerCheck, "AreaTriggerCheck");
     s_areaTriggerCheck_TimerEvent = 0;
   }
 }
 
-void __fastcall PlayerClientInitialize() {
+void PlayerClientInitialize() {
   ClientServices_SetMessageHandler(SMSG_MOUNTRESULT, OnPlayerEvent, 0);
   ClientServices_SetMessageHandler(SMSG_DISMOUNTRESULT, OnPlayerEvent, 0);
   ClientServices_SetMessageHandler(SMSG_GODMODE, OnPlayerEvent, 0);
@@ -4282,7 +4282,7 @@ void __fastcall PlayerClientInitialize() {
   AreaTriggersInitialize();
 }
 
-void __fastcall PlayerClientShutdown() {
+void PlayerClientShutdown() {
   ClientServices_ClearMessageHandler(SMSG_GODMODE);
   ClientServices_ClearMessageHandler(SMSG_INVENTORY_CHANGE_FAILURE);
   ClientServices_ClearMessageHandler(SMSG_HEALSPELL_ON_PLAYER);
@@ -4436,7 +4436,7 @@ void __fastcall PlayerClientShutdown() {
   AreaTriggersShutdown();
 }
 
-int __fastcall Player_C_AppFocusMovementHandler(int focus) {
+int Player_C_AppFocusMovementHandler(int focus) {
   if (!focus) {
     unsigned long    eventTime = OsGetAsyncTimeMs();
     unsigned __int64 guid = ClntObjMgrGetActivePlayer();
@@ -4457,7 +4457,7 @@ int __fastcall Player_C_AppFocusMovementHandler(int focus) {
   return 1;
 }
 
-static int __fastcall CountWeaponItemSubclasses(int *number) {
+static int CountWeaponItemSubclasses(int *number) {
   int maxSubclass = 0;
   int found = 0;
 
@@ -4477,7 +4477,7 @@ static int __fastcall CountWeaponItemSubclasses(int *number) {
   return found;
 }
 
-static int __fastcall FindFirstSetBit(unsigned int field, int *whichBitSet) {
+static int FindFirstSetBit(unsigned int field, int *whichBitSet) {
   int result = field && !((field - 1) & field);
   int firstBit = 0x7FFFFFFF;
 
@@ -4498,7 +4498,7 @@ static int __fastcall FindFirstSetBit(unsigned int field, int *whichBitSet) {
   return result;
 }
 
-static void __fastcall InitializeWeaponSubclassSpells() {
+static void InitializeWeaponSubclassSpells() {
   int subclass;
   int numSubclasses;
 
@@ -4532,7 +4532,7 @@ static void __fastcall InitializeWeaponSubclassSpells() {
   }
 }
 
-void __fastcall CGPlayer_C::Initialize() {
+void CGPlayer_C::Initialize() {
   s_lastVendorListReceived = 0;
   s_giftWrapItem = 0;
   s_bindSaved = 0;
@@ -4567,7 +4567,7 @@ unsigned int CGPlayer_C::CanTrack(CGGameObject_C *object) {
   return 0;
 }
 
-void __fastcall CGPlayer_C::Shutdown() {
+void CGPlayer_C::Shutdown() {
   s_initialSpells.Clear();
   s_pendingSwaps.Clear();
   s_weaponSubclassSpells.Clear();
@@ -4706,7 +4706,7 @@ void CGPlayer_C::DelKnownSpell(int spellID) {
   CGActionBar::RemoveSpell(spellID);
 }
 
-ITEMEXPIRATION *__fastcall CGPlayer_C::GetPendingItemExpirationNode(const unsigned __int64 &itemGUID) {
+ITEMEXPIRATION *CGPlayer_C::GetPendingItemExpirationNode(const unsigned __int64 &itemGUID) {
   CHashKeyGUID    key(itemGUID);
   unsigned int    hash = static_cast<unsigned int>(itemGUID);
   ITEMEXPIRATION *itemNode = s_pendingItemExpirations.Ptr(hash, key);
@@ -4832,7 +4832,7 @@ int CGPlayer_C::GetWeaponSpell(COMBATHAND hand) const {
   return subclass < s_weaponSubclassSpells.Count() ? s_weaponSubclassSpells[subclass] : 0;
 }
 
-unsigned int __fastcall CGPlayer_C::GetNewContinentID() {
+unsigned int CGPlayer_C::GetNewContinentID() {
   return ClntObjMgrGetMapID();
 }
 
@@ -4978,7 +4978,7 @@ void CGPlayer_C::TrainerBuySpell(const unsigned __int64 &trainer, int spellID) {
   ClientServices_Send(&msg);
 }
 
-int __fastcall QuestUpdateProc(unsigned __int64 guid, void *__formal) {
+int QuestUpdateProc(unsigned __int64 guid, void *__formal) {
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -5008,7 +5008,7 @@ void CGPlayer_C::UpdateTaxiStatus(CGUnit_C *unit) {
   }
 }
 
-int __fastcall TaxiUpdateProc(unsigned __int64 guid, void *param) {
+int TaxiUpdateProc(unsigned __int64 guid, void *param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit && (unit->GetType() & TYPE_UNIT) && (unit->GetUnitData()->npcFlags & 4)) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -5019,7 +5019,7 @@ int __fastcall TaxiUpdateProc(unsigned __int64 guid, void *param) {
   return 1;
 }
 
-void __fastcall CGPlayer_C::UpdateTaxiStatusAll() {
+void CGPlayer_C::UpdateTaxiStatusAll() {
   ClntObjMgrEnumVisibleObjects(TaxiUpdateProc, 0);
 }
 
@@ -5031,7 +5031,7 @@ void CGPlayer_C::UpdateBindStatus(CGUnit_C *unit) {
   }
 }
 
-int __fastcall BindUpdateProc(unsigned __int64 guid, void *param) {
+int BindUpdateProc(unsigned __int64 guid, void *param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit && (unit->GetType() & TYPE_UNIT) && (unit->GetUnitData()->npcFlags & 0x10)) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -5042,7 +5042,7 @@ int __fastcall BindUpdateProc(unsigned __int64 guid, void *param) {
   return 1;
 }
 
-void __fastcall CGPlayer_C::UpdateBindStatusAll() {
+void CGPlayer_C::UpdateBindStatusAll() {
   ClntObjMgrEnumVisibleObjects(BindUpdateProc, 0);
 }
 
@@ -5158,17 +5158,17 @@ int CGPlayer_C::OnLootResponse(unsigned int eventTime, CDataStore *msg) {
   return 1;
 }
 
-unsigned int __fastcall CGPlayer_C::GetLootItem(unsigned int slot) {
+unsigned int CGPlayer_C::GetLootItem(unsigned int slot) {
   FATALASSERT(slot < 16);
   return s_lootItems[slot].m_itemID;
 }
 
-unsigned int __fastcall CGPlayer_C::GetLootItemDisplayID(unsigned int slot) {
+unsigned int CGPlayer_C::GetLootItemDisplayID(unsigned int slot) {
   FATALASSERT(slot < 16);
   return s_lootItems[slot].m_displayID;
 }
 
-unsigned int __fastcall CGPlayer_C::GetLootItemQuantity(unsigned int slot) {
+unsigned int CGPlayer_C::GetLootItemQuantity(unsigned int slot) {
   FATALASSERT(slot < 16);
   return s_lootItems[slot].m_quantity;
 }
@@ -5341,7 +5341,7 @@ void CGPlayer_C::AttachObjComponent(unsigned __int64 item, unsigned int slot, bo
   }
 }
 
-const CreatureModelDataRec *__fastcall Player_C_GetModelName(unsigned int race, unsigned int sex) {
+const CreatureModelDataRec *Player_C_GetModelName(unsigned int race, unsigned int sex) {
   int                           displayID;
   const CreatureDisplayInfoRec *displayInfo;
   const CreatureModelDataRec   *model;
@@ -5362,7 +5362,7 @@ const CreatureModelDataRec *__fastcall Player_C_GetModelName(unsigned int race, 
   return model;
 }
 
-unsigned int __fastcall Player_C_GetDisplayId(unsigned int race, unsigned int sex) {
+unsigned int Player_C_GetDisplayId(unsigned int race, unsigned int sex) {
   const ChrRacesRec *raceRecord;
 
   ASSERT(sex < UNITSEX_LAST);
@@ -5503,18 +5503,18 @@ int CGPlayer_C::GetLanguageSkill(unsigned int language, unsigned int &skill) {
   return 1;
 }
 
-int __fastcall Player_C_TogglePlayerRender() {
+int Player_C_TogglePlayerRender() {
   s_renderPlayer = !s_renderPlayer;
   return s_renderPlayer;
 }
 
-int __fastcall Player_C_SetPlayerRender(int enable) {
+int Player_C_SetPlayerRender(int enable) {
   int previous = s_renderPlayer;
   s_renderPlayer = enable;
   return previous;
 }
 
-void __fastcall Player_C_ClearGuildIDs() {
+void Player_C_ClearGuildIDs() {
   s_guildIDs.Clear();
 }
 
@@ -5624,11 +5624,11 @@ void CGPlayer_C::KillCombatModeTimer() {
   }
 }
 
-static int __fastcall GuildIDUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *);
-static int __fastcall DuelTeamUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *);
-static int __fastcall OnUpdateInventoryComponent(unsigned __int64, unsigned int, unsigned int, const void *, void *);
-static int __fastcall OnUpdatePlayerFlags(unsigned __int64, unsigned int, unsigned int, const void *, void *);
-static int __fastcall OnUpdateGuild(unsigned __int64, unsigned int, unsigned int, const void *, void *);
+static int GuildIDUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *);
+static int DuelTeamUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *);
+static int OnUpdateInventoryComponent(unsigned __int64, unsigned int, unsigned int, const void *, void *);
+static int OnUpdatePlayerFlags(unsigned __int64, unsigned int, unsigned int, const void *, void *);
+static int OnUpdateGuild(unsigned __int64, unsigned int, unsigned int, const void *, void *);
 
 void CGPlayer_C::ResetCombatModeTimer(int newCombat) {
   if (!s_combatModeTimer) {
@@ -5730,7 +5730,7 @@ int CGPlayer_C::DeathBindDistanceCompare(NTempest::C3Vector &bindStonePosition) 
   return s_bindSaved && ClntObjMgrGetMapID() == s_bindZoneID && diff.SquaredMag() <= bindRadiusCheckSquared;
 }
 
-void __fastcall CGPlayer_C::SaveBindPoint(CDataStore *msg) {
+void CGPlayer_C::SaveBindPoint(CDataStore *msg) {
   msg->Get(s_bindPosition.x);
   msg->Get(s_bindPosition.y);
   msg->Get(s_bindPosition.z);
@@ -5739,7 +5739,7 @@ void __fastcall CGPlayer_C::SaveBindPoint(CDataStore *msg) {
   UpdateBindStatusAll();
 }
 
-NTempest::C3Vector &__fastcall CGPlayer_C::GetBindPoint() {
+NTempest::C3Vector &CGPlayer_C::GetBindPoint() {
   return s_bindPosition;
 }
 
@@ -5766,7 +5766,7 @@ void CGPlayer_C::PlayVocalMacro(int category) {
   }
 }
 
-static int __fastcall SoulStoneCompare(const CGItem_C *item, void *__formal) {
+static int SoulStoneCompare(const CGItem_C *item, void *__formal) {
   const unsigned __int64 noGuid = 0;
   const ItemStats_C     *stats = g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0);
   if (!stats) {
@@ -6014,19 +6014,19 @@ int CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
   return 1;
 }
 
-void __fastcall CGPlayer_C::StartGiftWrap(CGItem_C *wrapper) {
+void CGPlayer_C::StartGiftWrap(CGItem_C *wrapper) {
   s_giftWrapItem = wrapper->GetGUID();
   CGGameUI::LockItem(s_giftWrapItem);
   CursorSetCursorMode(CAST_CURSOR);
 }
 
-void __fastcall CGPlayer_C::CancelGiftWrap() {
+void CGPlayer_C::CancelGiftWrap() {
   CGGameUI::UnlockItem(s_giftWrapItem);
   s_giftWrapItem = 0;
   CursorSetCursorMode(POINT_CURSOR);
 }
 
-bool __fastcall CGPlayer_C::IsGiftWrapping() {
+bool CGPlayer_C::IsGiftWrapping() {
   return s_giftWrapItem != 0;
 }
 
@@ -6224,7 +6224,7 @@ int CGPlayer_C::OnTurnInPetitionResults(CDataStore *msg) {
   return 1;
 }
 
-void __fastcall GuildCharterTurnInCallback(int, const unsigned __int64 &, void *, bool granted) {
+void GuildCharterTurnInCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
@@ -6300,17 +6300,17 @@ void CGPlayer_C::SendTextEmote(EmotesTextRec *rec, const unsigned __int64 &targe
   ClientServices_Send(&msg);
 }
 
-void __fastcall CGPlayer_C::AddDeferredDamage(int normal, unsigned int flags, unsigned int damage, unsigned __int64 victim) {
+void CGPlayer_C::AddDeferredDamage(int normal, unsigned int flags, unsigned int damage, unsigned __int64 victim) {
   DEFERREDDAMAGE *deferred = s_deferredDamage.NewNode(LIST_HEAD, 0, 0);
   deferred->Set(normal, flags, damage, victim);
 }
 
-void __fastcall CGPlayer_C::AddDeferredSpellMiss(unsigned __int64 victim, MISS_REASON reason, int spellID) {
+void CGPlayer_C::AddDeferredSpellMiss(unsigned __int64 victim, MISS_REASON reason, int spellID) {
   DEFERREDSPELLMISS *deferred = s_deferredSpellMiss.NewNode(LIST_HEAD, 0, 0);
   deferred->Set(victim, reason, spellID);
 }
 
-void __fastcall CGPlayer_C::ProcessDeferredDamage() {
+void CGPlayer_C::ProcessDeferredDamage() {
   DEFERREDDAMAGE *deferred = s_deferredDamage.Head();
   while (deferred) {
     DEFERREDDAMAGE *next = s_deferredDamage.Next(deferred);
@@ -6333,7 +6333,7 @@ void __fastcall CGPlayer_C::ProcessDeferredDamage() {
   }
 }
 
-void __fastcall CGPlayer_C::ProcessDeferredSpellMiss() {
+void CGPlayer_C::ProcessDeferredSpellMiss() {
   DEFERREDSPELLMISS *deferred = s_deferredSpellMiss.Head();
   while (deferred) {
     DEFERREDSPELLMISS *next = s_deferredSpellMiss.Next(deferred);

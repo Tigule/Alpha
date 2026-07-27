@@ -32,7 +32,7 @@
 #define VK_OEM_7      0xDE
 #endif
 
-typedef long(__fastcall *OSWINDOWPROC)(void *window, unsigned int message, unsigned int wparam, long lparam);
+typedef long(*OSWINDOWPROC)(void *window, unsigned int message, unsigned int wparam, long lparam);
 
 struct OSEVENT {
   OSINPUT id;
@@ -135,22 +135,22 @@ static unsigned int thailookup[0x100] = {
     0x0E50u, 0x0E51u, 0x0E52u, 0x0E53u, 0x0E54u, 0x0E55u, 0x0E56u, 0x0E57u, 0x0E58u, 0x0E59u, 0x0E5Au, 0x0E5Bu, 0x0020u, 0x0020u, 0x0020u, 0x0020u
 };
 
-void *__fastcall OsGuiGetWindow(int inWindowType);
-int __fastcall   OsGuiProcessMessage(void *inMsgData);
-int __fastcall   OsGuiIsModifierKeyDown(int inKey);
-int __fastcall   OsSleepInBackground();
-DWORD __fastcall OsGetBackgroundSleepMs();
+void *OsGuiGetWindow(int inWindowType);
+int OsGuiProcessMessage(void *inMsgData);
+int OsGuiIsModifierKeyDown(int inKey);
+int OsSleepInBackground();
+DWORD OsGetBackgroundSleepMs();
 
-static int __fastcall  OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3);
-static void __fastcall OsQueueSetParam(int index, int param);
-static void __fastcall CenterMouse();
-static void __fastcall RestoreMouse();
-static void __fastcall SaveMouse(HWND window, const POINT &pt);
-static void __fastcall OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param3);
-static int __fastcall  ConvertKeyCode(int vkey, KEY *key);
-static int __fastcall  ConvertButton(unsigned int message, unsigned int wparam, MOUSEBUTTON *button);
+static int OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3);
+static void OsQueueSetParam(int index, int param);
+static void CenterMouse();
+static void RestoreMouse();
+static void SaveMouse(HWND window, const POINT &pt);
+static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param3);
+static int ConvertKeyCode(int vkey, KEY *key);
+static int ConvertButton(unsigned int message, unsigned int wparam, MOUSEBUTTON *button);
 
-static void __fastcall OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param3) {
+static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param3) {
   int nextHead;
 
   nextHead = s_queueHead == 0xF ? 0 : s_queueHead + 1;
@@ -166,7 +166,7 @@ static void __fastcall OsQueuePut(OSINPUT id, int param0, int param1, int param2
   s_queueHead = nextHead;
 }
 
-static int __fastcall OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
+static int OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
   if (s_queueTail == s_queueHead) {
     return 0;
   }
@@ -187,7 +187,7 @@ static int __fastcall OsQueueGet(OSINPUT *id, int *param0, int *param1, int *par
   return 1;
 }
 
-static void __fastcall OsQueueSetParam(int index, int param) {
+static void OsQueueSetParam(int index, int param) {
   int queueIndex = s_queueTail;
 
   while (queueIndex != s_queueHead) {
@@ -200,7 +200,7 @@ static void __fastcall OsQueueSetParam(int index, int param) {
   }
 }
 
-static int __fastcall ConvertKeyCode(int vkey, KEY *key) {
+static int ConvertKeyCode(int vkey, KEY *key) {
   if (vkey >= '0' && vkey <= '9') {
     *key = static_cast<KEY>(vkey);
     return 1;
@@ -375,7 +375,7 @@ static int __fastcall ConvertKeyCode(int vkey, KEY *key) {
   return 1;
 }
 
-static void __fastcall CenterMouse() {
+static void CenterMouse() {
   RECT r;
 
   GetWindowRect(static_cast<HWND>(OsGuiGetWindow(0)), &r);
@@ -384,7 +384,7 @@ static void __fastcall CenterMouse() {
   SetCursorPos(s_mouseCenter.x, s_mouseCenter.y);
 }
 
-static int __fastcall ConvertButton(unsigned int message, unsigned int wparam, MOUSEBUTTON *button) {
+static int ConvertButton(unsigned int message, unsigned int wparam, MOUSEBUTTON *button) {
   switch (message) {
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
@@ -418,19 +418,19 @@ static int __fastcall ConvertButton(unsigned int message, unsigned int wparam, M
   return 0;
 }
 
-static void __fastcall RestoreMouse() {
+static void RestoreMouse() {
   POINT pt = s_mousePos;
 
   ClientToScreen(s_mouseWnd, &pt);
   SetCursorPos(pt.x, pt.y);
 }
 
-static void __fastcall SaveMouse(HWND window, const POINT &pt) {
+static void SaveMouse(HWND window, const POINT &pt) {
   s_mouseWnd = window;
   s_mousePos = pt;
 }
 
-int __fastcall OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
+int OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
   MSG message;
   int messageAvailable;
 
@@ -503,15 +503,15 @@ deliverMessage:
   return 1;
 }
 
-void __fastcall OsInputNotifyScreenResize(int x, int y) {
+void OsInputNotifyScreenResize(int x, int y) {
   s_savedResize = x | (y << 16);
 }
 
-void __fastcall OsInputSetScreenIsWindow(int inVal) {
+void OsInputSetScreenIsWindow(int inVal) {
   s_screenIsWindow = inVal;
 }
 
-void __fastcall OsInputSetMouseMode(OS_MOUSE_MODE mode) {
+void OsInputSetMouseMode(OS_MOUSE_MODE mode) {
   FATALASSERT(mode < OS_MOUSE_MODES);
 
   if (mode == s_mouseMode) {
@@ -527,7 +527,7 @@ void __fastcall OsInputSetMouseMode(OS_MOUSE_MODE mode) {
   }
 }
 
-void __fastcall OsInputGetMousePosition(int *x, int *y) {
+void OsInputGetMousePosition(int *x, int *y) {
   HWND  window = static_cast<HWND>(OsGuiGetWindow(0));
   POINT pt;
 
@@ -543,7 +543,7 @@ void __fastcall OsInputGetMousePosition(int *x, int *y) {
   }
 }
 
-void __fastcall OsInputSetMousePosition(int x, int y) {
+void OsInputSetMousePosition(int x, int y) {
   HWND  window = static_cast<HWND>(OsGuiGetWindow(0));
   POINT pt;
 
@@ -554,7 +554,7 @@ void __fastcall OsInputSetMousePosition(int x, int y) {
   SetCursorPos(pt.x, pt.y);
 }
 
-int __fastcall OsGetDefaultWindowRect(RECT *rect) {
+int OsGetDefaultWindowRect(RECT *rect) {
   FATALASSERT(rect);
 
   if ((!s_defaultwindowrect.right || !s_defaultwindowrect.bottom) && !GetClientRect(static_cast<HWND>(OsGuiGetWindow(0)), &s_defaultwindowrect)) {
@@ -565,15 +565,15 @@ int __fastcall OsGetDefaultWindowRect(RECT *rect) {
   return 1;
 }
 
-unsigned int __fastcall OsInputGetCodePage() {
+unsigned int OsInputGetCodePage() {
   return GetACP();
 }
 
-void __fastcall OsInputInitialize() {
+void OsInputInitialize() {
   s_numlockState = GetAsyncKeyState(VK_NUMLOCK);
 }
 
-void __fastcall OsInputDestroy() {
+void OsInputDestroy() {
   INPUT event;
 
   if (GetAsyncKeyState(VK_NUMLOCK) != s_numlockState) {
@@ -584,13 +584,13 @@ void __fastcall OsInputDestroy() {
   }
 }
 
-void __fastcall OsSetWindowProc(OSWINDOWPROC windowproc) {
+void OsSetWindowProc(OSWINDOWPROC windowproc) {
   ASSERT(!(windowproc && s_windowProc));
 
   s_windowProc = windowproc;
 }
 
-long __fastcall OsWindowProc(void *_window, unsigned int message, unsigned int wparam, long lparam) {
+long OsWindowProc(void *_window, unsigned int message, unsigned int wparam, long lparam) {
   HWND         hWnd = static_cast<HWND>(_window);
   POINT        pt;
   KEY          key;

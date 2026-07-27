@@ -6,22 +6,22 @@ class CDataStore;
 
 class CGReputationInfo {
  public:
-  static void __fastcall          EnterWorld();
-  static void __fastcall          LeaveWorld();
-  static void __fastcall          ShutdownGame();
-  static void __fastcall          OnInitializeFactions(CDataStore *msg);
-  static void __fastcall          OnSetFactionVisible(CDataStore *msg);
-  static void __fastcall          OnSetFactionStanding(CDataStore *msg);
-  static int __fastcall           FactionToIndex(int faction);
-  static int __fastcall           IndexToFaction(int index);
-  static unsigned int __fastcall  GetNumFactions();
-  static int __fastcall           GetFactionFromSortIndex(unsigned int index);
-  static void __fastcall          SetAtWar(int faction, unsigned int state);
-  static bool __fastcall          IsAtWar(int faction);
-  static int __fastcall           GetFactionStanding(int faction);
-  static UNIT_REACTION __fastcall GetFactionStandingReaction(int faction);
-  static void __fastcall          SetFactionFlags(int index, unsigned char flags);
-  static void __fastcall          SetFactionStanding(int factionIndex, int standing);
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void ShutdownGame();
+  static void OnInitializeFactions(CDataStore *msg);
+  static void OnSetFactionVisible(CDataStore *msg);
+  static void OnSetFactionStanding(CDataStore *msg);
+  static int FactionToIndex(int faction);
+  static int IndexToFaction(int index);
+  static unsigned int GetNumFactions();
+  static int GetFactionFromSortIndex(unsigned int index);
+  static void SetAtWar(int faction, unsigned int state);
+  static bool IsAtWar(int faction);
+  static int GetFactionStanding(int faction);
+  static UNIT_REACTION GetFactionStandingReaction(int faction);
+  static void SetFactionFlags(int index, unsigned char flags);
+  static void SetFactionStanding(int factionIndex, int standing);
 
  protected:
   static unsigned int m_numFactions;
@@ -32,5 +32,5 @@ class CGReputationInfo {
   static int          m_factionSorting[64];
 
  private:
-  static void __fastcall SortFactions();
+  static void SortFactions();
 };

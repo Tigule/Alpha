@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall AttackAnimTypesRec::GetFilename() {
+const char *AttackAnimTypesRec::GetFilename() {
   return "DBFilesClient\\AttackAnimTypes.dbc";
 }
 

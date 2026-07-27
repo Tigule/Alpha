@@ -22,11 +22,11 @@ struct CORPSEANIMDATA {
   unsigned __int64 guid;
 };
 
-void __fastcall ClntObjMgrShowObject(unsigned __int64 guid);
+void ClntObjMgrShowObject(unsigned __int64 guid);
 
 static TInstanceAllocator<CORPSEANIMDATA> s_freeAnimData(20);
 
-static int __fastcall DrownAnimCallback(void *param) {
+static int DrownAnimCallback(void *param) {
   CORPSEANIMDATA *animData = static_cast<CORPSEANIMDATA *>(param);
   CGObject_C     *object = ClntObjMgrObjectPtr(animData->guid, __FILE__, __LINE__);
   if (object) {
@@ -117,7 +117,7 @@ void CGCorpse_C::SetData(const void *data, unsigned int bytes) {
   memcpy(m_corpse, data, bytes);
 }
 
-unsigned int __fastcall CGCorpse_C::OffsetOf(OBJECT_TYPE_ID type) {
+unsigned int CGCorpse_C::OffsetOf(OBJECT_TYPE_ID type) {
   if (type == ID_OBJECT) {
     return 0;
   }

@@ -9,16 +9,16 @@
 
 namespace MDL {
 
-  void __fastcall InitializeTokenText();
-  void __fastcall DestroyTokenText();
-  int __fastcall CallTextWriteHandlers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int __fastcall CallBinWriteHandlers(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int __fastcall CallBinReadHandler(unsigned long, CMsgBuffer &, unsigned int, MDLDATA &, CMDLStatus *);
-  int __fastcall CallTextReadHandler(unsigned int, mdl_scan &, MDLDATA &, CMDLStatus *);
+  void InitializeTokenText();
+  void DestroyTokenText();
+  int CallTextWriteHandlers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  int CallBinWriteHandlers(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  int CallBinReadHandler(unsigned long, CMsgBuffer &, unsigned int, MDLDATA &, CMDLStatus *);
+  int CallTextReadHandler(unsigned int, mdl_scan &, MDLDATA &, CMDLStatus *);
 
 }  // namespace MDL
 
-int __fastcall ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
+int ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
 
 class CMdlScanner : public mdl_scan {
  public:
@@ -116,7 +116,7 @@ static int IWriteFile(const char* path, const char* mode, const void* data, unsi
   return !fclose(file) && written == bytes;
 }
 
-static void __fastcall FileReadError(const char *path, CMDLStatus *status) {
+static void FileReadError(const char *path, CMDLStatus *status) {
   char errorText[256];
 
   SErrGetErrorStr(SErrGetLastError(), errorText, sizeof(errorText));
@@ -159,11 +159,11 @@ static unsigned int DiscoverFileType(const char* path) {
   return s_defaultWriteFormat;
 }
 
-void __fastcall MDLFileInitialize() {
+void MDLFileInitialize() {
   MDL::InitializeTokenText();
 }
 
-void __fastcall MDLFileDestroy() {
+void MDLFileDestroy() {
   MDL::DestroyTokenText();
 }
 
@@ -193,12 +193,12 @@ static int IWriteMdlFile(const char* path, const MDLDATA& mdldata, CMDLStatus* s
   return 0;
 }
 
-void __fastcall MDLFileSetDefaultWriteFormat(const char* extension) {
+void MDLFileSetDefaultWriteFormat(const char* extension) {
   FATALASSERT(extension);
   s_defaultWriteFormat = DiscoverFileType(extension);
 }
 
-int __fastcall MDLFileWrite(const char* path, const MDLDATA& mdldata, CStatus* status) {
+int MDLFileWrite(const char* path, const MDLDATA& mdldata, CStatus* status) {
   FATALASSERT(path);
   FATALASSERT(path[0]);
   if (!status) {
@@ -207,7 +207,7 @@ int __fastcall MDLFileWrite(const char* path, const MDLDATA& mdldata, CStatus* s
   return IWriteMdlFile(path, mdldata, static_cast<CMDLStatus *>(status));
 }
 
-static void *__fastcall LoadMdlData(char *path, unsigned long *bytes) {
+static void *LoadMdlData(char *path, unsigned long *bytes) {
   SFile *file;
 
   if (!SFile::Open(path, &file)) {
@@ -264,7 +264,7 @@ static int ReadMdlFile(char* path, MDLDATA* mdldata, CMDLStatus* status) {
   return result;
 }
 
-int __fastcall MDLFileRead(const char* path, MDLDATA* mdldata, CStatus* status) {
+int MDLFileRead(const char* path, MDLDATA* mdldata, CStatus* status) {
   FATALASSERT(path && SStrLen(path));
   FATALASSERT(mdldata);
   if (!status) {
@@ -280,7 +280,7 @@ int __fastcall MDLFileRead(const char* path, MDLDATA* mdldata, CStatus* status) 
   return 0;
 }
 
-unsigned char *__fastcall MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status) {
+unsigned char *MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status) {
   ASSERT(path);
 
   if (!status) {
@@ -303,11 +303,11 @@ unsigned char *__fastcall MDLFileBinaryLoad(char *path, unsigned int *fileBytes,
   return fileData + sizeof(unsigned int);
 }
 
-void __fastcall MDLFileBinaryUnload(unsigned char *fileData) {
+void MDLFileBinaryUnload(unsigned char *fileData) {
   SFile::Unload(fileData - sizeof(unsigned int));
 }
 
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag) {
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag) {
   FATALASSERT(fileData);
 
   unsigned char *fileEnd = fileData + fileBytes;
@@ -325,6 +325,6 @@ unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned in
   return 0;
 }
 
-int __fastcall MDLFileBinaryWrite(const char* path, const unsigned char* fileData, unsigned int fileBytes) {
+int MDLFileBinaryWrite(const char* path, const unsigned char* fileData, unsigned int fileBytes) {
   return IWriteFile(path, "wb", fileData - 4, fileBytes + 4);
 }

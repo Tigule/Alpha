@@ -8,7 +8,7 @@
 #define OSWAIT_OBJECT_0 WAIT_OBJECT_0
 #define OSWAIT_TIMEOUT  WAIT_TIMEOUT
 
-static int __fastcall        AsyncFileReadPollHandler(const void *, void *);
+static int AsyncFileReadPollHandler(const void *, void *);
 static unsigned int APIENTRY AsyncFileReadThread(void *param);
 
 static unsigned int                              s_waiting;
@@ -22,7 +22,7 @@ static SThread                                   s_asyncReadThread;
 static SEvent                                    s_shutdownEvent(1, 0);
 static SEvent                                    s_queueEvent(0, 0);
 static CAsyncObject                             *s_asyncWaitObject;
-static TSGrowableArray<void(__fastcall *)(void)> s_handlers;
+static TSGrowableArray<void(*)(void)> s_handlers;
 
 static unsigned int APIENTRY AsyncFileReadThread(void *param) {
   unsigned long waitResult;
@@ -80,7 +80,7 @@ static unsigned int APIENTRY AsyncFileReadThread(void *param) {
   return 0;
 }
 
-void __fastcall AsyncFileReadInitialize() {
+void AsyncFileReadInitialize() {
   EventRegisterEx(EVENT_ID_POLL, AsyncFileReadPollHandler, 0, EVENT_PRIORITY_NORMAL);
 
   s_asyncCurrentObject = 0;
@@ -90,7 +90,7 @@ void __fastcall AsyncFileReadInitialize() {
   SThread::Create(AsyncFileReadThread, 0, s_asyncReadThread, const_cast<char *>("AsyncFileLoader"));
 }
 
-void __fastcall AsyncFileReadDestroy() {
+void AsyncFileReadDestroy() {
   s_shutdownEvent.Set();
   s_queueEvent.Set();
   s_asyncReadThread.Wait(INFINITE);
@@ -104,7 +104,7 @@ void __fastcall AsyncFileReadDestroy() {
   EventUnregisterEx(EVENT_ID_POLL, AsyncFileReadPollHandler, 0, 0xFFFFFFFF);
 }
 
-void __fastcall AsyncFileReadAddHandler(void(__fastcall *handler)()) {
+void AsyncFileReadAddHandler(void(*handler)()) {
   unsigned int index;
 
   for (index = 0; index < s_handlers.Count(); ++index) {
@@ -116,7 +116,7 @@ void __fastcall AsyncFileReadAddHandler(void(__fastcall *handler)()) {
   *s_handlers.New() = handler;
 }
 
-CAsyncObject *__fastcall AsyncFileReadCreateObject() {
+CAsyncObject *AsyncFileReadCreateObject() {
   CAsyncObject *object;
 
   s_queueLock.Enter();
@@ -144,7 +144,7 @@ CAsyncObject *__fastcall AsyncFileReadCreateObject() {
   return object;
 }
 
-void __fastcall AsyncFileReadDestroyObject(CAsyncObject *object) {
+void AsyncFileReadDestroyObject(CAsyncObject *object) {
   ASSERT(object);
 
   s_queueLock.Enter();
@@ -161,7 +161,7 @@ void __fastcall AsyncFileReadDestroyObject(CAsyncObject *object) {
   s_queueLock.Leave();
 }
 
-void __fastcall AsyncFileReadObject(CAsyncObject *object) {
+void AsyncFileReadObject(CAsyncObject *object) {
   unsigned long location;
 
   ASSERT(object);
@@ -179,7 +179,7 @@ void __fastcall AsyncFileReadObject(CAsyncObject *object) {
   s_queueEvent.Set();
 }
 
-void __fastcall AsyncFileReadWait(CAsyncObject *object) {
+void AsyncFileReadWait(CAsyncObject *object) {
   ASSERT(object);
   ASSERT(!s_waiting);
 
@@ -211,14 +211,14 @@ void __fastcall AsyncFileReadWait(CAsyncObject *object) {
   --s_waiting;
 }
 
-void __fastcall AsyncFileReadWaitAll() {
+void AsyncFileReadWaitAll() {
   while (AsyncFileReadIsReading()) {
     AsyncFileReadPollHandler(0, 0);
     OsSleep(1);
   }
 }
 
-bool __fastcall AsyncFileReadIsReading() {
+bool AsyncFileReadIsReading() {
   bool reading;
 
   s_queueLock.Enter();
@@ -228,7 +228,7 @@ bool __fastcall AsyncFileReadIsReading() {
   return reading;
 }
 
-static int __fastcall AsyncFileReadPollHandler(const void *, void *) {
+static int AsyncFileReadPollHandler(const void *, void *) {
   unsigned int index;
   unsigned int start;
 

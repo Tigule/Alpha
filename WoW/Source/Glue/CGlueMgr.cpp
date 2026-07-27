@@ -20,10 +20,10 @@
 #include "SoundInterface/SoundInterface.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
-static void __fastcall LoadScriptFunctions();
-static void __fastcall UnloadScriptFunctions();
-static int __fastcall  CCommand_Script(const char *command, const char *arguments);
-void __fastcall        EnableLoadingScreen();
+static void LoadScriptFunctions();
+static void UnloadScriptFunctions();
+static int CCommand_Script(const char *command, const char *arguments);
+void EnableLoadingScreen();
 
 static const char REGKEY[11] = "WoW\\Client";
 static const char REGVAL_ACCOUNTNAME[12] = "AccountName";
@@ -52,7 +52,7 @@ int                       CGlueMgr::m_estimatedWaitTime;
 CHARACTER_INFO           *CGlueMgr::m_characterInfo;
 static unsigned __int64   s_loginGUID;
 
-static void __fastcall LoadScriptFunctions() {
+static void LoadScriptFunctions() {
   RegisterSimpleFrameScriptMethods();
   GlueScriptEventsRegisterFunctions();
   CharSelectRegisterScriptFunctions();
@@ -60,7 +60,7 @@ static void __fastcall LoadScriptFunctions() {
   SoundRegisterScriptFunctions();
 }
 
-static void __fastcall UnloadScriptFunctions() {
+static void UnloadScriptFunctions() {
   UnregisterSimpleFrameScriptMethods();
   GlueScriptEventsUnregisterFunctions();
   CharSelectUnregisterScriptFunctions();
@@ -68,7 +68,7 @@ static void __fastcall UnloadScriptFunctions() {
   SoundUnregisterScriptFunctions();
 }
 
-void __fastcall CGlueMgr::Initialize() {
+void CGlueMgr::Initialize() {
   HPROFILE profile;
   char     language[16];
   char     country[16];
@@ -100,7 +100,7 @@ void __fastcall CGlueMgr::Initialize() {
   EventRegisterEx(EVENT_ID_IDLE, Idle, 0, EVENT_PRIORITY_NORMAL);
 }
 
-void __fastcall CGlueMgr::Resume() {
+void CGlueMgr::Resume() {
   m_disconnectPending = 0;
   m_reconnect = 0;
   m_idleState = IDLE_NONE;
@@ -123,7 +123,7 @@ void __fastcall CGlueMgr::Resume() {
   RegisterConsoleCommands();
 }
 
-void __fastcall CGlueMgr::Suspend() {
+void CGlueMgr::Suspend() {
   m_suspended = 1;
   CCharSelectInfo::Shutdown();
   CCharCreateInfo::Shutdown();
@@ -138,27 +138,27 @@ void __fastcall CGlueMgr::Suspend() {
   UnregisterConsoleCommands();
 }
 
-void __fastcall CGlueMgr::Shutdown() {
+void CGlueMgr::Shutdown() {
   Suspend();
   m_initialized = 0;
   EventUnregister(EVENT_ID_IDLE, Idle);
 }
 
-void __fastcall CGlueMgr::InitCursor() {
+void CGlueMgr::InitCursor() {
   CStatus status;
 
   m_cursorModel = ModelCreate(ClientDBStringLookup(SLOOKUP_DEFAULTCURSOR), 0, &status);
   SysMsgAdd(status, 4);
 }
 
-void __fastcall CGlueMgr::DestroyCursor() {
+void CGlueMgr::DestroyCursor() {
   if (m_cursorModel) {
     HandleClose(m_cursorModel);
     m_cursorModel = 0;
   }
 }
 
-void __fastcall CGlueMgr::UpdateWaitQueue(unsigned int wait) {
+void CGlueMgr::UpdateWaitQueue(unsigned int wait) {
   if (wait != m_queuePosition[0] || m_queueTime[2] <= 0) {
     for (unsigned int i = 1; i > 0; --i) {
       m_queuePosition[i + 1] = m_queuePosition[i];
@@ -175,7 +175,7 @@ void __fastcall CGlueMgr::UpdateWaitQueue(unsigned int wait) {
   }
 }
 
-void __fastcall CGlueMgr::DefaultServerLogin() {
+void CGlueMgr::DefaultServerLogin() {
   if (m_idleState != IDLE_NONE) {
     return;
   }
@@ -189,7 +189,7 @@ void __fastcall CGlueMgr::DefaultServerLogin() {
   ClientServices_Connect();
 }
 
-void __fastcall CGlueMgr::ChangeRealm(const REALM_INFO *info) {
+void CGlueMgr::ChangeRealm(const REALM_INFO *info) {
   if (!info) {
     return;
   }
@@ -206,7 +206,7 @@ void __fastcall CGlueMgr::ChangeRealm(const REALM_INFO *info) {
   }
 }
 
-void __fastcall CGlueMgr::CreateCharacter(const CHARACTER_CREATE_INFO *info) {
+void CGlueMgr::CreateCharacter(const CHARACTER_CREATE_INFO *info) {
   if (!info) {
     return;
   }
@@ -216,7 +216,7 @@ void __fastcall CGlueMgr::CreateCharacter(const CHARACTER_CREATE_INFO *info) {
   ClientServices_CharacterCreate(*info);
 }
 
-void __fastcall CGlueMgr::DeleteCharacter(unsigned __int64 guid) {
+void CGlueMgr::DeleteCharacter(unsigned __int64 guid) {
   if (guid) {
     m_idleState = IDLE_DELETE_CHARACTER;
     FrameScript_SignalEvent(3, "%s", "CANCEL");
@@ -224,7 +224,7 @@ void __fastcall CGlueMgr::DeleteCharacter(unsigned __int64 guid) {
   }
 }
 
-void __fastcall CGlueMgr::EnterWorld() {
+void CGlueMgr::EnterWorld() {
   m_characterInfo = CCharSelectInfo::GetSelectedCharacterInfo();
   if (!m_characterInfo || !ClientServices_IsConnected()) {
     return;
@@ -240,7 +240,7 @@ void __fastcall CGlueMgr::EnterWorld() {
   m_idleState = IDLE_ENTER_WORLD;
 }
 
-void __fastcall CGlueMgr::StatusDialogClick() {
+void CGlueMgr::StatusDialogClick() {
   switch (m_idleState) {
     case IDLE_NONE:
       ClientServices_Cleanup();
@@ -267,19 +267,19 @@ void __fastcall CGlueMgr::StatusDialogClick() {
   }
 }
 
-void __fastcall CGlueMgr::SetScreen(const char *screen) {
+void CGlueMgr::SetScreen(const char *screen) {
   FrameScript_SignalEvent(0, "%s", screen);
 }
 
-void __fastcall CGlueMgr::UpdateCurrentScreen(const char *screen) {
+void CGlueMgr::UpdateCurrentScreen(const char *screen) {
   SStrCopy(m_currentScreen, screen, 64);
 }
 
-void __fastcall CGlueMgr::QuitGame() {
+void CGlueMgr::QuitGame() {
   EventPostClose();
 }
 
-void __fastcall CGlueMgr::GetCharacterList() {
+void CGlueMgr::GetCharacterList() {
   if (m_idleState == IDLE_WORLD_LOGIN) {
     return;
   }
@@ -289,13 +289,13 @@ void __fastcall CGlueMgr::GetCharacterList() {
   ClientServices_GetCharacterList();
 }
 
-void __fastcall CGlueMgr::GetRealmList() {
+void CGlueMgr::GetRealmList() {
   m_idleState = IDLE_REALM_LIST;
   FrameScript_SignalEvent(3, "%s%s", "CANCEL", FrameScript_GetText("REALM_LIST_IN_PROGRESS", -1, GENDER_NOT_APPLICABLE));
   ClientServices_GetRealmList();
 }
 
-int __fastcall CGlueMgr::Idle(const void *, void *) {
+int CGlueMgr::Idle(const void *, void *) {
   NTempest::C3Vector position;
   WOWCS_OPS          op;
   const char        *msg;
@@ -467,7 +467,7 @@ int __fastcall CGlueMgr::Idle(const void *, void *) {
   return 1;
 }
 
-int __fastcall CGlueMgr::NetDisconnectHandler(const void *eventData, void *__formal) {
+int CGlueMgr::NetDisconnectHandler(const void *eventData, void *__formal) {
   WOWCS_OPS   op;
   int         errorCode;
   const char *msg;
@@ -506,15 +506,15 @@ int __fastcall CGlueMgr::NetDisconnectHandler(const void *eventData, void *__for
   return 1;
 }
 
-static int __fastcall CCommand_Script(const char *command, const char *arguments) {
+static int CCommand_Script(const char *command, const char *arguments) {
   FrameScript_Execute(arguments, arguments);
   return 1;
 }
 
-void __fastcall CGlueMgr::RegisterConsoleCommands() {
+void CGlueMgr::RegisterConsoleCommands() {
   ConsoleCommandRegister("script", CCommand_Script, DEFAULT, 0);
 }
 
-void __fastcall CGlueMgr::UnregisterConsoleCommands() {
+void CGlueMgr::UnregisterConsoleCommands() {
   ConsoleCommandUnregister("script");
 }

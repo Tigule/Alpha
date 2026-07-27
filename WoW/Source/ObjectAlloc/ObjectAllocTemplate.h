@@ -3,13 +3,13 @@
 
 #include <storm.h>
 
-int __fastcall          ObjectAlloc(unsigned int heapId, unsigned int *memHandle);
-unsigned int __fastcall ObjectAllocAddHeap(unsigned int objectSize, unsigned int objsPerBlock, const char *name);
-void __fastcall         ObjectAllocDestroy();
-void __fastcall         ObjectAllocInitialize();
-unsigned int __fastcall ObjectAllocUsage(unsigned int heapId);
-void __fastcall         ObjectFree(unsigned int memHandle);
-void *__fastcall        ObjectPtr(unsigned int memHandle);
+int ObjectAlloc(unsigned int heapId, unsigned int *memHandle);
+unsigned int ObjectAllocAddHeap(unsigned int objectSize, unsigned int objsPerBlock, const char *name);
+void ObjectAllocDestroy();
+void ObjectAllocInitialize();
+unsigned int ObjectAllocUsage(unsigned int heapId);
+void ObjectFree(unsigned int memHandle);
+void *ObjectPtr(unsigned int memHandle);
 
 class TObjectAllocMemHandle {
  public:

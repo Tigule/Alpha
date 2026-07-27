@@ -35,7 +35,7 @@ static CRITICAL_SECTION s_defaultdir_critsect;
 static char             s_defaultdir[MAX_PATH];
 static BOOL             s_logsysteminit;
 
-static DWORD __fastcall PathGetRootChars(const char *path) {
+static DWORD PathGetRootChars(const char *path) {
   const char *cursor;
   DWORD       count;
   DWORD       len;
@@ -71,7 +71,7 @@ static DWORD __fastcall PathGetRootChars(const char *path) {
   return 0;
 }
 
-static void __fastcall PathStripFilename(char *path) {
+static void PathStripFilename(char *path) {
   char *slash;
   char *forwardSlash;
   char *root;
@@ -92,13 +92,13 @@ static void __fastcall PathStripFilename(char *path) {
   }
 }
 
-static void __fastcall PathConvertSlashes(char *path) {
+static void PathConvertSlashes(char *path) {
   for (path = SStrChr(path, '/'); path; path = SStrChr(path + 1, '/')) {
     *path = '\\';
   }
 }
 
-static BOOL __fastcall CreateFileDirectory(const char *path) {
+static BOOL CreateFileDirectory(const char *path) {
   char  buffer[MAX_PATH];
   char *cursor;
   char *slash;
@@ -119,7 +119,7 @@ static BOOL __fastcall CreateFileDirectory(const char *path) {
   return CreateDirectoryA(buffer, NULL);
 }
 
-static void __fastcall FlushLog(LOGPTR logptr) {
+static void FlushLog(LOGPTR logptr) {
   DWORD byteswritten;
 
   if (!logptr->bufferused) {
@@ -136,7 +136,7 @@ static void __fastcall FlushLog(LOGPTR logptr) {
   logptr->pendpoint = 0;
 }
 
-static LOGPTR __fastcall LockLog(HSLOG log, HLOCKEDLOG *lockedhandle, int createifnecessary) {
+static LOGPTR LockLog(HSLOG log, HLOCKEDLOG *lockedhandle, int createifnecessary) {
   DWORD   bucket;
   LOGPTR *link;
   LOGPTR  rec;
@@ -182,7 +182,7 @@ static LOGPTR __fastcall LockLog(HSLOG log, HLOCKEDLOG *lockedhandle, int create
   return rec;
 }
 
-static void __fastcall OutputIndent(LOGPTR logptr) {
+static void OutputIndent(LOGPTR logptr) {
   long count;
 
   if (logptr->indent <= 0) {
@@ -195,12 +195,12 @@ static void __fastcall OutputIndent(LOGPTR logptr) {
   logptr->bufferused += count;
 }
 
-static void __fastcall OutputReturn(LOGPTR logptr) {
+static void OutputReturn(LOGPTR logptr) {
   memcpy(logptr->buffer + logptr->bufferused, "\r\n", 3);
   logptr->bufferused += 2;
 }
 
-static void __fastcall OutputTime(LOGPTR logptr, int show) {
+static void OutputTime(LOGPTR logptr, int show) {
   SYSTEMTIME     systime;
   register DWORD tick;
   register char *output;
@@ -230,7 +230,7 @@ static void __fastcall OutputTime(LOGPTR logptr, int show) {
   logptr->bufferused += timestrlen;
 }
 
-static void __fastcall UnlockDeleteLog(LOGPTR logptr, HLOCKEDLOG lockedhandle) {
+static void UnlockDeleteLog(LOGPTR logptr, HLOCKEDLOG lockedhandle) {
   DWORD   bucket;
   LOGPTR *link;
 
@@ -248,12 +248,12 @@ static void __fastcall UnlockDeleteLog(LOGPTR logptr, HLOCKEDLOG lockedhandle) {
   LeaveCriticalSection(&s_critsect[bucket]);
 }
 
-static void __fastcall UnlockLog(HLOCKEDLOG lockedhandle) {
+static void UnlockLog(HLOCKEDLOG lockedhandle) {
   DWORD bucket = (DWORD)lockedhandle;
   LeaveCriticalSection(&s_critsect[bucket]);
 }
 
-static const char *__fastcall PrependDefaultDir(char *newfilename, DWORD newfilenamesize, const char *filename) {
+static const char *PrependDefaultDir(char *newfilename, DWORD newfilenamesize, const char *filename) {
   char *slash;
 
   if (!filename || !filename[0] || filename[1] == ':' || SStrChr(filename, '\\')) {
@@ -278,7 +278,7 @@ static const char *__fastcall PrependDefaultDir(char *newfilename, DWORD newfile
   return newfilename;
 }
 
-static BOOL __fastcall OpenLogFile(const char *filename, void **file, DWORD flags) {
+static BOOL OpenLogFile(const char *filename, void **file, DWORD flags) {
   char        newfilename[MAX_PATH];
   const char *openPath;
   DWORD       disposition;
@@ -304,7 +304,7 @@ static BOOL __fastcall OpenLogFile(const char *filename, void **file, DWORD flag
   return TRUE;
 }
 
-static BOOL __fastcall PrepareLog(LOGPTR logptr) {
+static BOOL PrepareLog(LOGPTR logptr) {
   if (logptr->file == INVALID_HANDLE_VALUE && !OpenLogFile(logptr->filename, (void **)&logptr->file, logptr->flags)) {
     logptr->filename[0] = 0;
     return FALSE;

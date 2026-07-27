@@ -33,22 +33,22 @@ class CWOWClientStatus : public CStatus {
 
 extern NTempest::CRndSeed g_rndSeed;
 
-typedef int(__fastcall *CLIENTTIMERHANDLER)(const void *data, void *param);
-typedef int(__fastcall *CLIENTGUIDTIMERHANDLER)(const void *data, unsigned __int64 guid, void *param);
+typedef int(*CLIENTTIMERHANDLER)(const void *data, void *param);
+typedef int(*CLIENTGUIDTIMERHANDLER)(const void *data, unsigned __int64 guid, void *param);
 
-unsigned int __fastcall ClientSetTimer(unsigned int timeout, CLIENTTIMERHANDLER handler, void *param);
-unsigned int __fastcall ClientSetTimer(unsigned int timeout, CLIENTGUIDTIMERHANDLER handler, unsigned __int64 guid, void *param);
-void __fastcall         ClientKillTimer(unsigned int timerId, CLIENTTIMERHANDLER handler, const char *handlerName);
+unsigned int ClientSetTimer(unsigned int timeout, CLIENTTIMERHANDLER handler, void *param);
+unsigned int ClientSetTimer(unsigned int timeout, CLIENTGUIDTIMERHANDLER handler, unsigned __int64 guid, void *param);
+void ClientKillTimer(unsigned int timerId, CLIENTTIMERHANDLER handler, const char *handlerName);
 
-bool __fastcall DrawingLoadingScreen();
-void __fastcall DisableLoadingScreen();
-void __fastcall EnableLoadingScreen();
-void __fastcall LoadingScreenRegisterWorldLoaded();
-void __fastcall ClientInitializeGame(unsigned int continentID, NTempest::C3Vector position);
-void __fastcall ClientPostClose();
-void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError);
-void __fastcall UninstallGameConsoleCommands();
-void __fastcall UninstallGMCommands();
-void __fastcall InstallGMCommands();
+bool DrawingLoadingScreen();
+void DisableLoadingScreen();
+void EnableLoadingScreen();
+void LoadingScreenRegisterWorldLoaded();
+void ClientInitializeGame(unsigned int continentID, NTempest::C3Vector position);
+void ClientPostClose();
+void ClientDestroyGame(int connected, int resumeUI, int loginError);
+void UninstallGameConsoleCommands();
+void UninstallGMCommands();
+void InstallGMCommands();
 
 #endif

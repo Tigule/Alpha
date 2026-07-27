@@ -14,11 +14,11 @@ struct CMirrorHandler;
 template <class RECORD, class KEY, class HASHKEY>
 class DBCache;
 
-static C_OBJECTHASH *__fastcall FindActiveObj(unsigned __int64 guid);
+static C_OBJECTHASH *FindActiveObj(unsigned __int64 guid);
 
 class CHashKeyGUID {
   friend class TSHashObject<C_OBJECTHASH, CHashKeyGUID>;
-  friend C_OBJECTHASH *__fastcall FindActiveObj(unsigned __int64 guid);
+  friend C_OBJECTHASH *FindActiveObj(unsigned __int64 guid);
   friend class DBCache<NameCache, unsigned __int64, CHashKeyGUID>;
 
  public:
@@ -69,7 +69,7 @@ enum HANDLER_PRIORITY {
 
 struct CMirrorHandler : public TSLinkedNode<CMirrorHandler> {
   TSLink<CMirrorHandler> callLink;
-  int(__fastcall *handler)(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *data, void *param);
+  int(*handler)(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *data, void *param);
   void                                       *param;
   unsigned int                                blocksLeft;
   unsigned int                                offset;
@@ -99,7 +99,7 @@ struct OBJHANDLERREQUEST : public TSLinkedNode<OBJHANDLERREQUEST> {
   unsigned __int64 guid;
   unsigned int     offset;
   unsigned int     bytes;
-  int(__fastcall *handler)(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *data, void *param);
+  int(*handler)(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *data, void *param);
   void            *param;
   HANDLER_PRIORITY priority;
   unsigned char    set;
@@ -146,57 +146,57 @@ class ClntObjMgr {
   void                                                    *m_clientPtr;
 };
 
-ClntObjMgr *__fastcall       ClntObjMgrGetCurrent();
-ClntObjMgr *__fastcall       ClntObjMgrCreate(PLAYER_TYPE type, void *clientPtr);
-void __fastcall              ClntObjMgrSetCurrent(ClntObjMgr *mgr);
-int __fastcall               ClntObjMgrIsValid(int forWriting);
-void __fastcall              ClntObjMgrInitializeShared();
-void __fastcall              ClntObjMgrInitialize();
-void __fastcall              ClntObjMgrDestroy();
-unsigned __int64 __fastcall  ClntObjMgrGetActivePlayer();
-void __fastcall              ClntObjMgrSetActivePlayer(unsigned __int64 guid);
-PLAYER_TYPE __fastcall       ClntObjMgrGetPlayerType();
-void *__fastcall             ClntObjMgrGetMovementGlobals();
-void __fastcall              ClntObjMgrSetMovementGlobals(void *ptr);
-CGObject_C *__fastcall       ClntObjMgrObjectPtr(unsigned __int64 guid, const char *fileName, unsigned int lineNumber);
-unsigned int __fastcall      ClntObjMgrGetMapID();
-void __fastcall              ClntObjMgrSetMapID(unsigned int mapID);
-int __fastcall               ClntObjMgrEnumVisibleObjects(int(__fastcall *handler)(unsigned __int64 object, void *param), void *param);
-void __fastcall              ClntObjMgrObjectInRange(unsigned __int64 guid);
-void __fastcall              ClntObjMgrHideObject(unsigned __int64 guid);
-void __fastcall              ClntObjMgrObjectOutOfRange(unsigned __int64 guid, int shutdown);
-void __fastcall              ClntObjMgrFreeObject(unsigned __int64 guid);
-void __fastcall              ClntObjMgrSetNet(ClientConnection *net);
-ClientConnection *__fastcall ClntObjMgrGetNet();
-void *__fastcall             ClntObjMgrGetClientPtr();
-void __fastcall              ClntObjMgrDestruct(ClntObjMgr *mgr);
-void __fastcall              ClntObjMgrDestroyShared();
-void __fastcall              ClntObjMgrSetObjMirrorHandler(
+ClntObjMgr *ClntObjMgrGetCurrent();
+ClntObjMgr *ClntObjMgrCreate(PLAYER_TYPE type, void *clientPtr);
+void ClntObjMgrSetCurrent(ClntObjMgr *mgr);
+int ClntObjMgrIsValid(int forWriting);
+void ClntObjMgrInitializeShared();
+void ClntObjMgrInitialize();
+void ClntObjMgrDestroy();
+unsigned __int64 ClntObjMgrGetActivePlayer();
+void ClntObjMgrSetActivePlayer(unsigned __int64 guid);
+PLAYER_TYPE ClntObjMgrGetPlayerType();
+void *ClntObjMgrGetMovementGlobals();
+void ClntObjMgrSetMovementGlobals(void *ptr);
+CGObject_C *ClntObjMgrObjectPtr(unsigned __int64 guid, const char *fileName, unsigned int lineNumber);
+unsigned int ClntObjMgrGetMapID();
+void ClntObjMgrSetMapID(unsigned int mapID);
+int ClntObjMgrEnumVisibleObjects(int(*handler)(unsigned __int64 object, void *param), void *param);
+void ClntObjMgrObjectInRange(unsigned __int64 guid);
+void ClntObjMgrHideObject(unsigned __int64 guid);
+void ClntObjMgrObjectOutOfRange(unsigned __int64 guid, int shutdown);
+void ClntObjMgrFreeObject(unsigned __int64 guid);
+void ClntObjMgrSetNet(ClientConnection *net);
+ClientConnection *ClntObjMgrGetNet();
+void *ClntObjMgrGetClientPtr();
+void ClntObjMgrDestruct(ClntObjMgr *mgr);
+void ClntObjMgrDestroyShared();
+void ClntObjMgrSetObjMirrorHandler(
     unsigned __int64 guid,
     unsigned int     offset,
     unsigned int     bytes,
-    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
+    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
     void            *param,
     HANDLER_PRIORITY priority
 );
-void __fastcall ClntObjMgrUnsetObjMirrorHandler(
+void ClntObjMgrUnsetObjMirrorHandler(
     unsigned __int64 guid,
     unsigned int     offset,
-    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
+    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
     void *param
 );
-void __fastcall ClntObjMgrSetTypeMirrorHandler(
+void ClntObjMgrSetTypeMirrorHandler(
     OBJECT_TYPE hierType,
     unsigned int offset,
     unsigned int bytes,
-    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
+    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
     void *param,
     HANDLER_PRIORITY priority
 );
-void __fastcall ClntObjMgrUnsetTypeMirrorHandler(
+void ClntObjMgrUnsetTypeMirrorHandler(
     OBJECT_TYPE hierType,
     unsigned int offset,
-    int(__fastcall *handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
+    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
 );
 
 #endif

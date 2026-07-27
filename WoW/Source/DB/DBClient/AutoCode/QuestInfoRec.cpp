@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall QuestInfoRec::GetFilename() {
+const char *QuestInfoRec::GetFilename() {
   return "DBFilesClient\\QuestInfo.dbc";
 }
 

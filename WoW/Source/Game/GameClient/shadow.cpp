@@ -33,13 +33,13 @@ static const float BLOB_BELOW = FeetToWorld(5.0f);
 static const float BLOB_ABOVE = FeetToWorld(3.0f);
 static const float SHADOW_POLY_OFFSET = 0.0625f;
 
-static int __fastcall ConsoleCommand_ShadowLOD(const char *__formal, const char *args);
+static int ConsoleCommand_ShadowLOD(const char *__formal, const char *args);
 
 CGxTex *ProjectTex2dGetFade() {
   return s_fadeTex;
 }
 
-void __fastcall ProjectTex2dMakeMatrices(
+void ProjectTex2dMakeMatrices(
     NTempest::C44Matrix &texmat0,
     NTempest::C44Matrix &texmat1,
     NTempest::CAaBox    &box,
@@ -76,7 +76,7 @@ void __fastcall ProjectTex2dMakeMatrices(
   texmat1 = worldTransMat * worldToTexture;
 }
 
-static void __fastcall ProjectTexRenderVerticesPN(CGxBufCommand &cmd, CGxBuf *buf) {
+static void ProjectTexRenderVerticesPN(CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPN *vertices = 0;
   switch (cmd.vertex.op) {
     case GxBufOp_Fill:
@@ -98,7 +98,7 @@ static void __fastcall ProjectTexRenderVerticesPN(CGxBufCommand &cmd, CGxBuf *bu
   }
 }
 
-static void __fastcall ProjectTexRenderVerticesPC(CGxBufCommand &cmd, CGxBuf *buf) {
+static void ProjectTexRenderVerticesPC(CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPC *vertices = 0;
   switch (cmd.vertex.op) {
     case GxBufOp_Fill:
@@ -120,7 +120,7 @@ static void __fastcall ProjectTexRenderVerticesPC(CGxBufCommand &cmd, CGxBuf *bu
   }
 }
 
-static void __fastcall ProjectTexRenderIndices(CGxBufCommand &cmd, CGxBuf *buf) {
+static void ProjectTexRenderIndices(CGxBufCommand &cmd, CGxBuf *buf) {
   unsigned short *indices = 0;
   switch (cmd.index.op) {
     case GxBufOp_Fill:
@@ -139,17 +139,17 @@ static void __fastcall ProjectTexRenderIndices(CGxBufCommand &cmd, CGxBuf *buf) 
   }
 }
 
-static void __fastcall ProjectTexRenderPC(CGxBufCommand &cmd, CGxBuf *buf) {
+static void ProjectTexRenderPC(CGxBufCommand &cmd, CGxBuf *buf) {
   ProjectTexRenderVerticesPC(cmd, buf);
   ProjectTexRenderIndices(cmd, buf);
 }
 
-static void __fastcall ProjectTexRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
+static void ProjectTexRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
   ProjectTexRenderVerticesPN(cmd, buf);
   ProjectTexRenderIndices(cmd, buf);
 }
 
-void __fastcall ProjectTex2d(NTempest::CAaBox &box, NTempest::CImVector color, NTempest::C44Matrix *basis, float fadeOffset) {
+void ProjectTex2d(NTempest::CAaBox &box, NTempest::CImVector color, NTempest::C44Matrix *basis, float fadeOffset) {
   CWTriData triData;
   if (!CWorld::GetTris(box, triData, 0x122)) {
     return;
@@ -211,7 +211,7 @@ void __fastcall ProjectTex2d(NTempest::CAaBox &box, NTempest::CImVector color, N
   GxRsPop();
 }
 
-void __fastcall ShadowRender_LOD1(HMODEL hModel, NTempest::C44Matrix &basis, void *param) {
+void ShadowRender_LOD1(HMODEL hModel, NTempest::C44Matrix &basis, void *param) {
   NTempest::C3Vector cameraPos;
   CGWorldFrame::GetCameraPosition(&cameraPos);
 
@@ -278,7 +278,7 @@ void __fastcall ShadowRender_LOD1(HMODEL hModel, NTempest::C44Matrix &basis, voi
   GxRsPop();
 }
 
-static void __fastcall s_BlobFadeTex(
+static void s_BlobFadeTex(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -313,7 +313,7 @@ static void __fastcall s_BlobFadeTex(
   }
 }
 
-static void __fastcall s_ProjFadeTex(
+static void s_ProjFadeTex(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -350,13 +350,13 @@ static void __fastcall s_ProjFadeTex(
   }
 }
 
-void __fastcall ShadowRender(HMODEL hModel, NTempest::C44Matrix &basis, void *param) {
+void ShadowRender(HMODEL hModel, NTempest::C44Matrix &basis, void *param) {
   if (hModel && s_shadowLOD == 1) {
     ShadowRender_LOD1(hModel, basis, param);
   }
 }
 
-void __fastcall ShadowInit() {
+void ShadowInit() {
   CStatus     status;
   CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
   s_hTexture = TextureCreate("Textures\\ShadowBlob.blp", flags, &status, 0);
@@ -364,13 +364,13 @@ void __fastcall ShadowInit() {
   ConsoleCommandRegister("shadowLOD", ConsoleCommand_ShadowLOD, GRAPHICS, "0=none, 1=blob");
 }
 
-void __fastcall ShadowDestroy() {
+void ShadowDestroy() {
   HandleClose(s_hTexture);
   GxTexDestroy(s_fadeTex);
   s_fadeTex = 0;
 }
 
-static int __fastcall ConsoleCommand_ShadowLOD(const char *__formal, const char *args) {
+static int ConsoleCommand_ShadowLOD(const char *__formal, const char *args) {
   int lod;
   sscanf(args, "%d", &lod);
   if (lod >= 0 && lod <= 1) {
@@ -378,7 +378,7 @@ static int __fastcall ConsoleCommand_ShadowLOD(const char *__formal, const char 
     ConsoleWrite("Shadow LOD set", DEFAULT_COLOR);
 
     NTempest::CiRect updRect(0, 0, 8, 64);
-    void(__fastcall * fadeFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&);
+    void(* fadeFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&);
     if (lod == 1) {
       fadeFunc = s_ProjFadeTex;
     } else if (lod == 2) {

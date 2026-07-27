@@ -108,7 +108,7 @@ CGxBuf *CGxDeviceOpenGl::BufCreate(
     EGxVertexBufferFormat format,
     unsigned int          numVertices,
     unsigned int          numIndices,
-    void(__fastcall *userCallback)(CGxBufCommand &, CGxBuf *),
+    void(*userCallback)(CGxBufCommand &, CGxBuf *),
     void *userArg
 ) {
   CGxDevice::BufCreate(GxBWF_Dynamic, format, numVertices, numIndices, userCallback, userArg);

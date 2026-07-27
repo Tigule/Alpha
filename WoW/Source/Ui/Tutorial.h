@@ -30,17 +30,17 @@ enum TUTORIAL {
 
 class CGTutorial {
  public:
-  static void __fastcall InitializeGame();
-  static void __fastcall ShutdownGame();
-  static void __fastcall TriggerTutorial(TUTORIAL tutorial);
-  static void __fastcall ClearTutorials();
-  static void __fastcall ResetTutorials();
+  static void InitializeGame();
+  static void ShutdownGame();
+  static void TriggerTutorial(TUTORIAL tutorial);
+  static void ClearTutorials();
+  static void ResetTutorials();
 
  protected:
   static FBitField m_tutorialFlags;
 
  private:
-  static int __fastcall OnTutorialFlags(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+  static int OnTutorialFlags(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
 };
 
 #endif

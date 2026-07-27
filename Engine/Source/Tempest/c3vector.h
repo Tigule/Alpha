@@ -65,15 +65,15 @@ namespace NTempest {
     EAxis MajorAxis() const;
     EAxis MinorAxis() const;
 
-    static C3Vector __fastcall Min(const C3Vector &a, const C3Vector &b) {
+    static C3Vector Min(const C3Vector &a, const C3Vector &b) {
       return C3Vector(b.x <= a.x ? b.x : a.x, b.y <= a.y ? b.y : a.y, b.z <= a.z ? b.z : a.z);
     }
 
-    static C3Vector __fastcall Max(const C3Vector &a, const C3Vector &b) {
+    static C3Vector Max(const C3Vector &a, const C3Vector &b) {
       return C3Vector(b.x >= a.x ? b.x : a.x, b.y >= a.y ? b.y : a.y, b.z >= a.z ? b.z : a.z);
     }
 
-    static C3Vector __fastcall Lerp(const C3Vector &a, const C3Vector &b, const C3Vector &t) {
+    static C3Vector Lerp(const C3Vector &a, const C3Vector &b, const C3Vector &t) {
       return C3Vector(
           a.x + (b.x - a.x) * t.x,
           a.y + (b.y - a.y) * t.y,
@@ -87,23 +87,23 @@ namespace NTempest {
       z = a.z > z ? a.z : z;
     }
 
-    static float __fastcall Dot(const C3Vector &l, const C3Vector &r) {
+    static float Dot(const C3Vector &l, const C3Vector &r) {
       return l.x * r.x + l.y * r.y + l.z * r.z;
     }
 
-    static C3Vector __fastcall Cross(const C3Vector &l, const C3Vector &r) {
+    static C3Vector Cross(const C3Vector &l, const C3Vector &r) {
       return C3Vector(l.y * r.z - l.z * r.y, l.z * r.x - l.x * r.z, l.x * r.y - l.y * r.x);
     }
 
-    static C3Vector __fastcall Cross(const C3Vector &l, const C2Vector &r) {
+    static C3Vector Cross(const C3Vector &l, const C2Vector &r) {
       return C3Vector(-l.z * r.y, l.z * r.x, l.x * r.y - l.y * r.x);
     }
 
-    static C3Vector __fastcall Cross(const C2Vector &l, const C3Vector &r) {
+    static C3Vector Cross(const C2Vector &l, const C3Vector &r) {
       return C3Vector(l.y * r.z, -l.x * r.z, l.x * r.y - l.y * r.x);
     }
 
-    static C3Vector __fastcall ProjectionOnPlane(const C3Vector &vector, const C3Vector &normal) {
+    static C3Vector ProjectionOnPlane(const C3Vector &vector, const C3Vector &normal) {
       float distance = Dot(vector, normal);
       return C3Vector(
           vector.x - normal.x * distance,
@@ -112,7 +112,7 @@ namespace NTempest {
       );
     }
 
-    static C3Vector __fastcall NearestOnPlane(const C3Vector &point, const C3Vector &planePoint, const C3Vector &normal) {
+    static C3Vector NearestOnPlane(const C3Vector &point, const C3Vector &planePoint, const C3Vector &normal) {
       C3Vector offset(point.x - planePoint.x, point.y - planePoint.y, point.z - planePoint.z);
       float distance = Dot(offset, normal);
       return C3Vector(
@@ -200,48 +200,48 @@ namespace NTempest {
     float z;
   };
 
-  inline int __fastcall IsUnitVector(const C3Vector &vector) {
+  inline int IsUnitVector(const C3Vector &vector) {
     return CMath::fabs_(vector.SquaredMag() - 1.0f) < 0.0009765625f;
   }
 
-  inline bool __fastcall operator==(const C3Vector &l, const C3Vector &r) {
+  inline bool operator==(const C3Vector &l, const C3Vector &r) {
     return l.x == r.x && l.y == r.y && l.z == r.z;
   }
 
-  inline bool __fastcall operator!=(const C3Vector &l, const C3Vector &r) {
+  inline bool operator!=(const C3Vector &l, const C3Vector &r) {
     return l.x != r.x || l.y != r.y || l.z != r.z;
   }
 
-  inline C3Vector __fastcall operator+(const C3Vector &l, const C3Vector &r) {
+  inline C3Vector operator+(const C3Vector &l, const C3Vector &r) {
     return C3Vector(l.x + r.x, l.y + r.y, l.z + r.z);
   }
 
-  inline C3Vector __fastcall operator-(const C3Vector &l, const C3Vector &r) {
+  inline C3Vector operator-(const C3Vector &l, const C3Vector &r) {
     return C3Vector(l.x - r.x, l.y - r.y, l.z - r.z);
   }
 
-  inline C3Vector __fastcall operator*(const C3Vector &l, float r) {
+  inline C3Vector operator*(const C3Vector &l, float r) {
     return C3Vector(l.x * r, l.y * r, l.z * r);
   }
 
-  inline C3Vector __fastcall operator*(float l, const C3Vector &r) {
+  inline C3Vector operator*(float l, const C3Vector &r) {
     return C3Vector(l * r.x, l * r.y, l * r.z);
   }
 
-  inline C3Vector __fastcall operator/(const C3Vector &l, float r) {
+  inline C3Vector operator/(const C3Vector &l, float r) {
     float inverse = 1.0f / r;
     return C3Vector(l.x * inverse, l.y * inverse, l.z * inverse);
   }
 
-  inline bool __fastcall operator<=(const C3Vector &l, const C3Vector &r) {
+  inline bool operator<=(const C3Vector &l, const C3Vector &r) {
     return l.x <= r.x && l.y <= r.y && l.z <= r.z;
   }
 
-  inline bool __fastcall operator>=(const C3Vector &l, const C3Vector &r) {
+  inline bool operator>=(const C3Vector &l, const C3Vector &r) {
     return l.x >= r.x && l.y >= r.y && l.z >= r.z;
   }
 
-  CDataStore &__fastcall operator<<(CDataStore &store, const C3Vector &vector);
+  CDataStore &operator<<(CDataStore &store, const C3Vector &vector);
 
   inline C3iVector::C3iVector(const C3Vector &vector)
       : x(static_cast<long>(vector.x)), y(static_cast<long>(vector.y)),

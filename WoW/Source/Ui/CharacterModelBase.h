@@ -7,9 +7,9 @@ class CGCharacterModelBase : public CSimpleModel {
   virtual ~CGCharacterModelBase();
   CGCharacterModelBase(CSimpleFrame *parent);
 
-  static CSimpleFrame *__fastcall Create(CSimpleFrame *parent);
-  static void __fastcall          RegisterScriptMethods();
-  static void __fastcall          UnregisterScriptMethods();
+  static CSimpleFrame *Create(CSimpleFrame *parent);
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   virtual void UpdateModel();
   virtual int  LookupScriptMethod(lua_State *L, const char *name);
@@ -31,7 +31,7 @@ class CGCharacterModelBase : public CSimpleModel {
   float                                                       m_rotationScale;
 };
 
-inline CSimpleFrame *__fastcall CGCharacterModelBase::Create(CSimpleFrame *parent) {
+inline CSimpleFrame *CGCharacterModelBase::Create(CSimpleFrame *parent) {
   return NEW(CGCharacterModelBase)(parent);
 }
 

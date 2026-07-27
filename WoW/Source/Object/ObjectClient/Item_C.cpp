@@ -23,29 +23,29 @@
 
 extern const int *const g_ITEMTYPEARRAY;
 
-bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
-void __fastcall ClntObjMgrHideObject(unsigned __int64 guid);
-void __fastcall ClntObjMgrShowObject(unsigned __int64 guid);
+bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
+void ClntObjMgrHideObject(unsigned __int64 guid);
+void ClntObjMgrShowObject(unsigned __int64 guid);
 
 class CGContainerInfo {
  public:
-  static void __fastcall UpdateContents(unsigned __int64 guid);
-  static void __fastcall UpdateItem(unsigned __int64 guid);
+  static void UpdateContents(unsigned __int64 guid);
+  static void UpdateItem(unsigned __int64 guid);
 };
 
 class CGActionBar {
  public:
-  static void __fastcall UpdateItem(int entryID);
+  static void UpdateItem(int entryID);
 };
 
-static int __fastcall OnUpdateEnchantments(
+static int OnUpdateEnchantments(
     unsigned __int64, unsigned int, unsigned int, const void *, void *
 );
-static int __fastcall OnUpdateItemID(
+static int OnUpdateItemID(
     unsigned __int64, unsigned int, unsigned int, const void *, void *
 );
 
-static int __fastcall OnUpdateOwner(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int OnUpdateOwner(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   FATALASSERT(prevValue);
@@ -66,7 +66,7 @@ static int __fastcall OnUpdateOwner(unsigned __int64 guid, unsigned int offset, 
   return 1;
 }
 
-static int __fastcall OnUpdateStackCount(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int OnUpdateStackCount(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
@@ -112,7 +112,7 @@ struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
 static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryTextures;
 static HASHKEY_NONE                            s_nullInventoryArtKey;
 
-static int __fastcall OnUpdateEnchantments(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
+static int OnUpdateEnchantments(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
   CGItem_C *item = static_cast<CGItem_C *>(
       ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (item) {
@@ -121,14 +121,14 @@ static int __fastcall OnUpdateEnchantments(unsigned __int64 guid, unsigned int, 
   return 1;
 }
 
-static void __fastcall ItemIDChangedCacheCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
+static void ItemIDChangedCacheCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (item && item->GetOwner() == ClntObjMgrGetActivePlayer()) {
     CGContainerInfo::UpdateContents(item->GetContainedIn());
   }
 }
 
-static int __fastcall OnUpdateItemID(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int OnUpdateItemID(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   FATALASSERT(prevValue);
@@ -142,12 +142,12 @@ static int __fastcall OnUpdateItemID(unsigned __int64 guid, unsigned int offset,
   return 1;
 }
 
-static void __fastcall AddInventoryArtHash(unsigned int displayID, const char *fileName) {
+static void AddInventoryArtHash(unsigned int displayID, const char *fileName) {
   INVENTORYART *entry = s_inventoryTextures.New(displayID, s_nullInventoryArtKey, 0, 0);
   entry->textureName = SStrDupA(fileName, __FILE__, __LINE__);
 }
 
-static const char *__fastcall GetInventoryArtHash(unsigned int displayID) {
+static const char *GetInventoryArtHash(unsigned int displayID) {
   INVENTORYART *entry = s_inventoryTextures.Ptr(displayID, s_nullInventoryArtKey);
   return entry ? entry->textureName : 0;
 }
@@ -178,7 +178,7 @@ CGItem_C::CGItem_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
   }
 }
 
-static void __fastcall LoadItemCacheCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
+static void LoadItemCacheCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!item) {
     return;
@@ -256,7 +256,7 @@ void CGItem_C::Reenable() {
   }
 }
 
-const char *__fastcall CGItem_C::GetInventoryArt(int displayID) {
+const char *CGItem_C::GetInventoryArt(int displayID) {
   const char *inventoryArt = GetInventoryArtHash(displayID);
   if (inventoryArt) {
     return inventoryArt;
@@ -379,7 +379,7 @@ bool CGItem_C::Use() {
   return Spell_C_CastSpell(GetUseSpell(), this);
 }
 
-void __fastcall CGItem_C::Initialize() {
+void CGItem_C::Initialize() {
   if (ClientDBStringLookup(SLOOKUP_INVENTORYICONBUTTONGEOMETRY)) {
     CStatus status;
 
@@ -387,7 +387,7 @@ void __fastcall CGItem_C::Initialize() {
   }
 }
 
-void __fastcall CGItem_C::Shutdown() {
+void CGItem_C::Shutdown() {
   s_inventoryTextures.Clear();
 }
 
@@ -490,7 +490,7 @@ int CGItem_C::IsMetal() const {
   return IsMetal(GetMaterial());
 }
 
-int __fastcall CGItem_C::IsMetal(unsigned int material) {
+int CGItem_C::IsMetal(unsigned int material) {
   MaterialRec *rec = g_materialDB.GetRecord(material);
   return rec && (rec->m_flags & 1);
 }
@@ -516,7 +516,7 @@ void CGItem_C::SetData(const void *data, unsigned int bytes) {
   memcpy(m_item, data, bytes);
 }
 
-unsigned int __fastcall CGItem_C::OffsetOf(OBJECT_TYPE_ID type) {
+unsigned int CGItem_C::OffsetOf(OBJECT_TYPE_ID type) {
   if (type == ID_OBJECT) {
     return 0;
   }
@@ -546,7 +546,7 @@ void CGItem_C::OnRightClick() {
 }
 
 int CGItem_C::GetPageTextID(
-    void(__fastcall *func)(int, const unsigned __int64 &, void *, bool)
+    void(*func)(int, const unsigned __int64 &, void *, bool)
 ) const {
   unsigned __int64 guid = GetGUID();
   const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), guid, func, 0);

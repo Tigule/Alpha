@@ -125,7 +125,7 @@ unsigned int TSGrowableArray<CGxMonitorMode>::RoundToChunk(unsigned int count, u
   return remainder ? count + chunk - remainder : count;
 }
 
-int __fastcall CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
+int CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   CGxFormat      fmt;
   D3DDISPLAYMODE dm;
   unsigned int   nModes;
@@ -159,11 +159,11 @@ int __fastcall CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   return formats.Count() != 0;
 }
 
-CGxDevice *__fastcall CGxDevice::NewD3d() {
+CGxDevice *CGxDevice::NewD3d() {
   return NEW(CGxDeviceD3d);
 }
 
-static unsigned short __fastcall HToI(const char *h, unsigned int count) {
+static unsigned short HToI(const char *h, unsigned int count) {
   unsigned short value = 0;
   char           c;
   int            cValue;
@@ -185,7 +185,7 @@ static unsigned short __fastcall HToI(const char *h, unsigned int count) {
   return value;
 }
 
-int __fastcall CGxDevice::AdapterID(
+int CGxDevice::AdapterID(
     unsigned short &vendorID,
     unsigned short &deviceID,
     unsigned long  &driverVersionHi,
@@ -249,7 +249,7 @@ done:
   return retVal;
 }
 
-int __fastcall CGxDevice::AdapterInfer(unsigned short &deviceID) {
+int CGxDevice::AdapterInfer(unsigned short &deviceID) {
   D3DCAPS9    caps;
   HINSTANCE   d3dLib;
   IDirect3D9 *d3d;
@@ -278,7 +278,7 @@ int __fastcall CGxDevice::AdapterInfer(unsigned short &deviceID) {
   return retVal;
 }
 
-int __fastcall CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
+int CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   DISPLAY_DEVICE_TARGET dd;
   DEVMODE_TARGET        dm;
   CGxMonitorMode       *mode;
@@ -307,7 +307,7 @@ int __fastcall CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &m
   return modes.Count() != 0;
 }
 
-int __fastcall CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
+int CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
   DISPLAY_DEVICE_TARGET dd;
   DEVMODE_TARGET        dm;
 

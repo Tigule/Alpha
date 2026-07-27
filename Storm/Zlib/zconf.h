@@ -1,6 +1,6 @@
 /* zconf.h -- configuration of the zlib compression library
  * Copyright (C) 1995-2002 Jean-loup Gailly.
- * For conditions of distribution and use, see copyright notice in zlib.h 
+ * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
 /* @(#) $Id$ */
@@ -198,7 +198,7 @@
 
 #if defined(_MSC_VER) && _MSC_VER == 1200
 #  ifndef ZEXPORT
-#    define ZEXPORT __fastcall
+#    define ZEXPORT
 #  endif
 #  ifndef ZEXPORTVA
 #    define ZEXPORTVA __cdecl

@@ -7,7 +7,7 @@ namespace NTempest {
     t = C3Vector::Max(t, value);
   }
 
-  CAaBox __fastcall CAaBox::Bounding(const C3Vector *vectors, unsigned long count) {
+  CAaBox CAaBox::Bounding(const C3Vector *vectors, unsigned long count) {
     ASSERT(vectors != 0);
 
     CAaBox extents;

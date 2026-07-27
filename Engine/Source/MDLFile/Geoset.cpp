@@ -8,11 +8,11 @@
 #include <stpl.h>
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 }
 
-void __fastcall ReadVertices(
+void ReadVertices(
     Parser &parse,
     const char *title,
     TSGrowableArray<NTempest::C3Vector> *vertices
@@ -45,7 +45,7 @@ void __fastcall ReadVertices(
   }
 }
 
-void __fastcall WriteVertices(
+void WriteVertices(
     const TSGrowableArray<NTempest::C3Vector> &vertices,
     unsigned int title,
     TSGrowableArray<char> &buffer
@@ -58,7 +58,7 @@ void __fastcall WriteVertices(
   MDL::WriteLine(buffer, "\t}\n");
 }
 
-void __fastcall WriteBinC3VectorSection(
+void WriteBinC3VectorSection(
     CMsgBuffer &buffer,
     unsigned long title,
     const TSGrowableArray<NTempest::C3Vector> &section
@@ -68,7 +68,7 @@ void __fastcall WriteBinC3VectorSection(
   buffer.AddFloatArray(&section.Ptr()->x, 3 * section.Count());
 }
 
-int __fastcall ReadBinC3VectorSection(
+int ReadBinC3VectorSection(
     CMsgBuffer &buffer,
     unsigned long title,
     const char *name,
@@ -90,7 +90,7 @@ int __fastcall ReadBinC3VectorSection(
   return 1;
 }
 
-int __fastcall IReadBinUintSection(
+int IReadBinUintSection(
     CMsgBuffer &buffer,
     unsigned long title,
     const char *name,
@@ -114,7 +114,7 @@ int __fastcall IReadBinUintSection(
   return 1;
 }
 
-void __fastcall SetVertexGroupIndices(
+void SetVertexGroupIndices(
     const TSGrowableArray<unsigned int> &groupVertexCounts,
     MDLGEOSETSECTION *geoset
 ) {
@@ -236,7 +236,7 @@ static unsigned int IPrimitives(
     MDLPRIMITIVES *primitives,
     long *entries,
     unsigned char type,
-    int (__fastcall *IsInvalid)(unsigned int),
+    int (*IsInvalid)(unsigned int),
     const char *errorText
 ) {
   unsigned int added = 0;
@@ -256,31 +256,31 @@ static unsigned int IPrimitives(
   return added;
 }
 
-static int __fastcall NeverInvalid(unsigned int) {
+static int NeverInvalid(unsigned int) {
   return 0;
 }
 
-static int __fastcall InvalidLines(unsigned int count) {
+static int InvalidLines(unsigned int count) {
   return count & 1;
 }
 
-static int __fastcall InvalidLineStripLoop(unsigned int count) {
+static int InvalidLineStripLoop(unsigned int count) {
   return count < 2;
 }
 
-static int __fastcall InvalidTriangles(unsigned int count) {
+static int InvalidTriangles(unsigned int count) {
   return count % 3;
 }
 
-static int __fastcall InvalidTriangleFanStrip(unsigned int count) {
+static int InvalidTriangleFanStrip(unsigned int count) {
   return count < 3;
 }
 
-static int __fastcall InvalidQuads(unsigned int count) {
+static int InvalidQuads(unsigned int count) {
   return count & 3;
 }
 
-static int __fastcall InvalidQuadStrip(unsigned int count) {
+static int InvalidQuadStrip(unsigned int count) {
   return count < 4 || (count & 1);
 }
 
@@ -961,7 +961,7 @@ static void IWriteGeosetSection(
 
 namespace MDL {
 
-int __fastcall ReadGeoset(
+int ReadGeoset(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -1058,7 +1058,7 @@ int __fastcall ReadGeoset(
       && !parse.FoundError();
 }
 
-int __fastcall WriteGeosets(
+int WriteGeosets(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -1070,7 +1070,7 @@ int __fastcall WriteGeosets(
   return 1;
 }
 
-int __fastcall ReadGeosetAnim(
+int ReadGeosetAnim(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -1180,7 +1180,7 @@ static void IWriteGeosetAnimSection(
   WriteLine(buffer, "}\n");
 }
 
-int __fastcall WriteGeosetAnims(
+int WriteGeosetAnims(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -1238,7 +1238,7 @@ static int IReadBinGeosetAnim(
   return 1;
 }
 
-int __fastcall ReadBinGeosetAnim(
+int ReadBinGeosetAnim(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -1309,7 +1309,7 @@ static void IWriteBinGeosetAnimSection(
   }
 }
 
-int __fastcall WriteBinGeosetAnims(
+int WriteBinGeosetAnims(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *
@@ -1540,7 +1540,7 @@ static int ReadBinGeoset(
   return 1;
 }
 
-int __fastcall ReadBinGeosets(
+int ReadBinGeosets(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -1668,7 +1668,7 @@ static void WriteBinGeoset(
   IWriteBinAnimBounds(section, buffer);
 }
 
-int __fastcall WriteBinGeosets(
+int WriteBinGeosets(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *

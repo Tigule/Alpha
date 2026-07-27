@@ -9,12 +9,12 @@
 
 class CWorldMath {
  public:
-  static void __fastcall TransformAABox(const NTempest::C33Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox);
-  static void __fastcall TransformAABox(const NTempest::C34Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox);
-  static void __fastcall TransformAABox(const NTempest::C44Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox);
+  static void TransformAABox(const NTempest::C33Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox);
+  static void TransformAABox(const NTempest::C34Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox);
+  static void TransformAABox(const NTempest::C44Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox);
 
-  static int __fastcall VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end);
-  static int __fastcall VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Segment &seg);
+  static int VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end);
+  static int VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Segment &seg);
 };
 
 #endif

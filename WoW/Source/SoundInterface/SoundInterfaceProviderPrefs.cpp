@@ -11,16 +11,16 @@
 
 #include <storm.h>
 
-static int __fastcall   EnvironmentHandler(const char *command, const char *arguments);
-static int __fastcall   EnvironmentListHandler(const char *command, const char *arguments);
-static float __fastcall InterpFloat(float progress, float start, float end);
-static int __fastcall   InterpInt(float progress, int start, int end);
-static void __fastcall  StopWorldIdleHandler();
-static int __fastcall   WorldIdleHandler(const void *dataPtr, void *param);
-static void __fastcall  StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &rec, unsigned int duration);
-static void __fastcall  StartWorldIdleHandler();
-static void __fastcall  StopProviderPrefFade();
-static void __fastcall  SaveDesc(_FSOUND_REVERB_PROPERTIES &desc, const SoundProviderPreferencesRec *rec);
+static int EnvironmentHandler(const char *command, const char *arguments);
+static int EnvironmentListHandler(const char *command, const char *arguments);
+static float InterpFloat(float progress, float start, float end);
+static int InterpInt(float progress, int start, int end);
+static void StopWorldIdleHandler();
+static int WorldIdleHandler(const void *dataPtr, void *param);
+static void StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &rec, unsigned int duration);
+static void StartWorldIdleHandler();
+static void StopProviderPrefFade();
+static void SaveDesc(_FSOUND_REVERB_PROPERTIES &desc, const SoundProviderPreferencesRec *rec);
 
 static unsigned int              s_providerPrefFadeStartTime;
 static unsigned int              s_providerPrefFadeEndTime;
@@ -33,15 +33,15 @@ static _FSOUND_REVERB_PROPERTIES s_descUnderwater;
 static int                       s_flags;
 static bool                      s_idleRunning;
 
-static float __fastcall InterpFloat(float progress, float start, float end) {
+static float InterpFloat(float progress, float start, float end) {
   return start + progress * (end - start);
 }
 
-static int __fastcall InterpInt(float progress, int start, int end) {
+static int InterpInt(float progress, int start, int end) {
   return static_cast<int>(start + progress * (end - start));
 }
 
-void __fastcall SndInterfaceFadeProviderPrefs(const EVENT_DATA_IDLE *data) {
+void SndInterfaceFadeProviderPrefs(const EVENT_DATA_IDLE *data) {
   if (static_cast<int>(data->time) > static_cast<int>(s_providerPrefFadeEndTime)) {
     s_currentProviderDesc = s_targetProviderDesc;
     StopWorldIdleHandler();
@@ -82,22 +82,22 @@ void __fastcall SndInterfaceFadeProviderPrefs(const EVENT_DATA_IDLE *data) {
   Sound::SetReverbProperties(&s_currentProviderDesc);
 }
 
-static int __fastcall WorldIdleHandler(const void *dataPtr, void *param) {
+static int WorldIdleHandler(const void *dataPtr, void *param) {
   SndInterfaceFadeProviderPrefs(static_cast<const EVENT_DATA_IDLE *>(dataPtr));
   return 1;
 }
 
-static void __fastcall StartWorldIdleHandler() {
+static void StartWorldIdleHandler() {
   EventRegister(EVENT_ID_IDLE, WorldIdleHandler);
   s_idleRunning = true;
 }
 
-static void __fastcall StopWorldIdleHandler() {
+static void StopWorldIdleHandler() {
   EventUnregister(EVENT_ID_IDLE, WorldIdleHandler);
   s_idleRunning = false;
 }
 
-static void __fastcall StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &rec, unsigned int duration) {
+static void StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &rec, unsigned int duration) {
   unsigned int startTime = OsGetAsyncTimeMs();
 
   s_providerPrefFadeDuration = duration;
@@ -108,12 +108,12 @@ static void __fastcall StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &re
   StartWorldIdleHandler();
 }
 
-static void __fastcall StopProviderPrefFade() {
+static void StopProviderPrefFade() {
   StopWorldIdleHandler();
   Sound::SetReverbProperties(&s_currentProviderDesc);
 }
 
-static void __fastcall SaveDesc(_FSOUND_REVERB_PROPERTIES &desc, const SoundProviderPreferencesRec *rec) {
+static void SaveDesc(_FSOUND_REVERB_PROPERTIES &desc, const SoundProviderPreferencesRec *rec) {
   desc.Environment = rec->m_EAXEnvironmentSelection;
   desc.EnvSize = rec->m_EAX2EnvironmentSize;
   desc.EnvDiffusion = rec->m_EAX2EnvironmentDiffusion;
@@ -146,7 +146,7 @@ static void __fastcall SaveDesc(_FSOUND_REVERB_PROPERTIES &desc, const SoundProv
   desc.ReverbPan[2] = 0.0f;
 }
 
-void __fastcall SndInterfaceSetProviderPrefs(unsigned int index, unsigned int indexUnderwater, unsigned int transitionDuration) {
+void SndInterfaceSetProviderPrefs(unsigned int index, unsigned int indexUnderwater, unsigned int transitionDuration) {
   const SoundProviderPreferencesRec *rec;
   const SoundProviderPreferencesRec *recUnderwater;
 
@@ -185,14 +185,14 @@ void __fastcall SndInterfaceSetProviderPrefs(unsigned int index, unsigned int in
   }
 }
 
-void __fastcall SndInterfaceSetProviderPrefs(const _FSOUND_REVERB_PROPERTIES &pref, const _FSOUND_REVERB_PROPERTIES &prefUnderwater) {
+void SndInterfaceSetProviderPrefs(const _FSOUND_REVERB_PROPERTIES &pref, const _FSOUND_REVERB_PROPERTIES &prefUnderwater) {
   s_desc = pref;
   s_descUnderwater = prefUnderwater;
   s_currentProviderDesc = g_underWater ? s_descUnderwater : s_desc;
   StopProviderPrefFade();
 }
 
-void __fastcall SndInterfaceClearProviderPrefs(int indoors) {
+void SndInterfaceClearProviderPrefs(int indoors) {
   const SoundProviderPreferencesRec *rec = indoors ? ClientDBGetDefaultIndoorProviderPrefs() : ClientDBGetDefaultOutdoorProviderPrefs();
 
   if (rec) {
@@ -211,7 +211,7 @@ void __fastcall SndInterfaceClearProviderPrefs(int indoors) {
   StopProviderPrefFade();
 }
 
-void __fastcall SndSetRoomType(SNDROOMTYPE roomType) {
+void SndSetRoomType(SNDROOMTYPE roomType) {
   s_startProviderDesc.Room = roomType;
   s_currentProviderDesc.Room = roomType;
   s_targetProviderDesc.Room = roomType;
@@ -221,7 +221,7 @@ void __fastcall SndSetRoomType(SNDROOMTYPE roomType) {
   }
 }
 
-static int __fastcall EnvironmentHandler(const char *command, const char *arguments) {
+static int EnvironmentHandler(const char *command, const char *arguments) {
   if (arguments && *arguments) {
     unsigned int index = SStrToUnsigned(arguments);
 
@@ -231,7 +231,7 @@ static int __fastcall EnvironmentHandler(const char *command, const char *argume
   return 1;
 }
 
-static int __fastcall EnvironmentListHandler(const char *command, const char *arguments) {
+static int EnvironmentListHandler(const char *command, const char *arguments) {
   int i = g_soundProviderPreferencesDB.GetNumRecords();
 
   while (i) {
@@ -245,18 +245,18 @@ static int __fastcall EnvironmentListHandler(const char *command, const char *ar
   return 1;
 }
 
-void __fastcall ProviderPrefShutdown() {
+void ProviderPrefShutdown() {
   ConsoleCommandUnregister("env");
   ConsoleCommandUnregister("envlist");
 }
 
-void __fastcall ProviderPrefInitialize() {
+void ProviderPrefInitialize() {
   s_flags = 0;
   ConsoleCommandRegister("env", EnvironmentHandler, DEBUG, "DEBUGGING");
   ConsoleCommandRegister("envlist", EnvironmentListHandler, DEBUG, "DEBUGGING");
 }
 
-void __fastcall SndInterfaceProviderPrefsUnderwaterChanged() {
+void SndInterfaceProviderPrefsUnderwaterChanged() {
   const _FSOUND_REVERB_PROPERTIES *selected = 0;
 
   if (g_underWater) {

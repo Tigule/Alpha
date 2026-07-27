@@ -30,9 +30,9 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-unsigned int __fastcall CharCustomizationNumHairColors(unsigned int raceID, unsigned int sexID);
-unsigned int __fastcall CharCustomizationNumHairStyles(unsigned int raceID, unsigned int sexID);
-unsigned int __fastcall CharCustomizationNumBeardStyles(unsigned int raceID, unsigned int sexID);
+unsigned int CharCustomizationNumHairColors(unsigned int raceID, unsigned int sexID);
+unsigned int CharCustomizationNumHairStyles(unsigned int raceID, unsigned int sexID);
+unsigned int CharCustomizationNumBeardStyles(unsigned int raceID, unsigned int sexID);
 
 static const char *s_sexName[4] = {"male", "female", "sex unspecified", "unknown sex specification"};
 
@@ -42,7 +42,7 @@ static TEXCOMPONENT_SECTIONS s_removeSections[8] = {TCS_UPPERARM,   TCS_LOWERARM
 static uint s_startingLayer[8] = {1, 1, 1, 1, 1, 1, 1, 1};
 
 extern const int *const g_ITEMTYPEARRAY;
-void __fastcall         SetHandsState(HMODEL model, int itemSlot, int itemInventoryType);
+void SetHandsState(HMODEL model, int itemSlot, int itemInventoryType);
 
 CSimpleModel         *CCharCreateInfo::m_charCustomizeFrame;
 TSFixedArray<uint>    CCharCreateInfo::m_factionIndex;
@@ -54,30 +54,30 @@ uint                  CCharCreateInfo::m_selectedSex;
 float                 CCharCreateInfo::m_charFacing;
 CHARCREATEINFO        CCharCreateInfo::m_charInfo;
 
-static uint __fastcall RandomSelection(uint count) {
+static uint RandomSelection(uint count) {
   return NTempest::CMath::mulhwu_(count, NTempest::CRandom::uint32_(g_rndSeed));
 }
 
-static int __fastcall Script_SetCharCustomizeFrame(lua_State *L);
-static int __fastcall Script_SetCharCustomizeBackground(lua_State *L);
-static int __fastcall Script_ResetCharCustomize(lua_State *__formal);
-static int __fastcall Script_GetNameForRace(lua_State *L);
-static int __fastcall Script_GetFactionForRace(lua_State *L);
-static int __fastcall Script_GetAvailableRaces(lua_State *L);
-static int __fastcall Script_GetClassesForRace(lua_State *L);
-static int __fastcall Script_GetSelectedRace(lua_State *L);
-static int __fastcall Script_GetSelectedSex(lua_State *L);
-static int __fastcall Script_GetSelectedClass(lua_State *L);
-static int __fastcall Script_SetSelectedRace(lua_State *L);
-static int __fastcall Script_SetSelectedSex(lua_State *L);
-static int __fastcall Script_SetSelectedClass(lua_State *L);
-static int __fastcall Script_UpdateCustomizationBackground(lua_State *__formal);
-static int __fastcall Script_HasCharCustomization(lua_State *L);
-static int __fastcall Script_CycleCharCustomization(lua_State *L);
-static int __fastcall Script_RandomizeCharCustomization(lua_State *__formal);
-static int __fastcall Script_GetCharacterFacing(lua_State *L);
-static int __fastcall Script_SetCharacterFacing(lua_State *L);
-static int __fastcall Script_CreateCharacter(lua_State *L);
+static int Script_SetCharCustomizeFrame(lua_State *L);
+static int Script_SetCharCustomizeBackground(lua_State *L);
+static int Script_ResetCharCustomize(lua_State *__formal);
+static int Script_GetNameForRace(lua_State *L);
+static int Script_GetFactionForRace(lua_State *L);
+static int Script_GetAvailableRaces(lua_State *L);
+static int Script_GetClassesForRace(lua_State *L);
+static int Script_GetSelectedRace(lua_State *L);
+static int Script_GetSelectedSex(lua_State *L);
+static int Script_GetSelectedClass(lua_State *L);
+static int Script_SetSelectedRace(lua_State *L);
+static int Script_SetSelectedSex(lua_State *L);
+static int Script_SetSelectedClass(lua_State *L);
+static int Script_UpdateCustomizationBackground(lua_State *__formal);
+static int Script_HasCharCustomization(lua_State *L);
+static int Script_CycleCharCustomization(lua_State *L);
+static int Script_RandomizeCharCustomization(lua_State *__formal);
+static int Script_GetCharacterFacing(lua_State *L);
+static int Script_SetCharacterFacing(lua_State *L);
+static int Script_CreateCharacter(lua_State *L);
 
 static const FrameScript_Method s_ScriptFunctions[20] = {
     {        "SetCharCustomizeFrame",         Script_SetCharCustomizeFrame},
@@ -131,7 +131,7 @@ void CHARCREATEINFO::CommitGeoset(uint sex) {
   CharCustomizationCommitGeosets(geosetHandle[sex]);
 }
 
-void __fastcall ReportMissingComponentTextures(uint race, uint sex) {
+void ReportMissingComponentTextures(uint race, uint sex) {
   const ChrRacesRec *raceInfo;
   const char        *raceName;
 
@@ -161,7 +161,7 @@ void CHARCREATEINFO::CommitTexture(int race, int sex) {
   }
 }
 
-void __fastcall CCharCreateInfo::Initialize() {
+void CCharCreateInfo::Initialize() {
   uint                   numFactions;
   uint                   i;
   uint                   count = 0;
@@ -236,11 +236,11 @@ void CHARCREATEINFO::Shutdown() {
   }
 }
 
-void __fastcall CCharCreateInfo::SetCharCustomizeFrame(CSimpleModel *frame) {
+void CCharCreateInfo::SetCharCustomizeFrame(CSimpleModel *frame) {
   m_charCustomizeFrame = frame;
 }
 
-void __fastcall CCharCreateInfo::SetCharCustomizeModel(const char *filename) {
+void CCharCreateInfo::SetCharCustomizeModel(const char *filename) {
   CModelCreate createData;
 
   if (!m_charCustomizeFrame || !filename || !*filename) {
@@ -257,7 +257,7 @@ void __fastcall CCharCreateInfo::SetCharCustomizeModel(const char *filename) {
   m_charCustomizeFrame->SetModel(filename, &createData, 0);
 }
 
-uint __fastcall CCharCreateInfo::GetNumOutfits(uint raceID, uint classID, uint sexID) {
+uint CCharCreateInfo::GetNumOutfits(uint raceID, uint classID, uint sexID) {
   uint count = 0;
   for (int i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
     const CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
@@ -268,7 +268,7 @@ uint __fastcall CCharCreateInfo::GetNumOutfits(uint raceID, uint classID, uint s
   return count;
 }
 
-CharStartOutfitRec *__fastcall CCharCreateInfo::GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID) {
+CharStartOutfitRec *CCharCreateInfo::GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID) {
   for (int i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
     CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
     if (outfit->m_raceID == raceID && outfit->m_classID == classID && outfit->m_sexID == sexID && outfit->m_outfitID == outfitID) {
@@ -278,7 +278,7 @@ CharStartOutfitRec *__fastcall CCharCreateInfo::GetOutfit(uint raceID, uint clas
   return 0;
 }
 
-void __fastcall CCharCreateInfo::ResetCharCustomizeInfo() {
+void CCharCreateInfo::ResetCharCustomizeInfo() {
   if (m_charCustomizeFrame && ModelIsLoaded(m_charCustomizeFrame->GetModel(), 0) && m_raceIndex.Count()) {
     m_selectedRace = RandomSelection(m_raceIndex.Count());
     UpdateAvailableClasses();
@@ -290,7 +290,7 @@ void __fastcall CCharCreateInfo::ResetCharCustomizeInfo() {
   }
 }
 
-void __fastcall CCharCreateInfo::SetCharFacing(float facing) {
+void CCharCreateInfo::SetCharFacing(float facing) {
   m_charFacing = facing;
 
   HMODEL model = m_charCustomizeFrame ? m_charCustomizeFrame->GetModel() : 0;
@@ -300,7 +300,7 @@ void __fastcall CCharCreateInfo::SetCharFacing(float facing) {
   }
 }
 
-const char *__fastcall CCharCreateInfo::GetRaceNameByIndex(uint index) {
+const char *CCharCreateInfo::GetRaceNameByIndex(uint index) {
   if (index >= m_raceIndex.Count()) {
     return 0;
   }
@@ -309,7 +309,7 @@ const char *__fastcall CCharCreateInfo::GetRaceNameByIndex(uint index) {
   return race ? race->m_name_lang[CURRENT_LANGUAGE] : 0;
 }
 
-void __fastcall CCharCreateInfo::UpdateAvailableClasses() {
+void CCharCreateInfo::UpdateAvailableClasses() {
   if (static_cast<uint>(m_selectedRace) >= m_raceIndex.Count()) {
     return;
   }
@@ -328,7 +328,7 @@ void __fastcall CCharCreateInfo::UpdateAvailableClasses() {
   m_classIndex.SetCount(count);
 }
 
-const char *__fastcall CCharCreateInfo::GetClassNameByIndex(uint index) {
+const char *CCharCreateInfo::GetClassNameByIndex(uint index) {
   if (index >= m_classIndex.Count()) {
     return 0;
   }
@@ -337,14 +337,14 @@ const char *__fastcall CCharCreateInfo::GetClassNameByIndex(uint index) {
   return classInfo ? classInfo->m_name_lang[CURRENT_LANGUAGE] : 0;
 }
 
-void __fastcall CCharCreateInfo::Shutdown() {
+void CCharCreateInfo::Shutdown() {
   m_factionIndex.Clear();
   m_raceIndex.Clear();
   m_classIndex.Clear();
   m_charInfo.Shutdown();
 }
 
-uint __fastcall CCharCreateInfo::GetSelectedRaceID() {
+uint CCharCreateInfo::GetSelectedRaceID() {
   if (static_cast<uint>(m_selectedRace) < m_raceIndex.Count()) {
     return m_raceIndex[m_selectedRace];
   }
@@ -352,11 +352,11 @@ uint __fastcall CCharCreateInfo::GetSelectedRaceID() {
   return 0;
 }
 
-uint __fastcall CCharCreateInfo::GetSelectedSexID() {
+uint CCharCreateInfo::GetSelectedSexID() {
   return m_selectedSex;
 }
 
-uint __fastcall CCharCreateInfo::GetSelectedClassID() {
+uint CCharCreateInfo::GetSelectedClassID() {
   if (static_cast<uint>(m_selectedClass) < m_classIndex.Count()) {
     return m_classIndex[m_selectedClass];
   }
@@ -364,14 +364,14 @@ uint __fastcall CCharCreateInfo::GetSelectedClassID() {
   return 0;
 }
 
-void __fastcall CCharCreateInfo::UpdateAllCharacterInfo(int race, uint sex) {
+void CCharCreateInfo::UpdateAllCharacterInfo(int race, uint sex) {
   FATALASSERT(sex < 2);
   InitializeCharacterInfo(sex, 1);
   m_charInfo.CommitTexture(race, sex);
   CommitCurrentGeoset(sex);
 }
 
-void __fastcall CCharCreateInfo::InitializeCharacterInfo(uint sex, int doNotCommitGeosets) {
+void CCharCreateInfo::InitializeCharacterInfo(uint sex, int doNotCommitGeosets) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -542,12 +542,12 @@ void CHARCREATEINFO::UpdateGeosets(uint beardGeoset, uint sideBurnGeoset, uint m
   CharCustomizationInitBaseCharacter(geosetHandle[sex], beardGeoset, sideBurnGeoset, moustacheGeoset, 2);
 }
 
-void __fastcall CCharCreateInfo::CommitCurrentGeoset(uint sex) {
+void CCharCreateInfo::CommitCurrentGeoset(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   m_charInfo.CommitGeoset(sex);
 }
 
-void __fastcall CCharCreateInfo::UpdateCharacterInfo(uint sex) {
+void CCharCreateInfo::UpdateCharacterInfo(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -559,7 +559,7 @@ void __fastcall CCharCreateInfo::UpdateCharacterInfo(uint sex) {
   }
 }
 
-void __fastcall CCharCreateInfo::UpdateEquipment(int doNotUpdateGeosets, uint sex) {
+void CCharCreateInfo::UpdateEquipment(int doNotUpdateGeosets, uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -567,7 +567,7 @@ void __fastcall CCharCreateInfo::UpdateEquipment(int doNotUpdateGeosets, uint se
   }
 }
 
-void __fastcall CCharCreateInfo::ChangeSkinTexture(int doNotCommitGeosets, uint sex) {
+void CCharCreateInfo::ChangeSkinTexture(int doNotCommitGeosets, uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -575,7 +575,7 @@ void __fastcall CCharCreateInfo::ChangeSkinTexture(int doNotCommitGeosets, uint 
   }
 }
 
-void __fastcall CCharCreateInfo::ChangeFaceTexture(uint sex) {
+void CCharCreateInfo::ChangeFaceTexture(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -583,7 +583,7 @@ void __fastcall CCharCreateInfo::ChangeFaceTexture(uint sex) {
   }
 }
 
-void __fastcall CCharCreateInfo::ChangeFacialHairTexture(uint sex) {
+void CCharCreateInfo::ChangeFacialHairTexture(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -591,7 +591,7 @@ void __fastcall CCharCreateInfo::ChangeFacialHairTexture(uint sex) {
   }
 }
 
-void __fastcall CCharCreateInfo::ChangeFacialHairGeosets(uint sex) {
+void CCharCreateInfo::ChangeFacialHairGeosets(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -601,7 +601,7 @@ void __fastcall CCharCreateInfo::ChangeFacialHairGeosets(uint sex) {
   }
 }
 
-void __fastcall CCharCreateInfo::ChangeScalpHairTexture(uint sex) {
+void CCharCreateInfo::ChangeScalpHairTexture(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -609,7 +609,7 @@ void __fastcall CCharCreateInfo::ChangeScalpHairTexture(uint sex) {
   }
 }
 
-void __fastcall CCharCreateInfo::ChangeHairGeosets(uint sex) {
+void CCharCreateInfo::ChangeHairGeosets(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -617,7 +617,7 @@ void __fastcall CCharCreateInfo::ChangeHairGeosets(uint sex) {
   }
 }
 
-void __fastcall CCharCreateInfo::UpdateGeosets(uint sex) {
+void CCharCreateInfo::UpdateGeosets(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
@@ -627,7 +627,7 @@ void __fastcall CCharCreateInfo::UpdateGeosets(uint sex) {
   }
 }
 
-void __fastcall CCharCreateInfo::SetSelectedRace(uint index, int updateModel) {
+void CCharCreateInfo::SetSelectedRace(uint index, int updateModel) {
   if (index >= m_raceIndex.Count()) {
     return;
   }
@@ -697,7 +697,7 @@ void __fastcall CCharCreateInfo::SetSelectedRace(uint index, int updateModel) {
   }
 }
 
-void __fastcall CCharCreateInfo::SetSelectedSex(uint sex) {
+void CCharCreateInfo::SetSelectedSex(uint sex) {
   if (sex < UNITSEX_LAST && sex != m_selectedSex) {
     m_selectedSex = sex;
     uint race = GetSelectedRaceID();
@@ -714,7 +714,7 @@ void __fastcall CCharCreateInfo::SetSelectedSex(uint sex) {
   }
 }
 
-void __fastcall CCharCreateInfo::SetSelectedClass(uint index) {
+void CCharCreateInfo::SetSelectedClass(uint index) {
   if (index < m_classIndex.Count() && index != m_selectedClass) {
     m_selectedClass = index;
     m_charInfo.selections[0].classID = m_classIndex[index];
@@ -728,7 +728,7 @@ void __fastcall CCharCreateInfo::SetSelectedClass(uint index) {
   }
 }
 
-uint __fastcall CCharCreateInfo::GetNumCharCustomizations(uint index) {
+uint CCharCreateInfo::GetNumCharCustomizations(uint index) {
   uint race = GetSelectedRaceID();
   if (!race) {
     return 0;
@@ -753,7 +753,7 @@ uint __fastcall CCharCreateInfo::GetNumCharCustomizations(uint index) {
   return 0;
 }
 
-void __fastcall CCharCreateInfo::CycleCharCustomization(uint index, int delta) {
+void CCharCreateInfo::CycleCharCustomization(uint index, int delta) {
   if (!delta) {
     return;
   }
@@ -844,7 +844,7 @@ void __fastcall CCharCreateInfo::CycleCharCustomization(uint index, int delta) {
   ModelForceSequenceTime(m_charInfo.characterModel[sex], 0, seqTime, 0);
 }
 
-void __fastcall CCharCreateInfo::RandomizeCharCustomization() {
+void CCharCreateInfo::RandomizeCharCustomization() {
   uint race = GetSelectedRaceID();
   if (!race) {
     return;
@@ -869,7 +869,7 @@ void __fastcall CCharCreateInfo::RandomizeCharCustomization() {
   ModelForceSequenceTime(m_charInfo.characterModel[sex], 0, seqTime, 0);
 }
 
-void __fastcall CCharCreateInfo::CreateCharacter(const char *name) {
+void CCharCreateInfo::CreateCharacter(const char *name) {
   CHAR_NAME_RESULT result = CHAR_NAME_RESULT_START;
 
   if (!name || (result = ClientServices_CharacterValidateName(name)) != CHAR_NAME_SUCCESS) {
@@ -893,7 +893,7 @@ void __fastcall CCharCreateInfo::CreateCharacter(const char *name) {
   CGlueMgr::CreateCharacter(&createInfo);
 }
 
-static int __fastcall Script_SetCharCustomizeFrame(lua_State *L) {
+static int Script_SetCharCustomizeFrame(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: SetCharCustomizeFrame(\"frameName\")");
     return 0;
@@ -907,7 +907,7 @@ static int __fastcall Script_SetCharCustomizeFrame(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetCharCustomizeBackground(lua_State *L) {
+static int Script_SetCharCustomizeBackground(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: SetCharCustomizeBackground(\"filename\")");
     return 0;
@@ -917,12 +917,12 @@ static int __fastcall Script_SetCharCustomizeBackground(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_ResetCharCustomize(lua_State *__formal) {
+static int Script_ResetCharCustomize(lua_State *__formal) {
   CCharCreateInfo::ResetCharCustomizeInfo();
   return 0;
 }
 
-static int __fastcall Script_GetNameForRace(lua_State *L) {
+static int Script_GetNameForRace(lua_State *L) {
   const ChrRacesRec *race = g_chrRacesDB.GetRecord(CCharCreateInfo::GetSelectedRaceID());
   if (race) {
     lua_pushstring(L, race->m_name_lang[CURRENT_LANGUAGE]);
@@ -934,7 +934,7 @@ static int __fastcall Script_GetNameForRace(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_GetFactionForRace(lua_State *L) {
+static int Script_GetFactionForRace(lua_State *L) {
   const ChrRacesRec        *race = g_chrRacesDB.GetRecord(CCharCreateInfo::GetSelectedRaceID());
   const FactionTemplateRec *faction = race ? g_factionTemplateDB.GetRecord(race->m_factionID) : 0;
 
@@ -954,7 +954,7 @@ static int __fastcall Script_GetFactionForRace(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_GetAvailableRaces(lua_State *L) {
+static int Script_GetAvailableRaces(lua_State *L) {
   uint count = CCharCreateInfo::GetNumRaces();
   for (uint i = 0; i < count; ++i) {
     lua_pushstring(L, CCharCreateInfo::GetRaceNameByIndex(i));
@@ -962,7 +962,7 @@ static int __fastcall Script_GetAvailableRaces(lua_State *L) {
   return count;
 }
 
-static int __fastcall Script_GetClassesForRace(lua_State *L) {
+static int Script_GetClassesForRace(lua_State *L) {
   uint count = CCharCreateInfo::GetNumClasses();
   for (uint i = 0; i < count; ++i) {
     lua_pushstring(L, CCharCreateInfo::GetClassNameByIndex(i));
@@ -970,26 +970,26 @@ static int __fastcall Script_GetClassesForRace(lua_State *L) {
   return count;
 }
 
-static int __fastcall Script_GetSelectedRace(lua_State *L) {
+static int Script_GetSelectedRace(lua_State *L) {
   const ChrRacesRec *race = g_chrRacesDB.GetRecord(CCharCreateInfo::GetSelectedRaceID());
   lua_pushnumber(L, CCharCreateInfo::GetSelectedRaceIndex() + 1);
   lua_pushstring(L, race ? race->m_name_lang[CURRENT_LANGUAGE] : 0);
   return 2;
 }
 
-static int __fastcall Script_GetSelectedSex(lua_State *L) {
+static int Script_GetSelectedSex(lua_State *L) {
   lua_pushnumber(L, CCharCreateInfo::GetSelectedSexID() + 1);
   return 1;
 }
 
-static int __fastcall Script_GetSelectedClass(lua_State *L) {
+static int Script_GetSelectedClass(lua_State *L) {
   const ChrClassesRec *classInfo = g_chrClassesDB.GetRecord(CCharCreateInfo::GetSelectedClassID());
   lua_pushnumber(L, CCharCreateInfo::GetSelectedClassIndex() + 1);
   lua_pushstring(L, classInfo ? classInfo->m_name_lang[CURRENT_LANGUAGE] : 0);
   return 2;
 }
 
-static int __fastcall Script_SetSelectedRace(lua_State *L) {
+static int Script_SetSelectedRace(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetSelectedRace(index)");
     return 0;
@@ -998,7 +998,7 @@ static int __fastcall Script_SetSelectedRace(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetSelectedSex(lua_State *L) {
+static int Script_SetSelectedSex(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetSelectedSex(index)");
     return 0;
@@ -1007,7 +1007,7 @@ static int __fastcall Script_SetSelectedSex(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_SetSelectedClass(lua_State *L) {
+static int Script_SetSelectedClass(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetSelectedClass(index)");
     return 0;
@@ -1016,12 +1016,12 @@ static int __fastcall Script_SetSelectedClass(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_UpdateCustomizationBackground(lua_State *__formal) {
+static int Script_UpdateCustomizationBackground(lua_State *__formal) {
   CCharCreateInfo::SetSelectedRace(CCharCreateInfo::GetSelectedRaceIndex(), 1);
   return 0;
 }
 
-static int __fastcall Script_HasCharCustomization(lua_State *L) {
+static int Script_HasCharCustomization(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: HasCharCustomization(index)");
     return 0;
@@ -1035,7 +1035,7 @@ static int __fastcall Script_HasCharCustomization(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_CycleCharCustomization(lua_State *L) {
+static int Script_CycleCharCustomization(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     luaL_error(L, "Usage: CycleCharCustomization(index, delta)");
     return 0;
@@ -1044,17 +1044,17 @@ static int __fastcall Script_CycleCharCustomization(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_RandomizeCharCustomization(lua_State *__formal) {
+static int Script_RandomizeCharCustomization(lua_State *__formal) {
   CCharCreateInfo::RandomizeCharCustomization();
   return 0;
 }
 
-static int __fastcall Script_GetCharacterFacing(lua_State *L) {
+static int Script_GetCharacterFacing(lua_State *L) {
   lua_pushnumber(L, CCharCreateInfo::GetCharFacing() * 57.29578f);
   return 1;
 }
 
-static int __fastcall Script_SetCharacterFacing(lua_State *L) {
+static int Script_SetCharacterFacing(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetCharacterFacing(degrees)");
     return 0;
@@ -1063,18 +1063,18 @@ static int __fastcall Script_SetCharacterFacing(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_CreateCharacter(lua_State *L) {
+static int Script_CreateCharacter(lua_State *L) {
   CCharCreateInfo::CreateCharacter(lua_tostring(L, 1));
   return 0;
 }
 
-void __fastcall CharCreateRegisterScriptFunctions() {
+void CharCreateRegisterScriptFunctions() {
   for (uint i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall CharCreateUnregisterScriptFunctions() {
+void CharCreateUnregisterScriptFunctions() {
   for (uint i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

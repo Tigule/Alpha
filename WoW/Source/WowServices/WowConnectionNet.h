@@ -18,7 +18,7 @@ class WowConnectionNet {
     SCritSect         lock;
   };
 
-  WowConnectionNet(int numThreads, void(__fastcall *threadinit)());
+  WowConnectionNet(int numThreads, void(*threadinit)());
   ~WowConnectionNet();
 
   void Start();
@@ -53,7 +53,7 @@ class WowConnectionNet {
   TSExplicitList<WowConnection, 188> m_connections;
   SCritSect                          m_connectionsLock;
   SSemaphore                         m_workerSem;
-  void(__fastcall *m_threadinit)();
+  void(*m_threadinit)();
   void *m_connectionsChangedEvent;
 };
 

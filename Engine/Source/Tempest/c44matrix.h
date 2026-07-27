@@ -11,7 +11,7 @@ namespace NTempest {
 
   class C44Matrix {
    public:
-    static C3Vector __fastcall mul3v33m_(const C3Vector &v, const C44Matrix &m) {
+    static C3Vector mul3v33m_(const C3Vector &v, const C44Matrix &m) {
       return C3Vector(
           v.x * m.a0 + v.y * m.b0 + v.z * m.c0,
           v.x * m.a1 + v.y * m.b1 + v.z * m.c1,
@@ -19,7 +19,7 @@ namespace NTempest {
       );
     }
 
-    static C3Vector __fastcall mul3v33m_(const C44Matrix &m, const C3Vector &v) {
+    static C3Vector mul3v33m_(const C44Matrix &m, const C3Vector &v) {
       return C3Vector(
           m.a0 * v.x + m.a1 * v.y + m.a2 * v.z,
           m.b0 * v.x + m.b1 * v.y + m.b2 * v.z,
@@ -207,7 +207,7 @@ namespace NTempest {
     C44Matrix AffineInverse(float scale) const;
     C44Matrix AffineInverse(const C3Vector &scale) const;
 
-    static C44Matrix __fastcall Rotation(float angle, const C3Vector &axis, unsigned int unit);
+    static C44Matrix Rotation(float angle, const C3Vector &axis, unsigned int unit);
 
     void Translate(const C3Vector &move);
     void Scale(float scale);
@@ -216,28 +216,28 @@ namespace NTempest {
     void Rotate(const C4Quaternion &rotation);
 
    protected:
-    static float __fastcall Det(
+    static float Det(
         float a, float b, float c,
         float d, float e, float f,
         float g, float h, float i
     );
   };
 
-  bool __fastcall         operator==(const C44Matrix &l, const C44Matrix &r);
-  bool __fastcall         operator!=(const C44Matrix &l, const C44Matrix &r);
-  C44Matrix __fastcall    operator+(const C44Matrix &l, const C44Matrix &r);
-  C44Matrix __fastcall    operator+(const C44Matrix &l, float r);
-  C44Matrix __fastcall    operator+(float l, const C44Matrix &r);
-  C44Matrix __fastcall    operator-(const C44Matrix &l, const C44Matrix &r);
-  C44Matrix __fastcall    operator-(const C44Matrix &l, float r);
-  C3Vector __fastcall     operator*(const C3Vector &v, const C44Matrix &r);
-  C3Vector __fastcall     operator*(const C44Matrix &l, const C3Vector &v);
-  C3Vector __fastcall     operator*=(C3Vector &v, const C44Matrix &r);
-  C4Vector __fastcall     operator*(const C4Vector &v, const C44Matrix &r);
-  C4Vector __fastcall     operator*(const C44Matrix &l, const C4Vector &v);
-  C44Matrix __fastcall    operator*(const C44Matrix &l, const C44Matrix &r);
-  C44Matrix __fastcall    operator*(const C44Matrix &l, float r);
-  C44Matrix __fastcall    operator*(float l, const C44Matrix &r);
-  C44Matrix __fastcall    operator/(const C44Matrix &l, float r);
+  bool operator==(const C44Matrix &l, const C44Matrix &r);
+  bool operator!=(const C44Matrix &l, const C44Matrix &r);
+  C44Matrix operator+(const C44Matrix &l, const C44Matrix &r);
+  C44Matrix operator+(const C44Matrix &l, float r);
+  C44Matrix operator+(float l, const C44Matrix &r);
+  C44Matrix operator-(const C44Matrix &l, const C44Matrix &r);
+  C44Matrix operator-(const C44Matrix &l, float r);
+  C3Vector operator*(const C3Vector &v, const C44Matrix &r);
+  C3Vector operator*(const C44Matrix &l, const C3Vector &v);
+  C3Vector operator*=(C3Vector &v, const C44Matrix &r);
+  C4Vector operator*(const C4Vector &v, const C44Matrix &r);
+  C4Vector operator*(const C44Matrix &l, const C4Vector &v);
+  C44Matrix operator*(const C44Matrix &l, const C44Matrix &r);
+  C44Matrix operator*(const C44Matrix &l, float r);
+  C44Matrix operator*(float l, const C44Matrix &r);
+  C44Matrix operator/(const C44Matrix &l, float r);
 
 }  // namespace NTempest

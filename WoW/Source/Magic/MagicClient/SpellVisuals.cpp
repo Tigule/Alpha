@@ -56,11 +56,11 @@ struct BlizzardObject : public TSLinkedNode<BlizzardObject> {
   NTempest::CAaSphere              boundSphere;
   TSList<Shard, TSGetLink<Shard> > shards;
 
-  static int __fastcall  ShardSeqFinished(void *param);
+  static int ShardSeqFinished(void *param);
   static Shard          *AllocShard();
   static void            FreeShard(Shard *&shard);
   void                   UpdateBounds();
-  static void __fastcall WorldObjectRender(void *param, const NTempest::C44Matrix &mtx);
+  static void WorldObjectRender(void *param, const NTempest::C44Matrix &mtx);
   void                   Init(const NTempest::C3Vector &pos, const char *modelName, float pRadius, float pEmissionRate);
   void                   Destroy();
   void                   Update();
@@ -119,13 +119,13 @@ struct FishingLineObject : public TSLinkedNode<FishingLineObject> {
   void RenderLine(NTempest::C3Vector &p0, NTempest::C3Vector &p1, NTempest::CImVector &color);
 };
 
-static void __fastcall         ShardEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
-static void __fastcall         FreeBlizzard(BlizzardObject *bliz);
+static void ShardEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
+static void FreeBlizzard(BlizzardObject *bliz);
 static inline void             RenderFishingLines();
-static unsigned int __fastcall GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos);
-int __fastcall                 GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID);
-void __fastcall                GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position);
-int __fastcall                 Spell_C_GetCastTime(int id, int isPet);
+static unsigned int GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos);
+int GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID);
+void GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position);
+int Spell_C_GetCastTime(int id, int isPet);
 
 TSList<BlizzardObject::Shard, TSGetLink<BlizzardObject::Shard> > BlizzardObject::shardPool;
 
@@ -137,7 +137,7 @@ static TSCArray<float, 201>                                     s_segmentPoints;
 LightningObject::LightningObject() : refCount(1) {
 }
 
-int __fastcall BlizzardObject::ShardSeqFinished(void *param) {
+int BlizzardObject::ShardSeqFinished(void *param) {
   return 0;
 }
 
@@ -157,7 +157,7 @@ void BlizzardObject::FreeShard(Shard *&shard) {
   shard = 0;
 }
 
-void __fastcall BlizzardObject::WorldObjectRender(void *param, const NTempest::C44Matrix &mtx) {
+void BlizzardObject::WorldObjectRender(void *param, const NTempest::C44Matrix &mtx) {
   static_cast<BlizzardObject *>(param)->Render(mtx);
 }
 
@@ -195,7 +195,7 @@ void BlizzardObject::Destroy() {
   shardModel = 0;
 }
 
-static void __fastcall ShardEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void ShardEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
   static unsigned int counter;
 
   ++counter;
@@ -274,7 +274,7 @@ void BlizzardObject::Render(const NTempest::C44Matrix &mtx) {
   }
 }
 
-static unsigned int __fastcall GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos) {
+static unsigned int GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos) {
   FATALASSERT(model);
 
   HMODEL       attached = 0;
@@ -385,7 +385,7 @@ struct SpellCast {
   unsigned short     flags;
 };
 
-static void __fastcall CreateLightningObj(
+static void CreateLightningObj(
     CGUnit_C               *unitPtr,
     const unsigned __int64 *guids,
     int                     numGuids,
@@ -395,7 +395,7 @@ static void __fastcall CreateLightningObj(
     int                     maxObjects
 );
 
-void __fastcall UnitEffectOneShot(
+void UnitEffectOneShot(
     const SpellVisualEffectNameRec *effect,
     CGObject_C                     *object,
     UNITEFFECTATTACHPPOINT          attachPoint,
@@ -403,27 +403,27 @@ void __fastcall UnitEffectOneShot(
     unsigned int                    isCastEffect,
     unsigned int                    forceEffectOnMount
 );
-void __fastcall UnitEffectOneShot(
+void UnitEffectOneShot(
     const SpellVisualEffectNameRec *effect,
     const NTempest::C3Vector &location,
     const TSStackArray<unsigned __int64> *objects,
     float facing,
     float scale
 );
-void __fastcall SpellVisualsProcedure(
+void SpellVisualsProcedure(
     CGUnit_C                       *caster,
     SpellVisualKitRec              *kitRec,
     unsigned int                    spellID,
     TSStackArray<unsigned __int64> *targets,
     TSStackArray<MISS_REASON>      *missReasons
 );
-bool __fastcall IsSpellAura(const SpellRec *rec);
-unsigned int __fastcall Object_C_AnimHasHitEvent(int anim);
-void __fastcall UnitCombatLogSpellMissed(
+bool IsSpellAura(const SpellRec *rec);
+unsigned int Object_C_AnimHasHitEvent(int anim);
+void UnitCombatLogSpellMissed(
     unsigned int reason, unsigned int spellID,
     unsigned __int64 caster, unsigned __int64 target);
-void __fastcall SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
-void __fastcall UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster);
+void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
+void UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster);
 
 void EclipseObject::Update(unsigned int currentTime) {
   if (startTime == endTime) {
@@ -444,7 +444,7 @@ void EclipseObject::Update(unsigned int currentTime) {
   DayNightSetEclipse(color, amount);
 }
 
-static BlizzardObject *__fastcall AllocBlizzard() {
+static BlizzardObject *AllocBlizzard() {
   if (!s_blizzardPool.Head()) {
     s_blizzardPool.NewNode(2, 0, 0);
   }
@@ -454,11 +454,11 @@ static BlizzardObject *__fastcall AllocBlizzard() {
   return bliz;
 }
 
-static void __fastcall FreeBlizzard(BlizzardObject *bliz) {
+static void FreeBlizzard(BlizzardObject *bliz) {
   s_blizzardPool.LinkNode(bliz, 2, 0);
 }
 
-static void __fastcall InitializeAuraNames() {
+static void InitializeAuraNames() {
   int index;
 
   s_auraNames.SetCount(89);
@@ -479,7 +479,7 @@ static void __fastcall InitializeAuraNames() {
   }
 }
 
-void __fastcall PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT attach, int spellID, unsigned int isCastEffect) {
+void PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT attach, int spellID, unsigned int isCastEffect) {
   if (effectID) {
     FATALASSERT(object);
     FATALASSERT(attach < NUM_UNITEFFECT_ATTACHPOINTS);
@@ -488,7 +488,7 @@ void __fastcall PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTAT
   }
 }
 
-static void __fastcall InitializeFishingLineIntervals() {
+static void InitializeFishingLineIntervals() {
   float        current = 0.0f;
   unsigned int index;
 
@@ -498,7 +498,7 @@ static void __fastcall InitializeFishingLineIntervals() {
   }
 }
 
-static void __fastcall InitializeFishingLineIndices() {
+static void InitializeFishingLineIndices() {
   unsigned int index;
 
   for (index = 0; index < s_fishingLineIndices.MaxCount(); ++index) {
@@ -506,7 +506,7 @@ static void __fastcall InitializeFishingLineIndices() {
   }
 }
 
-void __fastcall SpellVisualsInitialize() {
+void SpellVisualsInitialize() {
   TSGrowableArray<int> animCheck;
   int                  i;
   unsigned int         map;
@@ -599,7 +599,7 @@ void __fastcall SpellVisualsInitialize() {
   s_lightningManager = NEW(CLightningManager);
 }
 
-void __fastcall SpellVisualsShutdown() {
+void SpellVisualsShutdown() {
   while (s_lightning.Head()) {
     s_lightning.DeleteNode(s_lightning.Head());
   }
@@ -608,7 +608,7 @@ void __fastcall SpellVisualsShutdown() {
   s_auraNames.Clear();
 }
 
-void __fastcall SpellVisualsPlayCastKit(CGUnit_C *caster, SpellVisualKitRec *kitRec, int spellID, unsigned int isCastEffect) {
+void SpellVisualsPlayCastKit(CGUnit_C *caster, SpellVisualKitRec *kitRec, int spellID, unsigned int isCastEffect) {
   PlayOneShotEffect(caster, kitRec->m_headEffect, UNITEFFECT_ATTACHHEAD, spellID, isCastEffect);
   PlayOneShotEffect(caster, kitRec->m_leftHandEffect, UNITEFFECT_ATTACHLEFTHAND, spellID, isCastEffect);
   PlayOneShotEffect(caster, kitRec->m_rightHandEffect, UNITEFFECT_ATTACHRIGHTHAND, spellID, isCastEffect);
@@ -621,7 +621,7 @@ void __fastcall SpellVisualsPlayCastKit(CGUnit_C *caster, SpellVisualKitRec *kit
   SpellVisualsProcedure(caster, kitRec, spellID, 0, 0);
 }
 
-void __fastcall
+void
 SpellVisualsHandleCastStart(int id, SpellCast &cast, CGUnit_C *caster, unsigned int duration, unsigned int animDuration, unsigned int wasProc) {
   FATALASSERT(caster);
 
@@ -672,7 +672,7 @@ SpellVisualsHandleCastStart(int id, SpellCast &cast, CGUnit_C *caster, unsigned 
   }
 }
 
-void __fastcall SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason) {
+void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason) {
   FATALASSERT(caster);
 
   if (status == 2 && reason == 18) {
@@ -684,7 +684,7 @@ void __fastcall SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned ch
   }
 }
 
-NTempest::C3Vector __fastcall GetSpellChainEffectSource(const CGUnit_C &unit) {
+NTempest::C3Vector GetSpellChainEffectSource(const CGUnit_C &unit) {
   NTempest::C3Vector outVect;
   HMODEL             model = unit.GetCharacterModel(0);
 
@@ -783,7 +783,7 @@ unsigned int LightningObject::Tick(unsigned int currentTime) {
   return forever || currentTime < deathTime;
 }
 
-void __fastcall SpellVisualsProc_Eclipse(CGUnit_C *caster, SpellVisualKitRec *kitRec, unsigned int spellID) {
+void SpellVisualsProc_Eclipse(CGUnit_C *caster, SpellVisualKitRec *kitRec, unsigned int spellID) {
   FATALASSERT(kitRec->m_characterParam[1] >= 0.0f && kitRec->m_characterParam[1] <= 1.0f);
 
   unsigned int duration = Spell_C_GetCastTime(spellID, 0);
@@ -795,7 +795,7 @@ void __fastcall SpellVisualsProc_Eclipse(CGUnit_C *caster, SpellVisualKitRec *ki
   s_eclipseObject.endTime = s_eclipseObject.startTime + duration + 100;
 }
 
-static void __fastcall CreateLightningObj(
+static void CreateLightningObj(
     CGUnit_C               *unitPtr,
     const unsigned __int64 *guids,
     int                     numGuids,
@@ -875,7 +875,7 @@ static void __fastcall CreateLightningObj(
   }
 }
 
-void __fastcall SpellVisualsProcedureDispatch(
+void SpellVisualsProcedureDispatch(
     int                             proc,
     CGUnit_C                       *caster,
     SpellVisualKitRec              *kitRec,
@@ -892,7 +892,7 @@ void __fastcall SpellVisualsProcedureDispatch(
   }
 }
 
-void __fastcall SpellVisualsProcedure(
+void SpellVisualsProcedure(
     CGUnit_C                       *caster,
     SpellVisualKitRec              *kitRec,
     unsigned int                    spellID,
@@ -936,7 +936,7 @@ static void PlayImpactKit(CGUnit_C* target, const SpellVisualKitRec* impactKit) 
   }
 }
 
-unsigned int __fastcall SpellGetRangedPrecastHoldAnim(unsigned int loadAnim) {
+unsigned int SpellGetRangedPrecastHoldAnim(unsigned int loadAnim) {
   return loadAnim < s_precastAnimTransitions.Count() ? s_precastAnimTransitions[loadAnim] : INVALID_ANIMATION;
 }
 
@@ -969,7 +969,7 @@ void SpellVisualsRender() {
   RenderFishingLines();
 }
 
-void __fastcall SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position) {
+void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position) {
   const SpellEffectCameraShakesRec *rec = g_spellEffectCameraShakesDB.GetRecord(shakeID);
   if (!rec) {
     return;
@@ -982,20 +982,20 @@ void __fastcall SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempe
   }
 }
 
-void __fastcall SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects) {
+void SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects) {
   if (unitPtr) {
     const TSGrowableArray<unsigned __int64> &targets = unitPtr->GetSavedChannelSpellTargets();
     CreateLightningObj(unitPtr, targets.Ptr(), targets.Count(), spellID, kitRec, objects, numObjects);
   }
 }
 
-void __fastcall SpellVisualClearLightning(LightningObject *lightning) {
+void SpellVisualClearLightning(LightningObject *lightning) {
   lightning->deathTime = OsGetAsyncTimeMs();
   lightning->forever = 0;
   lightning->DelRef();
 }
 
-BlizzardObject *__fastcall SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec) {
+BlizzardObject *SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec) {
   unsigned int nameSub;
 
   BlizzardObject *blizzard = AllocBlizzard();
@@ -1006,12 +1006,12 @@ BlizzardObject *__fastcall SpellVisualsBlizzardCreate(const NTempest::C3Vector &
   return blizzard;
 }
 
-void __fastcall SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard) {
+void SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard) {
   blizzard->dead = 1;
   blizzard = 0;
 }
 
-FishingLineObject* __fastcall SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec, const unsigned __int64& gameObj, const unsigned __int64& caster) {
+FishingLineObject* SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec, const unsigned __int64& gameObj, const unsigned __int64& caster) {
   if (!kitRec) {
     return 0;
   }
@@ -1036,14 +1036,14 @@ FishingLineObject* __fastcall SpellVisualsFishingLineCreate(const SpellVisualKit
   return object;
 }
 
-void __fastcall SpellVisualsFishingLineDestroy(FishingLineObject* object) {
+void SpellVisualsFishingLineDestroy(FishingLineObject* object) {
   if (object) {
     s_fishingLineObjects.UnlinkNode(object);
     s_freeFishingObjects.PutData(object, 0, 0);
   }
 }
 
-void __fastcall SpellVisualFishingLineSetVisible(FishingLineObject* obj) {
+void SpellVisualFishingLineSetVisible(FishingLineObject* obj) {
   if (obj) {
     obj->visible = 1;
   }
@@ -1060,7 +1060,7 @@ void LightningObject::DelRef() {
   }
 }
 
-bool __fastcall IsShapeshiftSpell(const SpellRec *rec) {
+bool IsShapeshiftSpell(const SpellRec *rec) {
   for (unsigned int effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 6 && (rec->m_effectAura[effect] == 36 || rec->m_effectAura[effect] == 56)) {
       return true;
@@ -1068,7 +1068,7 @@ bool __fastcall IsShapeshiftSpell(const SpellRec *rec) {
   }
   return false;
 }
-void __fastcall SpellVisualsPlayKit(CGUnit_C* target, unsigned int id) {
+void SpellVisualsPlayKit(CGUnit_C* target, unsigned int id) {
   const SpellVisualKitRec *kitRec = g_spellVisualKitDB.GetRecord(id);
   if (kitRec) {
     PlayImpactKit(target, kitRec);
@@ -1163,7 +1163,7 @@ static void PlayCastAnim(
   }
 }
 
-void __fastcall HandleMissileEffects(
+void HandleMissileEffects(
     CGUnit_C *caster,
     const SpellRec *srec,
     const SpellVisualRec *visRec,
@@ -1205,7 +1205,7 @@ void __fastcall HandleMissileEffects(
   }
 }
 
-void __fastcall SpellVisualsHandleSpellStart(
+void SpellVisualsHandleSpellStart(
     int spellID,
     const SpellCast &cast,
     CGGameObject_C *caster,
@@ -1247,7 +1247,7 @@ void __fastcall SpellVisualsHandleSpellStart(
   }
 }
 
-void __fastcall SpellVisualsHandleSpellStartHits(
+void SpellVisualsHandleSpellStartHits(
     int spellID,
     const SpellCast &cast,
     CGUnit_C *caster,
@@ -1308,7 +1308,7 @@ void __fastcall SpellVisualsHandleSpellStartHits(
   }
 }
 
-void __fastcall SpellVisualsHandleSpellStartMisses(
+void SpellVisualsHandleSpellStartMisses(
     int spellID,
     const SpellCast &cast,
     CGUnit_C *caster,
@@ -1392,14 +1392,14 @@ void __fastcall SpellVisualsHandleSpellStartMisses(
   }
 }
 
-const char* __fastcall GetSpellAuraEffectName(int effectID) {
+const char* GetSpellAuraEffectName(int effectID) {
   if (effectID < static_cast<int>(s_auraNames.Count())) {
     return s_auraNames[effectID]->m_name_lang[0];
   }
   return "INVALID_SPELL_AURA_EFFECT";
 }
 
-const char* __fastcall GetSpellAuraEffectToken(int effectID) {
+const char* GetSpellAuraEffectToken(int effectID) {
   if (effectID < static_cast<int>(s_auraNames.Count())) {
     return s_auraNames[effectID]->m_globalstrings_tag;
   }

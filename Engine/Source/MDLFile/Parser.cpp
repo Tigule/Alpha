@@ -3,7 +3,7 @@
 #include "lex.h"
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 }
 
 Parser::Parser(CMDLStatus *status, mdl_scan &scanner)

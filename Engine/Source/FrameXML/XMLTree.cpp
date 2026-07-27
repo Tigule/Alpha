@@ -89,7 +89,7 @@ void __cdecl handle_body(void *userData, const char *body, int length) {
   *output = 0;
 }
 
-XMLTree *__fastcall XMLTree_Load(const char *buffer, unsigned int bytes) {
+XMLTree *XMLTree_Load(const char *buffer, unsigned int bytes) {
   XML_Parser parser = XML_ParserCreate(0);
   XMLTree   *tree;
 
@@ -113,7 +113,7 @@ XMLTree *__fastcall XMLTree_Load(const char *buffer, unsigned int bytes) {
   return tree;
 }
 
-void __fastcall XMLTree_Free(XMLTree *tree) {
+void XMLTree_Free(XMLTree *tree) {
   if (tree->root) {
     DEL(tree->root);
   }
@@ -121,7 +121,7 @@ void __fastcall XMLTree_Free(XMLTree *tree) {
   FREE(tree);
 }
 
-const XMLNode *__fastcall XMLTree_GetRoot(XMLTree *tree) {
+const XMLNode *XMLTree_GetRoot(XMLTree *tree) {
   return tree->root;
 }
 

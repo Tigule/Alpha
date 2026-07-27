@@ -70,7 +70,7 @@ void CDataMgr::Update(float elapsedSec) {
   }
 }
 
-int __fastcall DataMgrGetBool(HDATAMGR__* mgr, unsigned int fieldId) {
+int DataMgrGetBool(HDATAMGR__* mgr, unsigned int fieldId) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   FATALASSERT(mgrPtr);
   FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -87,7 +87,7 @@ int __fastcall DataMgrGetBool(HDATAMGR__* mgr, unsigned int fieldId) {
   return static_cast<TManaged<int> *>(managed)->m_data;
 }
 
-void __fastcall DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, NTempest::CImVector* color) {
+void DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, NTempest::CImVector* color) {
   ASSERT(mgr);
   FATALASSERT(color);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
@@ -106,7 +106,7 @@ void __fastcall DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, NTempest:
   *color = static_cast<TManaged<NTempest::CImVector> *>(managed)->m_data;
 }
 
-void __fastcall DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, C3Color* color) {
+void DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, C3Color* color) {
   ASSERT(mgr);
   FATALASSERT(color);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
@@ -125,7 +125,7 @@ void __fastcall DataMgrGetColor(HDATAMGR__* mgr, unsigned int fieldId, C3Color* 
   *color = static_cast<TManaged<C3Color> *>(managed)->m_data;
 }
 
-void __fastcall DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3Vector *coord) {
+void DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3Vector *coord) {
   ASSERT(mgr);
   ASSERT(coord);
 
@@ -148,7 +148,7 @@ void __fastcall DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3
   *coord = static_cast<TManaged<NTempest::C3Vector> *>(managed)->m_data;
 }
 
-void __fastcall DataMgrGetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, NTempest::C33Matrix* matrix) {
+void DataMgrGetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, NTempest::C33Matrix* matrix) {
   ASSERT(mgr);
   FATALASSERT(matrix);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
@@ -167,7 +167,7 @@ void __fastcall DataMgrGetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, NTemp
   *matrix = static_cast<TManaged<NTempest::C33Matrix> *>(managed)->m_data;
 }
 
-int __fastcall DataMgrGetInt(HDATAMGR__* mgr, unsigned int fieldId) {
+int DataMgrGetInt(HDATAMGR__* mgr, unsigned int fieldId) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   FATALASSERT(mgrPtr);
   FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -184,7 +184,7 @@ int __fastcall DataMgrGetInt(HDATAMGR__* mgr, unsigned int fieldId) {
   return static_cast<TManaged<int> *>(managed)->m_data;
 }
 
-float __fastcall DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId) {
+float DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   FATALASSERT(mgrPtr);
   FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -205,7 +205,7 @@ float __fastcall DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId) {
   return static_cast<TManaged<float> *>(managed)->m_data;
 }
 
-void __fastcall DataMgrGetUpdateInfo(HDATAMGR__* mgr, unsigned int fieldId, UpdateInfo* info) {
+void DataMgrGetUpdateInfo(HDATAMGR__* mgr, unsigned int fieldId, UpdateInfo* info) {
   ASSERT(mgr);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   FATALASSERT(mgrPtr);
@@ -218,7 +218,7 @@ void __fastcall DataMgrGetUpdateInfo(HDATAMGR__* mgr, unsigned int fieldId, Upda
   info->updatePriority = managed->m_updatePriority;
 }
 
-void __fastcall DataMgrSetBool(HDATAMGR__* mgr, unsigned int fieldId, int val) {
+void DataMgrSetBool(HDATAMGR__* mgr, unsigned int fieldId, int val) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -232,7 +232,7 @@ void __fastcall DataMgrSetBool(HDATAMGR__* mgr, unsigned int fieldId, int val) {
   static_cast<TManaged<int> *>(managed)->Set_(val);
 }
 
-void __fastcall DataMgrSetColor(HDATAMGR__* mgr, unsigned int fieldId, const NTempest::CImVector& color) {
+void DataMgrSetColor(HDATAMGR__* mgr, unsigned int fieldId, const NTempest::CImVector& color) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -246,7 +246,7 @@ void __fastcall DataMgrSetColor(HDATAMGR__* mgr, unsigned int fieldId, const NTe
   static_cast<TManaged<NTempest::CImVector> *>(managed)->Set_(color);
 }
 
-void __fastcall DataMgrSetColor(HDATAMGR__* mgr, unsigned int fieldId, const C3Color& color) {
+void DataMgrSetColor(HDATAMGR__* mgr, unsigned int fieldId, const C3Color& color) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -260,7 +260,7 @@ void __fastcall DataMgrSetColor(HDATAMGR__* mgr, unsigned int fieldId, const C3C
   static_cast<TManaged<C3Color> *>(managed)->Set_(color);
 }
 
-void __fastcall DataMgrSetCoord(HDATAMGR mgr, unsigned int fieldId, const NTempest::C3Vector &coord, unsigned int coordFlags) {
+void DataMgrSetCoord(HDATAMGR mgr, unsigned int fieldId, const NTempest::C3Vector &coord, unsigned int coordFlags) {
   NTempest::C3Vector current(0.0f);
   DataMgrGetCoord(mgr, fieldId, &current);
 
@@ -281,7 +281,7 @@ void __fastcall DataMgrSetCoord(HDATAMGR mgr, unsigned int fieldId, const NTempe
   static_cast<TManaged<NTempest::C3Vector> *>(managed)->Set_(setTo);
 }
 
-void __fastcall DataMgrSetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, const NTempest::C33Matrix& matrix) {
+void DataMgrSetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, const NTempest::C33Matrix& matrix) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -295,7 +295,7 @@ void __fastcall DataMgrSetC33Matrix(HDATAMGR__* mgr, unsigned int fieldId, const
   static_cast<TManaged<NTempest::C33Matrix> *>(managed)->Set_(matrix);
 }
 
-void __fastcall DataMgrSetInt(HDATAMGR__* mgr, unsigned int fieldId, int val) {
+void DataMgrSetInt(HDATAMGR__* mgr, unsigned int fieldId, int val) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -309,7 +309,7 @@ void __fastcall DataMgrSetInt(HDATAMGR__* mgr, unsigned int fieldId, int val) {
   static_cast<TManaged<int> *>(managed)->Set_(val);
 }
 
-void __fastcall DataMgrSetFloat(HDATAMGR mgr, unsigned int fieldId, float val) {
+void DataMgrSetFloat(HDATAMGR mgr, unsigned int fieldId, float val) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -325,10 +325,10 @@ void __fastcall DataMgrSetFloat(HDATAMGR mgr, unsigned int fieldId, float val) {
   static_cast<TManaged<float> *>(managed)->Set_(val);
 }
 
-static void __fastcall DataMgrSetFieldUpdate(
+static void DataMgrSetFieldUpdate(
     HDATAMGR mgr,
     unsigned int fieldId,
-    void(__fastcall *updateFcn)(float, void *, void *),
+    void(*updateFcn)(float, void *, void *),
     void *updateData,
     float updatePriority,
     unsigned int typeId
@@ -352,30 +352,30 @@ static void __fastcall DataMgrSetFieldUpdate(
   }
 }
 
-void __fastcall DataMgrSetBoolUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, int *), void *updateData, float updatePriority) {
-  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(__fastcall *)(float, void *, void *)>(updateFcn), updateData, updatePriority, 5);
+void DataMgrSetBoolUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, int *), void *updateData, float updatePriority) {
+  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(*)(float, void *, void *)>(updateFcn), updateData, updatePriority, 5);
 }
 
-void __fastcall DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, NTempest::CImVector *), void *updateData, float updatePriority) {
-  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(__fastcall *)(float, void *, void *)>(updateFcn), updateData, updatePriority, 1);
+void DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, NTempest::CImVector *), void *updateData, float updatePriority) {
+  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(*)(float, void *, void *)>(updateFcn), updateData, updatePriority, 1);
 }
 
-void __fastcall DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, C3Color *), void *updateData, float updatePriority) {
-  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(__fastcall *)(float, void *, void *)>(updateFcn), updateData, updatePriority, 2);
+void DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, C3Color *), void *updateData, float updatePriority) {
+  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(*)(float, void *, void *)>(updateFcn), updateData, updatePriority, 2);
 }
 
-void __fastcall DataMgrSetCoordUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, NTempest::C3Vector *), void *updateData, float updatePriority) {
-  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(__fastcall *)(float, void *, void *)>(updateFcn), updateData, updatePriority, 3);
+void DataMgrSetCoordUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, NTempest::C3Vector *), void *updateData, float updatePriority) {
+  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(*)(float, void *, void *)>(updateFcn), updateData, updatePriority, 3);
 }
 
-void __fastcall DataMgrSetC33MatrixUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, NTempest::C33Matrix *), void *updateData, float updatePriority) {
-  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(__fastcall *)(float, void *, void *)>(updateFcn), updateData, updatePriority, 4);
+void DataMgrSetC33MatrixUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, NTempest::C33Matrix *), void *updateData, float updatePriority) {
+  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(*)(float, void *, void *)>(updateFcn), updateData, updatePriority, 4);
 }
 
-void __fastcall DataMgrSetIntUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, int *), void *updateData, float updatePriority) {
-  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(__fastcall *)(float, void *, void *)>(updateFcn), updateData, updatePriority, 5);
+void DataMgrSetIntUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, int *), void *updateData, float updatePriority) {
+  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(*)(float, void *, void *)>(updateFcn), updateData, updatePriority, 5);
 }
 
-void __fastcall DataMgrSetFloatUpdate(HDATAMGR mgr, unsigned int fieldId, void(__fastcall *updateFcn)(float, void *, float *), void *updateData, float updatePriority) {
-  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(__fastcall *)(float, void *, void *)>(updateFcn), updateData, updatePriority, 6);
+void DataMgrSetFloatUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, float *), void *updateData, float updatePriority) {
+  DataMgrSetFieldUpdate(mgr, fieldId, reinterpret_cast<void(*)(float, void *, void *)>(updateFcn), updateData, updatePriority, 6);
 }

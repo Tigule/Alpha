@@ -91,10 +91,10 @@ namespace NTempest {
     void        SetLineN_(long linen);
 
    protected:
-    static void __fastcall Set32b_(char *c, unsigned char value, unsigned long size);
-    static void __fastcall Set32b_(unsigned long *d, unsigned long c, unsigned long size);
-    static void __fastcall SetM_(char *c, unsigned char value, unsigned long size);
-    static void __fastcall SetM_(unsigned long *d, unsigned long c, unsigned long size);
+    static void Set32b_(char *c, unsigned char value, unsigned long size);
+    static void Set32b_(unsigned long *d, unsigned long c, unsigned long size);
+    static void SetM_(char *c, unsigned char value, unsigned long size);
+    static void SetM_(unsigned long *d, unsigned long c, unsigned long size);
 
     void Constructor_(unsigned long bsize, unsigned long prologue, const char *filen, long linen);
     void Destructor_();

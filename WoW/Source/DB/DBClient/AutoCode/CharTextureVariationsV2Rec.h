@@ -7,7 +7,7 @@ class CharTextureVariationsV2Rec {
   CharTextureVariationsV2Rec();
   ~CharTextureVariationsV2Rec();
 
-  static const char *__fastcall GetFilename();
+  static const char *GetFilename();
 
   static unsigned int GetNumColumns() {
     return 8;

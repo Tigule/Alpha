@@ -36,7 +36,7 @@ class CGContainer_C : public CGItem_C, public CGContainer {
   int                            GetHeight() const;
   int                            SetBlock(unsigned int i, unsigned long data);
   void                           SetData(const void *data, unsigned int bytes);
-  static unsigned int __fastcall OffsetOf(OBJECT_TYPE_ID type);
+  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
   virtual CGBag_C               *GetBag() {
     return &m_bag;
   }

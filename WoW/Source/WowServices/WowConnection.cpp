@@ -15,7 +15,7 @@ const float TWO_PI = PI + PI;
 const float OO_TWO_PI = 1.0f / TWO_PI;
 
 static unsigned int s_destroyed;
-bool(__fastcall *WowConnection::m_verifyAddr)(const NETADDR *);
+bool(*WowConnection::m_verifyAddr)(const NETADDR *);
 static WowConnectionNet *s_network;
 
 class WowConnectionInitializer {
@@ -34,8 +34,8 @@ class WowConnectionInitializer {
     }
   }
 
-  static void __fastcall Initialize();
-  static void __fastcall Destroy();
+  static void Initialize();
+  static void Destroy();
 };
 
 unsigned int                    WowConnectionInitializer::count;
@@ -48,7 +48,7 @@ void WowConnection::CloseSocket(int sock) {
   closesocket(sock);
 }
 
-void __fastcall RegisterSocket(int sock) {
+void RegisterSocket(int sock) {
   (void)sock;
 }
 WowConnection::WowConnection(int sock, sockaddr_in *addr, WowConnectionResponse *response) {
@@ -66,7 +66,7 @@ WowConnection::WowConnection(int sock, sockaddr_in *addr, WowConnectionResponse 
   (void)addr;
 }
 
-WowConnection::WowConnection(WowConnectionResponse *response, void(__fastcall *func)()) {
+WowConnection::WowConnection(WowConnectionResponse *response, void(*func)()) {
   Init(response, func);
 }
 
@@ -109,7 +109,7 @@ int WowConnection::Release() {
   return ref;
 }
 
-void WowConnection::Init(WowConnectionResponse *response, void(__fastcall *func)()) {
+void WowConnection::Init(WowConnectionResponse *response, void(*func)()) {
   m_refCount = 1;
   m_responseRef = 0;
   m_sendDepth = 0;
@@ -785,9 +785,9 @@ char *WowConnection::GetStringAddress(char *buf, int size) {
   return buf;
 }
 
-int __fastcall WowConnection::InitOsNet(
-    bool(__fastcall *verifyAddr)(const NETADDR *),
-    void(__fastcall *threadInit)(),
+int WowConnection::InitOsNet(
+    bool(*verifyAddr)(const NETADDR *),
+    void(*threadInit)(),
     int  numThreads,
     bool useEngine
 ) {
@@ -800,7 +800,7 @@ int __fastcall WowConnection::InitOsNet(
   return 1;
 }
 
-void __fastcall WowConnection::DestroyOsNet() {
+void WowConnection::DestroyOsNet() {
   ASSERT(!s_destroyed);
   s_destroyed = 1;
   s_network->Stop();
@@ -810,14 +810,14 @@ void __fastcall WowConnection::DestroyOsNet() {
   WDataStore::StaticDestroy();
 }
 
-bool __fastcall WowConnection::IsDestroyed() {
+bool WowConnection::IsDestroyed() {
   return s_destroyed != 0;
 }
 
-void __fastcall WowConnectionInitializer::Initialize() {
+void WowConnectionInitializer::Initialize() {
 }
 
-void __fastcall WowConnectionInitializer::Destroy() {
+void WowConnectionInitializer::Destroy() {
 }
 
 void WowConnection::SetResponse(WowConnectionResponse *response) {
@@ -876,14 +876,14 @@ bool WowConnection::GetLocal(NETADDR &addr) {
   return getsockname(m_sock, reinterpret_cast<sockaddr *>(&addr), &size) == 0;
 }
 
-unsigned long __fastcall WowConnection::GetAddr(NETADDR &addr) {
+unsigned long WowConnection::GetAddr(NETADDR &addr) {
   return reinterpret_cast<sockaddr_in *>(&addr)->sin_addr.s_addr;
 }
 
-unsigned short __fastcall WowConnection::GetPort(NETADDR &addr) {
+unsigned short WowConnection::GetPort(NETADDR &addr) {
   return reinterpret_cast<sockaddr_in *>(&addr)->sin_port;
 }
 
-void __fastcall WowConnection::SetPort(NETADDR &addr, unsigned short port) {
+void WowConnection::SetPort(NETADDR &addr, unsigned short port) {
   reinterpret_cast<sockaddr_in *>(&addr)->sin_port = htons(port);
 }

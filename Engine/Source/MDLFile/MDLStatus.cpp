@@ -3,7 +3,7 @@
 #include <storm.h>
 
 namespace MDL {
-  const char *__fastcall TokenText(unsigned int token);
+  const char *TokenText(unsigned int token);
 }
 
 void CMDLStatus::FatalDuplicate(const char *found, int lineno) {

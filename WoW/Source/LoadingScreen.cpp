@@ -49,10 +49,10 @@ static CGxTex              *s_textureHandles[TEXTURETYPES];
 static int                  s_xmlLoaded;
 static bool                 s_loadingScreenEnabled;
 
-static void __fastcall FrameXMLProgressCallback(int loaded, int total);
-static void __fastcall UpdateProgressBar();
-static void __fastcall LoadingScreenPaint(void *param, const RECTF *rect, const RECTF *visibleRect, float alpha);
-static void __fastcall TextureCallback(
+static void FrameXMLProgressCallback(int loaded, int total);
+static void UpdateProgressBar();
+static void LoadingScreenPaint(void *param, const RECTF *rect, const RECTF *visibleRect, float alpha);
+static void TextureCallback(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -63,9 +63,9 @@ static void __fastcall TextureCallback(
     const void  *&texels
 );
 
-void __fastcall DisableLoadingScreen();
+void DisableLoadingScreen();
 
-static void __fastcall UpdateProgress() {
+static void UpdateProgress() {
   float progress = 0.0f;
 
   if (s_xmlTotal) {
@@ -79,7 +79,7 @@ static void __fastcall UpdateProgress() {
   s_progress = min(max(progress, 0.0f), 1.0f);
 }
 
-static void __fastcall UpdateProgressBar() {
+static void UpdateProgressBar() {
   float minX;
   float maxX;
   float minY;
@@ -103,13 +103,13 @@ static void __fastcall UpdateProgressBar() {
   GxScenePresent(3);
 }
 
-static void __fastcall FrameXMLProgressCallback(int loaded, int total) {
+static void FrameXMLProgressCallback(int loaded, int total) {
   s_xmlLoaded = loaded;
   s_xmlTotal = total;
   UpdateProgressBar();
 }
 
-static void __fastcall InitializeProgressBar() {
+static void InitializeProgressBar() {
   s_xmlLoaded = 0;
   s_xmlTotal = 1;
   s_worldLoaded = 0;
@@ -117,15 +117,15 @@ static void __fastcall InitializeProgressBar() {
   FrameXML_RegisterLoadProgressCallback(FrameXMLProgressCallback);
 }
 
-static void __fastcall CleanupProgressBar() {
+static void CleanupProgressBar() {
   FrameXML_RegisterLoadProgressCallback(0);
 }
 
-static int __fastcall EatEvent(const void *data, void *param) {
+static int EatEvent(const void *data, void *param) {
   return 0;
 }
 
-static void __fastcall RegisterHandlers() {
+static void RegisterHandlers() {
   EventRegisterEx(EVENT_ID_CHAR, EatEvent, 0, 8.0f);
   EventRegisterEx(EVENT_ID_KEYDOWN, EatEvent, 0, 8.0f);
   EventRegisterEx(EVENT_ID_KEYUP, EatEvent, 0, 8.0f);
@@ -135,7 +135,7 @@ static void __fastcall RegisterHandlers() {
   EventRegisterEx(EVENT_ID_MOUSEMOVE, EatEvent, 0, 8.0f);
 }
 
-static void __fastcall UnregisterHandlers() {
+static void UnregisterHandlers() {
   EventUnregister(EVENT_ID_CHAR, EatEvent);
   EventUnregister(EVENT_ID_KEYDOWN, EatEvent);
   EventUnregister(EVENT_ID_KEYDOWN_REPEATING, EatEvent);
@@ -145,7 +145,7 @@ static void __fastcall UnregisterHandlers() {
   EventUnregister(EVENT_ID_MOUSEMOVE, EatEvent);
 }
 
-static void __fastcall LoadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
+static void LoadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
   static const NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
   static const NTempest::C2Vector texCoord[4] = {
       NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(1.0f, 0.0f)
@@ -193,7 +193,7 @@ static void __fastcall LoadingScreenPaint(void *, const RECTF *, const RECTF *, 
   GxRsPop();
 }
 
-static void __fastcall TextureCallback(
+static void TextureCallback(
     EGxTexCommand cmd,
     unsigned int  w,
     unsigned int  h,
@@ -226,7 +226,7 @@ static void __fastcall TextureCallback(
   }
 }
 
-static void __fastcall LoadImage(TEXTURETYPE image) {
+static void LoadImage(TEXTURETYPE image) {
   unsigned int width;
   unsigned int height;
   int          isOpaque;
@@ -243,7 +243,7 @@ static void __fastcall LoadImage(TEXTURETYPE image) {
   }
 }
 
-void __fastcall EnableLoadingScreen() {
+void EnableLoadingScreen() {
   RECTF rect;
 
   DisableLoadingScreen();
@@ -262,11 +262,11 @@ void __fastcall EnableLoadingScreen() {
   s_loadingScreenEnabled = true;
 }
 
-bool __fastcall DrawingLoadingScreen() {
+bool DrawingLoadingScreen() {
   return s_loadingScreenEnabled;
 }
 
-void __fastcall DisableLoadingScreen() {
+void DisableLoadingScreen() {
   unsigned int index;
 
   if (!s_loadingScreenEnabled) {
@@ -286,7 +286,7 @@ void __fastcall DisableLoadingScreen() {
   s_loadingScreenEnabled = false;
 }
 
-void __fastcall LoadingScreenRegisterWorldLoaded() {
+void LoadingScreenRegisterWorldLoaded() {
   s_worldLoaded = 1;
   UpdateProgressBar();
 }

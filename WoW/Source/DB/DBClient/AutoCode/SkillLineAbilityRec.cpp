@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SkillLineAbilityRec::GetFilename() {
+const char *SkillLineAbilityRec::GetFilename() {
   return "DBFilesClient\\SkillLineAbility.dbc";
 }
 

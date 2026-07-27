@@ -89,7 +89,7 @@ static unsigned char s_initialized;
 static ASYNCLOADER  s_MID;
 static ASYNCLOADER  s_DLS;
 
-void __fastcall PostLoadCallback(void *userArg);
+void PostLoadCallback(void *userArg);
 
 long __stdcall CMyIStream::Write(const void *, unsigned long, unsigned long *) {
   return E_NOTIMPL;
@@ -158,7 +158,7 @@ long __stdcall CMyLoader::EnumObject(const GUID &, unsigned long, DMUS_OBJECTDES
   return E_NOTIMPL;
 }
 
-static void __fastcall MIDI_CleanupSegment() {
+static void MIDI_CleanupSegment() {
   if (s_dmusicPerformance && s_dmusicSegment) {
     s_dmusicSegment->Unload(s_dmusicPerformance);
 
@@ -172,7 +172,7 @@ static void __fastcall MIDI_CleanupSegment() {
   }
 }
 
-void __fastcall PostLoadCallback(void *userArg) {
+void PostLoadCallback(void *userArg) {
   if (!s_MID.asyncLoader || !s_MID.asyncLoader->isLoaded || !s_DLS.asyncLoader || !s_DLS.asyncLoader->isLoaded) {
     return;
   }
@@ -220,7 +220,7 @@ void __fastcall PostLoadCallback(void *userArg) {
   }
 }
 
-static void __fastcall InitLoader(ASYNCLOADER &loader, const char *fileName) {
+static void InitLoader(ASYNCLOADER &loader, const char *fileName) {
   loader.Clear();
 
   SFile *file = 0;
@@ -244,7 +244,7 @@ static void __fastcall InitLoader(ASYNCLOADER &loader, const char *fileName) {
   }
 }
 
-int __fastcall Sound::MIDI_Initialize() {
+int Sound::MIDI_Initialize() {
   if (CoInitialize(0) == S_OK) {
     s_comInitialized = 1;
   }
@@ -274,7 +274,7 @@ int __fastcall Sound::MIDI_Initialize() {
   return s_initialized;
 }
 
-void __fastcall Sound::MIDI_Shutdown() {
+void Sound::MIDI_Shutdown() {
   MIDI_Stop();
   MIDI_CleanupSegment();
   if (s_dmusicPerformance) {
@@ -289,7 +289,7 @@ void __fastcall Sound::MIDI_Shutdown() {
   s_DLS.Clear();
 }
 
-void __fastcall Sound::MIDI_Play(const char *midiFilename, const char *dlsFilename) {
+void Sound::MIDI_Play(const char *midiFilename, const char *dlsFilename) {
   if (s_initialized && midiFilename && *midiFilename && dlsFilename && *dlsFilename) {
     InitLoader(s_MID, midiFilename);
     InitLoader(s_DLS, dlsFilename);
@@ -297,21 +297,21 @@ void __fastcall Sound::MIDI_Play(const char *midiFilename, const char *dlsFilena
   }
 }
 
-void __fastcall Sound::MIDI_Stop() {
+void Sound::MIDI_Stop() {
   if (s_initialized && s_dmusicSegment) {
     s_dmusicPerformance->StopEx(s_dmusicSegment, 0, 0);
     MIDI_CleanupSegment();
   }
 }
 
-void __fastcall Sound::MIDI_SetVolume(float volume) {
+void Sound::MIDI_SetVolume(float volume) {
   if (s_initialized) {
     ASSERT(volume >= 0.0f && volume <= 1.0f);
     s_dmusicPath->SetVolume(-9600 - static_cast<long>(volume * -9600.0f), 0);
   }
 }
 
-bool __fastcall Sound::MIDI_Playing() {
+bool Sound::MIDI_Playing() {
   return s_dmusicPerformance && s_dmusicPerformance->IsPlaying(0, 0);
 }
 

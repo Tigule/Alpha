@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall CharTextureVariationsV2Rec::GetFilename() {
+const char *CharTextureVariationsV2Rec::GetFilename() {
   return "DBFilesClient\\CharTextureVariationsV2.dbc";
 }
 

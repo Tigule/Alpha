@@ -67,9 +67,9 @@ struct PARTYMEMBERINFO {
   float              rotation;
 };
 
-int __fastcall  MinimapInitialize(int continentID);
-void __fastcall MinimapShutdown();
-int __fastcall  MinimapUpdate(
+int MinimapInitialize(int continentID);
+void MinimapShutdown();
+int MinimapUpdate(
     unsigned long             hWorldObject,
     unsigned int              continent,
     const NTempest::C3Vector &pos,
@@ -78,14 +78,14 @@ int __fastcall  MinimapUpdate(
     QUADDATA                 *quads,
     MinimapTexParams         &mmtp
 );
-void __fastcall                                 MinimapSetZoom(unsigned int zoomFactor);
-unsigned int __fastcall                         MinimapGetZoom();
-unsigned int __fastcall                         MinimapGetZoomLevels();
-float __fastcall                                MinimapGetViewRadius();
-TSGrowableArray<const AreaPOIRec *> &__fastcall MinimapGetPOI(int &updatePOI);
-int __fastcall                                  MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData);
-float __fastcall                                MinimapGetWorldRadius();
-void __fastcall                                 MinimapSetQuestPOI(float x, float y, int priority, const char *name);
-void __fastcall                                 MinimapGetPartyMembers(PARTYMEMBERINFO *array);
+void MinimapSetZoom(unsigned int zoomFactor);
+unsigned int MinimapGetZoom();
+unsigned int MinimapGetZoomLevels();
+float MinimapGetViewRadius();
+TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI);
+int MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData);
+float MinimapGetWorldRadius();
+void MinimapSetQuestPOI(float x, float y, int priority, const char *name);
+void MinimapGetPartyMembers(PARTYMEMBERINFO *array);
 
 #endif

@@ -25,7 +25,7 @@ enum BlitAlpha {
   BlitAlphas_Last = 4
 };
 
-void __fastcall Blit(
+void Blit(
     const NTempest::C2iVector &size,
     BlitAlpha                  alpha,
     const void                *src,
@@ -35,6 +35,6 @@ void __fastcall Blit(
     unsigned int               dstStride,
     BlitFormat                 dstFmt
 );
-unsigned int __fastcall CalcRowStride(BlitFormat format, unsigned int width);
+unsigned int CalcRowStride(BlitFormat format, unsigned int width);
 
 #endif

@@ -3,7 +3,7 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-static int __fastcall CSimpleMessageFrame_AddMessage(lua_State *L) {
+static int CSimpleMessageFrame_AddMessage(lua_State *L) {
   CSimpleMessageFrame *frame = 0;
   if (lua_type(L, 1) == LUA_TTABLE) {
     lua_rawgeti(L, 1, 0);
@@ -53,11 +53,11 @@ static FrameScript_Method SimpleMessageFrameMethods[1] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleMessageFrame::s_scriptMethods;
 
-void __fastcall CSimpleMessageFrame::RegisterScriptMethods() {
+void CSimpleMessageFrame::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(SimpleMessageFrameMethods, 1, s_scriptMethods);
 }
 
-void __fastcall CSimpleMessageFrame::UnregisterScriptMethods() {
+void CSimpleMessageFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 

@@ -6,20 +6,20 @@
 
 #include <stpl.h>
 
-void __fastcall ReadVertices(Parser &, const char *, TSGrowableArray<NTempest::C3Vector> *);
-void __fastcall WriteVertices(
+void ReadVertices(Parser &, const char *, TSGrowableArray<NTempest::C3Vector> *);
+void WriteVertices(
     const TSGrowableArray<NTempest::C3Vector> &, unsigned int, TSGrowableArray<char> &
 );
-void __fastcall WriteBinC3VectorSection(
+void WriteBinC3VectorSection(
     CMsgBuffer &, unsigned long, const TSGrowableArray<NTempest::C3Vector> &
 );
-int __fastcall ReadBinC3VectorSection(
+int ReadBinC3VectorSection(
     CMsgBuffer &, unsigned long, const char *, TSGrowableArray<NTempest::C3Vector> *,
     unsigned int *, CMDLStatus *
 );
 
 namespace MDL {
-const char *__fastcall TokenText(unsigned int token);
+const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
 
 static void ICollisionAddErrors(TSet &errors) {
@@ -78,7 +78,7 @@ static unsigned int GetSectionSize(const MDLCOLLISION &collision) {
       + 2 * collision.triIndices.Count();
 }
 
-int __fastcall ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+int ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   TSet errors;
   ICollisionAddErrors(errors);
   parse.Expect('{');
@@ -104,7 +104,7 @@ int __fastcall ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   return !parse.FoundError();
 }
 
-int __fastcall WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+int WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (data.collision.vertices.Count()) {
     WriteLine(buffer, "%s {\n", TokenText(0x119));
     WriteVertices(data.collision.vertices, 0x1D8, buffer);
@@ -115,7 +115,7 @@ int __fastcall WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer
   return 1;
 }
 
-int __fastcall ReadBinCollision(
+int ReadBinCollision(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -150,7 +150,7 @@ int __fastcall ReadBinCollision(
   return totalRead >= length;
 }
 
-int __fastcall WriteBinCollision(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+int WriteBinCollision(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
   if (data.collision.vertices.Count()) {
     buffer.AddDword('DILC');
     buffer.AddUint(GetSectionSize(data.collision));

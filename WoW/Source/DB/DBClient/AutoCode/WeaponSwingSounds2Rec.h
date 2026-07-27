@@ -7,7 +7,7 @@ class WeaponSwingSounds2Rec {
   WeaponSwingSounds2Rec();
   ~WeaponSwingSounds2Rec();
 
-  static const char *__fastcall GetFilename();
+  static const char *GetFilename();
 
   static unsigned int GetNumColumns() {
     return 4;

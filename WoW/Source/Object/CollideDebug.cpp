@@ -30,7 +30,7 @@ TSGrowableArray<NTempest::CImVector> g_debugVertColors;
 static unsigned __int64              s_currentWatchGUID;
 static int                           s_acceptingFacets;
 
-void __fastcall AddTriangle(
+void AddTriangle(
     const NTempest::CFacet               &face,
     FACET_COLOR                           color,
     TSGrowableArray<NTempest::C3Vector>  *debugVerts,
@@ -56,7 +56,7 @@ void __fastcall AddTriangle(
   (*debugVertColors)[numVerts + 2] = s_facetColor[color];
 }
 
-void __fastcall AddNormalLine(
+void AddNormalLine(
     const NTempest::C3Vector            &normal,
     const NTempest::C3Vector            &position,
     float                                scale,
@@ -75,13 +75,13 @@ void __fastcall AddNormalLine(
   (*debugIndices)[numIndices + 1] = static_cast<unsigned short>(numVerts + 1);
 }
 
-void __fastcall AddNormalLine(const NTempest::CFacet &face) {
+void AddNormalLine(const NTempest::CFacet &face) {
   AddNormalLine(
       face.plane.n, (face.vertices[0] + face.vertices[1] + face.vertices[2]) * 0.33333334f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices
   );
 }
 
-void __fastcall BuildDisplayBox(
+void BuildDisplayBox(
     const NTempest::C3Vector             boxVerts[8],
     const NTempest::C3Vector             boxNormals[6],
     TSGrowableArray<NTempest::C3Vector> *debugVerts,
@@ -137,11 +137,11 @@ void __fastcall BuildDisplayBox(
   }
 }
 
-void __fastcall CollisionInfoSetWatchGUID(const unsigned __int64 &guid) {
+void CollisionInfoSetWatchGUID(const unsigned __int64 &guid) {
   s_currentWatchGUID = guid;
 }
 
-void __fastcall CollisionInfoReset() {
+void CollisionInfoReset() {
   g_debugVerts.SetCount(0);
   g_debugIndices.SetCount(0);
   g_debugVertColors.SetCount(0);
@@ -153,7 +153,7 @@ void __fastcall CollisionInfoReset() {
   g_debugBoxNormals.SetCount(0);
 }
 
-void __fastcall CollisionInfoSetFaces(const unsigned __int64 &guid, const TSGrowableArray<NTempest::CFacet> &faces) {
+void CollisionInfoSetFaces(const unsigned __int64 &guid, const TSGrowableArray<NTempest::CFacet> &faces) {
   unsigned int numFaces;
 
   if (guid != s_currentWatchGUID) {
@@ -177,7 +177,7 @@ void __fastcall CollisionInfoSetFaces(const unsigned __int64 &guid, const TSGrow
   }
 }
 
-void __fastcall CollisionInfoColorFace(unsigned int faceId, FACET_COLOR color) {
+void CollisionInfoColorFace(unsigned int faceId, FACET_COLOR color) {
   if (!s_acceptingFacets || color <= s_debugFacetColors[faceId]) {
     return;
   }
@@ -188,7 +188,7 @@ void __fastcall CollisionInfoColorFace(unsigned int faceId, FACET_COLOR color) {
   g_debugVertColors[faceId * 3 + 2] = s_facetColor[color];
 }
 
-void __fastcall CollisionInfoSetFallBox(const NTempest::C3Vector &position, float boxHalfDepth, float boxHeight) {
+void CollisionInfoSetFallBox(const NTempest::C3Vector &position, float boxHalfDepth, float boxHeight) {
   NTempest::C3Vector   normY[2] = {NTempest::C3Vector(0.0f, -1.0f, 0.0f), NTempest::C3Vector(0.0f, 1.0f, 0.0f)};
   NTempest::C3Vector   normX[2] = {NTempest::C3Vector(-1.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f)};
   const unsigned short boxIndices[42] = {0, 6,  12, 12, 6,  20, 1, 13, 4, 4,  13, 17, 21, 7,  25, 25, 7,  10, 16, 24, 3,
@@ -276,7 +276,7 @@ void __fastcall CollisionInfoSetFallBox(const NTempest::C3Vector &position, floa
   AddNormalLine(normal, start, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
 }
 
-void __fastcall CollisionInfoAddBox(const NTempest::C3Vector &boxMin, const NTempest::C3Vector &boxMax) {
+void CollisionInfoAddBox(const NTempest::C3Vector &boxMin, const NTempest::C3Vector &boxMax) {
   NTempest::C3Vector        boxVerts[8];
   NTempest::C3Vector        boxNormals[6] = {NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(-1.0f, 0.0f, 0.0f),
                                              NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.0f, -1.0f, 0.0f),
@@ -298,7 +298,7 @@ void __fastcall CollisionInfoAddBox(const NTempest::C3Vector &boxMin, const NTem
   BuildDisplayBox(boxVerts, boxNormals, &g_debugBoxVerts, &g_debugBoxNormals, &g_debugBoxIndices, 0);
 }
 
-void __fastcall CollisionInfoAddVector(const NTempest::C3Vector &position, const NTempest::C3Vector &vector) {
+void CollisionInfoAddVector(const NTempest::C3Vector &position, const NTempest::C3Vector &vector) {
   if (s_acceptingFacets) {
     AddNormalLine(vector, position, 0.55555558f, &g_debugNormalVerts, &g_debugNormalIndices);
   }

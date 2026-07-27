@@ -7,7 +7,7 @@ class SoundWaterTypeRec {
   SoundWaterTypeRec();
   ~SoundWaterTypeRec();
 
-  static const char *__fastcall GetFilename();
+  static const char *GetFilename();
 
   static unsigned int GetNumColumns() {
     return 4;

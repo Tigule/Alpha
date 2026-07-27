@@ -7,7 +7,7 @@ class WorldMapAreaRec {
   WorldMapAreaRec();
   ~WorldMapAreaRec();
 
-  static const char *__fastcall GetFilename();
+  static const char *GetFilename();
 
   static unsigned int GetNumColumns() {
     return 8;

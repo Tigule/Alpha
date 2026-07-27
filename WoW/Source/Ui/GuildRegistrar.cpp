@@ -24,13 +24,13 @@ struct PetitionVendorItem {
 
 class CGGuildRegistrar {
  public:
-  static void __fastcall             EnterWorld();
-  static void __fastcall             LeaveWorld();
-  static void __fastcall             SetRegistrar(unsigned __int64 registrar, PetitionVendorItem *petition);
-  static void __fastcall             CloseRegistrar();
-  static unsigned __int64 __fastcall GetRegistrar();
-  static unsigned int __fastcall     GetGuildCharterCost();
-  static void __fastcall             BuyGuildCharter(const char *guildName);
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void SetRegistrar(unsigned __int64 registrar, PetitionVendorItem *petition);
+  static void CloseRegistrar();
+  static unsigned __int64 GetRegistrar();
+  static unsigned int GetGuildCharterCost();
+  static void BuyGuildCharter(const char *guildName);
 
  protected:
   static unsigned __int64   m_registrar;
@@ -40,26 +40,26 @@ class CGGuildRegistrar {
 unsigned __int64   CGGuildRegistrar::m_registrar;
 PetitionVendorItem CGGuildRegistrar::m_petition;
 
-void __fastcall CGGuildRegistrar::EnterWorld() {
+void CGGuildRegistrar::EnterWorld() {
   memset(&m_petition, 0, sizeof(m_petition));
 }
 
-void __fastcall CGGuildRegistrar::LeaveWorld() {
+void CGGuildRegistrar::LeaveWorld() {
   CloseRegistrar();
 }
 
-void __fastcall CGGuildRegistrar::SetRegistrar(unsigned __int64 registrar, PetitionVendorItem *petition) {
+void CGGuildRegistrar::SetRegistrar(unsigned __int64 registrar, PetitionVendorItem *petition) {
   CGGameUI::SetInteractTarget(registrar, 0.0f);
   m_registrar = registrar;
   m_petition = *petition;
   FrameScript_SignalEvent(361);
 }
 
-unsigned __int64 __fastcall CGGuildRegistrar::GetRegistrar() {
+unsigned __int64 CGGuildRegistrar::GetRegistrar() {
   return m_registrar;
 }
 
-void __fastcall CGGuildRegistrar::CloseRegistrar() {
+void CGGuildRegistrar::CloseRegistrar() {
   if (m_registrar) {
     FrameScript_SignalEvent(362);
     CGGameUI::ClearInteractTarget(m_registrar);
@@ -67,11 +67,11 @@ void __fastcall CGGuildRegistrar::CloseRegistrar() {
   }
 }
 
-unsigned int __fastcall CGGuildRegistrar::GetGuildCharterCost() {
+unsigned int CGGuildRegistrar::GetGuildCharterCost() {
   return m_petition.m_price;
 }
 
-void __fastcall CGGuildRegistrar::BuyGuildCharter(const char *guildName) {
+void CGGuildRegistrar::BuyGuildCharter(const char *guildName) {
   if (!guildName || !*guildName || !m_registrar) {
     return;
   }
@@ -84,17 +84,17 @@ void __fastcall CGGuildRegistrar::BuyGuildCharter(const char *guildName) {
   }
 }
 
-static int __fastcall Script_CloseGuildRegistrar(lua_State *__formal) {
+static int Script_CloseGuildRegistrar(lua_State *__formal) {
   CGGuildRegistrar::CloseRegistrar();
   return 0;
 }
 
-static int __fastcall Script_GetGuildCharterCost(lua_State *L) {
+static int Script_GetGuildCharterCost(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGGuildRegistrar::GetGuildCharterCost()));
   return 1;
 }
 
-static int __fastcall Script_BuyGuildCharter(lua_State *L) {
+static int Script_BuyGuildCharter(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: BuyGuildCharter(guildName)");
   }
@@ -108,7 +108,7 @@ static int __fastcall Script_BuyGuildCharter(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_TurnInGuildCharter(lua_State *__formal) {
+static int Script_TurnInGuildCharter(lua_State *__formal) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -117,7 +117,7 @@ static int __fastcall Script_TurnInGuildCharter(lua_State *__formal) {
   return 0;
 }
 
-static int __fastcall Script_GetTabardInfo(lua_State *__formal) {
+static int Script_GetTabardInfo(lua_State *__formal) {
   unsigned __int64 registrar = CGGuildRegistrar::GetRegistrar();
   if (registrar) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -137,13 +137,13 @@ static FrameScript_Method s_ScriptFunctions[5] = {
     {      "GetTabardInfo",       Script_GetTabardInfo}
 };
 
-void __fastcall GuildRegistrarRegisterScriptFunctions() {
+void GuildRegistrarRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 5; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall GuildRegistrarUnregisterScriptFunctions() {
+void GuildRegistrarUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 5; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

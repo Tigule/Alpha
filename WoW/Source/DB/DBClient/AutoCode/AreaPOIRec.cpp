@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall AreaPOIRec::GetFilename() {
+const char *AreaPOIRec::GetFilename() {
   return "DBFilesClient\\AreaPOI.dbc";
 }
 

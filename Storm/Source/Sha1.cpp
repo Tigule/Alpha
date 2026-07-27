@@ -7,39 +7,39 @@ static BYTE pads[64] = {0x80};
 
 namespace Private {
 
-  DWORD __fastcall S(DWORD x, int n) {
+  DWORD S(DWORD x, int n) {
     return _lrotl(x, n);
   }
 
-  void __fastcall R1(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
+  void R1(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
     e += S(a, 5) + ((b & c) | (~b & d)) + w + 0x5A827999;
     b = S(b, 30);
     w = 0;
   }
 
-  void __fastcall R2(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
+  void R2(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
     e += S(a, 5) + (b ^ c ^ d) + w + 0x6ED9EBA1;
     b = S(b, 30);
     w = 0;
   }
 
-  void __fastcall R3(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
+  void R3(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
     e += S(a, 5) + ((b & c) | ((b | c) & d)) + w + 0x8F1BBCDC;
     b = S(b, 30);
     w = 0;
   }
 
-  void __fastcall R4(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
+  void R4(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
     e += S(a, 5) + (b ^ c ^ d) + w + 0xCA62C1D6;
     b = S(b, 30);
     w = 0;
   }
 
-  void __fastcall Load(DWORD &a, const BYTE *const b) {
+  void Load(DWORD &a, const BYTE *const b) {
     a = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
   }
 
-  void __fastcall Save(unsigned __int64 a, BYTE *const b) {
+  void Save(unsigned __int64 a, BYTE *const b) {
     int i;
 
     for (i = 7; i >= 0; i--) {
@@ -48,7 +48,7 @@ namespace Private {
     }
   }
 
-  void __fastcall Save(DWORD a, BYTE *const b) {
+  void Save(DWORD a, BYTE *const b) {
     int i;
 
     for (i = 3; i >= 0; i--) {
@@ -59,7 +59,7 @@ namespace Private {
 
 }  // namespace Private
 
-void __fastcall Sha1::Pump(unsigned long *const hash, const unsigned char *const data) {
+void Sha1::Pump(unsigned long *const hash, const unsigned char *const data) {
   DWORD w[80];
   int   i;
   DWORD a;

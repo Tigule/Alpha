@@ -38,7 +38,7 @@ enum EXECMODE {
   EM_NUM_EXECMODES = 5
 };
 
-typedef int(__fastcall *CONSOLECOMMANDHANDLER)(const char *command, const char *arguments);
+typedef int(*CONSOLECOMMANDHANDLER)(const char *command, const char *arguments);
 
 struct CONSOLECOMMAND : public TSHashObject<CONSOLECOMMAND, HASHKEY_CONSTSTRI> {
   CONSOLECOMMAND() : m_helpText(0) {
@@ -56,18 +56,18 @@ extern char                                           g_commandHistory[32][80];
 extern CONSOLECOMMANDHANDLER                          g_defaultCommand;
 extern TSHashTable<CONSOLECOMMAND, HASHKEY_CONSTSTRI> g_consoleCommandHash;
 
-int __fastcall  AddLineToExecFile(const char *currentLine);
-void __fastcall AddToHistory(const char *command);
+int AddLineToExecFile(const char *currentLine);
+void AddToHistory(const char *command);
 
-CONSOLECOMMAND *__fastcall ParseCommand(const char *commandLine, const char **command, const char **arguments);
+CONSOLECOMMAND *ParseCommand(const char *commandLine, const char **command, const char **arguments);
 
-void __fastcall         ConsoleCommandExecute(const char *commandLine, int addToHistory);
-unsigned int __fastcall ConsoleCommandHistoryDepth();
-const char *__fastcall  ConsoleCommandHistory(unsigned int offset);
-int __fastcall          ConsoleCommandRegister(const char *command, CONSOLECOMMANDHANDLER handler, CATEGORY category, const char *helpText);
-void __fastcall         ConsoleCommandUnregister(const char *command);
-int __fastcall          ConsoleCommandComplete(const char *partial, const char **previous, int direction);
-void __fastcall         ConsoleCommandWriteHelp(const char *cmd);
-void __fastcall         ConsoleCommandRegisterDefault(CONSOLECOMMANDHANDLER handler);
-void __fastcall         ConsoleCommandInitialize();
-void __fastcall         ConsoleCommandDestroy();
+void ConsoleCommandExecute(const char *commandLine, int addToHistory);
+unsigned int ConsoleCommandHistoryDepth();
+const char *ConsoleCommandHistory(unsigned int offset);
+int ConsoleCommandRegister(const char *command, CONSOLECOMMANDHANDLER handler, CATEGORY category, const char *helpText);
+void ConsoleCommandUnregister(const char *command);
+int ConsoleCommandComplete(const char *partial, const char **previous, int direction);
+void ConsoleCommandWriteHelp(const char *cmd);
+void ConsoleCommandRegisterDefault(CONSOLECOMMANDHANDLER handler);
+void ConsoleCommandInitialize();
+void ConsoleCommandDestroy();

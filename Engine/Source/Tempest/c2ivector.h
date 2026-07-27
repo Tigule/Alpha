@@ -35,15 +35,15 @@ namespace NTempest {
       return point;
     }
 
-    static C2iVector __fastcall Min(const C2iVector &a, const C2iVector &b) {
+    static C2iVector Min(const C2iVector &a, const C2iVector &b) {
       return C2iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y);
     }
 
-    static C2iVector __fastcall Max(const C2iVector &a, const C2iVector &b) {
+    static C2iVector Max(const C2iVector &a, const C2iVector &b) {
       return C2iVector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y);
     }
 
-    static long __fastcall Dot(const C2iVector &a, const C2iVector &b) {
+    static long Dot(const C2iVector &a, const C2iVector &b) {
       return a.x * b.x + a.y * b.y;
     }
 

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall ItemVisualEffectsRec::GetFilename() {
+const char *ItemVisualEffectsRec::GetFilename() {
   return "DBFilesClient\\ItemVisualEffects.dbc";
 }
 

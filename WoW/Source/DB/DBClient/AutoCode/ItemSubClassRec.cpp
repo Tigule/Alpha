@@ -2,7 +2,7 @@
 
 #include <Console/ConsoleClient.h>
 
-const char *__fastcall ItemSubClassRec::GetFilename() {
+const char *ItemSubClassRec::GetFilename() {
   return "DBFilesClient\\ItemSubClass.dbc";
 }
 

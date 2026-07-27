@@ -101,14 +101,14 @@ struct CSortableParticleRecord {
   CParticle2 *p;
 };
 
-static void __fastcall AddEmitters2ToScene(CModel *modelptr, CModelShared *shared);
+static void AddEmitters2ToScene(CModel *modelptr, CModelShared *shared);
 
 class CParticleEmitter2 {
   friend class ParticleSystemManager;
-  friend CParticleEmitter2 *__fastcall
+  friend CParticleEmitter2 *
                                    CreateEmitter(unsigned char *emitterData, const MDLTEXTURESECTION *textures, unsigned int flags, CStatus *status);
-  friend unsigned int __fastcall   SetParticleStyle(const unsigned char *emitterData, unsigned int flags, CParticleEmitter2 *emitter);
-  friend unsigned char *__fastcall SetParticleTumble(unsigned char *emitterData, CParticleEmitter2 *emitter);
+  friend unsigned int SetParticleStyle(const unsigned char *emitterData, unsigned int flags, CParticleEmitter2 *emitter);
+  friend unsigned char *SetParticleTumble(unsigned char *emitterData, CParticleEmitter2 *emitter);
 
  public:
   enum PARTICLE_EMITTER_TYPE {
@@ -153,7 +153,7 @@ class CParticleEmitter2 {
   int                    IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx);
   void                   IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf);
   void                   IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf);
-  static void __fastcall BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf);
+  static void BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf);
   void                   RenderParticles();
   int                    RenderParticle(CParticle2_Model &p);
   int                    RenderParticle(CParticle2 &p, const NTempest::C34Matrix &basis, unsigned int headCell, unsigned int tailCell);
@@ -300,7 +300,7 @@ class CParticleEmitter2 {
   void                Update(float elapsedTime, const NTempest::C34Matrix &modelToWorld, const NTempest::C3Vector &cameraWorldPos);
 
  private:
-  friend void __fastcall AddEmitters2ToScene(CModel *modelptr, CModelShared *shared);
+  friend void AddEmitters2ToScene(CModel *modelptr, CModelShared *shared);
 
   void SyncReserve(unsigned int arraySize, unsigned int oldSize, unsigned int oldReserve);
   void SyncAllocation(unsigned int arraySize);

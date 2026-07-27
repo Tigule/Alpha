@@ -28,9 +28,9 @@ enum ACTIVITY {
   ACTIVITIES = 24
 };
 
-void __fastcall  ActivityBegin(ACTIVITY activity);
-void __fastcall  ActivityEnd(ACTIVITY activity);
-float __fastcall ActivityGetTimePercent(ACTIVITY activity);
-float __fastcall ActivityGetCalls(ACTIVITY activity);
-float __fastcall ActivityGetTime(ACTIVITY activity);
-void __fastcall  ActivityResetTimes();
+void ActivityBegin(ACTIVITY activity);
+void ActivityEnd(ACTIVITY activity);
+float ActivityGetTimePercent(ACTIVITY activity);
+float ActivityGetCalls(ACTIVITY activity);
+float ActivityGetTime(ACTIVITY activity);
+void ActivityResetTimes();

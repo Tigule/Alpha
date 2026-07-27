@@ -59,7 +59,7 @@ double logadd_[64] = {
 
 namespace NTempest {
 
-  unsigned long __fastcall CMath::sqrt_(unsigned long a) {
+  unsigned long CMath::sqrt_(unsigned long a) {
     unsigned long estimate;
     if (a <= 0xFF) {
       estimate = a / 12 + 1;
@@ -77,7 +77,7 @@ namespace NTempest {
     return estimate;
   }
 
-  float __fastcall CMath::atanoid_(float x, float piOverTwo) {
+  float CMath::atanoid_(float x, float piOverTwo) {
     bool negative = x < 0.0f;
     if (negative) {
       x = -x;
@@ -96,7 +96,7 @@ namespace NTempest {
     return negative ? -result : result;
   }
 
-  double __fastcall CMath::logoid_(double x, double a, double b, double c, double d, double ln2) {
+  double CMath::logoid_(double x, double a, double b, double c, double d, double ln2) {
     if (x <= 1.0e-307) {
       return -HUGE_VAL;
     }
@@ -106,7 +106,7 @@ namespace NTempest {
     return ((a * x + b) * x * x + x * c + d + exponent) * ln2;
   }
 
-  double __fastcall CMath::logoid2_(double x, double a, double b, double c, double d) {
+  double CMath::logoid2_(double x, double a, double b, double c, double d) {
     if (x <= 1.0e-307) {
       return -HUGE_VAL;
     }
@@ -116,7 +116,7 @@ namespace NTempest {
     return (a * x + b) * x * x + x * c + d + exponent;
   }
 
-  double __fastcall CMath::logoid10_(double x, double a, double b, double c, double d, double ln10) {
+  double CMath::logoid10_(double x, double a, double b, double c, double d, double ln10) {
     if (x <= 1.0e-307) {
       return -HUGE_VAL;
     }
@@ -126,7 +126,7 @@ namespace NTempest {
     return ((a * x + b) * x * x + x * c + d + exponent) * ln10;
   }
 
-  double __fastcall CMath::log2_(double y) {
+  double CMath::log2_(double y) {
     if (y <= 1.0e-307) {
       return -HUGE_VAL;
     }
@@ -143,7 +143,7 @@ namespace NTempest {
            static_cast<long>((high >> 20 & 0x7FF) - 1023) + logadd_[index];
   }
 
-  double __fastcall CMath::exp2_(double x) {
+  double CMath::exp2_(double x) {
     long exponent = static_cast<long>(x + 1023.0) - 1;
     double q = x + 1023.0 - static_cast<double>(exponent);
     unsigned long high = reinterpret_cast<unsigned long *>(&q)[1];
@@ -161,7 +161,7 @@ namespace NTempest {
     return exponent <= 0 ? 0.0 : HUGE_VAL;
   }
 
-  bool __fastcall CMath::xsectunitsphere_(double x, double y, double z, double dx, double dy, double dz, double r2) {
+  bool CMath::xsectunitsphere_(double x, double y, double z, double dx, double dy, double dz, double r2) {
     double distance2 = x * x + y * y + z * z;
     double direction = x * dx + y * dy + z * dz;
     if (distance2 < r2) {
@@ -170,7 +170,7 @@ namespace NTempest {
     return direction <= 0.0 && distance2 - direction * direction < r2;
   }
 
-  bool __fastcall CMath::solvequad_(double a, double b, double c, double &r1, double &r2) {
+  bool CMath::solvequad_(double a, double b, double c, double &r1, double &r2) {
     double discriminant = b * b - 4.0 * a * c;
     if (discriminant <= 0.0) {
       return false;
@@ -190,7 +190,7 @@ namespace NTempest {
     return true;
   }
 
-  bool __fastcall CMath::solvequad_(float a, float b, float c, float &r1, float &r2) {
+  bool CMath::solvequad_(float a, float b, float c, float &r1, float &r2) {
     float discriminant = b * b - 4.0f * a * c;
     if (discriminant <= 0.0f) {
       return false;
@@ -210,25 +210,25 @@ namespace NTempest {
     return true;
   }
 
-  void __fastcall CMath::invertarray_(double *a, unsigned long n) {
+  void CMath::invertarray_(double *a, unsigned long n) {
     for (unsigned long i = 0; i < n; ++i) {
       a[i] = 1.0 / a[i];
     }
   }
 
-  void __fastcall CMath::sqrtarray_(double *a, unsigned long n) {
+  void CMath::sqrtarray_(double *a, unsigned long n) {
     for (unsigned long i = 0; i < n; ++i) {
       a[i] = sqrt_(a[i]);
     }
   }
 
-  void __fastcall CMath::sqrtinvarray_(double *a, unsigned long n) {
+  void CMath::sqrtinvarray_(double *a, unsigned long n) {
     for (unsigned long i = 0; i < n; ++i) {
       a[i] = 1.0 / sqrt_(a[i]);
     }
   }
 
-  double __fastcall CMath::spline_(double x, double *k, unsigned long n) {
+  double CMath::spline_(double x, double *k, unsigned long n) {
     if (n < 4) {
       SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "n >= 4", 0, 1);
     }
@@ -242,7 +242,7 @@ namespace NTempest {
                 k[segment + 2] * 0.5 - k[segment] * 0.5) + k[segment + 1];
   }
 
-  float __fastcall CMath::spline_(float x, float *k, unsigned long n) {
+  float CMath::spline_(float x, float *k, unsigned long n) {
     if (n < 4) {
       SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "n >= 4", 0, 1);
     }

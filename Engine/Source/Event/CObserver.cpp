@@ -90,10 +90,10 @@ static TLockedInstanceAllocator<EventReg>                   s_eventRegAllocator(
 static TLockedInstanceAllocator<EventReg::EVENTCALLBACKREG> s_callbackRegAllocator(0x100);
 static TLockedInstanceAllocator<EventReg::EVENTDISPATCHREG> s_dispatchRegAllocator(0x400);
 
-void __fastcall ObserverInitialize() {
+void ObserverInitialize() {
 }
 
-void __fastcall ObserverDestroy() {
+void ObserverDestroy() {
   s_eventRegAllocator.Clear(typeid(EventReg).raw_name(), SERR_LINECODE_OBJECT);
   s_callbackRegAllocator.Clear(typeid(EventReg::EVENTCALLBACKREG).raw_name(), SERR_LINECODE_OBJECT);
   s_dispatchRegAllocator.Clear(typeid(EventReg::EVENTDISPATCHREG).raw_name(), SERR_LINECODE_OBJECT);

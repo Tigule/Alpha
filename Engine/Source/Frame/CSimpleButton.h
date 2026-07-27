@@ -20,8 +20,8 @@ class CSimpleButton : public CSimpleFrame {
   CSimpleButton(CSimpleFrame *parent);
   virtual ~CSimpleButton();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);

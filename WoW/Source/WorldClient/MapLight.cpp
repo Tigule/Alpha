@@ -21,7 +21,7 @@ unsigned int                       CMapLight::maxLights = 4;
 float                              CMapLight::bucketSize = 33.33f;
 float                              CMapLight::halfBucketSize = 16.665f;
 
-void __fastcall CMap::SetLightFuncs() {
+void CMap::SetLightFuncs() {
   GxuLightFuncsSet(
       CMap::GxuLightInitialize, CMap::GxuLightShutdown, CMap::GxuLightCreate, CMap::GxuLightDestroy, CMap::GxuLightLock, CMap::GxuLightUnlock,
       CMap::GxuLightSelect, CMap::GxuLightEnable, CMap::GxuLightEnableSet, CMap::GxuLightSetMaxLights, CMap::GxuLightBucketSize,
@@ -29,38 +29,38 @@ void __fastcall CMap::SetLightFuncs() {
   );
 }
 
-void __fastcall CMap::GxuLightInitialize() {
+void CMap::GxuLightInitialize() {
 }
 
-void __fastcall CMap::GxuLightShutdown() {
+void CMap::GxuLightShutdown() {
 }
 
-unsigned long __fastcall CMap::GxuLightCreate() {
+unsigned long CMap::GxuLightCreate() {
   return reinterpret_cast<unsigned long>(CreateLight(true));
 }
 
-void __fastcall CMap::GxuLightDestroy(unsigned long lightId) {
+void CMap::GxuLightDestroy(unsigned long lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
   DestroyLight(light);
 }
 
-CGxLight *__fastcall CMap::GxuLightLock(unsigned long lightId) {
+CGxLight *CMap::GxuLightLock(unsigned long lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
   return &light->gxLight;
 }
 
-void __fastcall CMap::GxuLightUnlock(unsigned long lightId) {
+void CMap::GxuLightUnlock(unsigned long lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
   UpdateLight(light);
 }
 
-void __fastcall CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
+void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
   unsigned int whichLight = 0;
 
   oldSelectLightParm = 0;
@@ -88,14 +88,14 @@ void __fastcall CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest
   }
 }
 
-int __fastcall CMap::GxuLightEnable(unsigned long lightId) {
+int CMap::GxuLightEnable(unsigned long lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
   return (light->flags & CMapBaseObj::Flag_Enabled) != 0;
 }
 
-void __fastcall CMap::GxuLightEnableSet(unsigned long lightId, int enable) {
+void CMap::GxuLightEnableSet(unsigned long lightId, int enable) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
@@ -106,17 +106,17 @@ void __fastcall CMap::GxuLightEnableSet(unsigned long lightId, int enable) {
   }
 }
 
-void __fastcall CMap::GxuLightSetMaxLights(unsigned int maxLightsToUse) {
+void CMap::GxuLightSetMaxLights(unsigned int maxLightsToUse) {
 }
 
-float __fastcall CMap::GxuLightBucketSize() {
+float CMap::GxuLightBucketSize() {
   return CMapLight::bucketSize;
 }
 
-void __fastcall CMap::GxuLightBucketSizeSet(float bucketSize) {
+void CMap::GxuLightBucketSizeSet(float bucketSize) {
 }
 
-void __fastcall CMap::GxuLightResetCache() {
+void CMap::GxuLightResetCache() {
 }
 
 CMapLight::CMapLight() {
@@ -128,23 +128,23 @@ CMapLight::~CMapLight() {
   ASSERT(refCount == 0);
 }
 
-void __fastcall CMapLight::CreatePointAtten() {
+void CMapLight::CreatePointAtten() {
   CStatus     lame;
   CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
 
   s_hPointAttenTex = TextureCreate("Textures\\PointAtten.blp", flags, &lame, 0);
 }
 
-void __fastcall CMapLight::DestroyPointAtten() {
+void CMapLight::DestroyPointAtten() {
   HandleClose(s_hPointAttenTex);
   s_hPointAttenTex = 0;
 }
 
-CGxTex *__fastcall CMapLight::GetPointAttenTex() {
+CGxTex *CMapLight::GetPointAttenTex() {
   return TextureGetGxTex(s_hPointAttenTex, 1, 0);
 }
 
-CMapLight *__fastcall CMap::CreateLight(bool dynamic) {
+CMapLight *CMap::CreateLight(bool dynamic) {
   CMapLight *light = AllocLight();
 
   light->pos = NTempest::C3Vector(0.0f);
@@ -160,7 +160,7 @@ CMapLight *__fastcall CMap::CreateLight(bool dynamic) {
   return light;
 }
 
-void __fastcall CMap::DestroyLight(CMapLight *light) {
+void CMap::DestroyLight(CMapLight *light) {
   ASSERT(light);
 
   CMapBaseObjLink *link = light->parentLinkList.Head();
@@ -182,7 +182,7 @@ void __fastcall CMap::DestroyLight(CMapLight *light) {
   FreeLight(light);
 }
 
-void __fastcall CMap::UpdateLight(CMapLight *light) {
+void CMap::UpdateLight(CMapLight *light) {
   ASSERT(light);
 
   if (!light->parentLinkList.Head() && !light->gxLight.m_isOmni) {
@@ -209,7 +209,7 @@ void __fastcall CMap::UpdateLight(CMapLight *light) {
   }
 }
 
-void __fastcall CMap::UpdateLightBounds(CMapLight *light) {
+void CMap::UpdateLightBounds(CMapLight *light) {
   float radius = light->attenEnd;
   if (light->attenDenom == 0.0f) {
     radius = 5.0f;
@@ -227,21 +227,21 @@ void __fastcall CMap::UpdateLightBounds(CMapLight *light) {
   light->aaSphere.c = light->gxLight.m_dir;
 }
 
-void __fastcall CMap::EnableLight(CMapLight *light) {
+void CMap::EnableLight(CMapLight *light) {
   ASSERT(light);
 
   light->flags |= CMapBaseObj::Flag_Enabled;
   light->gxLight.m_enabled = 1;
 }
 
-void __fastcall CMap::DisableLight(CMapLight *light) {
+void CMap::DisableLight(CMapLight *light) {
   ASSERT(light);
 
   light->flags &= ~CMapBaseObj::Flag_Enabled;
   light->gxLight.m_enabled = 0;
 }
 
-void __fastcall CMap::SelectLight(CMapBaseObj *baseObj) {
+void CMap::SelectLight(CMapBaseObj *baseObj) {
   FATALASSERT(baseObj);
   if (baseObj->camDist < CWorld::farFog) {
     oldSelectLightParm = baseObj;
@@ -249,7 +249,7 @@ void __fastcall CMap::SelectLight(CMapBaseObj *baseObj) {
   }
 }
 
-void __fastcall CMap::SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
+void CMap::SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
   CMapBaseObj *baseObj = static_cast<CMapBaseObj *>(parm);
 
   ASSERT(baseObj);
@@ -259,7 +259,7 @@ void __fastcall CMap::SelectLight(void *parm, NTempest::C3Vector worldPos, const
   }
 }
 
-void __fastcall CMap::LinkLightToMapObjDefs(CMapLight *light) {
+void CMap::LinkLightToMapObjDefs(CMapLight *light) {
   ASSERT(light);
 
   NTempest::CAaBox   tBox;
@@ -302,7 +302,7 @@ void __fastcall CMap::LinkLightToMapObjDefs(CMapLight *light) {
   }
 }
 
-void __fastcall CMap::LinkLightToChunks(CMapLight *light) {
+void CMap::LinkLightToChunks(CMapLight *light) {
   ASSERT(light);
 
   NTempest::CRect tLocation(

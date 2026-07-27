@@ -666,8 +666,8 @@ namespace OsNet {
     TCPNET();
     ~TCPNET();
 
-    static int __fastcall  Initialize(unsigned long hints, unsigned long parts);
-    static void __fastcall Destroy(unsigned long parts);
+    static int Initialize(unsigned long hints, unsigned long parts);
+    static void Destroy(unsigned long parts);
 
     void Pump(unsigned long timeout);
     int  TcpListen(unsigned short port, NETEVENTPROC eventProc, void *user);
@@ -700,10 +700,10 @@ namespace OsNet {
     void CompleteAccept(TCPLISTEN *plisten, unsigned int sock, const NETCONNADDR *pconnAddr);
 
    private:
-    static void __fastcall         MakeConnAddr(unsigned int sock, unsigned long port, NETCONNADDR *connAddr);
-    static unsigned int __fastcall CreateListenSocket(unsigned short port);
-    static void *__fastcall        IoCompletionPresent(unsigned long *pumpThreadCount);
-    static void __fastcall         IncludeDependantParts(unsigned long *parts);
+    static void MakeConnAddr(unsigned int sock, unsigned long port, NETCONNADDR *connAddr);
+    static unsigned int CreateListenSocket(unsigned short port);
+    static void *IoCompletionPresent(unsigned long *pumpThreadCount);
+    static void IncludeDependantParts(unsigned long *parts);
 
     int  BaseInitialize(unsigned long hints);
     void BaseDestroy();
@@ -787,10 +787,10 @@ namespace OsNet {
     static HMODULE      s_mswsockModule;
     static HMODULE      s_ws2Module;
 
-    friend void __fastcall ::OsNetPump(unsigned long timeout);
-    friend int __fastcall ::OsTcpListen(unsigned short port, NETEVENTPROC eventProc, void *user);
-    friend void __fastcall ::OsTcpListenEnable(unsigned short port, int enable);
-    friend void __fastcall ::OsTcpConnect(
+    friend void ::OsNetPump(unsigned long timeout);
+    friend int ::OsTcpListen(unsigned short port, NETEVENTPROC eventProc, void *user);
+    friend void ::OsTcpListenEnable(unsigned short port, int enable);
+    friend void ::OsTcpConnect(
         unsigned long  nodeNumber,
         unsigned short port,
         NETEVENTPROC   eventProc,
@@ -798,9 +798,9 @@ namespace OsNet {
         const void    *data,
         unsigned long  bytes
     );
-    friend void __fastcall ::OsUdpConnect(const NETADDR *addr, unsigned short portMin, unsigned short portMax, NETEVENTPROC eventProc, void *user);
-    friend void __fastcall ::OsFileConnCreate(const char *fileName, NETEVENTPROC eventProc, void *user, int readOnly);
-    friend int __fastcall ::OsNetGetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETHOSTADDRPROC hostAddrProc, void *user);
+    friend void ::OsUdpConnect(const NETADDR *addr, unsigned short portMin, unsigned short portMax, NETEVENTPROC eventProc, void *user);
+    friend void ::OsFileConnCreate(const char *fileName, NETEVENTPROC eventProc, void *user, int readOnly);
+    friend int ::OsNetGetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETHOSTADDRPROC hostAddrProc, void *user);
     friend struct LOOPCONN;
     friend class IOFILECONN;
     friend class SLFILECONN;

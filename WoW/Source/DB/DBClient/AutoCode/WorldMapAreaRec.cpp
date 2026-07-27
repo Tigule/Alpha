@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall WorldMapAreaRec::GetFilename() {
+const char *WorldMapAreaRec::GetFilename() {
   return "DBFilesClient\\WorldMapArea.dbc";
 }
 

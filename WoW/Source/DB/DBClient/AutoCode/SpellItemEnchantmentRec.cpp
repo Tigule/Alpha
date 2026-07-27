@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellItemEnchantmentRec::GetFilename() {
+const char *SpellItemEnchantmentRec::GetFilename() {
   return "DBFilesClient\\SpellItemEnchantment.dbc";
 }
 

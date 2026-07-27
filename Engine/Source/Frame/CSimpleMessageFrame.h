@@ -55,8 +55,8 @@ class CSimpleMessageFrame : public CSimpleFrame {
   CSimpleMessageFrame(CSimpleFrame *parent);
   virtual ~CSimpleMessageFrame();
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void AddMessage(const char *text, const NTempest::CImVector &color, float timeVisible, int permanent);

@@ -57,4 +57,4 @@ struct CStatus::STATUSENTRY {
   TSLink<STATUSENTRY> link;
 };
 
-CStatus &__fastcall GetGlobalStatusObj();
+CStatus &GetGlobalStatusObj();

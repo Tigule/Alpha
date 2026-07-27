@@ -12,7 +12,7 @@ static int              s_questQueriesPending;
 static int              s_questRewardQueriesPending;
 static unsigned __int64 s_npcGUID;
 
-static int __fastcall NPCResponseHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int NPCResponseHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned __int64 npcGUID;
   msg->Get(npcGUID);
   if (!npcGUID) {
@@ -32,14 +32,14 @@ static int __fastcall NPCResponseHandler(void *, NETMESSAGE, unsigned long, CDat
   return 0;
 }
 
-void __fastcall NPC_C_Initialize() {
+void NPC_C_Initialize() {
   s_questQueriesPending = 0;
   s_questRewardQueriesPending = 0;
   ClientServices_SetMessageHandler(SMSG_NPC_HYPERTEXT, NPCResponseHandler, 0);
   ClientServices_SetMessageHandler(SMSG_NPC_WONT_TALK, NPCResponseHandler, 0);
 }
 
-void __fastcall NPC_C_Destroy() {
+void NPC_C_Destroy() {
   ClientServices_ClearMessageHandler(SMSG_NPC_HYPERTEXT);
   ClientServices_ClearMessageHandler(SMSG_NPC_WONT_TALK);
 }

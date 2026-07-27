@@ -30,7 +30,7 @@ TSExplicitList<CMapObjDef, 8>                CMap::mapObjDefFreeList;
 TSList<CChunkLayer, TSGetLink<CChunkLayer> > CMap::chunkLayerFreeList;
 TSList<CChunkTex, TSGetLink<CChunkTex> >     CMap::chunkTexFreeList;
 
-CMapObj *__fastcall CMap::AllocMapObj() {
+CMapObj *CMap::AllocMapObj() {
   CMapObj *mapObj = mapObjFreeList.Head();
   if (!mapObj) {
     mapObj = NEWZERO(CMapObj);
@@ -43,7 +43,7 @@ CMapObj *__fastcall CMap::AllocMapObj() {
   return mapObj;
 }
 
-void __fastcall CMap::FreeMapObj(CMapObj *mapObj) {
+void CMap::FreeMapObj(CMapObj *mapObj) {
   ASSERT(mapObj);
 
   mapObj->lameAssLink.Unlink();
@@ -51,7 +51,7 @@ void __fastcall CMap::FreeMapObj(CMapObj *mapObj) {
   mapObjFreeList.LinkNode(mapObj, LIST_TAIL, 0);
 }
 
-CMapObjGroup *__fastcall CMap::AllocMapObjGroup() {
+CMapObjGroup *CMap::AllocMapObjGroup() {
   CMapObjGroup *group = mapObjGroupFreeList.Head();
   if (!group) {
     group = NEWZERO(CMapObjGroup);
@@ -64,7 +64,7 @@ CMapObjGroup *__fastcall CMap::AllocMapObjGroup() {
   return group;
 }
 
-void __fastcall CMap::FreeMapObjGroup(CMapObjGroup *group) {
+void CMap::FreeMapObjGroup(CMapObjGroup *group) {
   ASSERT(group);
 
   group->lameAssLink.Unlink();
@@ -72,7 +72,7 @@ void __fastcall CMap::FreeMapObjGroup(CMapObjGroup *group) {
   mapObjGroupFreeList.LinkNode(group, LIST_TAIL, 0);
 }
 
-CChunkLayer *__fastcall CMap::GetLayer() {
+CChunkLayer *CMap::GetLayer() {
   CChunkLayer *layer = chunkLayerFreeList.Head();
   if (!layer) {
     layer = NEWZERO(CChunkLayer);
@@ -87,7 +87,7 @@ CChunkLayer *__fastcall CMap::GetLayer() {
   return layer;
 }
 
-void __fastcall CMap::FreeLayer(CChunkLayer *layer) {
+void CMap::FreeLayer(CChunkLayer *layer) {
   ASSERT(layer);
 
   layer->Unlink();
@@ -98,7 +98,7 @@ void __fastcall CMap::FreeLayer(CChunkLayer *layer) {
   ++freeCounts[3];
 }
 
-CChunkTex *__fastcall CMap::GetTex() {
+CChunkTex *CMap::GetTex() {
   CChunkTex *tex = chunkTexFreeList.Head();
   if (!tex) {
     tex = NEWZERO(CChunkTex);
@@ -113,7 +113,7 @@ CChunkTex *__fastcall CMap::GetTex() {
   return tex;
 }
 
-void __fastcall CMap::FreeTex(CChunkTex *tex) {
+void CMap::FreeTex(CChunkTex *tex) {
   ASSERT(tex);
 
   tex->Unlink();
@@ -124,7 +124,7 @@ void __fastcall CMap::FreeTex(CChunkTex *tex) {
   ++freeCounts[4];
 }
 
-CMapBaseObjLink *__fastcall CMap::AllocBaseObjLink(CMapBaseObj *owner) {
+CMapBaseObjLink *CMap::AllocBaseObjLink(CMapBaseObj *owner) {
   ASSERT(owner);
 
   CMapBaseObjLink *link = baseObjLinkFreeList.Head();
@@ -146,7 +146,7 @@ CMapBaseObjLink *__fastcall CMap::AllocBaseObjLink(CMapBaseObj *owner) {
   return link;
 }
 
-void __fastcall CMap::FreeBaseObjLink(CMapBaseObjLink *link) {
+void CMap::FreeBaseObjLink(CMapBaseObjLink *link) {
   ASSERT(link);
 
   link->ownerLink.Unlink();
@@ -163,7 +163,7 @@ void __fastcall CMap::FreeBaseObjLink(CMapBaseObjLink *link) {
   ++freeCounts[9];
 }
 
-CMapArea *__fastcall CMap::AllocArea() {
+CMapArea *CMap::AllocArea() {
   CMapArea *area = areaFreeList.Head();
   if (!area) {
     area = NEWZERO(CMapArea);
@@ -180,7 +180,7 @@ CMapArea *__fastcall CMap::AllocArea() {
   return area;
 }
 
-void __fastcall CMap::FreeArea(CMapArea *area) {
+void CMap::FreeArea(CMapArea *area) {
   FATALASSERT(area);
   FATALASSERT(area->parentLinkList.Head() == 0);
   FATALASSERT(area->chunkLinkList.Head() == 0);
@@ -193,7 +193,7 @@ void __fastcall CMap::FreeArea(CMapArea *area) {
   ++freeCounts[0];
 }
 
-CMapChunk *__fastcall CMap::AllocChunk() {
+CMapChunk *CMap::AllocChunk() {
   CMapChunk *chunk = chunkFreeList.Head();
   if (!chunk) {
     chunk = NEWZERO(CMapChunk);
@@ -210,7 +210,7 @@ CMapChunk *__fastcall CMap::AllocChunk() {
   return chunk;
 }
 
-void __fastcall CMap::FreeChunk(CMapChunk *chunk) {
+void CMap::FreeChunk(CMapChunk *chunk) {
   FATALASSERT(chunk);
   FATALASSERT(chunk->parentLinkList.Head() == 0);
   FATALASSERT(chunk->doodadDefLinkList.Head() == 0);
@@ -228,7 +228,7 @@ void __fastcall CMap::FreeChunk(CMapChunk *chunk) {
   ++freeCounts[2];
 }
 
-CMapDoodadDef *__fastcall CMap::AllocDoodadDef() {
+CMapDoodadDef *CMap::AllocDoodadDef() {
   CMapDoodadDef *doodadDef = doodadDefFreeList.Head();
   if (!doodadDef) {
     doodadDef = NEWZERO(CMapDoodadDef);
@@ -246,7 +246,7 @@ CMapDoodadDef *__fastcall CMap::AllocDoodadDef() {
   return doodadDef;
 }
 
-void __fastcall CMap::FreeDoodadDef(CMapDoodadDef *doodadDef) {
+void CMap::FreeDoodadDef(CMapDoodadDef *doodadDef) {
   FATALASSERT(doodadDef);
 
   if (doodadDef->doodadSoundHandle) {
@@ -266,7 +266,7 @@ void __fastcall CMap::FreeDoodadDef(CMapDoodadDef *doodadDef) {
   ++freeCounts[1];
 }
 
-CMapEntity *__fastcall CMap::AllocEntity() {
+CMapEntity *CMap::AllocEntity() {
   CMapEntity *entity = entityFreeList.Head();
   if (!entity) {
     entity = NEWZERO(CMapEntity);
@@ -283,7 +283,7 @@ CMapEntity *__fastcall CMap::AllocEntity() {
   return entity;
 }
 
-void __fastcall CMap::FreeEntity(CMapEntity *entity) {
+void CMap::FreeEntity(CMapEntity *entity) {
   FATALASSERT(entity);
   FATALASSERT(entity->parentLinkList.Head() == 0);
 
@@ -294,7 +294,7 @@ void __fastcall CMap::FreeEntity(CMapEntity *entity) {
   ++freeCounts[7];
 }
 
-CMapLight *__fastcall CMap::AllocLight() {
+CMapLight *CMap::AllocLight() {
   CMapLight *light = lightFreeList.Head();
   if (!light) {
     light = NEWZERO(CMapLight);
@@ -311,7 +311,7 @@ CMapLight *__fastcall CMap::AllocLight() {
   return light;
 }
 
-void __fastcall CMap::FreeLight(CMapLight *light) {
+void CMap::FreeLight(CMapLight *light) {
   ASSERT(light);
   ASSERT(light->parentLinkList.Head() == 0);
 
@@ -322,7 +322,7 @@ void __fastcall CMap::FreeLight(CMapLight *light) {
   ++freeCounts[8];
 }
 
-CMapCacheLight *__fastcall CMap::AllocCacheLight() {
+CMapCacheLight *CMap::AllocCacheLight() {
   CMapCacheLight *cacheLight = cacheLightFreeList.Head();
   if (!cacheLight) {
     cacheLight = NEWZERO(CMapCacheLight);
@@ -338,7 +338,7 @@ CMapCacheLight *__fastcall CMap::AllocCacheLight() {
   return cacheLight;
 }
 
-void __fastcall CMap::FreeCacheLight(CMapCacheLight *cacheLight) {
+void CMap::FreeCacheLight(CMapCacheLight *cacheLight) {
   ASSERT(cacheLight);
 
   cacheLight->lameAssLink.Unlink();
@@ -348,7 +348,7 @@ void __fastcall CMap::FreeCacheLight(CMapCacheLight *cacheLight) {
   ++freeCounts[10];
 }
 
-CMapObjDefGroup *__fastcall CMap::AllocMapObjDefGroup() {
+CMapObjDefGroup *CMap::AllocMapObjDefGroup() {
   CMapObjDefGroup *mapObjDefGroup = mapObjDefGroupFreeList.Head();
   if (!mapObjDefGroup) {
     mapObjDefGroup = NEWZERO(CMapObjDefGroup);
@@ -365,7 +365,7 @@ CMapObjDefGroup *__fastcall CMap::AllocMapObjDefGroup() {
   return mapObjDefGroup;
 }
 
-void __fastcall CMap::FreeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
+void CMap::FreeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
   FATALASSERT(mapObjDefGroup);
   FATALASSERT(mapObjDefGroup->parentLinkList.Head() == 0);
   FATALASSERT(mapObjDefGroup->doodadDefLinkList.Head() == 0);
@@ -379,7 +379,7 @@ void __fastcall CMap::FreeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
   ++freeCounts[6];
 }
 
-CMapObjDef *__fastcall CMap::AllocMapObjDef() {
+CMapObjDef *CMap::AllocMapObjDef() {
   CMapObjDef *mapObjDef = mapObjDefFreeList.Head();
   if (!mapObjDef) {
     mapObjDef = NEWZERO(CMapObjDef);
@@ -395,7 +395,7 @@ CMapObjDef *__fastcall CMap::AllocMapObjDef() {
   return mapObjDef;
 }
 
-void __fastcall CMap::FreeMapObjDef(CMapObjDef *mapObjDef) {
+void CMap::FreeMapObjDef(CMapObjDef *mapObjDef) {
   FATALASSERT(mapObjDef);
   FATALASSERT(mapObjDef->parentLinkList.Head() == 0);
   FATALASSERT(mapObjDef->groupLinkList.Head() == 0);
@@ -410,7 +410,7 @@ void __fastcall CMap::FreeMapObjDef(CMapObjDef *mapObjDef) {
   ++freeCounts[5];
 }
 
-CChunkLiquid *__fastcall CMap::AllocChunkLiquid() {
+CChunkLiquid *CMap::AllocChunkLiquid() {
   CChunkLiquid *liquid = chunkLiquidFreeList.Head();
   if (!liquid) {
     liquid = NEWZERO(CChunkLiquid);
@@ -422,7 +422,7 @@ CChunkLiquid *__fastcall CMap::AllocChunkLiquid() {
   return liquid;
 }
 
-void __fastcall CMap::FreeChunkLiquid(CChunkLiquid *&cl) {
+void CMap::FreeChunkLiquid(CChunkLiquid *&cl) {
   FATALASSERT(cl);
 
   chunkLiquidList.UnlinkNode(cl);
@@ -430,7 +430,7 @@ void __fastcall CMap::FreeChunkLiquid(CChunkLiquid *&cl) {
   cl = 0;
 }
 
-CMapSoundEmitter *__fastcall CMap::AllocSoundEmitter() {
+CMapSoundEmitter *CMap::AllocSoundEmitter() {
   CMapSoundEmitter *soundEmitter = soundEmitterFreeList.Head();
   if (!soundEmitter) {
     soundEmitter = NEWZERO(CMapSoundEmitter);
@@ -442,7 +442,7 @@ CMapSoundEmitter *__fastcall CMap::AllocSoundEmitter() {
   return soundEmitter;
 }
 
-void __fastcall CMap::FreeSoundEmitter(CMapSoundEmitter *soundEmitter) {
+void CMap::FreeSoundEmitter(CMapSoundEmitter *soundEmitter) {
   FATALASSERT(soundEmitter);
 
   soundEmitterFreeList.UnlinkNode(soundEmitter);

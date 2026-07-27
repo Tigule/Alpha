@@ -25,12 +25,12 @@ enum TAXNODE_TYPE {
   TAXNODE_DISTANT = 3
 };
 
-void __fastcall            TaxiMapInitialize();
-void __fastcall            TaxiMapShutdown();
-HTEXTURE __fastcall        TaxiMapGetTexture();
-int __fastcall             TaxiMapUpdatePosition(int currentTaxiNode, __int64 reachable, __int64 known, NTempest::CRect &rect);
-unsigned int __fastcall    TaxiNodeCost(unsigned int srcNode, unsigned int dstNode);
-NTempest::CRect __fastcall TaxiMapGetRect();
-TAXNODE_TYPE __fastcall    TaxiNodeGetNodeType(int nodeID);
-HMODEL __fastcall          TaxiGetRouteModel(float width, float height);
-unsigned int __fastcall    TaxiRouteExists(int fromNode, int toNode);
+void TaxiMapInitialize();
+void TaxiMapShutdown();
+HTEXTURE TaxiMapGetTexture();
+int TaxiMapUpdatePosition(int currentTaxiNode, __int64 reachable, __int64 known, NTempest::CRect &rect);
+unsigned int TaxiNodeCost(unsigned int srcNode, unsigned int dstNode);
+NTempest::CRect TaxiMapGetRect();
+TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID);
+HMODEL TaxiGetRouteModel(float width, float height);
+unsigned int TaxiRouteExists(int fromNode, int toNode);

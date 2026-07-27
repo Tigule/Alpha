@@ -12,12 +12,12 @@ class CGTabardModelFrame : public CGCharacterModelBase {
  public:
   virtual ~CGTabardModelFrame();
 
-  static CSimpleFrame *__fastcall Create(CSimpleFrame *parent) {
+  static CSimpleFrame *Create(CSimpleFrame *parent) {
     return NEW(CGTabardModelFrame)(parent);
   }
 
-  static void __fastcall RegisterScriptMethods();
-  static void __fastcall UnregisterScriptMethods();
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
   void SaveTabard();
   int  CanSaveTabard();

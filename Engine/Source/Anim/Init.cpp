@@ -1,9 +1,9 @@
 #include "MDLFile/MDLTypes.h"
 #include "Anim/AnimInternal.h"
 
-unsigned char *__fastcall MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
-static unsigned int __fastcall SetTransformationFlags(CAnimObj *currobj) {
+static unsigned int SetTransformationFlags(CAnimObj *currobj) {
   unsigned int flags = 0;
   if (currobj->translation.TotalKeys()) {
     flags |= 1;
@@ -17,7 +17,7 @@ static unsigned int __fastcall SetTransformationFlags(CAnimObj *currobj) {
   return flags;
 }
 
-static void __fastcall ValidateInheritanceFlags(CAnimData *animptr, CAnimObj *currobj, unsigned int parentFlags) {
+static void ValidateInheritanceFlags(CAnimData *animptr, CAnimObj *currobj, unsigned int parentFlags) {
   ASSERT(animptr);
   ASSERT(currobj);
 
@@ -47,7 +47,7 @@ static void __fastcall ValidateInheritanceFlags(CAnimData *animptr, CAnimObj *cu
   }
 }
 
-static void __fastcall ResolveStatusPtrs(CAnim *unique, CAnimData *shared) {
+static void ResolveStatusPtrs(CAnim *unique, CAnimData *shared) {
   unsigned int numObjects = shared->obj.Count();
   for (unsigned int index = 0; index < numObjects; ++index) {
     CAnimObj *object = shared->obj[index];
@@ -81,7 +81,7 @@ static void __fastcall ResolveStatusPtrs(CAnim *unique, CAnimData *shared) {
   }
 }
 
-CAnimObj *__fastcall AnimObjectCreateHelper(CAnimData *shared) {
+CAnimObj *AnimObjectCreateHelper(CAnimData *shared) {
   ASSERT(shared);
   unsigned int index = shared->baseObjs.m_count++;
   CAnimObj    *newobj = &shared->baseObjs.m_data[index];
@@ -90,7 +90,7 @@ CAnimObj *__fastcall AnimObjectCreateHelper(CAnimData *shared) {
   return newobj;
 }
 
-CAnimLightObj *__fastcall AnimObjectCreateLight(CAnimData *shared) {
+CAnimLightObj *AnimObjectCreateLight(CAnimData *shared) {
   ASSERT(shared);
   unsigned int   index = shared->lightObjs.m_count++;
   CAnimLightObj *newobj = &shared->lightObjs.m_data[index];
@@ -99,7 +99,7 @@ CAnimLightObj *__fastcall AnimObjectCreateLight(CAnimData *shared) {
   return newobj;
 }
 
-CAnimModelObj *__fastcall AnimObjectCreateAttachment(CAnimData *shared) {
+CAnimModelObj *AnimObjectCreateAttachment(CAnimData *shared) {
   ASSERT(shared);
   unsigned int   index = shared->modelObjs.m_count++;
   CAnimModelObj *newobj = &shared->modelObjs.m_data[index];
@@ -108,7 +108,7 @@ CAnimModelObj *__fastcall AnimObjectCreateAttachment(CAnimData *shared) {
   return newobj;
 }
 
-CAnimBoneObj *__fastcall AnimObjectCreateBone(CAnimData *shared) {
+CAnimBoneObj *AnimObjectCreateBone(CAnimData *shared) {
   ASSERT(shared);
   unsigned int  index = shared->boneObjs.m_count++;
   CAnimBoneObj *newobj = &shared->boneObjs.m_data[index];
@@ -117,7 +117,7 @@ CAnimBoneObj *__fastcall AnimObjectCreateBone(CAnimData *shared) {
   return newobj;
 }
 
-CAnimEmitter2Obj *__fastcall AnimObjectCreateEmitter2(CAnimData *shared) {
+CAnimEmitter2Obj *AnimObjectCreateEmitter2(CAnimData *shared) {
   ASSERT(shared);
   unsigned int      index = shared->emitter2Objs.m_count++;
   CAnimEmitter2Obj *newobj = &shared->emitter2Objs.m_data[index];
@@ -126,7 +126,7 @@ CAnimEmitter2Obj *__fastcall AnimObjectCreateEmitter2(CAnimData *shared) {
   return newobj;
 }
 
-CAnimRibbonObj *__fastcall AnimObjectCreateRibbon(CAnimData *shared) {
+CAnimRibbonObj *AnimObjectCreateRibbon(CAnimData *shared) {
   ASSERT(shared);
   unsigned int    index = shared->ribbonObjs.m_count++;
   CAnimRibbonObj *newobj = &shared->ribbonObjs.m_data[index];
@@ -135,7 +135,7 @@ CAnimRibbonObj *__fastcall AnimObjectCreateRibbon(CAnimData *shared) {
   return newobj;
 }
 
-CAnimEventObj *__fastcall AnimObjectCreateEvent(CAnimData *shared) {
+CAnimEventObj *AnimObjectCreateEvent(CAnimData *shared) {
   ASSERT(shared);
   unsigned int   index = shared->eventObjs.m_count++;
   CAnimEventObj *newobj = &shared->eventObjs.m_data[index];
@@ -144,7 +144,7 @@ CAnimEventObj *__fastcall AnimObjectCreateEvent(CAnimData *shared) {
   return newobj;
 }
 
-void __fastcall AnimObjectSetIndex(CAnimData *shared, CAnimObj *objptr, unsigned int index) {
+void AnimObjectSetIndex(CAnimData *shared, CAnimObj *objptr, unsigned int index) {
   ASSERT(shared);
   ASSERT(objptr);
   if (index >= shared->obj.Count()) {
@@ -157,13 +157,13 @@ void __fastcall AnimObjectSetIndex(CAnimData *shared, CAnimObj *objptr, unsigned
   shared->obj[index] = objptr;
 }
 
-CAnimObj *__fastcall GetNodeByIndex(CAnimData *shared, unsigned int nodeIndex) {
+CAnimObj *GetNodeByIndex(CAnimData *shared, unsigned int nodeIndex) {
   ASSERT(shared);
   ASSERT(nodeIndex < shared->obj.Count());
   return shared->obj[nodeIndex];
 }
 
-int __fastcall AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, unsigned int parentIndex) {
+int AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, unsigned int parentIndex) {
   ASSERT(shared);
   ASSERT(objptr);
   if (parentIndex == static_cast<unsigned int>(-1)) {
@@ -179,7 +179,7 @@ int __fastcall AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, unsigned
   return 1;
 }
 
-static KEYTYPE __fastcall GetTrackType(unsigned int mdlTrackType, MDLTRACKTYPE forceType) {
+static KEYTYPE GetTrackType(unsigned int mdlTrackType, MDLTRACKTYPE forceType) {
   ASSERT(mdlTrackType < NUM_TRACK_TYPES);
   if (forceType != NUM_TRACK_TYPES) {
     if (forceType == TRACK_DONT_INTERP) {
@@ -203,7 +203,7 @@ static KEYTYPE __fastcall GetTrackType(unsigned int mdlTrackType, MDLTRACKTYPE f
   return KEY_DONT_INTERP;
 }
 
-void __fastcall AddKeyFrames(
+void AddKeyFrames(
     CAnimData *shared,
     const MDLKEYTRACK<NTempest::C3Vector> &keyTrack,
     CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector> *interp,
@@ -234,7 +234,7 @@ void __fastcall AddKeyFrames(
   interp->SetSequenceIndices(shared->seq);
 }
 
-void __fastcall AddKeyFrames(
+void AddKeyFrames(
     CAnimData *shared,
     const MDLKEYTRACK<C3Color> &keyTrack,
     CKeyFrameTrack<C3Color, C3Color> *interp,
@@ -265,7 +265,7 @@ void __fastcall AddKeyFrames(
   interp->SetSequenceIndices(shared->seq);
 }
 
-void __fastcall AnimObjectSetVisibilityTrack(
+void AnimObjectSetVisibilityTrack(
     CAnimData *shared,
     CAnimVisibleObj *objptr,
     const MDLKEYTRACK<float> &keyTrack,
@@ -299,7 +299,7 @@ void __fastcall AnimObjectSetVisibilityTrack(
   interp.SetSequenceIndices(shared->seq);
 }
 
-void __fastcall AnimObjectSetTranslation(
+void AnimObjectSetTranslation(
     CAnimData *shared,
     CAnimObj *objptr,
     const MDLKEYTRACK<NTempest::C3Vector> &keyTrack,
@@ -310,7 +310,7 @@ void __fastcall AnimObjectSetTranslation(
   AddKeyFrames(shared, keyTrack, &objptr->translation, forceType);
 }
 
-void __fastcall AnimObjectSetRotation(
+void AnimObjectSetRotation(
     CAnimData *shared,
     CAnimObj *objptr,
     const MDLKEYTRACK<NTempest::C4Quaternion> &keyTrack,
@@ -346,7 +346,7 @@ void __fastcall AnimObjectSetRotation(
   interp.SetSequenceIndices(shared->seq);
 }
 
-void __fastcall AnimObjectSetScaling(
+void AnimObjectSetScaling(
     CAnimData *shared,
     CAnimObj *objptr,
     const MDLKEYTRACK<NTempest::C3Vector> &keyTrack,
@@ -384,7 +384,7 @@ void __fastcall AnimObjectSetScaling(
     interp.SetSequenceIndices(shared->seq);                                                                                             \
   }
 
-void __fastcall AnimObjectSetAttenuation(
+void AnimObjectSetAttenuation(
     CAnimData *shared,
     CAnimLightObj *objptr,
     const MDLKEYTRACK<float> &startTrack,
@@ -401,24 +401,24 @@ void __fastcall AnimObjectSetAttenuation(
   }
 }
 
-void __fastcall AnimObjectSetColor(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<C3Color> &keyTrack, MDLTRACKTYPE forceType) {
+void AnimObjectSetColor(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<C3Color> &keyTrack, MDLTRACKTYPE forceType) {
   AddKeyFrames(shared, keyTrack, &objptr->color, forceType);
 }
 
-void __fastcall AnimObjectSetIntensity(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+void AnimObjectSetIntensity(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
   SET_MDL_FLOAT_TRACK(intensity);
 }
 
-void __fastcall AnimObjectSetAmbColor(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<C3Color> &keyTrack, MDLTRACKTYPE forceType) {
+void AnimObjectSetAmbColor(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<C3Color> &keyTrack, MDLTRACKTYPE forceType) {
   AddKeyFrames(shared, keyTrack, &objptr->ambColor, forceType);
 }
 
-void __fastcall AnimObjectSetAmbIntensity(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+void AnimObjectSetAmbIntensity(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
   SET_MDL_FLOAT_TRACK(ambIntensity);
 }
 
 #define DEFINE_EMITTER_FLOAT_SETTER(functionName, trackMember)                                                                           \
-  void __fastcall functionName(                                                                                                          \
+  void functionName(                                                                                                          \
       CAnimData *shared, CAnimEmitter2Obj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType                            \
   ) {                                                                                                                                     \
     SET_MDL_FLOAT_TRACK(trackMember);                                                                                                     \
@@ -438,7 +438,7 @@ DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetParticleLifeSpan2, lifeSpan)
 #undef DEFINE_EMITTER_FLOAT_SETTER
 
 #define DEFINE_RIBBON_FLOAT_SETTER(functionName, trackMember)                                                                            \
-  void __fastcall functionName(                                                                                                          \
+  void functionName(                                                                                                          \
       CAnimData *shared, CAnimRibbonObj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType                              \
   ) {                                                                                                                                     \
     SET_MDL_FLOAT_TRACK(trackMember);                                                                                                     \
@@ -450,7 +450,7 @@ DEFINE_RIBBON_FLOAT_SETTER(AnimObjectSetRibbonAlpha, alpha)
 
 #undef DEFINE_RIBBON_FLOAT_SETTER
 
-void __fastcall AnimObjectSetRibbonColor(
+void AnimObjectSetRibbonColor(
     CAnimData *shared,
     CAnimRibbonObj *objptr,
     const MDLKEYTRACK<C3Color> &keyTrack,
@@ -459,7 +459,7 @@ void __fastcall AnimObjectSetRibbonColor(
   AddKeyFrames(shared, keyTrack, &objptr->color, forceType);
 }
 
-void __fastcall AnimObjectSetRibbonSlot(
+void AnimObjectSetRibbonSlot(
     CAnimData *shared,
     CAnimRibbonObj *objptr,
     const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyTrack
@@ -481,7 +481,7 @@ void __fastcall AnimObjectSetRibbonSlot(
   objptr->slot.SetSequenceIndices(shared->seq);
 }
 
-void __fastcall AnimObjectSetEventTrack(
+void AnimObjectSetEventTrack(
     CAnimData *shared,
     CAnimEventObj *objptr,
     const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyTrack
@@ -528,7 +528,7 @@ void __fastcall AnimObjectSetEventTrack(
     (track)->SetSequenceIndices(shared->seq);                                                                                                 \
   }
 
-unsigned char *__fastcall AddKeyFramesType(
+unsigned char *AddKeyFramesType(
     unsigned char                                          *data,
     unsigned int                                            bytesRemaining,
     unsigned long                                           tag,
@@ -540,7 +540,7 @@ unsigned char *__fastcall AddKeyFramesType(
   return data;
 }
 
-unsigned char *__fastcall AddKeyFramesType(
+unsigned char *AddKeyFramesType(
     unsigned char                *data,
     unsigned int                  bytesRemaining,
     unsigned long                 tag,
@@ -552,7 +552,7 @@ unsigned char *__fastcall AddKeyFramesType(
   return data;
 }
 
-unsigned char *__fastcall AnimObjectSetEventTrack(unsigned char *data, unsigned int bytesLeft, CAnimData *shared, CAnimEventObj *objptr) {
+unsigned char *AnimObjectSetEventTrack(unsigned char *data, unsigned int bytesLeft, CAnimData *shared, CAnimEventObj *objptr) {
   ASSERT(shared);
   ASSERT(objptr);
   if (bytesLeft < 4 || *reinterpret_cast<unsigned int *>(data) != 0x5456454B) {
@@ -575,13 +575,13 @@ unsigned char *__fastcall AnimObjectSetEventTrack(unsigned char *data, unsigned 
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetTranslation(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType) {
   ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, &objptr->translation, 0x5254474B);
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetRotation(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType) {
   ASSERT(shared);
   ASSERT(objptr);
@@ -615,13 +615,13 @@ AnimObjectSetRotation(unsigned char *data, unsigned int fileBytes, CAnimData *sh
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetScaling(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType) {
   ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, &objptr->scale, 0x4353474B);
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetAttenuation(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
   unsigned char *fileEnd = data + fileBytes;
   {
@@ -633,38 +633,38 @@ AnimObjectSetAttenuation(unsigned char *data, unsigned int fileBytes, CAnimData 
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetColor(unsigned char *data, unsigned int bytesRemaining, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
   ADD_KEY_FRAMES_TYPE(C3Color, bytesRemaining, &objptr->color, 0x43414C4B);
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetIntensity(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
   ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->intensity, 0x49414C4B);
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetAmbColor(unsigned char *data, unsigned int bytesRemaining, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
   ADD_KEY_FRAMES_TYPE(C3Color, bytesRemaining, &objptr->ambColor, 0x43424C4B);
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetAmbIntensity(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
   ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->ambIntensity, 0x49424C4B);
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetVisibilityTrack(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimVisibleObj *objptr, MDLTRACKTYPE forceType) {
   ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->visibility, 0x5349564B);
   return data;
 }
 
 #define ANIM_FLOAT_TRACK_SETTER(name, member, tag)                                                                                                   \
-  unsigned char *__fastcall name(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimEmitter2Obj *objptr, MDLTRACKTYPE forceType) { \
+  unsigned char *name(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimEmitter2Obj *objptr, MDLTRACKTYPE forceType) { \
     ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->member, tag);                                                                                     \
     return data;                                                                                                                                     \
   }
@@ -683,7 +683,7 @@ ANIM_FLOAT_TRACK_SETTER(AnimObjectSetParticleLifeSpan2, lifeSpan, 0x46494C4B)
 #undef ANIM_FLOAT_TRACK_SETTER
 
 #define ANIM_RIBBON_TRACK_SETTER(name, member, tag)                                                                                                \
-  unsigned char *__fastcall name(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType) { \
+  unsigned char *name(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType) { \
     ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->member, tag);                                                                                   \
     return data;                                                                                                                                   \
   }
@@ -691,7 +691,7 @@ ANIM_FLOAT_TRACK_SETTER(AnimObjectSetParticleLifeSpan2, lifeSpan, 0x46494C4B)
 ANIM_RIBBON_TRACK_SETTER(AnimObjectSetRibbonHeightAbove, heightAbove, 0x4148524B)
 ANIM_RIBBON_TRACK_SETTER(AnimObjectSetRibbonHeightBelow, heightBelow, 0x4248524B)
 
-unsigned char *__fastcall AnimObjectSetRibbonSlot(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr) {
+unsigned char *AnimObjectSetRibbonSlot(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr) {
   ASSERT(shared);
   ASSERT(objptr);
   if (fileBytes < 8 || *reinterpret_cast<unsigned int *>(data) != 0x5854524B) {
@@ -716,7 +716,7 @@ unsigned char *__fastcall AnimObjectSetRibbonSlot(unsigned char *data, unsigned 
   return data;
 }
 
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetRibbonColor(unsigned char *data, unsigned int bytesRemaining, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType) {
   ADD_KEY_FRAMES_TYPE(C3Color, bytesRemaining, &objptr->color, 0x4F43524B);
   return data;
@@ -726,7 +726,7 @@ ANIM_RIBBON_TRACK_SETTER(AnimObjectSetRibbonAlpha, alpha, 0x4C41524B)
 
 #undef ANIM_RIBBON_TRACK_SETTER
 
-CAnim *__fastcall AnimCreate(unsigned int *const objectCounts, unsigned int numGeosets, unsigned int numCameras, unsigned int numMaterialLayers) {
+CAnim *AnimCreate(unsigned int *const objectCounts, unsigned int numGeosets, unsigned int numCameras, unsigned int numMaterialLayers) {
   void *sharedMemory = SMemAlloc(sizeof(CAnimData), "HANIMDATA", -2, 0);
   if (!sharedMemory) {
     return 0;
@@ -791,7 +791,7 @@ CAnim *__fastcall AnimCreate(unsigned int *const objectCounts, unsigned int numG
   return unique;
 }
 
-HANIM __fastcall AnimDuplicate(HANIM oldanim, unsigned int flags) {
+HANIM AnimDuplicate(HANIM oldanim, unsigned int flags) {
   CAnim *oldUnique = reinterpret_cast<CAnim *>(oldanim);
   FATALASSERT(oldUnique);
 
@@ -811,7 +811,7 @@ HANIM __fastcall AnimDuplicate(HANIM oldanim, unsigned int flags) {
   return duplicate;
 }
 
-void __fastcall AnimInit(CAnim *unique, CAnimData *shared) {
+void AnimInit(CAnim *unique, CAnimData *shared) {
   ASSERT(unique);
   ASSERT(shared);
   ResolveStatusPtrs(unique, shared);
@@ -833,7 +833,7 @@ void __fastcall AnimInit(CAnim *unique, CAnimData *shared) {
   shared->flags |= 1;
 }
 
-void __fastcall AnimAddMaterialLayer(CAnimData* shared, const MDLTEXLAYER& layerData, unsigned int layerId, MDLTRACKTYPE forceType) {
+void AnimAddMaterialLayer(CAnimData* shared, const MDLTEXLAYER& layerData, unsigned int layerId, MDLTRACKTYPE forceType) {
   ASSERT(shared);
   if (!layerData.alphaKeys.keys.Count() && !layerData.flipKeys.keys.Count()) {
     return;
@@ -861,7 +861,7 @@ void __fastcall AnimAddMaterialLayer(CAnimData* shared, const MDLTEXLAYER& layer
   }
 }
 
-void __fastcall AnimAddMaterialLayers(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, CAnimData *shared, MDLTRACKTYPE forceType) {
+void AnimAddMaterialLayers(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, CAnimData *shared, MDLTRACKTYPE forceType) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x534C544D);
   if (!section) {
     return;
@@ -917,7 +917,7 @@ void __fastcall AnimAddMaterialLayers(unsigned char *fileData, unsigned int file
   ASSERT(data == dataDone);
 }
 
-void __fastcall AnimAddGeosets(unsigned char *fileData, unsigned int fileBytes, CAnimData *shared, MDLTRACKTYPE forceType) {
+void AnimAddGeosets(unsigned char *fileData, unsigned int fileBytes, CAnimData *shared, MDLTRACKTYPE forceType) {
   ASSERT(shared);
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x414F4547);
   if (!section) {
@@ -958,7 +958,7 @@ void __fastcall AnimAddGeosets(unsigned char *fileData, unsigned int fileBytes, 
   ASSERT(data == dataDone);
 }
 
-void __fastcall AnimAddGeoset(CAnimData* shared, const MDLGEOSETANIMSECTION& geodata, MDLTRACKTYPE forceType) {
+void AnimAddGeoset(CAnimData* shared, const MDLGEOSETANIMSECTION& geodata, MDLTRACKTYPE forceType) {
   ASSERT(shared);
   unsigned int geoAnimId = shared->geo.m_count++;
   CAnimGeoset &geo = shared->geo.m_data[geoAnimId];
@@ -973,7 +973,7 @@ void __fastcall AnimAddGeoset(CAnimData* shared, const MDLGEOSETANIMSECTION& geo
   AddKeyFrames(shared, geodata.colorKeys, &geo.color, forceType);
 }
 
-void __fastcall AnimAddCameras(unsigned char *fileData, unsigned int fileBytes, CAnimData *shared, MDLTRACKTYPE forceType) {
+void AnimAddCameras(unsigned char *fileData, unsigned int fileBytes, CAnimData *shared, MDLTRACKTYPE forceType) {
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x534D4143);
   if (!section) {
     return;
@@ -1008,7 +1008,7 @@ void __fastcall AnimAddCameras(unsigned char *fileData, unsigned int fileBytes, 
   ASSERT(data == dataDone);
 }
 
-void __fastcall AnimAddCamera(CAnimData* shared, const MDLCAMERASECTION& cameraData, MDLTRACKTYPE forceType) {
+void AnimAddCamera(CAnimData* shared, const MDLCAMERASECTION& cameraData, MDLTRACKTYPE forceType) {
   ASSERT(shared);
   CAnimCameraObj &camera = shared->cameraObjs.m_data[shared->cameraObjs.m_count++];
   SStrCopy(camera.name, cameraData.name, sizeof(camera.name));
@@ -1044,7 +1044,7 @@ void __fastcall AnimAddCamera(CAnimData* shared, const MDLCAMERASECTION& cameraD
   AnimObjectSetVisibilityTrack(shared, &camera, cameraData.visibilityKeys, forceType);
 }
 
-void __fastcall AnimAddSequences(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, CAnimData *shared) {
+void AnimAddSequences(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, CAnimData *shared) {
   unsigned char *sequenceSection = MDLFileBinarySeek(fileData, fileBytes, 0x53514553);
   unsigned int   numSequences = 0;
   unsigned char *data = 0;
@@ -1116,7 +1116,7 @@ void __fastcall AnimAddSequences(unsigned char *fileData, unsigned int fileBytes
   ASSERT(globalData + numGlobalSequences * sizeof(unsigned int) == globalDataDone);
 }
 
-void __fastcall AnimAddSequences(
+void AnimAddSequences(
     CAnim *unique,
     CAnimData *shared,
     const TSGrowableArray<MDLSEQUENCESSECTION> &sequences,
@@ -1163,7 +1163,7 @@ void __fastcall AnimAddSequences(
   }
 }
 
-void __fastcall AnimAddTextureAnims(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, CAnimData *shared, MDLTRACKTYPE forceType) {
+void AnimAddTextureAnims(unsigned char *fileData, unsigned int fileBytes, CAnim *unique, CAnimData *shared, MDLTRACKTYPE forceType) {
   ASSERT(unique);
   ASSERT(shared);
   unsigned char *section = MDLFileBinarySeek(fileData, fileBytes, 0x4E415854);
@@ -1216,7 +1216,7 @@ void __fastcall AnimAddTextureAnims(unsigned char *fileData, unsigned int fileBy
   unique->textureStatus.m_count = numTexAnims;
 }
 
-void __fastcall AnimAddTextureAnim(
+void AnimAddTextureAnim(
     CAnim *unique,
     CAnimData *shared,
     const TSGrowableArray<MDLTEXANIMSECTION> &textureAnims,

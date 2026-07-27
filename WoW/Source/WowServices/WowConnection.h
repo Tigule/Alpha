@@ -109,7 +109,7 @@ class WowConnection {
 
   ~WowConnection();
 
-  WowConnection(WowConnectionResponse *response, void(__fastcall *func)());
+  WowConnection(WowConnectionResponse *response, void(*func)());
   WowConnection(int sock, sockaddr_in *addr, WowConnectionResponse *response);
   WowConnection(const WowConnection &connection);
   WowConnection &operator=(const WowConnection &connection);
@@ -140,22 +140,22 @@ class WowConnection {
   WC_SEND_RESULT                   SendRaw(unsigned char *data, int len);
   void                             RequestWriteNotification();
   bool                             GetLocal(NETADDR &addr);
-  static unsigned long __fastcall  GetAddr(NETADDR &addr);
-  static unsigned short __fastcall GetPort(NETADDR &addr);
-  static void __fastcall           SetPort(NETADDR &addr, unsigned short port);
+  static unsigned long GetAddr(NETADDR &addr);
+  static unsigned short GetPort(NETADDR &addr);
+  static void SetPort(NETADDR &addr, unsigned short port);
   bool                             Reconnect();
   bool                             Listen(unsigned short port);
   void                             StopListening();
   char                            *GetStringAddress(char *buf, int size);
 
-  static int __fastcall  InitOsNet(bool(__fastcall *verifyAddr)(const NETADDR *), void(__fastcall *threadInit)(), int numThreads, bool useEngine);
-  static void __fastcall DestroyOsNet();
-  static bool __fastcall IsDestroyed();
+  static int InitOsNet(bool(*verifyAddr)(const NETADDR *), void(*threadInit)(), int numThreads, bool useEngine);
+  static void DestroyOsNet();
+  static bool IsDestroyed();
 
  private:
   friend class WowConnectionNet;
 
-  void      Init(WowConnectionResponse *response, void(__fastcall *func)());
+  void      Init(WowConnectionResponse *response, void(*func)());
   int       CreateSocket();
   void      CloseSocket(int sock);
   SENDNODE *NewSendNode(void *data, int size, bool raw);
@@ -176,7 +176,7 @@ class WowConnection {
   WowConnectionStats     m_stats;
   unsigned int           m_haveSizeBytes;
   unsigned short         m_listenPort;
-  void(__fastcall *m_threadInit)();
+  void(*m_threadInit)();
   unsigned int   m_connectAddress;
   unsigned short m_connectPort;
   int            m_connectRetryInterval;
@@ -186,7 +186,7 @@ class WowConnection {
   SCritSect      m_responseLock;
   int            m_responseRef;
   unsigned int   m_responseRefThread;
-  static bool(__fastcall *m_verifyAddr)(const NETADDR *);
+  static bool(*m_verifyAddr)(const NETADDR *);
   TSLink<WowConnection>                  netlink;
   TSList<SENDNODE, TSGetLink<SENDNODE> > m_sendList;
   int                                    m_sendDepth;

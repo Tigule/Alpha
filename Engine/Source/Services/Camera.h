@@ -21,7 +21,7 @@ class CAngle : public TManaged<float> {
     return m_sin;
   }
 
-  friend HCAMERA __fastcall CameraDuplicate(HCAMERA source);
+  friend HCAMERA CameraDuplicate(HCAMERA source);
 
   float m_cos;
   float m_sin;
@@ -59,7 +59,7 @@ class CCamera : public CDataMgr {
   }
   void SetupWorldProjection(const NTempest::CRect &projectionRect, unsigned int flags);
 
-  friend HCAMERA __fastcall CameraDuplicate(HCAMERA source);
+  friend HCAMERA CameraDuplicate(HCAMERA source);
 
  public:
   TManaged<NTempest::C3Vector> m_position;
@@ -73,11 +73,11 @@ class CCamera : public CDataMgr {
   CAngle                       m_rotation;
 };
 
-HCAMERA __fastcall CameraCreate();
-HCAMERA __fastcall CameraDuplicate(HCAMERA source);
+HCAMERA CameraCreate();
+HCAMERA CameraDuplicate(HCAMERA source);
 
-void __fastcall CameraGetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
+void CameraGetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
 
-void __fastcall CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, unsigned int flags);
+void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, unsigned int flags);
 
-void __fastcall CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NTempest::C2Vector &screenPoint, float depth);
+void CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NTempest::C2Vector &screenPoint, float depth);

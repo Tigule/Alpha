@@ -22,24 +22,24 @@
 #include <lua.h>
 #include <storm.h>
 
-bool __fastcall Spell_C_CastSpell(int spellID, const CGItem_C *item);
-int __fastcall  Spell_C_GetManaCost(int id, int isPet);
-int __fastcall  Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-int __fastcall  Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-int __fastcall  Spell_C_GetModalSpell();
-const unsigned __int64 &__fastcall Spell_C_GetModalItem();
-int __fastcall  Spell_C_GetTargettingSpell();
-bool __fastcall Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
-bool __fastcall Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
-int __fastcall  Spell_C_NeedsCooldownEvent(const SpellRec *spell, int isPet);
-int __fastcall  Spell_C_NeedsCooldownEvent(int itemID);
-void __fastcall Spell_C_StopTargeting();
-void __fastcall Spell_C_CancelAura(int spellID);
-const SkillLineAbilityRec *__fastcall SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
+bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
+int Spell_C_GetManaCost(int id, int isPet);
+int Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+int Spell_C_GetModalSpell();
+const unsigned __int64 &Spell_C_GetModalItem();
+int Spell_C_GetTargettingSpell();
+bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
+bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
+int Spell_C_NeedsCooldownEvent(const SpellRec *spell, int isPet);
+int Spell_C_NeedsCooldownEvent(int itemID);
+void Spell_C_StopTargeting();
+void Spell_C_CancelAura(int spellID);
+const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
 
 class CGTradeSkillInfo {
  public:
-  static int __fastcall GetSkillLine() {
+  static int GetSkillLine() {
     return m_skillLine;
   }
 
@@ -49,7 +49,7 @@ class CGTradeSkillInfo {
 
 class CGCraftInfo {
  public:
-  static SPELL_CAST_UI_TYPE __fastcall GetCraftType() {
+  static SPELL_CAST_UI_TYPE GetCraftType() {
     return m_craftType;
   }
 
@@ -60,18 +60,18 @@ class CGCraftInfo {
 int          CGActionBar::m_slotActions[120];
 unsigned int CGActionBar::m_bonusPage;
 
-void __fastcall CGActionBar::InitializeGame() {
+void CGActionBar::InitializeGame() {
   memset(m_slotActions, 0, sizeof(m_slotActions));
 }
 
-void __fastcall CGActionBar::EnterWorld() {
+void CGActionBar::EnterWorld() {
   UpdateBonusBar();
 }
 
-void __fastcall CGActionBar::ShutdownGame() {
+void CGActionBar::ShutdownGame() {
 }
 
-void __fastcall CGActionBar::UpdateBonusBar() {
+void CGActionBar::UpdateBonusBar() {
   m_bonusPage = 0;
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -85,7 +85,7 @@ void __fastcall CGActionBar::UpdateBonusBar() {
   FrameScript_SignalEvent(208);
 }
 
-int __fastcall CGActionBar::IsUsableAction(int id, int &noMana) {
+int CGActionBar::IsUsableAction(int id, int &noMana) {
   noMana = 0;
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(
@@ -167,7 +167,7 @@ int __fastcall CGActionBar::IsUsableAction(int id, int &noMana) {
   return 0;
 }
 
-int __fastcall CGActionBar::IsCurrentAction(int id) {
+int CGActionBar::IsCurrentAction(int id) {
   int action = m_slotActions[id];
   if (!action) {
     return 0;
@@ -224,7 +224,7 @@ int __fastcall CGActionBar::IsCurrentAction(int id) {
   return form && player && player->GetUnitData()->shapeshiftForm == form;
 }
 
-int __fastcall CGActionBar::IsToggledAction(int id) {
+int CGActionBar::IsToggledAction(int id) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(
       ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
@@ -246,15 +246,15 @@ int __fastcall CGActionBar::IsToggledAction(int id) {
   return 0;
 }
 
-void __fastcall CGActionBar::ShowGrid() {
+void CGActionBar::ShowGrid() {
   FrameScript_SignalEvent(201);
 }
 
-void __fastcall CGActionBar::HideGrid() {
+void CGActionBar::HideGrid() {
   FrameScript_SignalEvent(202);
 }
 
-inline void __fastcall CGActionBar::SlotChanged(int id) {
+inline void CGActionBar::SlotChanged(int id) {
   FATALASSERT(id >= 0 && id < 120);
 
   CDataStore msg;
@@ -266,16 +266,16 @@ inline void __fastcall CGActionBar::SlotChanged(int id) {
   FrameScript_SignalEvent(204, "%d", id + 1);
 }
 
-int __fastcall CGActionBar::IsAttackAction(int id) {
+int CGActionBar::IsAttackAction(int id) {
   SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
   return spell && spell->m_effect[0] == 78;
 }
 
-void __fastcall CGActionBar::UpdateSelection() {
+void CGActionBar::UpdateSelection() {
   FrameScript_SignalEvent(205);
 }
 
-void __fastcall CGActionBar::UpdateItem(int entryID) {
+void CGActionBar::UpdateItem(int entryID) {
   for (int id = 0; id < 120; ++id) {
     if (GetItem(id) == entryID) {
       FrameScript_SignalEvent(204, "%d", id + 1);
@@ -283,15 +283,15 @@ void __fastcall CGActionBar::UpdateItem(int entryID) {
   }
 }
 
-void __fastcall CGActionBar::UpdateUsable() {
+void CGActionBar::UpdateUsable() {
   FrameScript_SignalEvent(206);
 }
 
-void __fastcall CGActionBar::UpdateCooldowns() {
+void CGActionBar::UpdateCooldowns() {
   FrameScript_SignalEvent(207);
 }
 
-void __fastcall CGActionBar::SetAction(int id, int action) {
+void CGActionBar::SetAction(int id, int action) {
   if (static_cast<unsigned int>(id) >= 120) {
     return;
   }
@@ -310,7 +310,7 @@ void __fastcall CGActionBar::SetAction(int id, int action) {
   SlotChanged(id);
 }
 
-void __fastcall CGActionBar::AddAction(int action) {
+void CGActionBar::AddAction(int action) {
   for (int id = 0; id < 120; ++id) {
     if (!m_slotActions[id]) {
       SetAction(id, action);
@@ -319,12 +319,12 @@ void __fastcall CGActionBar::AddAction(int action) {
   }
 }
 
-void __fastcall CGActionBar::RemoveAction(int id) {
+void CGActionBar::RemoveAction(int id) {
   m_slotActions[id] = 0;
   SlotChanged(id);
 }
 
-void __fastcall CGActionBar::RemoveSpell(int spellID) {
+void CGActionBar::RemoveSpell(int spellID) {
   for (unsigned int id = 0; id < 120; ++id) {
     if (m_slotActions[id] == spellID) {
       RemoveAction(id);
@@ -332,7 +332,7 @@ void __fastcall CGActionBar::RemoveSpell(int spellID) {
   }
 }
 
-void __fastcall CGActionBar::ReplaceSpell(int oldSpell, int newSpell) {
+void CGActionBar::ReplaceSpell(int oldSpell, int newSpell) {
   for (unsigned int id = 0; id < 120; ++id) {
     if (m_slotActions[id] == oldSpell) {
       RemoveAction(id);
@@ -341,7 +341,7 @@ void __fastcall CGActionBar::ReplaceSpell(int oldSpell, int newSpell) {
   }
 }
 
-void __fastcall CGActionBar::UseAction(int id, int checkCursor) {
+void CGActionBar::UseAction(int id, int checkCursor) {
   ASSERT(id >= 0);
   ASSERT(id < 120);
 
@@ -375,7 +375,7 @@ void __fastcall CGActionBar::UseAction(int id, int checkCursor) {
   }
 }
 
-void __fastcall CGActionBar::PickupAction(int id) {
+void CGActionBar::PickupAction(int id) {
   ASSERT(id >= 0);
   ASSERT(id < 120);
 
@@ -405,7 +405,7 @@ void __fastcall CGActionBar::PickupAction(int id) {
   RemoveAction(id);
 }
 
-void __fastcall CGActionBar::PutActionInSlot(int id) {
+void CGActionBar::PutActionInSlot(int id) {
   int cursorSpell = CGGameUI::GetCursorSpell();
   int cursorItem = 0;
 
@@ -479,7 +479,7 @@ void __fastcall CGActionBar::PutActionInSlot(int id) {
   }
 }
 
-const char *__fastcall CGActionBar::GetAttackTexture() {
+const char *CGActionBar::GetAttackTexture() {
   static char buffer[260];
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -502,7 +502,7 @@ const char *__fastcall CGActionBar::GetAttackTexture() {
   return "Interface\\Buttons\\Spell-Reset";
 }
 
-const char *__fastcall CGActionBar::GetTexture(int id) {
+const char *CGActionBar::GetTexture(int id) {
   static char buffer[260];
 
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
@@ -537,7 +537,7 @@ const char *__fastcall CGActionBar::GetTexture(int id) {
   return buffer;
 }
 
-int __fastcall CGActionBar::GetCount(int id) {
+int CGActionBar::GetCount(int id) {
   if (!IsItem(id)) {
     return 0;
   }
@@ -546,7 +546,7 @@ int __fastcall CGActionBar::GetCount(int id) {
   return inventory ? inventory->GetItemTypeCount(GetItem(id), 0) : 0;
 }
 
-void __fastcall CGActionBar::GetCooldown(int id, unsigned long &startTime, unsigned int &duration, unsigned int &enable) {
+void CGActionBar::GetCooldown(int id, unsigned long &startTime, unsigned int &duration, unsigned int &enable) {
   startTime = 0;
   duration = 0;
   enable = 0;
@@ -557,11 +557,11 @@ void __fastcall CGActionBar::GetCooldown(int id, unsigned long &startTime, unsig
   }
 }
 
-void __fastcall CGActionBar::PrecacheButtonArt(int id) {
+void CGActionBar::PrecacheButtonArt(int id) {
   GetTexture(id);
 }
 
-static int __fastcall Script_GetActionTexture(lua_State *L) {
+static int Script_GetActionTexture(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetActionTexture(slot)");
   const char *texture = CGActionBar::GetTexture(static_cast<int>(lua_tonumber(L, 1)) - 1);
@@ -573,14 +573,14 @@ static int __fastcall Script_GetActionTexture(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_GetActionCount(lua_State *L) {
+static int Script_GetActionCount(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetActionCount(slot)");
   lua_pushnumber(L, static_cast<double>(CGActionBar::GetCount(static_cast<int>(lua_tonumber(L, 1)) - 1)));
   return 1;
 }
 
-static int __fastcall Script_GetActionCooldown(lua_State *L) {
+static int Script_GetActionCooldown(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetActionCooldown(slot)");
   unsigned long startTime;
@@ -593,7 +593,7 @@ static int __fastcall Script_GetActionCooldown(lua_State *L) {
   return 3;
 }
 
-static int __fastcall Script_HasAction(lua_State *L) {
+static int Script_HasAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: HasAction(slot)");
   if (CGActionBar::HasAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
@@ -604,7 +604,7 @@ static int __fastcall Script_HasAction(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_UseAction(lua_State *L) {
+static int Script_UseAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: UseAction(slot)");
   int checkCursor = 0;
@@ -615,21 +615,21 @@ static int __fastcall Script_UseAction(lua_State *L) {
   return 0;
 }
 
-static int __fastcall Script_PickupAction(lua_State *L) {
+static int Script_PickupAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: PickupAction(slot)");
   CGActionBar::PickupAction(static_cast<int>(lua_tonumber(L, 1)) - 1);
   return 0;
 }
 
-static int __fastcall Script_PlaceAction(lua_State *L) {
+static int Script_PlaceAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: PlaceAction(slot)");
   CGActionBar::PutActionInSlot(static_cast<int>(lua_tonumber(L, 1)) - 1);
   return 0;
 }
 
-static int __fastcall Script_IsAttackAction(lua_State *L) {
+static int Script_IsAttackAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: IsAttackAction(slot)");
   if (CGActionBar::IsAttackAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
@@ -640,7 +640,7 @@ static int __fastcall Script_IsAttackAction(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_IsCurrentAction(lua_State *L) {
+static int Script_IsCurrentAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: IsCurrentAction(slot)");
   if (CGActionBar::IsCurrentAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
@@ -651,7 +651,7 @@ static int __fastcall Script_IsCurrentAction(lua_State *L) {
   return 1;
 }
 
-static int __fastcall Script_IsUsableAction(lua_State *L) {
+static int Script_IsUsableAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: IsUsableAction(slot)");
   int noMana;
@@ -669,17 +669,17 @@ static int __fastcall Script_IsUsableAction(lua_State *L) {
   return 2;
 }
 
-static int __fastcall Script_GetBonusBarOffset(lua_State *L) {
+static int Script_GetBonusBarOffset(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(CGActionBar::GetBonusBarOffset()));
   return 1;
 }
 
-static int __fastcall Script_ChangeActionBarPage(lua_State *__formal) {
+static int Script_ChangeActionBarPage(lua_State *__formal) {
   FrameScript_SignalEvent(203);
   return 0;
 }
 
-static int __fastcall Script_PrecacheSpellArt(lua_State *L) {
+static int Script_PrecacheSpellArt(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     CGActionBar::PrecacheButtonArt(static_cast<int>(lua_tonumber(L, 1)));
   }
@@ -702,13 +702,13 @@ static FrameScript_Method s_ScriptFunctions[13] = {
     {   "PrecacheSpellArt",    Script_PrecacheSpellArt}
 };
 
-void __fastcall ActionBarRegisterScriptFunctions() {
+void ActionBarRegisterScriptFunctions() {
   for (unsigned int i = 0; i < 13; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
-void __fastcall ActionBarUnregisterScriptFunctions() {
+void ActionBarUnregisterScriptFunctions() {
   for (unsigned int i = 0; i < 13; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }

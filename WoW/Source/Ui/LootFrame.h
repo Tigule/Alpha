@@ -20,26 +20,26 @@ struct CGLootSlot {
 
 class CGLootInfo {
  public:
-  static void __fastcall         InitializeGame();
-  static void __fastcall         ShutdownGame();
-  static void __fastcall         EnterWorld();
-  static void __fastcall         LeaveWorld();
-  static void __fastcall         SetObject(CGObject_C *object, int coins, LOOT_ACQUIRE lootType);
+  static void InitializeGame();
+  static void ShutdownGame();
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void SetObject(CGObject_C *object, int coins, LOOT_ACQUIRE lootType);
   static const unsigned __int64 &GetObject() {
     return m_object;
   }
-  static void __fastcall         ClearSlot(unsigned int _slot);
-  static int __fastcall          GetNumItems();
-  static int __fastcall          GetLootItem(unsigned int slot);
-  static int __fastcall          GetLootQuantity(unsigned int slot);
-  static int __fastcall          GetLootQuality(unsigned int slot);
-  static int __fastcall          GetLootCoin(unsigned int slot);
-  static const char *__fastcall  GetLootSlotTexture(unsigned int slot);
-  static const char *__fastcall  GetLootSlotText(unsigned int slot);
-  static const char *__fastcall  GetLootSlotLink(unsigned int slot, char *link, unsigned int size);
-  static LOOT_ACQUIRE __fastcall GetLootType();
-  static int __fastcall          LootSlot(unsigned int slot, int force);
-  static void __fastcall         CoinsCleared();
+  static void ClearSlot(unsigned int _slot);
+  static int GetNumItems();
+  static int GetLootItem(unsigned int slot);
+  static int GetLootQuantity(unsigned int slot);
+  static int GetLootQuality(unsigned int slot);
+  static int GetLootCoin(unsigned int slot);
+  static const char *GetLootSlotTexture(unsigned int slot);
+  static const char *GetLootSlotText(unsigned int slot);
+  static const char *GetLootSlotLink(unsigned int slot, char *link, unsigned int size);
+  static LOOT_ACQUIRE GetLootType();
+  static int LootSlot(unsigned int slot, int force);
+  static void CoinsCleared();
 
  protected:
   friend class CGGameUI;
@@ -50,9 +50,9 @@ class CGLootInfo {
   static LOOT_ACQUIRE     m_lootType;
   static unsigned int     m_itemsPending;
 
-  static int __fastcall HasLoot();
+  static int HasLoot();
 
-  static void __fastcall LootButtonItemStatsCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
+  static void LootButtonItemStatsCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
 };
 
 #endif

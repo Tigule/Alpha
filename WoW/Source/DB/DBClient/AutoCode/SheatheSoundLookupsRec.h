@@ -7,7 +7,7 @@ class SheatheSoundLookupsRec {
   SheatheSoundLookupsRec();
   ~SheatheSoundLookupsRec();
 
-  static const char *__fastcall GetFilename();
+  static const char *GetFilename();
 
   static unsigned int GetNumColumns() {
     return 7;

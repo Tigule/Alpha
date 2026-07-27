@@ -13,14 +13,14 @@ using NTempest::CArgb4444;
 using NTempest::CImVector;
 using NTempest::CRgb565;
 
-typedef void(__fastcall *BlitFunc)(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride);
+typedef void(*BlitFunc)(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride);
 
 static int          initBlit;
 static unsigned int BYTES_PER_BLOCK[BlitFormats_Last] = {0, 4, 2, 2, 2, 8, 16, 16};
 static unsigned int PIXELS_PER_BLOCK_SHIFT[BlitFormats_Last] = {0, 0, 0, 0, 0, 2, 2, 2};
 static BlitFunc     s_blits[BlitFormats_Last][BlitFormats_Last][BlitAlphas_Last];
 
-static void __fastcall Blit_Argb8888_Argb4444(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Argb8888_Argb4444(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   const CImVector *src = static_cast<const CImVector *>(in);
   CArgb4444       *dst = static_cast<CArgb4444 *>(out);
   int              y;
@@ -35,7 +35,7 @@ static void __fastcall Blit_Argb8888_Argb4444(const C2iVector &size, const void 
   }
 }
 
-static void __fastcall Blit_Argb8888_Argb1555(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Argb8888_Argb1555(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   const CImVector *src = static_cast<const CImVector *>(in);
   CArgb1555       *dst = static_cast<CArgb1555 *>(out);
   int              y;
@@ -50,7 +50,7 @@ static void __fastcall Blit_Argb8888_Argb1555(const C2iVector &size, const void 
   }
 }
 
-static void __fastcall Blit_Argb8888_Rgb565(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Argb8888_Rgb565(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   const CImVector *src = static_cast<const CImVector *>(in);
   CRgb565         *dst = static_cast<CRgb565 *>(out);
   int              y;
@@ -65,7 +65,7 @@ static void __fastcall Blit_Argb8888_Rgb565(const C2iVector &size, const void *i
   }
 }
 
-static void __fastcall Blit_Argb8888_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Argb8888_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   unsigned int rowSize = sizeof(CImVector) * size.x;
   if (rowSize == inStride && rowSize == outStride) {
     memcpy(out, in, rowSize * size.y);
@@ -82,7 +82,7 @@ static void __fastcall Blit_Argb8888_Argb8888(const C2iVector &size, const void 
   }
 }
 
-static void __fastcall Blit_Argb8888_Argb8888_A1(const C2iVector &size, const void *i, unsigned int iStride, void *o, unsigned int oStride) {
+static void Blit_Argb8888_Argb8888_A1(const C2iVector &size, const void *i, unsigned int iStride, void *o, unsigned int oStride) {
   const CImVector *src = static_cast<const CImVector *>(i);
   CImVector       *dst = static_cast<CImVector *>(o);
   int              y;
@@ -101,7 +101,7 @@ static void __fastcall Blit_Argb8888_Argb8888_A1(const C2iVector &size, const vo
   }
 }
 
-static void __fastcall Blit_Argb8888_Argb8888_A8(const C2iVector &size, const void *i, unsigned int iStride, void *o, unsigned int oStride) {
+static void Blit_Argb8888_Argb8888_A8(const C2iVector &size, const void *i, unsigned int iStride, void *o, unsigned int oStride) {
   const CImVector *src = static_cast<const CImVector *>(i);
   CImVector       *dst = static_cast<CImVector *>(o);
   int              y;
@@ -129,7 +129,7 @@ static void __fastcall Blit_Argb8888_Argb8888_A8(const C2iVector &size, const vo
   }
 }
 
-static void __fastcall Blit_uint16_uint16(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_uint16_uint16(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   unsigned int rowSize = sizeof(unsigned short) * size.x;
   if (rowSize == inStride && rowSize == outStride) {
     memcpy(out, in, rowSize * size.y);
@@ -146,20 +146,20 @@ static void __fastcall Blit_uint16_uint16(const C2iVector &size, const void *in,
   }
 }
 
-static void __fastcall Blit_Dxt1_Dxt1(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt1_Dxt1(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   int width = size.x > 4 ? size.x : 4;
   int height = size.y > 4 ? size.y : 4;
   memcpy(out, in, static_cast<unsigned int>(4 * width * height) >> 3);
 }
 
-static void __fastcall Blit_Dxt35_Dxt35(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt35_Dxt35(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   int width = size.x > 4 ? size.x : 4;
   int height = size.y > 4 ? size.y : 4;
   memcpy(out, in, static_cast<unsigned int>(8 * width * height) >> 3);
 }
 
 template <class Pixel>
-inline void __fastcall Blit_DxtUnaligned(const C2iVector &size, const Dxt1Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
+inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt1Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
   static Pixel table[4];
   unsigned int rectWidth = size.x < 4 ? size.x : 4;
   unsigned int rectHeight = size.y < 4 ? size.y : 4;
@@ -185,7 +185,7 @@ inline void __fastcall Blit_DxtUnaligned(const C2iVector &size, const Dxt1Block 
 }
 
 template <class Pixel>
-inline void __fastcall Blit_Dxt(const C2iVector &size, const Dxt1Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
+inline void Blit_Dxt(const C2iVector &size, const Dxt1Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
   static Pixel table[4];
   int          y;
   for (y = 0; y < size.y; y += 4) {
@@ -209,7 +209,7 @@ inline void __fastcall Blit_Dxt(const C2iVector &size, const Dxt1Block *in, unsi
 }
 
 template <class Pixel>
-inline void __fastcall Blit_DxtUnaligned(const C2iVector &size, const Dxt3Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
+inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt3Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
   static Pixel table[4];
   unsigned int rectWidth = size.x < 4 ? size.x : 4;
   unsigned int rectHeight = size.y < 4 ? size.y : 4;
@@ -235,7 +235,7 @@ inline void __fastcall Blit_DxtUnaligned(const C2iVector &size, const Dxt3Block 
 }
 
 template <class Pixel>
-inline void __fastcall Blit_Dxt(const C2iVector &size, const Dxt3Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
+inline void Blit_Dxt(const C2iVector &size, const Dxt3Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
   static Pixel table[4];
   int          y;
   for (y = 0; y < size.y; y += 4) {
@@ -258,7 +258,7 @@ inline void __fastcall Blit_Dxt(const C2iVector &size, const Dxt3Block *in, unsi
   }
 }
 
-static void __fastcall Blit_Dxt1_Rgb565(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt1_Rgb565(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned(size, static_cast<const Dxt1Block *>(in), inStride, static_cast<CRgb565 *>(out), outStride);
   } else {
@@ -266,7 +266,7 @@ static void __fastcall Blit_Dxt1_Rgb565(const C2iVector &size, const void *in, u
   }
 }
 
-static void __fastcall Blit_Dxt1_Argb1555(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt1_Argb1555(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned(size, static_cast<const Dxt1Block *>(in), inStride, static_cast<CArgb1555 *>(out), outStride);
   } else {
@@ -274,7 +274,7 @@ static void __fastcall Blit_Dxt1_Argb1555(const C2iVector &size, const void *in,
   }
 }
 
-static void __fastcall Blit_Dxt1_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt1_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned(size, static_cast<const Dxt1Block *>(in), inStride, static_cast<CImVector *>(out), outStride);
   } else {
@@ -282,7 +282,7 @@ static void __fastcall Blit_Dxt1_Argb8888(const C2iVector &size, const void *in,
   }
 }
 
-static void __fastcall Blit_Dxt3_Argb4444(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt3_Argb4444(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned<CArgb4444>(size, static_cast<const Dxt3Block *>(in), inStride, static_cast<CArgb4444 *>(out), outStride);
   } else {
@@ -290,7 +290,7 @@ static void __fastcall Blit_Dxt3_Argb4444(const C2iVector &size, const void *in,
   }
 }
 
-static void __fastcall Blit_Dxt3_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt3_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned<CImVector>(size, static_cast<const Dxt3Block *>(in), inStride, static_cast<CImVector *>(out), outStride);
   } else {
@@ -298,7 +298,7 @@ static void __fastcall Blit_Dxt3_Argb8888(const C2iVector &size, const void *in,
   }
 }
 
-static void __fastcall InitBlit() {
+static void InitBlit() {
   s_blits[BlitFormat_Rgb565][BlitFormat_Rgb565][BlitAlpha_0] = Blit_uint16_uint16;
   s_blits[BlitFormat_Argb4444][BlitFormat_Argb4444][BlitAlpha_0] = Blit_uint16_uint16;
   s_blits[BlitFormat_Argb1555][BlitFormat_Argb1555][BlitAlpha_0] = Blit_uint16_uint16;
@@ -318,7 +318,7 @@ static void __fastcall InitBlit() {
   s_blits[BlitFormat_Dxt3][BlitFormat_Argb8888][BlitAlpha_0] = Blit_Dxt3_Argb8888;
 }
 
-void __fastcall Blit(
+void Blit(
     const C2iVector &size,
     BlitAlpha        alpha,
     const void      *src,
@@ -344,7 +344,7 @@ void __fastcall Blit(
   blit(size, src, srcStride, dst, dstStride);
 }
 
-unsigned int __fastcall CalcRowStride(BlitFormat format, unsigned int width) {
+unsigned int CalcRowStride(BlitFormat format, unsigned int width) {
   ASSERT(format >= BlitFormat_Argb8888 && format < BlitFormats_Last);
 
   if (format >= BlitFormat_Dxt1 && format <= BlitFormat_Dxt5 && width <= 4) {

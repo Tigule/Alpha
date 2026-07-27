@@ -81,14 +81,14 @@ enum OBJECTTYPE {
   NUM_OBJ_TYPES = 7
 };
 
-void __fastcall      AnimObjectSetIndex(CAnimData *shared, CAnimObj *objptr, unsigned int index);
-CAnimObj *__fastcall GetNodeByIndex(CAnimData *shared, unsigned int nodeIndex);
-int __fastcall       AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, unsigned int parentIndex);
+void AnimObjectSetIndex(CAnimData *shared, CAnimObj *objptr, unsigned int index);
+CAnimObj *GetNodeByIndex(CAnimData *shared, unsigned int nodeIndex);
+int AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, unsigned int parentIndex);
 
-unsigned char *__fastcall AnimObjectSetEventTrack(unsigned char *data, unsigned int bytesLeft, CAnimData *shared, CAnimEventObj *objptr);
-unsigned char *__fastcall AnimObjectSetRibbonSlot(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr);
+unsigned char *AnimObjectSetEventTrack(unsigned char *data, unsigned int bytesLeft, CAnimData *shared, CAnimEventObj *objptr);
+unsigned char *AnimObjectSetRibbonSlot(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr);
 
-unsigned char *__fastcall AddKeyFramesType(
+unsigned char *AddKeyFramesType(
     unsigned char                *data,
     unsigned int                  bytesRemaining,
     unsigned long                 tag,
@@ -96,29 +96,29 @@ unsigned char *__fastcall AddKeyFramesType(
     CKeyFrameTrack<float, float> *track,
     MDLTRACKTYPE                  forceType
 );
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetRotation(unsigned char *data, unsigned int bytesRemaining, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetAttenuation(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetColor(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetIntensity(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetAmbColor(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetAmbIntensity(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetVisibilityTrack(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimVisibleObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetRibbonHeightAbove(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetRibbonHeightBelow(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetRibbonColor(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall
+unsigned char *
 AnimObjectSetRibbonAlpha(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType);
-unsigned char *__fastcall AddKeyFramesType(
+unsigned char *AddKeyFramesType(
     unsigned char                                          *data,
     unsigned int                                            bytesRemaining,
     unsigned long                                           tag,
@@ -438,10 +438,14 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
 };
 
 template <>
-int CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::InterpolateVolatileFewKeys(
-    const CKeyTrackStatus  &keyStat,
+inline int CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::InterpolateVolatileFewKeys(
+    const CKeyTrackStatus  &keyStatus,
     NTempest::C4Quaternion *transform
-);
+) {
+  ASSERT(transform);
+  *transform = reinterpret_cast<const CLinearKeyFrame<NTempest::C4QuaternionCompressed> *>(GetKeyFrame(keyStatus.currKey))->transform;
+  return 1;
+}
 template <>
 void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::Interpolate(
     const CKeyTrackStatus  &keyStat,
@@ -601,7 +605,7 @@ struct CSeqInfo {
   unsigned int                            useCount : 16;
   unsigned int                            replayTimes : 15;
   unsigned int                            seqFinished : 1;
-  CCallbackFcn<int(__fastcall *)(void *)> finished;
+  CCallbackFcn<int(*)(void *)> finished;
   float                                   seqTimeScale;
   int                                     scaledElapsedTime;
 };
@@ -636,7 +640,7 @@ struct CAnim : public CHandleObject {
   CArray<CAnimLayerStatus>                                                           layerStatus;
   TSGrowableArray<NTempest::C3Vector>                                                lookAtTarget;
   CCallbackFcn<ANIMSEQFINISHEDHANDLER>                                               anySeqFinished;
-  CCallbackFcn<void(__fastcall *)(const char *, const NTempest::C3Vector &, void *)> appEvent;
+  CCallbackFcn<void(*)(const char *, const NTempest::C3Vector &, void *)> appEvent;
   HANIMDATA                                                                          hdata;
   unsigned long                                                                      seqLastTime;
   unsigned int                                                                       flags : 8;
@@ -762,18 +766,18 @@ inline int CKeyFrameTrack<T, U>::InterpolateRetainedFewKeys(const CKeyTrackStatu
   return 1;
 }
 
-void __fastcall GetWorldTransform(InterpInfo *animInfo);
-void __fastcall TranslateView(const InterpInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos, const NTempest::C3Vector &parentPos);
-void __fastcall RotateView(const InterpInfo &animInfo, CAnimObj *currobj);
-void __fastcall ScaleView(const InterpInfo &animInfo, CAnimObj *currobj);
-void __fastcall Blend(const NTempest::C3Vector &previous, NTempest::C3Vector *current, int timeLeft, unsigned int blendTime);
-void __fastcall Blend(const NTempest::C4Quaternion &previous, NTempest::C4Quaternion *current, int timeLeft, unsigned int blendTime);
-unsigned long __fastcall     IAnimGetCurrTimeMs();
-void __fastcall              AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks);
-CAnimObj *__fastcall         AnimObjectCreateHelper(CAnimData *shared);
-CAnimLightObj *__fastcall    AnimObjectCreateLight(CAnimData *shared);
-CAnimModelObj *__fastcall    AnimObjectCreateAttachment(CAnimData *shared);
-CAnimBoneObj *__fastcall     AnimObjectCreateBone(CAnimData *shared);
-CAnimEmitter2Obj *__fastcall AnimObjectCreateEmitter2(CAnimData *shared);
-CAnimRibbonObj *__fastcall   AnimObjectCreateRibbon(CAnimData *shared);
-CAnimEventObj *__fastcall    AnimObjectCreateEvent(CAnimData *shared);
+void GetWorldTransform(InterpInfo *animInfo);
+void TranslateView(const InterpInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos, const NTempest::C3Vector &parentPos);
+void RotateView(const InterpInfo &animInfo, CAnimObj *currobj);
+void ScaleView(const InterpInfo &animInfo, CAnimObj *currobj);
+void Blend(const NTempest::C3Vector &previous, NTempest::C3Vector *current, int timeLeft, unsigned int blendTime);
+void Blend(const NTempest::C4Quaternion &previous, NTempest::C4Quaternion *current, int timeLeft, unsigned int blendTime);
+unsigned long IAnimGetCurrTimeMs();
+void AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks);
+CAnimObj *AnimObjectCreateHelper(CAnimData *shared);
+CAnimLightObj *AnimObjectCreateLight(CAnimData *shared);
+CAnimModelObj *AnimObjectCreateAttachment(CAnimData *shared);
+CAnimBoneObj *AnimObjectCreateBone(CAnimData *shared);
+CAnimEmitter2Obj *AnimObjectCreateEmitter2(CAnimData *shared);
+CAnimRibbonObj *AnimObjectCreateRibbon(CAnimData *shared);
+CAnimEventObj *AnimObjectCreateEvent(CAnimData *shared);

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall MaterialRec::GetFilename() {
+const char *MaterialRec::GetFilename() {
   return "DBFilesClient\\Material.dbc";
 }
 

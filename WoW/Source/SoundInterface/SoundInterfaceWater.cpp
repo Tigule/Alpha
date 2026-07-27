@@ -67,13 +67,13 @@ void LIQUIDINFO::StopSound(int immediate) {
   }
 }
 
-static void __fastcall ClearAllSounds(int immediate) {
+static void ClearAllSounds(int immediate) {
   for (unsigned int i = 0; i < 4; ++i) {
     s_liquidInfo[i].StopSound(immediate);
   }
 }
 
-static bool __fastcall ToggleCallback(CVar* h, const char* oldValue, const char* newValue, void* arg) {
+static bool ToggleCallback(CVar* h, const char* oldValue, const char* newValue, void* arg) {
   if (!SStrToInt(newValue)) {
     ClearAllSounds(0);
   }
@@ -118,7 +118,7 @@ static void HandleWaterAmbiences() {
   s_flags &= ~2;
 }
 
-static int __fastcall WaterHandler(const void* dataPtr, void* param) {
+static int WaterHandler(const void* dataPtr, void* param) {
   HandleWaterAmbiences();
   return 1;
 }
@@ -199,7 +199,7 @@ void LIQUIDINFO::Tick() {
   }
 }
 
-void __fastcall InitializeWaterAmbiences() {
+void InitializeWaterAmbiences() {
   for (int i = g_soundWaterTypeDB.GetNumRecords() - 1; i >= 0; --i) {
     SoundWaterTypeRec *record = g_soundWaterTypeDB.GetRecordByIndex(i);
     if (record && record->m_soundType < 4) {
@@ -212,14 +212,14 @@ void __fastcall InitializeWaterAmbiences() {
   s_elapsed = 0;
 }
 
-void __fastcall ShutdownWaterAmbiences() {
+void ShutdownWaterAmbiences() {
   s_paused = -1;
   ClearAllSounds(1);
   s_flags = 0;
   EventUnregister(EVENT_ID_IDLE, WaterHandler);
 }
 
-void __fastcall WaterAmbiencesUnderwaterChanged() {
+void WaterAmbiencesUnderwaterChanged() {
   if (g_underWater) {
     ClearAllSounds(1);
   } else {
@@ -227,7 +227,7 @@ void __fastcall WaterAmbiencesUnderwaterChanged() {
   }
 }
 
-void __fastcall SndInterfaceWaterSetPaused(bool p) {
+void SndInterfaceWaterSetPaused(bool p) {
   if (p && p != s_paused) {
     for (unsigned int i = 0; i < 4; ++i) {
       if (s_liquidInfo[i].m_sound) {
@@ -239,7 +239,7 @@ void __fastcall SndInterfaceWaterSetPaused(bool p) {
   s_paused = p;
 }
 
-void __fastcall SndInterfaceWaterUpdateVolume(float volume) {
+void SndInterfaceWaterUpdateVolume(float volume) {
   s_volume = volume;
   for (unsigned int i = 0; i < 4; ++i) {
     s_liquidInfo[i].UpdateVolume();

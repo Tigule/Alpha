@@ -30,21 +30,21 @@ enum STRINGLOOKUP {
   NUM_STRINGLOOKUPS = 10
 };
 
-const char *__fastcall           ClientDBStringLookup(STRINGLOOKUP lookup);
-unsigned int __fastcall          GetPhysicalDamageClassID();
-unsigned int __fastcall          GetFirstNonPhysicalID();
-const ResistancesRec *__fastcall GetDamageClassRecord(unsigned int record);
-unsigned int __fastcall          ClientDBLookupTerrainSoundID(unsigned int terrainType);
+const char *ClientDBStringLookup(STRINGLOOKUP lookup);
+unsigned int GetPhysicalDamageClassID();
+unsigned int GetFirstNonPhysicalID();
+const ResistancesRec *GetDamageClassRecord(unsigned int record);
+unsigned int ClientDBLookupTerrainSoundID(unsigned int terrainType);
 WEAPONPARRYSEQ
-__fastcall ClientDBGetWeaponSubclassParrySeq(unsigned int subclassID);
+ClientDBGetWeaponSubclassParrySeq(unsigned int subclassID);
 WEAPONREADYSEQ
-__fastcall ClientDBGetWeaponSubclassReadySeq(unsigned int subclassID);
+ClientDBGetWeaponSubclassReadySeq(unsigned int subclassID);
 WEAPONATTACKSEQ
-__fastcall                                    ClientDBGetWeaponSubclassWeaponSeq(unsigned int subclassID);
-int __fastcall                                ClientDBWeaponSubclassSetsFingerSeq(unsigned int subclassID);
-unsigned int __fastcall                       ClientDBGetUnarmedWeapon();
-const SoundProviderPreferencesRec *__fastcall ClientDBGetDefaultIndoorProviderPrefs();
-const SoundProviderPreferencesRec *__fastcall ClientDBGetDefaultOutdoorProviderPrefs();
-unsigned int __fastcall                       ClientDBGetNumWeaponSubclasses();
-const char *__fastcall                        SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID);
-bool __fastcall                               SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAreaTableRec *&rec);
+ClientDBGetWeaponSubclassWeaponSeq(unsigned int subclassID);
+int ClientDBWeaponSubclassSetsFingerSeq(unsigned int subclassID);
+unsigned int ClientDBGetUnarmedWeapon();
+const SoundProviderPreferencesRec *ClientDBGetDefaultIndoorProviderPrefs();
+const SoundProviderPreferencesRec *ClientDBGetDefaultOutdoorProviderPrefs();
+unsigned int ClientDBGetNumWeaponSubclasses();
+const char *SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID);
+bool SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAreaTableRec *&rec);

@@ -371,7 +371,7 @@ int CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
   return 1;
 }
 
-void __fastcall CMap::UpdateEntity(CMapEntity *entity) {
+void CMap::UpdateEntity(CMapEntity *entity) {
   FATALASSERT(entity);
 
   while (entity->parentLinkList.Head()) {
@@ -407,7 +407,7 @@ void __fastcall CMap::UpdateEntity(CMapEntity *entity) {
   entity->dirLightScaleTarget = 1.0f;
 }
 
-void __fastcall CMap::LinkEntityToMapObj(CMapStaticEntity *entity, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
+void CMap::LinkEntityToMapObj(CMapStaticEntity *entity, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
   CMapBaseObjLink *link = AllocBaseObjLink(entity);
   link->ref = mapObjDefGroup;
   mapObjDefGroup->entityLinkList.LinkNode(link, LIST_TAIL, 0);
@@ -429,14 +429,14 @@ void __fastcall CMap::LinkEntityToMapObj(CMapStaticEntity *entity, CMapObjDef *m
   }
 }
 
-void __fastcall CMap::LinkEntityToChunk(CMapStaticEntity *entity, CMapChunk *chunk) {
+void CMap::LinkEntityToChunk(CMapStaticEntity *entity, CMapChunk *chunk) {
   CMapBaseObjLink *link = AllocBaseObjLink(entity);
   link->ref = chunk;
   chunk->entityLinkList.LinkNode(link, LIST_TAIL, 0);
   entity->flags |= CMapBaseObj::Flag_ExteriorLit;
 }
 
-void __fastcall CMap::LinkEntity(CMapStaticEntity *entity) {
+void CMap::LinkEntity(CMapStaticEntity *entity) {
   FATALASSERT(entity);
 
   NTempest::C3Vector lCen = entity->pos;
@@ -460,7 +460,7 @@ void __fastcall CMap::LinkEntity(CMapStaticEntity *entity) {
   }
 }
 
-unsigned int __fastcall CMap::LinkIntersectMapObjs(
+unsigned int CMap::LinkIntersectMapObjs(
     NTempest::C3Vector &lCen,
     NTempest::C3Vector &lEnd,
     float              &hitT,

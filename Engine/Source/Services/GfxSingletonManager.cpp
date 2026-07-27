@@ -6,10 +6,10 @@
 ParticleSystemManager *ParticleSystemManager::manager = 0;
 float                  ParticleSystemManager::scaler = 1.0f;
 float                  ParticleSystemManager::sm_projectDistance;
-int(__fastcall *ParticleSystemManager::sm_projectCallback)(const NTempest::C3Segment &, float &);
+int(*ParticleSystemManager::sm_projectCallback)(const NTempest::C3Segment &, float &);
 RibbonManager *RibbonManager::manager = 0;
 
-void __fastcall ParticleSystemManager::SetScaler(float scaler) {
+void ParticleSystemManager::SetScaler(float scaler) {
   if (scaler >= 0.0f) {
     if (scaler <= 1.0f) {
       ParticleSystemManager::scaler = scaler;
@@ -21,11 +21,11 @@ void __fastcall ParticleSystemManager::SetScaler(float scaler) {
   }
 }
 
-float __fastcall ParticleSystemManager::GetScaler() {
+float ParticleSystemManager::GetScaler() {
   return scaler;
 }
 
-ParticleSystemManager *__fastcall ParticleSystemManager::GetInstance() {
+ParticleSystemManager *ParticleSystemManager::GetInstance() {
   if (!manager) {
     manager = NEW(ParticleSystemManager);
 
@@ -40,7 +40,7 @@ ParticleSystemManager *__fastcall ParticleSystemManager::GetInstance() {
   return manager;
 }
 
-void __fastcall ParticleSystemManager::Destroy() {
+void ParticleSystemManager::Destroy() {
   DEL(manager);
   manager = 0;
 }
@@ -151,11 +151,11 @@ void ParticleSystemManager::UpdateEmitters(float elapsedTime, const NTempest::C3
   }
 }
 
-void __fastcall ParticleSystemManager::RenderParticleEmitter2(void *param1, int param2) {
+void ParticleSystemManager::RenderParticleEmitter2(void *param1, int param2) {
   static_cast<CParticleEmitter2 *>(param1)->Render();
 }
 
-void __fastcall ParticleSystemManager::RenderParticleEmitter(void *param1, int param2) {
+void ParticleSystemManager::RenderParticleEmitter(void *param1, int param2) {
   static_cast<CParticleEmitter *>(param1)->Render();
 }
 
@@ -197,14 +197,14 @@ void ParticleSystemManager::DeleteModelEmitter(CParticleEmitter *emitter) {
   }
 }
 
-RibbonManager *__fastcall RibbonManager::GetInstance() {
+RibbonManager *RibbonManager::GetInstance() {
   if (!manager) {
     manager = NEW(RibbonManager);
   }
   return manager;
 }
 
-void __fastcall RibbonManager::Destroy() {
+void RibbonManager::Destroy() {
   DEL(manager);
   manager = 0;
 }
@@ -262,7 +262,7 @@ void RibbonManager::UpdateEmitters(float elapsedTime, const NTempest::C3Vector &
   }
 }
 
-void __fastcall RibbonManager::RenderEmitter(void *param1, int param2) {
+void RibbonManager::RenderEmitter(void *param1, int param2) {
   static_cast<CRibbonEmitter *>(param1)->Render();
 }
 

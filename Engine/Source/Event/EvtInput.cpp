@@ -8,9 +8,9 @@
 
 #include <string.h>
 
-void __fastcall IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int holdButton);
-void __fastcall PostMouseUp(EvtContext *context, int button, int x, int y, unsigned int flags, int time);
-void __fastcall ResetAsyncState();
+void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int holdButton);
+void PostMouseUp(EvtContext *context, int button, int x, int y, unsigned int flags, int time);
+void ResetAsyncState();
 
 const float PI = 3.14159265358979323846f;
 const float TWO_PI = PI + PI;
@@ -24,13 +24,13 @@ static EVENTCONFIRMCLOSEHANDLER s_confirmCloseCallback = 0;
 static void                    *s_confirmCloseParam = 0;
 static NTempest::CRect          s_boundingRect(0.0f);
 
-void __fastcall CheckMouseModeState() {
+void CheckMouseModeState() {
   if (s_mouseHoldButton && s_mouseHoldButton != (s_mouseHoldButton & s_buttonState)) {
     EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
   }
 }
 
-void __fastcall UnconvertPosition(float x, float y, int *clientx, int *clienty) {
+void UnconvertPosition(float x, float y, int *clientx, int *clienty) {
   RECT windowDim;
 
   OsGetDefaultWindowRect(&windowDim);
@@ -54,7 +54,7 @@ void __fastcall UnconvertPosition(float x, float y, int *clientx, int *clienty) 
   *clienty = windowDim.bottom - *clienty - windowDim.top;
 }
 
-void __fastcall ConvertPosition(int clientx, int clienty, float *x, float *y) {
+void ConvertPosition(int clientx, int clienty, float *x, float *y) {
   if (s_boundingRect.r - s_boundingRect.l != 0.0f && s_boundingRect.b - s_boundingRect.t != 0.0f) {
     float floatX = static_cast<float>(clientx);
     float floatY = static_cast<float>(clienty);
@@ -90,22 +90,22 @@ void __fastcall ConvertPosition(int clientx, int clienty, float *x, float *y) {
   *y = 1.0f - static_cast<float>(clienty) / static_cast<float>(windowDim.bottom - windowDim.top);
 }
 
-unsigned int __fastcall GenerateMouseFlags() {
+unsigned int GenerateMouseFlags() {
   return s_mouseMode == MOUSE_MODE_RELATIVE ? 0x2 : 0;
 }
 
-int __fastcall ConfirmClose() {
+int ConfirmClose() {
   return s_confirmCloseCallback ? s_confirmCloseCallback(s_confirmCloseParam) : 1;
 }
 
-void __fastcall PostCaptureChanged(EvtContext *context, int x, int y) {
+void PostCaptureChanged(EvtContext *context, int x, int y) {
   while (s_buttonState) {
     unsigned int button = ((s_buttonState - 1) ^ s_buttonState) & s_buttonState;
     PostMouseUp(context, button, x, y, 0x1, OsGetAsyncTimeMs());
   }
 }
 
-void __fastcall PostChar(EvtContext *context, int ch, int repeat) {
+void PostChar(EvtContext *context, int ch, int repeat) {
   EVENT_DATA_CHAR data;
   data.ch = ch;
   data.metaKeyState = s_metaKeyState;
@@ -113,7 +113,7 @@ void __fastcall PostChar(EvtContext *context, int ch, int repeat) {
   IEvtQueueDispatch(context, EVENT_ID_CHAR, &data);
 }
 
-void __fastcall PostString(EvtContext *context, int str, int num_chars) {
+void PostString(EvtContext *context, int str, int num_chars) {
   EVENT_DATA_CHAR data;
   data.metaKeyState = s_metaKeyState;
   data.repeat = 1;
@@ -124,7 +124,7 @@ void __fastcall PostString(EvtContext *context, int str, int num_chars) {
   }
 }
 
-void __fastcall PostIme(EvtContext *context, int imeMessage, int wParam, int lParam) {
+void PostIme(EvtContext *context, int imeMessage, int wParam, int lParam) {
   EVENT_DATA_IME data;
   data.message = imeMessage;
   data.wParam = wParam;
@@ -133,18 +133,18 @@ void __fastcall PostIme(EvtContext *context, int imeMessage, int wParam, int lPa
   IEvtQueueDispatch(context, EVENT_ID_IME, &data);
 }
 
-void __fastcall PostSize(EvtContext *context, int w, int h) {
+void PostSize(EvtContext *context, int w, int h) {
   EVENT_DATA_SIZE data;
   data.w = w;
   data.h = h;
   IEvtQueueDispatch(context, EVENT_ID_SIZE, &data);
 }
 
-void __fastcall PostClose() {
+void PostClose() {
   EventInitiateShutdown();
 }
 
-void __fastcall PostFocus(EvtContext *context, int focus) {
+void PostFocus(EvtContext *context, int focus) {
   EVENT_DATA_FOCUS data;
   ResetAsyncState();
   data.focus = focus;
@@ -152,7 +152,7 @@ void __fastcall PostFocus(EvtContext *context, int focus) {
   CheckMouseModeState();
 }
 
-void __fastcall PostKeyDown(EvtContext *context, int key, int repeat, int time) {
+void PostKeyDown(EvtContext *context, int key, int repeat, int time) {
   EVENT_DATA_KEY data;
   if (key <= KEY_LASTMETAKEY) {
     s_metaKeyState |= 1 << key;
@@ -164,7 +164,7 @@ void __fastcall PostKeyDown(EvtContext *context, int key, int repeat, int time) 
   IEvtQueueDispatch(context, EVENT_ID_KEYDOWN, &data);
 }
 
-void __fastcall PostKeyUp(EvtContext *context, int key, int repeat, int time) {
+void PostKeyUp(EvtContext *context, int key, int repeat, int time) {
   EVENT_DATA_KEY data;
   if (key <= KEY_LASTMETAKEY) {
     s_metaKeyState &= ~(1 << key);
@@ -176,7 +176,7 @@ void __fastcall PostKeyUp(EvtContext *context, int key, int repeat, int time) {
   IEvtQueueDispatch(context, EVENT_ID_KEYUP, &data);
 }
 
-void __fastcall PostMouseDown(EvtContext *context, int button, int x, int y, int time) {
+void PostMouseDown(EvtContext *context, int button, int x, int y, int time) {
   EVENT_DATA_MOUSE data;
   data.button = static_cast<MOUSEBUTTON>(button);
   s_buttonState |= button;
@@ -189,7 +189,7 @@ void __fastcall PostMouseDown(EvtContext *context, int button, int x, int y, int
   IEvtQueueDispatch(context, EVENT_ID_MOUSEDOWN, &data);
 }
 
-void __fastcall PostMouseMove(EvtContext *context, int x, int y, int time) {
+void PostMouseMove(EvtContext *context, int x, int y, int time) {
   EVENT_DATA_MOUSE data;
   data.mode = s_mouseMode;
   data.button = MOUSE_BUTTON_NONE;
@@ -201,7 +201,7 @@ void __fastcall PostMouseMove(EvtContext *context, int x, int y, int time) {
   IEvtQueueDispatch(context, EVENT_ID_MOUSEMOVE, &data);
 }
 
-void __fastcall PostMouseMoveRelative(EvtContext *context, int x, int y, int time) {
+void PostMouseMoveRelative(EvtContext *context, int x, int y, int time) {
   EVENT_DATA_MOUSE data;
   data.mode = s_mouseMode;
   data.button = MOUSE_BUTTON_NONE;
@@ -214,7 +214,7 @@ void __fastcall PostMouseMoveRelative(EvtContext *context, int x, int y, int tim
   IEvtQueueDispatch(context, EVENT_ID_MOUSEMOVE_RELATIVE, &data);
 }
 
-void __fastcall PostMouseUp(EvtContext *context, int button, int x, int y, unsigned int flags, int time) {
+void PostMouseUp(EvtContext *context, int button, int x, int y, unsigned int flags, int time) {
   EVENT_DATA_MOUSE data;
   data.button = static_cast<MOUSEBUTTON>(button);
   s_buttonState &= ~static_cast<unsigned int>(button);
@@ -228,7 +228,7 @@ void __fastcall PostMouseUp(EvtContext *context, int button, int x, int y, unsig
   CheckMouseModeState();
 }
 
-void __fastcall PostMouseModeChanged(EvtContext *context, MOUSEMODE mode) {
+void PostMouseModeChanged(EvtContext *context, MOUSEMODE mode) {
   EVENT_DATA_MOUSE data;
   memset(&data, 0, sizeof(data));
   s_mouseMode = mode;
@@ -239,7 +239,7 @@ void __fastcall PostMouseModeChanged(EvtContext *context, MOUSEMODE mode) {
   IEvtQueueDispatch(context, EVENT_ID_MOUSEMODE_CHANGED, &data);
 }
 
-void __fastcall PostMouseWheel(EvtContext *context, int distance, int x, int y, int time) {
+void PostMouseWheel(EvtContext *context, int distance, int x, int y, int time) {
   EVENT_DATA_MOUSE data;
   data.mode = s_mouseMode;
   data.button = MOUSE_BUTTON_NONE;
@@ -252,7 +252,7 @@ void __fastcall PostMouseWheel(EvtContext *context, int distance, int x, int y, 
   IEvtQueueDispatch(context, EVENT_ID_MOUSEWHEEL, &data);
 }
 
-void __fastcall ProcessInput(EvtContext *context, OSINPUT id, const int *const param, int *shutdown) {
+void ProcessInput(EvtContext *context, OSINPUT id, const int *const param, int *shutdown) {
   FATALASSERT(context);
 
   switch (id) {
@@ -323,21 +323,21 @@ void __fastcall ProcessInput(EvtContext *context, OSINPUT id, const int *const p
   }
 }
 
-void __fastcall ResetAsyncState() {
+void ResetAsyncState() {
   s_buttonState = 0;
   s_metaKeyState = 0;
 }
 
-void __fastcall IEvtInputDestroy() {
+void IEvtInputDestroy() {
   OsInputDestroy();
   ResetAsyncState();
 }
 
-void __fastcall IEvtInputInitialize() {
+void IEvtInputInitialize() {
   OsInputInitialize();
 }
 
-int __fastcall IEvtInputProcess(EvtContext *context, int *shutdown) {
+int IEvtInputProcess(EvtContext *context, int *shutdown) {
   FATALASSERT(context);
 
   SErrPingWatchdog();
@@ -353,7 +353,7 @@ int __fastcall IEvtInputProcess(EvtContext *context, int *shutdown) {
   return processed;
 }
 
-void __fastcall IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int holdButton) {
+void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int holdButton) {
   FATALASSERT(context);
 
   if (holdButton == (holdButton & s_buttonState)) {
@@ -382,12 +382,12 @@ void __fastcall IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsig
   }
 }
 
-void __fastcall IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam) {
+void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam) {
   s_confirmCloseCallback = inFunc;
   s_confirmCloseParam = inParam;
 }
 
-void __fastcall IEvtInputGetMousePosition(float *x, float *y) {
+void IEvtInputGetMousePosition(float *x, float *y) {
   float localX;
   float localY;
   int   clientX;
@@ -401,7 +401,7 @@ void __fastcall IEvtInputGetMousePosition(float *x, float *y) {
   NDCToDDC(localX, localY, x, y);
 }
 
-void __fastcall IEvtInputSetMousePosition(float x, float y) {
+void IEvtInputSetMousePosition(float x, float y) {
   int   clientX;
   int   clientY;
   float globalX;
@@ -412,7 +412,7 @@ void __fastcall IEvtInputSetMousePosition(float x, float y) {
   OsInputSetMousePosition(clientX, clientY);
 }
 
-void __fastcall IEvtInputSetMouseBoundingRect(NTempest::CRect *rect) {
+void IEvtInputSetMouseBoundingRect(NTempest::CRect *rect) {
   int   r;
   int   b;
   int   l;

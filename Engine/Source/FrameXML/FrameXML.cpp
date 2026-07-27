@@ -77,20 +77,20 @@ TREENODE::~TREENODE() {
   XMLTree_Free(tree);
 }
 
-static int __fastcall      GuessNumFiles(const char *string);
-static XMLTree *__fastcall FrameXML_LoadXML(const char *filename, CStatus *status);
-int __fastcall             FrameXML_ProcessFile(const char *filename, CStatus *status);
-void __fastcall            FrameXML_StoreHashNode(const XMLNode *node, const char *name, CStatus *status);
+static int GuessNumFiles(const char *string);
+static XMLTree *FrameXML_LoadXML(const char *filename, CStatus *status);
+int FrameXML_ProcessFile(const char *filename, CStatus *status);
+void FrameXML_StoreHashNode(const XMLNode *node, const char *name, CStatus *status);
 
-void __fastcall FrameXML_SetDebugLevel(int level) {
+void FrameXML_SetDebugLevel(int level) {
   s_debugLevel = level;
 }
 
-int __fastcall FrameXML_GetDebugLevel() {
+int FrameXML_GetDebugLevel() {
   return s_debugLevel;
 }
 
-int __fastcall FrameXML_CreateFrames(const char *path, CStatus *status) {
+int FrameXML_CreateFrames(const char *path, CStatus *status) {
   void       *buffer;
   const char *string;
   int         total;
@@ -159,7 +159,7 @@ int __fastcall FrameXML_CreateFrames(const char *path, CStatus *status) {
   return 1;
 }
 
-static int __fastcall GuessNumFiles(const char *string) {
+static int GuessNumFiles(const char *string) {
   const char *line;
   int         count;
 
@@ -181,7 +181,7 @@ static int __fastcall GuessNumFiles(const char *string) {
   return count;
 }
 
-int __fastcall FrameXML_ProcessFile(const char *filename, CStatus *status) {
+int FrameXML_ProcessFile(const char *filename, CStatus *status) {
   XMLTree       *tree;
   const XMLNode *node;
 
@@ -256,7 +256,7 @@ int __fastcall FrameXML_ProcessFile(const char *filename, CStatus *status) {
   return 1;
 }
 
-static XMLTree *__fastcall FrameXML_LoadXML(const char *filename, CStatus *status) {
+static XMLTree *FrameXML_LoadXML(const char *filename, CStatus *status) {
   void         *buffer;
   unsigned long bytes;
   XMLTree      *tree;
@@ -275,7 +275,7 @@ static XMLTree *__fastcall FrameXML_LoadXML(const char *filename, CStatus *statu
   return tree;
 }
 
-CSimpleFrame *__fastcall FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, CStatus *status) {
+CSimpleFrame *FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, CStatus *status) {
   const char       *name;
   FrameFactoryNode *factoryNode;
   CSimpleFrame     *frame;
@@ -316,7 +316,7 @@ CSimpleFrame *__fastcall FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame 
   return frame;
 }
 
-void __fastcall FrameXML_StoreHashNode(const XMLNode *node, const char *name, CStatus *status) {
+void FrameXML_StoreHashNode(const XMLNode *node, const char *name, CStatus *status) {
   HashedNode *hashedNode;
 
   if (FrameXML_GetDebugLevel() > 0) {
@@ -332,7 +332,7 @@ void __fastcall FrameXML_StoreHashNode(const XMLNode *node, const char *name, CS
   hashedNode->node = node;
 }
 
-const XMLNode *__fastcall FrameXML_FindHashNode(const char *name) {
+const XMLNode *FrameXML_FindHashNode(const char *name) {
   HashedNode *hashedNode = s_hashedNodes.Ptr(name);
 
   if (hashedNode) {
@@ -342,11 +342,11 @@ const XMLNode *__fastcall FrameXML_FindHashNode(const char *name) {
   return 0;
 }
 
-void __fastcall FrameXML_ClearFactories() {
+void FrameXML_ClearFactories() {
   s_frameFactories.Clear();
 }
 
-int __fastcall FrameXML_RegisterFactory(const char *type, FRAMEFACTORY factory) {
+int FrameXML_RegisterFactory(const char *type, FRAMEFACTORY factory) {
   FrameFactoryNode *node;
 
   if (s_frameFactories.Ptr(type)) {
@@ -359,51 +359,51 @@ int __fastcall FrameXML_RegisterFactory(const char *type, FRAMEFACTORY factory) 
   return 1;
 }
 
-CSimpleFrame *__fastcall Create_SimpleButton(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleButton(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleButton))) CSimpleButton(parent);
 }
 
-CSimpleFrame *__fastcall Create_SimpleCheckButton(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleCheckButton(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleCheckbox))) CSimpleCheckbox(parent);
 }
 
-CSimpleFrame *__fastcall Create_SimpleEditBox(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleEditBox(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleEditBox))) CSimpleEditBox(parent);
 }
 
-CSimpleFrame *__fastcall Create_SimpleFrame(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleFrame(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleFrame))) CSimpleFrame(parent);
 }
 
-CSimpleFrame *__fastcall Create_SimpleMessageFrame(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleMessageFrame(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleMessageFrame))) CSimpleMessageFrame(parent);
 }
 
-CSimpleFrame *__fastcall Create_SimpleModel(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleModel(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleModel))) CSimpleModel(parent);
 }
 
-CSimpleFrame *__fastcall Create_SimpleScrollFrame(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleScrollFrame(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleScrollFrame))) CSimpleScrollFrame(parent);
 }
 
-CSimpleFrame *__fastcall Create_SimpleScrollingMessageFrame(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleScrollingMessageFrame(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleMessageScrollFrame))) CSimpleMessageScrollFrame(parent, 8);
 }
 
-CSimpleFrame *__fastcall Create_SimpleSlider(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleSlider(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleSlider))) CSimpleSlider(parent);
 }
 
-CSimpleFrame *__fastcall Create_SimpleHTML(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleHTML(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleHTML))) CSimpleHTML(parent);
 }
 
-CSimpleFrame *__fastcall Create_SimpleStatusBar(CSimpleFrame *parent) {
+CSimpleFrame *Create_SimpleStatusBar(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleStatusBar))) CSimpleStatusBar(parent);
 }
 
-int __fastcall FrameXML_RegisterDefault() {
+int FrameXML_RegisterDefault() {
   FrameXML_RegisterFactory("Button", Create_SimpleButton);
   FrameXML_RegisterFactory("CheckButton", Create_SimpleCheckButton);
   FrameXML_RegisterFactory("EditBox", Create_SimpleEditBox);
@@ -418,6 +418,6 @@ int __fastcall FrameXML_RegisterDefault() {
   return 1;
 }
 
-void __fastcall FrameXML_RegisterLoadProgressCallback(FRAMELOADPROGRESSCALLBACK callback) {
+void FrameXML_RegisterLoadProgressCallback(FRAMELOADPROGRESSCALLBACK callback) {
   s_loadProgressCallback = callback;
 }

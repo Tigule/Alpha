@@ -7,7 +7,7 @@ class SpellVisualRec {
   SpellVisualRec();
   ~SpellVisualRec();
 
-  static const char *__fastcall GetFilename();
+  static const char *GetFilename();
 
   static unsigned int GetNumColumns() {
     return 21;

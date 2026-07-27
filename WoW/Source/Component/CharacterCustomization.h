@@ -196,10 +196,10 @@ struct VARIATIONS {
   TSGrowableArray<INTDATA> hairGeosets;
 };
 
-void __fastcall     CharCustomizationInitialize();
-void __fastcall     CharCustomizationShutdown();
-void __fastcall     CharCustomizationGetNumSkinTextures(unsigned int raceID, unsigned int sexID, int *pcVars, int *npcVars);
-HTEXTURE __fastcall CharCustomizationLoadSkin(
+void CharCustomizationInitialize();
+void CharCustomizationShutdown();
+void CharCustomizationGetNumSkinTextures(unsigned int raceID, unsigned int sexID, int *pcVars, int *npcVars);
+HTEXTURE CharCustomizationLoadSkin(
     HMODEL       characterModel,
     const char  *skinName,
     unsigned int raceID,
@@ -207,8 +207,8 @@ HTEXTURE __fastcall CharCustomizationLoadSkin(
     unsigned int textureNumber,
     int          isNPC
 );
-HTEXTURE __fastcall CharCustomizationSetSkin(HMODEL characterModel, unsigned int raceID, unsigned int sexID, unsigned int textureNumber, int isNPC);
-int __fastcall      CharCustomizationGetNakedSectionName(
+HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, unsigned int raceID, unsigned int sexID, unsigned int textureNumber, int isNPC);
+int CharCustomizationGetNakedSectionName(
     unsigned int raceID,
     unsigned int sexID,
     unsigned int skinID,
@@ -217,8 +217,8 @@ int __fastcall      CharCustomizationGetNakedSectionName(
     unsigned int outBufferSize,
     int          isNPC
 );
-void __fastcall CharCustomizationNumFaces(unsigned int raceID, unsigned int sexID, int *pcVars, int *npcVars);
-void __fastcall CharCustomizationSetFaceTexture(
+void CharCustomizationNumFaces(unsigned int raceID, unsigned int sexID, int *pcVars, int *npcVars);
+void CharCustomizationSetFaceTexture(
     HMODEL        characterModel,
     HTEXCOMPONENT texComponent,
     unsigned int  raceID,
@@ -227,7 +227,7 @@ void __fastcall CharCustomizationSetFaceTexture(
     unsigned int  colorID,
     int           isNPC
 );
-void __fastcall CharCustomizationSetHairTexture(
+void CharCustomizationSetHairTexture(
     HMODEL        characterModel,
     HTEXCOMPONENT texComponent,
     unsigned int  raceID,
@@ -235,13 +235,13 @@ void __fastcall CharCustomizationSetHairTexture(
     unsigned int  hairID,
     unsigned int  colorID
 );
-unsigned int __fastcall CharCustomizationGetHairGeoset(unsigned int race, unsigned int sex, unsigned int hair);
-unsigned int __fastcall CharCustomizationNumHairStyles(unsigned int raceID, unsigned int sexID);
-unsigned int __fastcall CharCustomizationNumHairColors(unsigned int raceID, unsigned int sexID);
-unsigned int __fastcall CharCustomizationNumBeardStyles(unsigned int raceID, unsigned int sexID);
-int __fastcall
+unsigned int CharCustomizationGetHairGeoset(unsigned int race, unsigned int sex, unsigned int hair);
+unsigned int CharCustomizationNumHairStyles(unsigned int raceID, unsigned int sexID);
+unsigned int CharCustomizationNumHairColors(unsigned int raceID, unsigned int sexID);
+unsigned int CharCustomizationNumBeardStyles(unsigned int raceID, unsigned int sexID);
+int
 CharCustomizationGetBeardStyle(unsigned int raceID, unsigned int sexID, unsigned int facialHairID, BEARDSTYLEDATA *facialHairStyleData);
-void __fastcall CharCustomizationSetFacialTexture(
+void CharCustomizationSetFacialTexture(
     HMODEL        characterModel,
     HTEXCOMPONENT texComponent,
     unsigned int  raceID,
@@ -249,17 +249,17 @@ void __fastcall CharCustomizationSetFacialTexture(
     unsigned int  facialID,
     unsigned int  colorID
 );
-HCHARGEOSET __fastcall CharCustomizationCreateGeosetHandle(HMODEL characterModel);
-void __fastcall        CharCustomizationSetPaperDollGeoset(HCHARGEOSET handle, HMODEL paperDollModel);
-void __fastcall        CharCustomizationInitBaseCharacter(
+HCHARGEOSET CharCustomizationCreateGeosetHandle(HMODEL characterModel);
+void CharCustomizationSetPaperDollGeoset(HCHARGEOSET handle, HMODEL paperDollModel);
+void CharCustomizationInitBaseCharacter(
     HCHARGEOSET  geosetHandle,
     unsigned int beardGeoset,
     unsigned int sideBurnGeoset,
     unsigned int moustacheGeoset,
     unsigned int earGeoset
 );
-void __fastcall CharCustomizationResetHairGeoset(HCHARGEOSET geosetHandle, unsigned int race, unsigned int sex, unsigned int hairStyleID);
-void __fastcall CharCustomizationAddItemGeosets(
+void CharCustomizationResetHairGeoset(HCHARGEOSET geosetHandle, unsigned int race, unsigned int sex, unsigned int hairStyleID);
+void CharCustomizationAddItemGeosets(
     HCHARGEOSET               geosetHandle,
     const ItemDisplayInfoRec *displayInfoRec,
     unsigned int              itemInventoryType,
@@ -267,17 +267,17 @@ void __fastcall CharCustomizationAddItemGeosets(
     unsigned int              raceID,
     int                       doNotCommit
 );
-void __fastcall CharCustomizationRemoveItemGeosets(
+void CharCustomizationRemoveItemGeosets(
     HCHARGEOSET               geosetHandle,
     const ItemDisplayInfoRec *displayInfoRec,
     unsigned int              itemInventoryType,
     HTEXCOMPONENT             component
 );
-void __fastcall CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets);
-void __fastcall CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets, HMODEL paperDollModel);
-void __fastcall CharCustomizationClearItemGeosets(HCHARGEOSET geosetHandle);
-void __fastcall CharCustomizationCommitGeosets(HCHARGEOSET handle);
-void __fastcall CharCustomizationShowGeoset(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section, unsigned int geosetNumber);
-void __fastcall CharCustomizationHideGeosetSection(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section);
-void __fastcall
+void CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets);
+void CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets, HMODEL paperDollModel);
+void CharCustomizationClearItemGeosets(HCHARGEOSET geosetHandle);
+void CharCustomizationCommitGeosets(HCHARGEOSET handle);
+void CharCustomizationShowGeoset(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section, unsigned int geosetNumber);
+void CharCustomizationHideGeosetSection(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section);
+void
 CharCustomizationGetTextureLayerHolds(unsigned int raceID, unsigned int sexID, unsigned int *textureLayerHolds, unsigned int numTextureLayerHolds);

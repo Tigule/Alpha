@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall TaxiPathNodeRec::GetFilename() {
+const char *TaxiPathNodeRec::GetFilename() {
   return "DBFilesClient\\TaxiPathNode.dbc";
 }
 

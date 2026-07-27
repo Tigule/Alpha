@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *__fastcall SpellVisualEffectNameRec::GetFilename() {
+const char *SpellVisualEffectNameRec::GetFilename() {
   return "DBFilesClient\\SpellVisualEffectName.dbc";
 }
 

@@ -2,7 +2,7 @@
 
 #include "DB/DBClient/AutoCode/SpellVisualEffectNameRec.h"
 
-void __fastcall LoadUnitDefs() {
+void LoadUnitDefs() {
   for (int i = 0; i < g_spellVisualEffectNameDB.GetNumRecords(); ++i) {
     const SpellVisualEffectNameRec *effect = g_spellVisualEffectNameDB.GetRecordByIndex(i);
     if (effect && effect->m_specialID >= 0 && effect->m_specialID < 43) {

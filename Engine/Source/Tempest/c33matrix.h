@@ -119,12 +119,12 @@ namespace NTempest {
       return a0 + b1 + c2;
     }
 
-    static float __fastcall Det(float a, float b, float c, float d) {
+    static float Det(float a, float b, float c, float d) {
       return a * d - b * c;
     }
 
-    static C33Matrix __fastcall Rotation(float angle, const C3Vector &axis, bool unit);
-    static C33Matrix __fastcall Rotation(float angle);
+    static C33Matrix Rotation(float angle, const C3Vector &axis, bool unit);
+    static C33Matrix Rotation(float angle);
     float                       Determinant() const;
     C33Matrix                   Cofactors() const;
     C33Matrix                   Adjoint() const;
@@ -171,14 +171,14 @@ namespace NTempest {
     float c2;
   };
 
-  C33Matrix __fastcall operator*(const C33Matrix &l, const C33Matrix &r);
+  C33Matrix operator*(const C33Matrix &l, const C33Matrix &r);
 
   inline C33Matrix &C33Matrix::operator*=(const C33Matrix &a) {
     *this = *this * a;
     return *this;
   }
 
-  inline C33Matrix __fastcall operator*(const C33Matrix &l, float a) {
+  inline C33Matrix operator*(const C33Matrix &l, float a) {
     return C33Matrix(
         l.a0 * a, l.a1 * a, l.a2 * a,
         l.b0 * a, l.b1 * a, l.b2 * a,
@@ -186,11 +186,11 @@ namespace NTempest {
     );
   }
 
-  inline C33Matrix __fastcall operator/(const C33Matrix &l, float a) {
+  inline C33Matrix operator/(const C33Matrix &l, float a) {
     return l * (1.0f / a);
   }
 
-  inline C3Vector __fastcall operator*(const C33Matrix &l, const C3Vector &v) {
+  inline C3Vector operator*(const C33Matrix &l, const C3Vector &v) {
     return C3Vector(v.x * l.a0 + v.y * l.b0 + v.z * l.c0, v.x * l.a1 + v.y * l.b1 + v.z * l.c1, v.x * l.a2 + v.y * l.b2 + v.z * l.c2);
   }
 

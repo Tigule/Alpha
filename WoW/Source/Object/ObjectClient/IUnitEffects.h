@@ -55,4 +55,4 @@ struct MISSILESTRUCT {
   int                sound;
 };
 
-void __fastcall UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset);
+void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset);

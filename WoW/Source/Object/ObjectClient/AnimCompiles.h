@@ -178,7 +178,7 @@ enum ANIMENUMERATION {
 extern const char *g_animationNames[];
 
 struct SEQFINISHINFO {
-  int(__fastcall *handler)(void *, CGUnit_C *);
+  int(*handler)(void *, CGUnit_C *);
   unsigned int callbackFlags;
   unsigned int flags;
 };

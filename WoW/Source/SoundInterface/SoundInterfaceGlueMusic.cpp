@@ -11,15 +11,15 @@ static const float FADEOUT_TIME = 3.0f;
 static char   s_musicFile[0x104];
 static Sound *s_glueMusic;
 
-void __fastcall InitializeGlueMusic() {
+void InitializeGlueMusic() {
 }
 
-void __fastcall ShutdownGlueMusic() {
+void ShutdownGlueMusic() {
   SndInterfaceStopGlueMusic(0.0f);
   s_musicFile[0] = 0;
 }
 
-void __fastcall SndInterfaceSetGlueMusic(const char *musicFile) {
+void SndInterfaceSetGlueMusic(const char *musicFile) {
   if (!musicFile || !CGlueMgr::Initialized() || CGlueMgr::Suspended()) {
     SndInterfaceStopGlueMusic(FADEOUT_TIME);
     s_musicFile[0] = 0;
@@ -69,7 +69,7 @@ void __fastcall SndInterfaceSetGlueMusic(const char *musicFile) {
   }
 }
 
-void __fastcall SndInterfaceStopGlueMusic(float fadeTime) {
+void SndInterfaceStopGlueMusic(float fadeTime) {
   if (s_glueMusic) {
     s_glueMusic->Stop(fadeTime);
     s_glueMusic = 0;

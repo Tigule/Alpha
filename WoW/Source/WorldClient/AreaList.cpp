@@ -19,7 +19,7 @@ static unsigned int                             s_currentContinent = -1;
 static int                                      s_indoors = -1;
 static unsigned int                             s_currentChunkID;
 
-static AREAHASHOBJECT *__fastcall GetZone(unsigned int cont, unsigned int zName, unsigned int subZone) {
+static AREAHASHOBJECT *GetZone(unsigned int cont, unsigned int zName, unsigned int subZone) {
   AREAHASHKEY key;
 
   key.cont = cont;
@@ -43,7 +43,7 @@ AREAHASHOBJECT *AREAHASHOBJECT::GetParent() const {
   return s_areaHash.Ptr(area, key);
 }
 
-static void __fastcall InitializeAreaMusic(AREAHASHOBJECT *c) {
+static void InitializeAreaMusic(AREAHASHOBJECT *c) {
   const AreaTableRec *rec = c->rec;
 
   c->midi = rec->m_MIDIAmbience;
@@ -85,13 +85,13 @@ static void __fastcall InitializeAreaMusic(AREAHASHOBJECT *c) {
   }
 }
 
-static void __fastcall InitializeMusic() {
+static void InitializeMusic() {
   for (AREAHASHOBJECT *area = s_areaHash.Head(); area; area = s_areaHash.Next(area)) {
     InitializeAreaMusic(area);
   }
 }
 
-static void __fastcall LoadAreaTable() {
+static void LoadAreaTable() {
   unsigned int numEntries = g_areaTableDB.GetNumRecords();
 
   s_areaHash.SetTableSize(numEntries);
@@ -131,19 +131,19 @@ static int MIDISetHandler(const char* command, const char* arguments) {
   return 1;
 }
 
-void __fastcall AreaListInitialize() {
+void AreaListInitialize() {
   LoadAreaTable();
   s_currentContinent = 0;
 }
 
-void __fastcall AreaListShutdown() {
+void AreaListShutdown() {
   s_indoors = -1;
   ConsoleCommandUnregister("midiset");
   s_currentContinent = -1;
   s_areaHash.Clear();
 }
 
-int __fastcall AreaListGetName(unsigned int continentID, unsigned int areaID, unsigned int subAreaID, char *buffer, unsigned int size, int fullName) {
+int AreaListGetName(unsigned int continentID, unsigned int areaID, unsigned int subAreaID, char *buffer, unsigned int size, int fullName) {
   AREAHASHOBJECT *area;
   AREAHASHOBJECT *parent;
   int             badRec;
@@ -184,7 +184,7 @@ int __fastcall AreaListGetName(unsigned int continentID, unsigned int areaID, un
   return 1;
 }
 
-static void __fastcall SendZoneUpdate(AREAHASHOBJECT *hash) {
+static void SendZoneUpdate(AREAHASHOBJECT *hash) {
   if (hash->rec) {
     CDataStore msg;
     msg.Put(CMSG_ZONEUPDATE);
@@ -194,7 +194,7 @@ static void __fastcall SendZoneUpdate(AREAHASHOBJECT *hash) {
   }
 }
 
-static bool __fastcall HandleIndoorZoneChange(unsigned long worldObject, const char *&zoneName, const char *&subZoneName, bool &clearMusic) {
+static bool HandleIndoorZoneChange(unsigned long worldObject, const char *&zoneName, const char *&subZoneName, bool &clearMusic) {
   const WMOAreaTableRec *globalRec = 0;
   const WMOAreaTableRec *rec = 0;
   const char            *szName = 0;
@@ -245,7 +245,7 @@ static bool __fastcall HandleIndoorZoneChange(unsigned long worldObject, const c
   return true;
 }
 
-static bool __fastcall HandleOutdoorZoneChange(unsigned int zoneID, unsigned int subZoneID, unsigned int continent, bool &clearMusic) {
+static bool HandleOutdoorZoneChange(unsigned int zoneID, unsigned int subZoneID, unsigned int continent, bool &clearMusic) {
   if (!s_indoors && zoneID == s_currentZoneID && subZoneID == s_currentSubZoneID && continent == s_currentContinent) {
     return false;
   }
@@ -268,7 +268,7 @@ static bool __fastcall HandleOutdoorZoneChange(unsigned int zoneID, unsigned int
   return true;
 }
 
-void __fastcall AreaListRegisterLocation(const NTempest::C3Vector &location, unsigned int continent, unsigned long worldObject) {
+void AreaListRegisterLocation(const NTempest::C3Vector &location, unsigned int continent, unsigned long worldObject) {
   FATALASSERT(worldObject);
 
   int          indoors = CWorld::QueryObjectInside(worldObject) != 0;
@@ -329,7 +329,7 @@ void __fastcall AreaListRegisterLocation(const NTempest::C3Vector &location, uns
   s_indoors = indoors;
 }
 
-int __fastcall AreaListZoneHasBreathParticles(unsigned long worldObject, unsigned int continentID, const NTempest::C3Vector &position) {
+int AreaListZoneHasBreathParticles(unsigned long worldObject, unsigned int continentID, const NTempest::C3Vector &position) {
   const WMOAreaTableRec *globalRec;
   const WMOAreaTableRec *rec;
 

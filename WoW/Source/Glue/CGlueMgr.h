@@ -25,10 +25,10 @@ class CGlueMgr {
     IDLE_WORLD_LOGIN = 7
   };
 
-  static void __fastcall Initialize();
-  static void __fastcall Suspend();
-  static void __fastcall Resume();
-  static void __fastcall Shutdown();
+  static void Initialize();
+  static void Suspend();
+  static void Resume();
+  static void Shutdown();
 
   static int Initialized() {
     return m_initialized;
@@ -44,47 +44,47 @@ class CGlueMgr {
     m_estimatedWaitTime = 0;
   }
 
-  static void __fastcall UpdateWaitQueue(unsigned int wait);
+  static void UpdateWaitQueue(unsigned int wait);
 
   static void ExpectDisconnect(int reconnect) {
     m_disconnectPending = 1;
     m_reconnect = reconnect;
   }
 
-  static void __fastcall SetScreen(const char *screen);
-  static void __fastcall UpdateCurrentScreen(const char *screen);
+  static void SetScreen(const char *screen);
+  static void UpdateCurrentScreen(const char *screen);
 
   static void Reload() {
     m_reload = 1;
   }
 
-  static void __fastcall DefaultServerLogin();
-  static void __fastcall ChangeRealm(const REALM_INFO *info);
-  static void __fastcall CreateCharacter(const CHARACTER_CREATE_INFO *info);
-  static void __fastcall DeleteCharacter(unsigned __int64 guid);
-  static void __fastcall QuitGame();
-  static void __fastcall EnterWorld();
-  static void __fastcall WorldLoginFailed();
-  static void __fastcall StatusDialogClick();
+  static void DefaultServerLogin();
+  static void ChangeRealm(const REALM_INFO *info);
+  static void CreateCharacter(const CHARACTER_CREATE_INFO *info);
+  static void DeleteCharacter(unsigned __int64 guid);
+  static void QuitGame();
+  static void EnterWorld();
+  static void WorldLoginFailed();
+  static void StatusDialogClick();
 
   static const char *GetCurrentAccount() {
     return m_accountName;
   }
 
-  static void __fastcall GetCharacterList();
-  static void __fastcall GetRealmList();
-  static int __fastcall  NetDisconnectHandler(const void *eventData, void *__formal);
+  static void GetCharacterList();
+  static void GetRealmList();
+  static int NetDisconnectHandler(const void *eventData, void *__formal);
 
  private:
-  friend void __fastcall ClientDestroyGame(int connected, int resumeUI, int loginError);
+  friend void ClientDestroyGame(int connected, int resumeUI, int loginError);
 
-  static int __fastcall Idle(const void *eventData, void *param);
+  static int Idle(const void *eventData, void *param);
 
  protected:
-  static void __fastcall InitCursor();
-  static void __fastcall DestroyCursor();
-  static void __fastcall RegisterConsoleCommands();
-  static void __fastcall UnregisterConsoleCommands();
+  static void InitCursor();
+  static void DestroyCursor();
+  static void RegisterConsoleCommands();
+  static void UnregisterConsoleCommands();
 
  private:
   static CSimpleTop     *m_simpleTop;

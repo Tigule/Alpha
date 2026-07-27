@@ -12,60 +12,60 @@ int __cdecl QSortQuests(const void *a, const void *b);
 
 class CGQuestLog {
  public:
-  static void __fastcall InitializeGame();
-  static void __fastcall ShutdownGame();
-  static void __fastcall EnterWorld();
-  static void __fastcall LeaveWorld();
-  static void __fastcall Update(int resetFilters);
-  static void __fastcall FilterAndSortQuests();
-  static int __fastcall  GetServerTimeOffset() {
+  static void InitializeGame();
+  static void ShutdownGame();
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void Update(int resetFilters);
+  static void FilterAndSortQuests();
+  static int GetServerTimeOffset() {
     return m_serverTimeOffset;
   }
-  static void __fastcall SetSelectedQuest(int index);
-  static void __fastcall UpdateSelection();
-  static int __fastcall  GetSelectionIndex();
-  static int __fastcall  GetSelectedQuestID() {
+  static void SetSelectedQuest(int index);
+  static void UpdateSelection();
+  static int GetSelectionIndex();
+  static int GetSelectedQuestID() {
     return m_selectedQuest;
   }
-  static int __fastcall  GetSelectedLogEntry();
-  static void __fastcall SetAbandonQuest() {
+  static int GetSelectedLogEntry();
+  static void SetAbandonQuest() {
     m_abandonQuest = m_selectedQuest;
   }
-  static int __fastcall GetAbandonQuest() {
+  static int GetAbandonQuest() {
     return m_abandonQuest;
   }
-  static const char *__fastcall  GetAbandonQuestName();
-  static void __fastcall         AbandonSelectedQuest();
-  static void __fastcall         ClearQuest(int id);
-  static void __fastcall         AbandonQuest(int index);
-  static unsigned int __fastcall GetNumEntries() {
+  static const char *GetAbandonQuestName();
+  static void AbandonSelectedQuest();
+  static void ClearQuest(int id);
+  static void AbandonQuest(int index);
+  static unsigned int GetNumEntries() {
     return m_numQuests;
   }
-  static unsigned int __fastcall GetNumShownEntries() {
+  static unsigned int GetNumShownEntries() {
     return m_numShownQuests;
   }
-  static const char *__fastcall GetQuestName(int index);
-  static const char *__fastcall GetQuestTag(int index);
-  static int __fastcall         GetQuestLevel(int index);
-  static int __fastcall         IsQuestHeader(int index) {
+  static const char *GetQuestName(int index);
+  static const char *GetQuestTag(int index);
+  static int GetQuestLevel(int index);
+  static int IsQuestHeader(int index) {
     return index >= 0 && static_cast<unsigned int>(index) < m_numQuests ? m_quests[index].isHeader : 0;
   }
-  static int __fastcall GetQuestSortIndex(unsigned int index);
-  static int __fastcall GetQuestItemID(const char *type, int index);
-  static int __fastcall GetQuestLogEntry(int index) {
+  static int GetQuestSortIndex(unsigned int index);
+  static int GetQuestItemID(const char *type, int index);
+  static int GetQuestLogEntry(int index) {
     return index >= 0 && static_cast<unsigned int>(index) < m_numQuests ? m_quests[index].logIndex : -1;
   }
-  static int __fastcall GetQuestSortID(unsigned int index) {
+  static int GetQuestSortID(unsigned int index) {
     return index < m_numSortTypes ? m_sortTypes[index] : 0;
   }
-  static int __fastcall IsSortHeaderCollapsed(unsigned int index) {
+  static int IsSortHeaderCollapsed(unsigned int index) {
     return index < 16 && !(m_collapseFilter & (1 << index));
   }
-  static void __fastcall CollapseHeader(unsigned int index, int collapse);
-  static int __fastcall  IsSelectedQuestExpired();
-  static int __fastcall  IsQuestExpired(unsigned int index);
-  static void __fastcall SetQuestExpired(unsigned int index);
-  static void __fastcall UpdateServerTime(int serverTime);
+  static void CollapseHeader(unsigned int index, int collapse);
+  static int IsSelectedQuestExpired();
+  static int IsQuestExpired(unsigned int index);
+  static void SetQuestExpired(unsigned int index);
+  static void UpdateServerTime(int serverTime);
 
  private:
   friend int __cdecl QSortQuestSortTypes(const void *a, const void *b);

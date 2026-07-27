@@ -130,13 +130,13 @@ static int    s_initialized;
       goto sstrEndCopy;                              \
   *enddest = 0
 
-static void __fastcall CheckInitialized() {
+static void CheckInitialized() {
   if (!s_initialized) {
     SStrInitialize();
   }
 }
 
-static void __fastcall InitializeFloatDigits() {
+static void InitializeFloatDigits() {
   double *out;
   double  scale;
   int     exponent;
@@ -242,7 +242,7 @@ static inline double SStrParseDecimalDouble(LPCSTR string) {
   return negative ? -result : result;
 }
 
-const char *__fastcall SStrChr(const char *string, char ch) {
+const char *SStrChr(const char *string, char ch) {
   char current;
 
   FATALASSERT(string);
@@ -262,7 +262,7 @@ const char *__fastcall SStrChr(const char *string, char ch) {
   return NULL;
 }
 
-char *__fastcall SStrChr(char *string, char ch) {
+char *SStrChr(char *string, char ch) {
   char current;
 
   FATALASSERT(string);
@@ -279,7 +279,7 @@ char *__fastcall SStrChr(char *string, char ch) {
   return NULL;
 }
 
-const char *__fastcall SStrChrR(const char *string, char ch) {
+const char *SStrChrR(const char *string, char ch) {
   const char *result;
 
   FATALASSERT(string);
@@ -295,7 +295,7 @@ const char *__fastcall SStrChrR(const char *string, char ch) {
   return result;
 }
 
-char *__fastcall SStrChrR(char *string, char ch) {
+char *SStrChrR(char *string, char ch) {
   char *result;
 
   FATALASSERT(string);
@@ -439,7 +439,7 @@ DWORD APIENTRY SStrPack(char *dest, LPCSTR source, DWORD destsize) {
   }
 }
 
-static int __fastcall ISStrVPrintf(char *dest, unsigned int maxchars, LPCSTR format, char *arglist) {
+static int ISStrVPrintf(char *dest, unsigned int maxchars, LPCSTR format, char *arglist) {
   int written;
 
   if (!maxchars) {
@@ -797,7 +797,7 @@ __int64 APIENTRY SStrHash64(LPCSTR string, DWORD flags, __int64 seed) {
   return result;
 }
 
-static DWORD __fastcall bjhash(unsigned char *k, DWORD length, DWORD initval) {
+static DWORD bjhash(unsigned char *k, DWORD length, DWORD initval) {
   DWORD a = 0x9E3779B9;
   DWORD b = 0x9E3779B9;
   DWORD c = initval;
@@ -907,7 +907,7 @@ void APIENTRY SStrLower(char *string) {
   _strlwr(string);
 }
 
-const char *__fastcall SStrStr(const char *string, const char *search) {
+const char *SStrStr(const char *string, const char *search) {
   DWORD searchLen;
 
   FATALASSERT(string);
@@ -930,7 +930,7 @@ const char *__fastcall SStrStr(const char *string, const char *search) {
   return NULL;
 }
 
-char *__fastcall SStrStr(char *string, const char *search) {
+char *SStrStr(char *string, const char *search) {
   DWORD searchLen;
 
   FATALASSERT(string);
@@ -953,7 +953,7 @@ char *__fastcall SStrStr(char *string, const char *search) {
   return NULL;
 }
 
-const char *__fastcall SStrStrI(const char *string, const char *search) {
+const char *SStrStrI(const char *string, const char *search) {
   DWORD searchLen;
 
   FATALASSERT(string);
@@ -976,7 +976,7 @@ const char *__fastcall SStrStrI(const char *string, const char *search) {
   return NULL;
 }
 
-char *__fastcall SStrStrI(char *string, const char *search) {
+char *SStrStrI(char *string, const char *search) {
   DWORD searchLen;
 
   FATALASSERT(string);
@@ -999,7 +999,7 @@ char *__fastcall SStrStrI(char *string, const char *search) {
   return NULL;
 }
 
-char *__fastcall Int64ToString(__int64 num, char *buf, DWORD destsize) {
+char *Int64ToString(__int64 num, char *buf, DWORD destsize) {
   char  nbuf[32];
   char *out;
   char *scan;
@@ -1059,7 +1059,7 @@ namespace STypeCache {
   int    s_stringBytes;
 }  // namespace STypeCache
 
-void __fastcall STypeCache::Shutdown() {
+void STypeCache::Shutdown() {
   char  *block;
   char  *next;
   char **table;
@@ -1085,7 +1085,7 @@ void __fastcall STypeCache::Shutdown() {
   SInterlockedDecrement(&s_interlock);
 }
 
-void __fastcall STypeCache::Grow() {
+void STypeCache::Grow() {
   int   bits;
   int   i;
   char *block;
@@ -1117,7 +1117,7 @@ void __fastcall STypeCache::Grow() {
   }
 }
 
-int __fastcall STypeCache::GetProbe(const char *rawname) {
+int STypeCache::GetProbe(const char *rawname) {
   DWORD hash;
   int   probe;
   int   reprobe;
@@ -1151,7 +1151,7 @@ int __fastcall STypeCache::GetProbe(const char *rawname) {
   return probe;
 }
 
-const char *__fastcall STypeCache::Get(const char *rawname) {
+const char *STypeCache::Get(const char *rawname) {
   int probe;
 
   if (!rawname) {
@@ -1172,7 +1172,7 @@ const char *__fastcall STypeCache::Get(const char *rawname) {
   return NULL;
 }
 
-const char *__fastcall STypeCache::Set(const char *rawname, const char *decname) {
+const char *STypeCache::Set(const char *rawname, const char *decname) {
   int   probe;
   int   keyBytes;
   int   valueBytes;

@@ -38,19 +38,19 @@ namespace NTempest {
     operator C2Vector() const { return C2Vector(x, y); }
     operator C3Vector() const { return C3Vector(x, y, z); }
 
-    static C4Vector __fastcall Min(const C4Vector &a, const C4Vector &b) {
+    static C4Vector Min(const C4Vector &a, const C4Vector &b) {
       return C4Vector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y,
           a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w);
     }
-    static C4Vector __fastcall Max(const C4Vector &a, const C4Vector &b) {
+    static C4Vector Max(const C4Vector &a, const C4Vector &b) {
       return C4Vector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y,
           a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w);
     }
-    static C4Vector __fastcall Lerp(const C4Vector &a, const C4Vector &b, const C4Vector &t) {
+    static C4Vector Lerp(const C4Vector &a, const C4Vector &b, const C4Vector &t) {
       return C4Vector(a.x + (b.x - a.x) * t.x, a.y + (b.y - a.y) * t.y,
           a.z + (b.z - a.z) * t.z, a.w + (b.w - a.w) * t.w);
     }
-    static float __fastcall Dot(const C4Vector &a, const C4Vector &b) {
+    static float Dot(const C4Vector &a, const C4Vector &b) {
       return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     }
 
@@ -93,7 +93,7 @@ namespace NTempest {
     float w;
   };
 
-  inline C4Vector __fastcall operator-(const C4Vector &l, const C4Vector &r) {
+  inline C4Vector operator-(const C4Vector &l, const C4Vector &r) {
     return C4Vector(l.x - r.x, l.y - r.y, l.z - r.z, l.w - r.w);
   }
 

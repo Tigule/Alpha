@@ -16,19 +16,19 @@ static int  RoomType(const char *command, const char *arguments);
 static int  DebugTickHandler(const void *dataPtr, void *param);
 static void SndDebugTick();
 
-int __fastcall  DumpChunksINDOORS(const char *command, const char *arguments);
-int __fastcall  ShowCurrentChunkINDOORS(const char *command, const char *arguments);
-int __fastcall  SetChunkPropertyINDOORS(const char *command, const char *arguments);
-int __fastcall  SetCurrentChunkINDOORS(const char *command, const char *arguments);
-int __fastcall  CreateChunkINDOORS(const char *command, const char *arguments);
-int __fastcall  SndDebugListChunksINDOORS(const char *command, const char *arguments);
-int __fastcall  DumpChunksOUTDOORS(const char *command, const char *arguments);
-int __fastcall  ShowCurrentChunkOUTDOORS(const char *command, const char *arguments);
-int __fastcall  SetChunkPropertyOUTDOORS(const char *command, const char *arguments);
-int __fastcall  SetCurrentChunkOUTDOORS(const char *command, const char *arguments);
-int __fastcall  CreateChunkOUTDOORS(const char *command, const char *arguments);
-int __fastcall  SndDebugListChunksOUTDOORS(const char *command, const char *arguments);
-void __fastcall SndDebugRegisterContinent(unsigned int continent);
+int DumpChunksINDOORS(const char *command, const char *arguments);
+int ShowCurrentChunkINDOORS(const char *command, const char *arguments);
+int SetChunkPropertyINDOORS(const char *command, const char *arguments);
+int SetCurrentChunkINDOORS(const char *command, const char *arguments);
+int CreateChunkINDOORS(const char *command, const char *arguments);
+int SndDebugListChunksINDOORS(const char *command, const char *arguments);
+int DumpChunksOUTDOORS(const char *command, const char *arguments);
+int ShowCurrentChunkOUTDOORS(const char *command, const char *arguments);
+int SetChunkPropertyOUTDOORS(const char *command, const char *arguments);
+int SetCurrentChunkOUTDOORS(const char *command, const char *arguments);
+int CreateChunkOUTDOORS(const char *command, const char *arguments);
+int SndDebugListChunksOUTDOORS(const char *command, const char *arguments);
+void SndDebugRegisterContinent(unsigned int continent);
 
 static unsigned int       s_pingSound;
 static unsigned int       s_pingFrequency;
@@ -96,13 +96,13 @@ static int DebugTickHandler(const void *dataPtr, void *param) {
   return 1;
 }
 
-void __fastcall SndDebugInitialize() {
+void SndDebugInitialize() {
   ConsoleCommandRegister("SndDebugPingSound", PingSound, DEBUG, 0);
   ConsoleCommandRegister("SndDebugRoomType", RoomType, DEBUG, 0);
   EventRegister(EVENT_ID_IDLE, DebugTickHandler);
 }
 
-void __fastcall SndDebugShutdown() {
+void SndDebugShutdown() {
   ConsoleCommandUnregister("SndDebugPingSound");
   ConsoleCommandUnregister("SndDebugRoomType");
   IndoorsShutdown();
@@ -111,7 +111,7 @@ void __fastcall SndDebugShutdown() {
   EventUnregister(EVENT_ID_IDLE, DebugTickHandler);
 }
 
-void __fastcall SndDebugDungeonTransition(int indoors, unsigned int continent) {
+void SndDebugDungeonTransition(int indoors, unsigned int continent) {
   ConsoleCommandUnregister("SndDebugListChunks");
   ConsoleCommandUnregister("SndDebugCreateChunk");
   ConsoleCommandUnregister("SndDebugSetCurrentChunk");
