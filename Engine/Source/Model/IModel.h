@@ -28,7 +28,7 @@ namespace NTempest {
   class CImVector;
 }  // namespace NTempest
 
-typedef void(*MODELPROJECT2DCALLBACK)(NTempest::CAaBox &bounds, NTempest::CImVector color, NTempest::C44Matrix &view);
+typedef void(*MODELPROJECT2DCALLBACK)(const NTempest::CAaBox &bounds, NTempest::CImVector color, const NTempest::C44Matrix &view);
 
 DECLARE_DERIVED_HANDLE(HMODEL, HOBJECT);
 
@@ -91,11 +91,19 @@ int ModelGetExtents(HMODEL model, NTempest::CAaBox *extents);
 int ModelGetSeqExtents(HMODEL model, unsigned int seqnum, NTempest::CAaBox *extents);
 int ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds);
 void ModelSceneCalcFrustumPlanes();
-int ModelTestSphere(HMODEL model, NTempest::C34Matrix &orientation, float scale, int testLinkedModels);
-int ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos);
+int ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float scale, int testLinkedModels);
+int ModelTestSphere(
+    HMODEL model,
+    const NTempest::C3Vector &position,
+    float rotationAngle,
+    const NTempest::C3Vector &rotationAxis,
+    float scale,
+    int testLinkedModels
+);
+int ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
 int ModelHasHitTestVolumes(HMODEL model);
-int ModelHitTestVolumes(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos);
-int ModelHitTestGeometry(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos);
+int ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
+int ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
 int ModelGetModelSpacePivot(HMODEL model, unsigned int objectId, NTempest::C3Vector *pivot);
 HCAMERA ModelGetCamera(HMODEL model, unsigned int index);
 unsigned int ModelGetNumCameras(HMODEL model);
@@ -142,13 +150,13 @@ int ModelApplyObjectFaceDir(HMODEL model, unsigned int objectId, const NTempest:
 int ModelRemoveObjectFaceDir(HMODEL model, unsigned int objectId);
 int ModelMarkFootstepSequence(HMODEL model, unsigned int seqIndex);
 int ModelLockObjectSequence(HMODEL model, unsigned int objectId, int set);
-void ModelSetVertexColor(HMODEL model, unsigned int red, unsigned int green, unsigned int blue, int doLinkedModels);
-void ModelGetVertexColor(HMODEL model, unsigned int &red, unsigned int &green, unsigned int &blue);
+void ModelSetVertexColor(HMODEL model, unsigned char red, unsigned char green, unsigned char blue, int doLinkedModels);
+void ModelGetVertexColor(HMODEL model, unsigned char &red, unsigned char &green, unsigned char &blue);
 void ModelShowUnselectable(HMODEL model, unsigned char red, unsigned char green, unsigned char blue);
 void ModelHideUnselectable(HMODEL model);
 int ModelIsShowingUnselectable(HMODEL model);
-void ModelSetVertexAlpha(HMODEL model, unsigned int alpha, int doLinkedModels);
-unsigned int ModelGetVertexAlpha(HMODEL model);
+void ModelSetVertexAlpha(HMODEL model, unsigned char alpha, int doLinkedModels);
+unsigned char ModelGetVertexAlpha(HMODEL model);
 void ModelCustGeosetMove(HMODEL model, unsigned int custGeosetId, const NTempest::C3Vector &modelSpacePosition);
 void ModelCustGeosetRemove(HMODEL model, unsigned int custGeosetId);
 void ModelCustGeosetAdd(
@@ -192,6 +200,6 @@ void ModelAnimate(
     const NTempest::C3Vector  &cameraVector
 );
 void ModelAddToScene(HMODEL model, unsigned int renderFlags);
-void ModelAddToScene(NTempest::C3Vector &position, int priorityPlane, void(*callback)(void *, int), void *param1, int param2);
+void ModelAddToScene(const NTempest::C3Vector &position, int priorityPlane, void(*callback)(void *, int), void *param1, int param2);
 void ModelRender(HMODEL model, CStatus *status, unsigned int renderFlags);
 void ModelRenderScene(CStatus *status);

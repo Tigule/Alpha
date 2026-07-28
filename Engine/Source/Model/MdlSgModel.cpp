@@ -457,7 +457,7 @@ static void ProcessAttachments(
 
   CModelCreate                                createData;
   CStatus                                     subStatus;
-  TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > *instance = modelptr->m_attached.Ptr();
+  LISTPTR(LINKUNIQUE) instance = modelptr->m_attached.Ptr();
   for (unsigned int i = 0; i < numAttachments; ++i, ++instance) {
     unsigned int attachmentId = attachments.Ptr()[i].attachmentId;
     shared->attachIdToIndex.Ptr()[attachmentId] = i;
@@ -559,7 +559,7 @@ static HMATERIAL LoadMaterialData(unsigned char *materialData, unsigned int crea
 }
 
 static unsigned int
-LoadAttachment(unsigned char *data, unsigned int loadFlags, TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > *attachment, CStatus *status) {
+LoadAttachment(unsigned char *data, unsigned int loadFlags, LISTPTR(LINKUNIQUE) attachment, CStatus *status) {
   unsigned int   dataOffset = *reinterpret_cast<unsigned int *>(data);
   unsigned char *attachmentData = data + dataOffset;
   unsigned int   attachmentId = *reinterpret_cast<unsigned int *>(attachmentData);

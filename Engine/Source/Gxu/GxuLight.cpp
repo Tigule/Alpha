@@ -295,7 +295,6 @@ static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vecto
   HASHKEY_DWORD  hashKey;
   unsigned long  hash;
   CLightList    *list;
-  CGxuLightLink *link;
   unsigned int   whichLight;
 
   if (!CGxuLight::s_lights.Head()) {
@@ -313,22 +312,21 @@ static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vecto
   ++s_selectionCount;
   whichLight = 0;
 
-  link = s_dirLightList.m_links.Head();
-  while (link) {
+  ITERATELIST(CGxuLightLink, s_dirLightList.m_links, link) {
     GxLightSet(whichLight, link->m_light->m_light, cameraWorldPos);
     link->m_light->m_selectionCount = s_selectionCount;
     link->m_light->m_hwLight = whichLight;
-    link = s_dirLightList.m_links.Next(link);
     ++whichLight;
   }
 
   if (list) {
-    link = list->m_links.Head();
-    while (link && whichLight < 8) {
+    ITERATELIST(CGxuLightLink, list->m_links, link) {
+      if (whichLight >= 8) {
+        break;
+      }
       GxLightSet(whichLight, link->m_light->m_light, cameraWorldPos);
       link->m_light->m_selectionCount = s_selectionCount;
       link->m_light->m_hwLight = whichLight;
-      link = list->m_links.Next(link);
       ++whichLight;
     }
   }

@@ -1,4 +1,3 @@
-#define STORM_SAPIBASE_DECLARATION
 #include <storm.h>
 
 #include "XMLTree.h"

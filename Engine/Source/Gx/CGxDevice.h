@@ -71,7 +71,7 @@ class CGxShaderParam {
   unsigned int           index;
   int                    dirty;
   float                  f[16];
-  TSLink<CGxShaderParam> lameAssLink;
+  LINKDECLEX(CGxShaderParam, lameAssLink);
 };
 
 class CGxShader {
@@ -203,9 +203,9 @@ struct CGxBuf {
   friend class CGxVertexBuffer;
   friend class CParticleEmitter2;
 
-  TSLink<CGxBuf>        linkGx;
-  TSLink<CGxBuf>        linkVB;
-  TSLink<CGxBuf>        linkIB;
+  LINKDECLEX(CGxBuf, linkGx);
+  LINKDECLEX(CGxBuf, linkVB);
+  LINKDECLEX(CGxBuf, linkIB);
   EGxBufWriteFreq       m_writeFreq;
   EGxVertexBufferFormat m_vbFormat;
   unsigned int          m_numVertices;
@@ -294,7 +294,7 @@ class CGxMemBuffer {
   unsigned int                       m_base;
   unsigned int                       m_next;
   int                                m_discard;
-  TSExplicitList<CGxBuf, -572662307> m_bufList;
+  LISTEXDYN(CGxBuf) m_bufList;
 };
 
 class CGxVertexBuffer : public CGxMemBuffer {
@@ -716,7 +716,7 @@ class CGxDevice {
   TSHashTableReuse<CGxVertexShader, HASHKEY_STRI, 1> m_vertexShaderList;
   CGxStateRegister                                   m_appState;
   CGxStateRegister                                   m_hwState;
-  TSExplicitList<CGxBuf, 0>                          m_bufList;
+  LISTDECLEX(CGxBuf, linkGx, m_bufList);
   CGxBuf                                            *m_bufLocked;
   unsigned int                                       m_VBReserve[4][9];
   unsigned int                                       m_IBReserve[4][9];

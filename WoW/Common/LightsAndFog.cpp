@@ -12,7 +12,7 @@ struct DiskLightDataItem {
   int         m_cloudMask;
 };
 
-unsigned int ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
+bool ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
   DiskLightDataItem diskdataitem;
   int               markerCount;
   int               i;
@@ -51,7 +51,7 @@ unsigned int ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
   return 1;
 }
 
-unsigned int LoadLightsAndFog(const char *filename, LightGroup *lightgroup) {
+bool LoadLightsAndFog(const char *filename, LightGroup *lightgroup) {
   int    versionNumber;
   int    lightCount;
   SFile *lightdata = 0;

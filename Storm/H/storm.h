@@ -149,8 +149,7 @@ extern "C" BOOL APIENTRY SEvtUnregisterType(DWORD type, DWORD subtype);
 // Message functions
 // --------------------------------
 
-typedef SEVTHANDLER SMSGHANDLER;
-typedef BOOL(APIENTRY *SMSGIDLEPROC)(int count);
+typedef BOOL(APIENTRY *SMSGIDLEPROC)(DWORD count);
 
 typedef struct _PARAMS {
   HWND  window;
@@ -162,6 +161,8 @@ typedef struct _PARAMS {
   BOOL  useresult;
   LONG  result;
 } SMSGPARAMS, *LPSMSGPARAMS;
+
+typedef void(APIENTRY *SMSGHANDLER)(SMSGPARAMS *params);
 
 extern "C" BOOL APIENTRY    SMsgBreakHandlerChain(SMSGPARAMS *params);
 extern "C" BOOL APIENTRY    SMsgDestroy();
@@ -178,7 +179,7 @@ extern "C" BOOL APIENTRY    SMsgRegisterKeyDown(HWND window, UINT id, SMSGHANDLE
 extern "C" BOOL APIENTRY    SMsgRegisterKeyUp(HWND window, UINT id, SMSGHANDLER handler);
 extern "C" BOOL APIENTRY    SMsgRegisterMessage(HWND window, UINT id, SMSGHANDLER handler);
 extern "C" BOOL APIENTRY    SMsgSetDefaultWindow(HWND window);
-extern "C" void APIENTRY    SMsgSetDefaultWindowRect(RECT *rect);
+extern "C" void APIENTRY    SMsgSetDefaultWindowRect(const RECT *rect);
 extern "C" BOOL APIENTRY    SMsgUnregisterCommand(HWND window, UINT id, SMSGHANDLER handler);
 extern "C" BOOL APIENTRY    SMsgUnregisterSysCommand(HWND window, UINT id, SMSGHANDLER handler);
 extern "C" BOOL APIENTRY    SMsgUnregisterKeyDown(HWND window, UINT id, SMSGHANDLER handler);
@@ -287,55 +288,57 @@ extern "C" int APIENTRY SCompDestroy();
 // --------------------------------
 
 class BigData;
+template <class T>
+class TSGrowableArray;
 
-extern "C" void APIENTRY SBigAdd(BigData *a, const BigData *b, const BigData *c);
-extern "C" void APIENTRY SBigAnd(BigData *a, const BigData *b, const BigData *c);
-extern "C" void APIENTRY SBigBitLen(BigData *a, DWORD *bits);
-extern "C" int APIENTRY  SBigCompare(const BigData *b, const BigData *c);
-extern "C" void APIENTRY SBigCopy(BigData *a, const BigData *b);
-extern "C" void APIENTRY SBigDec(BigData *a, const BigData *b);
+extern "C" void APIENTRY SBigAdd(BigData *a, const BigData &b, const BigData &c);
+extern "C" void APIENTRY SBigAnd(BigData *a, const BigData &b, const BigData &c);
+extern "C" void APIENTRY SBigBitLen(BigData *a, UINT *bits);
+extern "C" int APIENTRY  SBigCompare(const BigData &b, const BigData &c);
+extern "C" void APIENTRY SBigCopy(BigData *a, const BigData &b);
+extern "C" void APIENTRY SBigDec(BigData *a, const BigData &b);
 extern "C" void APIENTRY SBigDel(BigData *num);
-extern "C" void APIENTRY SBigDiv(BigData *a, const BigData *b, const BigData *c);
-extern "C" void APIENTRY SBigFindPrime(BigData *a, DWORD bits, const BigData *c, const BigData *d);
+extern "C" void APIENTRY SBigDiv(BigData *a, const BigData &b, const BigData &c);
+extern "C" void APIENTRY SBigFindPrime(BigData *a, UINT bits, const BigData &c, const BigData &d);
 extern "C" void APIENTRY SBigFromBinary(BigData *num, const void *data, UINT bytes);
 extern "C" void APIENTRY SBigFromStr(BigData *num, const char *str);
 extern "C" void APIENTRY SBigFromStream(BigData *num, const void *data, UINT maxBytes, UINT *bytes);
 extern "C" void APIENTRY SBigFromUnsigned(BigData *num, UINT val);
-extern "C" void APIENTRY SBigGcd(BigData *a, const BigData *b, const BigData *c);
-extern "C" void APIENTRY SBigInc(BigData *a, const BigData *b);
-extern "C" void APIENTRY SBigInvMod(BigData *a, const BigData *b, const BigData *c);
-extern "C" int APIENTRY  SBigIsEven(const BigData *a);
-extern "C" int APIENTRY  SBigIsOdd(const BigData *a);
-extern "C" int APIENTRY  SBigIsOne(BigData &a);
-extern "C" int APIENTRY  SBigIsPrime(const BigData *a);
-extern "C" int APIENTRY  SBigIsZero(const BigData *a);
-extern "C" void APIENTRY SBigMod(BigData *a, const BigData *b, const BigData *c);
-extern "C" void APIENTRY SBigMul(BigData *a, const BigData *b, const BigData *c);
-extern "C" void APIENTRY SBigMulMod(BigData *a, const BigData *b, const BigData *c, const BigData *d);
+extern "C" void APIENTRY SBigGcd(BigData *a, const BigData &b, const BigData &c);
+extern "C" void APIENTRY SBigInc(BigData *a, const BigData &b);
+extern "C" void APIENTRY SBigInvMod(BigData *a, const BigData &b, const BigData &c);
+extern "C" int APIENTRY  SBigIsEven(const BigData &a);
+extern "C" int APIENTRY  SBigIsOdd(const BigData &a);
+extern "C" int APIENTRY  SBigIsOne(const BigData &a);
+extern "C" int APIENTRY  SBigIsPrime(const BigData &a);
+extern "C" int APIENTRY  SBigIsZero(const BigData &a);
+extern "C" void APIENTRY SBigMod(BigData *a, const BigData &b, const BigData &c);
+extern "C" void APIENTRY SBigMul(BigData *a, const BigData &b, const BigData &c);
+extern "C" void APIENTRY SBigMulMod(BigData *a, const BigData &b, const BigData &c, const BigData &d);
 extern "C" void APIENTRY SBigNew(BigData **num);
-extern "C" void APIENTRY SBigNot(BigData *a, const BigData *b);
-extern "C" void APIENTRY SBigOr(BigData *a, const BigData *b, const BigData *c);
-extern "C" void APIENTRY SBigPow(BigData *a, const BigData *b, UINT c);
-extern "C" void APIENTRY SBigPowMod(BigData *a, const BigData *b, const BigData *c, const BigData *d);
-extern "C" void APIENTRY SBigRand(BigData *a, const BigData *b, BigData *seed);
+extern "C" void APIENTRY SBigNot(BigData *a, const BigData &b);
+extern "C" void APIENTRY SBigOr(BigData *a, const BigData &b, const BigData &c);
+extern "C" void APIENTRY SBigPow(BigData *a, const BigData &b, UINT c);
+extern "C" void APIENTRY SBigPowMod(BigData *a, const BigData &b, const BigData &c, const BigData &d);
+extern "C" void APIENTRY SBigRand(BigData *a, const BigData &b, BigData *seed);
 extern "C" void APIENTRY SBigSet2Exp(BigData *a, UINT b);
 extern "C" void APIENTRY SBigSetOne(BigData *a);
 extern "C" void APIENTRY SBigSetZero(BigData *a);
-extern "C" void APIENTRY SBigShl(BigData *a, const BigData *b, UINT bits);
-extern "C" void APIENTRY SBigShr(BigData *a, const BigData *b, UINT bits);
-extern "C" void APIENTRY SBigSquare(BigData *a, const BigData *b);
-extern "C" void APIENTRY SBigSub(BigData *a, const BigData *b, const BigData *c);
-extern "C" void APIENTRY SBigToBinaryArray(const BigData *num, void *array, int append);
-extern "C" void APIENTRY SBigToBinaryBuffer(const BigData *num, void *data, UINT maxBytes, UINT *bytes);
-extern "C" void APIENTRY SBigToBinaryPtr(const BigData *num, const void **data, UINT *bytes);
-extern "C" void APIENTRY SBigToStrArray(const BigData *num, void *array, int append);
-extern "C" void APIENTRY SBigToStrBuffer(const BigData *num, char *str, UINT chars);
-extern "C" void APIENTRY SBigToStrPtr(const BigData *num, const char **str);
-extern "C" void APIENTRY SBigToStreamArray(const BigData *num, void *array, int append);
-extern "C" void APIENTRY SBigToStreamBuffer(const BigData *num, void *data, UINT maxBytes, UINT *bytes);
-extern "C" void APIENTRY SBigToStreamPtr(const BigData *num, const void **data, UINT *bytes);
-extern "C" void APIENTRY SBigToUnsigned(const BigData *num, UINT *val);
-extern "C" void APIENTRY SBigXor(BigData *a, const BigData *b, const BigData *c);
+extern "C" void APIENTRY SBigShl(BigData *a, const BigData &b, UINT bits);
+extern "C" void APIENTRY SBigShr(BigData *a, const BigData &b, UINT bits);
+extern "C" void APIENTRY SBigSquare(BigData *a, const BigData &b);
+extern "C" void APIENTRY SBigSub(BigData *a, const BigData &b, const BigData &c);
+extern "C" void APIENTRY SBigToBinaryArray(const BigData &num, TSGrowableArray<BYTE> *array, int append);
+extern "C" void APIENTRY SBigToBinaryBuffer(const BigData &num, void *data, UINT maxBytes, UINT *bytes);
+extern "C" void APIENTRY SBigToBinaryPtr(const BigData &num, const void **data, UINT *bytes);
+extern "C" void APIENTRY SBigToStrArray(const BigData &num, TSGrowableArray<char> *array, int append);
+extern "C" void APIENTRY SBigToStrBuffer(const BigData &num, char *str, UINT chars);
+extern "C" void APIENTRY SBigToStrPtr(const BigData &num, const char **str);
+extern "C" void APIENTRY SBigToStreamArray(const BigData &num, TSGrowableArray<BYTE> *array, int append);
+extern "C" void APIENTRY SBigToStreamBuffer(const BigData &num, void *data, UINT maxBytes, UINT *bytes);
+extern "C" void APIENTRY SBigToStreamPtr(const BigData &num, const void **data, UINT *bytes);
+extern "C" void APIENTRY SBigToUnsigned(const BigData &num, UINT *val);
+extern "C" void APIENTRY SBigXor(BigData *a, const BigData &b, const BigData &c);
 
 // --------------------------------
 // Machine-state logging
@@ -486,25 +489,23 @@ class BigNum {
   BigData *m_data;
 };
 
-#ifdef STORM_BIGNUM_METHOD_IMPLEMENTATION
-BigNum::BigNum() {
+inline BigNum::BigNum() {
   SBigNew(&m_data);
 }
 
-BigNum::BigNum(const BigNum &copy) {
+inline BigNum::BigNum(const BigNum &copy) {
   SBigNew(&m_data);
-  SBigCopy(m_data, copy.m_data);
+  SBigCopy(m_data, *copy.m_data);
 }
 
-BigNum::~BigNum() {
+inline BigNum::~BigNum() {
   SBigDel(m_data);
 }
 
-BigNum &BigNum::operator=(const BigNum &copy) {
-  SBigCopy(m_data, copy.m_data);
+inline BigNum &BigNum::operator=(const BigNum &copy) {
+  SBigCopy(m_data, *copy.m_data);
   return *this;
 }
-#endif
 
 namespace Crypt {
   class RSA {
@@ -852,15 +853,10 @@ typedef unsigned int(APIENTRY *STHREADPROC)(void *);
 
 class SThread : public SSyncObject {
  public:
-#ifdef STORM_STHREAD_METHOD_IMPLEMENTATION
   SThread() {
   }
   ~SThread() {
   }
-#else
-  SThread();
-  ~SThread();
-#endif
 
   SThread &operator=(const SThread &rhs);
   static int Create(STHREADPROC proc, void *param, SThread &thread, char *name);
@@ -1067,11 +1063,11 @@ class SFile {
   static void APIENTRY     CloseDir(SDIR *dir);
 };
 
-extern "C" BOOL APIENTRY  SFileOpenFile(const char *filename, HSFILE *handle);
+extern "C" DWORD APIENTRY SFileOpenFile(const char *filename, HSFILE *handle);
 extern "C" BOOL APIENTRY  SFileOpenFileAsArchive(HSARCHIVE ownerarchive, const char *filename, int priority, DWORD flags, HSARCHIVE *handle);
 extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, const char *filename, DWORD flags, HSFILE *handle);
-extern "C" BOOL APIENTRY  SFileFileExists(const char *filename);
-extern "C" BOOL APIENTRY  SFileFileExistsEx(HSARCHIVE archivehandle, const char *filename, DWORD flags);
+extern "C" DWORD APIENTRY SFileFileExists(const char *filename);
+extern "C" DWORD APIENTRY SFileFileExistsEx(HSARCHIVE archivehandle, const char *filename, DWORD flags);
 extern "C" BOOL APIENTRY  SFileCloseFile(HSFILE handle);
 extern "C" BOOL APIENTRY  SFileReadFile(HSFILE handle, void *buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped);
 extern "C" BOOL APIENTRY
@@ -1109,7 +1105,7 @@ extern "C" BOOL APIENTRY  SFileGetArchiveInfo(HSARCHIVE archive, int *priority, 
 extern "C" BOOL APIENTRY  SFileGetFileArchive(HSFILE file, HSARCHIVE *archive);
 extern "C" DWORD APIENTRY SFileCalcFileCrc(const char *filename);
 extern "C" DWORD APIENTRY SFileGetFileCrc(HSFILE handle);
-extern "C" BOOL APIENTRY  SFileGetFileMD5(HSFILE handle, DWORD *md5);
+extern "C" BOOL APIENTRY  SFileGetFileMD5(HSFILE handle, BYTE *md5);
 extern "C" BOOL APIENTRY  SFileGetFileTime(HSFILE handle, FILETIME *filetime);
 extern "C" BOOL APIENTRY  SFileGetActualFileName(HSFILE file, char *buffer, DWORD bufferchars);
 extern "C" BOOL APIENTRY  SFileSetBasePath(const char *path);
@@ -1132,9 +1128,9 @@ extern "C" BOOL APIENTRY  SFileAuthenticateArchive(HSARCHIVE handle, DWORD *exte
 extern "C" BOOL APIENTRY  SFileAuthenticateArchiveEx(
     HSARCHIVE    handle,
     DWORD       *extendedresult,
-    const DWORD *modulus,
+    const BYTE  *modulus,
     DWORD        modulusSize,
-    const DWORD *exponent,
+    const BYTE  *exponent,
     DWORD        exponentSize
 );
 extern "C" BOOL APIENTRY SFileDdaInitialize(IDirectSound *directsound);
@@ -1248,7 +1244,7 @@ namespace STypeCache {
 
 extern "C" BOOL APIENTRY SRegDeleteValue(LPCSTR keyname, LPCSTR valuename, UINT flags);
 extern "C" BOOL APIENTRY SRegDeleteKey(LPCSTR keyname, UINT flags);
-extern "C" BOOL APIENTRY SRegGetBaseKey(UINT flags, char *buffer, DWORD bufferchars);
+extern "C" BOOL APIENTRY SRegGetBaseKey(UINT flags, char *buffer, UINT bufferchars);
 extern "C" BOOL APIENTRY SRegLoadData(LPCSTR keyname, LPCSTR valuename, UINT flags, LPVOID buffer, DWORD buffersize, LPDWORD bytesread);
 extern "C" BOOL APIENTRY SRegLoadString(LPCSTR keyname, LPCSTR valuename, UINT flags, char *buffer, DWORD buffersize);
 extern "C" BOOL APIENTRY SRegLoadValue(LPCSTR keyname, LPCSTR valuename, UINT flags, LPDWORD value);

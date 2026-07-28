@@ -15,7 +15,7 @@ TSHashTable<CSimpleDoodad, HASHKEY_NONE> CSimpleDoodad::simpleDoodadHash;
 CGxBuf                                  *CSimpleDoodad::gxBufDyn;
 HASHKEY_NONE                             CSimpleDoodad::nullHashKey;
 
-static TSExplicitList<CSimpleDoodad, 200> simpleDoodadScene;
+static LISTDECLEX(CSimpleDoodad, sceneLink, simpleDoodadScene);
 
 void CSimpleDoodad::Initialize() {
   gxBufDyn = GxBufCreate(GxBWF_Dynamic, GxVBF_PNT0, 0x2000, 0x2000, GxBufDynCallback, 0);

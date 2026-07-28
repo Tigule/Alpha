@@ -287,7 +287,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     return m_startWatchdog;
   }
 
-  TSExplicitList<EvtHandler, 0> &QueueLockHandlerList(EVENTID id) {
+  LISTEX(EvtHandler, link) &QueueLockHandlerList(EVENTID id) {
     ASSERT(IsCurrentContext());
     ASSERT(id >= 0 && id < EVENTIDS);
     return m_queueHandlerList[id];
@@ -297,7 +297,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     ASSERT(IsCurrentContext());
   }
 
-  TSExplicitList<EvtMessage, 4> &QueueLockMessageList() {
+  LISTEX(EvtMessage, link) &QueueLockMessageList() {
     m_critsect.Enter();
     return m_queueMessageList;
   }
@@ -306,7 +306,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_critsect.Leave();
   }
 
-  TSExplicitList<EvtKeyDown, 0> &QueueLockSyncKeyDownList() {
+  LISTEX(EvtKeyDown, link) &QueueLockSyncKeyDownList() {
     ASSERT(IsCurrentContext());
     m_critsect.Enter();
     return m_queueSyncKeyDownList;

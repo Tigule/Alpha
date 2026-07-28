@@ -1,5 +1,3 @@
-#define STORM_CRITSECT_COMDAT_IMPLEMENTATION
-
 #include "Os/W32/OsTcp.h"
 
 #include <stdarg.h>
@@ -334,8 +332,6 @@ namespace OsNet {
   }
 
   int TCPLISTEN::Enable(int enable) {
-    TCPACCEPT *accept;
-
     if (m_enabled == enable) {
       return 0;
     }
@@ -348,7 +344,7 @@ namespace OsNet {
       return 0;
     }
 
-    for (accept = m_acceptList.Head(); accept; accept = m_acceptList.Next(accept)) {
+    ITERATELIST(TCPACCEPT, m_acceptList, accept) {
       accept->Init();
     }
 
@@ -1436,7 +1432,7 @@ namespace OsNet {
         net->m_baseTcpShutdown = 0;
 
         {
-          TSExplicitList<NETCONNECT, 8> connectFailList;
+          LISTDECLEX(NETCONNECT, m_link, connectFailList);
           NETCONNECT                   *connect;
 
           net->m_connectList[CONNLIST_UDP_CONNECTED].UnlinkAll(connectFailList);
@@ -1493,8 +1489,8 @@ namespace OsNet {
       }
 
       {
-        TSExplicitList<LOOPCONN::INPUT, 8> loopInputList;
-        TSExplicitList<LOOPCONN, 108>      loopDisconnectList;
+        LISTDECLEX(LOOPCONN::INPUT, m_linkNet, loopInputList);
+        LISTDECLEX(LOOPCONN, m_linkNet, loopDisconnectList);
         LOOPCONN::INPUT                   *pinput;
         LOOPCONN                          *conn;
 
@@ -1529,7 +1525,7 @@ namespace OsNet {
 
       selectSets.Clear();
       {
-        TSExplicitList<NETCONNECT, 8> connectCompleteList;
+        LISTDECLEX(NETCONNECT, m_link, connectCompleteList);
         long                          selsockCount = 0;
         long                          selsockTotal;
         NETCONNECT                   *connect = connectIt.CycleInit();
@@ -1592,7 +1588,7 @@ namespace OsNet {
     }
 
     {
-      TSExplicitList<NETCONNECT, 8> connectFailList;
+      LISTDECLEX(NETCONNECT, m_link, connectFailList);
       NETCONNECT                   *connect;
 
       net->m_connectList[CONNLIST_LOOP_CONNECTED].UnlinkAll(connectFailList);

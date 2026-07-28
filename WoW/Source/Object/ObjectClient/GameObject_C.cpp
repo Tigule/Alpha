@@ -205,10 +205,6 @@ static int OnUpdateState(unsigned __int64 guid, unsigned int offset, unsigned in
   return 1;
 }
 
-CGGameObject_C_TypeBase::CGGameObject_C_TypeBase()
-    : m_owner(0), m_interactDistance(MAX_LOOT_DISTANCE) {
-}
-
 CGGameObject_C_TypeBase::CGGameObject_C_TypeBase(CGGameObject_C *owner)
     : m_owner(owner), m_interactDistance(MAX_LOOT_DISTANCE) {
   FATALASSERT(m_owner);

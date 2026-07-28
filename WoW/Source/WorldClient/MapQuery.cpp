@@ -102,7 +102,7 @@ bool CMap::QueryShadow(const NTempest::C3Vector &pos) {
 }
 
 bool CMap::QueryLiquidFishableMapObjsExt(const NTempest::C3Vector &point, int &fishable) {
-  for (CMapObjDef *mapObjDef = mapObjDefHash.Head(); mapObjDef; mapObjDef = mapObjDefHash.Next(mapObjDef)) {
+  ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
     NTempest::C3Vector p = point * mapObjDef->invMat;
     CMapObj            *mapObj = mapObjDef->mapObj;
     FATALASSERT(mapObj);
@@ -162,8 +162,7 @@ bool CMap::QueryLiquidStatusMapObjsExt(
     float                    &surface,
     NTempest::C3Vector       &waterDir
 ) {
-  CMapObjDef *mapObjDef = CMap::mapObjDefHash.Head();
-  while (mapObjDef) {
+  ITERATELIST(CMapObjDef, CMap::mapObjDefHash, mapObjDef) {
     FATALASSERT(mapObjDef->mapObj);
     NTempest::C3Vector p = point * mapObjDef->invMat;
     if (mapObjDef->mapObj->QueryLiquidStatus(0x2000, p, liquid, surface, waterDir)) {
@@ -172,7 +171,6 @@ bool CMap::QueryLiquidStatusMapObjsExt(
       surface = out.z;
       return 1;
     }
-    mapObjDef = CMap::mapObjDefHash.Next(mapObjDef);
   }
   return 0;
 }

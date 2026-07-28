@@ -582,6 +582,41 @@ struct MDLPLANE {
 };
 
 struct MDLHITTESTSHAPE : public MDLGENOBJECT {
+  MDLHITTESTSHAPE() {
+  }
+
+  MDLHITTESTSHAPE(const MDLHITTESTSHAPE &source) {
+    *this = source;
+  }
+
+  MDLHITTESTSHAPE &operator=(const MDLHITTESTSHAPE &source) {
+    type = source.type;
+    switch (type) {
+      case SHAPE_BOX:
+        shape.box = source.shape.box;
+        break;
+
+      case SHAPE_CYLINDER:
+        shape.cylinder = source.shape.cylinder;
+        break;
+
+      case SHAPE_SPHERE:
+        shape.sphere = source.shape.sphere;
+        break;
+
+      case SHAPE_PLANE:
+        shape.plane = source.shape.plane;
+        break;
+
+      default:
+        ASSERT(0);
+        break;
+    }
+
+    MDLGENOBJECT::operator=(source);
+    return *this;
+  }
+
   GEOM_SHAPE type;
   union {
     MDLBOX      box;

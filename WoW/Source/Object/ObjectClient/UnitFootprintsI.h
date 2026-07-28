@@ -27,7 +27,7 @@ struct SPLATDATA {
   LINKDECLEX(SPLATDATA, orderLink);
   LINKDECLEX(SPLATDATA, normalLink);
 
-  unsigned int Update(float progress, unsigned int &nuke);
+  bool Update(float progress, bool &nuke);
   unsigned int Culled();
 };
 

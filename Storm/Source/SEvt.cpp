@@ -24,7 +24,7 @@ typedef struct _TYPEHASHENTRY {
   _TYPEHASHENTRY *next;
 } TYPEHASHENTRY, *TYPEHASHENTRYPTR;
 
-struct BREAKCMD : TSLinkedNode<BREAKCMD> {
+NODEDECL(BREAKCMD) {
   void *data;
 };
 typedef BREAKCMD *BREAKCMDPTR;
@@ -168,17 +168,13 @@ extern "C" BOOL APIENTRY SEvtDispatch(DWORD type, DWORD subtype, DWORD id, void 
 
   for (;;) {
     SEVTHANDLER handler;
-    BREAKCMDPTR breakcmd;
-
     s_critsect.Enter();
-    breakcmd = s_breakcmdlist.Head();
-    while ((LONG)breakcmd > 0) {
+    ITERATELIST(BREAKCMD, s_breakcmdlist, breakcmd) {
       if (breakcmd->data == data) {
         s_breakcmdlist.DeleteNode(breakcmd);
         s_critsect.Leave();
         goto dispatchdone;
       }
-      breakcmd = s_breakcmdlist.RawNext(breakcmd);
     }
 
     if (!currptr || s_modified) {
@@ -226,15 +222,10 @@ dispatchdone:
   InterlockedDecrement((LPLONG)&s_dispatchesinprogress);
 
   if (s_breakcmdlist.Head()) {
-    BREAKCMDPTR breakcmd;
-
     s_critsect.Enter();
-    breakcmd = s_breakcmdlist.Head();
-    while ((LONG)breakcmd > 0) {
+    ITERATELIST(BREAKCMD, s_breakcmdlist, breakcmd) {
       if (breakcmd->data == data) {
-        breakcmd = s_breakcmdlist.DeleteNode(breakcmd);
-      } else {
-        breakcmd = s_breakcmdlist.RawNext(breakcmd);
+        ITERATE_DELETE;
       }
     }
     s_critsect.Leave();

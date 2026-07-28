@@ -1,8 +1,9 @@
 #ifndef WOW_SOURCE_WORLDCLIENT_WORLD_H
 #define WOW_SOURCE_WORLDCLIENT_WORLD_H
 
-#include "WorldClient/Map.h"
+#include "MapDefs.h"
 
+#include <stpl.h>
 #include <Tempest/c2vector.h>
 #include <Tempest/c2ivector.h>
 #include <Tempest/c3segment.h>
@@ -12,6 +13,8 @@
 #include <Tempest/cimvector.h>
 #include <Tempest/cirect.h>
 #include <Tempest/cfacet.h>
+#include <Tempest/c44matrix.h>
+#include <Tempest/caabox.h>
 
 #include <string.h>
 
@@ -216,11 +219,15 @@ class CWTriData {
   static NTempest::C44Matrix idMatrix;
 };
 
-void ProjectTex2d(NTempest::CAaBox &box, NTempest::CImVector color, NTempest::C44Matrix *basis, float fadeOffset);
+void ProjectTex2d(const NTempest::CAaBox &box, NTempest::CImVector color, const NTempest::C44Matrix *basis, float fadeOffset);
 
 class CWorld {
  public:
-  typedef CWorldMinimapQuad MinimapQuad;
+  struct MinimapQuad {
+    unsigned int        groupNum;
+    NTempest::C2iVector quad;
+    NTempest::CAaBox    aaBox;
+  };
 
   static HMODEL__ *GetModel(unsigned long doodad);
   static void SetObjectRenderCallback(unsigned long hWorldObject, void(*cb)(void *, const NTempest::C44Matrix &), void *param);
@@ -270,7 +277,7 @@ class CWorld {
   static void LoadMap(const char *mapName, NTempest::C3Vector &position, int preLoad);
   static void UnloadMap();
   static void Preload(const NTempest::C3Vector &position);
-  static void PrepareUpdate(NTempest::C3Vector &position, NTempest::C3Vector &target);
+  static void PrepareUpdate(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
   static void SetUpdateTime(float elapsedSec, unsigned long pCurTimeMs);
   static void Update();
   static void ObjectGetExtents(unsigned int id, NTempest::CAaBox &extents);
@@ -287,14 +294,14 @@ class CWorld {
   static int QueryMapObjFileName(unsigned long hWorldObject, const char *&fileName);
   static int QueryMapObjFog(unsigned long hWorldObject, SMOFog::Fogs &oFogs, float &oPct);
   static bool QueryMapObjMinimap(unsigned long hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads);
-  static unsigned int QueryMapObjIDs(unsigned long hWorldObject, unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID);
-  static unsigned int QueryMapObjMatrix(unsigned long hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
+  static bool QueryMapObjIDs(unsigned long hWorldObject, unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID);
+  static bool QueryMapObjMatrix(unsigned long hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
   static const char *QueryChunkName();
   static bool QueryMapObjAreaTable(unsigned long hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
   static int QueryObjectLiquid(unsigned long hWorldObject, unsigned int &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep);
   static bool QueryMountAllowed(unsigned long hWorldObject, bool &allowed);
   static int QueryLiquidStatus(const NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir);
-  static void UpdateObject(unsigned long hWorldObject, NTempest::C44Matrix &mat, NTempest::CAaBox &aaBox);
+  static void UpdateObject(unsigned long hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox);
   static void ObjectUpdate(unsigned int id, NTempest::C3Vector &pos, float angle, int bSnap);
   static unsigned int ObjectCreate(
       const char *name, NTempest::C3Vector &pos, float angle, int bWait, int bSnap, unsigned __int64 param64);
@@ -353,7 +360,7 @@ class CWorld {
   friend class CMap;
   friend class CMapArea;
   friend class CMapObjGroup;
-  friend void ShadowRender_LOD1(HMODEL__ *hModel, NTempest::C44Matrix &basis, void *param);
+  friend void ShadowRender_LOD1(HMODEL__ *hModel, const NTempest::C44Matrix &basis, void *param);
   friend HTEXTURE__ *CharCustomizationLoadSkin(
       HMODEL__    *characterModel,
       const char  *skinName,
@@ -365,11 +372,11 @@ class CWorld {
   friend HTEXTURE__ *
   CharCustomizationSetSkin(HMODEL__ *characterModel, unsigned int raceID, unsigned int sexID, unsigned int textureNumber, int isNPC);
 
-  static void ModelGeoProjectCallback(NTempest::CAaBox &worldBox, NTempest::CImVector color, NTempest::C44Matrix &basis);
+  static void ModelGeoProjectCallback(const NTempest::CAaBox &worldBox, NTempest::CImVector color, const NTempest::C44Matrix &basis);
   static int ParticleProjectCallback(const NTempest::C3Segment &seg, float &z);
   static int AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z);
   static void CalcFPS();
-  static void PrepareAreaOfInterest(NTempest::C3Vector &position, NTempest::C3Vector &target);
+  static void PrepareAreaOfInterest(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
 
   static int ConsoleCommand_ShowDetailDoodads(const char *command, const char *arguments);
   static int ConsoleCommand_MaxLOD(const char *__formal, const char *arguments);
@@ -439,6 +446,8 @@ class CWorld {
   static int                 bShowSimpleDoodads;
 };
 
+#include "WorldClient/Map.h"
+
 NODEDECL(WaterRadWave) {
   int                Update(float deltat);
   void               Init(const NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq);
@@ -484,7 +493,7 @@ class CMapArea : public CMapBaseObj {
   static int ccWaterRipples;
   static int ccWaterShowTri;
 
-  TSExplicitList<CMapBaseObjLink, 8> chunkLinkList;
+  LISTDECLEX(CMapBaseObjLink, refLink, chunkLinkList);
   unsigned long                      infoIndex;
   NTempest::C2iVector                mIndex;
   NTempest::C2iVector                cOffset;
@@ -584,14 +593,14 @@ class CMap {
       CMapObj                 **qMapObj
   );
   static bool VectorIntersectDoodadDefLinkList(
-      TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkList,
+      LISTEX(CMapBaseObjLink, refLink) &doodadDefLinkList,
       const NTempest::C3Vector           *p0,
       const NTempest::C3Vector           *p1,
       float                              *t,
       unsigned int                        queryFlags
   );
   static bool VectorIntersectGameObjLinkList(
-      TSExplicitList<CMapBaseObjLink, 8> &gameObjLinkList,
+      LISTEX(CMapBaseObjLink, refLink) &gameObjLinkList,
       const NTempest::C3Vector           *p0,
       const NTempest::C3Vector           *p1,
       float                              *t,
@@ -740,7 +749,7 @@ class CMap {
   static CMapArea                          *areaTable[4096];
   static unsigned long                      areaLowOffsets[4096];
   static CMapAreaLow                       *areaLowTable[4096];
-  static TSExplicitList<CMapBaseObjLink, 8> areaLinkList;
+  static LISTDECLEX(CMapBaseObjLink, refLink, areaLinkList);
   static TSGrowableArray<char>              doodadNames;
   static TSGrowableArray<unsigned int>      doodadNamesIndex;
   static TSGrowableArray<char>              mapObjNames;
@@ -814,12 +823,12 @@ class CMap {
   static char                                         wobFilename[256];
   static char                                         mapPath[256];
   static char                                         mapName[256];
-  static TSExplicitList<CMapBaseObjLink, 8>           doodadDefLinkList;
-  static TSExplicitList<CMapBaseObjLink, 8>           mapObjDefLinkList;
+  static LISTDECLEX(CMapBaseObjLink, refLink, doodadDefLinkList);
+  static LISTDECLEX(CMapBaseObjLink, refLink, mapObjDefLinkList);
   static HASHKEY_NONE                                 nullHashKey;
-  static TSExplicitList<CMapLight, 8>                 lightList;
-  static TSExplicitList<CMapLight, 8>                 lightFreeList;
-  static TSExplicitList<CMapCacheLight, 72>           cacheLightFreeList;
+  static LISTDECLEX(CMapLight, lameAssLink, lightList);
+  static LISTDECLEX(CMapLight, lameAssLink, lightFreeList);
+  static LISTDECLEX(CMapCacheLight, lameAssLink, cacheLightFreeList);
   static LISTDECL(CChunkLayer, chunkLayerFreeList);
   static LISTDECL(CChunkTex, chunkTexFreeList);
 
@@ -907,22 +916,22 @@ class CMap {
 
   static int                                       counts[Cnt_Num];
   static int                                       freeCounts[Cnt_Num];
-  static TSExplicitList<CMapBaseObjLink, 16>       baseObjLinkFreeList;
+  static LISTDECLEX(CMapBaseObjLink, ownerLink, baseObjLinkFreeList);
   static TSExplicitList<CMapObjGroup, 0x1AC>       mapObjGroupFreeList;
   static TSExplicitList<CMapObj, 0x1A4>            mapObjFreeList;
-  static TSExplicitList<CMapDoodadDef, 8>          doodadDefFreeList;
-  static TSExplicitList<CMapEntity, 8>             entityFreeList;
-  static TSExplicitList<CMapEntity, 8>             entityList;
-  static TSExplicitList<CMapArea, 8>               areaFreeList;
-  static TSExplicitList<CMapArea, 8>               areaList;
-  static TSExplicitList<CMapChunk, 8>              chunkFreeList;
-  static TSExplicitList<CMapChunk, 8>              chunkList;
-  static TSExplicitList<CChunkLiquid, 816>         chunkLiquidList;
-  static TSExplicitList<CChunkLiquid, 816>         chunkLiquidFreeList;
-  static TSExplicitList<CMapSoundEmitter, 76>      soundEmitterFreeList;
-  static TSExplicitList<CMapObjDefGroup, 8>        mapObjDefGroupFreeList;
-  static TSExplicitList<CMapObjDefGroup, 8>        mapObjDefGroupList;
-  static TSExplicitList<CMapObjDef, 8>             mapObjDefFreeList;
+  static LISTDECLEX(CMapDoodadDef, lameAssLink, doodadDefFreeList);
+  static LISTDECLEX(CMapEntity, lameAssLink, entityFreeList);
+  static LISTDECLEX(CMapEntity, lameAssLink, entityList);
+  static LISTDECLEX(CMapArea, lameAssLink, areaFreeList);
+  static LISTDECLEX(CMapArea, lameAssLink, areaList);
+  static LISTDECLEX(CMapChunk, lameAssLink, chunkFreeList);
+  static LISTDECLEX(CMapChunk, lameAssLink, chunkList);
+  static LISTDECLEX(CChunkLiquid, lameAssLink, chunkLiquidList);
+  static LISTDECLEX(CChunkLiquid, lameAssLink, chunkLiquidFreeList);
+  static LISTDECLEX(CMapSoundEmitter, lameAssLink, soundEmitterFreeList);
+  static LISTDECLEX(CMapObjDefGroup, lameAssLink, mapObjDefGroupFreeList);
+  static LISTDECLEX(CMapObjDefGroup, lameAssLink, mapObjDefGroupList);
+  static LISTDECLEX(CMapObjDef, lameAssLink, mapObjDefFreeList);
   static TSHashTable<CMapDoodadDef, HASHKEY_DWORD> doodadDefHash;
   static TSHashTable<CMapObjDef, HASHKEY_NONE>     mapObjDefHash;
   static unsigned int                              uniqueId;
@@ -1038,12 +1047,12 @@ class CWFrustum {
 
 class CSortEntry {
  public:
-  TSExplicitList<CWFrustum, 244>     frustumList;
-  TSExplicitList<CMapChunk, 156>     chunkList;
-  TSExplicitList<CMapDoodadDef, 344> doodadDefList;
-  TSExplicitList<CMapObjDef, 344>    mapObjDefList;
-  TSExplicitList<CChunkLiquid, 808>  liquidList[4];
-  TSExplicitList<CMapEntity, 216>    entityList;
+  LISTDECLEX(CWFrustum, sceneLink, frustumList);
+  LISTDECLEX(CMapChunk, sceneLink, chunkList);
+  LISTDECLEX(CMapDoodadDef, sceneLink, doodadDefList);
+  LISTDECLEX(CMapObjDef, sceneLink, mapObjDefList);
+  LISTDECLEX(CChunkLiquid, sceneLink, liquidList[4]);
+  LISTDECLEX(CMapEntity, sceneLink, entityList);
 };
 
 class CSortTable {
@@ -1053,15 +1062,15 @@ class CSortTable {
   void Clear();
 
   CSortEntry                           table[26];
-  TSExplicitList<CWFrustum, 244>       frustumList;
-  TSExplicitList<CMapAreaLow, 2240>    visAreaLowList;
-  TSExplicitList<CMapChunk, 156>       visChunkList;
-  TSExplicitList<CMapDoodadDef, 344>   visDoodadList;
-  TSExplicitList<CMapObjDefGroup, 196> visMapObjDefGroupList;
-  TSExplicitList<CMapEntity, 216>      visEntityList;
-  TSExplicitList<CChunkLiquid, 808>    visLiquidList[4];
-  TSExplicitList<CMapEntity, 216>      nonVisEntityList;
-  TSExplicitList<CMapChunk, 156>       updateChunkList;
+  LISTDECLEX(CWFrustum, sceneLink, frustumList);
+  LISTDECLEX(CMapAreaLow, sceneLink, visAreaLowList);
+  LISTDECLEX(CMapChunk, sceneLink, visChunkList);
+  LISTDECLEX(CMapDoodadDef, sceneLink, visDoodadList);
+  LISTDECLEX(CMapObjDefGroup, sceneLink, visMapObjDefGroupList);
+  LISTDECLEX(CMapEntity, sceneLink, visEntityList);
+  LISTDECLEX(CChunkLiquid, sceneLink, visLiquidList[4]);
+  LISTDECLEX(CMapEntity, sceneLink, nonVisEntityList);
+  LISTDECLEX(CMapChunk, sceneLink, updateChunkList);
 };
 
 class CWorldScene {
@@ -1136,7 +1145,7 @@ class CWorldScene {
   static int                           frustumIndex;
   static NTempest::C4Vector            clipVertexBuffer[9];
   static float                         clipBuffer[128];
-  static TSExplicitList<CWFrustum, 0xF4> frustumFreeList;
+  static LISTDECLEX(CWFrustum, sceneLink, frustumFreeList);
 
  private:
   static void PrepareRenderLiquid();
@@ -1148,7 +1157,7 @@ class CWorldScene {
   static void CullHorizon(const NTempest::CRect &sRect);
   static void CullEntitys(CSortEntry *sortEntry);
   static void CullDoodads(CSortEntry *sortEntry);
-  static void CullDoodads(TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkList);
+  static void CullDoodads(LISTEX(CMapBaseObjLink, refLink) &doodadDefLinkList);
   static void CullChunkLiquid(CSortEntry *sortEntry, unsigned int type);
   static void CullChunks(CSortEntry *sortEntry);
   static void CullMapObjDefs(CSortEntry *sortEntry, const NTempest::CRect &sRect);

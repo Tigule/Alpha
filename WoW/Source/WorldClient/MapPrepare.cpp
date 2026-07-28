@@ -41,8 +41,7 @@ void CMap::PrepareAreas() {
 }
 
 void CMap::PrepareMapObjDefs() {
-  CMapObjDef *mapObjDef = mapObjDefHash.Head();
-  while (mapObjDef) {
+  ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
     CMapObj    *mapObj = mapObjDef->mapObj;
     FATALASSERT(mapObj);
 
@@ -55,8 +54,7 @@ void CMap::PrepareMapObjDefs() {
       }
     }
 
-    CMapBaseObjLink *groupLink = mapObjDef->groupLinkList.Head();
-    while (reinterpret_cast<long>(groupLink) > 0) {
+    ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
       CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
       FATALASSERT(mapObjDefGroup);
       CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 1);
@@ -83,17 +81,14 @@ void CMap::PrepareMapObjDefs() {
         }
       }
 
-      groupLink = mapObjDef->groupLinkList.RawNext(groupLink);
     }
 
-    mapObjDef = mapObjDefHash.Next(mapObjDef);
   }
 }
 
 void CMap::PrepareDoodadDefs() {
-  unsigned int     count = 0;
-  CMapDoodadDef *doodadDef = doodadDefHash.Head();
-  while (doodadDef) {
+  unsigned int count = 0;
+  ITERATELIST(CMapDoodadDef, doodadDefHash, doodadDef) {
     if (!(doodadDef->flags & CMapBaseObj::Flag_Loaded)) {
       if (!doodadDef->model) {
         ++count;
@@ -114,7 +109,6 @@ void CMap::PrepareDoodadDefs() {
       }
     }
 
-    doodadDef = doodadDefHash.Next(doodadDef);
   }
 }
 

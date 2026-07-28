@@ -350,7 +350,7 @@ class CModelComplex : public CModelBase {
   TSGrowableArray<HMATERIAL>                                m_materials;
   TSGrowableArray<CModelTexture>                            m_textures;
   TSFixedArray<unsigned long>                               m_lights;
-  TSFixedArray<TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > > m_attached;
+  TSFixedArray<LIST(LINKUNIQUE)>                            m_attached;
   TSFixedArray_<unsigned char, 'MDLF', 484>                 m_attachmentFlags;
   TSFixedArray<CParticleEmitter2 *>                         m_emitters2;
   TSFixedArray<CRibbonEmitter *>                            m_ribbons;

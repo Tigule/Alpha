@@ -78,7 +78,7 @@ static void InitializeAreaMusic(AREAHASHOBJECT *c) {
 }
 
 static void InitializeMusic() {
-  for (AREAHASHOBJECT *area = s_areaHash.Head(); area; area = s_areaHash.Next(area)) {
+  ITERATELIST(AREAHASHOBJECT, s_areaHash, area) {
     InitializeAreaMusic(area);
   }
 }

@@ -142,12 +142,12 @@ NODEDECL(Sound) {
     m_positionUpdateCallback = callback;
   }
 
-  TSLink<Sound> link;
-  TSLink<Sound> fadeLink;
-  TSLink<Sound> updateLink;
-  TSLink<Sound> panningLink;
-  TSLink<Sound> cutoffLink;
-  TSLink<Sound> stopLink;
+  LINKDECLEX(Sound, link);
+  LINKDECLEX(Sound, fadeLink);
+  LINKDECLEX(Sound, updateLink);
+  LINKDECLEX(Sound, panningLink);
+  LINKDECLEX(Sound, cutoffLink);
+  LINKDECLEX(Sound, stopLink);
 
  private:
   static Sound *Alloc(const char *name);

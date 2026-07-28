@@ -110,7 +110,7 @@ static SCritSect s_decompCrit;
 static DWORD     s_DecompressBufferSize;
 static DWORD     s_DecompressBufferTID;
 
-struct HUFFNODE : public TSLinkedNode<HUFFNODE> {
+NODEDECL(HUFFNODE) {
   int       symbol;
   DWORD     weight;
   HUFFNODE *parent;

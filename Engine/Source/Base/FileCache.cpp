@@ -33,8 +33,8 @@ struct PrefetchNode : public TSHashObject<PrefetchNode, HASHKEY_STRI> {
 
 struct UncachableNode : public TSHashObject<UncachableNode, HASHKEY_STRI> {};
 
-typedef TSExplicitList<PrefetchNode, -572662307>   PrefetchList;
-typedef TSExplicitList<UncachableNode, -572662307> UncachableList;
+typedef LISTEXDYN(PrefetchNode)   PrefetchList;
+typedef LISTEXDYN(UncachableNode) UncachableList;
 
 static PrefetchNode* IBaseFileStartLoad(const char* fileName);
 

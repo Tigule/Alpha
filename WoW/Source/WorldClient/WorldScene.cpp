@@ -15,9 +15,9 @@
 #include <string.h>
 #include <typeinfo>
 
-void ShadowRender(HMODEL hModel, NTempest::C44Matrix &basis, void *param);
+void ShadowRender(HMODEL hModel, const NTempest::C44Matrix &basis, void *param);
 
-TSExplicitList<CWFrustum, 0xF4> CWorldScene::frustumFreeList;
+LISTDECLEX(CWFrustum, sceneLink, CWorldScene::frustumFreeList);
 CSortTable                      CWorldScene::sortTable;
 NTempest::C4Vector              CWorldScene::clipVertexBuffer[9];
 float                           CWorldScene::clipBuffer[128];
@@ -791,10 +791,9 @@ void CWorldScene::CullDoodads(CSortEntry *sortEntry) {
   }
 }
 
-void CWorldScene::CullDoodads(TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkList) {
+void CWorldScene::CullDoodads(LISTEX(CMapBaseObjLink, refLink) &doodadDefLinkList) {
   NTempest::CAaSphere doodadSphere;
-  CMapBaseObjLink    *link = doodadDefLinkList.Head();
-  while (link) {
+  ITERATELIST(CMapBaseObjLink, doodadDefLinkList, link) {
     CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(link->owner);
     FATALASSERT(doodadDef);
     if ((doodadDef->model || doodadDef->RenderCB) && !(doodadDef->flags & CMapBaseObj::Flag_LoadFailed) && !doodadDef->sceneLink.IsLinked()) {
@@ -812,7 +811,6 @@ void CWorldScene::CullDoodads(TSExplicitList<CMapBaseObjLink, 8> &doodadDefLinkL
         }
       }
     }
-    link = doodadDefLinkList.Next(link);
   }
 }
 
@@ -1302,17 +1300,18 @@ void CWorldScene::CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<unsigned 
 }
 
 void CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, const void *userParam, const int rDrawSharedLiquidToggle) {
-  CMapBaseObjLink *link;
   CMapObjDef      *mapObjDef = const_cast<CMapObjDef *>(static_cast<const CMapObjDef *>(userParam));
   FATALASSERT(mapObjDef);
 
   CMapObjDefGroup *mapObjDefGroup = 0;
-  for (link = mapObjDef->groupLinkList.Head(); link; link = mapObjDef->groupLinkList.Next(link)) {
-    mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
-    if (mapObjDefGroup->groupNum == groupNum) {
-      break;
+  {
+    ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
+      mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
+      if (mapObjDefGroup->groupNum == groupNum) {
+        break;
+      }
+      mapObjDefGroup = 0;
     }
-    mapObjDefGroup = 0;
   }
   FATALASSERT(mapObjDefGroup);
 
@@ -1334,18 +1333,18 @@ void CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, const void *us
     CullDoodads(mapObjDefGroup->doodadDefLinkList);
   }
 
-  link = mapObjDefGroup->entityLinkList.Head();
-  while (link) {
-    CMapEntity *entity = static_cast<CMapEntity *>(link->owner);
-    if (!entity->flagVisible) {
-      entity->camDist = camPlaneXY.DistSigned(entity->aaSphere.c) - entity->aaSphere.r;
-      if (entity->camDist <= CWorld::unitDrawDist && !FrustumCull(entity->aaSphere.c, entity->aaSphere.r)) {
-        entity->flagVisible = 1;
-        entity->sceneLink.Unlink();
-        sortTable.visEntityList.LinkNode(entity, LIST_TAIL, 0);
+  {
+    ITERATELIST(CMapBaseObjLink, mapObjDefGroup->entityLinkList, entityLink) {
+      CMapEntity *entity = static_cast<CMapEntity *>(entityLink->owner);
+      if (!entity->flagVisible) {
+        entity->camDist = camPlaneXY.DistSigned(entity->aaSphere.c) - entity->aaSphere.r;
+        if (entity->camDist <= CWorld::unitDrawDist && !FrustumCull(entity->aaSphere.c, entity->aaSphere.r)) {
+          entity->flagVisible = 1;
+          entity->sceneLink.Unlink();
+          sortTable.visEntityList.LinkNode(entity, LIST_TAIL, 0);
+        }
       }
     }
-    link = mapObjDefGroup->entityLinkList.Next(link);
   }
 }
 

@@ -15,10 +15,10 @@ unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes
 static unsigned int g_gxBufCreateCount;
 static unsigned int g_gxBufDestroyCount;
 
-TSExplicitList<CDetailDoodadInst, 16>  CDetailDoodad::instList;
+LISTDECLEX(CDetailDoodadInst, lameAssLink, CDetailDoodad::instList);
 TSGrowableArray<CGxBuf *>              CDetailDoodad::gxBufFreeList;
 TSGrowableArray<CDetailDoodadData *>   CDetailDoodad::doodadList;
-TSExplicitList<CDetailDoodadGeom, 104> CDetailDoodad::geomList;
+LISTDECLEX(CDetailDoodadGeom, lameAssLink, CDetailDoodad::geomList);
 CGxTex                                *CDetailDoodad::alphaRampTexture;
 
 void CDetailDoodad::Initialize() {

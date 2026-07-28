@@ -82,9 +82,7 @@ class CFrameStrataNode {
   }
 
   void OnLayerUpdate(float elapsedSec) {
-    CSimpleFrame *frame;
-
-    for (frame = frames.Head(); frame; frame = frames.Next(frame)) {
+    ITERATELIST(CSimpleFrame, frames, frame) {
       if (frame->IsVisible()) {
         frame->OnLayerUpdate(elapsedSec);
       }
@@ -92,17 +90,15 @@ class CFrameStrataNode {
   }
 
   void RenderBatches() {
-    CRenderBatch *batch;
-
-    for (batch = renderList.Head(); batch; batch = renderList.Next(batch)) {
+    ITERATELIST(CRenderBatch, renderList, batch) {
       CSimpleRender::DrawBatch(batch);
     }
   }
 
-  TSExplicitList<CSimpleFrame, 668> frames;
+  LISTDECLEX(CSimpleFrame, topLink, frames);
   CRenderBatch                      batches[5];
   unsigned int                      batchDirty;
-  TSExplicitList<CRenderBatch, 44>  renderList;
+  LISTDECLEX(CRenderBatch, renderLink, renderList);
 };
 
 class CFrameStrata {
@@ -116,9 +112,7 @@ class CFrameStrata {
     unsigned int i;
 
     for (i = 0; i < topLevel; ++i) {
-      CSimpleFrame *frame;
-
-      for (frame = levels[i]->frames.Head(); frame; frame = levels[i]->frames.Next(frame)) {
+      ITERATELIST(CSimpleFrame, levels[i]->frames, frame) {
         if (!callback(frame, param)) {
           return 0;
         }
@@ -202,11 +196,9 @@ class CFrameStrata {
     unsigned int level = topLevel;
 
     while (level) {
-      CSimpleFrame *frame;
-
       --level;
 
-      for (frame = levels[level]->frames.Head(); frame; frame = levels[level]->frames.Next(frame)) {
+      ITERATELIST(CSimpleFrame, levels[level]->frames, frame) {
         if (frame->IsVisible() && frame->TestHitRect(point)) {
           return frame->GetToplevelFrame();
         }

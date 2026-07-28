@@ -29,6 +29,9 @@ struct HMODEL__;
 struct lua_State;
 
 static int DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
+static int Script_PickupPetAction(lua_State *L);
+static int Script_TogglePetAutocast(lua_State *L);
+static int Script_CastPetAction(lua_State *L);
 class CMouseEvent;
 class CSizeEvent;
 class PetAction;
@@ -147,12 +150,11 @@ class CGGameUI {
   static void GetCursorItem(unsigned __int64 &cursorItem, unsigned __int64 &containerGUID, unsigned int &slot);
   static unsigned int GetCursorVirtualItem();
   static void SetCursorVirtualItem(unsigned int itemID, unsigned int displayID, unsigned int slot, UICURSORTYPE type);
-  static unsigned int GetCursorVirtualItem(UICURSORTYPE type);
   static void GetCursorVirtualItem(unsigned int &cursorItem, unsigned int &slot);
   static void UnlockItem(unsigned __int64 itemGUID);
   static void UnlockAllItems();
   static void LockItem(unsigned __int64 itemGUID);
-  static void CloseLoot(unsigned int send, unsigned int moving);
+  static void CloseLoot(bool send, bool moving);
   static void NewZoneFeedback(int areaID, const char *zoneString, const char *subZoneString);
   static void SetMinimapZoneText(const char *areaName);
   static void ClearCursor(int unlock);
@@ -185,13 +187,13 @@ class CGGameUI {
   static void __cdecl            DisplayError(GAME_ERROR_TYPE errorType, ...);
   static const char *GetLastErrorString();
   static void ShowAutoFollowChange(unsigned __int64 newTarget, unsigned __int64 oldTarget, int type);
-  static int HandleSpriteClick(CSpriteClickEvent &evt);
-  static int HandleTerrainClick(CTerrainClickEvent &evt);
-  static int HandleWorldClick(CWorldClickEvent &evt);
-  static void HandleSpriteTrack(CObjectTrackEvent &evt);
+  static int HandleSpriteClick(const CSpriteClickEvent &evt);
+  static int HandleTerrainClick(const CTerrainClickEvent &evt);
+  static int HandleWorldClick(const CWorldClickEvent &evt);
+  static void HandleSpriteTrack(const CObjectTrackEvent &evt);
   static void HandleScreenshot(int success);
 
-  static int OnTerrainClick(CTerrainClickEvent &evt);
+  static int OnTerrainClick(const CTerrainClickEvent &evt);
   static int OnSpriteLeftClick(unsigned __int64 object, float x, float y);
   static int OnSpriteRightClick(unsigned __int64 object, float x, float y);
   static void OnTargetContextAction();
@@ -232,7 +234,11 @@ class CGGameUI {
   friend class CGTooltip;
   friend class CGCursor;
   friend class CGSpellBook;
+  friend class CGActionBar;
   friend class CGMinimapFrame;
+  friend int Script_PickupPetAction(lua_State *L);
+  friend int Script_TogglePetAutocast(lua_State *L);
+  friend int Script_CastPetAction(lua_State *L);
   friend int Script_CursorHasItem(lua_State *L);
   friend int Script_CursorHasSpell(lua_State *L);
   friend int Script_CursorHasMoney(lua_State *L);

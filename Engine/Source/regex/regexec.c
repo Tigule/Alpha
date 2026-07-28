@@ -62,7 +62,7 @@ static char sccsid[] = "@(#)regexec.c	8.3 (Berkeley) 3/20/94";
 static int nope = 0;		/* for use in asserts; shuts lint up */
 
 /* macros for manipulating states, small version */
-#define	states	long
+#define	states	unsigned int
 #define	states1	states		/* for later use in regexec() decision */
 #define	CLEAR(v)	((v) = 0)
 #define	SET0(v, n)	((v) &= ~(1 << (n)))

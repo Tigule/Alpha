@@ -177,7 +177,7 @@ void CMapObj::RenderGroup(
     unsigned int                          groupNum,
     int                                   rDrawSharedLiquidToggle,
     const NTempest::C44Matrix            &invMat,
-    const TSExplicitList<CWFrustum, 244> &frustumList
+    const LISTEX(CWFrustum, sceneLink) &frustumList
 ) {
   CMapObjGroup *group = GetGroup(groupNum, 0);
   FATALASSERT(group);

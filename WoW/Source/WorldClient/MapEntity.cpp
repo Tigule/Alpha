@@ -27,17 +27,13 @@ class FogQ {
 };
 
 int CMapStaticEntity::GetMapObjDef(CMapObjDef *&mapObjDef) {
-  CMapBaseObjLink *parentLink = parentLinkList.Head();
-
-  while (reinterpret_cast<long>(parentLink) > 0) {
+  ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
       CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
       mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
       FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
       return 1;
     }
-
-    parentLink = parentLinkList.RawNext(parentLink);
   }
 
   return 0;
@@ -66,7 +62,6 @@ int CMapStaticEntity::GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapObj
       return 1;
     }
 
-    parentLink = parentLinkList.RawNext(parentLink);
   }
 
   return 0;
@@ -86,8 +81,7 @@ void CMapEntity::QueryLiquidSounds(
     return;
   }
 
-  CMapBaseObjLink *parentLink = parentLinkList.Head();
-  while (reinterpret_cast<long>(parentLink) > 0) {
+  ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
       CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
       CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
@@ -107,7 +101,6 @@ void CMapEntity::QueryLiquidSounds(
           ldsquared
       );
     }
-    parentLink = parentLinkList.RawNext(parentLink);
   }
 }
 
@@ -188,7 +181,7 @@ int CMapEntity::QueryMapObjListenerId(unsigned int &listenerId) {
   return 1;
 }
 
-bool CMapEntity::QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorldMinimapQuad> &quads) {
+bool CMapEntity::QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorld::MinimapQuad> &quads) {
   NTempest::CAaBox localBox;
   CMapObjGroup    *mapObjGroup;
   CMapObj         *mapObj;
@@ -202,7 +195,7 @@ bool CMapEntity::QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<
   return mapObj->QueryMapObjMinimap(mapObjDefGroup->groupNum, localBox, quads);
 }
 
-unsigned int CMapEntity::QueryMapObjIDs(unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID) {
+bool CMapEntity::QueryMapObjIDs(unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID) {
   CMapObjGroup    *mapObjGroup;
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjDef      *mapObjDef;
@@ -217,7 +210,7 @@ unsigned int CMapEntity::QueryMapObjIDs(unsigned int &wmoID, unsigned int &insta
   return 1;
 }
 
-unsigned int CMapEntity::QueryMapObjMatrix(NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
+bool CMapEntity::QueryMapObjMatrix(NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
   CMapObj         *mapObj;
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup;
@@ -470,8 +463,7 @@ bool CMap::LinkIntersectMapObjs(
   hitMapObjDefGroup = 0;
   hitT = 1.0f;
 
-  CMapObjDef *mapObjDef = mapObjDefHash.Head();
-  while (mapObjDef) {
+  ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
     if (mapObjDef->TestAABox(lCen, lEnd)) {
       CMapObj *mapObj = mapObjDef->mapObj;
       if (mapObj) {
@@ -479,8 +471,7 @@ bool CMap::LinkIntersectMapObjs(
         NTempest::C3Vector  v1 = lEnd * mapObjDef->invMat;
         NTempest::C3Segment seg(v0, v1);
 
-        CMapBaseObjLink *link = mapObjDef->groupLinkList.Head();
-        while (reinterpret_cast<long>(link) > 0) {
+        ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, link) {
           CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
           if (mapObj->TestGroupBounds(seg.start, seg.end, mapObjDefGroup->groupNum)) {
             CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
@@ -494,11 +485,9 @@ bool CMap::LinkIntersectMapObjs(
               }
             }
           }
-          link = mapObjDef->groupLinkList.RawNext(link);
         }
       }
     }
-    mapObjDef = mapObjDefHash.Next(mapObjDef);
   }
 
   return hitMapObjDef != 0;

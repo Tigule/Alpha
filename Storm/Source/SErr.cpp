@@ -1,5 +1,3 @@
-#define STORM_SAPIBASE_IMPLEMENTATION
-
 #include <storm.h>
 #include <stpl.h>
 
@@ -27,7 +25,7 @@ struct APPFATINFO {
   DWORD  threadId;
 };
 
-struct HANDLER : public TSLinkedNode<HANDLER> {
+NODEDECL(HANDLER) {
   SERRHANDLER handler;
 };
 
@@ -93,8 +91,8 @@ void TSList<HANDLER, TSGetLink<HANDLER> >::Clear() {
 
 template <>
 void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, unsigned long linktype, HANDLER *existingptr) {
-  TSLink<HANDLER> *link;
-  TSLink<HANDLER> *existing;
+  LINKEX(HANDLER) *link;
+  LINKEX(HANDLER) *existing;
 
   link = Link(ptr);
   existing = Link(existingptr);
@@ -103,7 +101,7 @@ void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, unsigned long 
   }
 
   if (linktype == LIST_LINK_AFTER) {
-    TSLink<HANDLER> *nextlink;
+    LINKEX(HANDLER) *nextlink;
 
     nextlink = existing->NextLink(m_linkoffset);
     link->m_prevlink = existing;
@@ -111,7 +109,7 @@ void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, unsigned long 
     nextlink->m_prevlink = link;
     existing->m_next = ptr;
   } else {
-    TSLink<HANDLER> *previous;
+    LINKEX(HANDLER) *previous;
 
     if (linktype != LIST_LINK_BEFORE) {
       FATALERROR(("Invalid case: %s=%u", "linktype", linktype));
@@ -998,15 +996,10 @@ extern "C" void APIENTRY SErrSuppressErrors(BOOL suppress) {
 }
 
 extern "C" void APIENTRY SErrUnregisterHandler(SERRHANDLER handler) {
-  HANDLER *node;
-
   SErrEnter();
-  node = s_handlerlist.Head();
-  while ((LONG)node > 0) {
+  ITERATELIST(HANDLER, s_handlerlist, node) {
     if (node->handler == handler) {
-      node = s_handlerlist.DeleteNode(node);
-    } else {
-      node = s_handlerlist.RawNext(node);
+      ITERATE_DELETE;
     }
   }
   SErrLeave();

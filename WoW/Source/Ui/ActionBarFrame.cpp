@@ -347,7 +347,7 @@ void CGActionBar::UseAction(int id, int checkCursor) {
 
   if (checkCursor &&
       (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
-       (CGGameUI::GetCursorVirtualItem(UICURSOR_ACTIONBAR) && CGGameUI::GetCursorVirtualItem())))
+       (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR && CGGameUI::GetCursorVirtualItem())))
   {
     PutActionInSlot(id);
     return;
@@ -380,7 +380,7 @@ void CGActionBar::PickupAction(int id) {
   ASSERT(id < 120);
 
   if (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
-      (CGGameUI::GetCursorVirtualItem(UICURSOR_ACTIONBAR) && CGGameUI::GetCursorVirtualItem()))
+      (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR && CGGameUI::GetCursorVirtualItem()))
   {
     PutActionInSlot(id);
     return;
@@ -409,7 +409,7 @@ void CGActionBar::PutActionInSlot(int id) {
   int cursorSpell = CGGameUI::GetCursorSpell();
   int cursorItem = 0;
 
-  if (CGGameUI::GetCursorVirtualItem(UICURSOR_ACTIONBAR)) {
+  if (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR) {
     cursorItem = static_cast<int>(CGGameUI::GetCursorVirtualItem());
   } else {
     CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGGameUI::GetCursorItem(), __FILE__, __LINE__));

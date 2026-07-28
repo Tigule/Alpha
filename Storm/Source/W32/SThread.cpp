@@ -1,6 +1,3 @@
-#define STORM_CRITSECT_METHOD_IMPLEMENTATION
-#define STORM_INITCRITSECT_IMPLEMENTATION
-
 #include <storm.h>
 #include <W32/ISThread.h>
 

@@ -3,6 +3,9 @@
 
 class SpellCast {
  public:
+  void BuildFullZoneUpdate(CDataStore *msg);
+  void UnpackFullZoneUpdate(CDataStore *msg);
+
   unsigned __int64   caster;
   unsigned __int64   casterUnit;
   int                spellID;

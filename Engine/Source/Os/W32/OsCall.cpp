@@ -308,9 +308,7 @@ void OsCallDump(const char* fileName) {
     setvbuf(file, 0, _IOFBF, 0x7FFF);
     fprintf(file, ";Call Trace Log %s, %s\r\n", "Dec 11 2003", "17:58:40");
 
-    for (ContextData *contextData = s_contextDataList.Head();
-         contextData;
-         contextData = s_contextDataList.Next(contextData)) {
+    ITERATELIST(ContextData, s_contextDataList, contextData) {
       ThreadData *threadData = contextData->m_threadData;
       if (threadData &&
           threadData->m_threadId != GetCurrentThreadId() &&

@@ -91,7 +91,7 @@ static unsigned int GetDataBaseOffset(OBJECT_TYPE_ID section) {
 }
 
 static void CallBlockMirrorHandlersIfChanged(
-    TSList<CMirrorHandler, TSGetExplicitLink<CMirrorHandler> > *handlerList,
+    LISTPTREX(CMirrorHandler)                                   handlerList,
     unsigned __int64                                            guid,
     CGObject_C                                                 *obj,
     OBJECT_TYPE_ID                                              objectTypeId
@@ -117,7 +117,7 @@ static void CallBlockMirrorHandlersIfChanged(
 }
 
 static void CallBlockMirrorHandlers(
-    TSList<CMirrorHandler, TSGetExplicitLink<CMirrorHandler> > *handlerList,
+    LISTPTREX(CMirrorHandler)                                   handlerList,
     unsigned __int64                                            guid,
     CGObject_C                                                 *obj,
     OBJECT_TYPE_ID                                              objectTypeId
@@ -144,7 +144,7 @@ static void CallBlockMirrorHandlers(
   ProcessObjHandlersQueue();
 }
 
-static void SavePreviousValue(TSList<CMirrorHandler, TSGetLink<CMirrorHandler> > *handlerList, CGObject_C *obj) {
+static void SavePreviousValue(LISTPTR(CMirrorHandler) handlerList, CGObject_C *obj) {
   FATALASSERT(obj);
   ITERATELISTPTR(CMirrorHandler, handlerList, mirrorHandler) {
     const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
@@ -200,7 +200,7 @@ static unsigned int IncTypeId(CGObject_C *obj, unsigned int currTypeId) {
   return ID_AIGROUP;
 }
 
-static void MirrorHandlerAdvanceBlock(TSList<CMirrorHandler, TSGetExplicitLink<CMirrorHandler> > *handlerList) {
+static void MirrorHandlerAdvanceBlock(LISTPTREX(CMirrorHandler) handlerList) {
   CMirrorHandler *handler = handlerList->Head();
   while (handler) {
     CMirrorHandler *next = handlerList->Next(handler);
@@ -212,8 +212,8 @@ static void MirrorHandlerAdvanceBlock(TSList<CMirrorHandler, TSGetExplicitLink<C
 }
 
 static int GetMirrorHandler(
-    TSList<CMirrorHandler, TSGetLink<CMirrorHandler> >         *mirrorHandlers,
-    TSList<CMirrorHandler, TSGetExplicitLink<CMirrorHandler> > *handlerList
+    LISTPTR(CMirrorHandler)                                     mirrorHandlers,
+    LISTPTREX(CMirrorHandler)                                   handlerList
 ) {
   unsigned int offDword;
 
@@ -290,7 +290,7 @@ static void PartialUpdateFromFullUpdate(unsigned long eventTime, C_OBJECTHASH *f
 
 static void FillInPartialObjectData(C_OBJECTHASH *foundObj, CDataStore *msg, bool forFullUpdate, bool zeroZeroBits) {
   unsigned int                      changeMasks[20];
-  TSExplicitList<CMirrorHandler, 8> handlerList;
+  LISTDECLEX(CMirrorHandler, callLink, handlerList);
   unsigned int                      numBlocks;
   unsigned long                     block;
   unsigned int                      blockOffset;
@@ -340,7 +340,7 @@ static void FillInPartialObjectData(C_OBJECTHASH *foundObj, CDataStore *msg, boo
 
 static void CallMirrorHandlers(CDataStore *msg, bool forFullUpdate, unsigned __int64 guid) {
   unsigned int                      changeMasks[20];
-  TSExplicitList<CMirrorHandler, 8> handlerList;
+  LISTDECLEX(CMirrorHandler, callLink, handlerList);
   unsigned long                     junk;
   unsigned int                      numBlocks;
   C_OBJECTHASH                     *foundObj;
@@ -1007,7 +1007,7 @@ static int ObjectCompressedUpdateHandler(void *, NETMESSAGE, unsigned long event
 }
 
 static void AssignMirrorHandler(
-    TSList<CMirrorHandler, TSGetLink<CMirrorHandler> > *handlerList,
+    LISTPTR(CMirrorHandler)                             handlerList,
     unsigned int                                        offset,
     unsigned int                                        bytes,
     int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
@@ -1024,7 +1024,7 @@ static void AssignMirrorHandler(
 }
 
 static void UnassignMirrorHandler(
-    TSList<CMirrorHandler, TSGetLink<CMirrorHandler> > *handlerList,
+    LISTPTR(CMirrorHandler)                             handlerList,
     int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
     void *param
 ) {
@@ -1043,26 +1043,33 @@ static int OnObjectDestroy(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
 }
 
 static int CCommand_ObjUsage(const char *command, const char *arguments) {
-  C_OBJECTHASH *object;
-  unsigned int  numVisible = 0;
-  unsigned int  numActive = 0;
-  unsigned int  numWaiting = 0;
-  unsigned int  numFree = 0;
+  unsigned int numVisible = 0;
+  unsigned int numActive = 0;
+  unsigned int numWaiting = 0;
+  unsigned int numFree = 0;
 
-  for (object = s_curMgr->m_visibleObjects.Head(); object; object = s_curMgr->m_visibleObjects.Next(object)) {
-    ++numVisible;
+  {
+    ITERATELIST(C_OBJECTHASH, s_curMgr->m_visibleObjects, object) {
+      ++numVisible;
+    }
   }
 
-  for (object = s_curMgr->m_objects.Head(); object; object = s_curMgr->m_objects.Next(object)) {
-    ++numActive;
+  {
+    ITERATELIST(C_OBJECTHASH, s_curMgr->m_objects, object) {
+      ++numActive;
+    }
   }
 
-  for (object = s_curMgr->m_lazyCleanupObjects.Head(); object; object = s_curMgr->m_lazyCleanupObjects.Next(object)) {
-    ++numWaiting;
+  {
+    ITERATELIST(C_OBJECTHASH, s_curMgr->m_lazyCleanupObjects, object) {
+      ++numWaiting;
+    }
   }
 
-  for (object = s_curMgr->m_freeObjects.Head(); object; object = s_curMgr->m_freeObjects.Next(object)) {
-    ++numFree;
+  {
+    ITERATELIST(C_OBJECTHASH, s_curMgr->m_freeObjects, object) {
+      ++numFree;
+    }
   }
 
   ConsoleWrite("Object manager list status:", HIGHLIGHT_COLOR);
@@ -1279,7 +1286,7 @@ int ClntObjMgrEnumVisibleObjects(int(*handler)(unsigned __int64, void *), void *
   ActivityBegin(ACTIVITY_OBJMGR);
 
   int success = 1;
-  for (C_OBJECTHASH *object = s_curMgr->m_visibleObjects.Head(); object; object = s_curMgr->m_visibleObjects.Next(object)) {
+  ITERATELIST(C_OBJECTHASH, s_curMgr->m_visibleObjects, object) {
     if (!handler(object->GetKey().GetGUID(), param)) {
       success = 0;
       break;

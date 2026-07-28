@@ -144,7 +144,7 @@ void CModelComplex::CopyAttachments(const CModelComplex &source) {
   unsigned int i;
   m_attached.SetCount(source.m_attached.Count());
   for (i = 0; i < source.m_attached.Count(); ++i) {
-    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &sourceList = const_cast<TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &>(source.m_attached[i]);
+    LIST(LINKUNIQUE) &sourceList = const_cast<LIST(LINKUNIQUE) &>(source.m_attached[i]);
     ITERATELIST(LINKUNIQUE, sourceList, sourceLink) {
       LINKUNIQUE *copy = NEW(LINKUNIQUE);
       ASSERT(copy);
@@ -419,7 +419,7 @@ static void ComplexModelSetEmissiveColor(CModelComplex *unique, const NTempest::
 
   if (doLinkedModels) {
     for (unsigned int i = 0; i < unique->m_attached.Count(); ++i) {
-      TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = unique->m_attached[i];
+      LIST(LINKUNIQUE) &links = unique->m_attached[i];
       ITERATELIST(LINKUNIQUE, links, link) {
         ModelSetEmissiveColor(link->child, color, 1);
       }
@@ -550,8 +550,11 @@ int ModelGetLinkPoint(HMODEL model, unsigned int index, HMODEL *modelList, unsig
     return 0;
   }
 
-  TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = static_cast<CModelComplex *>(unique)->m_attached[shared->attachIdToIndex[index]];
-  for (LINKUNIQUE *link = links.Head(); link && added != *entriesInOut; link = link->Next()) {
+  LIST(LINKUNIQUE) &links = static_cast<CModelComplex *>(unique)->m_attached[shared->attachIdToIndex[index]];
+  ITERATELIST(LINKUNIQUE, links, link) {
+    if (added == *entriesInOut) {
+      break;
+    }
     *modelList++ = static_cast<HMODEL>(HandleDuplicate(link->child));
     ++added;
   }
@@ -576,8 +579,8 @@ int ModelGetNumLinkedAtPoint(HMODEL model, unsigned int index, unsigned int *num
     return 0;
   }
 
-  TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = static_cast<CModelComplex *>(unique)->m_attached[shared->attachIdToIndex[index]];
-  for (LINKUNIQUE *link = links.Head(); link; link = link->Next()) {
+  LIST(LINKUNIQUE) &links = static_cast<CModelComplex *>(unique)->m_attached[shared->attachIdToIndex[index]];
+  ITERATELIST(LINKUNIQUE, links, link) {
     ++*numLinked;
   }
 
@@ -635,7 +638,7 @@ int ModelAddLink(HMODEL parent, unsigned int parentIndex, HMODEL child, float sc
     return 0;
   }
 
-  TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = parentptr->m_attached[parentdata->attachIdToIndex[parentIndex]];
+  LIST(LINKUNIQUE) &links = parentptr->m_attached[parentdata->attachIdToIndex[parentIndex]];
   LINKUNIQUE                                 *link = links.NewNode(LIST_TAIL, 0, 0);
   link->child = static_cast<HMODEL>(HandleDuplicate(child));
   link->scale = scale;
@@ -671,7 +674,7 @@ int ModelRemoveLink(HMODEL parent, unsigned int parentIndex, HMODEL child) {
   }
 
   ASSERT(child);
-  TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = parentptr->m_attached[attachmentIndex];
+  LIST(LINKUNIQUE) &links = parentptr->m_attached[attachmentIndex];
   ITERATELIST(LINKUNIQUE, links, link) {
     if (link->child == child) {
       DEL(link);
@@ -711,7 +714,7 @@ int ModelClearLink(HMODEL parent, unsigned int parentIndex) {
     return 0;
   }
 
-  TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = parentptr->m_attached[attachmentIndex];
+  LIST(LINKUNIQUE) &links = parentptr->m_attached[attachmentIndex];
   while (LINKUNIQUE *link = links.Head()) {
     links.DeleteNode(link);
   }
@@ -844,7 +847,7 @@ static void ComplexModelRestoreBlendMode(CModelComplex *unique, int doLinkedMode
   if (doLinkedModels) {
     numAttachments = unique->m_attached.Count();
     for (unsigned int i = 0; i < numAttachments; ++i) {
-      for (LINKUNIQUE *link = unique->m_attached[i].Head(); link; link = link->Next()) {
+      ITERATELIST(LINKUNIQUE, unique->m_attached[i], link) {
         ModelRestoreBlendMode(link->child, 1);
       }
     }
@@ -911,7 +914,7 @@ static void ComplexModelSetBlendMode(CModelComplex *unique, EGxBlend blendMode, 
   if (doLinkedModels) {
     numAttachments = unique->m_attached.Count();
     for (unsigned int i = 0; i < numAttachments; ++i) {
-      for (LINKUNIQUE *link = unique->m_attached[i].Head(); link; link = link->Next()) {
+      ITERATELIST(LINKUNIQUE, unique->m_attached[i], link) {
         ModelSetBlendMode(link->child, blendMode, 1);
       }
     }
@@ -1287,7 +1290,7 @@ int ModelOptimizeVisibleGeosets(HMODEL model) {
   return 1;
 }
 
-unsigned int ModelGetVertexAlpha(HMODEL model) {
+unsigned char ModelGetVertexAlpha(HMODEL model) {
   CModelBase *unique;
 
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
@@ -1357,7 +1360,7 @@ static void GeosetSetVertexAlpha(CGeosetShared *geoShared, CGeosetColor *geoColo
   }
 }
 
-static void IModelSetVertexAlpha(CModelSimple *unique, CModelShared *shared, unsigned int alpha) {
+static void IModelSetVertexAlpha(CModelSimple *unique, CModelShared *shared, unsigned char alpha) {
   ASSERT(unique);
 
   unsigned int numGeosets = unique->m_geosets.Count();
@@ -1367,7 +1370,7 @@ static void IModelSetVertexAlpha(CModelSimple *unique, CModelShared *shared, uns
   }
 }
 
-static void IModelSetVertexAlpha(CModelComplex *unique, CModelShared *shared, unsigned int alpha) {
+static void IModelSetVertexAlpha(CModelComplex *unique, CModelShared *shared, unsigned char alpha) {
   ASSERT(unique);
 
   unsigned int numGeosets = shared->numGeosets;
@@ -1382,7 +1385,7 @@ static void IModelSetVertexAlpha(CModelComplex *unique, CModelShared *shared, un
   }
 }
 
-void ModelSetVertexAlpha(HMODEL model, unsigned int alpha, int doLinkedModels) {
+void ModelSetVertexAlpha(HMODEL model, unsigned char alpha, int doLinkedModels) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -1413,7 +1416,7 @@ void ModelSetVertexAlpha(HMODEL model, unsigned int alpha, int doLinkedModels) {
   }
 }
 
-void ModelGetVertexColor(HMODEL model, unsigned int &red, unsigned int &green, unsigned int &blue) {
+void ModelGetVertexColor(HMODEL model, unsigned char &red, unsigned char &green, unsigned char &blue) {
   CModelBase *unique;
 
   red = 0;
@@ -1450,9 +1453,9 @@ static void GeosetSetVertexColor(
     CGeosetShared *geoShared,
     CGeosetColor  *geoColor,
     HMATERIAL     *materials,
-    unsigned int   red,
-    unsigned int   green,
-    unsigned int   blue
+    unsigned char  red,
+    unsigned char  green,
+    unsigned char  blue
 ) {
   ASSERT(geoShared);
 
@@ -1468,14 +1471,14 @@ static void GeosetSetVertexColor(
   geoColor->proceduralColor.b = blue;
 }
 
-static void IModelSetVertexColor(CModelSimple *unique, CModelShared *shared, unsigned int red, unsigned int green, unsigned int blue) {
+static void IModelSetVertexColor(CModelSimple *unique, CModelShared *shared, unsigned char red, unsigned char green, unsigned char blue) {
   unsigned int numGeosets = unique->m_geosets.Count();
   for (unsigned int i = 0; i < numGeosets; ++i) {
     GeosetSetVertexColor(&shared->geosets[i], &unique->m_geosetColor[i], unique->m_materials.Ptr(), red, green, blue);
   }
 }
 
-static void IModelSetVertexColor(CModelComplex *unique, CModelShared *shared, unsigned int red, unsigned int green, unsigned int blue) {
+static void IModelSetVertexColor(CModelComplex *unique, CModelShared *shared, unsigned char red, unsigned char green, unsigned char blue) {
   unsigned int numGeosets = shared->numGeosets;
   for (unsigned int i = 0; i < numGeosets; ++i) {
     GeosetSetVertexColor(&shared->geosets[i], &unique->m_geosetColor[i], unique->m_materials.Ptr(), red, green, blue);
@@ -1487,7 +1490,7 @@ static void IModelSetVertexColor(CModelComplex *unique, CModelShared *shared, un
   }
 }
 
-void ModelSetVertexColor(HMODEL model, unsigned int red, unsigned int green, unsigned int blue, int doLinkedModels) {
+void ModelSetVertexColor(HMODEL model, unsigned char red, unsigned char green, unsigned char blue, int doLinkedModels) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -1865,7 +1868,7 @@ void ModelEnableEmitters(HMODEL model, int enable, int doLinkedModels) {
 
   if (doLinkedModels) {
     for (unsigned int i = 0; i < complex->m_attached.Count(); ++i) {
-      for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = link->Next()) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         ModelEnableEmitters(link->child, enable, 1);
       }
     }

@@ -54,7 +54,7 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
   CLayoutFrame                               *m_layoutAnchor;
   float                                       m_layoutOffset;
   CSimpleFontStringAttributes                 m_attrib[4];
-  TSExplicitList<CSimpleHyperlinkButton, 760> m_hyperlinks;
+  LISTDECLEX(CSimpleHyperlinkButton, m_link, m_hyperlinks);
 };
 
 #endif

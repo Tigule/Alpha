@@ -83,12 +83,12 @@ enum COMBATMESSAGETYPE {
 
 void UnitCombatLogEnableFileLog(int enable);
 void UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp);
-void UnitCombatLogEnchantment(ENCHANTMENTLOG &log);
+void UnitCombatLogEnchantment(const ENCHANTMENTLOG &log);
 
 static HSLOG        s_logHandle;
 static HSLOG        s_generalLogHandle;
 static unsigned int s_flags;
-static CGPlayer_C  *s_activePlayer;
+static const CGPlayer_C *s_activePlayer;
 static TSGrowableArray<char> s_charArray;
 static unsigned int s_logStartTime;
 static unsigned int s_lastLogTime;
@@ -220,7 +220,7 @@ static SLASH_COMMAND_ID s_affiliationLogType[AFFILIATION_NUMAFFILIATIONS] = {
     static_cast<SLASH_COMMAND_ID>(27)
 };
 
-static float GetLogDistance(UNITAFFILIATION aff, unsigned int suppressUnaffiliated) {
+static float GetLogDistance(UNITAFFILIATION aff, bool suppressUnaffiliated) {
   if (aff >= AFFILIATION_NUMAFFILIATIONS || (suppressUnaffiliated && aff == AFFILIATION_OTHER)) {
     return 0.0f;
   }
@@ -239,12 +239,12 @@ static float GetLogDistance(UNITAFFILIATION aff, unsigned int suppressUnaffiliat
   return cvar ? cvar->GetFloat() : 0.0f;
 }
 
-static unsigned int ShouldLogAttacker(
+static bool ShouldLogAttacker(
     unsigned __int64 attacker,
     UNITAFFILIATION &aAff,
     CGObject_C     *&unitPtr,
-    unsigned int     suppressIfUnaffiliated,
-    unsigned int     useDeathRange,
+    bool             suppressIfUnaffiliated,
+    bool             useDeathRange,
     int              allowedAffiliationFlags
 ) {
   CGUnit_C *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -307,7 +307,7 @@ static int ShouldLog(unsigned __int64 object, UNITAFFILIATION& aAff, CGObject_C*
   return 1;
 }
 
-static unsigned int IsSpellTeach(SpellRec *rec) {
+static bool IsSpellTeach(const SpellRec *rec) {
   for (unsigned int effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 36) {
       return 1;
@@ -316,7 +316,7 @@ static unsigned int IsSpellTeach(SpellRec *rec) {
   return 0;
 }
 
-static unsigned int IsSpellAbility(SpellRec *rec) {
+static bool IsSpellAbility(const SpellRec *rec) {
   return (rec->m_attributes >> 4) & 1;
 }
 
@@ -342,7 +342,7 @@ static unsigned char IsSpellOpenLock(const SpellRec* rec) {
   return 0;
 }
 
-static unsigned int IsSpellQuiet(SpellRec *rec) {
+static bool IsSpellQuiet(const SpellRec *rec) {
   return (rec->m_attributes >> 7) & 1;
 }
 
@@ -459,7 +459,7 @@ static void HandleGeneralCombatLoggingMissed(const ATTACKROUNDINFO& info, CGUnit
   }
 }
 
-static void HandleGeneralCombatEvadeLogging(ATTACKROUNDINFO info, CGUnit_C* attackerPtr, CGUnit_C* victimPtr, UNITAFFILIATION aAff, UNITAFFILIATION vAff) {
+static void HandleGeneralCombatEvadeLogging(const ATTACKROUNDINFO info, CGUnit_C* attackerPtr, CGUnit_C* victimPtr, UNITAFFILIATION aAff, UNITAFFILIATION vAff) {
   if (attackerPtr && victimPtr) {
     GeneralLogPrintf(s_affiliationLogType[aAff], "%s's attack was evaded by %s.", attackerPtr->GetUnitName(), victimPtr->GetUnitName());
   }
@@ -1007,7 +1007,7 @@ void UnitCombatLog(const SPELLLOG &log) {
   WriteMessage(outputString);
 }
 
-void UnitCombatLog(SPELLMISSLOG &log) {
+void UnitCombatLog(const SPELLMISSLOG &log) {
   if ((s_flags & 2) && (log.flags & 8)) {
     UnitCombatLogSpellMissed(log.reason, log.spellID, log.attacker, log.victim);
   }
@@ -1046,7 +1046,7 @@ void UnitCombatLog(const MIRRORTIMERDAMAGE &log) {
   }
 }
 
-void UnitCombatLog(ENVIRONMENTALDAMAGE &log) {
+void UnitCombatLog(const ENVIRONMENTALDAMAGE &log) {
   if (!log.victim || !log.amount) {
     return;
   }
@@ -1206,7 +1206,7 @@ void UnitCombatLogEnableFileLog(int enable) {
   }
 }
 
-void UnitCombatLogSetActivePlayer(CGPlayer_C *playerPtr) {
+void UnitCombatLogSetActivePlayer(const CGPlayer_C *playerPtr) {
   s_activePlayer = playerPtr;
 }
 
@@ -1281,7 +1281,7 @@ void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message) 
   }
 }
 
-void UnitCombatLogHeartbeatResist(RESISTLOG &log) {
+void UnitCombatLogHeartbeatResist(const RESISTLOG &log) {
   if (!s_activePlayer || !(s_flags & 2)) {
     return;
   }
@@ -1313,7 +1313,7 @@ void UnitCombatLogHeartbeatResist(RESISTLOG &log) {
   WriteMessage(output);
 }
 
-void UnitCombatLogEnchantment(ENCHANTMENTLOG &log) {
+void UnitCombatLogEnchantment(const ENCHANTMENTLOG &log) {
   if (!s_activePlayer || !log.attacker) {
     return;
   }
@@ -1401,7 +1401,7 @@ void UnitCombatLogFactionChanged(int faction, int delta) {
   }
 }
 
-void UnitCombatLogPartyKill(PARTYKILLLOG &log) {
+void UnitCombatLogPartyKill(const PARTYKILLLOG &log) {
   if (!s_activePlayer || !log.killer || log.killer == ClntObjMgrGetActivePlayer()) {
     return;
   }

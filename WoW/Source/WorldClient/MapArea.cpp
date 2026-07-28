@@ -6,7 +6,7 @@
 
 static SCritSect                        s_fileCritSect;
 static TSCArray<unsigned char, 163840>  s_asyncLoadBuffers[4];
-static TSExplicitList<CAsyncObject, 32> s_asyncLoadList;
+static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
 static unsigned char                   *s_freeAsyncBuffer;
 static unsigned int                     s_asyncBuffersInitialized;
 

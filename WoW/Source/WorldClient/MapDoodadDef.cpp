@@ -58,26 +58,19 @@ void CMapStaticEntity::FindLights() {
     cacheLight = next;
   }
 
-  CMapBaseObjLink *parentLink = parentLinkList.Head();
-  while (reinterpret_cast<long>(parentLink) > 0) {
+  ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     CMapBaseObj *parent = parentLink->ref;
     if (parent->GetType() & Type_Chunk) {
       CMapChunk       *chunk = static_cast<CMapChunk *>(parent);
-      CMapBaseObjLink *lightLink = chunk->lightLinkList.Head();
-      while (reinterpret_cast<long>(lightLink) > 0) {
+      ITERATELIST(CMapBaseObjLink, chunk->lightLinkList, lightLink) {
         CreateCacheLight(static_cast<CMapLight *>(lightLink->owner));
-        lightLink = chunk->lightLinkList.RawNext(lightLink);
       }
     } else if (parent->GetType() & Type_MapObjDefGroup) {
       CMapObjDefGroup *group = static_cast<CMapObjDefGroup *>(parent);
-      CMapBaseObjLink *lightLink = group->lightLinkList.Head();
-      while (reinterpret_cast<long>(lightLink) > 0) {
+      ITERATELIST(CMapBaseObjLink, group->lightLinkList, lightLink) {
         CreateCacheLight(static_cast<CMapLight *>(lightLink->owner));
-        lightLink = group->lightLinkList.RawNext(lightLink);
       }
     }
-
-    parentLink = parentLinkList.RawNext(parentLink);
   }
 
   flags &= ~Flag_LightUpdate;
@@ -157,12 +150,13 @@ void CMapStaticEntity::SelectLights() {
 
   GxLightSet(0, gxLight, CWorldScene::camPos);
 
-  unsigned int    whichLight = 1;
-  CMapCacheLight *cacheLight = cacheLightList.Head();
-  while (reinterpret_cast<long>(cacheLight) > 0 && whichLight < 8) {
+  unsigned int whichLight = 1;
+  ITERATELIST(CMapCacheLight, cacheLightList, cacheLight) {
+    if (whichLight >= 8) {
+      break;
+    }
     GxLightSet(whichLight, cacheLight->gxLight, CWorldScene::camPos);
     ++whichLight;
-    cacheLight = cacheLightList.RawNext(cacheLight);
   }
 
   while (whichLight < 8) {
@@ -204,12 +198,13 @@ void CMapDoodadDef::SelectLights() {
 
   GxLightSet(0, gxLight, CWorldScene::camPos);
 
-  unsigned int    whichLight = 1;
-  CMapCacheLight *cacheLight = cacheLightList.Head();
-  while (reinterpret_cast<long>(cacheLight) > 0 && whichLight < 8) {
+  unsigned int whichLight = 1;
+  ITERATELIST(CMapCacheLight, cacheLightList, cacheLight) {
+    if (whichLight >= 8) {
+      break;
+    }
     GxLightSet(whichLight, cacheLight->gxLight, CWorldScene::camPos);
     ++whichLight;
-    cacheLight = cacheLightList.RawNext(cacheLight);
   }
 
   while (whichLight < 8) {

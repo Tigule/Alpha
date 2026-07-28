@@ -42,10 +42,8 @@ int CFrameStrataNode::BuildBatches() {
       }
 
       if (batchDirty & (1 << layer)) {
-        CSimpleFrame *frame;
-
         batch->Clear();
-        for (frame = frames.Head(); frame; frame = frames.Next(frame)) {
+        ITERATELIST(CSimpleFrame, frames, frame) {
           if (frame->IsVisible() && !frame->IsBeingScrolled()) {
             frame->OnFrameRender(batch, layer);
           }
@@ -80,9 +78,7 @@ int CFrameStrata::FrameOccluded(CSimpleFrame *thisFrame) {
   unsigned int    level = thisFrame->GetFrameLevel();
 
   while (level < topLevel) {
-    CSimpleFrame *otherFrame;
-
-    for (otherFrame = levels[level]->frames.Head(); otherFrame; otherFrame = levels[level]->frames.Next(otherFrame)) {
+    ITERATELIST(CSimpleFrame, levels[level]->frames, otherFrame) {
       if (thisFrame != otherFrame && !otherFrame->IsAncestor(thisFrame)) {
         thisFrame->GetRect(&thisRect);
         otherFrame->GetRect(&otherRect);
@@ -100,11 +96,10 @@ int CFrameStrata::FrameOccluded(CSimpleFrame *thisFrame) {
 }
 
 void CFrameStrata::CheckOcclusion() {
-  unsigned int  i;
-  CSimpleFrame *frame;
+  unsigned int i;
 
   for (i = 0; i < topLevel; ++i) {
-    for (frame = levels[i]->frames.Head(); frame; frame = levels[i]->frames.Next(frame)) {
+    ITERATELIST(CSimpleFrame, levels[i]->frames, frame) {
       if (frame->IsToplevel()) {
         frame->SetOccluded(FrameOccluded(frame));
       }
@@ -171,8 +166,8 @@ CSimpleTop::~CSimpleTop() {
 
   SetCursor(0);
 
-  for (node = m_destroyed.Head(); node; node = m_destroyed.Next(node)) {
-    DELIFUSED(node->frame);
+  ITERATELIST(SIMPLEFRAMENODE, m_destroyed, iterNode) {
+    DELIFUSED(iterNode->frame);
   }
 
   while ((node = m_destroyed.Head()) != 0) {
@@ -369,9 +364,7 @@ int CSimpleTop::RaiseFrame(CSimpleFrame *frame, int checkOcclusion) {
     strata = m_strata[topframe->GetFrameStrata()];
     level = topframe->GetFrameLevel();
     while (level < strata->topLevel && !occluded) {
-      CSimpleFrame *other = strata->levels[level]->frames.Head();
-
-      while (other) {
+      ITERATELIST(CSimpleFrame, strata->levels[level]->frames, other) {
         if (other != topframe && !other->IsAncestor(topframe)) {
           topframe->GetRect(&frameRect);
           other->GetRect(&otherRect);
@@ -380,8 +373,6 @@ int CSimpleTop::RaiseFrame(CSimpleFrame *frame, int checkOcclusion) {
             break;
           }
         }
-
-        other = strata->levels[level]->frames.Next(other);
       }
 
       ++level;
@@ -514,8 +505,8 @@ void CSimpleTop::OnLayerUpdate(float elapsedSec) {
   SIMPLEFRAMENODE *node;
   unsigned int     strata;
 
-  for (node = m_destroyed.Head(); node; node = m_destroyed.Next(node)) {
-    DELIFUSED(node->frame);
+  ITERATELIST(SIMPLEFRAMENODE, m_destroyed, iterNode) {
+    DELIFUSED(iterNode->frame);
   }
 
   while ((node = m_destroyed.Head()) != 0) {

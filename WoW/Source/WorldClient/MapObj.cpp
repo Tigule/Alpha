@@ -345,7 +345,7 @@ bool CMapObj::VectorIntersect(
   SMOPoly           *hitPoly = 0;
   bool               hit = false;
 
-  for (CMapBaseObjLink *groupLink = mapObjDef->groupLinkList.Head(); groupLink; groupLink = mapObjDef->groupLinkList.Next(groupLink)) {
+  ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
     CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
     if (!CWorldMath::VectorIntersectAABox2(groupInfoList[mapObjDefGroup->groupNum].aaBox, *v0, *v1)) {
       continue;
@@ -687,12 +687,6 @@ unsigned int CMapObj::GetDoodadSet(unsigned int doodadIndex) {
 
 static int NearestPow2(float value) {
   return static_cast<int>(ceil(log(value) / log(2.0f)));
-}
-
-CWorldMinimapQuad::CWorldMinimapQuad() {
-}
-
-CWorldMinimapQuad::~CWorldMinimapQuad() {
 }
 
 void CMapObj::QueryMapObjMinimapGroup(

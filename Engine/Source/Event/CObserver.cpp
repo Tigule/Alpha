@@ -84,12 +84,12 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   LISTDECL(EVENTDISPATCHREG, dispatchList);
 };
 
-struct EventReg::EVENTCALLBACKREG : public TSLinkedNode<EventReg::EVENTCALLBACKREG> {
+NODEDECL(EventReg::EVENTCALLBACKREG) {
   EVENTCALLBACK callback;
   void         *param;
 };
 
-struct EventReg::EVENTDISPATCHREG : public TSLinkedNode<EventReg::EVENTDISPATCHREG> {
+NODEDECL(EventReg::EVENTDISPATCHREG) {
   TRefCntPtr<CObserver> pObserver;
   int                   expectedEventId;
 };
@@ -116,7 +116,7 @@ class EventRegistry : public TSHashTable<EventReg, HASHKEY_NONE> {
  private:
   EventRegistry &operator=(const EventRegistry &);
   virtual void      InternalDelete(EventReg *pReg);
-  virtual EventReg *InternalNew(TSExplicitList<EventReg, -572662307> *list, unsigned long extrabytes, unsigned long flags);
+  virtual EventReg *InternalNew(LISTEXDYN(EventReg) *list, unsigned long extrabytes, unsigned long flags);
 };
 
 static HASHKEY_NONE                                           s_eventRegistryKey;
@@ -278,7 +278,7 @@ void EventRegistry::InternalDelete(EventReg *pReg) {
   s_eventRegAllocator.Put(pReg);
 }
 
-EventReg *EventRegistry::InternalNew(TSExplicitList<EventReg, -572662307> *, unsigned long extrabytes, unsigned long flags) {
+EventReg *EventRegistry::InternalNew(LISTEXDYN(EventReg) *, unsigned long extrabytes, unsigned long flags) {
   FATALASSERT(!extrabytes);
   return s_eventRegAllocator.Get((flags & SMEM_FLAG_ZEROMEMORY) != 0);
 }
@@ -292,8 +292,7 @@ EventReg::~EventReg() {
 }
 
 void EventReg::RegisterCallback(EVENTCALLBACK callback, void *param) {
-  EVENTCALLBACKREG *entry;
-  for (entry = callbackList.Head(); entry; entry = callbackList.Next(entry)) {
+  ITERATELIST(EVENTCALLBACKREG, callbackList, entry) {
     if (entry->callback == callback) {
       entry->param = param;
       return;
@@ -308,8 +307,7 @@ void EventReg::RegisterCallback(EVENTCALLBACK callback, void *param) {
 }
 
 void EventReg::RegisterEvent(int expectedEventId, CObserver *pObserver) {
-  EVENTDISPATCHREG *entry;
-  for (entry = dispatchList.Head(); entry; entry = dispatchList.Next(entry)) {
+  ITERATELIST(EVENTDISPATCHREG, dispatchList, entry) {
     if (entry->pObserver == pObserver) {
       entry->expectedEventId = expectedEventId;
       return;
@@ -413,12 +411,13 @@ int EventReg::DispatchCallback(CEvent &event) {
   callbackList.LinkNode(&endOfList, LIST_TAIL, 0);
 
   int handled = 0;
-  EVENTCALLBACKREG *entry = callbackList.Head();
-  while (entry != &endOfList) {
+  ITERATELIST(EVENTCALLBACKREG, callbackList, entry) {
+    if (entry == &endOfList) {
+      break;
+    }
     if (entry->callback && entry->callback(event, entry->param)) {
       handled = 1;
     }
-    entry = callbackList.Next(entry);
   }
 
   callbackList.UnlinkNode(&endOfList);
@@ -432,15 +431,16 @@ int EventReg::DispatchEvent(CEvent &event) {
   dispatchList.LinkNode(&endOfList, LIST_TAIL, 0);
 
   int handled = 0;
-  EVENTDISPATCHREG *entry = dispatchList.Head();
-  while (entry != &endOfList) {
+  ITERATELIST(EVENTDISPATCHREG, dispatchList, entry) {
+    if (entry == &endOfList) {
+      break;
+    }
     if (entry->pObserver) {
       event.SetId(entry->expectedEventId);
       if (entry->pObserver->OnEvent(event)) {
         handled = 1;
       }
     }
-    entry = dispatchList.Next(entry);
   }
 
   dispatchList.UnlinkNode(&endOfList);

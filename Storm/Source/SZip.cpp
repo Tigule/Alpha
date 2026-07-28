@@ -96,7 +96,7 @@ struct ZipFileDirEntry : TSHashObject<ZipFileDirEntry, HASHKEY_CONSTSTRI> {
   ~ZipFileDirEntry();
 };
 
-struct ZipFileArchive : TSLinkedNode<ZipFileArchive> {
+NODEDECL(ZipFileArchive) {
   FILE         *file;
   char          filename[0x100];
   unsigned int  openFileCount;
@@ -201,8 +201,6 @@ ZipFileDirEntry *ZipDirTable::InternalNew(ZipDirList *listptr, unsigned long ext
 
 template <>
 int ZipDirTable::MonitorFullness(unsigned int slot) {
-  ZipFileDirEntry *ptr;
-
   if (m_slotmask >= 0x1FFF) {
     return 0;
   }
@@ -213,15 +211,13 @@ int ZipDirTable::MonitorFullness(unsigned int slot) {
     m_fullnessIndicator = 0;
   }
 
-  ptr = m_slotlistarray[slot].Head();
-  while (reinterpret_cast<long>(ptr) > 0) {
+  ITERATELIST(ZipFileDirEntry, m_slotlistarray[slot], ptr) {
     ++m_fullnessIndicator;
     if (m_fullnessIndicator > 13) {
       m_fullnessIndicator = 0;
       GrowListArray((m_slotmask + 1) * 2);
       return 1;
     }
-    ptr = m_slotlistarray[slot].RawNext(ptr);
   }
   return 0;
 }
@@ -235,19 +231,16 @@ template <>
 ZipFileDirEntry *ZipDirTable::Ptr(const char *str) {
   unsigned int     hashval;
   unsigned int     slot;
-  ZipFileDirEntry *ptr;
 
   if (!Initialized()) {
     return 0;
   }
   hashval = SStrHashHT(str);
   slot = hashval & m_slotmask;
-  ptr = m_slotlistarray[slot].Head();
-  while (reinterpret_cast<long>(ptr) > 0) {
+  ITERATELIST(ZipFileDirEntry, m_slotlistarray[slot], ptr) {
     if (ptr->m_hashval == hashval && ptr->m_key == str) {
       return ptr;
     }
-    ptr = m_slotlistarray[slot].RawNext(ptr);
   }
   return 0;
 }
@@ -360,21 +353,16 @@ ZipFileArchive::ZipFileArchive() {
 }
 
 ZipFileArchive::~ZipFileArchive() {
-  ZipFileDirEntry *entry;
-
   FATALASSERT(openFileCount == 0);
   if (file) {
     fclose(file);
     file = NULL;
   }
 
-  entry = s_directory.Head();
-  while ((LONG)entry > 0) {
-    ZipFileDirEntry *next = s_directory.RawNext(entry);
+  ITERATELIST(ZipFileDirEntry, s_directory, entry) {
     if (entry->archive == this) {
-      s_directory.DeleteNode(entry);
+      ITERATE_DELETE;
     }
-    entry = next;
   }
 }
 
@@ -865,15 +853,12 @@ void ZipFileUnloadFile(void *buffer) {
 }
 
 int ZipFileList(unsigned long archive, int(*cb)(const char *, void *), void *param) {
-  ZipFileArchive  *archiveptr = (ZipFileArchive *)archive;
-  ZipFileDirEntry *entry;
+  ZipFileArchive *archiveptr = (ZipFileArchive *)archive;
 
-  entry = s_directory.Head();
-  while ((LONG)entry > 0) {
+  ITERATELIST(ZipFileDirEntry, s_directory, entry) {
     if (entry->archive == archiveptr && !cb(entry->filename, param)) {
       break;
     }
-    entry = s_directory.RawNext(entry);
   }
   return 1;
 }

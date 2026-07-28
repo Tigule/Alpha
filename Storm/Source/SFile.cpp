@@ -1,4 +1,3 @@
-#define STORM_SAPIBASE_DECLARATION
 #include <storm.h>
 #include <stpl.h>
 #include <W32/ISThread.h>
@@ -68,7 +67,7 @@ struct _BLOCKENTRY {
 namespace Storm {
   namespace SFile {
 
-    struct ARCHIVEREC : public TSLinkedNode<ARCHIVEREC> {
+    NODEDECL(ARCHIVEREC) {
       ~ARCHIVEREC();
 
       int IsReopenedArchive() {
@@ -102,7 +101,7 @@ namespace Storm {
       DWORD          cdrom;
     };
 
-    struct FILEREC : public TSLinkedNode<FILEREC> {
+    NODEDECL(FILEREC) {
       ~FILEREC();
 
       CCritSect   sync;
@@ -131,7 +130,7 @@ namespace Storm {
       }
     };
 
-    struct AUDIOSTREAM : public TSLinkedNode<AUDIOSTREAM> {
+    NODEDECL(AUDIOSTREAM) {
       ~AUDIOSTREAM();
 
       FILEREC            *file;
@@ -244,7 +243,7 @@ static int
 ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, void *buffer, DWORD bytestoread, DWORD *bytesread, const char *filename);
 static int CheckFileExistsOnDisk(const char *filename, DWORD flags, char *localfilename);
 
-struct REQUEST : public TSLinkedNode<REQUEST> {
+NODEDECL(REQUEST) {
   ~REQUEST();
 
   void                      *event;
@@ -264,7 +263,7 @@ struct REQUEST : public TSLinkedNode<REQUEST> {
   _TASYNCPARAMBLOCK         *asyncparam;
 };
 
-struct EVENTREC : public TSLinkedNode<EVENTREC> {
+NODEDECL(EVENTREC) {
   void *event;
 };
 
@@ -303,9 +302,9 @@ typedef Storm::SFile::FILEREC                                          SFileRecD
 typedef Storm::SFile::AUDIOSTREAM                                      SFileAudioStreamData;
 typedef REQUEST                                                        SFileRequestData;
 typedef EVENTREC                                                       SFileEventRecData;
-typedef TSList<REQUEST, TSGetLink<REQUEST> >                           SFileRequestList;
-typedef TSList<EVENTREC, TSGetLink<EVENTREC> >                         SFileEventRecList;
-typedef TSList<SFileAudioStreamData, TSGetLink<SFileAudioStreamData> > SFileAudioStreamList;
+typedef LIST(REQUEST)                           SFileRequestList;
+typedef LIST(EVENTREC)                          SFileEventRecList;
+typedef LIST(SFileAudioStreamData)              SFileAudioStreamList;
 typedef _ARCHIVEHEADER                                                 SFileArchiveHeaderData;
 typedef _HASHENTRY                                                     SFileHashEntryData;
 typedef _BLOCKENTRY                                                    SFileBlockEntryData;
@@ -417,8 +416,8 @@ static _AUTHCOMPANYINFO s_authcompany[1] = {
     {"BLIZZARDKEY", SFILE_AUTH_AUTHENTICBLIZZARD}
 };
 
-typedef TSList<SFileArchiveRecData, TSGetLink<SFileArchiveRecData> > SFileArchiveRecList;
-typedef TSList<SFileRecData, TSGetLink<SFileRecData> >               SFileRecList;
+typedef LIST(SFileArchiveRecData) SFileArchiveRecList;
+typedef LIST(SFileRecData)        SFileRecList;
 
 Storm::SFile::AUDIOSTREAM::~AUDIOSTREAM() {
   Storm::SFile::RemoveFileRef(file);
@@ -567,7 +566,6 @@ Storm::SFile::UseGlob::UseGlob() {
 }
 
 Storm::SFile::ARCHIVEREC *Storm::SFile::GetArchivePtr(HSARCHIVE hArchive) {
-  SFileArchiveRecData *archive;
   SFileArchiveRecData *found;
   SFileArchiveRecData *record;
 
@@ -578,14 +576,12 @@ Storm::SFile::ARCHIVEREC *Storm::SFile::GetArchivePtr(HSARCHIVE hArchive) {
   record = (SFileArchiveRecData *)hArchive;
   found = NULL;
   s_archivelock.Enter();
-  archive = s_archivelist.Head();
-  while (archive) {
+  ITERATELIST(SFileArchiveRecData, s_archivelist, archive) {
     if (archive == record) {
       found = archive;
       AddArchiveRef(archive);
       break;
     }
-    archive = s_archivelist.RawNext(archive);
   }
   s_archivelock.Leave();
 
@@ -616,7 +612,6 @@ int Storm::SFile::IsReopenedArchive(HSARCHIVE archive) {
 }
 
 Storm::SFile::FILEREC *Storm::SFile::GetFilePtr(HSFILE hFile) {
-  SFileRecData *file;
   SFileRecData *found;
   SFileRecData *record;
 
@@ -627,14 +622,12 @@ Storm::SFile::FILEREC *Storm::SFile::GetFilePtr(HSFILE hFile) {
   record = (SFileRecData *)hFile;
   found = NULL;
   s_filelock.Enter();
-  file = s_filelist.Head();
-  while (file) {
+  ITERATELIST(SFileRecData, s_filelist, file) {
     if (file == record) {
       found = file;
       AddFileRef(file);
       break;
     }
-    file = s_filelist.RawNext(file);
   }
   s_filelock.Leave();
 
@@ -1292,7 +1285,6 @@ void Storm::SFile::RemoveStreamRef(AUDIOSTREAM *stream) {
 }
 
 static int CancelRequest(void *buffer, IDirectSoundBuffer *soundbuffer) {
-  SFileRequestData *request;
   int               cancelled;
 
   if (!buffer && !soundbuffer) {
@@ -1302,17 +1294,14 @@ static int CancelRequest(void *buffer, IDirectSoundBuffer *soundbuffer) {
   cancelled = FALSE;
 
   Storm::SFile::s_cdlock.Enter();
-  request = Storm::SFile::s_cdreqlist.Head();
-  while ((LONG)request > 0) {
+  ITERATELIST(SFileRequestData, Storm::SFile::s_cdreqlist, request) {
     if ((buffer && request->bufferbegin == buffer) || (soundbuffer && request->soundbuffer == soundbuffer)) {
       if (request->event) {
         SFileEventRecData *eventrec = Storm::SFile::s_signalList.NewNode(LIST_TAIL, 0, 0);
         eventrec->event = request->event;
       }
       cancelled = TRUE;
-      request = Storm::SFile::s_cdreqlist.DeleteNode(request);
-    } else {
-      request = Storm::SFile::s_cdreqlist.RawNext(request);
+      ITERATE_DELETE;
     }
   }
   Storm::SFile::s_cdlock.Leave();
@@ -1377,8 +1366,7 @@ static void CheckAudioStreams(int &parent_header) {
     WAVECHUNKSIZE = glob->WAVECHUNKSIZE;
   }
   Storm::SFile::s_streamlock.Enter();
-  SFileAudioStreamData *stream = Storm::SFile::s_streamlist.Head();
-  while ((LONG)stream > 0) {
+  ITERATELIST(SFileAudioStreamData, Storm::SFile::s_streamlist, stream) {
     {
       Storm::SFile::FilePtrLocked    fileptr((HSFILE)stream->file);
       SFileRecData                  *file = fileptr.operator->();
@@ -1499,7 +1487,6 @@ static void CheckAudioStreams(int &parent_header) {
       }
     }
 
-    stream = Storm::SFile::s_streamlist.RawNext(stream);
   }
   Storm::SFile::s_streamlock.Leave();
 }
@@ -1511,7 +1498,6 @@ static void CheckRequests(
     SFileRequestData   **urgentreq,
     LONG                *lowcompletetime
 ) {
-  SFileRequestData    *request;
   DWORD                s_seekOptimize;
   DWORD                currtime;
   DWORD                bestDistance;
@@ -1532,8 +1518,7 @@ static void CheckRequests(
   bestDistance = 0xFFFFFFFF;
   Storm::SFile::s_cdlock.Enter();
   currtime = GetTickCount();
-  request = Storm::SFile::s_cdreqlist.Head();
-  while ((LONG)request > 0) {
+  ITERATELIST(SFileRequestData, Storm::SFile::s_cdreqlist, request) {
     if (CanProcessRequest(request)) {
       distance = 0;
       if (s_seekOptimize && !request->stream) {
@@ -1571,7 +1556,6 @@ static void CheckRequests(
         *urgentreq = request;
       }
     }
-    request = Storm::SFile::s_cdreqlist.RawNext(request);
   }
   Storm::SFile::s_cdlock.Leave();
 }
@@ -1893,7 +1877,6 @@ static SFileRequestData *IssueRequest(
 
 static void MarkRequestUrgent(void *buffer, int urgent) {
   SFileRequestList *requests;
-  SFileRequestData *request;
 
   if (!buffer) {
     return;
@@ -1901,12 +1884,10 @@ static void MarkRequestUrgent(void *buffer, int urgent) {
 
   requests = &Storm::SFile::s_cdreqlist;
   Storm::SFile::s_cdlock.Enter();
-  request = requests->Head();
-  while ((LONG)request > 0) {
+  ITERATELISTPTR(SFileRequestData, requests, request) {
     if (request->bufferbegin == buffer) {
       request->urgent = urgent;
     }
-    request = requests->RawNext(request);
   }
   Storm::SFile::s_cdlock.Leave();
 }
@@ -2348,9 +2329,9 @@ cleanup:
 extern "C" BOOL APIENTRY SFileAuthenticateArchiveEx(
     HSARCHIVE    handle,
     DWORD       *extendedresult,
-    const DWORD *modulus,
+    const BYTE  *modulus,
     DWORD        modulusSize,
-    const DWORD *exponent,
+    const BYTE  *exponent,
     DWORD        exponentSize
 ) {
   SSignatureData *token;
@@ -2360,9 +2341,9 @@ extern "C" BOOL APIENTRY SFileAuthenticateArchiveEx(
   DWORD           remaining;
 
   if (!modulus && !exponent) {
-    modulus = (const DWORD *)::modulus;
+    modulus = ::modulus;
     modulusSize = sizeof(::modulus);
-    exponent = (const DWORD *)::exponent;
+    exponent = ::exponent;
     exponentSize = sizeof(::exponent);
   }
 
@@ -2408,7 +2389,7 @@ extern "C" BOOL APIENTRY SFileAuthenticateArchiveEx(
 
 cleanup:
   FREE(buffer);
-  *extendedresult = SSignatureVerifyStream_Finish(token, (const unsigned char *)modulus, (const unsigned char *)exponent) ? 5 : 1;
+  *extendedresult = SSignatureVerifyStream_Finish(token, modulus, exponent) ? 5 : 1;
   return *extendedresult == 5;
 }
 
@@ -2965,11 +2946,11 @@ extern "C" void APIENTRY SFileEnableSeekOptimization(int enable) {
   glob->s_seekOptimize = enable;
 }
 
-extern "C" BOOL APIENTRY SFileFileExists(const char *filename) {
+extern "C" DWORD APIENTRY SFileFileExists(const char *filename) {
   return SFileFileExistsEx(NULL, filename, BuildDefaultOpenFlags());
 }
 
-extern "C" BOOL APIENTRY SFileFileExistsEx(HSARCHIVE archivehandle, const char *filename, DWORD flags) {
+extern "C" DWORD APIENTRY SFileFileExistsEx(HSARCHIVE archivehandle, const char *filename, DWORD flags) {
   FATALASSERT(filename);
   FATALASSERT(*filename);
 
@@ -3040,7 +3021,7 @@ extern "C" DWORD APIENTRY SFileGetFileCrc(HSFILE handle) {
   return fileptr->block.crc;
 }
 
-extern "C" BOOL APIENTRY SFileGetFileMD5(HSFILE handle, DWORD *md5) {
+extern "C" BOOL APIENTRY SFileGetFileMD5(HSFILE handle, BYTE *md5) {
   Storm::SFile::FilePtr fileptr(handle);
   if (!fileptr) {
     return FALSE;
@@ -3357,7 +3338,7 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
   return TRUE;
 }
 
-extern "C" BOOL APIENTRY SFileOpenFile(const char *filename, HSFILE *handle) {
+extern "C" DWORD APIENTRY SFileOpenFile(const char *filename, HSFILE *handle) {
   return SFileOpenFileEx(NULL, filename, BuildDefaultOpenFlags(), handle);
 }
 

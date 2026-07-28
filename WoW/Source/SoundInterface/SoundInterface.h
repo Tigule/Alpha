@@ -109,9 +109,9 @@ void SndInterfacePlaySheatheSound(
     int sheathing,
     const NTempest::C3Vector &position
 );
-void SndInterfacePlayDeflectedSound(NTempest::C3Vector &position);
-void SndInterfacePlayImmuneSound(NTempest::C3Vector &pos);
-void SndInterfacePlayAbsorbedSound(NTempest::C3Vector &pos);
+void SndInterfacePlayDeflectedSound(const NTempest::C3Vector &position);
+void SndInterfacePlayImmuneSound(const NTempest::C3Vector &pos);
+void SndInterfacePlayAbsorbedSound(const NTempest::C3Vector &pos);
 void SndInterfaceInitializeVocalUISounds(unsigned int race, unsigned int sex);
 void SndInterfacePlayVocalUISound(VOCALUISOUNDS soundType);
 void SoundInterfacePlayVocalMacro(const CGPlayer_C *player, int category);
@@ -119,6 +119,7 @@ void SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, const CGItem_C *itemPtr)
 void SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, int itemDisplayID);
 bool SndInterfacePlaySound(unsigned int soundID, int forceIndex);
 bool SndInterfacePlaySound(unsigned int soundID, const NTempest::C3Vector &position, int forceIndex, float volumeScaler);
+bool SndInterfacePlaySound(Sound *sound, float fadeInRate);
 bool SoundInterfaceIsSoundLooping(unsigned int soundID, bool &looping);
 bool SndInterfacePlaySplashSound(unsigned int soundID, const NTempest::C3Vector &position);
 void SndInterfacePlayFootstepSound(

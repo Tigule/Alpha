@@ -69,6 +69,9 @@ class CGTradeSkillInfo {
 
 class SpellCast {
  public:
+  void BuildFullZoneUpdate(CDataStore *msg);
+  void UnpackFullZoneUpdate(CDataStore *msg);
+
   unsigned __int64   caster;
   unsigned __int64   casterUnit;
   int                spellID;
@@ -162,12 +165,12 @@ void CursorResetCursor(int force);
 void            SendCast(SpellCast *cast);
 void SpellPutCastTargets(SpellCast *cast, CDataStore *msg);
 void SpellGetCastTargets(SpellCast *cast, CDataStore *msg);
-void Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2);
+void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2);
 void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason);
 void
-SpellVisualsHandleCastStart(int id, SpellCast &cast, CGUnit_C *caster, unsigned int duration, unsigned int animDuration, unsigned int wasProc);
+SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, unsigned int duration, unsigned int animDuration, bool wasProc);
 void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message);
-void Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
+void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
 void SpellVisualsPlayKit(CGUnit_C *target, unsigned int id);
 void SpellVisualsHandleSpellStart(
     int spellID, const SpellCast &cast, CGGameObject_C *caster,
@@ -296,9 +299,7 @@ int SpellHistory::IsOnHold(int spellID, int itemID) {
     }
   }
 
-  for (SPELLHISTORY *history = m_spellHistory.Head();
-       history;
-       history = m_spellHistory.Next(history)) {
+  ITERATELIST(SPELLHISTORY, m_spellHistory, history) {
     if (((history->spellID == spellID &&
           history->itemID == itemID &&
           history->recoveryTime) ||
@@ -337,8 +338,7 @@ int SpellHistory::GetCooldown(int spellID, int itemID, unsigned int *duration, u
 
   unsigned long now = OsGetAsyncTimeMs();
   unsigned long latestEnd = now;
-  SPELLHISTORY *history;
-  for (history = m_spellHistory.Head(); history; history = m_spellHistory.Next(history)) {
+  ITERATELIST(SPELLHISTORY, m_spellHistory, history) {
     if (history->spellID == spellID && history->itemID == itemID && history->recoveryTime) {
       unsigned long start = history->onHold ? now : history->recoveryStart;
       unsigned long end = start + history->recoveryTime;
@@ -524,7 +524,7 @@ static void SpellMissingItemCallback(int id, const unsigned __int64& guid, void*
   CGGameUI::DisplayError(error, processedMessage);
 }
 
-void Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2) {
+void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) {
   char            shapes[512];
   char            processedmessage[256];
   char            token[64];
@@ -1453,7 +1453,7 @@ bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, b
   return true;
 }
 
-unsigned int RangeCheck(CGPlayer_C *caster, CGObject_C *target, int spellID) {
+bool RangeCheck(CGPlayer_C *caster, CGObject_C *target, int spellID) {
   float maxRange;
   float minRange;
   Spell_C_GetMinMaxRange(spellID, &minRange, &maxRange);
@@ -1531,7 +1531,7 @@ void Spell_C_StopTargeting() {
   Spell_C_CancelSpell(0, 0, SPELL_FAILED_ERROR);
 }
 
-void Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason) {
+void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason) {
   CGUnit_C *caster = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_spellCast.caster, __FILE__, __LINE__));
 
   if (Spell_C_IsTargeting()) {

@@ -446,7 +446,7 @@ SndInterfacePlayHitSound(const VirtualItemInfo *attackingWeapon, unsigned int de
   SndInterfacePlaySound(soundID, position, -1, 1.0f);
 }
 
-void SndInterfacePlayDeflectedSound(NTempest::C3Vector &position) {
+void SndInterfacePlayDeflectedSound(const NTempest::C3Vector &position) {
   NTempest::C3Vector pos = position;
   pos.z += 2.0f;
   SndInterfacePlaySound(3263, pos, -1, 1.0f);
@@ -593,7 +593,7 @@ void SndInterfacePlaySheatheSound(const VirtualItemInfo* info, int sheathing, co
   }
 }
 
-void SndInterfacePlayImmuneSound(NTempest::C3Vector &pos) {
+void SndInterfacePlayImmuneSound(const NTempest::C3Vector &pos) {
   NTempest::C3Vector position = pos;
   position.z += 2.0f;
   SndInterfacePlaySound(3334, position, -1, 1.0f);
@@ -627,7 +627,7 @@ static bool InternalPlaySound(SOUNDCATEGORIES category, unsigned int soundID, in
   return true;
 }
 
-void SndInterfacePlayAbsorbedSound(NTempest::C3Vector &pos) {
+void SndInterfacePlayAbsorbedSound(const NTempest::C3Vector &pos) {
   NTempest::C3Vector position = pos;
   position.z += 2.0f;
   SndInterfacePlaySound(3334, position, -1, 1.0f);
@@ -831,6 +831,11 @@ Sound *SndInterfaceCreateSound(unsigned int soundID, float fadeInRate, int force
   }
 
   return sound;
+}
+
+bool SndInterfacePlaySound(Sound *sound, float fadeInRate) {
+  sound->SetFadeIn(fadeInRate, 1.0f);
+  return sound->SetPaused(false);
 }
 
 static unsigned char SoundPositionCallback(__int64 handle, NTempest::C3Vector& pos) {

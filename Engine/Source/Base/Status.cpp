@@ -48,13 +48,11 @@ void CStatus::Prepend(STATUS_TYPE severity, const char *format, ...) {
   entry->severity = severity;
 
   {
-    STATUSENTRY *cursor = statusList.Head();
-    while (cursor) {
+    ITERATELIST(STATUSENTRY, statusList, cursor) {
       if (severity >= cursor->severity) {
         pnextstatus = cursor;
         break;
       }
-      cursor = statusList.Next(cursor);
     }
   }
 
@@ -82,13 +80,11 @@ void CStatus::Add(STATUS_TYPE severity, const char *format, ...) {
   entry->severity = severity;
 
   {
-    STATUSENTRY *cursor = statusList.Head();
-    while (cursor) {
+    ITERATELIST(STATUSENTRY, statusList, cursor) {
       if (severity > cursor->severity) {
         pnextstatus = cursor;
         break;
       }
-      cursor = statusList.Next(cursor);
     }
   }
 

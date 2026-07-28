@@ -51,7 +51,7 @@ void CMap::Update() {
 
   UpdateMapObjDefs();
 
-  for (CMapEntity *entity = entityList.Head(); entity; entity = entityList.Next(entity)) {
+  ITERATELIST(CMapEntity, entityList, entity) {
     entity->flagVisible = 0;
     if (!entity->flagInside) {
       CWorldScene::AddMapEntity(entity);
@@ -98,7 +98,7 @@ void CMap::UpdateDoodadDef(CMapDoodadDef *doodadDef, NTempest::C3Vector &pos, fl
 }
 
 void CMap::UpdateMapObjDefs() {
-  for (CMapObjDef *mapObjDef = mapObjDefHash.Head(); mapObjDef; mapObjDef = mapObjDefHash.Next(mapObjDef)) {
+  ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
     if ((mapObjDef->flags & CMapBaseObj::Flag_Loaded) && mapObjDef->aaBox.b.x <= CWorldScene::camFrustumBounds.t.x &&
         mapObjDef->aaBox.b.y <= CWorldScene::camFrustumBounds.t.y && mapObjDef->aaBox.b.z <= CWorldScene::camFrustumBounds.t.z &&
         mapObjDef->aaBox.t.x >= CWorldScene::camFrustumBounds.b.x && mapObjDef->aaBox.t.y >= CWorldScene::camFrustumBounds.b.y &&
@@ -114,7 +114,6 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
   CMapObjGroup    *mapObjGroup;
   SMOLight        *sLight;
   unsigned int     i;
-  CMapBaseObjLink *groupLink;
   CMapObjDefGroup *mapObjDefGroup;
   CMapObj         *mapObj;
 
@@ -140,8 +139,7 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
   mapObj->GetBounds(aaBox);
   CWorldMath::TransformAABox(mapObjDef->mat, aaBox, mapObjDef->aaBox);
 
-  groupLink = mapObjDef->groupLinkList.Head();
-  while (groupLink) {
+  ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
     mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
     FATALASSERT(mapObjDefGroup);
     mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
@@ -157,7 +155,6 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
       }
       mapObjDefGroup->Update(mapObjDef->mat);
     }
-    groupLink = mapObjDef->groupLinkList.Next(groupLink);
   }
 }
 
@@ -180,7 +177,7 @@ void CMap::UpdateChunks(CMapArea *area) {
     ++CMapChunk::farCornerIndex;
   }
 
-  for (CMapBaseObjLink *link = area->chunkLinkList.Head(); link; link = area->chunkLinkList.Next(link)) {
+  ITERATELIST(CMapBaseObjLink, area->chunkLinkList, link) {
     CMapChunk          *chunk = static_cast<CMapChunk *>(link->owner);
     NTempest::C3Vector &cornerPos = chunk->vertexList[CMapChunk::cornerVertexIndex[corner]];
     chunk->camDist = CWorldScene::camPlaneXY.n.x * (cornerPos.x + chunk->corner.x) + CWorldScene::camPlaneXY.n.y * (cornerPos.y + chunk->corner.y) +

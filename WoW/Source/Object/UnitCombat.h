@@ -61,7 +61,7 @@ struct LOGBASE {
   ~LOGBASE() {
   }
 
-  virtual void PI(CDataStore &msg, int debug) = 0;
+  virtual void PI(CDataStore &msg, int debug) const = 0;
   virtual void UI(CDataStore &msg) = 0;
 };
 
@@ -105,7 +105,7 @@ struct ATTACKROUNDINFO : public DAMAGELOGBASE {
   int          procSpell;
 
   ATTACKROUNDINFO();
-  virtual void PI(CDataStore &msg, int debug);
+  virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
@@ -115,7 +115,7 @@ struct SPELLLOG : public DAMAGELOGBASE {
   unsigned int damageType;
   float        resistanceCoefficient;
 
-  virtual void PI(CDataStore &msg, int debug);
+  virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
@@ -134,7 +134,7 @@ struct SPELLMISSLOG : public LOGBASE {
   float            blockRollNeeded;
   unsigned int     flags;
 
-  virtual void PI(CDataStore &msg, int debug);
+  virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
@@ -147,7 +147,7 @@ struct RESISTLOG : public LOGBASE {
   int              flags;
   int              castLevel;
 
-  virtual void PI(CDataStore &msg, int debug);
+  virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
@@ -158,7 +158,7 @@ struct ENCHANTMENTLOG : public LOGBASE {
   int              itemID;
   int              flags;
 
-  virtual void PI(CDataStore &msg, int debug);
+  virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
@@ -167,7 +167,7 @@ struct ENVIRONMENTALDAMAGE : public LOGBASE {
   int              school;
   int              amount;
 
-  virtual void PI(CDataStore &msg, int debug);
+  virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
@@ -176,7 +176,7 @@ struct MIRRORTIMERDAMAGE : public LOGBASE {
   unsigned __int64 victim;
   int              amount;
 
-  virtual void PI(CDataStore &msg, int debug);
+  virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
@@ -189,7 +189,7 @@ struct PARTYKILLLOG : public LOGBASE {
   unsigned __int64 killer;
   unsigned __int64 victim;
 
-  virtual void PI(CDataStore &msg, int debug);
+  virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 

@@ -33,6 +33,8 @@
 #include <stpl.h>
 #include <string.h>
 
+class CDataStore;
+
 NODEDECL(BlizzardObject) {
   NODEDECL(Shard) {
     NTempest::C3Vector pos;
@@ -85,7 +87,7 @@ NODEDECL(LightningObject) {
   ~LightningObject();
   void         AddRef();
   void         DelRef();
-  unsigned int Tick(unsigned int currentTime);
+  bool Tick(unsigned int currentTime);
 
   TSGrowableArray<unsigned __int64> guids;
   TSGrowableArray<Bolt>             bolts;
@@ -127,11 +129,11 @@ static void ShardEventCallback(const char *eventName, const NTempest::C3Vector &
 static void FreeBlizzard(BlizzardObject *bliz);
 static inline void             RenderFishingLines();
 static bool GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos);
-int GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID);
-void GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position);
+SPELL_VISUAL_ATTACHMENT GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID);
+void GetMissileTargetPosition(CGObject_C *target, SPELL_VISUAL_ATTACHMENT hitLocation, NTempest::C3Vector &position);
 int Spell_C_GetCastTime(int id, int isPet);
 
-TSList<BlizzardObject::Shard, TSGetLink<BlizzardObject::Shard> > BlizzardObject::shardPool;
+LISTDECL(BlizzardObject::Shard, BlizzardObject::shardPool);
 
 static LISTDECL(FishingLineObject, s_fishingLineObjects);
 static TInstanceAllocator<FishingLineObject>                    s_freeFishingObjects(20);
@@ -209,7 +211,7 @@ static void ShardEventCallback(const char *eventName, const NTempest::C3Vector &
 }
 
 static inline void RenderFishingLines() {
-  for (FishingLineObject *object = s_fishingLineObjects.Head(); object; object = s_fishingLineObjects.Next(object)) {
+  ITERATELIST(FishingLineObject, s_fishingLineObjects, object) {
     object->Render();
   }
 }
@@ -267,7 +269,7 @@ void BlizzardObject::Update() {
 void BlizzardObject::Render(const NTempest::C44Matrix &mtx) {
   NTempest::C34Matrix transform;
 
-  for (Shard *shard = shards.Head(); shard; shard = shards.Next(shard)) {
+  ITERATELIST(Shard, shards, shard) {
     if (CWorld::GetCurTimeMs() >= shard->startTime) {
       transform.Translate(shard->pos - CWorld::GetCamPos());
       ModelAnimate(shard->hModel, transform, 1.0f, CWorld::GetCamPos(), CWorld::GetCamTarget() - CWorld::GetCamPos());
@@ -368,6 +370,9 @@ static EclipseObject                                        s_eclipseObject;
 
 class SpellCast {
  public:
+  void BuildFullZoneUpdate(CDataStore *msg);
+  void UnpackFullZoneUpdate(CDataStore *msg);
+
   unsigned __int64   caster;
   unsigned __int64   casterUnit;
   int                spellID;
@@ -391,13 +396,13 @@ class SpellCast {
 };
 
 static void CreateLightningObj(
-    CGUnit_C               *unitPtr,
-    const unsigned __int64 *guids,
-    int                     numGuids,
-    int                     spellID,
-    SpellVisualKitRec      *kitRec,
-    LightningObject       **objects,
-    int                     maxObjects
+    const CGUnit_C          *unitPtr,
+    const unsigned __int64  *guids,
+    int                      numGuids,
+    int                      spellID,
+    const SpellVisualKitRec *kitRec,
+    LightningObject        **objects,
+    int                      maxObjects
 );
 
 void UnitEffectOneShot(
@@ -416,11 +421,11 @@ void UnitEffectOneShot(
     float scale
 );
 void SpellVisualsProcedure(
-    CGUnit_C                       *caster,
-    SpellVisualKitRec              *kitRec,
-    unsigned int                    spellID,
-    TSStackArray<unsigned __int64> *targets,
-    TSStackArray<MISS_REASON>      *missReasons
+    CGUnit_C                             *caster,
+    const SpellVisualKitRec              *kitRec,
+    unsigned int                          spellID,
+    const TSStackArray<unsigned __int64> *targets,
+    const TSStackArray<MISS_REASON>      *missReasons
 );
 bool IsSpellAura(const SpellRec *rec);
 bool Object_C_AnimHasHitEvent(int anim);
@@ -484,7 +489,7 @@ static void InitializeAuraNames() {
   }
 }
 
-void PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT attach, int spellID, unsigned int isCastEffect) {
+void PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT attach, int spellID, bool isCastEffect) {
   if (effectID) {
     FATALASSERT(object);
     FATALASSERT(attach < NUM_UNITEFFECT_ATTACHPOINTS);
@@ -613,7 +618,7 @@ void SpellVisualsShutdown() {
   s_auraNames.Clear();
 }
 
-void SpellVisualsPlayCastKit(CGUnit_C *caster, SpellVisualKitRec *kitRec, int spellID, unsigned int isCastEffect) {
+void SpellVisualsPlayCastKit(CGUnit_C *caster, const SpellVisualKitRec *kitRec, int spellID, bool isCastEffect) {
   PlayOneShotEffect(caster, kitRec->m_headEffect, UNITEFFECT_ATTACHHEAD, spellID, isCastEffect);
   PlayOneShotEffect(caster, kitRec->m_leftHandEffect, UNITEFFECT_ATTACHLEFTHAND, spellID, isCastEffect);
   PlayOneShotEffect(caster, kitRec->m_rightHandEffect, UNITEFFECT_ATTACHRIGHTHAND, spellID, isCastEffect);
@@ -627,7 +632,7 @@ void SpellVisualsPlayCastKit(CGUnit_C *caster, SpellVisualKitRec *kitRec, int sp
 }
 
 void
-SpellVisualsHandleCastStart(int id, SpellCast &cast, CGUnit_C *caster, unsigned int duration, unsigned int animDuration, unsigned int wasProc) {
+SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, unsigned int duration, unsigned int animDuration, bool wasProc) {
   FATALASSERT(caster);
 
   UnitCombatLogCastStart(id, caster->GetGUID());
@@ -645,7 +650,7 @@ SpellVisualsHandleCastStart(int id, SpellCast &cast, CGUnit_C *caster, unsigned 
     return;
   }
 
-  SpellVisualKitRec *visualRec = caster->GetRangedSpellAnim(id, 0);
+  const SpellVisualKitRec *visualRec = caster->GetRangedSpellAnim(id, 0);
   if (!visualRec) {
     return;
   }
@@ -726,7 +731,7 @@ LightningObject::~LightningObject() {
   }
 }
 
-unsigned int LightningObject::Tick(unsigned int currentTime) {
+bool LightningObject::Tick(unsigned int currentTime) {
   for (unsigned int i = 0; i < bolts.Count(); ++i) {
     Bolt &bolt = bolts[i];
     if (bolt.srcGuidSub == static_cast<unsigned short>(-1) || bolt.dstGuidSub == static_cast<unsigned short>(-1)) {
@@ -788,7 +793,7 @@ unsigned int LightningObject::Tick(unsigned int currentTime) {
   return forever || currentTime < deathTime;
 }
 
-void SpellVisualsProc_Eclipse(CGUnit_C *caster, SpellVisualKitRec *kitRec, unsigned int spellID) {
+void SpellVisualsProc_Eclipse(CGUnit_C *caster, const SpellVisualKitRec *kitRec, unsigned int spellID) {
   FATALASSERT(kitRec->m_characterParam[1] >= 0.0f && kitRec->m_characterParam[1] <= 1.0f);
 
   unsigned int duration = Spell_C_GetCastTime(spellID, 0);
@@ -801,13 +806,13 @@ void SpellVisualsProc_Eclipse(CGUnit_C *caster, SpellVisualKitRec *kitRec, unsig
 }
 
 static void CreateLightningObj(
-    CGUnit_C               *unitPtr,
-    const unsigned __int64 *guids,
-    int                     numGuids,
-    int                     spellID,
-    SpellVisualKitRec      *kitRec,
-    LightningObject       **objects,
-    int                     maxObjects
+    const CGUnit_C          *unitPtr,
+    const unsigned __int64  *guids,
+    int                      numGuids,
+    int                      spellID,
+    const SpellVisualKitRec *kitRec,
+    LightningObject        **objects,
+    int                      maxObjects
 ) {
   if (!kitRec || !unitPtr || !guids || !numGuids || !spellID) {
     return;
@@ -881,12 +886,12 @@ static void CreateLightningObj(
 }
 
 void SpellVisualsProcedureDispatch(
-    int                             proc,
-    CGUnit_C                       *caster,
-    SpellVisualKitRec              *kitRec,
-    unsigned int                    spellID,
-    TSStackArray<unsigned __int64> *targets,
-    TSStackArray<MISS_REASON>      *missReasons
+    int                                   proc,
+    CGUnit_C                             *caster,
+    const SpellVisualKitRec              *kitRec,
+    unsigned int                          spellID,
+    const TSStackArray<unsigned __int64> *targets,
+    const TSStackArray<MISS_REASON>      *missReasons
 ) {
   if (proc == 0) {
     if (targets) {
@@ -898,11 +903,11 @@ void SpellVisualsProcedureDispatch(
 }
 
 void SpellVisualsProcedure(
-    CGUnit_C                       *caster,
-    SpellVisualKitRec              *kitRec,
-    unsigned int                    spellID,
-    TSStackArray<unsigned __int64> *targets,
-    TSStackArray<MISS_REASON>      *missReasons
+    CGUnit_C                             *caster,
+    const SpellVisualKitRec              *kitRec,
+    unsigned int                          spellID,
+    const TSStackArray<unsigned __int64> *targets,
+    const TSStackArray<MISS_REASON>      *missReasons
 ) {
   if (caster && kitRec) {
     SpellVisualsProcedureDispatch(kitRec->m_characterProcedure, caster, kitRec, spellID, targets, missReasons);
@@ -961,11 +966,8 @@ void SpellVisualsTick(float elapsed) {
   s_lightningManager->Update(elapsed);
   s_eclipseObject.Update(currentTime);
 
-  BlizzardObject *blizzard = s_blizzard.Head();
-  while (blizzard) {
-    BlizzardObject *next = s_blizzard.Next(blizzard);
+  ITERATELIST(BlizzardObject, s_blizzard, blizzard) {
     blizzard->Update();
-    blizzard = next;
   }
 }
 
@@ -987,7 +989,9 @@ void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vecto
   }
 }
 
-void SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects) {
+void SpellVisualGetLightning(
+    const CGUnit_C *unitPtr, const SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects
+) {
   if (unitPtr) {
     const TSGrowableArray<unsigned __int64> &targets = unitPtr->GetSavedChannelSpellTargets();
     CreateLightningObj(unitPtr, targets.Ptr(), targets.Count(), spellID, kitRec, objects, numObjects);
@@ -1113,7 +1117,7 @@ static void PlayCastAnim(
     const SpellVisualRec *visRec,
     const SpellVisualKitRec *kitRec,
     const TSStackArray<unsigned __int64> &targets,
-    int *torsoAnimSet
+    int &torsoAnimSet
 ) {
   FATALASSERT(caster->GetType() & TYPE_UNIT);
   if (kitRec->m_anim) {
@@ -1130,9 +1134,9 @@ static void PlayCastAnim(
     SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, position);
     int oldCastingSpell = caster->SetCastingSpell(srec->m_ID, 0, 0);
     if (animSuccessful) {
-      *torsoAnimSet = caster->SetTorsoAnimation(38, 0, 0);
+      torsoAnimSet = caster->SetTorsoAnimation(38, 0, 0);
     }
-    if (*torsoAnimSet) {
+    if (torsoAnimSet) {
       caster->HandlePrecastStop(srec->m_ID, true);
       caster->SetSheatheReason(
           SHEATHEREASON_PRECAST,
@@ -1144,8 +1148,8 @@ static void PlayCastAnim(
     if (!oldCastingSpell) {
       caster->SetCastingSpell(0, 1, 0);
     }
-    if (*torsoAnimSet &&
-        Object_C_AnimHasHitEvent(*torsoAnimSet)) {
+    if (torsoAnimSet &&
+        Object_C_AnimHasHitEvent(torsoAnimSet)) {
       caster->AddHitAnimHolds(srec->m_ID, targets);
     }
     caster->SetCastingSpell(0, 0, 0);
@@ -1155,7 +1159,7 @@ static void PlayCastAnim(
     caster->GetPosition(position);
     SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, position);
   }
-  if (!*torsoAnimSet &&
+  if (!torsoAnimSet &&
       caster->GetCurrentTorsoAnim() == 37) {
     caster->ClearTorsoAnimation(0);
   }
@@ -1270,7 +1274,7 @@ void SpellVisualsHandleSpellStartHits(
   int torsoAnimSet = 0;
   if (!wasProc && kitRec) {
     PlayCastAnim(
-        caster, srec, visRec, kitRec, targets, &torsoAnimSet);
+        caster, srec, visRec, kitRec, targets, torsoAnimSet);
   }
   if (kitRec && !wasProc) {
     SpellVisualsProcedure(
@@ -1340,7 +1344,7 @@ void SpellVisualsHandleSpellStartMisses(
   int torsoAnimSet = 0;
   if (!wasProc && kitRec) {
     PlayCastAnim(
-        caster, srec, visRec, kitRec, targets, &torsoAnimSet);
+        caster, srec, visRec, kitRec, targets, torsoAnimSet);
   }
   if (kitRec && !wasProc) {
     SpellVisualsProcedure(

@@ -911,7 +911,7 @@ static int Script_DoEmote(lua_State *L) {
   unsigned __int64 target = Script_GetGUIDFromName(unit);
   CGPlayer_C      *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->SendTextEmote(const_cast<EmotesTextRec *>(rec), target);
+    player->SendTextEmote(rec, target);
   }
   return 0;
 }

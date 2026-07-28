@@ -106,8 +106,8 @@ unsigned int Particulate::s_tcSub[4][8] = {
     {9, 10, 11, 12, 9, 10, 11, 12},
     {0,  0,  0,  0, 0,  0,  0,  0}
 };
-TSList<WaterRadWave, TSGetLink<WaterRadWave> > CMap::waterRipplesFree;
-TSList<WaterRadWave, TSGetLink<WaterRadWave> > CMap::waterRipplesActive;
+LISTDECL(WaterRadWave, CMap::waterRipplesFree);
+LISTDECL(WaterRadWave, CMap::waterRipplesActive);
 CGxPixelShader                                *CMap::psOcean0;
 static NTempest::C2Vector                      oceanfft[4096];
 static float                                  phase;

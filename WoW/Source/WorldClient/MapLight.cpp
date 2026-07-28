@@ -16,7 +16,7 @@
 static const float OO_COORD_TO_CHUNK = 1.0f / ((150.0f / 36.0f) * 8);
 
 HTEXTURE__                        *CMapLight::s_hPointAttenTex;
-TSExplicitList<CMapBaseObjLink, 8> CMapLight::dirLightLinkList;
+LISTDECLEX(CMapBaseObjLink, refLink, CMapLight::dirLightLinkList);
 unsigned int                       CMapLight::maxLights = 4;
 float                              CMapLight::bucketSize = 33.33f;
 float                              CMapLight::halfBucketSize = 16.665f;
@@ -71,8 +71,7 @@ void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector 
     GxLightSet(0, sunLight->gxLight, cameraWorldPos);
     whichLight = 1;
   } else {
-    CMapBaseObjLink *link = CMapLight::dirLightLinkList.Head();
-    while (link) {
+    ITERATELIST(CMapBaseObjLink, CMapLight::dirLightLinkList, link) {
       CMapLight *light = static_cast<CMapLight *>(link->owner);
       if (light->flags & CMapBaseObj::Flag_Enabled) {
         GxLightSet(whichLight, light->gxLight, cameraWorldPos);
@@ -81,7 +80,6 @@ void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector 
           break;
         }
       }
-      link = CMapLight::dirLightLinkList.Next(link);
     }
   }
 
@@ -272,8 +270,7 @@ void CMap::LinkLightToMapObjDefs(CMapLight *light) {
   lBox.b += tCen;
   lBox.t += tCen;
 
-  CMapObjDef *mapObjDef = mapObjDefHash.Head();
-  while (mapObjDef) {
+  ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
     if (mapObjDef->aaBox.b <= light->aaBox.t && mapObjDef->aaBox.t >= light->aaBox.b) {
       tCen = lCen * mapObjDef->invMat;
       NTempest::C33Matrix tMat(
@@ -286,8 +283,7 @@ void CMap::LinkLightToMapObjDefs(CMapLight *light) {
 
       CMapObj *mapObj = mapObjDef->mapObj;
       if (mapObj && mapObj->TestBounds(tBox)) {
-        CMapBaseObjLink *link = mapObjDef->groupLinkList.Head();
-        while (link) {
+        ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, link) {
           CMapObjDefGroup *group = static_cast<CMapObjDefGroup *>(link->owner);
           if (!(group->flags & CMapBaseObj::Flag_InteriorLit) && mapObj->TestGroupBounds(tBox, group->groupNum)) {
             CMapBaseObjLink *lightLink = AllocBaseObjLink(light);
@@ -296,12 +292,10 @@ void CMap::LinkLightToMapObjDefs(CMapLight *light) {
             group->UpdateLights();
           }
 
-          link = mapObjDef->groupLinkList.Next(link);
         }
       }
     }
 
-    mapObjDef = mapObjDefHash.Next(mapObjDef);
   }
 }
 

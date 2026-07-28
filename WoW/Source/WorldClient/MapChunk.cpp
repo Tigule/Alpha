@@ -96,7 +96,7 @@ static SCritSect                        s_fileCritSect;
 static TSCArray<unsigned char, 15000>   s_asyncLoadBuffers[16];
 static unsigned char                   *s_freeAsyncBuffer;
 static unsigned char                    s_asyncBuffersInitialized;
-static TSExplicitList<CAsyncObject, 32> s_asyncLoadList;
+static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
 
 unsigned int              CMapChunk::cornerVertexIndex[4] = {0, 8, 136, 144};
 unsigned int              CMapChunk::farCornerIndex;
@@ -699,13 +699,14 @@ void CMapChunk::SelectLights() {
 
   GxLightSet(0, CMap::sunLight->gxLight, CWorldScene::camPos);
 
-  CMapBaseObjLink *link = lightLinkList.Head();
   unsigned int     whichLight = 1;
 
-  while (link && whichLight < 8) {
+  ITERATELIST(CMapBaseObjLink, lightLinkList, link) {
+    if (whichLight >= 8) {
+      break;
+    }
     CMapLight *light = static_cast<CMapLight *>(link->owner);
     GxLightSet(whichLight, light->gxLight, CWorldScene::camPos);
-    link = lightLinkList.Next(link);
     ++whichLight;
   }
 
@@ -718,16 +719,16 @@ void CMapChunk::SelectLights() {
 void CMapChunk::UpdateLights() {
   flags |= 1u;
 
-  CMapBaseObjLink *link = doodadDefLinkList.Head();
-  while (link) {
-    link->owner->flags |= 1u;
-    link = doodadDefLinkList.Next(link);
+  {
+    ITERATELIST(CMapBaseObjLink, doodadDefLinkList, link) {
+      link->owner->flags |= 1u;
+    }
   }
 
-  link = entityLinkList.Head();
-  while (link) {
-    link->owner->flags |= 1u;
-    link = entityLinkList.Next(link);
+  {
+    ITERATELIST(CMapBaseObjLink, entityLinkList, link) {
+      link->owner->flags |= 1u;
+    }
   }
 }
 
@@ -755,14 +756,12 @@ void CMapChunk::Update() {
     freeTime = 0.0f;
     CWorldScene::AddMapChunk(this, CWorldScene::camPlaneXY.DistSigned(vertexList[cornerVertexIndex[farCornerIndex]] + corner));
 
-    CMapBaseObjLink *link = doodadDefLinkList.Head();
-    while (link) {
+    ITERATELIST(CMapBaseObjLink, doodadDefLinkList, link) {
       CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(link->owner);
       FATALASSERT(doodadDef);
       if ((doodadDef->model || doodadDef->RenderCB) && !(doodadDef->flags & CMapBaseObj::Flag_LoadFailed) && !doodadDef->sceneLink.IsLinked()) {
         CWorldScene::AddDoodadDef(doodadDef);
       }
-      link = doodadDefLinkList.Next(link);
     }
   }
 
@@ -777,8 +776,7 @@ void CMapChunk::Update() {
 }
 
 void CMapChunk::FindLights() {
-  CMapLight *light = CMap::lightList.Head();
-  while (light) {
+  ITERATELIST(CMapLight, CMap::lightList, light) {
     if (light->aaBox.b.x <= aaBox.t.x && light->aaBox.t.x >= aaBox.b.x && light->aaBox.b.y <= aaBox.t.y && light->aaBox.t.y >= aaBox.b.y &&
         light->aaBox.b.z <= aaBox.t.z && light->aaBox.t.z >= aaBox.b.z)
     {
@@ -786,7 +784,6 @@ void CMapChunk::FindLights() {
       link->ref = this;
       lightLinkList.LinkNode(link, LIST_TAIL, 0);
     }
-    light = CMap::lightList.Next(light);
   }
 }
 

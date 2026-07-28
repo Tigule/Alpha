@@ -392,8 +392,9 @@ static int Script_PickupPetAction(lua_State *L) {
     return luaL_error(L, "Invalid slot in PickupPetAction");
   }
 
-  unsigned int cursorAction = CGGameUI::GetCursorVirtualItem(UICURSOR_PET_ACTION);
-  unsigned int cursorSpell = CGGameUI::GetCursorVirtualItem(UICURSOR_PET_SPELL);
+  unsigned int cursorSpell =
+      CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
+  PetAction cursorAction(CGGameUI::m_cursorPetAction);
   CGGameUI::ClearCursor(1);
   if (cursorSpell) {
     CGPetInfo::PutSpellInSlot(cursorSpell, index);
@@ -414,9 +415,9 @@ static int Script_PickupPetAction(lua_State *L) {
   }
   unsigned int type = raw >> 24 & 0x3F;
   if (type == 1) {
-    CGGameUI::SetCursorVirtualItem(raw & 0xFFFF, 0, index, UICURSOR_PET_SPELL);
+    CGGameUI::SetCursorSpell(raw & 0xFFFF, 1);
   } else if (type > 1 && type <= 7) {
-    CGGameUI::SetCursorVirtualItem(raw, 0, index, UICURSOR_PET_ACTION);
+    CGGameUI::SetCursorPetAction(*action);
   }
   return 0;
 }
@@ -429,8 +430,9 @@ static int Script_TogglePetAutocast(lua_State *L) {
   if (index >= 10) {
     return luaL_error(L, "Invalid slot in TogglePetAutocast");
   }
-  unsigned int cursorAction = CGGameUI::GetCursorVirtualItem(UICURSOR_PET_ACTION);
-  unsigned int cursorSpell = CGGameUI::GetCursorVirtualItem(UICURSOR_PET_SPELL);
+  unsigned int cursorSpell =
+      CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
+  PetAction cursorAction(CGGameUI::m_cursorPetAction);
   CGGameUI::ClearCursor(1);
   if (cursorSpell) {
     CGPetInfo::PutSpellInSlot(cursorSpell, index);
@@ -450,8 +452,9 @@ static int Script_CastPetAction(lua_State *L) {
   if (index >= 10) {
     return luaL_error(L, "Invalid slot in CastPetAction");
   }
-  unsigned int cursorAction = CGGameUI::GetCursorVirtualItem(UICURSOR_PET_ACTION);
-  unsigned int cursorSpell = CGGameUI::GetCursorVirtualItem(UICURSOR_PET_SPELL);
+  unsigned int cursorSpell =
+      CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
+  PetAction cursorAction(CGGameUI::m_cursorPetAction);
   CGGameUI::ClearCursor(1);
   if (cursorSpell) {
     CGPetInfo::PutSpellInSlot(cursorSpell, index);

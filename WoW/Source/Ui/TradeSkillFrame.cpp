@@ -325,7 +325,7 @@ void CGTradeSkillInfo::RefreshList(int resetFilters) {
   if (!player) {
     return;
   }
-  TSGrowableArray<int> *spells = player->GetTradeSkills(m_skillLine);
+  const TSGrowableArray<int> *spells = player->GetTradeSkills(m_skillLine);
   if (!spells) {
     return;
   }

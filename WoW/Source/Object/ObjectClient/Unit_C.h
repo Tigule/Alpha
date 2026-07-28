@@ -17,6 +17,7 @@ class NPCSoundsRec;
 struct Sound;
 class UnitBloodRec;
 class CGItem_C;
+class CGGameObject_C;
 struct ItemEnchantment;
 struct HPLAYERNAME__;
 typedef HPLAYERNAME__ *HPLAYERNAME;
@@ -229,7 +230,7 @@ struct ACTIVEATTACHMENTINFO {
   ~ACTIVEATTACHMENTINFO();
   void Clear();
   void ClearAttachmentFromModel(HMODEL charModel, HMODEL paperDollModel);
-  void Hide(CGUnit_C *unitPtr, HMODEL charModel, HMODEL paperDollModel, unsigned int hide);
+  void Hide(CGUnit_C *unitPtr, HMODEL charModel, HMODEL paperDollModel, bool hide);
 };
 
 enum UNITSOUNDTYPE {
@@ -528,10 +529,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
 
   void SetStorage(unsigned long *storage);
   void PostInit(const CClientObjCreate &init);
-  void PostMovementUpdate(CClientMoveUpdate &update);
+  void PostMovementUpdate(const CClientMoveUpdate &update);
   void UpdateUnitCollisionBox(HMODEL model, const char *modelFileName);
-  void SetClientInitData(unsigned long eventTime, CClientObjCreate &init, unsigned int partialUpdateOfActivePlayer);
-  void UpdateMoveInfo(unsigned long eventTime, CClientMoveUpdate &update);
+  void SetClientInitData(unsigned long eventTime, const CClientObjCreate &init, bool partialUpdateOfActivePlayer);
+  void UpdateMoveInfo(unsigned long eventTime, const CClientMoveUpdate &update);
 
   static unsigned __int64        m_activeMover;
   static void Initialize();
@@ -543,7 +544,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   static void StartMoveHeartbeatTimer();
   static int GetAnimPriority(int state);
   static void NamePlateShow(int show);
-  int                            GetCreatureType();
+  int                            GetCreatureType() const;
   int                            CanBeLooted(unsigned long currentTime) const;
   static void UpdateUnitNameplates(CGWorldFrame *worldFrame);
   static void RemoveAllNamePlates();
@@ -662,9 +663,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void               BuildMovementUpdate(NETMESSAGE messageId, CDataStore *msg) const;
   void               SendMovementUpdate(NETMESSAGE messageId);
   void               StopSpellFizzleTimer(int spellID, unsigned char status);
-  void               SpellDelayed(unsigned int delay);
+  void               SpellDelayed(int delay);
   void               EndSpellEffects(unsigned char status);
-  int                SetCastingSpell(int spellID, unsigned int force, unsigned int precastAnimSuccessful);
+  int                SetCastingSpell(int spellID, bool force, bool precastAnimSuccessful);
   bool               SetSpellCastingAnimation(ANIMENUMERATION anim, unsigned int castKit, unsigned int soundID, int shakeID, ANIMENUMERATION &result);
   void               ClearSpellCastAnimInfo();
   void               AddHitAnimHolds(int spellID, const TSStackArray<unsigned __int64> &targets);
@@ -677,11 +678,11 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int                GetCastingSpell() {
     return m_castingSpell;
   }
-  void               HandlePrecastStart(unsigned int precast);
-  void               HandlePrecastStop(int spellID, unsigned int force);
+  void               HandlePrecastStart(bool precast);
+  void               HandlePrecastStop(int spellID, bool force);
   void               CheckDeferredSheathing();
-  void               SetSheatheReason(SHEATHEREASONS reason, unsigned int on, unsigned int suppressSound);
-  SpellVisualRec    *GetAppropriateSpellVisual(SpellRec *spellRec, SpellVisualRec &filled);
+  void               SetSheatheReason(SHEATHEREASONS reason, bool on, bool suppressSound);
+  const SpellVisualRec *GetAppropriateSpellVisual(const SpellRec *spellRec, SpellVisualRec &filled) const;
   unsigned int       GetCurrentTorsoAnim() const;
   unsigned int       GetAnimationState();
   int                IsWalking() const;
@@ -714,7 +715,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   bool               TorsoAnimOverridesBase() const;
   int                IsPreemptableWoundAnimState(unsigned int state);
   int                IsAttackAnimState(unsigned int state);
-  unsigned int       QueueVictimAnim(VICTIMSTATES newState, int unitDead, int criticalHit, unsigned int victimRoundDuration);
+  bool               QueueVictimAnim(VICTIMSTATES newState, int unitDead, int criticalHit, unsigned int victimRoundDuration);
   void               CheckPendingVictimFeedback();
   void               SetVictimAnimation(VICTIMSTATES newState, int unitDead, int criticalHit, unsigned int victimRoundDuration, int processNow);
   void               DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimation);
@@ -724,7 +725,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void               PerformSpellProcImpact(int spell);
   void               ShowBloodSpurt(CGUnit_C *attacker, int crushingBlow);
   BLOODSPURTLOCATION DetermineBloodLinkPoint(CGUnit_C *attacker);
-  void               SetMeleeDeathHold(CGUnit_C *victimPtr);
+  void               SetMeleeDeathHold(const CGUnit_C *victimPtr);
   void               AddVictimDeathHold(CGUnit_C *victimPtr);
   void               ClearMeleeDeathHold();
   void               PlayParrySound(bool ignoreMainHand, const ATTACKROUNDINFO *roundInfo, const NTempest::C3Vector &position) const;
@@ -738,10 +739,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int                GetUnitSize() const;
   void               CheckPendingMissileRelease(const NTempest::C3Vector *position);
   void               CheckPendingImpactKit();
-  SpellVisualKitRec *GetRangedSpellAnim(int id, unsigned int castKit);
+  const SpellVisualKitRec *GetRangedSpellAnim(int id, bool castKit);
   int                ClearTorsoAnimation(unsigned int flags);
-  unsigned int       IsSpellAuraAnimActive(int &anim);
-  unsigned int       IsSpellChannelAnimActive(int &anim);
+  bool               IsSpellAuraAnimActive(int &anim) const;
+  bool               IsSpellChannelAnimActive(int &anim) const;
   int                PlayEmoteAnimation(unsigned int emoteID, int flags);
   void               RangedWeaponAnimEndHandler();
   void               ThrowAnimEndHandler();
@@ -762,9 +763,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void               AttackAnimEndHandler();
   void               DodgeAnimEndHandler();
   void               SetRangedWeaponReleaseAnim();
-  void               DrawBowString(NTempest::C3Vector &cameraPos);
+  void               DrawBowString(const NTempest::C3Vector &cameraPos);
   void               ThrownMissileReleased();
-  void               CheckPendingThrownWeaponReattach(unsigned int force);
+  void               CheckPendingThrownWeaponReattach(bool force);
   void AddObjectComponentBySlot(
       int  invSlot,
       int  displayID,
@@ -775,7 +776,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
       int  sheathedAttachmentPoint,
       bool showHidden
   );
-  unsigned int IsSlotComponented(unsigned int offset, int ignoreUsingRangedWeapon);
+  bool         IsSlotComponented(unsigned int offset, int ignoreUsingRangedWeapon);
   bool         UpdateVisibilitySlots(HMODEL characterModel, int attachmentSlot, ACTIVEATTACHMENTINFO **&found, int displayID, bool deferApply);
   void         ClearWeaponTrailHandles();
   void         ReinitializeWeaponTrails();
@@ -812,12 +813,12 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   unsigned int  HairColorID() const;
   unsigned int  FacialHairID() const;
   void          InitPreferredGeosets();
-  void          SetAttachmentHidden(int attachmentSlot, unsigned int hide);
+  void          SetAttachmentHidden(int attachmentSlot, bool hide);
   void          PlaySpellLoopedSound(int soundID);
   void          KillSpellLoopedSound();
   void          StopRangedAttackPrecast();
   HMODEL        GetRangedWeaponModel();
-  HMODEL        GetMountedModel();
+  HMODEL        GetMountedModel() const;
   void             PendingPrecastInterrupt(int spellID);
   void             SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, bool snapToTargetOnClear);
   void             ClearTrackingTarget(bool snapToTargetOnClear);
@@ -831,7 +832,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     m_ammoInvType = inventoryType;
   }
   void             SetRangedStandTimer();
-  void             DetermineReadySequence(unsigned int forceNormal);
+  void             DetermineReadySequence(bool forceNormal);
   void             OnCombatModeTimer();
   void             AttackUnit(CGUnit_C *newVictim);
   void             OnAttackSwing(unsigned __int64 victimGUID, unsigned int clientTimeStamp);
@@ -842,11 +843,11 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void         AttachResEffectModel();
   void         DetatchResEffectModel();
   void         OnRangedStandTimer();
-  unsigned int SheatheAnimPlaying();
+  bool         SheatheAnimPlaying() const;
   void         MaybeStartSheatheAnim();
-  void         UpdateSheatheRangedReasons(unsigned int suppressSound);
-  void         SheatheOrUnsheatheItems(SHEATHEREASONS reason, unsigned int sheathe, unsigned int playSound);
-  unsigned int SheatheObjComponent(int slot, unsigned int sheathe);
+  void         UpdateSheatheRangedReasons(bool suppressSound);
+  void         SheatheOrUnsheatheItems(SHEATHEREASONS reason, bool sheathe, bool playSound);
+  bool         SheatheObjComponent(int slot, bool sheathe);
   void         ClearDeferredAttachment(HMODEL charModel, int slot);
   bool         ApplyAttachmentInfo(HMODEL characterModel, bool sheathe, int attachmentSlot, bool force);
   void         SetHandsState(HMODEL model);
@@ -914,7 +915,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   bool                            CanAssist(const CGUnit_C *unit) const;
   bool                            CanCooperate(const CGUnit_C *unit) const;
   bool                            CanInteract(const CGUnit_C *unit) const;
-  unsigned int                    IsUnitInGroup(CGUnit_C *unit);
+  bool                            CanInteract(const CGGameObject_C *object) const;
+  bool                            IsUnitInGroup(const CGUnit_C *unit) const;
   void                            SetMirrorHandlers();
   void                            UnsetMirrorHandlers();
   void                            ClearFishingObject();
@@ -933,11 +935,11 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void RemoveBloodPool();
   void AddBloodPool();
   void QueueBloodSplat(BLOODSPURTLOCATION linkPoint);
-  UnitBloodRec    *GetBloodRecord();
+  const UnitBloodRec *GetBloodRecord();
   void             RemoveAuraEffect(unsigned int slot, int previousSpell);
   void             RefreshAuraVisuals();
   void             AddPendingShapeshiftEffect(int oldSpell);
-  void             AddAuraEffect(unsigned int slot, unsigned int startNow);
+  void             AddAuraEffect(unsigned int slot, bool startNow);
   int              ShouldDelayLevelupAnim();
   int              ShouldDelayLevelupAnim(unsigned int state);
   void             PerformLevelUpAnim(int force);
@@ -993,10 +995,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void InternalProcessSpellProcEffects(SPELLPROC_ACTION action, float elapsed);
 
  public:
-  SPELLEFFECTDESC *GetActiveEffect(TSList<SPELLEFFECTDESC, TSGetLink<SPELLEFFECTDESC> > &list);
+  SPELLEFFECTDESC *GetActiveEffect(LIST(SPELLEFFECTDESC) &list);
   void             ReinitializePaperdollModel();
   void             CreatePaperdollModel();
-  HMODEL           GetPaperDollModel(unsigned int duplicateModel);
+  HMODEL           GetPaperDollModel(bool duplicateModel);
   void             DestroyPaperdollModel();
   void             StandStateChanged(unsigned int oldState);
   void             NPCFlagChanged(unsigned int oldNPCFlags);
@@ -1041,7 +1043,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void             DDGENLOG(unsigned __int64 guid, const char *string, const char *file, unsigned int line);
   void             DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stringBuffer) const;
   void             DelDeathHold();
-  void             MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, unsigned int effect, unsigned int spellID, int priority, unsigned int permanent);
+  void             MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, unsigned int effect, unsigned int spellID, int priority, bool permanent);
   ACTIVEAURAINFO  *FindActiveAuraInfo(int slot);
   void             AddKitAuras(const SpellVisualKitRec *kitRec, const SpellRec *spellRec);
   void             RemoveAuraVisual(UNITEFFECTATTACHPPOINT attach);
@@ -1215,6 +1217,6 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void PrintAttackSeqErrorMsg(unsigned int sequence, unsigned int fallBack) const;
 };
 
-void CGUnit_C_RenderBowStrings(NTempest::C3Vector &c);
+void CGUnit_C_RenderBowStrings(const NTempest::C3Vector &c);
 
 void ClearSpecialEffects(HMODEL model);

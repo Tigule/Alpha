@@ -82,8 +82,8 @@ class CDetailDoodad {
   static CGxBuf *AllocGxBuf(unsigned int vertexCount, unsigned int indexCount);
   static void FreeGxBuf(CGxBuf *gxBuf);
 
-  static TSExplicitList<CDetailDoodadGeom, 104> geomList;
-  static TSExplicitList<CDetailDoodadInst, 16>  instList;
+  static LISTDECLEX(CDetailDoodadGeom, lameAssLink, geomList);
+  static LISTDECLEX(CDetailDoodadInst, lameAssLink, instList);
   static TSGrowableArray<CDetailDoodadData *>   doodadList;
   static CGxTex                                *alphaRampTexture;
 

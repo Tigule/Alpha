@@ -3,7 +3,7 @@
 
 #include <ctype.h>
 
-struct CMDDEF : public TSLinkedNode<CMDDEF> {
+NODEDECL(CMDDEF) {
   DWORD        flags;
   DWORD        id;
   char         name[0x10];
@@ -26,7 +26,7 @@ typedef struct _PROCESSING {
   int     namelength;
 } PROCESSING;
 
-typedef TSList<CMDDEF, TSGetLink<CMDDEF> > CMDDEF_LIST;
+typedef LIST(CMDDEF) CMDDEF_LIST;
 
 static const char *s_errorstr[] = {"Invalid argument: %s", "The syntax of the command is incorrect.", "Unable to open response file: %s"};
 static BOOL        s_addedoptional;
@@ -97,16 +97,15 @@ static CMDDEF *FindFlagDef(const char *string, CMDDEF *firstdef, int minlength) 
 
   strlength = (int)SStrLen(string);
   bestchars = minlength - 1;
-  while (firstdef) {
-    if (firstdef->namelength > bestchars && firstdef->namelength <= strlength) {
-      if ((firstdef->flags & SCMD_CASESENSITIVE) ? !strncmp(firstdef->name, string, firstdef->namelength)
-                                                 : !_strnicmp(firstdef->name, string, firstdef->namelength))
+  ITERATEPARTIALLISTPTR(CMDDEF, SCMD_FLAG_LIST, firstdef, def) {
+    if (def->namelength > bestchars && def->namelength <= strlength) {
+      if ((def->flags & SCMD_CASESENSITIVE) ? !strncmp(def->name, string, def->namelength)
+                                            : !_strnicmp(def->name, string, def->namelength))
       {
-        bestptr = firstdef;
-        bestchars = firstdef->namelength;
+        bestptr = def;
+        bestchars = def->namelength;
       }
     }
-    firstdef = firstdef->Next();
   }
 
   return bestptr;
@@ -164,7 +163,6 @@ static void GenerateError(SCMDERRORCALLBACK errorcallback, DWORD errorcode, cons
 static BOOL PerformConversion(CMDDEF *ptr, const char *string, int *datachars) {
   CMDPARAMS    params;
   CMDDEF_LIST *list;
-  CMDDEF      *other;
   DWORD        type;
   int          pass;
 
@@ -203,8 +201,7 @@ static BOOL PerformConversion(CMDDEF *ptr, const char *string, int *datachars) {
 
   for (pass = 0; pass < 2; pass++) {
     list = pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST;
-    other = list->Head();
-    while ((LONG)other > 0) {
+    ITERATELISTPTR(CMDDEF, list, other) {
       if (other->id == ptr->id) {
         type = other->flags & SCMD_TYPE_MASK;
         if (type == (ptr->flags & SCMD_TYPE_MASK) && other != ptr) {
@@ -220,7 +217,6 @@ static BOOL PerformConversion(CMDDEF *ptr, const char *string, int *datachars) {
           }
         }
       }
-      other = list->RawNext(other);
     }
   }
 
@@ -401,33 +397,27 @@ static BOOL ProcessToken(
 }
 
 extern "C" BOOL APIENTRY SCmdCheckId(DWORD id) {
-  CMDDEF *cmd;
-  int     pass;
+  int pass;
 
   for (pass = 0; pass <= 1; pass++) {
-    cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->Head();
-    while ((LONG)cmd > 0) {
+    ITERATELISTPTR(CMDDEF, (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST), cmd) {
       if (cmd->id == id) {
         return cmd->found;
       }
-      cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->RawNext(cmd);
     }
   }
   return FALSE;
 }
 
 extern "C" BOOL APIENTRY SCmdDestroy() {
-  CMDDEF *cmd;
-  int     pass;
+  int pass;
 
   for (pass = 0; pass <= 1; pass++) {
-    cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->Head();
-    while ((LONG)cmd > 0) {
+    ITERATELISTPTR(CMDDEF, (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST), cmd) {
       if ((cmd->flags & SCMD_TYPE_MASK) == SCMD_TYPE_STRING && cmd->currvaluestr) {
         SMemFree(cmd->currvaluestr, __FILE__, __LINE__, 0);
         cmd->currvaluestr = NULL;
       }
-      cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->RawNext(cmd);
     }
   }
 
@@ -442,54 +432,46 @@ extern "C" BOOL APIENTRY SCmdGetBool(DWORD id) {
 }
 
 extern "C" DWORD APIENTRY SCmdGetNum(DWORD id) {
-  CMDDEF *cmd;
-  int     pass;
+  int pass;
 
   for (pass = 0; pass <= 1; pass++) {
-    cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->Head();
-    while ((LONG)cmd > 0) {
+    ITERATELISTPTR(CMDDEF, (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST), cmd) {
       if (cmd->id == id) {
         return cmd->currvalue;
       }
-      cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->RawNext(cmd);
     }
   }
   return 0;
 }
 
 extern "C" BOOL APIENTRY SCmdGetString(DWORD id, char *buffer, DWORD bufferchars) {
-  CMDDEF *cmd;
-  int     pass;
+  int pass;
 
   FATALASSERT(buffer);
   buffer[0] = 0;
   FATALASSERT(bufferchars);
 
   for (pass = 0; pass <= 1; pass++) {
-    cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->Head();
-    while ((LONG)cmd > 0) {
+    ITERATELISTPTR(CMDDEF, (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST), cmd) {
       if (cmd->id == id) {
         if (cmd->currvaluestr) {
           SStrCopy(buffer, cmd->currvaluestr, bufferchars);
         }
         return TRUE;
       }
-      cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->RawNext(cmd);
     }
   }
   return FALSE;
 }
 
 extern "C" BOOL APIENTRY SCmdGetStringAlloc(DWORD id, char **buffer) {
-  CMDDEF *cmd;
-  int     pass;
+  int pass;
 
   FATALASSERT(buffer);
 
   *buffer = NULL;
   for (pass = 0; pass <= 1; pass++) {
-    cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->Head();
-    while ((LONG)cmd > 0) {
+    ITERATELISTPTR(CMDDEF, (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST), cmd) {
       if (cmd->id == id) {
         if (cmd->currvaluestr) {
           *buffer = SStrDupA(cmd->currvaluestr, __FILE__, __LINE__);
@@ -498,7 +480,6 @@ extern "C" BOOL APIENTRY SCmdGetStringAlloc(DWORD id, char **buffer) {
         }
         return TRUE;
       }
-      cmd = (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST)->RawNext(cmd);
     }
   }
   return FALSE;

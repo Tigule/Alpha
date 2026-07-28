@@ -105,7 +105,7 @@ class CGWorldFrame : public CSimpleFrame {
   void                        SetCameraTarget(CGObject_C *target);
   void                        UpdateObject(CGObject_C *object, unsigned long status);
   void                        AddModelToScene(CGObject_C *object, HMODEL__ *model);
-  void                        SetPlayerFadeCameraValue(unsigned int value);
+  void                        SetPlayerFadeCameraValue(unsigned char value);
   void                        SetSpriteClickButtons(unsigned int buttons);
   void                        SetTerrainClickButtons(unsigned int buttons);
   int                         PerformDefaultAction(MOUSEBUTTON button, unsigned int timestamp);
@@ -129,31 +129,31 @@ class CGWorldFrame : public CSimpleFrame {
   );
 
  protected:
-  unsigned __int64 FindClosestModel(NTempest::C3Vector &a, NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist);
+  unsigned __int64 FindClosestModel(const NTempest::C3Vector &a, const NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist);
   float            GetSkyProgress();
 
  private:
   CGWorldFrame(CSimpleFrame *parent);
 
-  unsigned int           SphereTestModels(NTempest::C3Vector &aVector, NTempest::C3Vector &bVector, unsigned int hitFilter);
-  unsigned int           VolumeTestModels(NTempest::C3Vector &aVector, NTempest::C3Vector &bVector);
-  unsigned int           GeometryTestModels(NTempest::C3Vector &aVector, NTempest::C3Vector &bVector);
+  unsigned int           SphereTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector, unsigned int hitFilter);
+  unsigned int           VolumeTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector);
+  unsigned int           GeometryTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector);
   void                   ReduceToClosestModel();
   CModelRecord          *HigherPriorityModel(CModelRecord *a, CModelRecord *b);
   int                    IsLegalSelection(CModelRecord *record, unsigned int hitFilter);
-  int                    IsUnitLegalSelection(CGUnit_C *unit, unsigned int hitFilter);
+  int                    IsUnitLegalSelection(const CGUnit_C *unit, unsigned int hitFilter);
   void                   MoveToFreeList(CModelRecord *record);
-  void                   MoveToFreeList(TSList<CModelRecord, TSGetLink<CModelRecord> > *objList);
-  HIT_TYPE               HitTest(NTempest::C3Vector &a, NTempest::C3Vector &b, unsigned int hitFilter, HitTestResult *hitTestResult);
+  void                   MoveToFreeList(LISTPTR(CModelRecord) objList);
+  HIT_TYPE               HitTest(const NTempest::C3Vector &a, const NTempest::C3Vector &b, unsigned int hitFilter, HitTestResult *hitTestResult);
   HIT_TYPE               HitTestPoint(float x, float y, HitTestResult *hitTestResult);
   int                    SendObjectTrackEvent(unsigned __int64 guid, float x, float y);
   int                    SendUnitFadeEvent(unsigned __int64 guid);
-  void                   OnLayerTrackTerrain(HitTestResult &hitTestResult);
-  void                   OnLayerTrackObject(HitTestResult &hitTestResult, float x, float y);
+  void                   OnLayerTrackTerrain(const HitTestResult &hitTestResult);
+  void                   OnLayerTrackObject(const HitTestResult &hitTestResult, float x, float y);
   void                   CursorTrackUnit(CGUnit_C *unit);
   void                   CursorTrackObject(CGGameObject_C *gameObject);
   void                   HideObstructingModels(float maxDist);
-  unsigned int           GetHitTestFilterFlags();
+  unsigned int           GetHitTestFilterFlags() const;
   void                   UpdateDayNightInfo(float elapsedSec);
   void                   UpdatePlayerAlpha(float elapsedSeconds);
   void                   HandleUnitFade(int nowTracking, int immediateFade);

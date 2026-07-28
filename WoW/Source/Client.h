@@ -18,10 +18,8 @@ class CWOWClientStatus : public CStatus {
 
   virtual ~CWOWClientStatus() {
     if (m_logFile) {
-      STATUSENTRY *entry = statusList.Head();
-      while (entry) {
+      ITERATELIST(STATUSENTRY, statusList, entry) {
         SLogWrite(m_logFile, entry->text);
-        entry = statusList.Next(entry);
       }
       SLogClose(m_logFile);
     }

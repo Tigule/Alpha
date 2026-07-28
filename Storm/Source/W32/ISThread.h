@@ -39,8 +39,7 @@ class CInitCritSect {
 
 #include <sclass.h>
 
-#ifdef STORM_INITCRITSECT_IMPLEMENTATION
-int CInitCritSect::Enter() {
+inline int CInitCritSect::Enter() {
   int initialized = 0;
 
   if (!m_critsect) {
@@ -60,9 +59,8 @@ int CInitCritSect::Enter() {
   return initialized;
 }
 
-void CInitCritSect::Leave() {
+inline void CInitCritSect::Leave() {
   m_critsect->Leave();
 }
-#endif
 
 #endif

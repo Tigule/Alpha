@@ -1,4 +1,5 @@
 #include "Object/ObjectClient/Unit_C.h"
+#include "Object/ObjectClient/GameObject_C.h"
 #include "DB/DBClient/AutoCode/SkillLineAbilityRec.h"
 
 #include <Base/Status.h>
@@ -126,18 +127,20 @@ FishingLineObject *SpellVisualsFishingLineCreate(
 void SpellVisualsFishingLineDestroy(FishingLineObject *object);
 void SpellVisualFishingLineSetVisible(FishingLineObject *object);
 void SpellVisualClearLightning(LightningObject *lightning);
-void SpellVisualGetLightning(CGUnit_C *unitPtr, SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects);
+void SpellVisualGetLightning(
+    const CGUnit_C *unitPtr, const SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects
+);
 int SpellFizzleTimer(const void *data, void *userData);
 void UpdatePortraitTexture(const unsigned __int64 &guid);
 bool Spell_C_IsModal();
 int Spell_C_GetSpellCooldown(int spellID, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
 int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
 int Spell_C_GetManaCost(int spellID, int isPet);
-void Spell_C_SpellFailed(int spellID, unsigned int reason, int arg1, int arg2);
+void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2);
 const unsigned __int64 &Spell_C_GetCurrentTarget();
-void Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
+void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
 void UnitCombatLogUnitDead(unsigned __int64 unit);
-void            UnitFootprintNewBloodSplat(UnitBloodRec *rec, unsigned int unitSize, NTempest::C3Vector &position);
+void            UnitFootprintNewBloodSplat(const UnitBloodRec *rec, unsigned int unitSize, const NTempest::C3Vector &position);
 static void PlayerNameGuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
 
 NODEDECL(BLOODSPLATNODE) {
@@ -357,7 +360,7 @@ NODEDECL(FREENAMEPLATE) {
 };
 
 static int                                              s_drawNameplates = 1;
-static TSExplicitList<NAMEPLATEDESC, 32>                s_namePlateList;
+static LISTDECLEX(NAMEPLATEDESC, m_sortLink, s_namePlateList);
 static const float                                      MAX_NAMEPLATE_DIST = 20.0f;
 static const float                                      MAX_NAMEPLATE_DIST_SQ = MAX_NAMEPLATE_DIST * MAX_NAMEPLATE_DIST;
 static LISTDECL(FREENAMEPLATE, s_freeNamePlateList);
@@ -369,7 +372,7 @@ int RangedWeaponAnimEndHandler(void *param, CGUnit_C *ptr) {
   return 1;
 }
 
-typedef TSList<SPELLEFFECTDESC, TSGetLink<SPELLEFFECTDESC> > SpellEffectList;
+typedef LIST(SPELLEFFECTDESC) SpellEffectList;
 typedef void(*SpellProcHandler)(
     SPELLPROC_ACTION         action,
     SpellEffectList         &list,
@@ -435,14 +438,14 @@ void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vecto
 void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset);
 GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach);
 HMODEL UnitEffectCreateAuraModel(unsigned int effectID);
-unsigned int UnitEffectIsAuraWorldObject(unsigned int effectID, unsigned int &isWorldObj);
+bool UnitEffectIsAuraWorldObject(unsigned int effectID, bool &isWorldObj);
 unsigned long UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest::C3Vector &location, float facing);
 int OnFirstAuraSequenceFinished(void *param);
 bool AnimSheathesWeapon(unsigned int anim);
 int GetObjAnimFlags(int unitAnimFlags);
 unsigned int SpellGetRangedPrecastHoldAnim(unsigned int loadAnim);
 unsigned int PlayerNameGetUnitNameMode();
-void SpellVisualsPlayCastKit(CGUnit_C *caster, SpellVisualKitRec *kitRec, int spellID, unsigned int isCastEffect);
+void SpellVisualsPlayCastKit(CGUnit_C *caster, const SpellVisualKitRec *kitRec, int spellID, bool isCastEffect);
 bool Object_C_AnimHasHitEvent(int anim);
 float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
 void UnitEffectOneShot(
@@ -641,7 +644,7 @@ int InvSlotToObjAttachSlot(int invSlot) {
   return invSlot <= 18 ? s_invSlotToObjAttachSlot[invSlot] : -1;
 }
 
-static void PurgeExpiredNodes(TSList<SPELLEFFECTDESC, TSGetLink<SPELLEFFECTDESC> > &list, float elapsed) {
+static void PurgeExpiredNodes(LIST(SPELLEFFECTDESC) &list, float elapsed) {
   SPELLEFFECTDESC *desc = list.Head();
   while (desc) {
     SPELLEFFECTDESC *next = desc->Next();
@@ -683,7 +686,7 @@ void SpellProcChainHandler(
       newDesc->lightningObjs[0] = 0;
       newDesc->lightningObjs[1] = 0;
       newDesc->lightningObjs[2] = 0;
-      SpellVisualGetLightning(unit, const_cast<SpellVisualKitRec *>(rec), spellID, newDesc->lightningObjs, 3);
+      SpellVisualGetLightning(unit, rec, spellID, newDesc->lightningObjs, 3);
     }
     unit->ClearSavedChannelSpellTargets();
   } else if (action == SPELLPROCREMOVE) {
@@ -772,7 +775,7 @@ static float GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
 
 static float GetDesiredRenderScale(SpellEffectList &list) {
   float currentScale = 1.0f;
-  for (SPELLEFFECTDESC *desc = list.Head(); desc; desc = desc->Next()) {
+  ITERATELIST(SPELLEFFECTDESC, list, desc) {
     currentScale *= GetSpellEffectDescScale(desc);
   }
   if (currentScale < 0.75f) {
@@ -890,7 +893,7 @@ void SpellProcStandWalkAnimHandler(
 
   int standAnim = 0;
   int walkAnim = 0;
-  for (SPELLEFFECTDESC *desc = list.Head(); desc; desc = desc->Next()) {
+  ITERATELIST(SPELLEFFECTDESC, list, desc) {
     if (standAnim < desc->standAnim) {
       standAnim = desc->standAnim;
     }
@@ -2514,7 +2517,7 @@ int UnitGetObjectPosition(const unsigned __int64 &guid, NTempest::C3Vector *posi
   return 1;
 }
 
-float UnitCalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination) {
+float UnitCalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination) {
   return CalculateFacingTo(position, destination);
 }
 
@@ -2815,7 +2818,7 @@ void CGUnit_C::PostInit(const CClientObjCreate &init) {
   }
 }
 
-void CGUnit_C::PostMovementUpdate(CClientMoveUpdate &update) {
+void CGUnit_C::PostMovementUpdate(const CClientMoveUpdate &update) {
   PostSetClientInitData(update);
   UpdateBaseAnimation(0);
 }
@@ -3311,11 +3314,11 @@ void CGUnit_C::SheatheAnimEndHandler() {
   }
 }
 
-void CGUnit_C::UpdateMoveInfo(unsigned long eventTime, CClientMoveUpdate &update) {
+void CGUnit_C::UpdateMoveInfo(unsigned long eventTime, const CClientMoveUpdate &update) {
   m_move.SetUpdateInfo(eventTime, update, GetGUID() == ClntObjMgrGetActivePlayer());
 }
 
-void CGUnit_C::SetClientInitData(unsigned long eventTime, CClientObjCreate &init, unsigned int partialUpdateOfActivePlayer) {
+void CGUnit_C::SetClientInitData(unsigned long eventTime, const CClientObjCreate &init, bool partialUpdateOfActivePlayer) {
   m_combat.SetClientInitData(init);
   if (!partialUpdateOfActivePlayer) {
     UpdateMoveInfo(eventTime, init.move);
@@ -4004,7 +4007,7 @@ void CGUnit_C::FinishAuraDecays() {
   }
 }
 
-unsigned int CGUnit_C::IsSpellAuraAnimActive(int &anim) {
+bool CGUnit_C::IsSpellAuraAnimActive(int &anim) const {
   int slot = m_animatingAura;
   if (slot == -1) {
     return 0;
@@ -4078,7 +4081,7 @@ void CGUnit_C::UpdateBaseAnimation(unsigned int newState, unsigned int flags) {
   }
 }
 
-unsigned int CGUnit_C::IsSpellChannelAnimActive(int &anim) {
+bool CGUnit_C::IsSpellChannelAnimActive(int &anim) const {
   SpellRec          *spell = g_spellDB.GetRecord(m_unit->channelSpell);
   SpellVisualRec    *visual = spell ? g_spellVisualDB.GetRecord(spell->m_spellVisualID) : 0;
   SpellVisualKitRec *kit = visual ? g_spellVisualKitDB.GetRecord(visual->m_channelKit) : 0;
@@ -4107,7 +4110,7 @@ void CGUnit_C::RefreshAuraVisuals() {
   memset(highestPrioritiesByKit, 0, sizeof(highestPrioritiesByKit));
   memset(highestPrioritySpellFoundByKit, 0, sizeof(highestPrioritySpellFoundByKit));
 
-  for (ACTIVEAURAINFO *curr = m_activeAuraInfo.Head(); curr; curr = curr->Next()) {
+  ITERATELIST(ACTIVEAURAINFO, m_activeAuraInfo, curr) {
     FATALASSERT(curr->stateKitRec);
 
     SpellRec *spellRec = g_spellDB.GetRecord(m_unit->auras[curr->slot]);
@@ -4191,7 +4194,7 @@ void CGUnit_C::AddKitAuras(const SpellVisualKitRec *kitRec, const SpellRec *spel
   MaybeAttachAura(UNITEFFECT_ATTACHBREATH, kitRec->m_breathEffect, spellRec->m_ID, spellRec->m_spellPriority, 0);
 }
 
-unsigned int VisualHasDecay(HMODEL model) {
+bool VisualHasDecay(HMODEL model) {
   return model && ModelHasSequenceId(model, 2);
 }
 
@@ -4272,7 +4275,7 @@ void CGUnit_C::RemoveAuraEffect(unsigned int slot, int previousSpell) {
   }
 }
 
-void CGUnit_C::AddAuraEffect(unsigned int slot, unsigned int startNow) {
+void CGUnit_C::AddAuraEffect(unsigned int slot, bool startNow) {
   FATALASSERT(slot < sizeof(m_unit->auras) / sizeof(m_unit->auras[0]));
   FATALASSERT(m_model);
 
@@ -4355,7 +4358,7 @@ int OnFirstAuraSequenceFinished(void *param) {
   return 1;
 }
 
-void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, unsigned int effect, unsigned int spellID, int priority, unsigned int permanent) {
+void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, unsigned int effect, unsigned int spellID, int priority, bool permanent) {
   AuraVisual &visual = m_auraVisual[attach];
   if (visual.HasArt() && visual.GetSpellID() == spellID) {
     return;
@@ -4368,7 +4371,7 @@ void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, unsigned int effec
   }
 
   RemoveAuraVisual(attach);
-  unsigned int isWorldObj;
+  bool isWorldObj;
   if (!UnitEffectIsAuraWorldObject(effect, isWorldObj)) {
     return;
   }
@@ -5094,7 +5097,7 @@ void CGUnit_C::NamePlateShow(int show) {
   }
 }
 
-int CGUnit_C::GetCreatureType() {
+int CGUnit_C::GetCreatureType() const {
   if (m_stats) {
     return m_stats->m_creatureType;
   }
@@ -5406,7 +5409,7 @@ void CGUnit_C::StartSpellFizzleTimer(int spellID, unsigned int castingTime, int 
   SetCastingSpell(spellID, 1, animSet != 0);
 }
 
-void CGUnit_C::SpellDelayed(unsigned int delay) {
+void CGUnit_C::SpellDelayed(int delay) {
   if (m_spellFizzleTimer && delay) {
     float remaining = EventGetRemainingTime(m_spellFizzleTimer);
     ClientKillTimer(m_spellFizzleTimer, SpellFizzleTimer, "SpellFizzleTimer");
@@ -5433,7 +5436,7 @@ void CGUnit_C::EndSpellEffects(unsigned char status) {
     } else if (torsoAnim == 107) {
       ThrowAnimEndHandler();
     } else {
-      SpellVisualKitRec *kit = GetRangedSpellAnim(castingSpell, true);
+      const SpellVisualKitRec *kit = GetRangedSpellAnim(castingSpell, true);
       if (status || !kit || !kit->m_anim) {
         ClearTorsoAnimation(0x40);
       }
@@ -5685,7 +5688,7 @@ void CGUnit_C::OnCollideFallLand(unsigned long eventTime) {
   }
 }
 
-unsigned int CGUnit_C::IsSlotComponented(unsigned int offset, int ignoreUsingRangedWeapon) {
+bool CGUnit_C::IsSlotComponented(unsigned int offset, int ignoreUsingRangedWeapon) {
   if (offset >= 23) {
     return 0;
   }
@@ -6358,22 +6361,22 @@ bool CGUnit_C::CanCooperate(const CGUnit_C *unit) const {
   return faction && unitFaction && faction->m_factionGroup == unitFaction->m_factionGroup;
 }
 
-unsigned int CGUnit_C::IsUnitInGroup(CGUnit_C *unit) {
+bool CGUnit_C::IsUnitInGroup(const CGUnit_C *unit) const {
   if (unit == this) {
     return 1;
   }
 
   if ((m_unit->flags & 8) && (unit->m_unit->flags & 8)) {
-    CGUnit_C               *player1 = this;
+    const CGUnit_C         *player1 = this;
     const unsigned __int64 &owner1 = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
     if (owner1) {
-      player1 = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(owner1, __FILE__, __LINE__));
+      player1 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner1, __FILE__, __LINE__));
     }
 
-    CGUnit_C               *player2 = unit;
+    const CGUnit_C         *player2 = unit;
     const unsigned __int64 &owner2 = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
     if (owner2) {
-      player2 = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(owner2, __FILE__, __LINE__));
+      player2 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner2, __FILE__, __LINE__));
     }
 
     if (!player1 || !(player1->GetType() & TYPE_PLAYER) || !player2 || !(player2->GetType() & TYPE_PLAYER)) {
@@ -6593,7 +6596,11 @@ bool CGUnit_C::CanInteract(const CGUnit_C *unit) const {
   return unit->GetUnitData()->npcFlags && unit->UnitReaction(this) >= UNIT_REACTION_NEUTRAL && UnitReaction(unit) >= UNIT_REACTION_NEUTRAL;
 }
 
-HMODEL CGUnit_C::GetMountedModel() {
+bool CGUnit_C::CanInteract(const CGGameObject_C *object) const {
+  return object->ObjectReaction(this) >= UNIT_REACTION_NEUTRAL;
+}
+
+HMODEL CGUnit_C::GetMountedModel() const {
   return (m_flags & 0x10) ? static_cast<HMODEL>(HandleDuplicate(m_model)) : 0;
 }
 
@@ -6716,7 +6723,7 @@ void CGUnit_C::AddUnitNamePlate(CGWorldFrame *worldFrame) {
 void CGUnit_C::InsertSortedNamePlate(NAMEPLATEDESC *desc) {
   FATALASSERT(desc);
   s_namePlateList.UnlinkNode(desc);
-  for (NAMEPLATEDESC *existing = s_namePlateList.Head(); existing; existing = s_namePlateList.Next(existing)) {
+  ITERATELIST(NAMEPLATEDESC, s_namePlateList, existing) {
     if (existing->screenSortOrder >= desc->screenSortOrder) {
       s_namePlateList.LinkNode(desc, LIST_LINK_BEFORE, existing);
       return;
@@ -6765,14 +6772,12 @@ void CGUnit_C::UpdateUnitNameplates(CGWorldFrame *worldFrame) {
 
 void CGUnit_C::ResortAllUnitNameplates(CGWorldFrame *worldFrame) {
   FATALASSERT(worldFrame);
-  for (NAMEPLATEDESC *desc = s_namePlateList.Head(); desc;) {
-    NAMEPLATEDESC *next = s_namePlateList.Next(desc);
+  ITERATELIST(NAMEPLATEDESC, s_namePlateList, desc) {
     if (!desc->namePlate || !CalculateScreenSortOrder(worldFrame, desc)) {
       s_monsterNamePlateList.Delete(desc);
     } else {
       desc->namePlate->SetPoint(FRAMEPOINT_CENTER, worldFrame, FRAMEPOINT_BOTTOMLEFT, desc->screenCoords.x, desc->screenCoords.y, 1);
     }
-    desc = next;
   }
 }
 
@@ -7053,7 +7058,7 @@ void CGUnit_C::QueueBloodSplat(BLOODSPURTLOCATION linkPoint) {
 }
 
 void CGUnit_C::HandleBloodPool(unsigned int currentTime) {
-  UnitBloodRec *bloodRec = GetBloodRecord();
+  const UnitBloodRec *bloodRec = GetBloodRecord();
   if (bloodRec && static_cast<int>(currentTime - m_nextAllowableBloodPool) >= 0) {
     m_nextAllowableBloodPool = currentTime + 2000 + NTempest::CMath::mulhwu_(3000, NTempest::CRandom::uint32_(g_rndSeed));
 
@@ -7063,7 +7068,7 @@ void CGUnit_C::HandleBloodPool(unsigned int currentTime) {
   }
 }
 
-UnitBloodRec *CGUnit_C::GetBloodRecord() {
+const UnitBloodRec *CGUnit_C::GetBloodRecord() {
   if (!m_bloodRec) {
     return 0;
   }
@@ -7152,7 +7157,7 @@ void CGUnit_C::ThrownMissileReleased() {
   m_flags |= 0x20000;
 }
 
-void CGUnit_C::CheckPendingThrownWeaponReattach(unsigned int force) {
+void CGUnit_C::CheckPendingThrownWeaponReattach(bool force) {
   int                    displayID = GetVirtualItemDisplayID(2);
   const VirtualItemInfo *itemInfo = GetVirtualItem(2, 0);
   unsigned int    &flags = m_flags;
@@ -7429,7 +7434,7 @@ void CGUnit_C::WeaponModeChanged() {
   }
 }
 
-void CGUnit_C::UpdateSheatheRangedReasons(unsigned int suppressSound) {
+void CGUnit_C::UpdateSheatheRangedReasons(bool suppressSound) {
   if (m_unit->weaponMode == WEAPONMODE_MELEE) {
     SetSheatheReason(SHEATHEREASON_0, 1, suppressSound);
   } else if (m_unit->weaponMode == WEAPONMODE_RANGED) {
@@ -7442,13 +7447,13 @@ void CGUnit_C::UpdateSheatheRangedReasons(unsigned int suppressSound) {
   }
 }
 
-void CGUnit_C::HandlePrecastStart(unsigned int precast) {
+void CGUnit_C::HandlePrecastStart(bool precast) {
   if (precast) {
     SetSheatheReason(SHEATHEREASON_PRECAST, 1, 1);
   }
 }
 
-void CGUnit_C::HandlePrecastStop(int spellID, unsigned int force) {
+void CGUnit_C::HandlePrecastStop(int spellID, bool force) {
   SpellRec          *spellRec = g_spellDB.GetRecord(spellID);
   SpellVisualRec    *visualRec = spellRec ? g_spellVisualDB.GetRecord(spellRec->m_spellVisualID) : 0;
   SpellVisualKitRec *kitRec = visualRec ? g_spellVisualKitDB.GetRecord(visualRec->m_castKit) : 0;
@@ -8026,7 +8031,7 @@ void CGUnit_C::SetImpactKitEffect(int spellID, CGUnit_C *target, const SpellVisu
       if (desc) {
         desc->Set(GetGUID(), target->GetGUID(), impactKit, spellID);
       }
-      typedef TSList<IMPACTEFFECTDESC, TSGetLink<IMPACTEFFECTDESC> > ImpactList;
+      typedef LIST(IMPACTEFFECTDESC) ImpactList;
       ImpactList &impactEffects = m_impactEffectsDesc;
       impactEffects.LinkNode(desc, LIST_TAIL, 0);
     }
@@ -8060,7 +8065,7 @@ void CGUnit_C::PickNextRunHandler() {
 }
 
 void CGUnit_C::CheckPendingImpactKit() {
-  typedef TSList<IMPACTEFFECTDESC, TSGetLink<IMPACTEFFECTDESC> > ImpactList;
+  typedef LIST(IMPACTEFFECTDESC) ImpactList;
   ImpactList       &impactEffects = m_impactEffectsDesc;
   IMPACTEFFECTDESC *head;
   while ((head = impactEffects.Head()) != 0) {
@@ -8202,7 +8207,7 @@ SPELLEFFECTDESC *CGUnit_C::FindSpellEffectProcDesc(const SpellVisualKitRec *rec)
     return 0;
   }
   SpellEffectList &list = m_spellEffectLists[proc];
-  for (SPELLEFFECTDESC *desc = list.Head(); desc; desc = desc->Next()) {
+  ITERATELIST(SPELLEFFECTDESC, list, desc) {
     if (desc->kitPtr == rec) {
       return desc;
     }
@@ -8397,7 +8402,7 @@ void CGUnit_C::AddWorldText(MISS_REASON reason) {
   }
 }
 
-void CGUnit_C_RenderBowStrings(NTempest::C3Vector &c) {
+void CGUnit_C_RenderBowStrings(const NTempest::C3Vector &c) {
   if (!s_bowStringIndices.Count()) {
     return;
   }
@@ -8420,7 +8425,7 @@ void CGUnit_C_RenderBowStrings(NTempest::C3Vector &c) {
   GxXformPop(GxXform_World);
 }
 
-void CGUnit_C::DrawBowString(NTempest::C3Vector &cameraPos) {
+void CGUnit_C::DrawBowString(const NTempest::C3Vector &cameraPos) {
   unsigned int torsoAnim = GetCurrentTorsoAnim();
   if (torsoAnim != ANIM_ATTACKBOW && torsoAnim != ANIM_LOADBOW && torsoAnim != ANIM_HOLDBOW) {
     return;
@@ -8846,7 +8851,7 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
   }
 }
 
-int CGUnit_C::SetCastingSpell(int spellID, unsigned int force, unsigned int precastAnimSuccessful) {
+int CGUnit_C::SetCastingSpell(int spellID, bool force, bool precastAnimSuccessful) {
   int &castingSpell = m_castingSpell;
   if (castingSpell && !force) {
     return 1;
@@ -8958,7 +8963,7 @@ int CGUnit_C::GetWalkStateAnim() const {
   return ModelHasSequenceId(m_model, sequence) ? sequence : 4;
 }
 
-SpellVisualRec *CGUnit_C::GetAppropriateSpellVisual(SpellRec *spellRec, SpellVisualRec &filled) {
+const SpellVisualRec *CGUnit_C::GetAppropriateSpellVisual(const SpellRec *spellRec, SpellVisualRec &filled) const {
   FATALASSERT(spellRec);
 
   SpellVisualRec *itemVisual = 0;
@@ -9019,7 +9024,7 @@ void AuraVisual::Clear() {
   }
 }
 
-void ACTIVEATTACHMENTINFO::Hide(CGUnit_C *unitPtr, HMODEL charModel, HMODEL paperDollModel, unsigned int hide) {
+void ACTIVEATTACHMENTINFO::Hide(CGUnit_C *unitPtr, HMODEL charModel, HMODEL paperDollModel, bool hide) {
   FATALASSERT(charModel);
   if (hide == ((flags & 2) != 0)) {
     return;
@@ -9340,7 +9345,7 @@ void CGUnit_C::ClearActiveAttachmentInfo() {
   }
 }
 
-unsigned int CGUnit_C::SheatheObjComponent(int slot, unsigned int sheathe) {
+bool CGUnit_C::SheatheObjComponent(int slot, bool sheathe) {
   int attachmentSlot = InvSlotToObjAttachSlot(slot);
   if (attachmentSlot < 0) {
     return 0;
@@ -9423,7 +9428,7 @@ bool CGUnit_C::ApplyAttachmentInfo(HMODEL characterModel, bool sheathe, int atta
   return !failed;
 }
 
-void CGUnit_C::SetAttachmentHidden(int attachmentSlot, unsigned int hide) {
+void CGUnit_C::SetAttachmentHidden(int attachmentSlot, bool hide) {
   if (attachmentSlot < 0 || attachmentSlot >= 5) {
     return;
   }
@@ -9482,7 +9487,7 @@ void CGUnit_C::DestroyPaperdollModel() {
   }
 }
 
-HMODEL CGUnit_C::GetPaperDollModel(unsigned int duplicateModel) {
+HMODEL CGUnit_C::GetPaperDollModel(bool duplicateModel) {
   HMODEL &paperDollModel = m_paperDollModel;
   if (!paperDollModel) {
     CreatePaperdollModel();
@@ -9496,14 +9501,14 @@ HMODEL CGUnit_C::GetPaperDollModel(unsigned int duplicateModel) {
   return static_cast<HMODEL>(HandleDuplicate(paperDollModel));
 }
 
-SpellVisualKitRec *CGUnit_C::GetRangedSpellAnim(int id, unsigned int castKit) {
+const SpellVisualKitRec *CGUnit_C::GetRangedSpellAnim(int id, bool castKit) {
   SpellRec *spellRec = g_spellDB.GetRecord(id);
   if (!spellRec) {
     return 0;
   }
 
   SpellVisualRec  visRecData;
-  SpellVisualRec *visualRec = GetAppropriateSpellVisual(spellRec, visRecData);
+  const SpellVisualRec *visualRec = GetAppropriateSpellVisual(spellRec, visRecData);
   if (!visualRec) {
     return 0;
   }
@@ -9526,7 +9531,7 @@ HMODEL AuraVisual::GetModel() {
   return theModel;
 }
 
-void CGUnit_C::SetSheatheReason(SHEATHEREASONS reason, unsigned int on, unsigned int suppressSound) {
+void CGUnit_C::SetSheatheReason(SHEATHEREASONS reason, bool on, bool suppressSound) {
   if (reason >= SHEATHEREASON_NUMREASONS) {
     return;
   }
@@ -9589,7 +9594,7 @@ void CGUnit_C::DisableWeaponTrails() {
   }
 }
 
-void CGUnit_C::SheatheOrUnsheatheItems(SHEATHEREASONS reason, unsigned int sheathe, unsigned int playSound) {
+void CGUnit_C::SheatheOrUnsheatheItems(SHEATHEREASONS reason, bool sheathe, bool playSound) {
   m_deferredSheatheReason = reason;
   unsigned int &flags = m_deferredSheatheFlags;
   flags = sheathe ? 3 : 1;
@@ -9624,7 +9629,7 @@ void CGUnit_C::MaybeStartSheatheAnim() {
   }
 }
 
-unsigned int CGUnit_C::SheatheAnimPlaying() {
+bool CGUnit_C::SheatheAnimPlaying() const {
   const ANIMENUMERATION *handAnim = m_handAnim;
   return handAnim[0] != -1 || handAnim[1] != -1;
 }

@@ -12,9 +12,9 @@ static int AsyncFileReadPollHandler(const void *, void *);
 static unsigned int APIENTRY AsyncFileReadThread(void *param);
 
 static unsigned int                              s_waiting;
-static TSExplicitList<CAsyncObject, 32>          s_asyncFileReadList;
-static TSExplicitList<CAsyncObject, 32>          s_asyncFileReadFreeList;
-static TSExplicitList<CAsyncObject, 32>          s_asyncFileReadPostList;
+static LISTDECLEX(CAsyncObject, link, s_asyncFileReadList);
+static LISTDECLEX(CAsyncObject, link, s_asyncFileReadFreeList);
+static LISTDECLEX(CAsyncObject, link, s_asyncFileReadPostList);
 static CAsyncObject                             *s_asyncCurrentObject;
 static HPROPCONTEXT                              s_propContext;
 static SCritSect                                 s_queueLock;

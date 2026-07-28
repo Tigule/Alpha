@@ -497,32 +497,30 @@ int CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait) {
 void CMap::ReloadDoodadModels() {
   bPreload = 1;
 
-  CMapDoodadDef *doodadDef = doodadDefHash.Head();
-  while (doodadDef) {
-    ModelRemoveFromCache(doodadDef->modelName);
-    doodadDef = doodadDefHash.Next(doodadDef);
+  {
+    ITERATELIST(CMapDoodadDef, doodadDefHash, doodadDef) {
+      ModelRemoveFromCache(doodadDef->modelName);
+    }
   }
 
-  doodadDef = doodadDefHash.Head();
-  while (doodadDef) {
-    if (doodadDef->model) {
-      HandleClose(doodadDef->model);
+  {
+    ITERATELIST(CMapDoodadDef, doodadDefHash, doodadDef) {
+      if (doodadDef->model) {
+        HandleClose(doodadDef->model);
+      }
+      doodadDef->model = 0;
+      LoadDoodadModel(doodadDef, 0);
     }
-    doodadDef->model = 0;
-    LoadDoodadModel(doodadDef, 0);
-    doodadDef = doodadDefHash.Next(doodadDef);
   }
 
   bPreload = 0;
 }
 
 void CMap::EnableDoodadFullAlpha(int enable) {
-  CMapDoodadDef *doodadDef = doodadDefHash.Head();
-  while (doodadDef) {
+  ITERATELIST(CMapDoodadDef, doodadDefHash, doodadDef) {
     if (doodadDef->model) {
       ModelEnableFullAlpha(doodadDef->model, enable);
     }
-    doodadDef = doodadDefHash.Next(doodadDef);
   }
 }
 

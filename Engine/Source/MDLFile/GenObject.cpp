@@ -31,51 +31,6 @@ void ReadFloatKeyData(
   }
 }
 
-#define READ_FLOAT_TRACK_HEADER(parse, track, tokenText, tokenData, result) \
-  do {                                                                      \
-    (result) = (parse).Token((tokenText), (tokenData));                      \
-    for (;;) {                                                              \
-      if ((result) == 0x128) {                                              \
-        if (track) {                                                        \
-          (track)->type = TRACK_BEZIER;                                     \
-        }                                                                   \
-      } else if ((result) == 0x140) {                                       \
-        if (track) {                                                        \
-          (track)->type = TRACK_DONT_INTERP;                                \
-        }                                                                   \
-      } else if ((result) == 0x152) {                                       \
-        if (track) {                                                        \
-          (track)->globalSeqId = (parse).ExpectInt();                       \
-        } else {                                                            \
-          (parse).ExpectInt();                                              \
-        }                                                                   \
-      } else if ((result) == 0x15B) {                                       \
-        if (track) {                                                        \
-          (track)->type = TRACK_HERMITE;                                    \
-        }                                                                   \
-      } else if ((result) == 0x167) {                                       \
-        if (track) {                                                        \
-          (track)->type = TRACK_LINEAR;                                     \
-        }                                                                   \
-      } else {                                                              \
-        break;                                                              \
-      }                                                                     \
-      (parse).Expect(',');                                                  \
-      (result) = (parse).Token((tokenText), (tokenData));                    \
-    }                                                                       \
-  } while (0)
-
-unsigned int ReadFloatTrackHeader(
-    Parser &parse,
-    MDLKEYTRACK<NTempest::C3Vector> *track,
-    const char **tokenText,
-    UTokenData *tokenData
-) {
-  unsigned int token;
-  READ_FLOAT_TRACK_HEADER(parse, track, tokenText, tokenData, token);
-  return token;
-}
-
 unsigned int ReadIntTrackHeader(
     Parser &parse,
     MDLSIMPLEKEYTRACK<MDLINTKEY> *track,
@@ -95,100 +50,6 @@ unsigned int ReadIntTrackHeader(
   }
   return token;
 }
-
-unsigned int ReadFloatTrackHeader(
-    Parser &parse,
-    MDLKEYTRACK<NTempest::C4Quaternion> *track,
-    const char **tokenText,
-    UTokenData *tokenData
-) {
-  unsigned int token;
-  READ_FLOAT_TRACK_HEADER(parse, track, tokenText, tokenData, token);
-  return token;
-}
-
-unsigned int ReadFloatTrackHeader(
-    Parser &parse,
-    MDLKEYTRACK<float> *track,
-    const char **tokenText,
-    UTokenData *tokenData
-) {
-  unsigned int token;
-  READ_FLOAT_TRACK_HEADER(parse, track, tokenText, tokenData, token);
-  return token;
-}
-
-#define READ_OBJECT_FLOAT_KEYFRAMES(parse, track, elements, keyType)                    \
-  do {                                                                                  \
-    unsigned int readToken;                                                             \
-    const char *readTokenText;                                                          \
-    UTokenData readTokenData;                                                           \
-    long readExpected = (parse).GetOptionalInt(&readToken, &readTokenText, &readTokenData); \
-    if (readExpected > 0 && (track)) {                                                  \
-      (track)->keys.ReserveSpace(readExpected);                                              \
-    }                                                                                   \
-    (parse).Expect('{', readToken, readTokenText);                                      \
-    READ_FLOAT_TRACK_HEADER((parse), (track), &readTokenText, &readTokenData, readToken); \
-    long readActual = 0;                                                               \
-    while (readToken == 0x100) {                                                       \
-      MDLKEYFRAME<keyType> *readKey = (track)->keys.New();                             \
-      readKey->time = readTokenData.lVal;                                              \
-      (parse).Expect(':');                                                              \
-      ReadFloatKeyData(                                                                 \
-          (parse),                                                                      \
-          reinterpret_cast<float *>(&readKey->value),                                  \
-          (elements)                                                                    \
-      );                                                                                \
-      (parse).Expect(',');                                                              \
-      ++readActual;                                                                     \
-      MDLTRACKTYPE readType = (track)->type;                                            \
-      if (readType > TRACK_LINEAR) {                                                    \
-        (parse).Expect(0x15E);                                                          \
-        ReadFloatKeyData(                                                               \
-            (parse),                                                                    \
-            reinterpret_cast<float *>(&readKey->inTan),                                \
-            (elements)                                                                  \
-        );                                                                              \
-        (parse).Expect(',');                                                            \
-        (parse).Expect(0x18A);                                                          \
-        ReadFloatKeyData(                                                               \
-            (parse),                                                                    \
-            reinterpret_cast<float *>(&readKey->outTan),                               \
-            (elements)                                                                  \
-        );                                                                              \
-        (parse).Expect(',');                                                            \
-      }                                                                                 \
-      readToken = (parse).Token(&readTokenText, &readTokenData);                        \
-    }                                                                                   \
-    (parse).Expect('}', readToken, readTokenText);                                      \
-    if (readExpected >= 0 && readActual != readExpected) {                              \
-      (parse).WarningCount("key frames", readExpected, readActual);                    \
-    }                                                                                   \
-  } while (0)
-
-void ReadObjectFloatKeyframes(
-    Parser &parse,
-    MDLKEYTRACK<NTempest::C3Vector> *track
-) {
-  READ_OBJECT_FLOAT_KEYFRAMES(parse, track, 3, NTempest::C3Vector);
-}
-
-void ReadObjectFloatKeyframes(
-    Parser &parse,
-    MDLKEYTRACK<float> *track
-) {
-  READ_OBJECT_FLOAT_KEYFRAMES(parse, track, 1, float);
-}
-
-void ReadObjectFloatKeyframes(
-    Parser &parse,
-    MDLKEYTRACK<C3Color> *track
-) {
-  READ_OBJECT_FLOAT_KEYFRAMES(parse, track, 3, C3Color);
-}
-
-#undef READ_OBJECT_FLOAT_KEYFRAMES
-#undef READ_FLOAT_TRACK_HEADER
 
 const float *WriteKeyData(
     TSGrowableArray<char> &buffer,
@@ -438,62 +299,6 @@ int IExpectAnimation(
   return 1;
 }
 
-#define WRITE_TRACK_HEADER(indent, type, globalSeqId, buffer)                \
-  do {                                                                        \
-    unsigned int writeTrackToken = 0;                                         \
-    switch (type) {                                                           \
-      case TRACK_DONT_INTERP: writeTrackToken = 0x140; break;                \
-      case TRACK_LINEAR:      writeTrackToken = 0x167; break;                \
-      case TRACK_HERMITE:     writeTrackToken = 0x15B; break;                \
-      case TRACK_BEZIER:      writeTrackToken = 0x128; break;                \
-      default: break;                                                         \
-    }                                                                         \
-    if (writeTrackToken) {                                                    \
-      MDL::WriteLine((buffer), "%s\t%s,\n", (indent), MDL::TokenText(writeTrackToken)); \
-    }                                                                         \
-    if ((globalSeqId) != static_cast<unsigned int>(-1)) {                     \
-      MDL::WriteLine(                                                         \
-          (buffer),                                                           \
-          "%s\t%s %d,\n",                                                   \
-          (indent),                                                           \
-          MDL::TokenText(0x152),                                              \
-          (globalSeqId)                                                       \
-      );                                                                      \
-    }                                                                         \
-  } while (0)
-
-void WriteTrackHeader(
-    const char *indent,
-    const MDLKEYTRACK<NTempest::C3Vector> &track,
-    TSGrowableArray<char> &buffer
-) {
-  WRITE_TRACK_HEADER(indent, track.type, track.globalSeqId, buffer);
-}
-
-void WriteTrackHeader(
-    const char *indent,
-    const MDLKEYTRACK<NTempest::C4Quaternion> &track,
-    TSGrowableArray<char> &buffer
-) {
-  WRITE_TRACK_HEADER(indent, track.type, track.globalSeqId, buffer);
-}
-
-void WriteTrackHeader(
-    const char *indent,
-    const MDLKEYTRACK<float> &track,
-    TSGrowableArray<char> &buffer
-) {
-  WRITE_TRACK_HEADER(indent, track.type, track.globalSeqId, buffer);
-}
-
-void WriteTrackHeader(
-    const char *indent,
-    const MDLKEYTRACK<C3Color> &track,
-    TSGrowableArray<char> &buffer
-) {
-  WRITE_TRACK_HEADER(indent, track.type, track.globalSeqId, buffer);
-}
-
 void WriteFloatKeyFrames(
     unsigned int title,
     const char *indent,
@@ -630,7 +435,6 @@ void WriteObjectTrailer(
 }
 
 #undef WRITE_TRACK
-#undef WRITE_TRACK_HEADER
 
 static void IWriteObjectFlags(
     unsigned int flags,

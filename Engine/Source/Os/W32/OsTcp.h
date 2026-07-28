@@ -451,7 +451,7 @@ namespace OsNet {
 
     LOOPCONN                *m_loopConn;
     LINKDECLEX(LOOPCONN, m_linkNet);
-    TSExplicitList<INPUT, 0> m_inputList;
+    LISTDECLEX(INPUT, m_link, m_inputList);
     unsigned long            m_bytes;
     unsigned char            m_data[1460];
 
@@ -772,9 +772,9 @@ namespace OsNet {
     void                                                *m_udpPumpThread;
     void                                                *m_udpPumpEvent;
     CCritSect                                            m_loopLock;
-    TSExplicitList<LOOPCONN::INPUT, 8>                   m_loopInputRecycleList;
-    TSExplicitList<LOOPCONN::INPUT, 8>                   m_loopInputList;
-    TSExplicitList<LOOPCONN, 108>                        m_loopDisconnectList;
+    LISTDECLEX(LOOPCONN::INPUT, m_linkNet, m_loopInputRecycleList);
+    LISTDECLEX(LOOPCONN::INPUT, m_linkNet, m_loopInputList);
+    LISTDECLEX(LOOPCONN, m_linkNet, m_loopDisconnectList);
     TSSlottedListEx<NETCONN, 8, 8>                       m_connList[CONNLISTS];
     void                                                *m_listenThread;
     TSSlottedListEx<TCPLISTEN, 8, 1>                     m_listenList;

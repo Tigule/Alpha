@@ -413,8 +413,6 @@ void CSimpleFrame::SetFrameFlag(int flag, int on) {
 }
 
 void CSimpleFrame::SetBeingScrolled(int on) {
-  SIMPLEFRAMENODE *node;
-
   SetFrameFlag(0x2000, on);
 
   if (on) {
@@ -425,7 +423,7 @@ void CSimpleFrame::SetBeingScrolled(int on) {
     }
   }
 
-  for (node = m_children.Head(); node; node = node->Next()) {
+  ITERATELIST(SIMPLEFRAMENODE, m_children, node) {
     node->frame->SetBeingScrolled(on);
   }
 }
@@ -434,13 +432,11 @@ void CSimpleFrame::SetFrameStrata(int strata) {
   ASSERT(strata >= 0 && strata < NUM_FRAME_STRATA);
 
   if (strata != m_strata) {
-    SIMPLEFRAMENODE *node;
-
     m_top->UnregisterFrame(this);
     m_strata = strata;
     m_top->RegisterFrame(this);
 
-    for (node = m_children.Head(); node; node = node->Next()) {
+    ITERATELIST(SIMPLEFRAMENODE, m_children, node) {
       node->frame->SetFrameStrata(strata);
     }
   }
@@ -453,14 +449,12 @@ void CSimpleFrame::SetFrameLevel(int level, int shiftChildren) {
   delta = level - m_level;
 
   if (delta) {
-    SIMPLEFRAMENODE *node;
-
     m_top->UnregisterFrame(this);
     m_level += delta;
     m_top->RegisterFrame(this);
 
     if (shiftChildren) {
-      for (node = m_children.Head(); node; node = node->Next()) {
+      ITERATELIST(SIMPLEFRAMENODE, m_children, node) {
         CSimpleFrame *child = node->frame;
 
         if (child->m_strata == m_strata) {
@@ -515,17 +509,18 @@ int CSimpleFrame::SetHighlight(CSimpleTexture *texture, EGxBlend blendMode) {
 
 void CSimpleFrame::SetAlpha(unsigned char alpha) {
   if (alpha != m_alpha) {
-    REGIONNODE      *regionNode;
-    SIMPLEFRAMENODE *frameNode;
-
     m_alpha = alpha;
 
-    for (regionNode = m_regions.Head(); regionNode; regionNode = regionNode->Next()) {
-      regionNode->region->OnGxColorChanged();
+    {
+      ITERATELIST(REGIONNODE, m_regions, regionNode) {
+        regionNode->region->OnGxColorChanged();
+      }
     }
 
-    for (frameNode = m_children.Head(); frameNode; frameNode = frameNode->Next()) {
-      frameNode->frame->SetAlpha(alpha);
+    {
+      ITERATELIST(SIMPLEFRAMENODE, m_children, frameNode) {
+        frameNode->frame->SetAlpha(alpha);
+      }
     }
   }
 }
@@ -550,11 +545,9 @@ void CSimpleFrame::RegisterRegion(CSimpleRegion *region) {
 }
 
 void CSimpleFrame::UnregisterRegion(CSimpleRegion *region) {
-  REGIONNODE *node;
-
   FATALASSERT(region);
 
-  for (node = m_regions.Head(); node; node = m_regions.Next(node)) {
+  ITERATELIST(REGIONNODE, m_regions, node) {
     if (node->region == region) {
       m_regions.DeleteNode(node);
       break;
@@ -572,9 +565,7 @@ void CSimpleFrame::AddFrameRegion(CSimpleRegion *region, unsigned int drawlayer)
 }
 
 void CSimpleFrame::RemoveFrameRegion(CSimpleRegion *region, unsigned int drawlayer) {
-  REGIONNODE *node;
-
-  for (node = m_drawlayers[drawlayer].Head(); node; node = m_drawlayers[drawlayer].Next(node)) {
+  ITERATELIST(REGIONNODE, m_drawlayers[drawlayer], node) {
     if (node->region == region) {
       NotifyDrawLayerChanged(drawlayer);
       m_drawlayers[drawlayer].DeleteNode(node);
@@ -632,9 +623,7 @@ void CSimpleFrame::ParentFrame(CSimpleFrame *frame) {
 }
 
 void CSimpleFrame::UnparentFrame(CSimpleFrame *frame) {
-  SIMPLEFRAMENODE *node;
-
-  for (node = m_children.Head(); node; node = node->Next()) {
+  ITERATELIST(SIMPLEFRAMENODE, m_children, node) {
     if (node->frame == frame) {
       m_children.DeleteNode(node);
       break;
@@ -643,19 +632,20 @@ void CSimpleFrame::UnparentFrame(CSimpleFrame *frame) {
 }
 
 void CSimpleFrame::ClearChildrenFromSimpleRegistry() {
-  REGIONNODE      *region;
-  SIMPLEFRAMENODE *frame;
-
   ClearFromSimpleRegistry();
 
-  for (region = m_regions.Head(); region; region = region->Next()) {
-    ASSERT(region->region);
-    region->region->ClearFromSimpleRegistry();
+  {
+    ITERATELIST(REGIONNODE, m_regions, region) {
+      ASSERT(region->region);
+      region->region->ClearFromSimpleRegistry();
+    }
   }
 
-  for (frame = m_children.Head(); frame; frame = frame->Next()) {
-    ASSERT(frame->frame);
-    frame->frame->ClearChildrenFromSimpleRegistry();
+  {
+    ITERATELIST(SIMPLEFRAMENODE, m_children, frame) {
+      ASSERT(frame->frame);
+      frame->frame->ClearChildrenFromSimpleRegistry();
+    }
   }
 }
 
@@ -698,15 +688,13 @@ void CSimpleFrame::SetParent(CSimpleFrame *parent) {
 }
 
 void CSimpleFrame::SetDeferredResize(int enable) {
-  REGIONNODE *node;
-
   if (enable) {
     CLayoutFrame::m_flags |= 0x2;
   } else {
     CLayoutFrame::m_flags &= ~0x2U;
   }
 
-  for (node = m_regions.Head(); node; node = node->Next()) {
+  ITERATELIST(REGIONNODE, m_regions, node) {
     node->region->SetDeferredResize(enable);
   }
 
@@ -717,29 +705,28 @@ void CSimpleFrame::SetLayoutScale(float scale, bool force) {
   static const float EPSILON = 2.38418579e-7f;
 
   if (force || fabs(scale - m_layoutScale) >= EPSILON) {
-    REGIONNODE      *regionNode;
-    SIMPLEFRAMENODE *frameNode;
-
     if (!m_visible) {
       SetDeferredResize(1);
     }
 
     CLayoutFrame::SetLayoutScale(scale, force);
 
-    for (regionNode = m_regions.Head(); regionNode; regionNode = regionNode->Next()) {
-      regionNode->region->SetLayoutScale(scale, force);
+    {
+      ITERATELIST(REGIONNODE, m_regions, regionNode) {
+        regionNode->region->SetLayoutScale(scale, force);
+      }
     }
 
-    for (frameNode = m_children.Head(); frameNode; frameNode = frameNode->Next()) {
-      frameNode->frame->SetLayoutScale(scale, force);
+    {
+      ITERATELIST(SIMPLEFRAMENODE, m_children, frameNode) {
+        frameNode->frame->SetLayoutScale(scale, force);
+      }
     }
   }
 }
 
 int CSimpleFrame::HideThis() {
   if (m_visible) {
-    SIMPLEFRAMENODE *node;
-
     if (this == m_top->m_mouseFocus) {
       OnLayerCursorExit();
     }
@@ -749,7 +736,7 @@ int CSimpleFrame::HideThis() {
     m_visible = 0;
     OnLayerHide();
 
-    for (node = m_children.Head(); node; node = node->Next()) {
+    ITERATELIST(SIMPLEFRAMENODE, m_children, node) {
       node->frame->HideThis();
     }
   }
@@ -771,8 +758,7 @@ int CSimpleFrame::ShowThis() {
       RegisterForEvents();
       NotifyDrawLayersChanged();
 
-      SIMPLEFRAMENODE *node;
-      for (node = m_children.Head(); node; node = node->Next()) {
+      ITERATELIST(SIMPLEFRAMENODE, m_children, node) {
         node->frame->ShowThis();
       }
 
@@ -916,9 +902,7 @@ void CSimpleFrame::OnFrameRender(CRenderBatch *batch, unsigned int layer) {
   ASSERT(layer < NUM_SIMPLEFRAME_DRAWLAYERS);
 
   if (m_drawenabled[layer]) {
-    REGIONNODE *node;
-
-    for (node = m_drawlayers[layer].Head(); node; node = m_drawlayers[layer].Next(node)) {
+    ITERATELIST(REGIONNODE, m_drawlayers[layer], node) {
       node->region->Draw(batch);
     }
   }
@@ -953,8 +937,7 @@ void CSimpleFrame::OnFrameRender() {
     CSimpleRender::DrawBatch(&m_batch[layer]);
   }
 
-  SIMPLEFRAMENODE *node;
-  for (node = m_children.Head(); node; node = m_children.Next(node)) {
+  ITERATELIST(SIMPLEFRAMENODE, m_children, node) {
     if (node->frame->IsVisible()) {
       node->frame->OnFrameRender();
     }

@@ -102,11 +102,11 @@ float CMovement::CalcFallStartElevation(unsigned int timeFallen) {
   return (fallTime - terminalTime + terminalTime * 0.5f) * s_terminalVelocity + m_position.z;
 }
 
-void __stdcall MovementSetGravityRate(float metersPerSecSqd) {
+void MovementSetGravityRate(float metersPerSecSqd) {
   s_gravityRate = metersPerSecSqd * 1.0936f;
 }
 
-void __stdcall MovementSetTerminalVelocity(float metersPerSec) {
+void MovementSetTerminalVelocity(float metersPerSec) {
   s_terminalVelocity = metersPerSec * 1.0936f;
 }
 
@@ -605,7 +605,9 @@ static int AddNormal(const NTempest::C3Vector &normal, unsigned int maxNormals, 
   return 1;
 }
 
-static int GetSlidingDirection(unsigned __int64 guid, NTempest::C3Vector *normalList, unsigned int numNormals, NTempest::C3Vector *direction) {
+static int GetSlidingDirection(
+    unsigned __int64 guid, const NTempest::C3Vector *normalList, unsigned int numNormals, NTempest::C3Vector *direction
+) {
   CMovement::LogWrite("0x%016I64X: Getting slide direction from %u normals\n", guid, numNormals);
   direction->Set(0.0f, 0.0f, 0.0f);
   if (numNormals == 1) {
@@ -1704,7 +1706,9 @@ int CMovement::IsTooLow(
   return minElevation - 0.0013888889f > surface->firstPtOfContact.z;
 }
 
-static void InsertSurface(CWalkableSurface &toBeInserted, unsigned int startIndex, TSGrowableArray<CWalkableSurface> *surfacePool) {
+static void InsertSurface(
+    const CWalkableSurface &toBeInserted, unsigned int startIndex, TSGrowableArray<CWalkableSurface> *surfacePool
+) {
   unsigned int numSurfaces = surfacePool->Count();
   surfacePool->SetCount(numSurfaces + 1);
   unsigned int insertId;
@@ -1891,7 +1895,7 @@ int CMovement::NextSurfaceIsWalkable(
   return 0;
 }
 
-static void LogSurface(unsigned __int64 guid, CWalkableSurface &surface) {
+static void LogSurface(unsigned __int64 guid, const CWalkableSurface &surface) {
   float cosTheta = s_facetData.facets[surface.facetId].plane.n.z;
   if (cosTheta < -1.0f) {
     cosTheta = -1.0f;

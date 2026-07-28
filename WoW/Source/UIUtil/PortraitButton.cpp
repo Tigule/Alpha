@@ -333,8 +333,8 @@ void UpdatePortraits() {
 
 void UpdatePortraitTexture(const unsigned __int64 &guid) {
   DIRTYFACE *dirty;
-  for (dirty = s_dirtyFaces.Head(); dirty; dirty = s_dirtyFaces.Next(dirty)) {
-    if (dirty->guid == guid) {
+  ITERATELIST(DIRTYFACE, s_dirtyFaces, existingDirty) {
+    if (existingDirty->guid == guid) {
       return;
     }
   }

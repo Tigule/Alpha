@@ -108,12 +108,11 @@ static int ConsoleCommand_Help(const char *command, const char *arguments) {
         SStrPrintf(buffer, 128, "Commands registered for the category %s:", arguments);
         ConsoleWrite(buffer, WARNING_COLOR);
 
-        entry = g_consoleCommandHash.Head();
         categoryCount = 0;
         buffer[0] = 0;
-        while (entry) {
-          if (entry->m_category == category) {
-            SStrPack(buffer, entry->GetString(), 128);
+        ITERATELIST(CONSOLECOMMAND, g_consoleCommandHash, categoryEntry) {
+          if (categoryEntry->m_category == category) {
+            SStrPack(buffer, categoryEntry->GetString(), 128);
             SStrPack(buffer, ", ", 128);
             ++categoryCount;
             if (categoryCount == 8) {
@@ -122,7 +121,6 @@ static int ConsoleCommand_Help(const char *command, const char *arguments) {
               categoryCount = 0;
             }
           }
-          entry = g_consoleCommandHash.Next(entry);
         }
 
         if (buffer[0]) {

@@ -62,6 +62,7 @@ unsigned int AnimBuildObjectIdTranslation(
     unsigned int   numObjects
 );
 
+unsigned int AnimGetAttachmentObjId(HANIM anim, unsigned int index);
 BOOL AnimIsAttachmentEnabled(HANIM anim, unsigned int index);
 int AnimIsCameraEnabled(HANIM anim, unsigned int index);
 int AnimHasObjectId(HANIM anim, unsigned int objectId);

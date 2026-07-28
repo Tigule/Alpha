@@ -82,6 +82,8 @@ class TInstanceIdTable {
   TInstanceIdTable() : m_id(0), m_idWrapped(0) {
   }
 
+  TInstanceIdTable(const TInstanceIdTable &);
+
   static int Slots() {
     return SLOTCOUNT;
   }
@@ -148,8 +150,6 @@ class TInstanceIdTable {
 
   T *Lock(unsigned long id, int forWriting, INSTANCELOCK &instanceLock, const char *, unsigned long) {
     int slot;
-    T  *instance;
-
     instanceLock = reinterpret_cast<INSTANCELOCK>(-1);
     if (!id) {
       return 0;
@@ -157,13 +157,11 @@ class TInstanceIdTable {
 
     slot = id & (SLOTCOUNT - 1);
     m_idLock[slot].Enter(forWriting);
-    instance = m_idList[slot].Head();
-    while (instance) {
+    ITERATELIST(T, m_idList[slot], instance) {
       if (instance->Id() == id) {
         instanceLock = reinterpret_cast<INSTANCELOCK>(forWriting ? slot + SLOTCOUNT : slot);
         return instance;
       }
-      instance = instance->Next();
     }
     m_idLock[slot].Leave(forWriting);
     return 0;
@@ -184,11 +182,13 @@ class TInstanceIdTable {
   }
 
  private:
+  TInstanceIdTable &operator=(const TInstanceIdTable &);
+
   SCritSect                m_idCritsect;
   unsigned long            m_id;
   int                      m_idWrapped;
   CSRWLock                 m_idLock[SLOTCOUNT];
-  TSList<T, TSGetLink<T> > m_idList[SLOTCOUNT];
+  LISTDECL(T, m_idList[SLOTCOUNT]);
 };
 
 template <class T, unsigned int SLOTCOUNT>

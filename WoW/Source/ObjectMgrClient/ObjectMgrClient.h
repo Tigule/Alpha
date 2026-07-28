@@ -128,10 +128,10 @@ class ClntObjMgr {
 
   TSHashTable<C_OBJECTHASH, CHashKeyGUID>                  m_objects;
   TSHashTable<C_OBJECTHASH, CHashKeyGUID>                  m_lazyCleanupObjects;
-  TSExplicitList<C_OBJECTHASH, 7648>                       m_lazyCleanupFifo;
-  TSExplicitList<C_OBJECTHASH, 7648>                       m_freeObjects;
-  TSExplicitList<C_OBJECTHASH, 7648>                       m_visibleObjects;
-  TSExplicitList<C_OBJECTHASH, 7656>                       m_reenabledObjects;
+  LISTDECLEX(C_OBJECTHASH, link, m_lazyCleanupFifo);
+  LISTDECLEX(C_OBJECTHASH, link, m_freeObjects);
+  LISTDECLEX(C_OBJECTHASH, link, m_visibleObjects);
+  LISTDECLEX(C_OBJECTHASH, reenableLink, m_reenabledObjects);
   int                                                      m_callingMirrorHandlers;
   LISTDECL(OBJHANDLERREQUEST, m_pendingObjHandlerRequests);
   int                                                      m_allowGuidDeref;

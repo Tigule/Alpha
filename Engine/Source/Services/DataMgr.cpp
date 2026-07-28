@@ -59,14 +59,12 @@ void CDataMgr::LinkManaged(CBaseManaged *m) {
 }
 
 void CDataMgr::Update(float elapsedSec) {
-  CBaseManaged *managed = m_updateList.Head();
-  while (managed) {
+  ITERATELIST(CBaseManaged, m_updateList, managed) {
     if (managed->m_flags & 2) {
       managed->UpdateR(elapsedSec);
     } else {
       managed->Update(elapsedSec);
     }
-    managed = m_updateList.Next(managed);
   }
 }
 

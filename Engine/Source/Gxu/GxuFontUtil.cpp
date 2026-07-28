@@ -11,10 +11,10 @@
 
 unsigned int                                         g_heightPixels;
 unsigned int                                         g_widthPixels;
-TSList<TEXTLINETEXTURE, TSGetLink<TEXTLINETEXTURE> > g_freeTextLineTextures;
-TSList<IGXUTEXTLINE, TSGetLink<IGXUTEXTLINE> >       g_freeTextLines;
-TSList<CGxString, TSGetLink<CGxString> >             g_freeStrings;
-TSList<CGxString, TSGetLink<CGxString> >             g_strings;
+LISTDECL(TEXTLINETEXTURE, g_freeTextLineTextures);
+LISTDECL(IGXUTEXTLINE, g_freeTextLines);
+LISTDECL(CGxString, g_freeStrings);
+LISTDECL(CGxString, g_strings);
 
 static float                                        leftPixelAdjustment;
 static float                                        rightPixelAdjustment;
@@ -25,7 +25,7 @@ static int                                          pixelCenterOnEdge;
 static int                                          initialized;
 static const unsigned char                          pixelsLitLevels[10] = {0x00, 0x1F, 0x1F, 0x3F, 0x5F, 0x7F, 0x9F, 0xBF, 0xDF, 0xFF};
 static TSHashTable<STRINGVIEWMATRICES, HASHKEY_PTR> s_stringViewMatrices;
-static TSExplicitList<STRINGVIEWMATRICES, 24>       s_freeStringMatrices;
+static LISTDECLEX(STRINGVIEWMATRICES, m_freeLink, s_freeStringMatrices);
 static HASHKEY_NONE                                 s_nullHashKey;
 static const float                                  ONEOVERTEXSIZE = 1.0f / 256.0f;
 static const float                                  ONEHALFONEOVERTEXSIZE = ONEOVERTEXSIZE * 0.5f;
@@ -1981,15 +1981,14 @@ const char *CGxFont::GetName() const {
 }
 
 void CGxFont::HandleScreenSizeChange() {
-  int        success;
-  CGxString *string;
+  int success;
 
   ASSERT(m_faceHandle);
   ClearGlyphs();
   success = UpdateDimensions();
   ASSERT(success);
 
-  for (string = m_strings.Head(); string; string = m_strings.Next(string)) {
+  ITERATELIST(CGxString, m_strings, string) {
     string->HandleScreenSizeChange();
   }
 }
@@ -2380,7 +2379,6 @@ void BATCHEDRENDERFONTDESC::RenderBatch() {
   float                     miny;
   float                     maxy;
   unsigned int              i;
-  CGxString                *string;
 
   ASSERT(face);
 
@@ -2393,7 +2391,7 @@ void BATCHEDRENDERFONTDESC::RenderBatch() {
   pixHeight = static_cast<float>(GetScreenPixelHeight());
 
   for (i = 0; i < 8; ++i) {
-    for (string = m_strings.Head(); string; string = m_strings.Next(string)) {
+    ITERATELIST(CGxString, m_strings, string) {
       int                 depth = (static_cast<signed char>(string->m_flags) < 0);
       STRINGVIEWMATRICES *matrices;
 
@@ -2418,9 +2416,7 @@ void BATCHEDRENDERFONTDESC::RenderBatch() {
 }
 
 BATCHEDRENDERFONTDESC::~BATCHEDRENDERFONTDESC() {
-  CGxString *string;
-
-  for (string = m_strings.Head(); string; string = m_strings.Next(string)) {
+  ITERATELIST(CGxString, m_strings, string) {
     string->ClearStringMatrixEntry();
   }
 }
@@ -2428,13 +2424,12 @@ BATCHEDRENDERFONTDESC::~BATCHEDRENDERFONTDESC() {
 void CGxStringBatch::RenderBatch() {
   NTempest::C44Matrix    oldView;
   NTempest::C44Matrix    oldProjection;
-  BATCHEDRENDERFONTDESC *batchDesc;
 
   GxVertexShaderSelect(GxVS_PassThru);
   GxXformProjection(oldProjection);
   GxXformView(oldView);
 
-  for (batchDesc = m_fontBatch.Head(); batchDesc; batchDesc = m_fontBatch.Next(batchDesc)) {
+  ITERATELIST(BATCHEDRENDERFONTDESC, m_fontBatch, batchDesc) {
     batchDesc->RenderBatch();
   }
 

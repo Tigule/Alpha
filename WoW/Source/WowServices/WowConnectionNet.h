@@ -50,7 +50,7 @@ class WowConnectionNet {
   unsigned char                      m_stop;
   int                                m_numWorkers;
   Worker                             m_workers[8];
-  TSExplicitList<WowConnection, 188> m_connections;
+  LISTDECLEX(WowConnection, netlink, m_connections);
   SCritSect                          m_connectionsLock;
   SSemaphore                         m_workerSem;
   void(*m_threadinit)();

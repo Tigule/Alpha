@@ -100,7 +100,7 @@ class CSimpleHyperlinkedFrame : public CSimpleFrame {
   CSimpleHyperlinkButton *CreateHyperlinkButton();
   void                    ReleaseHyperlinkButton(CSimpleHyperlinkButton *button);
 
-  TSExplicitList<CSimpleHyperlinkButton, 760> m_hyperlinkButtons;
+  LISTDECLEX(CSimpleHyperlinkButton, m_link, m_hyperlinkButtons);
   int                                         m_onHyperlinkEnter;
   int                                         m_onHyperlinkLeave;
   int                                         m_onHyperlinkClick;

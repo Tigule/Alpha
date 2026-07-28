@@ -30,8 +30,8 @@ namespace ProfileInternal {
     }
 
     static STRINGBLOCK *AllocBlock(unsigned long chars);
-    static char *AllocString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, const char *string, int inSitu);
-    static void FreeString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, char *string);
+    static char *AllocString(LIST(STRINGBLOCK) &stringBlockList, const char *string, int inSitu);
+    static void FreeString(LIST(STRINGBLOCK) &stringBlockList, char *string);
 
     unsigned long m_refCount;
     unsigned long m_dataSize;
@@ -89,7 +89,7 @@ namespace ProfileInternal {
     return block;
   }
 
-  char *STRINGBLOCK::AllocString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, const char *string, int inSitu) {
+  char *STRINGBLOCK::AllocString(LIST(STRINGBLOCK) &stringBlockList, const char *string, int inSitu) {
     STRINGBLOCK  *stringBlock;
     unsigned long chars;
     char         *dest;
@@ -121,7 +121,7 @@ namespace ProfileInternal {
     return dest;
   }
 
-  void STRINGBLOCK::FreeString(TSList<STRINGBLOCK, TSGetLink<STRINGBLOCK> > &stringBlockList, char *string) {
+  void STRINGBLOCK::FreeString(LIST(STRINGBLOCK) &stringBlockList, char *string) {
     STRINGBLOCK *stringBlock;
 
     FATALASSERT(string);

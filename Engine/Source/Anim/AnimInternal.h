@@ -705,7 +705,7 @@ struct CSeqInfo {
 
 struct CAnim : public CHandleObject {
  public:
-  CAnim(unsigned int createFlags = 0) : anySeqFinished(), appEvent(), hdata(0), seqLastTime(0), flags(createFlags), primarySeq(0), seqMapIndex(0) {
+  CAnim(unsigned char createFlags = 0) : anySeqFinished(), appEvent(), hdata(0), seqLastTime(0), flags(createFlags), primarySeq(0), seqMapIndex(0) {
     anySeqFinished.callback = 0;
     anySeqFinished.param = 0;
     appEvent.callback = 0;

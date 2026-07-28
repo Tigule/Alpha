@@ -129,7 +129,7 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   NTempest::CRect                                       m_messageFrameInset;
   TSGrowableArray<CSimpleMessageScrollFrameLine>        m_lines;
   TSGrowableArray<CSimpleMessageScrollFrameDisplayNode> m_displayNodes;
-  TSExplicitList<CSimpleHyperlinkButton, 760>           m_hyperlinks;
+  LISTDECLEX(CSimpleHyperlinkButton, m_link, m_hyperlinks);
 };
 
 #endif

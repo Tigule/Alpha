@@ -35,7 +35,7 @@
 int DeathHoldEventTimerHandler(const void *packetData, void *param);
 void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
 HMODEL InitializeModel(const char *fileName, void(*callback)(const char *, const NTempest::C3Vector &, void *), void *param);
-static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size);
+static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, const CGObject_C *object, char *buffer, unsigned int size);
 static void SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
 void SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
 void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
@@ -116,7 +116,8 @@ class NODEBASE {
   ~NODEBASE();
 
   void         ClearDeathHoldTimer();
-  unsigned int CheckModelLoadStatus();
+  void         SetDeathHoldTimer(unsigned int duration);
+  bool CheckModelLoadStatus();
 
   LINKDECLEX(NODEBASE, node);
   HMODEL__        *model;
@@ -193,11 +194,11 @@ NODEDECL(MISSILENODE) {
 };
 
 struct UNITONESHOTEFFECTDESC : public TSHashObject<UNITONESHOTEFFECTDESC, CHashKeyGUID> {
-  TSExplicitList<ONESHOTEFFECTNODE, 4> m_effects;
+  LISTDECLEX(ONESHOTEFFECTNODE, node, m_effects);
 };
 
 static TSHashTable<UNITONESHOTEFFECTDESC, CHashKeyGUID> s_oneShotEffects;
-static TSExplicitList<ONESHOTSTANDALONEEFFECTNODE, 4>   s_standAloneEffects;
+static LISTDECLEX(ONESHOTSTANDALONEEFFECTNODE, node, s_standAloneEffects);
 static TInstanceAllocator<ONESHOTSTANDALONEEFFECTNODE>  s_freeStandaloneEffects(40);
 static LISTDECL(MISSILENODE, s_missiles);
 static TInstanceAllocator<MISSILENODE>                  s_freeMissiles(10);
@@ -351,17 +352,19 @@ static void RenderModel(HMODEL__* model, const NTempest::C3Vector& position, con
   }
 }
 
-int GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID) {
+SPELL_VISUAL_ATTACHMENT GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID) {
   SpellRec *spellRec = g_spellDB.GetRecord(spellID);
   if (!spellRec) {
-    return 1;
+    return SPELL_VISUAL_ATTACH_CHEST;
   }
   CGObject_C     *casterObject = caster ? ClntObjMgrObjectPtr(caster, __FILE__, __LINE__) : 0;
   CGUnit_C       *casterUnit = casterObject && (casterObject->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(casterObject) : 0;
   SpellVisualRec  filled;
-  SpellVisualRec *visual =
+  const SpellVisualRec *visual =
       casterUnit ? casterUnit->GetAppropriateSpellVisual(spellRec, filled) : g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
-  return visual ? visual->m_missileDestinationAttachment : 1;
+  return visual
+             ? static_cast<SPELL_VISUAL_ATTACHMENT>(visual->m_missileDestinationAttachment)
+             : SPELL_VISUAL_ATTACH_CHEST;
 }
 
 static void RecycleMissileNode(MISSILENODE *node) {
@@ -369,7 +372,7 @@ static void RecycleMissileNode(MISSILENODE *node) {
   s_freeMissiles.Put(node);
 }
 
-void GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3Vector &position) {
+void GetMissileTargetPosition(CGObject_C *target, SPELL_VISUAL_ATTACHMENT hitLocation, NTempest::C3Vector &position) {
   FATALASSERT(target);
   FATALASSERT(hitLocation <= 2);
   FATALASSERT(target->GetType() & TYPE_UNIT);
@@ -389,7 +392,7 @@ void GetMissileTargetPosition(CGObject_C *target, int hitLocation, NTempest::C3V
   HandleClose(model);
 }
 
-static int MoveMissile(MISSILENODE *node) {
+static bool MoveMissile(MISSILENODE *node) {
   CGObject_C *target = node->target ? ClntObjMgrObjectPtr(node->target, __FILE__, __LINE__) : 0;
   if (target && (target->GetType() & TYPE_UNIT)) {
     GetMissileTargetPosition(target, GetMissileTargetLocation(node->caster, node->spellID), node->endPosition);
@@ -479,7 +482,7 @@ static void AddUnitDeathHold(CGUnit_C *unitPtr) {
   }
 }
 
-unsigned int NODEBASE::CheckModelLoadStatus() {
+bool NODEBASE::CheckModelLoadStatus() {
   if ((flags & 4) || !ModelIsLoaded(model, 1)) {
     return 0;
   }
@@ -524,6 +527,11 @@ void NODEBASE::ClearDeathHoldTimer() {
   }
 }
 
+void NODEBASE::SetDeathHoldTimer(unsigned int duration) {
+  ASSERT(!deathHoldTimer);
+  deathHoldTimer = ClientSetTimer(duration >> 1, DeathHoldEventTimerHandler, this);
+}
+
 void ONESHOTEFFECTNODE::CheckModelLoadStatus() {
   if (NODEBASE::CheckModelLoadStatus() && ModelAnimHasObjectId(model, 0)) {
     CGObject_C *object = ClntObjMgrObjectPtr(objectGUID, __FILE__, __LINE__);
@@ -544,7 +552,7 @@ void ONESHOTSTANDALONEEFFECTNODE::CheckModelLoadStatus() {
   }
 }
 
-static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, CGObject_C *object, char *buffer, unsigned int size) {
+static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, const CGObject_C *object, char *buffer, unsigned int size) {
   FATALASSERT(object);
   FATALASSERT(buffer);
   FATALASSERT(size);
@@ -568,7 +576,7 @@ static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, CG
     *extension = 0;
   }
 
-  CGUnit_C    *unit = static_cast<CGUnit_C *>(object);
+  const CGUnit_C *unit = static_cast<const CGUnit_C *>(object);
   unsigned int sex = unit->GetDisplaySex();
   unsigned int race = unit->GetDisplayRace();
   FATALASSERT(sex < UNITSEX_LAST);
@@ -671,16 +679,18 @@ void UnitEffectUpdate(CGCamera *camera) {
     RenderMissiles(camera);
   }
 
-  UNITONESHOTEFFECTDESC *effectDesc = s_oneShotEffects.Head();
-  while (reinterpret_cast<long>(effectDesc) > 0) {
-    ITERATELIST(ONESHOTEFFECTNODE, effectDesc->m_effects, node) {
-      node->CheckModelLoadStatus();
+  {
+    ITERATELIST(UNITONESHOTEFFECTDESC, s_oneShotEffects, effectDesc) {
+      ITERATELIST(ONESHOTEFFECTNODE, effectDesc->m_effects, node) {
+        node->CheckModelLoadStatus();
+      }
     }
-    effectDesc = s_oneShotEffects.RawNext(effectDesc);
   }
 
-  ITERATELIST(ONESHOTSTANDALONEEFFECTNODE, s_standAloneEffects, standalone) {
-    standalone->CheckModelLoadStatus();
+  {
+    ITERATELIST(ONESHOTSTANDALONEEFFECTNODE, s_standAloneEffects, standalone) {
+      standalone->CheckModelLoadStatus();
+    }
   }
 }
 
@@ -920,7 +930,7 @@ void UnitEffectOneShot(
   }
 }
 
-unsigned int UnitEffectIsAuraWorldObject(unsigned int effectID, unsigned int &isWorldObj) {
+bool UnitEffectIsAuraWorldObject(unsigned int effectID, bool &isWorldObj) {
   SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (!effectRec) {
     return 0;

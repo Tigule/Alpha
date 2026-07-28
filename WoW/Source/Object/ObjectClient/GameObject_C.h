@@ -20,7 +20,7 @@ class CGUnit_C;
 class LockRec;
 class Sound;
 class TransportAnimationRec;
-struct GameObjectStats;
+class GameObjectStats;
 struct HCOLLISIONDATA__;
 struct HMODEL__;
 struct WorldObjCollisionHandlerData;
@@ -95,7 +95,9 @@ class CGGameObject {
 
 class CGGameObject_C_TypeBase {
  public:
-  CGGameObject_C_TypeBase();
+  CGGameObject_C_TypeBase()
+      : m_owner(0), m_interactDistance(5.0f) {
+  }
   CGGameObject_C_TypeBase(CGGameObject_C *owner);
 
   CGGameObject_C *m_owner;
@@ -236,7 +238,7 @@ class CGGameObject_C_Type_MapObjTransport : public CGGameObject_C_Type_MapObj {
   virtual void               UpdateMovement(unsigned long eventTime, float elapsed);
 
  protected:
-  TSExplicitList<CMovementData, 8> m_passengers;
+  LISTDECLEX(CMovementData, transportLink, m_passengers);
   NTempest::C3Spline_CatmullRom    m_path[2];
   unsigned int                     m_tripTime[2];
   NTempest::C3Vector               m_position;
@@ -294,7 +296,7 @@ class CGGameObject_C_Type_Transport : public CGGameObject_C_TypeAnimated {
   int                FindAnimData(CGGameObject_C *owner);
   unsigned int       NextKeyID() const;
 
-  TSExplicitList<CMovementData, 8>  m_passengers;
+  LISTDECLEX(CMovementData, transportLink, m_passengers);
   const TransportAnimationRec      *m_keys;
   unsigned int                      m_numKeys;
   unsigned int                      m_currKey;

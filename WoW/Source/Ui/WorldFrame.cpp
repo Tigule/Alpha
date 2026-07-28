@@ -107,7 +107,7 @@ void SmartScreenRectInitialize();
 void SmartScreenRectShutdown();
 void SmartScreenRectClearAllGrids();
 void UnitEffectUpdate(CGCamera *camera);
-void UnitFootprintRenderSplats(NTempest::C3Vector &cameraPos);
+void UnitFootprintRenderSplats(const NTempest::C3Vector &cameraPos);
 void                               SpellVisualsRender();
 void                               SpellVisualsTick(float elapsed);
 void UpdatePortraits();
@@ -139,7 +139,7 @@ static TSHashTable<FADEOUTHASHOBJ, CHashKeyGUID> s_fadeOutModelTable;
 static int CheckFadeOutModels(const char *command, const char *arguments) {
   int          count = 0;
   unsigned int currentTime = OsGetAsyncTimeMs();
-  for (FADEOUTHASHOBJ *fade = s_fadeOutModelTable.Head(); fade; fade = s_fadeOutModelTable.Next(fade)) {
+  ITERATELIST(FADEOUTHASHOBJ, s_fadeOutModelTable, fade) {
     ConsolePrintf("Model %02d: %d ms elapsed\n", ++count, currentTime - fade->startTime);
   }
   ConsolePrintf("Found %d models, nuking. If this improves Anim let Jeff know", count);
@@ -147,7 +147,7 @@ static int CheckFadeOutModels(const char *command, const char *arguments) {
   return 1;
 }
 
-void RenderFadeOutModels(NTempest::C3Vector cameraPos, NTempest::C3Vector cameraTarg) {
+void RenderFadeOutModels(const NTempest::C3Vector cameraPos, const NTempest::C3Vector cameraTarg) {
   int currentTime = OsGetAsyncTimeMs();
   for (FADEOUTHASHOBJ *curr = s_fadeOutModelTable.Head(); curr;) {
     FATALASSERT(curr->model);
@@ -213,13 +213,13 @@ void DrawCursorShadow() {
 
 CGWorldFrame *CGWorldFrame::s_currentWorldFrame;
 
-int CGWorldFrame::IsUnitLegalSelection(CGUnit_C *unit, unsigned int hitFilter) {
+int CGWorldFrame::IsUnitLegalSelection(const CGUnit_C *unit, unsigned int hitFilter) {
   if (hitFilter & 0x70000) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if ((hitFilter & 0x10000) && player->IsUnitInGroup(unit)) {
       return 1;
     }
-    if ((hitFilter & 0x20000) && player->CanCooperate(unit)) {
+    if ((hitFilter & 0x20000) && player->CanAssist(unit)) {
       return 1;
     }
     if (!(hitFilter & 0x40000) || !player->CanAttack(unit)) {
@@ -296,7 +296,7 @@ int CGWorldFrame::IsLegalSelection(CModelRecord *record, unsigned int hitFilter)
   return 0;
 }
 
-unsigned int CGWorldFrame::SphereTestModels(NTempest::C3Vector &aVector, NTempest::C3Vector &bVector, unsigned int hitFilter) {
+unsigned int CGWorldFrame::SphereTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector, unsigned int hitFilter) {
   NTempest::C34Matrix camRelativeMatrix;
   NTempest::C34Matrix worldMatrix;
   NTempest::C3Vector &cameraPos = m_camera->Position();
@@ -332,7 +332,7 @@ unsigned int CGWorldFrame::SphereTestModels(NTempest::C3Vector &aVector, NTempes
   return numHit;
 }
 
-unsigned int CGWorldFrame::VolumeTestModels(NTempest::C3Vector &aVector, NTempest::C3Vector &bVector) {
+unsigned int CGWorldFrame::VolumeTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector) {
   unsigned int numHit = 0;
   for (CModelRecord *record = m_models.Head(); record;) {
     CModelRecord *next = record->Next();
@@ -346,7 +346,7 @@ unsigned int CGWorldFrame::VolumeTestModels(NTempest::C3Vector &aVector, NTempes
   return numHit;
 }
 
-unsigned int CGWorldFrame::GeometryTestModels(NTempest::C3Vector &aVector, NTempest::C3Vector &bVector) {
+unsigned int CGWorldFrame::GeometryTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector) {
   unsigned int numHit = 0;
   for (CModelRecord *record = m_models.Head(); record;) {
     CModelRecord *next = record->Next();
@@ -407,7 +407,7 @@ void CGWorldFrame::HideObstructingModels(float maxDist) {
   SendUnitFadeEvent(fade);
 }
 
-unsigned __int64 CGWorldFrame::FindClosestModel(NTempest::C3Vector &a, NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist) {
+unsigned __int64 CGWorldFrame::FindClosestModel(const NTempest::C3Vector &a, const NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist) {
   NTempest::C3Vector cameraPosition = m_camera->Position();
   NTempest::C3Vector aVector = a - cameraPosition;
   NTempest::C3Vector bVector = b - cameraPosition;
@@ -438,7 +438,7 @@ unsigned __int64 CGWorldFrame::FindClosestModel(NTempest::C3Vector &a, NTempest:
   return picked->guid;
 }
 
-CGWorldFrame::HIT_TYPE CGWorldFrame::HitTest(NTempest::C3Vector &a, NTempest::C3Vector &b, unsigned int hitFilter, HitTestResult *hitTestResult) {
+CGWorldFrame::HIT_TYPE CGWorldFrame::HitTest(const NTempest::C3Vector &a, const NTempest::C3Vector &b, unsigned int hitFilter, HitTestResult *hitTestResult) {
   FATALASSERT(hitTestResult);
 
   NTempest::C3Vector ip(0.0f);
@@ -477,7 +477,7 @@ CGWorldFrame::HIT_TYPE CGWorldFrame::HitTest(NTempest::C3Vector &a, NTempest::C3
   return HIT_SPRITE;
 }
 
-unsigned int CGWorldFrame::GetHitTestFilterFlags() {
+unsigned int CGWorldFrame::GetHitTestFilterFlags() const {
   if (!Spell_C_IsTargeting()) {
     return ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__) ? 0xE : 0;
   }
@@ -698,7 +698,7 @@ void CGWorldFrame::MoveToFreeList(CModelRecord *record) {
   record->model = 0;
 }
 
-void CGWorldFrame::MoveToFreeList(TSList<CModelRecord, TSGetLink<CModelRecord> > *objList) {
+void CGWorldFrame::MoveToFreeList(LISTPTR(CModelRecord) objList) {
   ITERATELISTPTR(CModelRecord, objList, record) {
     HandleClose(record->model);
     record->model = 0;
@@ -968,7 +968,7 @@ int CGWorldFrame::SendObjectTrackEvent(unsigned __int64 guid, float x, float y) 
   return 1;
 }
 
-void CGWorldFrame::OnLayerTrackTerrain(HitTestResult &hitTestResult) {
+void CGWorldFrame::OnLayerTrackTerrain(const HitTestResult &hitTestResult) {
   if (Spell_C_IsTargeting() && Spell_C_CanTargetTerrain()) {
     CTerrainClickEvent evt;
     evt.point = hitTestResult.point;
@@ -988,7 +988,7 @@ void CGWorldFrame::OnLayerTrackTerrain(HitTestResult &hitTestResult) {
 
     unsigned int cursor = Spell_C_WorldObjectCursor();
     if (cursor) {
-      CWorld::ObjectUpdate(cursor, hitTestResult.point, Spell_C_WorldObjectFacing(), Spell_C_WorldObjectHousing());
+      CWorld::ObjectUpdate(cursor, s_spellShadowPos, Spell_C_WorldObjectFacing(), Spell_C_WorldObjectHousing());
     }
   } else {
     CursorResetCursor(0);
@@ -1064,7 +1064,7 @@ void CGWorldFrame::CursorTrackObject(CGGameObject_C *gameObject) {
   }
 }
 
-void CGWorldFrame::OnLayerTrackObject(HitTestResult &hitTestResult, float x, float y) {
+void CGWorldFrame::OnLayerTrackObject(const HitTestResult &hitTestResult, float x, float y) {
   if (m_freeLookMode) {
     SendObjectTrackEvent(0, 0.0f, 0.0f);
     return;
@@ -1132,7 +1132,7 @@ void CGWorldFrame::UpdateDayNightInfo(float elapsedSec) {
   dnInfo->day = static_cast<float>(g_clientGameTime.GetDaysSinceEpoch());
 }
 
-void CGWorldFrame::SetPlayerFadeCameraValue(unsigned int value) {
+void CGWorldFrame::SetPlayerFadeCameraValue(unsigned char value) {
   if (value != m_cameraAlpha) {
     if (m_camera->m_target == ClntObjMgrGetActivePlayer() && ((!value && m_cameraAlpha) || (value && !m_cameraAlpha))) {
       Player_C_SetPlayerRender(value != 0);

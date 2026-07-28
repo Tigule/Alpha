@@ -76,7 +76,7 @@ class CTexture : public CHandleObject {
   EGxTexFormat     dataFormat;
   CGxTexFlags      gxTexFlags;
   CAsyncObject    *asyncObject;
-  TSLink<CTexture> link;
+  LINKDECLEX(CTexture, link);
 };
 
 struct CTextureItem {
@@ -92,7 +92,7 @@ struct CTextureItem {
   HTEXTURE             texture;
   int                  fromColor;
   unsigned long        timeStamp;
-  TSLink<CTextureItem> link;
+  LINKDECLEX(CTextureItem, link);
 };
 
 struct CTextureHash : public TSHashObject<CTextureHash, HASHKEY_TEXTUREFILE>, public CTextureItem {
@@ -119,7 +119,7 @@ class CGxTexCache {
 
   CGxTex             *gxTex;
   unsigned long       timeStamp;
-  TSLink<CGxTexCache> link;
+  LINKDECLEX(CGxTexCache, link);
 };
 
 enum EImageFormat {
@@ -129,18 +129,18 @@ enum EImageFormat {
 };
 
 static MipBits                                               *tgaMips;
-static TSExplicitList<CTextureItem, 12>                       s_textureCacheLRU;
+static LISTDECLEX(CTextureItem, link, s_textureCacheLRU);
 static HASHKEY_NONE                                           s_hashKeyNone;
-static TSExplicitList<CTexture, 324>                          s_textureList;
+static LISTDECLEX(CTexture, link, s_textureList);
 static void                                                  *g_textureMipBits;
 static NTempest::CImVector                                    CRAPPY_GREEN(0xFF00FF00UL);
-static TSExplicitList<CGxTexCache, 8>                         s_gxTexCacheList[5][5][GxTexFormats_Last];
+static LISTDECLEX(CGxTexCache, link, s_gxTexCacheList[5][5][GxTexFormats_Last]);
 static TSHashTableReuse<CTextureHash, HASHKEY_TEXTUREFILE, 1> s_textureCache;
 static const unsigned short                                   s_bitDepth[8] = {0, 32, 16, 16, 16, 4, 8, 8};
 static const char                                            *s_formatExt[NUM_IMAGE_FORMATS] = {".tga", ".blp"};
-static TSExplicitList<CGxTexCache, 8>                         s_gxTexCacheFreeList;
+static LISTDECLEX(CGxTexCache, link, s_gxTexCacheFreeList);
 static TSCArray<unsigned char, 1048576>                       s_asyncLoadBuffer;
-static TSExplicitList<CAsyncObject, 32>                       s_asyncLoadList;
+static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
 static unsigned int                                           s_asyncLoadBufferUsed;
 static char s_gxTexFormatStrings[8][32] = {"GxTex_Unknown", "GxTex_Argb8888", "GxTex_Argb4444", "GxTex_Argb1555",
                                            "GxTex_Rgb565",  "GxTex_Dxt1",     "GxTex_Dxt3",     "GxTex_Dxt5"};
@@ -210,8 +210,8 @@ static void GetTextureFormats(
     PIXEL_FORMAT &pixFormat,
     EGxTexFormat &dataFormat,
     EGxTexFormat &gxTexFormat,
-    PIXEL_FORMAT  preferredFormat,
-    unsigned int  alphaBits
+    const PIXEL_FORMAT preferredFormat,
+    const unsigned int alphaBits
 );
 static int AsyncTextureLoadImageCreate(CTexture *texture);
 static void FillInSolidTexture(const NTempest::CImVector &color, CTexture *texture);
@@ -749,7 +749,7 @@ static CGxTex *TextureAllocGxTex(
       ++indexH;
     }
 
-    TSExplicitList<CGxTexCache, 8> &indexedCacheList = s_gxTexCacheList[indexW][indexH][format];
+    LISTEX(CGxTexCache, link) &indexedCacheList = s_gxTexCacheList[indexW][indexH][format];
     gxTexCache = indexedCacheList.Head();
     while (gxTexCache) {
       GxTexParametersEx(gxTexCache->gxTex, gxTexParmsEx2);
@@ -867,8 +867,8 @@ static void GetTextureFormats(
     PIXEL_FORMAT &pixFormat,
     EGxTexFormat &dataFormat,
     EGxTexFormat &gxTexFormat,
-    PIXEL_FORMAT  preferredFormat,
-    unsigned int  alphaBits
+    const PIXEL_FORMAT preferredFormat,
+    const unsigned int alphaBits
 ) {
   pixFormat = PIXEL_ARGB8888;
   dataFormat = GxTex_Argb8888;
@@ -1195,7 +1195,7 @@ void TextureGxCacheFlush() {
   for (x = 0; x < 5; ++x) {
     for (y = 0; y < 5; ++y) {
       for (format = 0; format < GxTexFormats_Last; ++format) {
-        TSExplicitList<CGxTexCache, 8> &cacheList = s_gxTexCacheList[x][y][format];
+        LISTEX(CGxTexCache, link) &cacheList = s_gxTexCacheList[x][y][format];
         CGxTexCache                    *gxTexCache;
 
         while ((gxTexCache = cacheList.Head()) != 0) {
@@ -1347,6 +1347,28 @@ HTEXTURE TextureLoadImage(const char *filename) {
   return reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));
 }
 
+MipBits *TextureLoadImage(
+    HTEXTURE      textureptr,
+    unsigned int *width,
+    unsigned int *height,
+    unsigned int *gxTexFormat,
+    CStatus      *status,
+    unsigned int *alphaBits
+) {
+  FATALASSERT(textureptr);
+
+  int isOpaque;
+  return TextureLoadImage(
+      reinterpret_cast<CTexture *>(textureptr)->filename,
+      width,
+      height,
+      gxTexFormat,
+      &isOpaque,
+      status,
+      alphaBits
+  );
+}
+
 HTEXTURE TextureAllocImage(EGxTexFormat format, unsigned int width, unsigned int height) {
   CTexture *texture = new (SMemAlloc(sizeof(CTexture), "HTEXTURE", SERR_LINECODE_OBJECT, 0)) CTexture;
   ASSERT(texture);
@@ -1359,6 +1381,24 @@ HTEXTURE TextureAllocImage(EGxTexFormat format, unsigned int width, unsigned int
   texture->asyncObject = 0;
   texture->mipBits = TextureAllocMippedImg(format, width, height);
   SStrCopy(texture->filename, "TextureAllocImage", sizeof(texture->filename));
+
+  return reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));
+}
+
+HTEXTURE TextureCreate(unsigned int width, unsigned int height, EGxTexFormat format, CGxTexFlags flags) {
+  CTexture *texture = new (SMemAlloc(sizeof(CTexture), "HTEXTURE", SERR_LINECODE_OBJECT, 0)) CTexture;
+  ASSERT(texture);
+
+  texture->gxTex = TextureAllocGxTex(width, height, format, flags, texture, UpdateTextureDefault, GxTex_Argb8888);
+  ASSERT(texture->gxTex);
+
+  texture->gxWidth = width;
+  texture->gxHeight = height;
+  texture->gxTexFormat = format;
+  texture->gxTexFlags = flags;
+  texture->pixBitDepth = s_bitDepth[format];
+  texture->asyncObject = 0;
+  SStrCopy(texture->filename, "unique_texture", sizeof(texture->filename));
 
   return reinterpret_cast<HTEXTURE>(HandleCreate(texture, "HTEXTURE"));
 }
@@ -1721,16 +1761,13 @@ void TextureLogGxCache(HSLOG log) {
   for (unsigned int x = 0; x < 5; ++x) {
     for (unsigned int y = 0; y < 5; ++y) {
       for (unsigned int format = 0; format < GxTexFormats_Last; ++format) {
-        TSExplicitList<CGxTexCache, 8> &cacheList = s_gxTexCacheList[x][y][format];
-        CGxTexCache                    *gxTexCache = cacheList.Head();
-
-        while (gxTexCache) {
+        LISTEX(CGxTexCache, link) &cacheList = s_gxTexCacheList[x][y][format];
+        ITERATELIST(CGxTexCache, cacheList, gxTexCache) {
           GxTexParametersEx(gxTexCache->gxTex, gxTexParmsEx);
           SLogWrite(
               log, "Format: %s Size: %dx%d Filter: %s", s_gxTexFormatStrings[gxTexParmsEx.format], gxTexParmsEx.width, gxTexParmsEx.height,
               s_gxTexFilterStrings[gxTexParmsEx.flags.m_filter]
           );
-          gxTexCache = cacheList.Next(gxTexCache);
         }
       }
     }

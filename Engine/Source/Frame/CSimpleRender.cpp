@@ -84,8 +84,7 @@ void CSimpleRender::DrawBatch(CRenderBatch *batch) {
     GxuFontRenderBatch(batch->m_stringbatch);
   }
 
-  RENDERCALLBACKNODE *node;
-  for (node = batch->m_callbacks.Head(); node; node = batch->m_callbacks.Next(node)) {
+  ITERATELIST(RENDERCALLBACKNODE, batch->m_callbacks, node) {
     node->callback(node->param);
   }
 }

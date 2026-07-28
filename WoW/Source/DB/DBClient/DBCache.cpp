@@ -282,7 +282,6 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
   unsigned long endMarker;
   KEY           endMarkerKey;
   HOSFILE       file;
-  DBCACHEHASH  *entry;
   unsigned long bytesWritten;
 
   if (!m_persistent) {
@@ -308,8 +307,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
 
   CDataStore r;
 
-  entry = m_table.Head();
-  while (entry) {
+  ITERATELIST(DBCACHEHASH, m_table, entry) {
     if (entry->m_haveData && !entry->m_temp) {
       r.Reset();
       r.Put(entry->m_dbkey);
@@ -322,7 +320,6 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
       ASSERT(bytesWritten == r.Size());
     }
 
-    entry = m_table.Next(entry);
   }
 
   endMarkerKey = 0;

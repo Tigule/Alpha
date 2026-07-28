@@ -5,6 +5,8 @@
 #include <stpl.h>
 
 class CSplineParticleEmitter;
+class CGGameObject_C_Type_MapObjTransport;
+class CGUnit_C;
 
 class C24Matrix {
  public:
@@ -132,11 +134,16 @@ namespace NTempest {
     void ParametricSegT(float wholeT, unsigned int segCount, unsigned int &segment, float &t) const;
     void ArclengthSegT(float s, const C44Matrix &coeffs, unsigned int segCount, unsigned int &seg, float &t) const;
 
-   public:
+   private:
+    friend class ::CGGameObject_C_Type_MapObjTransport;
+    friend class ::CGUnit_C;
+    friend class C3Spline_Bezier3;
+    friend class C3Spline_CatmullRom;
+
     mutable float                  cachedLength;
+    TSGrowableArray<C3Vector>      points;
 
    protected:
-    TSGrowableArray<C3Vector>      points;
     mutable TSGrowableArray<float> cachedSegLength;
   };
 

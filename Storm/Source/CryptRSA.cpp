@@ -1,14 +1,14 @@
 #include <storm.h>
 
 BigNum &BigNum::PowMod(const BigNum &b, const BigNum &c, const BigNum &d) {
-  SBigPowMod(m_data, b.m_data, c.m_data, d.m_data);
+  SBigPowMod(m_data, *b.m_data, *c.m_data, *d.m_data);
   return *this;
 }
 
 void *BigNum::ToBinaryBuffer(void *data, unsigned int bytes) const {
   unsigned int actual;
 
-  SBigToBinaryBuffer(m_data, data, bytes, &actual);
+  SBigToBinaryBuffer(*m_data, data, bytes, &actual);
   if (actual < bytes) {
     memset((BYTE *)data + actual, 0, bytes - actual);
   }

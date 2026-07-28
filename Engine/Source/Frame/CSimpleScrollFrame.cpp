@@ -104,22 +104,24 @@ static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect) {
     rect.b = rect.b >= frameRect.b ? rect.b : frameRect.b;
   }
 
-  REGIONNODE *regionNode;
-  for (regionNode = frame->m_regions.Head(); regionNode; regionNode = regionNode->Next()) {
-    CSimpleRegion *region = regionNode->region;
+  {
+    ITERATELIST(REGIONNODE, frame->m_regions, regionNode) {
+      CSimpleRegion *region = regionNode->region;
 
-    if (region->IsVisible() && region->GetRect(&frameRect)) {
-      rect.l = rect.l <= frameRect.l ? rect.l : frameRect.l;
-      rect.r = rect.r >= frameRect.r ? rect.r : frameRect.r;
-      rect.t = rect.t <= frameRect.t ? rect.t : frameRect.t;
-      rect.b = rect.b >= frameRect.b ? rect.b : frameRect.b;
+      if (region->IsVisible() && region->GetRect(&frameRect)) {
+        rect.l = rect.l <= frameRect.l ? rect.l : frameRect.l;
+        rect.r = rect.r >= frameRect.r ? rect.r : frameRect.r;
+        rect.t = rect.t <= frameRect.t ? rect.t : frameRect.t;
+        rect.b = rect.b >= frameRect.b ? rect.b : frameRect.b;
+      }
     }
   }
 
-  SIMPLEFRAMENODE *frameNode;
-  for (frameNode = frame->m_children.Head(); frameNode; frameNode = frameNode->Next()) {
-    if (frameNode->frame && frameNode->frame->m_shown) {
-      GetScrollChildRect(frameNode->frame, rect);
+  {
+    ITERATELIST(SIMPLEFRAMENODE, frame->m_children, frameNode) {
+      if (frameNode->frame && frameNode->frame->m_shown) {
+        GetScrollChildRect(frameNode->frame, rect);
+      }
     }
   }
 }

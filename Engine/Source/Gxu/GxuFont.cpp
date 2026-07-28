@@ -65,7 +65,6 @@ float ScreenToPixelWidth(int billboarded, float width) {
 void GxuFontWindowSizeChanged() {
   static NTempest::CRect s_currentRect;
   NTempest::CRect        rect;
-  CGxFont               *font;
 
   GxCapsWindowSize(rect);
   if (rect.r - rect.l == 0.0f || rect.b - rect.t == 0.0f) {
@@ -85,7 +84,7 @@ void GxuFontWindowSizeChanged() {
   s_pixelWidth = g_widthPixels ? 1.0f / g_widthPixels : 0.0f;
   s_pixelHeight = g_heightPixels ? 1.0f / g_heightPixels : 0.0f;
 
-  for (font = s_fonts.Head(); font; font = s_fonts.Next(font)) {
+  ITERATELIST(CGxFont, s_fonts, font) {
     font->HandleScreenSizeChange();
   }
 }

@@ -277,7 +277,7 @@ void CGCraftInfo::RefreshList() {
   if (!player) {
     return;
   }
-  TSGrowableArray<int> *spells = player->GetCraftSkills(m_craftType);
+  const TSGrowableArray<int> *spells = player->GetCraftSkills(m_craftType);
   if (!spells) {
     return;
   }

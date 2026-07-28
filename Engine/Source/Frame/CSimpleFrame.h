@@ -561,10 +561,10 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   CBackdropGenerator *GetBackdrop() {
     return m_backdrop;
   }
-  TSList<REGIONNODE, TSGetLink<REGIONNODE> > &GetRegions() {
+  LIST(REGIONNODE) &GetRegions() {
     return m_regions;
   }
-  TSList<SIMPLEFRAMENODE, TSGetLink<SIMPLEFRAMENODE> > &GetChildren() {
+  LIST(SIMPLEFRAMENODE) &GetChildren() {
     return m_children;
   }
   int  SetHighlight(const char *texFile, EGxBlend blendMode);
@@ -666,7 +666,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   LISTDECL(REGIONNODE, m_drawlayers[5]);
   unsigned int                                         m_batchDirty;
   CRenderBatch                                         m_batch[5];
-  TSExplicitList<CRenderBatch, 44>                     m_renderList;
+  LISTDECLEX(CRenderBatch, renderLink, m_renderList);
   LISTDECL(SIMPLEFRAMENODE, m_children);
 
  public:

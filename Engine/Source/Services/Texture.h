@@ -41,7 +41,16 @@ MipBits *TextureLoadImage(
     CStatus      *status,
     unsigned int *alphaBits
 );
+MipBits *TextureLoadImage(
+    HTEXTURE      texture,
+    unsigned int *width,
+    unsigned int *height,
+    unsigned int *gxTexFormat,
+    CStatus      *status,
+    unsigned int *alphaBits
+);
 void TextureUnloadImage(MipBits *image);
+HTEXTURE TextureCreate(unsigned int width, unsigned int height, EGxTexFormat format, CGxTexFlags flags);
 HTEXTURE TextureCreate(const char *fileName, CGxTexFlags flags, CStatus *status, int dontCache);
 HTEXTURE TextureCreate(CGxTex *gxTex);
 HTEXTURE TextureCreateSolid(const NTempest::CImVector &color, CStatus *status);

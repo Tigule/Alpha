@@ -238,7 +238,7 @@ extern "C" BOOL APIENTRY SRegDeleteKey(LPCSTR keyname, UINT flags) {
   return InternalDeleteKey(keyname, flags);
 }
 
-extern "C" BOOL APIENTRY SRegGetBaseKey(UINT flags, char *buffer, DWORD bufferChars) {
+extern "C" BOOL APIENTRY SRegGetBaseKey(UINT flags, char *buffer, UINT bufferChars) {
   FATALASSERT(buffer);
   FATALASSERT(bufferChars);
 

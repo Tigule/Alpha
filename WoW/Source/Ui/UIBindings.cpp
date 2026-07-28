@@ -470,7 +470,7 @@ unsigned int CGUIBindings::GetNumCommandKeys(const char *command) const {
 }
 
 void CGUIBindings::AdjustCommandKeyIndices(const char *command, int index) const {
-  for (KEYBINDING *binding = m_bindings.Head(); binding; binding = m_bindings.Next(binding)) {
+  ITERATELIST(KEYBINDING, m_bindings, binding) {
     if (!SStrCmpI(binding->command, command, 0x7FFFFFFF) && binding->index > index) {
       --binding->index;
     }

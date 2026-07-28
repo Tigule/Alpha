@@ -210,7 +210,7 @@ void CWorld::Preload(const NTempest::C3Vector &position) {
   CMap::Preload();
 }
 
-void CWorld::PrepareUpdate(NTempest::C3Vector &position, NTempest::C3Vector &target) {
+void CWorld::PrepareUpdate(const NTempest::C3Vector &position, const NTempest::C3Vector &target) {
   ActivityBegin(ACTIVITY_WORLD);
 
   NTempest::CiRect oldGbChunkRect = gbChunkRect;
@@ -405,14 +405,14 @@ bool CWorld::QueryMapObjMinimap(unsigned long hWorldObject, const NTempest::CAaB
   return entity->QueryMapObjMinimap(aaBox, quads);
 }
 
-unsigned int CWorld::QueryMapObjIDs(unsigned long hWorldObject, unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID) {
+bool CWorld::QueryMapObjIDs(unsigned long hWorldObject, unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   return entity->flagInside ? entity->QueryMapObjIDs(wmoID, instanceID, groupID) : 0;
 }
 
-unsigned int CWorld::QueryMapObjMatrix(unsigned long hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
+bool CWorld::QueryMapObjMatrix(unsigned long hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -646,7 +646,7 @@ void CWorld::SetObjectRenderCallback(unsigned long hWorldObject, void(*cb)(void 
   doodad->renderCBParam = param;
 }
 
-void CWorld::UpdateObject(unsigned long hWorldObject, NTempest::C44Matrix &mat, NTempest::CAaBox &aaBox) {
+void CWorld::UpdateObject(unsigned long hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(hWorldObject);
 
   ActivityBegin(ACTIVITY_WORLD);
@@ -952,7 +952,7 @@ void CWorld::CalcFPS() {
   }
 }
 
-void CWorld::PrepareAreaOfInterest(NTempest::C3Vector &position, NTempest::C3Vector &target) {
+void CWorld::PrepareAreaOfInterest(const NTempest::C3Vector &position, const NTempest::C3Vector &target) {
   float mx = -(position.y - 17066.666f);
 
   chunkRectHi.minx = static_cast<int>(mx * 0.03f - 0.5f);
@@ -1031,7 +1031,7 @@ static void UpdateShadowGxTex(
   }
 }
 
-void CWorld::ModelGeoProjectCallback(NTempest::CAaBox &worldBox, NTempest::CImVector color, NTempest::C44Matrix &basis) {
+void CWorld::ModelGeoProjectCallback(const NTempest::CAaBox &worldBox, NTempest::CImVector color, const NTempest::C44Matrix &basis) {
   ProjectTex2d(worldBox, color, &basis, 0.5f);
 }
 

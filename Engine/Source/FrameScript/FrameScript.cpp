@@ -1,4 +1,3 @@
-#define STORM_SAPIBASE_DECLARATION
 #include "FrameScript.h"
 
 #include <lauxlib.h>
@@ -192,12 +191,10 @@ int FrameScript_Object::RegisterScriptEvent(const char *name) {
       continue;
     }
 
-    listener = eventObject->list.Head();
-    while (reinterpret_cast<long>(listener) > 0) {
+    ITERATELIST(EVENTLISTENERNODE, eventObject->list, listener) {
       if (listener->object == this) {
         return 1;
       }
-      listener = eventObject->list.RawNext(listener);
     }
 
     listener = eventObject->list.NewNode(LIST_TAIL, 0, 0);
@@ -212,7 +209,6 @@ void FrameScript_Object::UnregisterScriptEvent(const char *name) {
   unsigned int             count;
   unsigned int             index;
   FrameScript_EventObject *eventObject;
-  EVENTLISTENERNODE       *listener;
 
   ASSERT(name && *name);
 
@@ -223,13 +219,11 @@ void FrameScript_Object::UnregisterScriptEvent(const char *name) {
       continue;
     }
 
-    listener = eventObject->list.Head();
-    while (reinterpret_cast<long>(listener) > 0) {
+    ITERATELIST(EVENTLISTENERNODE, eventObject->list, listener) {
       if (listener->object == this) {
         eventObject->list.DeleteNode(listener);
         return;
       }
-      listener = eventObject->list.RawNext(listener);
     }
     return;
   }
@@ -241,14 +235,12 @@ void FrameScript_Object::UnregisterAllScriptEvents() {
 
   for (index = 0; index < count; ++index) {
     FrameScript_EventObject *eventObject = &s_scriptEvents[index];
-    EVENTLISTENERNODE       *listener = eventObject->list.Head();
 
-    while (reinterpret_cast<long>(listener) > 0) {
+    ITERATELIST(EVENTLISTENERNODE, eventObject->list, listener) {
       if (listener->object == this) {
         eventObject->list.DeleteNode(listener);
         break;
       }
-      listener = eventObject->list.RawNext(listener);
     }
   }
 }
@@ -616,22 +608,18 @@ void FrameScript_CreateEvents(const char **const names, unsigned int count) {
 
 void FrameScript_SignalEvent(unsigned int index) {
   FrameScript_EventObject *eventObject;
-  EVENTLISTENERNODE       *listener;
 
   ASSERT(index < s_scriptEvents.Count());
   ASSERT(s_scriptEvents[index].name);
 
   eventObject = &s_scriptEvents[index];
-  listener = eventObject->list.Head();
-  while (reinterpret_cast<long>(listener) > 0) {
+  ITERATELIST(EVENTLISTENERNODE, eventObject->list, listener) {
     listener->object->OnScriptEvent(eventObject->name);
-    listener = eventObject->list.RawNext(listener);
   }
 }
 
 void __cdecl FrameScript_SignalEvent(unsigned int index, const char *format, ...) {
   FrameScript_EventObject *eventObject;
-  EVENTLISTENERNODE       *listener;
   va_list                  arguments;
 
   va_start(arguments, format);
@@ -640,10 +628,8 @@ void __cdecl FrameScript_SignalEvent(unsigned int index, const char *format, ...
   ASSERT(s_scriptEvents[index].name);
 
   eventObject = &s_scriptEvents[index];
-  listener = eventObject->list.Head();
-  while (reinterpret_cast<long>(listener) > 0) {
+  ITERATELIST(EVENTLISTENERNODE, eventObject->list, listener) {
     listener->object->OnScriptEvent(eventObject->name, format, arguments);
-    listener = eventObject->list.RawNext(listener);
   }
 
   va_end(arguments);

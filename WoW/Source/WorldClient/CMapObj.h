@@ -572,7 +572,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
       unsigned int groupNum,
       int rDrawSharedLiquidToggle,
       const NTempest::C44Matrix &invMat,
-      const TSExplicitList<CWFrustum, 244> &frustumList
+      const LISTEX(CWFrustum, sceneLink) &frustumList
   );
 
   static TSCArray<NTempest::CRect, 16> extViewList;
@@ -679,7 +679,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   SMOMaterial                        *materialList;
   unsigned int                        materialCount;
   unsigned int                        nGroupsRead;
-  TSExplicitList<CMapObjGroup, 0x1AC> groupList;
+  LISTDECLEX(CMapObjGroup, lameAssLink, groupList);
   TSCArray<CMapObjGroup *, 384>       groupPtrList;
 
   static unsigned int gRenderCount;

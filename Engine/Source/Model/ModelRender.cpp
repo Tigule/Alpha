@@ -156,7 +156,7 @@ static void CreatePlanarQuadGeometry(
 static int CreateCylinderGeometry(
     const NTempest::C3Vector &base,
     const NTempest::C3Vector &height,
-    float radius,
+    const float radius,
     TSGrowableArray<NTempest::C3Vector> *vertices,
     TSGrowableArray<NTempest::C3Vector> *normals,
     TSGrowableArray<NTempest::C2Vector> *texCoords,
@@ -166,8 +166,8 @@ static int CreateCylinderGeometry(
 static void GenerateCylinderVerts(
     const NTempest::C3Vector &base,
     const NTempest::C3Vector &height,
-    float radius,
-    unsigned int segments,
+    const float radius,
+    const unsigned int segments,
     TSGrowableArray<NTempest::C3Vector> *vertices,
     TSGrowableArray<NTempest::C3Vector> *normals
 );
@@ -1402,7 +1402,7 @@ static int IModelTestRay(CModelComplex* modelptr, CModelShared* shared, const NT
 
   if (testLinkedModels) {
     for (i = 0; i < modelptr->m_attached.Count(); ++i) {
-      for (LINKUNIQUE *link = modelptr->m_attached[i].Head(); link; link = link->Next()) {
+      ITERATELIST(LINKUNIQUE, modelptr->m_attached[i], link) {
         CModelBase   *childptr;
         CModelShared *childShared;
         if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childptr, &childShared)) {
@@ -1970,7 +1970,7 @@ static void IModelComplexAddToScene(CModel *model, unsigned int renderFlags) {
     }
 
     if (enabled) {
-      TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &attached = modelptr->m_attached.Ptr()[index];
+      LIST(LINKUNIQUE) &attached = modelptr->m_attached.Ptr()[index];
       LINKUNIQUE                                 *link;
       LINKUNIQUE                                 *next;
 
@@ -2031,7 +2031,7 @@ void ModelAddToScene(HMODEL model, unsigned int renderFlags) {
   }
 }
 
-void ModelAddToScene(NTempest::C3Vector &position, int priorityPlane, void(*callback)(void *, int), void *param1, int param2) {
+void ModelAddToScene(const NTempest::C3Vector &position, int priorityPlane, void(*callback)(void *, int), void *param1, int param2) {
   CTransparentObject *object = s_trLayerPool.New();
   object->sortType = SORTOBJ_CUSTOM_MODEL;
   object->priorityPlane = priorityPlane;
@@ -2196,7 +2196,7 @@ void ModelSceneCalcFrustumPlanes() {
   GxuXformCalcFrustumPlanes(viewProj, s_frustumPlanes);
 }
 
-int ModelTestSphere(HMODEL model, NTempest::C34Matrix &orientation, float scale, int testLinkedModels) {
+int ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float scale, int testLinkedModels) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2216,7 +2216,7 @@ int ModelTestSphere(HMODEL model, NTempest::C34Matrix &orientation, float scale,
     CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
     unsigned int   numAttachments = complex->m_attached.Count();
     for (unsigned int i = 0; i < numAttachments; ++i) {
-      for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = link->Next()) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         NTempest::C34Matrix childMatrix = orientation;
         if (ModelTestSphere(link->child, childMatrix, scale * link->scale, 1)) {
           return 1;
@@ -2469,6 +2469,51 @@ static int IModelTestCollisionVolumes(CModelComplex* modelptr, CModelShared* sha
   return hitVolume;
 }
 
+int ModelTestSphere(
+    HMODEL model,
+    const NTempest::C3Vector &position,
+    float rotationAngle,
+    const NTempest::C3Vector &rotationAxis,
+    float scale,
+    int testLinkedModels
+) {
+  CModelBase   *modelptr;
+  CModelShared *shared;
+  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
+    return 0;
+  }
+
+  NTempest::CAaSphere bounds;
+  IModelGetBoundingSphere(modelptr, shared, &bounds);
+  TransformBounds(position, rotationAngle, rotationAxis, scale, &bounds);
+  if (GxuTestSphereAndFrustumPlanes(bounds.c, bounds.r, s_frustumPlanes)) {
+    return 1;
+  }
+
+  if (testLinkedModels && (modelptr->m_flags & 0x20)) {
+    CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
+
+    unsigned int numAttachments = complex->m_attached.Count();
+    for (unsigned int i = 0; i < numAttachments; ++i) {
+      ASSERT(complex->m_anim);
+      unsigned int attachmentObjId = AnimGetAttachmentObjId(complex->m_anim, i);
+      NTempest::C3Vector linkPosition = shared->positions[attachmentObjId];
+
+      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
+        NTempest::C3Vector childPosition(
+            position.x + linkPosition.x,
+            position.y + linkPosition.y,
+            position.z + linkPosition.z
+        );
+        if (ModelTestSphere(link->child, childPosition, rotationAngle, rotationAxis, scale, 1)) {
+          return 1;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 static void CreatePlanarQuadGeometry(
     const NTempest::C3Vector &base,
     float length,
@@ -2513,8 +2558,8 @@ static void CreatePlanarQuadGeometry(
 static void GenerateCylinderVerts(
     const NTempest::C3Vector &base,
     const NTempest::C3Vector &height,
-    float radius,
-    unsigned int segments,
+    const float radius,
+    const unsigned int segments,
     TSGrowableArray<NTempest::C3Vector> *vertices,
     TSGrowableArray<NTempest::C3Vector> *normals
 ) {
@@ -2582,7 +2627,7 @@ static void GenerateCylinderVerts(
 static int CreateCylinderGeometry(
     const NTempest::C3Vector &base,
     const NTempest::C3Vector &height,
-    float radius,
+    const float radius,
     TSGrowableArray<NTempest::C3Vector> *vertices,
     TSGrowableArray<NTempest::C3Vector> *normals,
     TSGrowableArray<NTempest::C2Vector> *texCoords,
@@ -2865,7 +2910,7 @@ static void AddHitTestGeometryGeoset(HMODEL__* modelHandle, HTEXTURE__* tex) {
   );
 }
 
-int ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
+int ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2899,7 +2944,7 @@ int ModelHitTestSphere(HMODEL model, float scale, NTempest::C3Vector &a, NTempes
     CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
     unsigned int   numAttachments = complex->m_attached.Count();
     for (unsigned int i = 0; i < numAttachments; ++i) {
-      for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = link->Next()) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         if (ModelHitTestSphere(link->child, scale * link->scale, a, b, 1, linePos)) {
           return 1;
         }
@@ -2918,7 +2963,7 @@ int ModelHasHitTestVolumes(HMODEL model) {
   return shared->hitTest.Count() != 0;
 }
 
-int ModelHitTestVolumes(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
+int ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2939,7 +2984,7 @@ int ModelHitTestVolumes(HMODEL model, float scale, NTempest::C3Vector &a, NTempe
   if (testLinkedModels) {
     CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
     for (unsigned int i = 0; i < complex->m_attached.Count(); ++i) {
-      for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = link->Next()) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         CModelShared *childShared;
         if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childShared) &&
             (childShared->hitTest.Count() ? ModelHitTestVolumes(link->child, scale, a, b, 1, linePos)
@@ -2953,7 +2998,7 @@ int ModelHitTestVolumes(HMODEL model, float scale, NTempest::C3Vector &a, NTempe
   return 0;
 }
 
-int ModelHitTestGeometry(HMODEL model, float scale, NTempest::C3Vector &a, NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
+int ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2967,7 +3012,7 @@ int ModelHitTestGeometry(HMODEL model, float scale, NTempest::C3Vector &a, NTemp
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
     CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
     for (unsigned int i = 0; i < complex->m_attached.Count(); ++i) {
-      for (LINKUNIQUE *link = complex->m_attached[i].Head(); link; link = link->Next()) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         if (ModelHitTestGeometry(link->child, scale, a, b, 1, linePos)) {
           return 1;
         }

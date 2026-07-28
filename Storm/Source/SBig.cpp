@@ -932,43 +932,43 @@ static void ToUnsigned(UINT *val, const BigBuffer &a) {
   }
 }
 
-extern "C" void APIENTRY SBigAdd(BigData *a, const BigData *b, const BigData *c) {
-  Add(a->Primary(), b->Primary(), c->Primary());
+extern "C" void APIENTRY SBigAdd(BigData *a, const BigData &b, const BigData &c) {
+  Add(a->Primary(), b.Primary(), c.Primary());
 }
 
-extern "C" void APIENTRY SBigAnd(BigData *a, const BigData *b, const BigData *c) {
-  And(a->Primary(), b->Primary(), c->Primary());
+extern "C" void APIENTRY SBigAnd(BigData *a, const BigData &b, const BigData &c) {
+  And(a->Primary(), b.Primary(), c.Primary());
 }
 
-extern "C" void APIENTRY SBigBitLen(BigData *a, DWORD *bits) {
+extern "C" void APIENTRY SBigBitLen(BigData *a, UINT *bits) {
   *bits = IsZero(a->Primary()) ? 0 : HighBitPos(a->Primary()) + 1;
 }
 
-extern "C" int APIENTRY SBigCompare(const BigData *b, const BigData *c) {
-  return Compare(b->Primary(), c->Primary());
+extern "C" int APIENTRY SBigCompare(const BigData &b, const BigData &c) {
+  return Compare(b.Primary(), c.Primary());
 }
 
-extern "C" void APIENTRY SBigCopy(BigData *a, const BigData *b) {
-  a->Primary() = b->Primary();
+extern "C" void APIENTRY SBigCopy(BigData *a, const BigData &b) {
+  a->Primary() = b.Primary();
 }
 
-extern "C" void APIENTRY SBigDec(BigData *a, const BigData *b) {
-  Sub(a->Primary(), b->Primary(), 1);
+extern "C" void APIENTRY SBigDec(BigData *a, const BigData &b) {
+  Sub(a->Primary(), b.Primary(), 1);
 }
 
 extern "C" void APIENTRY SBigDel(BigData *num) {
   delete num;
 }
 
-extern "C" void APIENTRY SBigDiv(BigData *a, const BigData *b, const BigData *c) {
+extern "C" void APIENTRY SBigDiv(BigData *a, const BigData &b, const BigData &c) {
   UINT       allocCount = 0;
   BigBuffer &remainder = a->Stack().Alloc(&allocCount);
-  Div(a->Primary(), remainder, b->Primary(), c->Primary(), a->Stack());
+  Div(a->Primary(), remainder, b.Primary(), c.Primary(), a->Stack());
   a->Stack().Free(allocCount);
 }
 
-extern "C" void APIENTRY SBigFindPrime(BigData *a, DWORD b, const BigData *c, const BigData *d) {
-  FindPrime(a->Primary(), b, c->Primary(), d->Primary(), a->Stack());
+extern "C" void APIENTRY SBigFindPrime(BigData *a, UINT b, const BigData &c, const BigData &d) {
+  FindPrime(a->Primary(), b, c.Primary(), d.Primary(), a->Stack());
 }
 
 extern "C" void APIENTRY SBigFromBinary(BigData *num, const void *data, UINT bytes) {
@@ -987,75 +987,75 @@ extern "C" void APIENTRY SBigFromUnsigned(BigData *num, UINT val) {
   FromUnsigned(num->Primary(), val);
 }
 
-extern "C" void APIENTRY SBigGcd(BigData *a, const BigData *b, const BigData *c) {
-  Gcd(a->Primary(), b->Primary(), c->Primary(), a->Stack());
+extern "C" void APIENTRY SBigGcd(BigData *a, const BigData &b, const BigData &c) {
+  Gcd(a->Primary(), b.Primary(), c.Primary(), a->Stack());
 }
 
-extern "C" void APIENTRY SBigInc(BigData *a, const BigData *b) {
-  Add(a->Primary(), b->Primary(), 1);
+extern "C" void APIENTRY SBigInc(BigData *a, const BigData &b) {
+  Add(a->Primary(), b.Primary(), 1);
 }
 
-extern "C" void APIENTRY SBigInvMod(BigData *a, const BigData *b, const BigData *c) {
-  InvMod(a->Primary(), b->Primary(), c->Primary(), a->Stack());
+extern "C" void APIENTRY SBigInvMod(BigData *a, const BigData &b, const BigData &c) {
+  InvMod(a->Primary(), b.Primary(), c.Primary(), a->Stack());
 }
 
-extern "C" int APIENTRY SBigIsEven(const BigData *a) {
-  return IsEven(a->Primary());
+extern "C" int APIENTRY SBigIsEven(const BigData &a) {
+  return IsEven(a.Primary());
 }
 
-extern "C" int APIENTRY SBigIsOdd(const BigData *a) {
-  return IsOdd(a->Primary());
+extern "C" int APIENTRY SBigIsOdd(const BigData &a) {
+  return IsOdd(a.Primary());
 }
 
-extern "C" int APIENTRY SBigIsOne(BigData &a) {
+extern "C" int APIENTRY SBigIsOne(const BigData &a) {
   return IsOne(a.Primary());
 }
 
-extern "C" int APIENTRY SBigIsPrime(const BigData *a) {
-  return IsPrime(a->Primary(), a->Stack());
+extern "C" int APIENTRY SBigIsPrime(const BigData &a) {
+  return IsPrime(a.Primary(), a.Stack());
 }
 
-extern "C" int APIENTRY SBigIsZero(const BigData *a) {
-  return IsZero(a->Primary());
+extern "C" int APIENTRY SBigIsZero(const BigData &a) {
+  return IsZero(a.Primary());
 }
 
-extern "C" void APIENTRY SBigMod(BigData *a, const BigData *b, const BigData *c) {
+extern "C" void APIENTRY SBigMod(BigData *a, const BigData &b, const BigData &c) {
   UINT       allocCount = 0;
   BigBuffer &quotient = a->Stack().Alloc(&allocCount);
-  Div(quotient, a->Primary(), b->Primary(), c->Primary(), a->Stack());
+  Div(quotient, a->Primary(), b.Primary(), c.Primary(), a->Stack());
   a->Stack().Free(allocCount);
 }
 
-extern "C" void APIENTRY SBigMul(BigData *a, const BigData *b, const BigData *c) {
-  Mul(a->Primary(), b->Primary(), c->Primary(), a->Stack());
+extern "C" void APIENTRY SBigMul(BigData *a, const BigData &b, const BigData &c) {
+  Mul(a->Primary(), b.Primary(), c.Primary(), a->Stack());
 }
 
-extern "C" void APIENTRY SBigMulMod(BigData *a, const BigData *b, const BigData *c, const BigData *d) {
-  MulMod(a->Primary(), b->Primary(), c->Primary(), d->Primary(), a->Stack());
+extern "C" void APIENTRY SBigMulMod(BigData *a, const BigData &b, const BigData &c, const BigData &d) {
+  MulMod(a->Primary(), b.Primary(), c.Primary(), d.Primary(), a->Stack());
 }
 
 extern "C" void APIENTRY SBigNew(BigData **num) {
   *num = NEW(BigData);
 }
 
-extern "C" void APIENTRY SBigNot(BigData *a, const BigData *b) {
-  Not(a->Primary(), b->Primary());
+extern "C" void APIENTRY SBigNot(BigData *a, const BigData &b) {
+  Not(a->Primary(), b.Primary());
 }
 
-extern "C" void APIENTRY SBigOr(BigData *a, const BigData *b, const BigData *c) {
-  Or(a->Primary(), b->Primary(), c->Primary());
+extern "C" void APIENTRY SBigOr(BigData *a, const BigData &b, const BigData &c) {
+  Or(a->Primary(), b.Primary(), c.Primary());
 }
 
-extern "C" void APIENTRY SBigPow(BigData *a, const BigData *b, UINT c) {
-  Pow(a->Primary(), b->Primary(), c, a->Stack());
+extern "C" void APIENTRY SBigPow(BigData *a, const BigData &b, UINT c) {
+  Pow(a->Primary(), b.Primary(), c, a->Stack());
 }
 
-extern "C" void APIENTRY SBigPowMod(BigData *a, const BigData *b, const BigData *c, const BigData *d) {
-  PowMod(a->Primary(), b->Primary(), c->Primary(), d->Primary(), a->Stack());
+extern "C" void APIENTRY SBigPowMod(BigData *a, const BigData &b, const BigData &c, const BigData &d) {
+  PowMod(a->Primary(), b.Primary(), c.Primary(), d.Primary(), a->Stack());
 }
 
-extern "C" void APIENTRY SBigRand(BigData *a, const BigData *b, BigData *seed) {
-  Rand(a->Primary(), b->Primary(), seed->Primary(), a->Stack());
+extern "C" void APIENTRY SBigRand(BigData *a, const BigData &b, BigData *seed) {
+  Rand(a->Primary(), b.Primary(), seed->Primary(), a->Stack());
 }
 
 extern "C" void APIENTRY SBigSet2Exp(BigData *a, UINT b) {
@@ -1070,98 +1070,97 @@ extern "C" void APIENTRY SBigSetZero(BigData *a) {
   SetZero(a->Primary());
 }
 
-extern "C" void APIENTRY SBigShl(BigData *a, const BigData *b, UINT c) {
-  Shl(a->Primary(), b->Primary(), c);
+extern "C" void APIENTRY SBigShl(BigData *a, const BigData &b, UINT c) {
+  Shl(a->Primary(), b.Primary(), c);
 }
 
-extern "C" void APIENTRY SBigShr(BigData *a, const BigData *b, UINT c) {
-  Shr(a->Primary(), b->Primary(), c);
+extern "C" void APIENTRY SBigShr(BigData *a, const BigData &b, UINT c) {
+  Shr(a->Primary(), b.Primary(), c);
 }
 
-extern "C" void APIENTRY SBigSquare(BigData *a, const BigData *b) {
-  Square(a->Primary(), b->Primary(), a->Stack());
+extern "C" void APIENTRY SBigSquare(BigData *a, const BigData &b) {
+  Square(a->Primary(), b.Primary(), a->Stack());
 }
 
-extern "C" void APIENTRY SBigSub(BigData *a, const BigData *b, const BigData *c) {
-  Sub(a->Primary(), b->Primary(), c->Primary());
+extern "C" void APIENTRY SBigSub(BigData *a, const BigData &b, const BigData &c) {
+  Sub(a->Primary(), b.Primary(), c.Primary());
 }
 
-extern "C" void APIENTRY SBigToBinaryArray(const BigData *num, void *array, int append) {
-  TSGrowableArray<BYTE> *target = (TSGrowableArray<BYTE> *)array;
-  ToBinary(num->Output(), num->Primary());
-  if (!append) {
-    target->SetCount(0);
-  }
-  target->Add(num->Output().Count(), num->Output().Ptr());
-}
-
-extern "C" void APIENTRY SBigToBinaryBuffer(const BigData *num, void *data, UINT maxBytes, UINT *bytes) {
-  UINT count;
-  ToBinary(num->Output(), num->Primary());
-  count = min(num->Output().Count(), maxBytes);
-  memcpy(data, num->Output().Ptr(), count);
-  if (bytes) {
-    *bytes = count;
-  }
-}
-
-extern "C" void APIENTRY SBigToBinaryPtr(const BigData *num, const void **data, UINT *bytes) {
-  ToBinary(num->Output(), num->Primary());
-  *data = num->Output().Ptr();
-  if (bytes) {
-    *bytes = num->Output().Count();
-  }
-}
-
-extern "C" void APIENTRY SBigToStrArray(const BigData *num, void *array, int append) {
-  TSGrowableArray<char> *target = (TSGrowableArray<char> *)array;
-  ToStr(num->Output(), num->Primary(), num->Stack());
+extern "C" void APIENTRY SBigToBinaryArray(const BigData &num, TSGrowableArray<BYTE> *array, int append) {
+  ToBinary(num.Output(), num.Primary());
   if (append) {
-    target->Add(num->Output().Count(), (const char *)num->Output().Ptr());
+    array->Add(num.Output().Count(), num.Output().Ptr());
   } else {
-    target->Set(num->Output().Count(), (const char *)num->Output().Ptr());
+    array->Set(num.Output().Count(), num.Output().Ptr());
   }
 }
 
-extern "C" void APIENTRY SBigToStrBuffer(const BigData *num, char *str, UINT chars) {
-  ToStr(num->Output(), num->Primary(), num->Stack());
-  SStrCopy(str, (const char *)num->Output().Ptr(), chars);
-}
-
-extern "C" void APIENTRY SBigToStrPtr(const BigData *num, const char **str) {
-  ToStr(num->Output(), num->Primary(), num->Stack());
-  *str = (const char *)num->Output().Ptr();
-}
-
-extern "C" void APIENTRY SBigToStreamArray(const BigData *num, void *array, int append) {
-  TSGrowableArray<BYTE> *target = (TSGrowableArray<BYTE> *)array;
-  ToStream(num->Output(), num->Primary());
-  if (!append) {
-    target->SetCount(0);
-  }
-  target->Add(num->Output().Count(), num->Output().Ptr());
-}
-
-extern "C" void APIENTRY SBigToStreamBuffer(const BigData *num, void *data, UINT maxBytes, UINT *bytes) {
+extern "C" void APIENTRY SBigToBinaryBuffer(const BigData &num, void *data, UINT maxBytes, UINT *bytes) {
   UINT count;
-  ToStream(num->Output(), num->Primary());
-  count = min(num->Output().Count(), maxBytes);
-  memcpy(data, num->Output().Ptr(), count);
+  ToBinary(num.Output(), num.Primary());
+  count = min(num.Output().Count(), maxBytes);
+  memcpy(data, num.Output().Ptr(), count);
   if (bytes) {
     *bytes = count;
   }
 }
 
-extern "C" void APIENTRY SBigToStreamPtr(const BigData *num, const void **data, UINT *bytes) {
-  ToStream(num->Output(), num->Primary());
-  *data = num->Output().Ptr();
-  *bytes = num->Output().Count();
+extern "C" void APIENTRY SBigToBinaryPtr(const BigData &num, const void **data, UINT *bytes) {
+  ToBinary(num.Output(), num.Primary());
+  *data = num.Output().Ptr();
+  if (bytes) {
+    *bytes = num.Output().Count();
+  }
 }
 
-extern "C" void APIENTRY SBigToUnsigned(const BigData *num, UINT *val) {
-  ToUnsigned(val, num->Primary());
+extern "C" void APIENTRY SBigToStrArray(const BigData &num, TSGrowableArray<char> *array, int append) {
+  ToStr(num.Output(), num.Primary(), num.Stack());
+  if (append) {
+    array->Add(num.Output().Count(), (const char *)num.Output().Ptr());
+  } else {
+    array->Set(num.Output().Count(), (const char *)num.Output().Ptr());
+  }
 }
 
-extern "C" void APIENTRY SBigXor(BigData *a, const BigData *b, const BigData *c) {
-  Xor(a->Primary(), b->Primary(), c->Primary());
+extern "C" void APIENTRY SBigToStrBuffer(const BigData &num, char *str, UINT chars) {
+  ToStr(num.Output(), num.Primary(), num.Stack());
+  SStrCopy(str, (const char *)num.Output().Ptr(), chars);
+}
+
+extern "C" void APIENTRY SBigToStrPtr(const BigData &num, const char **str) {
+  ToStr(num.Output(), num.Primary(), num.Stack());
+  *str = (const char *)num.Output().Ptr();
+}
+
+extern "C" void APIENTRY SBigToStreamArray(const BigData &num, TSGrowableArray<BYTE> *array, int append) {
+  ToStream(num.Output(), num.Primary());
+  if (append) {
+    array->Add(num.Output().Count(), num.Output().Ptr());
+  } else {
+    array->Set(num.Output().Count(), num.Output().Ptr());
+  }
+}
+
+extern "C" void APIENTRY SBigToStreamBuffer(const BigData &num, void *data, UINT maxBytes, UINT *bytes) {
+  UINT count;
+  ToStream(num.Output(), num.Primary());
+  count = min(num.Output().Count(), maxBytes);
+  memcpy(data, num.Output().Ptr(), count);
+  if (bytes) {
+    *bytes = count;
+  }
+}
+
+extern "C" void APIENTRY SBigToStreamPtr(const BigData &num, const void **data, UINT *bytes) {
+  ToStream(num.Output(), num.Primary());
+  *data = num.Output().Ptr();
+  *bytes = num.Output().Count();
+}
+
+extern "C" void APIENTRY SBigToUnsigned(const BigData &num, UINT *val) {
+  ToUnsigned(val, num.Primary());
+}
+
+extern "C" void APIENTRY SBigXor(BigData *a, const BigData &b, const BigData &c) {
+  Xor(a->Primary(), b.Primary(), c.Primary());
 }

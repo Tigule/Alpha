@@ -25,7 +25,7 @@ void MessageFree(EvtMessage *message) {
 void ResetSyncState(EvtContext *context) {
   context->QueueResetSyncButtonState(~0u);
 
-  TSExplicitList<EvtKeyDown, 0> &keyDownList = context->QueueLockSyncKeyDownList();
+  LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
 
   EvtKeyDown *keyDown;
   while ((keyDown = keyDownList.Head()) != 0) {
@@ -39,7 +39,7 @@ void ResetSyncState(EvtContext *context) {
 void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
   int keyDown = 0;
 
-  TSExplicitList<EvtKeyDown, 0> &keyDownList = context->QueueLockSyncKeyDownList();
+  LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
   EvtKeyDown                    *entry = keyDownList.Head();
   while (entry) {
     if (entry->key == key) {
@@ -106,7 +106,7 @@ int IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
   FATALASSERT(context);
 
   int                            keyDown = 0;
-  TSExplicitList<EvtKeyDown, 0> &keyDownList = context->QueueLockSyncKeyDownList();
+  LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
   EvtKeyDown                    *entry = keyDownList.Head();
   while (entry) {
     if (entry->key == key) {
@@ -181,7 +181,7 @@ void IEvtQueueDispatch(EvtContext *context, EVENTID id, const void *data) {
     ActivityBegin(activity);
   }
 
-  TSExplicitList<EvtHandler, 0> &handlerList = context->QueueLockHandlerList(id);
+  LISTEX(EvtHandler, link) &handlerList = context->QueueLockHandlerList(id);
   EvtHandler                     marker;
   marker.marker = 1;
 
@@ -205,7 +205,7 @@ void IEvtQueueDispatch(EvtContext *context, EVENTID id, const void *data) {
 int IEvtQueueHasMessages(EvtContext *context) {
   FATALASSERT(context);
 
-  TSExplicitList<EvtMessage, 4> &messageList = context->QueueLockMessageList();
+  LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
   int                            hasMessages = messageList.Head() != 0;
   context->QueueUnlockMessageList();
   return hasMessages;
@@ -214,7 +214,7 @@ int IEvtQueueHasMessages(EvtContext *context) {
 int IEvtQueueDispatchNext(EvtContext *context) {
   FATALASSERT(context);
 
-  TSExplicitList<EvtMessage, 4> &messageList = context->QueueLockMessageList();
+  LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
   EvtMessage                    *message = messageList.Head();
   if (message) {
     message->link.Unlink();
@@ -236,7 +236,7 @@ void IEvtQueueDispatchAll(EvtContext *context) {
 
   LISTDECLEX(EvtMessage, link, localMessageList);
 
-  TSExplicitList<EvtMessage, 4> &messageList = context->QueueLockMessageList();
+  LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
   localMessageList.Combine(&messageList, LIST_TAIL, 0);
   context->QueueUnlockMessageList();
 
@@ -256,7 +256,7 @@ void IEvtQueuePost(EvtContext *context, EVENTID id, const void *data, unsigned i
     memcpy(message->data, data, bytes);
   }
 
-  TSExplicitList<EvtMessage, 4> &messageList = context->QueueLockMessageList();
+  LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
   messageList.LinkNode(message, LIST_TAIL, 0);
   context->QueueUnlockMessageList();
 }
@@ -270,14 +270,12 @@ void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param) {
 
   LISTDECLEX(EvtMessage, link, localMessageList);
 
-  TSExplicitList<EvtMessage, 4> &messageList = context->QueueLockMessageList();
+  LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
   localMessageList.Combine(&messageList, LIST_TAIL, 0);
   context->QueueUnlockMessageList();
 
-  EvtMessage *message = localMessageList.Head();
-  while (message) {
+  ITERATELIST(EvtMessage, localMessageList, message) {
     scanner(message->id, message->data, param);
-    message = localMessageList.Next(message);
   }
 
   context->QueueLockMessageList();
@@ -289,7 +287,7 @@ void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param) {
 void IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, float priority) {
   FATALASSERT(context);
 
-  TSExplicitList<EvtHandler, 0> &handlerList = context->QueueLockHandlerList(id);
+  LISTEX(EvtHandler, link) &handlerList = context->QueueLockHandlerList(id);
   void                          *storage = SMemAlloc(sizeof(EvtHandler), typeid(EvtHandler).raw_name(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
   EvtHandler                    *newHandler = storage ? new (storage) EvtHandler : 0;
   newHandler->func = handler;
@@ -314,7 +312,7 @@ void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, 
       continue;
     }
 
-    TSExplicitList<EvtHandler, 0> &handlerList = context->QueueLockHandlerList(static_cast<EVENTID>(checkId));
+    LISTEX(EvtHandler, link) &handlerList = context->QueueLockHandlerList(static_cast<EVENTID>(checkId));
     EvtHandler                    *registered = handlerList.Head();
     while (registered) {
       if (((flags & 2) && registered->func != handler) || ((flags & 4) && registered->param != param) || registered->marker) {

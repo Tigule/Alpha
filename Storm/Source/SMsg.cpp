@@ -8,7 +8,7 @@
 #define REGISTERTYPE_KEYDOWN    (REGISTERTYPE_BASE + 3)
 #define REGISTERTYPE_KEYUP      (REGISTERTYPE_BASE + 4)
 
-struct WNDREC : TSLinkedNode<WNDREC> {
+NODEDECL(WNDREC) {
   HWND window;
 };
 typedef WNDREC *WNDRECPTR;
@@ -25,14 +25,10 @@ static void AddWindow(HWND window) {
 }
 
 static WNDRECPTR FindWindowA(HWND window) {
-  WNDRECPTR entry;
-
-  entry = s_wndlist.Head();
-  while ((LONG)entry > 0) {
+  ITERATELIST(WNDREC, s_wndlist, entry) {
     if (entry->window == window) {
       return entry;
     }
-    entry = s_wndlist.RawNext(entry);
   }
 
   return NULL;
@@ -73,7 +69,7 @@ static LRESULT CALLBACK GenericWndProc(HWND window, UINT message, WPARAM wparam,
   return DefWindowProcA(window, message, wparam, lparam);
 }
 
-static BOOL InternalRegister(DWORD type, HWND window, DWORD id, void(APIENTRY *handler)(SMSGPARAMS *)) {
+static BOOL InternalRegister(DWORD type, HWND window, DWORD id, SMSGHANDLER handler) {
   FATALASSERT(handler);
 
   if (!FindWindowA(window)) {
@@ -83,7 +79,7 @@ static BOOL InternalRegister(DWORD type, HWND window, DWORD id, void(APIENTRY *h
   return SEvtRegisterHandler(type, (DWORD)window, id, 0, (SEVTHANDLER)handler);
 }
 
-static BOOL InternalUnregister(DWORD type, HWND window, DWORD id, void(APIENTRY *handler)(SMSGPARAMS *)) {
+static BOOL InternalUnregister(DWORD type, HWND window, DWORD id, SMSGHANDLER handler) {
   if (!FindWindowA(window)) {
     AddWindow(window);
   }
@@ -228,23 +224,23 @@ extern "C" BOOL APIENTRY SMsgPushRegisterState(HWND window) {
 }
 
 extern "C" BOOL APIENTRY SMsgRegisterCommand(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalRegister(REGISTERTYPE_COMMAND, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalRegister(REGISTERTYPE_COMMAND, window, id, handler);
 }
 
 extern "C" BOOL APIENTRY SMsgRegisterSysCommand(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalRegister(REGISTERTYPE_SYSCOMMAND, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalRegister(REGISTERTYPE_SYSCOMMAND, window, id, handler);
 }
 
 extern "C" BOOL APIENTRY SMsgRegisterKeyDown(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalRegister(REGISTERTYPE_KEYDOWN, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalRegister(REGISTERTYPE_KEYDOWN, window, id, handler);
 }
 
 extern "C" BOOL APIENTRY SMsgRegisterKeyUp(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalRegister(REGISTERTYPE_KEYUP, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalRegister(REGISTERTYPE_KEYUP, window, id, handler);
 }
 
 extern "C" BOOL APIENTRY SMsgRegisterMessage(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalRegister(REGISTERTYPE_MESSAGE, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalRegister(REGISTERTYPE_MESSAGE, window, id, handler);
 }
 
 extern "C" BOOL APIENTRY SMsgSetDefaultWindow(HWND window) {
@@ -252,28 +248,28 @@ extern "C" BOOL APIENTRY SMsgSetDefaultWindow(HWND window) {
   return TRUE;
 }
 
-extern "C" void APIENTRY SMsgSetDefaultWindowRect(RECT *rect) {
+extern "C" void APIENTRY SMsgSetDefaultWindowRect(const RECT *rect) {
   FATALASSERT(rect);
 
   s_defaultwindowrect = *rect;
 }
 
 extern "C" BOOL APIENTRY SMsgUnregisterCommand(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalUnregister(REGISTERTYPE_COMMAND, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalUnregister(REGISTERTYPE_COMMAND, window, id, handler);
 }
 
 extern "C" BOOL APIENTRY SMsgUnregisterSysCommand(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalUnregister(REGISTERTYPE_SYSCOMMAND, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalUnregister(REGISTERTYPE_SYSCOMMAND, window, id, handler);
 }
 
 extern "C" BOOL APIENTRY SMsgUnregisterKeyDown(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalUnregister(REGISTERTYPE_KEYDOWN, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalUnregister(REGISTERTYPE_KEYDOWN, window, id, handler);
 }
 
 extern "C" BOOL APIENTRY SMsgUnregisterKeyUp(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalUnregister(REGISTERTYPE_KEYUP, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalUnregister(REGISTERTYPE_KEYUP, window, id, handler);
 }
 
 extern "C" BOOL APIENTRY SMsgUnregisterMessage(HWND window, UINT id, SMSGHANDLER handler) {
-  return InternalUnregister(REGISTERTYPE_MESSAGE, window, id, (void(APIENTRY *)(SMSGPARAMS *))handler);
+  return InternalUnregister(REGISTERTYPE_MESSAGE, window, id, handler);
 }

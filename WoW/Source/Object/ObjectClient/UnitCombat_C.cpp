@@ -32,12 +32,12 @@ void UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp);
 void UnitCombatLogXPGain(const unsigned __int64 &victim, CDataStore *msg, unsigned int count);
 void UnitCombatLog(const ATTACKROUNDINFO &roundInfo);
 void UnitCombatLog(const SPELLLOG &log);
-void UnitCombatLog(SPELLMISSLOG &log);
+void UnitCombatLog(const SPELLMISSLOG &log);
 void UnitCombatLog(const MIRRORTIMERDAMAGE &log);
-void UnitCombatLog(ENVIRONMENTALDAMAGE &log);
-void UnitCombatLogHeartbeatResist(RESISTLOG &log);
-void UnitCombatLogEnchantment(ENCHANTMENTLOG &log);
-void UnitCombatLogPartyKill(PARTYKILLLOG &log);
+void UnitCombatLog(const ENVIRONMENTALDAMAGE &log);
+void UnitCombatLogHeartbeatResist(const RESISTLOG &log);
+void UnitCombatLogEnchantment(const ENCHANTMENTLOG &log);
+void UnitCombatLogPartyKill(const PARTYKILLLOG &log);
 void UnitCombatLogInitialize();
 void UnitCombatLogShutdown();
 
@@ -173,7 +173,7 @@ static void LoadAnimKitTable() {
   }
 }
 
-void ATTACKROUNDINFO::PI(CDataStore &msg, int debug) {
+void ATTACKROUNDINFO::PI(CDataStore &msg, int debug) const {
 }
 
 void ATTACKROUNDINFO::UI(CDataStore &msg) {
@@ -235,7 +235,7 @@ void ATTACKROUNDINFO::UI(CDataStore &msg) {
   FATALASSERT(victim);
 }
 
-void SPELLLOG::PI(CDataStore &msg, int debug) {
+void SPELLLOG::PI(CDataStore &msg, int debug) const {
 }
 
 void SPELLLOG::UI(CDataStore &msg) {
@@ -272,7 +272,7 @@ void SPELLLOG::UI(CDataStore &msg) {
   FATALASSERT(victim);
 }
 
-void SPELLMISSLOG::PI(CDataStore &msg, int debug) {
+void SPELLMISSLOG::PI(CDataStore &msg, int debug) const {
 }
 
 void SPELLMISSLOG::UI(CDataStore &msg) {
@@ -295,7 +295,7 @@ void SPELLMISSLOG::UI(CDataStore &msg) {
   }
 }
 
-void RESISTLOG::PI(CDataStore &msg, int debug) {
+void RESISTLOG::PI(CDataStore &msg, int debug) const {
 }
 
 void RESISTLOG::UI(CDataStore &msg) {
@@ -310,7 +310,7 @@ void RESISTLOG::UI(CDataStore &msg) {
   FATALASSERT(victim);
 }
 
-void ENCHANTMENTLOG::PI(CDataStore &msg, int debug) {
+void ENCHANTMENTLOG::PI(CDataStore &msg, int debug) const {
 }
 
 void ENCHANTMENTLOG::UI(CDataStore &msg) {
@@ -325,7 +325,7 @@ void ENCHANTMENTLOG::UI(CDataStore &msg) {
   FATALASSERT(attacker);
 }
 
-void ENVIRONMENTALDAMAGE::PI(CDataStore &msg, int debug) {
+void ENVIRONMENTALDAMAGE::PI(CDataStore &msg, int debug) const {
 }
 
 void ENVIRONMENTALDAMAGE::UI(CDataStore &msg) {
@@ -334,7 +334,7 @@ void ENVIRONMENTALDAMAGE::UI(CDataStore &msg) {
   msg.Get(amount);
 }
 
-void MIRRORTIMERDAMAGE::PI(CDataStore &msg, int debug) {
+void MIRRORTIMERDAMAGE::PI(CDataStore &msg, int debug) const {
 }
 
 void MIRRORTIMERDAMAGE::UI(CDataStore &msg) {
@@ -343,7 +343,7 @@ void MIRRORTIMERDAMAGE::UI(CDataStore &msg) {
   msg.Get(amount);
 }
 
-void PARTYKILLLOG::PI(CDataStore &msg, int debug) {
+void PARTYKILLLOG::PI(CDataStore &msg, int debug) const {
 }
 
 void PARTYKILLLOG::UI(CDataStore &msg) {
@@ -538,7 +538,7 @@ int CGUnit_C::IsAttackAnimState(unsigned int state) {
   return state == 30 || state == 32 || state == 33 || state == 34;
 }
 
-unsigned int CGUnit_C::QueueVictimAnim(VICTIMSTATES newState, int unitDead, int criticalHit, unsigned int victimRoundDuration) {
+bool CGUnit_C::QueueVictimAnim(VICTIMSTATES newState, int unitDead, int criticalHit, unsigned int victimRoundDuration) {
   if (((1 << newState) & 0x2E) && IsPreemptableWoundAnimState(m_currentTorsoAnimState)) {
     unsigned int midpoint = m_currentWoundStartTime + (m_currentWoundAnimDuration >> 1);
     int          elapsed = OsGetAsyncTimeMs() - midpoint;
@@ -823,7 +823,7 @@ void CGUnit_C::SetHandState(HMODEL model, const VirtualItemInfo *item, unsigned 
   }
 }
 
-void CGUnit_C::DetermineReadySequence(unsigned int forceNormal) {
+void CGUnit_C::DetermineReadySequence(bool forceNormal) {
   if (!(m_flags & 4)) {
     m_readySequence = 27;
     return;
@@ -1214,7 +1214,7 @@ void CGUnit_C::PerformSpellProcImpact(int spell) {
 }
 
 void CGUnit_C::ShowBloodSpurt(CGUnit_C *attacker, int crushingBlow) {
-  UnitBloodRec *bloodRec = GetBloodRecord();
+  const UnitBloodRec *bloodRec = GetBloodRecord();
   if (!attacker || !bloodRec) {
     return;
   }
@@ -1521,7 +1521,7 @@ void CGUnit_C::AddVictimDeathHold(CGUnit_C *victimPtr) {
   victimPtr->DDADDLOG(GetGUID(), buff, __FILE__, __LINE__);
 }
 
-void CGUnit_C::SetMeleeDeathHold(CGUnit_C *victimPtr) {
+void CGUnit_C::SetMeleeDeathHold(const CGUnit_C *victimPtr) {
   ClearMeleeDeathHold();
   m_meleeTargetDeathHold = victimPtr ? victimPtr->GetGUID() : 0;
 }

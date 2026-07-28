@@ -161,7 +161,7 @@ struct TEXTURECACHEROW {
   void          EvictGlyph(CHARCODEDESC *&desc);
 
   unsigned int                     widestFreeSlot;
-  TSExplicitList<CHARCODEDESC, 24> glyphList;
+  LISTDECLEX(CHARCODEDESC, textureRowLink, glyphList);
 };
 
 struct TEXTURECACHE {
@@ -245,7 +245,7 @@ NODEDECL(CGxFont) {
   TSHashTable<GLYPHBITMAPDATA, HASHKEY_NONE> m_glyphBitmapData;
   TSHashTable<CHARCODEDESC, HASHKEY_NONE>    m_activeCharacters;
   TSHashTable<KERNNODE, KERNINGHASHKEY>      m_kernInfo;
-  TSExplicitList<CHARCODEDESC, 32>           m_activeCharacterCache;
+  LISTDECLEX(CHARCODEDESC, fontGlyphLink, m_activeCharacterCache);
   HFACE__                                   *m_faceHandle;
   unsigned int                               m_pixelSize;
   unsigned int                               m_rasterPixelSize;
@@ -451,7 +451,7 @@ struct BATCHEDRENDERFONTDESC : public TSHashObject<BATCHEDRENDERFONTDESC, HASHKE
   void RenderBatch();
 
   CGxFont                      *face;
-  TSExplicitList<CGxString, 16> m_strings;
+  LISTDECLEX(CGxString, m_batchedStringLink, m_strings);
 };
 
 NODEDECL(CGxStringBatch) {

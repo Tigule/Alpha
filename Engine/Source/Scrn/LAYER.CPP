@@ -24,7 +24,7 @@ public:
   unsigned long flags;
   void *param;
   void (__fastcall *paintfunc)(void *, const RECTF *, const RECTF *, float);
-  TSLink<CILayer> zorderlink;
+  LINKDECLEX(CILayer, zorderlink);
 };
 
 typedef char CILayerSizeCheck[sizeof(CILayer) == 0x40 ? 1 : -1];
@@ -40,7 +40,7 @@ static const RECTF defaultrect = {0.0f, 0.0f, 1.0f, 1.0f};
 static float s_elapsedSec;
 static void (__fastcall *s_captureScreen)(int);
 static int s_ScrnDisable;
-static TSExplicitList<CILayer, 56> s_zorderlist;
+static LISTDECLEX(CILayer, zorderlink, s_zorderlist);
 
 static int __fastcall CaptureScreen() {
   char path[0x104];

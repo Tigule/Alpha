@@ -8,7 +8,7 @@
 #include "Ui/GameUI.h"
 #include "Ui/WorldFrame.h"
 
-static TSExplicitList<CGGameObject_C, 52> s_transports;
+static LISTDECLEX(CGGameObject_C, moveLink, s_transports);
 
 void MovementLockMoversList(int forWriting) {
 }

@@ -128,12 +128,12 @@ static int                       s_num2dHardwareChannels;
 static int                       s_num3dHardwareChannels;
 static int                       s_mixRate = 44100;
 static HSLOG                     s_log;
-static TSExplicitList<Sound, 8>  s_soundListActive;
-static TSExplicitList<Sound, 16> s_soundListFade;
-static TSExplicitList<Sound, 24> s_soundListUpdate;
-static TSExplicitList<Sound, 32> s_soundListPanning;
-static TSExplicitList<Sound, 40> s_soundListCutoff;
-static TSExplicitList<Sound, 48> s_soundListStop;
+static LISTDECLEX(Sound, link, s_soundListActive);
+static LISTDECLEX(Sound, fadeLink, s_soundListFade);
+static LISTDECLEX(Sound, updateLink, s_soundListUpdate);
+static LISTDECLEX(Sound, panningLink, s_soundListPanning);
+static LISTDECLEX(Sound, cutoffLink, s_soundListCutoff);
+static LISTDECLEX(Sound, stopLink, s_soundListStop);
 static TInstanceAllocator<Sound> s_soundListFree(40);
 static const float               TWO_PI = PI + PI;
 static const float               OO_TWO_PI = 1.0f / TWO_PI;
@@ -565,7 +565,7 @@ void Sound::ProcessPanningList(const NTempest::C3Vector &listenerPos) {
   NTempest::C3Vector  offset;
   float               rotationAngle;
 
-  for (Sound *sound = s_soundListPanning.Head(); sound; sound = sound->panningLink.Next()) {
+  ITERATELIST(Sound, s_soundListPanning, sound) {
     if (sound->m_channel == -1) {
       continue;
     }
@@ -594,7 +594,7 @@ void Sound::ProcessPanningList(const NTempest::C3Vector &listenerPos) {
 }
 
 void Sound::ProcessCutoffList(const NTempest::C3Vector &listenerPos) {
-  for (Sound *sound = s_soundListCutoff.Head(); sound; sound = sound->cutoffLink.Next()) {
+  ITERATELIST(Sound, s_soundListCutoff, sound) {
     NTempest::C3Vector distance = sound->m_worldPosition - listenerPos;
 
     if (distance.SquaredMag() <= sound->m_cutoffDistanceSquared) {

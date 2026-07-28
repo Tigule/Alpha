@@ -466,7 +466,7 @@ void CGWorldMap::GetPlayerPosition(unsigned __int64 guid, float &x, float &y) {
 }
 
 void CGWorldMap::GetBindPosition(float &x, float &y) {
-  NTempest::C3Vector &position = CGPlayer_C::GetBindPoint();
+  const NTempest::C3Vector &position = CGPlayer_C::GetBindPoint();
   NTempest::C2Vector  pos(position.x, position.y);
   GetWorldPosition(pos, ClntObjMgrGetMapID(), x, y);
 }

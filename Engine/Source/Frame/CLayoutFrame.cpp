@@ -413,9 +413,9 @@ void CLayoutFrame::ClearAllPoints(int doResize) {
 void CLayoutFrame::RegisterResize(CLayoutFrame *frame, unsigned int dependency) {
   FRAMENODE *node;
 
-  for (node = m_resizeList.Head(); node; node = m_resizeList.Next(node)) {
-    if (node->frame == frame) {
-      node->dep |= dependency;
+  ITERATELIST(FRAMENODE, m_resizeList, existingNode) {
+    if (existingNode->frame == frame) {
+      existingNode->dep |= dependency;
       return;
     }
   }
@@ -428,9 +428,7 @@ void CLayoutFrame::RegisterResize(CLayoutFrame *frame, unsigned int dependency) 
 }
 
 void CLayoutFrame::UnregisterResize(const CLayoutFrame *frame) {
-  FRAMENODE *node;
-
-  for (node = m_resizeList.Head(); node; node = m_resizeList.Next(node)) {
+  ITERATELIST(FRAMENODE, m_resizeList, node) {
     if (node->frame == frame) {
       m_resizeList.DeleteNode(node);
       return;
@@ -490,9 +488,7 @@ void CLayoutFrame::Resize(int force) {
   }
 
   if (m_flags & 0x2) {
-    FRAMENODE *node;
-
-    for (node = m_resizeList.Head(); node; node = m_resizeList.Next(node)) {
+    ITERATELIST(FRAMENODE, m_resizeList, node) {
       if (!(node->frame->m_flags & 0x2)) {
         SetDeferredResize(0);
         return;
@@ -505,9 +501,8 @@ void CLayoutFrame::Resize(int force) {
 
   if (!resizeLink.IsLinked()) {
     CLayoutFrame *pDependentNode = 0;
-    CLayoutFrame *frame;
 
-    for (frame = s_resizePendingList.Head(); frame; frame = s_resizePendingList.Next(frame)) {
+    ITERATELIST(CLayoutFrame, s_resizePendingList, frame) {
       unsigned int whichPoint;
 
       for (whichPoint = 0; whichPoint < FRAMEPOINT_NUMPOINTS; ++whichPoint) {
@@ -795,8 +790,7 @@ void CLayoutFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
     dependency |= 0xF;
   }
 
-  FRAMENODE *node;
-  for (node = m_resizeList.Head(); node; node = m_resizeList.Next(node)) {
+  ITERATELIST(FRAMENODE, m_resizeList, node) {
     if (node->dep & dependency) {
       node->frame->Resize(0);
     }
@@ -828,8 +822,8 @@ void CLayoutFrame::DestroyLayout() {
   FreePoints();
 
   FRAMENODE *node;
-  for (node = m_resizeList.Head(); node; node = m_resizeList.Next(node)) {
-    node->frame->Clear(this, 1);
+  ITERATELIST(FRAMENODE, m_resizeList, iterNode) {
+    iterNode->frame->Clear(this, 1);
   }
 
   while ((node = m_resizeList.Head()) != 0) {

@@ -54,7 +54,7 @@ void OnCollideFallLand(unsigned __int64 unit, unsigned long eventTime);
 void OnCollideFalling(unsigned __int64 unit, unsigned long eventTime);
 void UnitNotifyStopped(const unsigned __int64 &guid, bool moveComplete);
 int UnitGetObjectPosition(const unsigned __int64 &guid, NTempest::C3Vector *position);
-float UnitCalculateFacingTo(NTempest::C3Vector &position, NTempest::C3Vector &destination);
+float UnitCalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
 enum FACET_COLOR {
   FACET_UNTESTED = 0,
   FACET_TESTED_UNTOUCHED = 1,
@@ -278,7 +278,7 @@ struct CMovementGlobals {
   char                             logFileName[260];
   FILE                            *movementLog;
   FILE                            *fallingLog;
-  TSExplicitList<CMovementData, 0> movers;
+  LISTDECLEX(CMovementData, moveLink, movers);
   int                              numMovers;
   unsigned int                     ignoreObstacles : 1;
   CMovement                       *currentLoading;
@@ -696,8 +696,8 @@ void MovementUpdateCameraYaw(unsigned __int64 transportGUID);
 int MovementGameObjIsTransport(unsigned __int64 transportGUID);
 void MovementNotifyZoneMgr(unsigned __int64 guid);
 void MovementFixOutOfBoundsUnit(unsigned __int64 guid);
-void __stdcall   MovementSetGravityRate(float metersPerSecSqd);
-void __stdcall   MovementSetTerminalVelocity(float metersPerSec);
-float            MovementGetTerminalVelocity();
+void  MovementSetGravityRate(float metersPerSecSqd);
+void  MovementSetTerminalVelocity(float metersPerSec);
+float MovementGetTerminalVelocity();
 
 #endif

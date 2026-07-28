@@ -1,6 +1,3 @@
-#define STORM_SAPIBASE_DECLARATION
-#define STORM_STHREAD_METHOD_IMPLEMENTATION
-
 #include <storm.h>
 #include <stpl.h>
 
@@ -629,7 +626,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, const char *filename, DWORD flag
         }
         (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
         if (flags & 0x10000) {
-          if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (DWORD *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
+          if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
             (*file)->m_haveMD5 = TRUE;
           } else {
             (*file)->m_haveMD5 = FALSE;
@@ -643,7 +640,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, const char *filename, DWORD flag
         }
         (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
         if (flags & 0x10000) {
-          if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (DWORD *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
+          if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
             (*file)->m_haveMD5 = TRUE;
           } else {
             (*file)->m_haveMD5 = FALSE;
@@ -683,7 +680,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, const char *filename, DWORD flag
     (*file)->m_hsfile = sfile;
     (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
     if (flags & 0x10000) {
-      if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (DWORD *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
+      if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
         (*file)->m_haveMD5 = TRUE;
       } else {
         (*file)->m_haveMD5 = FALSE;

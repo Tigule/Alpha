@@ -271,7 +271,7 @@ static LootItem                                                 s_lootItems[16];
 static int                                                      s_questFailedReason;
 CVar                                                           *g_combatModeMaxDistance;
 
-void UnitCombatLogSetActivePlayer(CGPlayer_C *playerPtr);
+void UnitCombatLogSetActivePlayer(const CGPlayer_C *playerPtr);
 void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim);
 
 enum CURSORANIMATIONS {
@@ -285,7 +285,7 @@ enum SPELL_FAILED_REASON {
   SPELL_FAILED_ERROR = 14
 };
 
-void Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
+void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
 void Spell_C_CancelCombatSpell();
 void Spell_C_SetCooldownLeft(
     int  spellID,
@@ -1041,7 +1041,7 @@ int OnQuestGiverEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime,
   }
 }
 
-static int OnQuestItemLoot(QuestCache *quest, int itemID, int quantity) {
+static int OnQuestItemLoot(const QuestCache *quest, int itemID, int quantity) {
   ItemStats *stats;
 
   if (!quest) {
@@ -1081,7 +1081,7 @@ static int OnQuestItemLoot(QuestCache *quest, int itemID, int quantity) {
 static void QuestLootQuestQueryCallback(int id, const unsigned __int64 &, void *arg, bool granted) {
   int *item = static_cast<int *>(arg);
   if (granted) {
-    QuestCache *quest = const_cast<QuestCache *>(g_questDBCache.GetRecord(id, 0, 0, 0));
+    const QuestCache *quest = g_questDBCache.GetRecord(id, 0, 0, 0);
     OnQuestItemLoot(quest, item[0], item[1]);
   }
   delete item;
@@ -1183,9 +1183,8 @@ int OnQuestUpdate(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDa
           int *item = static_cast<int *>(ALLOC(2 * sizeof(int)));
           item[0] = itemID;
           item[1] = numKilled;
-          QuestCache *itemQuest = const_cast<QuestCache *>(
-              g_questDBCache.GetRecord(questLog->m_questID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestLootQuestQueryCallback), item)
-          );
+          const QuestCache *itemQuest =
+              g_questDBCache.GetRecord(questLog->m_questID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestLootQuestQueryCallback), item);
           if (itemQuest) {
             delete item;
             if (OnQuestItemLoot(itemQuest, itemID, numKilled)) {
@@ -3255,7 +3254,7 @@ void CGPlayer_C::TalkToTabardVendor(const unsigned __int64 &tabardUnit) {
   ClientServices_Send(&hello);
 }
 
-int CGPlayer_C::OnTerrainClick(CTerrainClickEvent &__formal) {
+int CGPlayer_C::OnTerrainClick(const CTerrainClickEvent &__formal) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -3268,7 +3267,7 @@ int CGPlayer_C::OnTerrainClick(CTerrainClickEvent &__formal) {
   CGGameUI::ClearCursor(0);
 
   if (ClntObjMgrObjectPtr(cursorItemPack, __FILE__, __LINE__) && cursorItem) {
-    unsigned int       packSlot = FindSlotIndex(cursorItem);
+    unsigned char      packSlot = FindSlotIndex(cursorItem);
     NTempest::C3Vector position = GetPosition();
 
     CDataStore msg;
@@ -3363,7 +3362,7 @@ bool CGPlayer_C::OnGuildChanged() {
   return 1;
 }
 
-int CGPlayer_C::CanEngageTarget(CGUnit_C *unitPtr) {
+int CGPlayer_C::CanEngageTarget(const CGUnit_C *unitPtr) {
   FATALASSERT(unitPtr);
   if ((GetPosition() - unitPtr->GetPosition()).SquaredMag() < 10.45f * 10.45f) {
     return 1;
@@ -3469,8 +3468,8 @@ void CGPlayer_C::SplitItem(
 
   CDataStore msg;
   if (cursorContainer) {
-    unsigned char cursorItemContainerSlot = static_cast<unsigned char>(FindSlotIndex(cursorContainer));
-    unsigned char newContainerSlot = static_cast<unsigned char>(FindSlotIndex(containerB));
+    unsigned char cursorItemContainerSlot = FindSlotIndex(cursorContainer);
+    unsigned char newContainerSlot = FindSlotIndex(containerB);
 
     msg.Put(static_cast<unsigned int>(CMSG_SPLIT_ITEM));
     msg.Put(cursorItemContainerSlot);
@@ -3495,8 +3494,8 @@ void CGPlayer_C::AutoStoreItemInBag(
     return;
   }
 
-  unsigned char cursorItemContainerSlot = static_cast<unsigned char>(FindSlotIndex(cursorContainer));
-  unsigned char newContainerSlot = static_cast<unsigned char>(FindSlotIndex(containerB));
+  unsigned char cursorItemContainerSlot = FindSlotIndex(cursorContainer);
+  unsigned char newContainerSlot = FindSlotIndex(containerB);
   if (newContainerSlot == 0xFF && containerB != GetGUID()) {
     return;
   }
@@ -3510,7 +3509,7 @@ void CGPlayer_C::AutoStoreItemInBag(
   ClientServices_Send(&msg);
 }
 
-unsigned int CGPlayer_C::FindSlotIndex(unsigned __int64 obj) {
+unsigned char CGPlayer_C::FindSlotIndex(unsigned __int64 obj) {
   unsigned char slot = 0;
   while (slot < m_inventory.NumSlots()) {
     if (m_inventory.GetItem(slot) == obj) {
@@ -3549,7 +3548,7 @@ void CGPlayer_C::AutoEquipCursorItem(int force) {
   FATALASSERT(cursorItemSlot <= 0xFF);
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_AUTOEQUIP_ITEM));
-  msg.Put(static_cast<unsigned char>(FindSlotIndex(cursorItemPack)));
+  msg.Put(FindSlotIndex(cursorItemPack));
   msg.Put(static_cast<unsigned char>(cursorItemSlot));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3626,7 +3625,7 @@ void CGPlayer_C::SellItem(unsigned __int64 merchant, unsigned __int64 item, unsi
   ClientServices_Send(&sellMsg);
 }
 
-void CGPlayer_C::SetActive(CGPlayer_C *playerPtr) {
+void CGPlayer_C::SetActive(const CGPlayer_C *playerPtr) {
   if (ClntObjMgrGetPlayerType() != PLAYER_BOT) {
     UnitCombatLogSetActivePlayer(playerPtr);
     unsigned __int64 guid = playerPtr ? playerPtr->GetGUID() : 0;
@@ -3656,12 +3655,12 @@ unsigned int CGPlayer_C::GetProficiency(unsigned char type) {
   return type < 16 ? s_playerProficiencies[type] : 0;
 }
 
-void CGPlayer_C::XBuyItem(unsigned __int64 merchant, unsigned int itemID, unsigned int quantity, unsigned int autoEquip) {
+void CGPlayer_C::XBuyItem(unsigned __int64 merchant, unsigned int itemID, unsigned char quantity, bool autoEquip) {
   CDataStore buyMsg;
   buyMsg.Put(static_cast<unsigned int>(CMSG_BUY_ITEM));
   buyMsg.Put(merchant);
   buyMsg.Put(itemID);
-  buyMsg.Put(static_cast<unsigned char>(quantity));
+  buyMsg.Put(quantity);
   buyMsg.Put(static_cast<unsigned char>(autoEquip));
   buyMsg.Finalize();
   ClientServices_Send(&buyMsg);
@@ -4539,7 +4538,7 @@ void CGPlayer_C::Initialize() {
   InitializeWeaponSubclassSpells();
 }
 
-unsigned int CGPlayer_C::CanTrack(CGUnit_C *unit) {
+bool CGPlayer_C::CanTrack(const CGUnit_C *unit) {
   if (unit->GetUnitData()->flags & 2) {
     return 1;
   }
@@ -4552,7 +4551,7 @@ unsigned int CGPlayer_C::CanTrack(CGUnit_C *unit) {
   return (GetCreatureTracking() & (1 << (creatureType - 1))) != 0;
 }
 
-unsigned int CGPlayer_C::CanTrack(CGGameObject_C *object) {
+bool CGPlayer_C::CanTrack(const CGGameObject_C *object) {
   unsigned int trackMask = GetResourceTracking();
   const LockRec      *lock = object->GetLockRec();
   if (!lock) {
@@ -4618,7 +4617,7 @@ void CGPlayer_C::DeclineGuild() {
   ClientServices_Send(&msg);
 }
 
-void CGPlayer_C::DeleteWornItems() {
+void CGPlayer_C::DeleteWornItems() const {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_UNDRESSPLAYER));
   msg.Finalize();
@@ -4718,13 +4717,13 @@ ITEMEXPIRATION *CGPlayer_C::GetPendingItemExpirationNode(const unsigned __int64 
   return itemNode;
 }
 
-TSGrowableArray<int> *CGPlayer_C::GetTradeSkills(int skillLine) {
+const TSGrowableArray<int> *CGPlayer_C::GetTradeSkills(int skillLine) const {
   HASHKEY_NONE                               hashKey;
-  TRADESKILLLINE *line = m_tradeSkillLines.Ptr(skillLine, hashKey);
+  const TRADESKILLLINE *line = m_tradeSkillLines.Ptr(skillLine, hashKey);
   return line ? &line->spells : 0;
 }
 
-TSGrowableArray<int> *CGPlayer_C::GetCraftSkills(SPELL_CAST_UI_TYPE type) {
+const TSGrowableArray<int> *CGPlayer_C::GetCraftSkills(SPELL_CAST_UI_TYPE type) const {
   if (type <= SPELL_CAST_UI_NONE || type >= NUM_SPELL_CAST_UI_TYPES) {
     return 0;
   }
@@ -5055,7 +5054,7 @@ void CGPlayer_C::TrySheathingWeapon() {
   }
 }
 
-void CGPlayer_C::ToggleSheathe(unsigned int ignoreAnim) {
+void CGPlayer_C::ToggleSheathe(bool ignoreAnim) {
   if (m_unit->health <= 0 || m_currentTorsoAnimState == 46 || m_castingSpell)
   {
     return;
@@ -5258,17 +5257,17 @@ void CGPlayer_C::LootAnimEndHandler() {
   }
 }
 
-void CGPlayer_C::ReadItem(unsigned int packSlot, unsigned int slot) {
+void CGPlayer_C::ReadItem(unsigned char packSlot, unsigned char slot) {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_READ_ITEM));
-  msg.Put(static_cast<unsigned char>(packSlot));
-  msg.Put(static_cast<unsigned char>(slot));
+  msg.Put(packSlot);
+  msg.Put(slot);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
 void CGPlayer_C::ReadItem(unsigned __int64 containerGUID, unsigned char slot) {
-  typedef void (CGPlayer_C::*ReadPackItemProc)(unsigned int, unsigned int);
+  typedef void (CGPlayer_C::*ReadPackItemProc)(unsigned char, unsigned char);
   ReadPackItemProc readPackItem = CGPlayer_C::ReadItem;
 
   if (containerGUID == GetGUID()) {
@@ -5637,7 +5636,7 @@ void CGPlayer_C::ResetCombatModeTimer(int newCombat) {
   }
 }
 
-unsigned int CGPlayer_C::GetCombatModeTimerInterval() {
+unsigned int CGPlayer_C::GetCombatModeTimerInterval() const {
   FATALASSERT(m_flags & 0x400);
   return 500;
 }
@@ -5723,7 +5722,7 @@ unsigned __int64 CGPlayer_C::GetLocalTarget() const {
   return m_targetUnit;
 }
 
-int CGPlayer_C::DeathBindDistanceCompare(NTempest::C3Vector &bindStonePosition) {
+int CGPlayer_C::DeathBindDistanceCompare(const NTempest::C3Vector &bindStonePosition) {
   NTempest::C3Vector diff = s_bindPosition - bindStonePosition;
   float              bindRadiusCheckSquared = 10.0f * 1.5f;
   bindRadiusCheckSquared *= bindRadiusCheckSquared;
@@ -5739,7 +5738,7 @@ void CGPlayer_C::SaveBindPoint(CDataStore *msg) {
   UpdateBindStatusAll();
 }
 
-NTempest::C3Vector &CGPlayer_C::GetBindPoint() {
+const NTempest::C3Vector &CGPlayer_C::GetBindPoint() {
   return s_bindPosition;
 }
 
@@ -5822,11 +5821,11 @@ bool CGPlayer_C::GetPackAndSlot(CGItem_C *item, unsigned char &packSlot, unsigne
   unsigned __int64 containerGUID = item->m_item->m_containedIn;
   if (containerGUID == GetGUID()) {
     packSlot = 0xFF;
-    slot = static_cast<unsigned char>(FindSlotIndex(item->GetGUID()));
+    slot = FindSlotIndex(item->GetGUID());
     return slot != 0xFF;
   }
 
-  packSlot = static_cast<unsigned char>(FindSlotIndex(containerGUID));
+  packSlot = FindSlotIndex(containerGUID);
   if (packSlot == 0xFF) {
     return false;
   }
@@ -5930,13 +5929,12 @@ void CGPlayer_C::SetNewLeader(const char *target) {
   ClientServices_Send(&msg);
 }
 
-int CGPlayer_C::ReportBagItemSubtypeMismatch(unsigned int bagSlot) const {
-  unsigned char slot = static_cast<unsigned char>(bagSlot);
-  if (slot == 0xFF) {
+int CGPlayer_C::ReportBagItemSubtypeMismatch(unsigned char bagSlot) const {
+  if (bagSlot == 0xFF) {
     return 0;
   }
 
-  unsigned __int64 itemGUID = m_inventory.GetItem(slot);
+  unsigned __int64 itemGUID = m_inventory.GetItem(bagSlot);
   CGItem_C            *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
   if (!item || item->GetClassID() != 11) {
     return 0;
@@ -6030,7 +6028,7 @@ bool CGPlayer_C::IsGiftWrapping() {
   return s_giftWrapItem != 0;
 }
 
-void CGPlayer_C::SheatheWeapon(unsigned int sheathe) {
+void CGPlayer_C::SheatheWeapon(bool sheathe) {
   if (!m_inventory.GetItem(15) && !m_inventory.GetItem(16)) {
     return;
   }
@@ -6291,7 +6289,7 @@ void CGPlayer_C::TurnInGuildCharter() {
   ClientServices_Send(&msg);
 }
 
-void CGPlayer_C::SendTextEmote(EmotesTextRec *rec, const unsigned __int64 &target) {
+void CGPlayer_C::SendTextEmote(const EmotesTextRec *rec, const unsigned __int64 &target) const {
   CDataStore msg;
   msg.Put(static_cast<unsigned int>(CMSG_TEXT_EMOTE));
   msg.Put(static_cast<unsigned int>(rec->m_ID));
@@ -6625,7 +6623,7 @@ void CGPlayer_C::UpdateObjComponentVisuals(const CGItem_C *itemPtr, const ItemEn
     return;
   }
 
-  int invSlot = static_cast<unsigned char>(FindSlotIndex(itemPtr->GetGUID()));
+  int invSlot = FindSlotIndex(itemPtr->GetGUID());
   if (invSlot >= 69) {
     return;
   }

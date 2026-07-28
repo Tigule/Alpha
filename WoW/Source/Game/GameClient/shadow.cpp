@@ -76,7 +76,7 @@ void ProjectTex2dMakeMatrices(
   texmat1 = worldTransMat * worldToTexture;
 }
 
-static void ProjectTexRenderVerticesPN(CGxBufCommand &cmd, CGxBuf *buf) {
+static void ProjectTexRenderVerticesPN(const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPN *vertices = 0;
   switch (cmd.vertex.op) {
     case GxBufOp_Fill:
@@ -98,7 +98,7 @@ static void ProjectTexRenderVerticesPN(CGxBufCommand &cmd, CGxBuf *buf) {
   }
 }
 
-static void ProjectTexRenderVerticesPC(CGxBufCommand &cmd, CGxBuf *buf) {
+static void ProjectTexRenderVerticesPC(const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPC *vertices = 0;
   switch (cmd.vertex.op) {
     case GxBufOp_Fill:
@@ -120,7 +120,7 @@ static void ProjectTexRenderVerticesPC(CGxBufCommand &cmd, CGxBuf *buf) {
   }
 }
 
-static void ProjectTexRenderIndices(CGxBufCommand &cmd, CGxBuf *buf) {
+static void ProjectTexRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
   unsigned short *indices = 0;
   switch (cmd.index.op) {
     case GxBufOp_Fill:
@@ -149,7 +149,7 @@ static void ProjectTexRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
   ProjectTexRenderIndices(cmd, buf);
 }
 
-void ProjectTex2d(NTempest::CAaBox &box, NTempest::CImVector color, NTempest::C44Matrix *basis, float fadeOffset) {
+void ProjectTex2d(const NTempest::CAaBox &box, NTempest::CImVector color, const NTempest::C44Matrix *basis, float fadeOffset) {
   CWTriData triData;
   if (!CWorld::GetTris(box, triData, 0x122)) {
     return;
@@ -211,7 +211,7 @@ void ProjectTex2d(NTempest::CAaBox &box, NTempest::CImVector color, NTempest::C4
   GxRsPop();
 }
 
-void ShadowRender_LOD1(HMODEL hModel, NTempest::C44Matrix &basis, void *param) {
+void ShadowRender_LOD1(HMODEL hModel, const NTempest::C44Matrix &basis, void *param) {
   NTempest::C3Vector cameraPos;
   CGWorldFrame::GetCameraPosition(&cameraPos);
 
@@ -350,7 +350,7 @@ static void s_ProjFadeTex(
   }
 }
 
-void ShadowRender(HMODEL hModel, NTempest::C44Matrix &basis, void *param) {
+void ShadowRender(HMODEL hModel, const NTempest::C44Matrix &basis, void *param) {
   if (hModel && s_shadowLOD == 1) {
     ShadowRender_LOD1(hModel, basis, param);
   }

@@ -106,10 +106,8 @@ static int CvarResetCommandHandler(const char *command, const char *arguments) {
   }
 
   ConsoleWrite("Resetting all cvars\n", DEFAULT_COLOR);
-  CVar *cvar = s_registeredCVars.Head();
-  while (cvar) {
+  ITERATELIST(CVar, s_registeredCVars, cvar) {
     cvar->Reset();
-    cvar = s_registeredCVars.Next(cvar);
   }
 
   return 1;
@@ -131,10 +129,8 @@ static int CvarDefaultCommandHandler(const char *command, const char *arguments)
   }
 
   ConsoleWrite("Restoring all cvars\n", DEFAULT_COLOR);
-  CVar *cvar = s_registeredCVars.Head();
-  while (cvar) {
+  ITERATELIST(CVar, s_registeredCVars, cvar) {
     cvar->Default();
-    cvar = s_registeredCVars.Next(cvar);
   }
 
   return 1;
@@ -143,9 +139,7 @@ static int CvarDefaultCommandHandler(const char *command, const char *arguments)
 static int CvarListCommandHandler(const char *command, const char *arguments) {
   char  text[256];
   char  text2[256];
-  CVar *cvar = s_registeredCVars.Head();
-
-  while (cvar) {
+  ITERATELIST(CVar, s_registeredCVars, cvar) {
     SStrPrintf(text, sizeof(text), "  \"%s\" is \"%s\"", cvar->m_name, cvar->m_stringValue);
 
     if (cvar->m_defaultValue && SStrCmp(cvar->m_stringValue, cvar->m_defaultValue, 0x7FFFFFFF)) {
@@ -159,7 +153,6 @@ static int CvarListCommandHandler(const char *command, const char *arguments) {
     }
 
     ConsoleWrite(text, DEFAULT_COLOR);
-    cvar = s_registeredCVars.Next(cvar);
   }
 
   return 1;
@@ -184,8 +177,7 @@ static int CVarSaveFile() {
     return 0;
   }
 
-  CVar *cvar = s_registeredCVars.Head();
-  while (cvar) {
+  ITERATELIST(CVar, s_registeredCVars, cvar) {
     if (cvar->m_flags & 1) {
       SStrPrintf(buffer, sizeof(buffer), "SET %s \"%s\"\n", cvar->m_name, cvar->m_stringValue);
       count = 0;
@@ -196,7 +188,6 @@ static int CVarSaveFile() {
       }
     }
 
-    cvar = s_registeredCVars.Next(cvar);
   }
 
   OsCloseFile(file);

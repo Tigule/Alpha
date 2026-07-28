@@ -124,7 +124,7 @@ struct CModelHash : public TSHashObject<CModelHash, CHashKeyFilePath> {
   HMODEL             model;
   unsigned int       createFlags;
   unsigned long      timeStamp;
-  TSLink<CModelHash> link;
+  LINKDECLEX(CModelHash, link);
 };
 
 static EModelParamType s_modelParamTypes[MODEL_NUM_COMMANDS][4] = {
@@ -173,13 +173,13 @@ static EModelParamType s_modelParamTypes[MODEL_NUM_COMMANDS][4] = {
 static void AsyncModelHandler();
 
 static TSCArray<unsigned char, 4194304>                  s_asyncLoadBuffer;
-static TSExplicitList<CAsyncObject, 32>                  s_asyncLoadList;
+static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
 static unsigned int                                      s_asyncLoadBufferUsed;
 static int                                               s_asyncPending;
 static TSHashTableReuse<CModelHash, CHashKeyFilePath, 1> s_modelCache;
-static TSExplicitList<CModelHash, 292>                   s_modelCacheLRU;
+static LISTDECLEX(CModelHash, link, s_modelCacheLRU);
 static CNullStatus                                       s_nullStatus;
-static TSList<CModelModItem, TSGetLink<CModelModItem> >  s_freeModItems;
+static LISTDECL(CModelModItem, s_freeModItems);
 
 HMODEL ModelDuplicate(HMODEL sourceModel, unsigned int flags);
 HMODEL IModelCreateBlocking(const char *fileName, char *actualPath, CModelCreate *data, CStatus *status);
@@ -1709,12 +1709,10 @@ int ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
   complex = static_cast<CModelComplex *>(base);
   numLinks = complex->m_attached.Count();
   for (i = 0; i < numLinks; ++i) {
-    LINKUNIQUE *link = complex->m_attached[i].Head();
-    while (link) {
+    ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
       if (!ModelIsLoaded(link->child, 1)) {
         return 0;
       }
-      link = complex->m_attached[i].Next(link);
     }
   }
 

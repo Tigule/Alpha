@@ -66,8 +66,8 @@ struct CurrentLight {
   float               CloudData[4];
 };
 
-unsigned int ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem);
-unsigned int LoadLightsAndFog(const char *filename, LightGroup *lightgroup);
+bool ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem);
+bool LoadLightsAndFog(const char *filename, LightGroup *lightgroup);
 void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTempest::CImVector *color, float *distance);
 void CalcLightColors(int time, CurrentLight *current, LightDataItem *lightdata, LightDataItem *stormdata, int stormpercent);
 

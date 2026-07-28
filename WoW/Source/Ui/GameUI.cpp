@@ -275,7 +275,7 @@ enum SPELL_FAILED_REASON {
   SPELL_FAILED_ERROR = 14
 };
 
-void Spell_C_CancelSpell(unsigned int failed, unsigned int notifyServer, SPELL_FAILED_REASON reason);
+void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 unsigned int CurrencyTotal(int coins[3]);
 int CursorGrabMoney(unsigned int amount);
@@ -4591,7 +4591,7 @@ void CGGameUI::StopCinematicInternal(void *) {
   DisableFadingScreen(0.25f, 0, 0);
 }
 
-void CGGameUI::CloseLoot(unsigned int send, unsigned int moving) {
+void CGGameUI::CloseLoot(bool send, bool moving) {
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (playerPtr) {
     playerPtr->m_lootingUnit = 0;
@@ -4997,7 +4997,7 @@ void CGGameUI::OnItemPush(unsigned __int64 player, int slot, int itemID, int pus
   }
 }
 
-int CGGameUI::OnTerrainClick(CTerrainClickEvent &evt) {
+int CGGameUI::OnTerrainClick(const CTerrainClickEvent &evt) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || evt.button != MOUSE_BUTTON_LEFT) {
     return 0;
@@ -5161,7 +5161,7 @@ int CGGameUI::FilterMouseDown(const CMouseEvent &evt) {
   return 0;
 }
 
-int CGGameUI::HandleTerrainClick(CTerrainClickEvent &evt) {
+int CGGameUI::HandleTerrainClick(const CTerrainClickEvent &evt) {
   if (evt.button == MOUSE_BUTTON_RIGHT || m_cursorItemType != UICURSOR_EMPTY) {
     ClearCursor(1);
   }
@@ -5173,7 +5173,7 @@ int CGGameUI::HandleTerrainClick(CTerrainClickEvent &evt) {
   return 1;
 }
 
-int CGGameUI::HandleSpriteClick(CSpriteClickEvent &evt) {
+int CGGameUI::HandleSpriteClick(const CSpriteClickEvent &evt) {
   if (m_cursorItemType != UICURSOR_EMPTY) {
     ClearCursor(1);
   }
@@ -5184,7 +5184,7 @@ int CGGameUI::HandleSpriteClick(CSpriteClickEvent &evt) {
   return OnSpriteRightClick(evt.objectGUID, evt.pos.x, evt.pos.y);
 }
 
-int CGGameUI::HandleWorldClick(CWorldClickEvent &evt) {
+int CGGameUI::HandleWorldClick(const CWorldClickEvent &evt) {
   int cursorWasEmpty = m_cursorItemType == UICURSOR_EMPTY;
   if (evt.button == MOUSE_BUTTON_RIGHT || !m_cursorItem || !m_cursorItemContainer) {
     ClearCursor(1);
@@ -5203,7 +5203,7 @@ int CGGameUI::HandleWorldClick(CWorldClickEvent &evt) {
   return 1;
 }
 
-void CGGameUI::HandleSpriteTrack(CObjectTrackEvent &evt) {
+void CGGameUI::HandleSpriteTrack(const CObjectTrackEvent &evt) {
   HandleObjectTrackChange(evt.object, evt.oldGUID, evt.x, evt.y);
 }
 
@@ -5667,10 +5667,6 @@ void CGGameUI::UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object) {
   if (model && object) {
     object->ShowHighlightType(HT_MOUSEOVER);
   }
-}
-
-unsigned int CGGameUI::GetCursorVirtualItem(UICURSORTYPE type) {
-  return m_cursorItemType == type ? m_cursorVirtualID : 0;
 }
 
 void CGGameUI::GetCursorVirtualItem(unsigned int &cursorItem, unsigned int &slot) {

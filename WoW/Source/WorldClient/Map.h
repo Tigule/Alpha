@@ -36,15 +36,6 @@ struct CGxBufCommand;
 struct HMODEL__;
 struct HTEXTURE__;
 
-struct CWorldMinimapQuad {
-  unsigned int        groupNum;
-  NTempest::C2iVector quad;
-  NTempest::CAaBox    aaBox;
-
-  CWorldMinimapQuad();
-  ~CWorldMinimapQuad();
-};
-
 struct SWVert {
   unsigned int depth : 8;
   unsigned int flow0Pct : 8;
@@ -244,7 +235,7 @@ class CMapBaseObj {
 
  public:
   LINKDECLEX(CMapBaseObj, lameAssLink);
-  TSExplicitList<CMapBaseObjLink, 16> parentLinkList;
+  LISTDECLEX(CMapBaseObjLink, ownerLink, parentLinkList);
   NTempest::C3Vector                  pos;
   float                               scale;
   NTempest::C4Quaternion              rot;
@@ -271,7 +262,7 @@ class CMapLight : public CMapBaseObj {
   void SetQuadraticAtten(float attenuation);
   void Project();
 
-  static TSExplicitList<CMapBaseObjLink, 8> dirLightLinkList;
+  static LISTDECLEX(CMapBaseObjLink, refLink, dirLightLinkList);
   static unsigned int                       maxLights;
   static float                              bucketSize;
   static float                              halfBucketSize;
@@ -304,7 +295,7 @@ class CMapStaticEntity : public CMapBaseObj {
   void FindLights();
   void CreateCacheLight(CMapLight *light);
 
-  TSExplicitList<CMapCacheLight, 72> cacheLightList;
+  LISTDECLEX(CMapCacheLight, lameAssLink, cacheLightList);
   NTempest::CImVector                ambient;
   NTempest::CImVector                interiorDirColor;
   float                              dirLightScale;
@@ -340,9 +331,9 @@ struct CMapEntity : public CMapStaticEntity {
   int          QueryMapObjListenerId(unsigned int &listenerId);
   int          QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct);
   static int   QueryCameraFog(SMOFog::Fogs &oFog, float &oPct);
-  bool QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorldMinimapQuad> &quads);
-  unsigned int QueryMapObjIDs(unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID);
-  unsigned int QueryMapObjMatrix(NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
+  bool QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorld::MinimapQuad> &quads);
+  bool QueryMapObjIDs(unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID);
+  bool QueryMapObjMatrix(NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
   bool         QueryMapObjAreaTable(const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
 
   int (*handler)(void *, unsigned long, unsigned __int64, unsigned long);
@@ -397,7 +388,7 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
   unsigned long                      doodadSet;
   unsigned short                     nameSet;
   const char                        *zoneName;
-  TSExplicitList<CMapBaseObjLink, 8> groupLinkList;
+  LISTDECLEX(CMapBaseObjLink, refLink, groupLinkList);
   TSGrowableArray<CMapLight *>       lightList;
   unsigned int                       rCount;
   NTempest::CImVector                ambient;
@@ -422,9 +413,9 @@ class CMapObjDefGroup : public CMapBaseObj {
   unsigned int                       level;
   int                                rDrawSharedLiquidToggle;
   TSExplicitList<CWFrustum, 0xF4>    frustumList;
-  TSExplicitList<CMapBaseObjLink, 8> doodadDefLinkList;
-  TSExplicitList<CMapBaseObjLink, 8> entityLinkList;
-  TSExplicitList<CMapBaseObjLink, 8> lightLinkList;
+  LISTDECLEX(CMapBaseObjLink, refLink, doodadDefLinkList);
+  LISTDECLEX(CMapBaseObjLink, refLink, entityLinkList);
+  LISTDECLEX(CMapBaseObjLink, refLink, lightLinkList);
   LINKDECLEX(CMapObjDefGroup, sceneLink);
 };
 
@@ -579,11 +570,11 @@ class CMapChunk : public CMapBaseObj {
   CDetailDoodadInst                   *detailDoodadInst;
   CMapChunk                           *neighbor[4];
   LINKDECLEX(CMapChunk, sceneLink);
-  TSExplicitList<CMapBaseObjLink, 8>   doodadDefLinkList;
-  TSExplicitList<CMapBaseObjLink, 8>   mapObjDefLinkList;
-  TSExplicitList<CMapBaseObjLink, 8>   entityLinkList;
-  TSExplicitList<CMapBaseObjLink, 8>   lightLinkList;
-  TSExplicitList<CMapSoundEmitter, 76> soundEmitterList;
+  LISTDECLEX(CMapBaseObjLink, refLink, doodadDefLinkList);
+  LISTDECLEX(CMapBaseObjLink, refLink, mapObjDefLinkList);
+  LISTDECLEX(CMapBaseObjLink, refLink, entityLinkList);
+  LISTDECLEX(CMapBaseObjLink, refLink, lightLinkList);
+  LISTDECLEX(CMapSoundEmitter, lameAssLink, soundEmitterList);
   CChunkLiquid                        *liquids[4];
   NTempest::C2iVector                  aIndex;
   NTempest::C2iVector                  sOffset;

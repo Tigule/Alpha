@@ -1,5 +1,3 @@
-#define STORM_BIGNUM_METHOD_IMPLEMENTATION
-
 #include <storm.h>
 
 #include <malloc.h>

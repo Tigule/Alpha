@@ -188,7 +188,6 @@ static void DestroySchedulerThread(unsigned int hThread) {
 
 static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
   EvtThread              *thread;
-  EvtThread              *candidate;
   EvtContextQueue        *queue;
   TSTimerPriority<DWORD> *priority;
   DWORD                   contextId = 0;
@@ -197,12 +196,10 @@ static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
   SInterlockedIncrement(&s_threadListContention);
   s_threadListCritsect.Enter();
   thread = 0;
-  candidate = s_threadList.Head();
-  while (candidate) {
+  ITERATELIST(EvtThread, s_threadList, candidate) {
     if (!thread || candidate->m_weightTotal < thread->m_weightTotal) {
       thread = candidate;
     }
-    candidate = candidate->Next();
   }
 
   if (thread) {
@@ -233,7 +230,6 @@ static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
 
 static void DetachContextFromThread(unsigned int hThread, EvtContext *context) {
   EvtThread   *thread;
-  EvtThread   *other;
   unsigned int amount;
 
   SInterlockedIncrement(&s_threadListContention);
@@ -244,8 +240,7 @@ static void DetachContextFromThread(unsigned int hThread, EvtContext *context) {
     --thread->m_contextCount;
     thread->m_weightAvg = thread->m_contextCount ? thread->m_weightTotal / thread->m_contextCount : 0;
 
-    other = s_threadList.Head();
-    while (other) {
+    ITERATELIST(EvtThread, s_threadList, other) {
       if (other != thread && other->m_weightAvg && other->m_weightTotal >= other->m_weightAvg + thread->m_weightTotal) {
         amount = (other->m_weightTotal - thread->m_weightTotal) / other->m_weightAvg;
         other->m_rebalance += amount;
@@ -253,7 +248,6 @@ static void DetachContextFromThread(unsigned int hThread, EvtContext *context) {
           other->m_rebalance = other->m_contextCount;
         }
       }
-      other = other->Next();
     }
   }
   s_threadListCritsect.Leave();
@@ -283,7 +277,6 @@ static SEvent *GetWakeEvent(unsigned int hThread) {
 static void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
   TSTimerPriority<DWORD> *priority = &context->m_schedNextWakeTime;
   EvtThread              *thread;
-  EvtThread              *candidate;
   EvtThread              *bestThread;
   EvtContextQueue        *queue;
   DWORD                   oldWeight;
@@ -312,13 +305,11 @@ static void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWake
 
       bestThread = thread;
       bestWeightTotal = thread->m_weightTotal;
-      candidate = s_threadList.Head();
-      while (candidate) {
+      ITERATELIST(EvtThread, s_threadList, candidate) {
         if (candidate != thread && context->m_schedWeight + candidate->m_weightTotal < bestWeightTotal) {
           bestThread = candidate;
           bestWeightTotal = context->m_schedWeight + candidate->m_weightTotal;
         }
-        candidate = candidate->Next();
       }
 
       if (bestThread != thread) {

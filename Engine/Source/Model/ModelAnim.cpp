@@ -490,7 +490,7 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
     }
     if (!enabled)
       continue;
-    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &list = unique->m_attached[attachmentIndex];
+    LIST(LINKUNIQUE) &list = unique->m_attached[attachmentIndex];
     ITERATELIST(LINKUNIQUE, list, link) {
       ModelAnimateAttached(link->child, link->scale, transforms + attachmentIndex, normalizeNorms, cameraWorldPos, cameraVector);
     }
@@ -529,7 +529,7 @@ static void IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
       continue;
     }
 
-    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &attached = complex->m_attached[index];
+    LIST(LINKUNIQUE) &attached = complex->m_attached[index];
     ITERATELIST(LINKUNIQUE, attached, link) {
       CModelBase   *childModel;
       CModelShared *childShared;
@@ -1018,7 +1018,7 @@ void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
     }
 
     if (enabled) {
-      TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = complex->m_attached[index];
+      LIST(LINKUNIQUE) &links = complex->m_attached[index];
       ITERATELIST(LINKUNIQUE, links, link) {
         ModelSetTimeScale(link->child, timeScale, 1);
       }
@@ -1057,7 +1057,7 @@ int ModelSetObjectTimeScale(HMODEL model, unsigned int objectId, float timeScale
     }
 
     if (enabled) {
-      TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = complex->m_attached[index];
+      LIST(LINKUNIQUE) &links = complex->m_attached[index];
       ITERATELIST(LINKUNIQUE, links, link) {
         if (!ModelSetObjectTimeScale(link->child, objectId, timeScale, 1)) {
           return 0;
@@ -1118,7 +1118,7 @@ int ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMode
     }
 
     if (enabled) {
-      TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &links = complex->m_attached[index];
+      LIST(LINKUNIQUE) &links = complex->m_attached[index];
       ITERATELIST(LINKUNIQUE, links, link) {
         if (!ModelForceCurrentSequenceTime(link->child, timeOffset, 1)) {
           return 0;
@@ -1146,7 +1146,7 @@ int ModelForceSequenceTime(HMODEL model, unsigned int seqIndex, int timeOffset, 
   if (doLinkedModels && (unique->m_flags & 0x20)) {
     CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
     unsigned int                                numAttachments = complex->m_attached.Count();
-    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > *attached = complex->m_attached.Ptr();
+    LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
     unsigned int                                index = 0;
 
     while (index < numAttachments) {
@@ -1191,7 +1191,7 @@ int ModelAdvanceTime(HMODEL model) {
   if (unique->m_flags & 0x20) {
     CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
     unsigned int                                numAttachments = complex->m_attached.Count();
-    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > *attached = complex->m_attached.Ptr();
+    LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
     for (unsigned int index = 0; index < numAttachments; ++index) {
       int enabled = 1;
@@ -1205,7 +1205,7 @@ int ModelAdvanceTime(HMODEL model) {
       }
 
       if (enabled) {
-        for (LINKUNIQUE *link = attached->Head(); link; link = attached->Next(link)) {
+        ITERATELISTPTR(LINKUNIQUE, attached, link) {
           ModelAdvanceTime(link->child);
         }
       }
@@ -1231,7 +1231,7 @@ int ModelAdvanceTime(HMODEL model, int timeChange) {
   if (unique->m_flags & 0x20) {
     CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
     unsigned int                                numAttachments = complex->m_attached.Count();
-    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > *attached = complex->m_attached.Ptr();
+    LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
     for (unsigned int index = 0; index < numAttachments; ++index) {
       int enabled = 1;
@@ -1245,7 +1245,7 @@ int ModelAdvanceTime(HMODEL model, int timeChange) {
       }
 
       if (enabled) {
-        for (LINKUNIQUE *link = attached->Head(); link; link = attached->Next(link)) {
+        ITERATELISTPTR(LINKUNIQUE, attached, link) {
           ModelAdvanceTime(link->child, timeChange);
         }
       }
@@ -1269,12 +1269,12 @@ void ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
   if (doLinkedModels && (unique->m_flags & 0x20)) {
     CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
     unsigned int                                numAttachments = complex->m_attached.Count();
-    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > *attached = complex->m_attached.Ptr();
+    LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
     for (unsigned int index = 0; index < numAttachments; ++index) {
       int enabled = !unique->m_anim || AnimIsAttachmentEnabled(unique->m_anim, index);
       if (enabled) {
-        for (LINKUNIQUE *link = attached->Head(); link; link = attached->Next(link)) {
+        ITERATELISTPTR(LINKUNIQUE, attached, link) {
           ModelPauseTime(link->child, pause, 1);
         }
       }
@@ -1302,7 +1302,7 @@ void ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) {
         continue;
       }
 
-      TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > &attached = complex->m_attached[index];
+      LIST(LINKUNIQUE) &attached = complex->m_attached[index];
       ITERATELIST(LINKUNIQUE, attached, link) {
         ModelResetGlobalSequenceTimes(link->child, 0);
       }
@@ -1328,9 +1328,9 @@ ModelSetEventCallback(HMODEL model, void(*callback)(const char *, const NTempest
   if (doLinkedModels && (unique->m_flags & 0x20)) {
     CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
     unsigned int                                numAttachments = complex->m_attached.Count();
-    TSList<LINKUNIQUE, TSGetLink<LINKUNIQUE> > *attached = complex->m_attached.Ptr();
+    LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
     while (numAttachments) {
-      for (LINKUNIQUE *link = attached->Head(); link; link = attached->Next(link)) {
+      ITERATELISTPTR(LINKUNIQUE, attached, link) {
         ModelSetEventCallback(link->child, callback, param, 0);
       }
       ++attached;
