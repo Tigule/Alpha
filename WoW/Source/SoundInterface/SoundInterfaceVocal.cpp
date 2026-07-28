@@ -12,6 +12,10 @@
 #include <lua.h>
 
 struct MACRODESC {
+  MACRODESC() {
+    memset(soundID, 0, sizeof(soundID));
+  }
+
   unsigned int soundID[12][3];
 };
 
@@ -36,7 +40,7 @@ static FrameScript_Method s_ScriptFunctions[1] = {
 void SndInterfaceRegisterVocalScriptFunctions() {
   s_macroRaceDescs.SetCount(g_chrRacesDB.GetMaxID() + 1);
   for (int i = 0; i < g_soundCharacterMacroLinesDB.GetNumRecords(); ++i) {
-    SoundCharacterMacroLinesRec *record = g_soundCharacterMacroLinesDB.GetRecordByIndex(i);
+    const SoundCharacterMacroLinesRec *record = g_soundCharacterMacroLinesDB.GetRecordByIndex(i);
     if (record && record->m_Category < 12 && record->m_Race < static_cast<int>(s_macroRaceDescs.Count()) && record->m_Sex < 3) {
       s_macroRaceDescs[record->m_Race].soundID[record->m_Category][record->m_Sex] = record->m_SoundID;
     }

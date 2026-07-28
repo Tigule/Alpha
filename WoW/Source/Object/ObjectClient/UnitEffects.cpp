@@ -53,8 +53,43 @@ void UnitEffectOneShot(
 void PreloadModel(int effectID, CStatus *status);
 void PreloadModelsByKit(int record, CStatus *status);
 
+class PERSISTENTUNITEFFECT : public CHandleObject {
+ public:
+  PERSISTENTUNITEFFECT();
+  PERSISTENTUNITEFFECT(const PERSISTENTUNITEFFECT &);
+  virtual ~PERSISTENTUNITEFFECT();
+
+  void Clear();
+
+  HMODEL                effectModel;
+  HMODEL                objectModel;
+  GEOCOMPONENTLINKS     linkPoint;
+  NTempest::C3Vector    position;
+  LINKDECLEX(PERSISTENTUNITEFFECT, m_listLink);
+};
+
 static const char *s_sequenceNames[3] = {"Stand", "Hold", "Decay"};
 static const char *s_objNames[1] = {"$DTH"};
+
+void PERSISTENTUNITEFFECT::Clear() {
+  if (!effectModel && !objectModel) {
+    return;
+  }
+
+  if (!objectModel && effectModel) {
+    HandleClose(effectModel);
+    effectModel = 0;
+    return;
+  }
+
+  FATALASSERT(objectModel && effectModel);
+  FATALASSERT(linkPoint < NUM_ATTACH_SLOTS);
+  ModelRemoveLink(objectModel, linkPoint, effectModel);
+  HandleClose(effectModel);
+  HandleClose(objectModel);
+  objectModel = 0;
+  effectModel = 0;
+}
 
 HMODEL CreateModel(const char *fileName, CStatus *status) {
   CModelCreate createData;
@@ -353,7 +388,7 @@ static void RenderModel(HMODEL__* model, const NTempest::C3Vector& position, con
 }
 
 SPELL_VISUAL_ATTACHMENT GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID) {
-  SpellRec *spellRec = g_spellDB.GetRecord(spellID);
+  const SpellRec *spellRec = g_spellDB.GetRecord(spellID);
   if (!spellRec) {
     return SPELL_VISUAL_ATTACH_CHEST;
   }
@@ -404,7 +439,7 @@ static bool MoveMissile(MISSILENODE *node) {
       CGUnit_C *unit = static_cast<CGUnit_C *>(target);
       if (!node->miss) {
         unit->SetVictimAnimation(VS_WOUND, unit->GetUnitData()->health <= 0, 0, 1000, 0);
-        SpellVisualKitRec *kit = g_spellVisualKitDB.GetRecord(node->victimEffect);
+        const SpellVisualKitRec *kit = g_spellVisualKitDB.GetRecord(node->victimEffect);
         if (kit) {
           unit->PlayImpactKit(node->spellID, kit);
         }
@@ -580,7 +615,7 @@ static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, co
   unsigned int sex = unit->GetDisplaySex();
   unsigned int race = unit->GetDisplayRace();
   FATALASSERT(sex < UNITSEX_LAST);
-  ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(race);
+  const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(race);
   FATALASSERT(raceRec);
 
   static const char *const sexNames[UNITSEX_LAST] = {"Male", "Female", "NOSEX"};
@@ -710,7 +745,7 @@ static void CheckReinitTimer(int current, unsigned int duration) {
 static int PurgeTimerHandler(const void *timerData, void *userData) {
   s_purgeTimer = 0;
 
-  int                          current = static_cast<const EvtContext *>(timerData)->m_currTime;
+  int                          current = static_cast<const EvtContext *>(timerData)->GetCurrTime();
   int                          next = 0x7FFFFFFF;
   int                          found = 0;
   ONESHOTSTANDALONEEFFECTNODE *node = s_standAloneEffects.Head();
@@ -869,7 +904,7 @@ GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT at
 }
 
 HMODEL UnitEffectCreateAuraModel(unsigned int effectID) {
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
+  const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (effectRec) {
     return InitializeModel(effectRec->m_fileName, 0, 0);
   }
@@ -931,7 +966,7 @@ void UnitEffectOneShot(
 }
 
 bool UnitEffectIsAuraWorldObject(unsigned int effectID, bool &isWorldObj) {
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
+  const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (!effectRec) {
     return 0;
   }
@@ -945,7 +980,7 @@ unsigned long UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest
     return 0;
   }
 
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effect);
+  const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effect);
   HMODEL                    model = InitializeModel(effectRec->m_fileName, 0, 0);
   if (!model) {
     return 0;
@@ -976,7 +1011,7 @@ void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset) {
   char                      modelName[MAX_PATH];
   HMODEL                    model = 0;
   unsigned int              dummy1 = 0;
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(desc.missileEffect);
+  const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(desc.missileEffect);
   if (effectRec && effectRec->m_fileName && *effectRec->m_fileName) {
     DecorateEffectFilename(effectRec->m_fileName, 0, desc.caster, modelName, sizeof(modelName));
     model = InitializeModel(modelName, 0, 0);
@@ -1043,7 +1078,7 @@ void UnitEffectOneShot(
     CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
     if (object) {
       int                       effectID = g_specialSpellIDs[effectNumber];
-      SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
+      const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
       if (effectRec) {
         if (effectRec->m_specialAttachPoint == 4) {
           NTempest::C3Vector position = object->GetPosition();

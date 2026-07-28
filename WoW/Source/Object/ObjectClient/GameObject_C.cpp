@@ -40,18 +40,35 @@ class CGameObjectDef {
   static const char *NameFromTypeId(int typeId);
 };
 
+#define MAX_CHAIR_SLOTS 5
+
+inline unsigned int CGGameObject_C_Type_Door::GetStartOpen() const {
+  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 1));
+}
+
+inline unsigned int CGGameObject_C_Type_Door::GetAutoClose() const {
+  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 3));
+}
+
+inline unsigned int CGGameObject_C_Type_Chair::GetNumSlots() const {
+  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 11));
+}
+
+inline unsigned int CGGameObject_C_Type_Chair::GetHeight() const {
+  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 12));
+}
+
 struct StateAnimInfo {
-  unsigned int  sequence;
+  unsigned int  seq;
   unsigned char reverse;
   unsigned char setAtEnd;
   unsigned char neverUseFallback;
-  unsigned char padding;
 };
 
 static const StateAnimInfo s_stateAnimInfo[11] = {
-    {1, 1, 0, 0, 0}, {2, 0, 0, 1, 0}, {3, 0, 1, 0, 0}, {4, 1, 1, 0, 0},
-    {5, 0, 0, 1, 0}, {6, 0, 1, 0, 0}, {7, 1, 1, 0, 0}, {8, 0, 0, 1, 0},
-    {9, 0, 0, 1, 0}, {10, 0, 0, 1, 0}, {11, 0, 0, 1, 0}
+    {1, 1, 0, 0}, {2, 0, 0, 1}, {3, 0, 1, 0}, {4, 1, 1, 0},
+    {5, 0, 0, 1}, {6, 0, 1, 0}, {7, 1, 1, 0}, {8, 0, 0, 1},
+    {9, 0, 0, 1}, {10, 0, 0, 1}, {11, 0, 0, 1}
 };
 
 static const char *s_statusString[11] = {
@@ -296,7 +313,7 @@ bool CGGameObject_C_TypeBase::Use(const unsigned __int64 &) {
           CGGameUI::DisplayError(GERR_USE_LOCKED_WITH_ITEM_S, stats->m_displayName[0]);
         }
       } else if (lock->m_Type[0] == 2) {
-        LockTypeRec *lockType = g_lockTypeDB.GetRecord(lock->m_Index[0]);
+        const LockTypeRec *lockType = g_lockTypeDB.GetRecord(lock->m_Index[0]);
         const char *name =
             lockType ? lockType->m_name_lang[CURRENT_LANGUAGE] : "UNKNOWN";
         if (spellID) {
@@ -395,10 +412,6 @@ bool CGGameObject_C_Type_Null::CanUseNow(GAME_ERROR_TYPE *) const {
 
 const char *CGGameObject_C_Type_Null::DebugStatus() {
   return "Unknown object type";
-}
-
-int CGGameObject::GetState() const {
-  return m_gameObj->m_state;
 }
 
 void CGGameObject_C::ActivateCustomAnim(unsigned int anim) {
@@ -521,7 +534,7 @@ const char *CGGameObject_C::GetModelFileNameInternal() const {
     return 0;
   }
 
-  GameObjectDisplayInfoRec *displayInfo = g_gameObjectDisplayInfoDB.GetRecord(displayID);
+  const GameObjectDisplayInfoRec *displayInfo = g_gameObjectDisplayInfoDB.GetRecord(displayID);
   if (!displayInfo) {
     SysMsgPrintf(SYSMSG_FATAL, 2, "NOOBJECTFILENAME|%d|%d|Game", displayID, m_obj->m_entryID);
     return "NoName";
@@ -656,7 +669,7 @@ bool CGGameObject_C::IsValidOpenAction(int action) const {
 
 bool CGGameObject_C::IsValidTargetForSpell(const unsigned __int64 &caster, int spellID) const {
   const LockRec *lock = GetLockRec();
-  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!lock || !spell) {
     return 0;
   }
@@ -975,7 +988,7 @@ void CGGameObject_C_TypeAnimated::ModelJustLoaded() {
   HMODEL__ *model = m_owner->GetObjectModel();
   unsigned int i;
   for (i = 0; i < sizeof(s_stateAnimInfo) / sizeof(s_stateAnimInfo[0]); ++i) {
-    if (ModelHasSequenceId(model, s_stateAnimInfo[i].sequence)) {
+    if (ModelHasSequenceId(model, s_stateAnimInfo[i].seq)) {
       m_useFallbackAnim[i] = 0;
       m_animPresent |= 1 << i;
     } else {
@@ -995,7 +1008,7 @@ void CGGameObject_C_TypeAnimated::PlayAnimatedSound(
     return;
   }
 
-  GameObjectDisplayInfoRec *displayInfo =
+  const GameObjectDisplayInfoRec *displayInfo =
       g_gameObjectDisplayInfoDB.GetRecord(m_owner->GameObject()->m_displayID);
   if (!displayInfo) {
     return;
@@ -1031,11 +1044,11 @@ void CGGameObject_C_TypeAnimated::SetSequence() {
     if (!(m_animPresent & (1 << m_animState))) {
       return;
     }
-    sequence = s_stateAnimInfo[m_animState].sequence;
+    sequence = s_stateAnimInfo[m_animState].seq;
   } else {
     unsigned int fallbackState = m_animState < 4 ? 1 : 4;
     sequence = m_animPresent & (1 << fallbackState)
-        ? s_stateAnimInfo[fallbackState].sequence
+        ? s_stateAnimInfo[fallbackState].seq
         : 0;
   }
 
@@ -1075,14 +1088,6 @@ bool CGGameObject_C_Type_Door::IsAtRest() const {
     return 1;
   }
   return GetStartOpen() ? m_animState != 0 : m_animState != 2;
-}
-
-unsigned int CGGameObject_C_Type_Door::GetStartOpen() const {
-  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 1));
-}
-
-unsigned int CGGameObject_C_Type_Door::GetAutoClose() const {
-  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 3));
 }
 
 CGGameObject_C_Type_Button::CGGameObject_C_Type_Button(CGGameObject_C *owner)
@@ -1176,7 +1181,7 @@ CGGameObject_C_Type_MapObjTransport::CGGameObject_C_Type_MapObjTransport(CGGameO
       _alloca(maxPoints * sizeof(NTempest::C3Vector)), maxPoints, 0);
   for (unsigned int path = 0; path < 2; ++path) {
     for (unsigned int i = 0; i < maxPoints; ++i) {
-      TaxiPathNodeRec *node = g_taxiPathNodeDB.GetRecordByIndex(i);
+      const TaxiPathNodeRec *node = g_taxiPathNodeDB.GetRecordByIndex(i);
       if (node && node->m_PathID == pathID[path]) {
         points.New(NTempest::C3Vector(node->m_LocX, node->m_LocY, node->m_LocZ));
       }
@@ -1308,7 +1313,7 @@ bool CGGameObject_C_Type_Chair::CanUseNow(GAME_ERROR_TYPE *reason) const {
 void CGGameObject_C_Type_Chair::PostInit() {
   CGGameObject_C_TypeBase::PostInit();
   FATALASSERT(GetNumSlots());
-  FATALASSERT(GetNumSlots() <= 5);
+  FATALASSERT(GetNumSlots() <= MAX_CHAIR_SLOTS);
 
   NTempest::C34Matrix ownerMatrix = m_owner->CGObject_C::GetMatrix();
   NTempest::C44Matrix matrix(
@@ -1317,14 +1322,6 @@ void CGGameObject_C_Type_Chair::PostInit() {
       ownerMatrix.c0, ownerMatrix.c1, ownerMatrix.c2, 0.0f,
       ownerMatrix.d0, ownerMatrix.d1, ownerMatrix.d2, 1.0f);
   GenerateChairPoints(matrix, GetNumSlots(), m_slotPositions);
-}
-
-unsigned int CGGameObject_C_Type_Chair::GetNumSlots() const {
-  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 11));
-}
-
-unsigned int CGGameObject_C_Type_Chair::GetHeight() const {
-  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 12));
 }
 
 CGGameObject_C_Type_SpellFocus::CGGameObject_C_Type_SpellFocus(CGGameObject_C *owner)
@@ -1380,7 +1377,7 @@ CGGameObject_C_Type_Transport::CGGameObject_C_Type_Transport(CGGameObject_C *own
   m_keys = g_transportAnimationDB.GetRecordByIndex(firstKey);
   m_numKeys = 1;
   for (int i = firstKey + 1; i < g_transportAnimationDB.GetNumRecords(); ++i) {
-    TransportAnimationRec *key = g_transportAnimationDB.GetRecordByIndex(i);
+    const TransportAnimationRec *key = g_transportAnimationDB.GetRecordByIndex(i);
     if (key->m_TransportID != owner->GetEntryID()) {
       break;
     }
@@ -1521,7 +1518,7 @@ NTempest::C3Vector CGGameObject_C_Type_Transport::GetMovement(
 int CGGameObject_C_Type_Transport::FindAnimData(CGGameObject_C *owner) {
   int entryID = owner->GetEntryID();
   for (int i = 0; i < g_transportAnimationDB.GetNumRecords(); ++i) {
-    TransportAnimationRec *key = g_transportAnimationDB.GetRecordByIndex(i);
+    const TransportAnimationRec *key = g_transportAnimationDB.GetRecordByIndex(i);
     if (key->m_TransportID == entryID) {
       return i;
     }

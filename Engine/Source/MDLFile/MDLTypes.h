@@ -7,12 +7,28 @@
 #include "Tempest/cirange.h"
 
 #include <stpl.h>
+#include <string.h>
 
 #ifndef MDL_COMMON_TYPES_DEFINED
 #define MDL_COMMON_TYPES_DEFINED
 
 template <unsigned int Length>
-struct CMdlString {
+class CMdlString {
+ public:
+  CMdlString() {
+  }
+
+  CMdlString(const CMdlString<Length> &source) {
+    memcpy(m_string, source.m_string, sizeof(m_string));
+  }
+
+  CMdlString<Length> &operator=(const CMdlString<Length> &source) {
+    if (this != &source) {
+      memcpy(m_string, source.m_string, sizeof(m_string));
+    }
+    return *this;
+  }
+
   operator char *() {
     return m_string;
   }
@@ -29,11 +45,22 @@ struct CMdlString {
     return m_string[index];
   }
 
+  char &operator[](int index) {
+    return m_string[index];
+  }
+
+  char operator[](int index) const {
+    return m_string[index];
+  }
+
  private:
   char m_string[Length];
 };
 
 struct CMdlBounds {
+  CMdlBounds() {
+  }
+
   NTempest::CAaBox extent;
   float            radius;
 };
@@ -49,7 +76,7 @@ struct MDLTEXTURESECTION {
 #ifndef MDL_TRACK_TYPE_DEFINED
 #define MDL_TRACK_TYPE_DEFINED
 enum MDLTRACKTYPE {
-  TRACK_DONT_INTERP = 0,
+  TRACK_NO_INTERP = 0,
   TRACK_LINEAR = 1,
   TRACK_HERMITE = 2,
   TRACK_BEZIER = 3,
@@ -59,6 +86,9 @@ enum MDLTRACKTYPE {
 
 template <class T>
 struct MDLKEYFRAME {
+  MDLKEYFRAME() {
+  }
+
   int time;
   T   value;
   T   inTan;
@@ -78,6 +108,9 @@ struct MDLKEYTRACK {
 };
 
 struct MDLINTKEY {
+  MDLINTKEY() {
+  }
+
   unsigned int time;
   unsigned int value;
 };
@@ -248,7 +281,7 @@ struct MDLMODELSECTION {
   unsigned int    eventCount;
   CMdlBounds      bounds;
   unsigned int    blendTime;
-  unsigned int    flags;
+  unsigned char   flags;
 };
 
 struct MDLCOLLISION {
@@ -268,6 +301,9 @@ struct MDLSEQUENCESSECTION {
   unsigned int      blendTime;
 };
 struct MDLGLOBALSEQSECTION {
+  MDLGLOBALSEQSECTION() {
+  }
+
   unsigned int length;
 };
 struct MDLTEXANIMSECTION {
@@ -374,6 +410,9 @@ struct MDLCAMERASECTION {
   MDLKEYTRACK<float>                  visibilityKeys;
 };
 struct MDLEVENTKEY {
+  MDLEVENTKEY() {
+  }
+
   int time;
 };
 
@@ -554,26 +593,32 @@ enum GEOM_SHAPE {
   NUM_SHAPES = 4
 };
 
-struct MDLVECTOR3 {
+struct Vector3 {
+  enum {
+    eComponents = 3
+  };
+
   float x;
   float y;
   float z;
+
+  operator NTempest::C3Vector() const;
 };
 
 struct MDLBOX {
-  MDLVECTOR3 minimum;
-  MDLVECTOR3 maximum;
+  Vector3 minimum;
+  Vector3 maximum;
 };
 
 struct MDLCYLINDER {
-  MDLVECTOR3 base;
-  float      height;
-  float      radius;
+  Vector3 base;
+  float   height;
+  float   radius;
 };
 
 struct MDLSPHERE {
-  MDLVECTOR3 center;
-  float      radius;
+  Vector3 center;
+  float   radius;
 };
 
 struct MDLPLANE {

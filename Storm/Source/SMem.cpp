@@ -1509,7 +1509,6 @@ LPVOID APIENTRY SMemHeapAlloc(HSHEAP handle, DWORD flags, DWORD bytes) {
 
 HSHEAP APIENTRY SMemHeapCreate(DWORD options, DWORD initialsize, DWORD maximumsize, LPCSTR filename, int linenumber) {
   DWORD       slot;
-  HEAPPTR     heapptr;
   HLOCKEDHEAP lockedhandle;
 
   if (!CheckInitialized()) {
@@ -1535,7 +1534,7 @@ HSHEAP APIENTRY SMemHeapCreate(DWORD options, DWORD initialsize, DWORD maximumsi
       handle = (HSHEAP)FIRSTUSERHEAP;
     }
 
-    heapptr = LockHeapByHandle(handle, &lockedhandle, TRUE);
+    HEAPPTR heapptr = LockHeapByHandle(handle, &lockedhandle, TRUE);
     if (!heapptr) {
       break;
     }
@@ -1545,12 +1544,11 @@ HSHEAP APIENTRY SMemHeapCreate(DWORD options, DWORD initialsize, DWORD maximumsi
 
   slot = GetSlotByHandle(handle);
   EnterCriticalSection(&s_critsect[slot]);
-  heapptr = AllocateHeap(filename, linenumber, handle, slot, PAGESIZE, initialsize, RESERVESIZE);
+  AllocateHeap(filename, linenumber, handle, slot, PAGESIZE, initialsize, RESERVESIZE);
   LeaveCriticalSection(&s_critsect[slot]);
 
-  if (!heapptr) {
+  if (!handle) {
     Warning(ERROR_NOT_ENOUGH_MEMORY, "SMemHeapCreate()", SERR_LINECODE_FUNCTION);
-    return NULL;
   }
 
   return handle;

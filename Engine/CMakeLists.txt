@@ -304,6 +304,8 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")
     set_source_files_properties(
         Source/MDLFile/MDLFile.cpp
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1")
+    set_source_files_properties(
         Source/MDLFile/TokenText.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1")
     set_source_files_properties(
@@ -312,7 +314,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1")
     set_source_files_properties(
         Source/Anim/Interp.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
     set_source_files_properties(
         Source/Anim/WorldMatrix.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1")
@@ -321,7 +323,10 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-")
     set_source_files_properties(
         Source/FrameScript/FrameScript.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob0")
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob0 /Zd")
+    set_source_files_properties(
+        Source/FrameScript/FrameScriptMethods.cpp
+        PROPERTIES COMPILE_FLAGS "/Zd")
     set_source_files_properties(
         Source/Gx/GxApi/GxApi.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")

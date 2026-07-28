@@ -58,6 +58,12 @@ struct DamageData {
 };
 
 struct LOGBASE {
+  LOGBASE() {
+  }
+
+  LOGBASE(const LOGBASE &) {
+  }
+
   ~LOGBASE() {
   }
 
@@ -66,6 +72,9 @@ struct LOGBASE {
 };
 
 struct DAMAGELOGBASE : public LOGBASE {
+  DAMAGELOGBASE(const DAMAGELOGBASE &other);
+  DAMAGELOGBASE(unsigned __int64 attacker, unsigned __int64 victim);
+
   unsigned __int64 attacker;
   unsigned __int64 victim;
   float            intellectBonus;
@@ -110,6 +119,20 @@ struct ATTACKROUNDINFO : public DAMAGELOGBASE {
 };
 
 struct SPELLLOG : public DAMAGELOGBASE {
+  SPELLLOG(const SPELLLOG &);
+  SPELLLOG(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID);
+  SPELLLOG(unsigned __int64 attacker, unsigned int spellID);
+  SPELLLOG(
+      unsigned __int64 attacker,
+      unsigned __int64 victim,
+      unsigned int spellID,
+      float intellectBonus,
+      float DPSScaler,
+      unsigned int damageType,
+      unsigned int auraEffectID,
+      float resistanceCoefficient
+  );
+
   unsigned int auraEffectID;
   unsigned int spellID;
   unsigned int damageType;
@@ -120,6 +143,9 @@ struct SPELLLOG : public DAMAGELOGBASE {
 };
 
 struct SPELLMISSLOG : public LOGBASE {
+  SPELLMISSLOG(const SPELLMISSLOG &);
+  SPELLMISSLOG(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID);
+
   unsigned __int64 attacker;
   unsigned __int64 victim;
   unsigned int     spellID;
@@ -139,6 +165,11 @@ struct SPELLMISSLOG : public LOGBASE {
 };
 
 struct RESISTLOG : public LOGBASE {
+  RESISTLOG() {
+  }
+
+  RESISTLOG(const RESISTLOG &);
+
   unsigned __int64 attacker;
   unsigned __int64 victim;
   int              spell;
@@ -163,6 +194,12 @@ struct ENCHANTMENTLOG : public LOGBASE {
 };
 
 struct ENVIRONMENTALDAMAGE : public LOGBASE {
+  ENVIRONMENTALDAMAGE() {
+  }
+
+  ENVIRONMENTALDAMAGE(const ENVIRONMENTALDAMAGE &);
+  ENVIRONMENTALDAMAGE(unsigned __int64 victim, int school, int amount);
+
   unsigned __int64 victim;
   int              school;
   int              amount;
@@ -172,6 +209,12 @@ struct ENVIRONMENTALDAMAGE : public LOGBASE {
 };
 
 struct MIRRORTIMERDAMAGE : public LOGBASE {
+  MIRRORTIMERDAMAGE() {
+  }
+
+  MIRRORTIMERDAMAGE(const MIRRORTIMERDAMAGE &);
+  MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, unsigned __int64 victim, unsigned int amount);
+
   int              damage;
   unsigned __int64 victim;
   int              amount;
@@ -192,6 +235,65 @@ struct PARTYKILLLOG : public LOGBASE {
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
+
+inline DAMAGELOGBASE::DAMAGELOGBASE(const DAMAGELOGBASE &other)
+    : LOGBASE(other),
+      attacker(other.attacker),
+      victim(other.victim),
+      intellectBonus(other.intellectBonus),
+      DPSScaler(other.DPSScaler),
+      modDamageTaken(other.modDamageTaken),
+      modDamageDone(other.modDamageDone),
+      scaledDamage(other.scaledDamage),
+      netDamageMultiplier(other.netDamageMultiplier),
+      maxDamageReduction(other.maxDamageReduction),
+      scaledArmorReduction(other.scaledArmorReduction),
+      hitRollFloat(other.hitRollFloat),
+      hitRollNeededFloat(other.hitRollNeededFloat),
+      critRollFloat(other.critRollFloat),
+      critRollNeededFloat(other.critRollNeededFloat),
+      flags(other.flags),
+      dmg(other.dmg) {
+}
+
+inline DAMAGELOGBASE::DAMAGELOGBASE(unsigned __int64 attacker, unsigned __int64 victim)
+    : attacker(attacker),
+      victim(victim),
+      intellectBonus(0.0f),
+      DPSScaler(0.0f),
+      modDamageTaken(0.0f),
+      modDamageDone(0.0f),
+      scaledDamage(0.0f),
+      netDamageMultiplier(0.0f),
+      maxDamageReduction(0.0f),
+      scaledArmorReduction(0.0f),
+      hitRollFloat(0.0f),
+      hitRollNeededFloat(0.0f),
+      critRollFloat(0.0f),
+      critRollNeededFloat(0.0f),
+      flags(0) {
+  dmg.Clear();
+}
+
+inline SPELLLOG::SPELLLOG(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID)
+    : DAMAGELOGBASE(attacker, victim),
+      auraEffectID(0),
+      spellID(spellID),
+      damageType(0),
+      resistanceCoefficient(0.0f) {
+}
+
+inline SPELLMISSLOG::SPELLMISSLOG(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID)
+    : attacker(attacker), victim(victim), spellID(spellID), flags(0) {
+}
+
+inline ENVIRONMENTALDAMAGE::ENVIRONMENTALDAMAGE(unsigned __int64 victim, int school, int amount)
+    : victim(victim), school(school), amount(amount) {
+}
+
+inline MIRRORTIMERDAMAGE::MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, unsigned __int64 victim, unsigned int amount)
+    : damage(damage), victim(victim), amount(amount) {
+}
 
 inline PARTYKILLLOG::PARTYKILLLOG(unsigned __int64 killer, unsigned __int64 victim) : killer(killer), victim(victim) {
 }

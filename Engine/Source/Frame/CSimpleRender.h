@@ -78,11 +78,11 @@ class CSimpleFontStringAttributes {
 
  public:
   enum {
-    FLAG_FONT = 0x01,
-    FLAG_STYLE = 0x02,
-    FLAG_COLOR = 0x04,
-    FLAG_SHADOW = 0x08,
-    FLAG_SPACING = 0x10,
+    FLAG_FONT_UPDATE = 0x01,
+    FLAG_STYLE_UPDATE = 0x02,
+    FLAG_COLOR_UPDATE = 0x04,
+    FLAG_SHADOW_UPDATE = 0x08,
+    FLAG_SPACING_UPDATE = 0x10,
     FLAG_COMPLETE_UPDATE = 0x1F
   };
 
@@ -103,7 +103,7 @@ class CSimpleFontStringAttributes {
     m_font = font;
     m_fontHeight = fontHeight;
     m_fontFlags = fontFlags;
-    m_flags |= FLAG_FONT;
+    m_flags |= FLAG_FONT_UPDATE;
   }
   unsigned char HasFont() const {
     const char *font = m_font;
@@ -120,26 +120,26 @@ class CSimpleFontStringAttributes {
   }
   void SetHorizontalAlignment(unsigned int alignment) {
     m_styleFlags = (m_styleFlags & ~0x7U) | alignment;
-    m_flags |= FLAG_STYLE;
+    m_flags |= FLAG_STYLE_UPDATE;
   }
   void SetVerticalAlignment(unsigned int alignment) {
     m_styleFlags = (m_styleFlags & ~0x38U) | alignment;
-    m_flags |= FLAG_STYLE;
+    m_flags |= FLAG_STYLE_UPDATE;
   }
   void SetStyleFlags(unsigned int flags) {
     m_styleFlags = flags;
-    m_flags |= FLAG_STYLE;
+    m_flags |= FLAG_STYLE_UPDATE;
   }
   float GetSpacing() const {
     return m_spacing;
   }
   void SetColor(const NTempest::CImVector &color) {
     m_color = color;
-    m_flags |= FLAG_COLOR;
+    m_flags |= FLAG_COLOR_UPDATE;
   }
   void SetAlpha(unsigned char alpha) {
     m_color.a = alpha;
-    m_flags |= FLAG_COLOR;
+    m_flags |= FLAG_COLOR_UPDATE;
   }
   const NTempest::CImVector &GetColor() const {
     return m_color;
@@ -147,11 +147,11 @@ class CSimpleFontStringAttributes {
   void AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
     m_shadowColor = color;
     m_shadowOffset = offset;
-    m_flags |= FLAG_SHADOW;
+    m_flags |= FLAG_SHADOW_UPDATE;
   }
   void SetSpacing(float spacing) {
     m_spacing = spacing;
-    m_flags |= FLAG_SPACING;
+    m_flags |= FLAG_SPACING_UPDATE;
   }
   void CopyFlags(const CSimpleFontStringAttributes &rhs);
   void UpdateString(CSimpleFontString *string, int force);

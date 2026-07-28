@@ -19,7 +19,7 @@ class TInstanceId : public TSLinkedNode<T> {
     m_id = id;
   }
 
-  unsigned long Id() {
+  unsigned long Id() const {
     return m_id;
   }
 
@@ -193,12 +193,18 @@ class TInstanceIdTable {
 
 template <class T, unsigned int SLOTCOUNT>
 class TSingletonInstanceId : public TInstanceId<T> {
+  typedef TInstanceIdTable<T, SLOTCOUNT> Table;
+
  public:
-  static TInstanceIdTable<T, SLOTCOUNT> &GetTable() {
+  TSingletonInstanceId() {
+  }
+
+  static Table &GetTable() {
     return s_idTable;
   }
 
-  static TInstanceIdTable<T, SLOTCOUNT> s_idTable;
+ private:
+  static Table s_idTable;
 };
 
 template <class T, unsigned int SLOTCOUNT>

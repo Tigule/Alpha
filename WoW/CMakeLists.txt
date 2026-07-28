@@ -304,6 +304,25 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/GX-"
     )
     set_source_files_properties(
+        Source/Ui/ActionBarFrame.cpp
+        Source/Ui/BankFrame.cpp
+        Source/Ui/BuffFrame.cpp
+        Source/Ui/CharacterModelBase.cpp
+        Source/Ui/DuelInfo.cpp
+        Source/Ui/FadingScreen.cpp
+        Source/Ui/MinimapFrame.cpp
+        Source/Ui/NamePlateFrame.cpp
+        Source/Ui/PetInfo.cpp
+        Source/Ui/PetitionInfo.cpp
+        Source/Ui/QuestFrame.cpp
+        Source/Ui/SpellBookFrame.cpp
+        PROPERTIES COMPILE_FLAGS "/GX-"
+    )
+    set_source_files_properties(
+        Source/Ui/Tutorial.cpp
+        PROPERTIES COMPILE_FLAGS "/GX- /Ob2"
+    )
+    set_source_files_properties(
         Source/WorldCommon/WorldMath.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX-"
     )
@@ -332,6 +351,7 @@ if(MSVC_VERSION EQUAL 1200)
         Source/Game/GameClient/WeaponTrails.cpp
         Source/Game/GameClient/ViolenceLevels.cpp
         Source/Object/ObjectClient/Item_C.cpp
+        Source/Object/ObjectClient/NPC_C.cpp
         Source/Object/ObjectClient/Object_C.cpp
         Source/UIUtil/SmartScreenRects.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-"
@@ -681,7 +701,6 @@ if(MSVC_VERSION EQUAL 1200)
     )
 
     set_property(SOURCE
-        Source/Ui/SpellBookFrame.cpp
         Source/Console/ConsoleVar.cpp
         Source/DB/DBClient/sdbItemSubclass.cpp
         Source/UIUtil/Tooltip.cpp

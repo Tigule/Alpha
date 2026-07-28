@@ -69,7 +69,7 @@ void CGTaxiMap::SetupMap(
   m_unit = unit;
   m_startNode = node;
 
-  TaxiNodesRec *currentNode = g_taxiNodesDB.GetRecord(node);
+  const TaxiNodesRec *currentNode = g_taxiNodesDB.GetRecord(node);
   if (!currentNode) {
     m_nodes.SetCount(0);
     CloseMap();
@@ -79,14 +79,14 @@ void CGTaxiMap::SetupMap(
   unsigned int count = 0;
   m_nodes.SetCount(64);
   for (unsigned int nodeID = 1; nodeID <= 64; ++nodeID) {
-    TaxiNodesRec *taxiNode = g_taxiNodesDB.GetRecord(nodeID);
+    const TaxiNodesRec *taxiNode = g_taxiNodesDB.GetRecord(nodeID);
     if (taxiNode && taxiNode->m_ContinentID == currentNode->m_ContinentID && (allNodes & (static_cast<__int64>(1) << (taxiNode->m_ID - 1))) &&
         taxiNode->m_X <= visibleArea.r && taxiNode->m_X >= visibleArea.l && taxiNode->m_Y <= visibleArea.b && taxiNode->m_Y >= visibleArea.t)
     {
       TaxiNode &out = m_nodes[count++];
       out.id = taxiNode->m_ID;
-      out.x = (visibleArea.b - taxiNode->m_Y) / (visibleArea.r - visibleArea.l);
-      out.y = (taxiNode->m_X - visibleArea.l) / (visibleArea.b - visibleArea.t);
+      out.offsetx = (visibleArea.b - taxiNode->m_Y) / (visibleArea.r - visibleArea.l);
+      out.offsety = (taxiNode->m_X - visibleArea.l) / (visibleArea.b - visibleArea.t);
     }
   }
   FATALASSERT(count <= 64);
@@ -105,7 +105,7 @@ void CGTaxiMap::CloseMap() {
 
 const char *CGTaxiMap::TaxiNodeName(unsigned int slot) {
   FATALASSERT(slot < NumTaxiNodes());
-  TaxiNodesRec *node = g_taxiNodesDB.GetRecord(m_nodes[slot].id);
+  const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(m_nodes[slot].id);
   FATALASSERT(node);
   return node->m_Name_lang[CURRENT_LANGUAGE];
 }
@@ -117,8 +117,8 @@ const char *CGTaxiMap::TaxiNodeType(unsigned int slot) {
 
 void CGTaxiMap::TaxiNodePosition(unsigned int slot, float &x, float &y) {
   FATALASSERT(slot < NumTaxiNodes());
-  x = m_nodes[slot].x;
-  y = m_nodes[slot].y;
+  x = m_nodes[slot].offsetx;
+  y = m_nodes[slot].offsety;
 }
 
 unsigned int CGTaxiMap::TaxiNodeCost(unsigned int slot) {

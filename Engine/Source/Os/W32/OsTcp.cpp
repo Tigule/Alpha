@@ -903,6 +903,7 @@ namespace OsNet {
         m_port(0),
         m_hostAddrInfoCount(0),
         m_hostAddrInfoId(0) {
+    LISTEXSETLINK(LOOPCONN, m_loopDisconnectList, m_linkNet);
   }
 
   int TCPNET::BaseInitialize(unsigned long hints) {
@@ -1020,8 +1021,8 @@ namespace OsNet {
     int list;
 
     for (list = 0; list < CONNLISTS; ++list) {
-      TSExplicitList<NETCONN, 8> connSimpleList;
-      NETCONN                   *conn;
+      NETCONNSIMPLELIST connSimpleList;
+      NETCONN          *conn;
 
       m_connList[list].UnlinkAll(connSimpleList);
       for (conn = connSimpleList.Head(); conn;) {
@@ -1084,7 +1085,7 @@ namespace OsNet {
     WSACleanup();
 
     if (!s_preTerminateHostAddr) {
-      s_pnet->m_hostAddrInfoLock.Lock();
+      s_pnet->m_hostAddrInfoLock.Enter();
 
       while (TCPHOSTADDRINFO *info = s_pnet->m_hostAddrInfoList.Head()) {
         TerminateThread(info->m_thread, 0);
@@ -1094,7 +1095,7 @@ namespace OsNet {
         s_pnet->DecRef();
       }
 
-      s_pnet->m_hostAddrInfoLock.Unlock();
+      s_pnet->m_hostAddrInfoLock.Leave();
     }
   }
 
@@ -1339,7 +1340,7 @@ namespace OsNet {
       return;
     }
 
-    m_connectList[0].Link(pconnect);
+    m_connectList[CONNECTLIST_LOOP_CONNECTED].Link(pconnect);
     SetEvent(m_baseEvent);
   }
 
@@ -1363,7 +1364,7 @@ namespace OsNet {
       return;
     }
 
-    long connectList = 1;
+    CONNECTLIST connectList = CONNECTLIST_TCP_CONNECTED;
 
     pconnect->m_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (pconnect->m_sock == INVALID_SOCKET) {
@@ -1379,7 +1380,7 @@ namespace OsNet {
       addr.sin_addr.s_addr = pconnect->m_nodeNumber;
       if (::connect(pconnect->m_sock, reinterpret_cast<const sockaddr *>(&addr), sizeof(addr)) == SOCKET_ERROR) {
         if (WSAGetLastError() == WSAEWOULDBLOCK) {
-          connectList = 2;
+          connectList = CONNECTLIST_TCP_CONNECTING;
         } else {
           closesocket(pconnect->m_sock);
           pconnect->m_sock = INVALID_SOCKET;
@@ -1401,20 +1402,20 @@ namespace OsNet {
       return;
     }
 
-    m_connectList[0].Link(pconnect);
+    m_connectList[CONNECTLIST_FILE_CONNECTED].Link(pconnect);
     SetEvent(m_baseEvent);
   }
 
   unsigned int __stdcall TCPNET::BaseThread(void *lpnet) {
     TCPNET                                     *net = static_cast<TCPNET *>(lpnet);
     NETSELECTSETS                               selectSets(net);
-    TSSlottedListEx<NETCONNECT, 8, 1>::Iterator connectIt(net->m_connectList[CONNLIST_UDP_CONNECTED]);
+    NETCONNECTLIST::Iterator connectIt(net->m_connectList[CONNECTLIST_TCP_CONNECTING]);
 
     for (;;) {
       long connectCount = 0;
       int  list;
 
-      for (list = 0; list < CONNLISTS; ++list) {
+      for (list = 0; list < CONNECTLISTS; ++list) {
         connectCount += net->m_connectList[list].Count();
       }
 
@@ -1435,8 +1436,8 @@ namespace OsNet {
           LISTDECLEX(NETCONNECT, m_link, connectFailList);
           NETCONNECT                   *connect;
 
-          net->m_connectList[CONNLIST_UDP_CONNECTED].UnlinkAll(connectFailList);
-          net->m_connectList[CONNLIST_TCP_CONNECTED].UnlinkAll(connectFailList);
+          net->m_connectList[CONNECTLIST_TCP_CONNECTING].UnlinkAll(connectFailList);
+          net->m_connectList[CONNECTLIST_TCP_CONNECTED].UnlinkAll(connectFailList);
           connectIt.Reset();
 
           connect = connectFailList.Head();
@@ -1455,7 +1456,7 @@ namespace OsNet {
           LISTDECL(TCPHOSTADDRINFO, hostAddrInfoFailList);
           TCPHOSTADDRINFO                                     *info;
 
-          net->m_hostAddrInfoLock.Lock();
+          net->m_hostAddrInfoLock.Enter();
           while ((info = net->m_hostAddrInfoList.Head()) != 0) {
             if (s_preTerminateHostAddr) {
               TerminateThread(info->m_thread, 0);
@@ -1464,7 +1465,7 @@ namespace OsNet {
             hostAddrInfoFailList.LinkNode(info, LIST_TAIL, 0);
             net->m_hostAddrInfoCount.Dec();
           }
-          net->m_hostAddrInfoLock.Unlock();
+          net->m_hostAddrInfoLock.Leave();
 
           info = hostAddrInfoFailList.Head();
           while (info) {
@@ -1479,9 +1480,9 @@ namespace OsNet {
           }
 
           if (!s_preTerminateHostAddr) {
-            s_pnet->m_hostAddrInfoLock.Lock();
+            s_pnet->m_hostAddrInfoLock.Enter();
             s_pnet->m_hostAddrInfoList.Combine(&hostAddrInfoFailList, LIST_TAIL, 0);
-            s_pnet->m_hostAddrInfoLock.Unlock();
+            s_pnet->m_hostAddrInfoLock.Leave();
           }
 
           SetEvent(net->m_baseTcpShutdownEvent);
@@ -1490,7 +1491,8 @@ namespace OsNet {
 
       {
         LISTDECLEX(LOOPCONN::INPUT, m_linkNet, loopInputList);
-        LISTDECLEX(LOOPCONN, m_linkNet, loopDisconnectList);
+        LISTEXDYN(LOOPCONN) loopDisconnectList;
+        LISTEXSETLINK(LOOPCONN, loopDisconnectList, m_linkNet);
         LOOPCONN::INPUT                   *pinput;
         LOOPCONN                          *conn;
 
@@ -1543,10 +1545,10 @@ namespace OsNet {
         }
         connectIt.CycleDone();
 
-        net->m_connectList[CONNLIST_LOOP_CONNECTED].UnlinkAll(connectCompleteList);
-        net->m_connectList[CONNLIST_TCP_CONNECTED].UnlinkAll(connectCompleteList);
-        net->m_connectList[CONNLIST_FILE_CONNECTED].UnlinkAll(connectCompleteList);
-        selsockTotal = net->m_connectList[CONNLIST_UDP_CONNECTED].Count();
+        net->m_connectList[CONNECTLIST_LOOP_CONNECTED].UnlinkAll(connectCompleteList);
+        net->m_connectList[CONNECTLIST_TCP_CONNECTED].UnlinkAll(connectCompleteList);
+        net->m_connectList[CONNECTLIST_FILE_CONNECTED].UnlinkAll(connectCompleteList);
+        selsockTotal = net->m_connectList[CONNECTLIST_TCP_CONNECTING].Count();
 
         connect = connectCompleteList.Head();
         while (connect) {
@@ -1570,14 +1572,14 @@ namespace OsNet {
         LISTDECL(TCPHOSTADDRINFO, hostAddrInfoReadyList);
         TCPHOSTADDRINFO                                     *info;
 
-        net->m_hostAddrInfoLock.Lock();
+        net->m_hostAddrInfoLock.Enter();
         while ((info = net->m_hostAddrInfoList.Head()) != 0) {
           if (info->m_ready) {
             hostAddrInfoReadyList.LinkNode(info, LIST_TAIL, 0);
             net->m_hostAddrInfoCount.Dec();
           }
         }
-        net->m_hostAddrInfoLock.Unlock();
+        net->m_hostAddrInfoLock.Leave();
 
         while ((info = hostAddrInfoReadyList.Head()) != 0) {
           info->Complete();
@@ -1591,7 +1593,7 @@ namespace OsNet {
       LISTDECLEX(NETCONNECT, m_link, connectFailList);
       NETCONNECT                   *connect;
 
-      net->m_connectList[CONNLIST_LOOP_CONNECTED].UnlinkAll(connectFailList);
+      net->m_connectList[CONNECTLIST_LOOP_CONNECTED].UnlinkAll(connectFailList);
       connect = connectFailList.Head();
       while (connect) {
         NETCONNECT *next = connectFailList.Next(connect);
@@ -1627,20 +1629,22 @@ namespace OsNet {
       hostName[0] = 0;
       hostAddrInfoFound = 0;
 
-      pnet->m_hostAddrInfoLock.Lock();
-      TCPHOSTADDRINFO *info = pnet->LockedFindHostAddrInfo(infoId);
-      if (info) {
-        if (info->m_hostNameCurr) {
-          char *nextHostName = SStrChr(info->m_hostNameCurr, ';');
-          if (nextHostName) {
-            *nextHostName++ = 0;
+      TCPHOSTADDRINFO *info;
+      if (!pnet->m_hostAddrInfoLock.Enter()) {
+        info = pnet->LockedFindHostAddrInfo(infoId);
+        if (info) {
+          if (info->m_hostNameCurr) {
+            char *nextHostName = SStrChr(info->m_hostNameCurr, ';');
+            if (nextHostName) {
+              *nextHostName++ = 0;
+            }
+            SStrCopy(hostName, info->m_hostNameCurr, sizeof(hostName));
+            info->m_hostNameCurr = nextHostName;
           }
-          SStrCopy(hostName, info->m_hostNameCurr, sizeof(hostName));
-          info->m_hostNameCurr = nextHostName;
+          hostAddrInfoFound = 1;
         }
-        hostAddrInfoFound = 1;
       }
-      pnet->m_hostAddrInfoLock.Unlock();
+      pnet->m_hostAddrInfoLock.Leave();
 
       if (!hostAddrInfoFound) {
         return 0;
@@ -1648,13 +1652,14 @@ namespace OsNet {
 
       if (!hostName[0]) {
         hostAddrInfoFound = 0;
-        pnet->m_hostAddrInfoLock.Lock();
-        info = pnet->LockedFindHostAddrInfo(infoId);
-        if (info) {
-          info->m_ready = 1;
-          hostAddrInfoFound = 1;
+        if (!pnet->m_hostAddrInfoLock.Enter()) {
+          info = pnet->LockedFindHostAddrInfo(infoId);
+          if (info) {
+            info->m_ready = 1;
+            hostAddrInfoFound = 1;
+          }
         }
-        pnet->m_hostAddrInfoLock.Unlock();
+        pnet->m_hostAddrInfoLock.Leave();
         if (hostAddrInfoFound) {
           SetEvent(pnet->m_baseEvent);
         }
@@ -1664,13 +1669,14 @@ namespace OsNet {
       if (hostName[0] >= '0' && hostName[0] <= '9') {
         OsNetAddrMakeFromStr(hostName, defaultPort, &netAddr);
         hostAddrInfoFound = 0;
-        pnet->m_hostAddrInfoLock.Lock();
-        info = pnet->LockedFindHostAddrInfo(infoId);
-        if (info) {
-          *info->m_addrs.New() = netAddr;
-          hostAddrInfoFound = 1;
+        if (!pnet->m_hostAddrInfoLock.Enter()) {
+          info = pnet->LockedFindHostAddrInfo(infoId);
+          if (info) {
+            *info->m_addrs.New() = netAddr;
+            hostAddrInfoFound = 1;
+          }
         }
-        pnet->m_hostAddrInfoLock.Unlock();
+        pnet->m_hostAddrInfoLock.Leave();
         if (!hostAddrInfoFound) {
           return 0;
         }
@@ -1678,19 +1684,20 @@ namespace OsNet {
         hostent *host = gethostbyname(hostName);
         if (host && host->h_addrtype == AF_INET && host->h_length == 4) {
           hostAddrInfoFound = 0;
-          pnet->m_hostAddrInfoLock.Lock();
-          info = pnet->LockedFindHostAddrInfo(infoId);
-          if (info) {
-            hostAddr = host->h_addr_list;
-            if (*hostAddr) {
-              hostAddrInfoFound = 1;
-              do {
-                OsNetAddrMake(*reinterpret_cast<unsigned long *>(*hostAddr), defaultPort, &netAddr);
-                *info->m_addrs.New() = netAddr;
-              } while (*++hostAddr);
+          if (!pnet->m_hostAddrInfoLock.Enter()) {
+            info = pnet->LockedFindHostAddrInfo(infoId);
+            if (info) {
+              hostAddr = host->h_addr_list;
+              if (*hostAddr) {
+                hostAddrInfoFound = 1;
+                do {
+                  OsNetAddrMake(*reinterpret_cast<unsigned long *>(*hostAddr), defaultPort, &netAddr);
+                  *info->m_addrs.New() = netAddr;
+                } while (*++hostAddr);
+              }
             }
           }
-          pnet->m_hostAddrInfoLock.Unlock();
+          pnet->m_hostAddrInfoLock.Leave();
           if (!hostAddrInfoFound) {
             return 0;
           }
@@ -1895,7 +1902,7 @@ namespace OsNet {
     hostAddrThreadParam.m_event = CreateEventA(0, FALSE, FALSE, 0);
     hostAddrThreadParam.m_defaultPort = defaultPort;
 
-    m_hostAddrInfoLock.Lock();
+    m_hostAddrInfoLock.Enter();
     do {
       ++m_hostAddrInfoId;
     } while (!m_hostAddrInfoId || LockedFindHostAddrInfo(m_hostAddrInfoId));
@@ -1907,7 +1914,7 @@ namespace OsNet {
     if (thread) {
       info->m_thread = thread;
       m_hostAddrInfoList.LinkNode(info, LIST_TAIL, 0);
-      m_hostAddrInfoLock.Unlock();
+      m_hostAddrInfoLock.Leave();
       m_hostAddrInfoCount.Inc();
       WaitForSingleObject(hostAddrThreadParam.m_event, INFINITE);
       if (hostAddrThreadParam.m_event) {
@@ -1919,7 +1926,7 @@ namespace OsNet {
     DecRef();
     DEL(info);
     LogWrite("%s 5", OSNETERR_THREADFAILED);
-    m_hostAddrInfoLock.Unlock();
+    m_hostAddrInfoLock.Leave();
     if (hostAddrThreadParam.m_event) {
       CloseHandle(hostAddrThreadParam.m_event);
     }
@@ -2959,7 +2966,7 @@ namespace OsNet {
     m_lock.Leave();
 
     int connected = NoteFileOperation(
-        pinput->m_data, bytes, pinput->m_overlap.m_overlapped.Offset, pinput->m_overlap.m_overlapped.OffsetHigh, pinput->m_operationId,
+        pinput->m_buffer, bytes, pinput->m_overlap.m_overlapped.Offset, pinput->m_overlap.m_overlapped.OffsetHigh, pinput->m_file.m_operationId,
         NETNOTE_FILEREAD
     );
     DEL(pinput);
@@ -3002,9 +3009,9 @@ namespace OsNet {
     pinput->m_overlap.Init(OVERLAPTYPE_READ);
     pinput->m_overlap.m_overlapped.Offset = static_cast<unsigned long>(pos);
     pinput->m_overlap.m_overlapped.OffsetHigh = static_cast<unsigned long>(pos >> 32);
-    pinput->m_operationId = operationId;
+    pinput->m_file.m_operationId = operationId;
     pinput->m_bytes = bytes;
-    pinput->m_data = buffer;
+    pinput->m_buffer = static_cast<unsigned char *>(buffer);
 
     m_lock.Enter();
     if (m_file == INVALID_HANDLE_VALUE) {
@@ -3050,7 +3057,7 @@ namespace OsNet {
   }
 
   void IOFILECONN::StartRead(INPUT *pinput) {
-    if (!ReadFile(static_cast<HANDLE>(m_file), pinput->m_data, pinput->m_bytes, 0, &pinput->m_overlap.m_overlapped) &&
+    if (!ReadFile(static_cast<HANDLE>(m_file), pinput->m_buffer, pinput->m_bytes, 0, &pinput->m_overlap.m_overlapped) &&
         GetLastError() != ERROR_IO_PENDING)
     {
       PostQueuedCompletionStatus(m_net->m_port, 0, reinterpret_cast<unsigned long>(this), &pinput->m_overlap.m_overlapped);
@@ -3106,7 +3113,7 @@ namespace OsNet {
         if (file != INVALID_HANDLE_VALUE) {
           long offsetHigh = pinput->m_overlap.m_overlapped.OffsetHigh;
           SetFilePointer(static_cast<HANDLE>(file), pinput->m_overlap.m_overlapped.Offset, &offsetHigh, FILE_BEGIN);
-          ReadFile(static_cast<HANDLE>(file), pinput->m_data, pinput->m_bytes, &bytes, 0);
+          ReadFile(static_cast<HANDLE>(file), pinput->m_buffer, pinput->m_bytes, &bytes, 0);
         }
         fileConn->CompleteRead(&pinput->m_overlap, bytes);
         fileConn->DecIo();

@@ -126,13 +126,13 @@ unsigned int CGCorpse_C::OffsetOf(OBJECT_TYPE_ID type) {
 }
 
 const char *CGCorpse_C::GetModelFileName() const {
-  CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_corpse->m_displayID);
+  const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_corpse->m_displayID);
   if (!displayInfo) {
     SysMsgPrintf(SYSMSG_WARNING, 16, "INVALIDPLAYERDISPLAYID|%d|%d|%d", m_corpse->m_displayID, m_corpse->m_raceID, m_corpse->m_sex);
     return "NoName";
   }
 
-  CreatureModelDataRec *modelData = g_creatureModelDataDB.GetRecord(displayInfo->m_modelID);
+  const CreatureModelDataRec *modelData = g_creatureModelDataDB.GetRecord(displayInfo->m_modelID);
   if (!modelData) {
     SysMsgPrintf(SYSMSG_WARNING, 16, "INVALIDPLAYERMODELRECORD|%d|%d|%d", displayInfo->m_modelID, m_corpse->m_raceID, m_corpse->m_sex);
     return "NoName";
@@ -178,7 +178,7 @@ void CGCorpse_C::InitPreferredGeosets() {
 }
 
 void CGCorpse_C::InitComponents() {
-  CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_corpse->m_displayID);
+  const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_corpse->m_displayID);
   if (!displayInfo || !g_creatureModelDataDB.GetRecord(displayInfo->m_modelID)) {
     return;
   }

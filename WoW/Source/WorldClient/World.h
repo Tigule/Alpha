@@ -28,6 +28,7 @@ class CGGameObject_C;
 class CDetailDoodadInst;
 class DNSky;
 class CWFrustum;
+class CWSoundEmitter;
 class CGUnit_C;
 class CGxPixelShader;
 class CGxShaderParam;
@@ -272,10 +273,42 @@ class CWorld {
     Enable_Anisotropic = 0x80000000
   };
 
+  enum ObjFlags {
+    ObjFlag_Collidable = 0x1,
+    ObjFlag_NoShadow = 0x2,
+    ObjFlag_AlwaysAnimate = 0x4
+  };
+
+  enum ObjStatus {
+    ObjStatus_Visible = 0x1,
+    ObjStatus_Audible = 0x2
+  };
+
+  enum WorldQueryFlags {
+    WQF_doodadCollision = 0x0001,
+    WQF_doodadRender = 0x0002,
+    WQF_doodadMask = 0x000F,
+    WQF_mapobjCollision = 0x0010,
+    WQF_mapobjRender = 0x0020,
+    WQF_mapobjNoCamCollide = 0x0040,
+    WQF_mapobjMask = 0x00F0,
+    WQF_terrain = 0x0100,
+    WQF_terrainMask = 0x0F00,
+    WQF_noForceLoad = 0x1000,
+    WQF_noWmoDoodad = 0x2000,
+    WQF_render = WQF_mapobjRender | WQF_doodadRender | WQF_terrain,
+    WQF_collision = WQF_mapobjCollision | WQF_doodadCollision | WQF_terrain
+  };
+
+  static const unsigned int MAX_SOUND_EXT_LEVEL;
+  static const unsigned int MIN_SOUND_EXT_LEVEL;
+
   static void Initialize();
   static void Destroy();
   static void LoadMap(const char *mapName, NTempest::C3Vector &position, int preLoad);
+  static bool MapIsDungeon();
   static void UnloadMap();
+  static void ClearCache();
   static void Preload(const NTempest::C3Vector &position);
   static void PrepareUpdate(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
   static void SetUpdateTime(float elapsedSec, unsigned long pCurTimeMs);
@@ -286,8 +319,10 @@ class CWorld {
   static void ObjectDelete(unsigned int id);
   static void SetHidden(unsigned long hWorldObject, int hidden);
   static unsigned int QueryAreaId(float x, float y);
+  static int QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb);
   static unsigned int SceneCamLiquidStatus();
   static int QueryObjectInside(unsigned long hWorldObject);
+  static int QueryObjectVisible(unsigned long hWorldObject);
   static int QueryLiquidSounds(unsigned long hWorldObject, float radius, int *lbool, NTempest::C3Vector *ldelta);
   static int QueryMapObjZoneName(unsigned long hWorldObject, const char *&zoneName);
   static int QueryMapObjSubzoneName(unsigned long hWorldObject, const char *&subzoneName, unsigned int &subzoneId);
@@ -299,8 +334,10 @@ class CWorld {
   static const char *QueryChunkName();
   static bool QueryMapObjAreaTable(unsigned long hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
   static int QueryObjectLiquid(unsigned long hWorldObject, unsigned int &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep);
+  static int QueryGroundType(unsigned long hWorldObject, unsigned int &groundType);
   static bool QueryMountAllowed(unsigned long hWorldObject, bool &allowed);
   static int QueryLiquidStatus(const NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir);
+  static int QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable);
   static void UpdateObject(unsigned long hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox);
   static void ObjectUpdate(unsigned int id, NTempest::C3Vector &pos, float angle, int bSnap);
   static unsigned int ObjectCreate(
@@ -322,7 +359,14 @@ class CWorld {
   static const NTempest::C3Vector &GetCamPos();
   static const NTempest::C3Vector &GetCamTarget();
   static float GetFramerate();
+  static unsigned int GetPrimsRendered();
+  static unsigned int GetChunksRendered();
+  static unsigned int GetDoodadsRendered();
   static void GetCounts(int counts[]);
+  static unsigned long GetEnables();
+  static float GetFarClip();
+  static float GetNearClip();
+  static unsigned int GetTexMaxAnisotropyLog2();
   static void SetEnvironment();
   static void UpdateDayNight(int forceFull, const NTempest::C3Vector *position);
   static void Render();
@@ -344,7 +388,10 @@ class CWorld {
   static void GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags);
   static void GetFacets(const CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags);
   static void TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, unsigned __int64 param64);
+  static bool GetTris(const NTempest::C3Segment &seg, float &t, CWTriData &triData, unsigned int queryFlags);
   static bool GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags);
+  static void DBGShowQuery(bool show);
+  static void SetSoundEmitterHandlers(void(*create)(CWSoundEmitter &), void(*destroy)(unsigned long));
   static int NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTempest::C3Vector **&p_outVerts, unsigned int &p_outCount);
   static bool NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate);
 
@@ -379,17 +426,36 @@ class CWorld {
   static void PrepareAreaOfInterest(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
 
   static int ConsoleCommand_ShowDetailDoodads(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowMapObjBSP(const char *command, const char *arguments);
+  static int ConsoleCommand_DebugBSP(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowTerrain(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowDoodads(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowAABoxes(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowCollision(const char *command, const char *arguments);
   static int ConsoleCommand_MaxLOD(const char *__formal, const char *arguments);
   static int ConsoleCommand_ShowCull(const char *command, const char *arguments);
   static int ConsoleCommand_SetShadow(const char *__formal, const char *arguments);
+  static int ConsoleCommand_ShowMapObjLight(const char *command, const char *arguments);
   static int ConsoleCommand_MapObjLightMode(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowMapObjTex(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowCrappyBatches(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowMapObjs(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowPortals(const char *command, const char *arguments);
+  static int ConsoleCommand_PortalVis(const char *command, const char *arguments);
   static int ConsoleCommand_WaterShow(const char *command, const char *arguments);
   static int ConsoleCommand_WaterMaxLOD(const char *__formal, const char *arguments);
   static int ConsoleCommand_WaterWaves(const char *__formal, const char *arguments);
   static int ConsoleCommand_WaterSpecular(const char *__formal, const char *arguments);
   static int ConsoleCommand_WaterRipples(const char *__formal, const char *arguments);
   static int ConsoleCommand_WaterParticulates(const char *command, const char *arguments);
+  static int ConsoleCommand_Proj(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowTris(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowNormals(const char *command, const char *arguments);
+  static int ConsoleCommand_DebugZones(const char *command, const char *arguments);
+  static int ConsoleCommand_ShowQuery(const char *command, const char *arguments);
+  static int ConsoleCommand_DetailDoodadTest(const char *command, const char *arguments);
   static int ConsoleCommand_DetailDoodadAlpha(const char *__formal, const char *arguments);
+  static int ConsoleCommand_GroupOnly(const char *command, const char *arguments);
   static int ConsoleCommand_ShowShadow(const char *command, const char *arguments);
   static int ConsoleCommand_ShowLowDetail(const char *command, const char *arguments);
   static int ConsoleCommand_ShowSimpleDoodads(const char *command, const char *arguments);
@@ -406,6 +472,9 @@ class CWorld {
   static float               unitDrawDist;
   static unsigned int        frameCnt;
   static unsigned int        chunkCnt;
+  static unsigned int        nChunksRender;
+  static unsigned int        nDoodadsRender;
+  static unsigned int        nPrimsRender;
   static NTempest::CiRect    chunkRectHi;
   static NTempest::CiRect    gbChunkRect;
   static NTempest::CiRect    areaRect;

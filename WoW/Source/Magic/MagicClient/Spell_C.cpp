@@ -15,9 +15,11 @@
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Ui/ActionBarFrame.h"
+#include "Ui/ContainerFrame.h"
 #include "Ui/GameUI.h"
 #include "Ui/PetInfo.h"
 #include "Ui/SpellBookFrame.h"
+#include "Ui/TradeFrame.h"
 #include "Ui/WorldFrame.h"
 #include "WorldClient/World.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
@@ -47,16 +49,6 @@ enum CURSORANIMATIONS {
   CAST_ERROR_CURSOR = 10
 };
 
-class CGContainerInfo {
- public:
-  static void UpdateCooldowns();
-};
-
-class CGTradeInfo {
- public:
-  static int GetTargetTradeItem(int index);
-};
-
 class CGCraftInfo {
  public:
   static void SetCraftType(SPELL_CAST_UI_TYPE type);
@@ -69,6 +61,26 @@ class CGTradeSkillInfo {
 
 class SpellCast {
  public:
+  SpellCast() {
+    caster = 0;
+    spellID = 0;
+    castTime = 0;
+    targets = 0;
+    castEndTime = 0;
+    unitTarget = 0;
+    itemTarget = 0;
+    ammoItem = 0;
+    spellLevel = 0;
+    spellIndex = 0;
+    reflector = 0;
+    overrideRank = -1;
+    flags = 0;
+    selectedTarget = 0;
+  }
+
+  ~SpellCast() {
+  }
+
   void BuildFullZoneUpdate(CDataStore *msg);
   void UnpackFullZoneUpdate(CDataStore *msg);
 
@@ -531,7 +543,7 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
   char            message[128];
   unsigned int    numEntries = 0;
   CGPlayer_C     *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  SpellRec       *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec       *spell = g_spellDB.GetRecord(spellID);
   int             isPet = 0;
   int             first = 1;
   GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(39);
@@ -920,7 +932,7 @@ void Spell_C_SetCooldownLeft(
   unsigned int     spellRecoveryTime = 0;
   unsigned long    categoryRecoveryStart = 0;
   unsigned int     categoryRecoveryTime = 0;
-  SpellRec        *srec = g_spellDB.GetRecord(spellID);
+  const SpellRec        *srec = g_spellDB.GetRecord(spellID);
   unsigned long    now = OsGetAsyncTimeMs();
   const ItemStats *stats = 0;
   unsigned long    spellRecoveryStart = 0;
@@ -1090,7 +1102,7 @@ int Spell_C_GetSpellLevel(int id, int isPet) {
 }
 
 int Spell_C_GetManaCost(int id, int isPet) {
-  SpellRec *spell = g_spellDB.GetRecord(id);
+  const SpellRec *spell = g_spellDB.GetRecord(id);
   if (!spell) {
     return -1;
   }
@@ -1106,7 +1118,7 @@ int Spell_C_GetManaCost(int id, int isPet) {
 }
 
 int Spell_C_GetManaCostPerSecond(int id, int isPet) {
-  SpellRec *spellRec = g_spellDB.GetRecord(id);
+  const SpellRec *spellRec = g_spellDB.GetRecord(id);
   if (!spellRec) {
     return -1;
   }
@@ -1115,12 +1127,12 @@ int Spell_C_GetManaCostPerSecond(int id, int isPet) {
 }
 
 int Spell_C_GetCastTime(int id, int isPet) {
-  SpellRec *spellRec = g_spellDB.GetRecord(id);
+  const SpellRec *spellRec = g_spellDB.GetRecord(id);
   if (!spellRec) {
     return 0;
   }
 
-  SpellCastTimesRec *castTime = g_spellCastTimesDB.GetRecord(spellRec->m_castingTimeIndex);
+  const SpellCastTimesRec *castTime = g_spellCastTimesDB.GetRecord(spellRec->m_castingTimeIndex);
   if (!castTime) {
     return 0;
   }
@@ -1133,12 +1145,12 @@ void Spell_C_GetMinMaxRange(int id, float *min, float *max) {
   *min = 0.0f;
   *max = 0.0f;
 
-  SpellRec *spell = g_spellDB.GetRecord(id);
+  const SpellRec *spell = g_spellDB.GetRecord(id);
   if (!spell) {
     return;
   }
 
-  SpellRangeRec *range = g_spellRangeDB.GetRecord(spell->m_rangeIndex);
+  const SpellRangeRec *range = g_spellRangeDB.GetRecord(spell->m_rangeIndex);
   if (!range) {
     return;
   }
@@ -1302,7 +1314,7 @@ void SendCast(SpellCast *cast) {
   }
 
   if (s_playerCast) {
-    SpellRec *spell = g_spellDB.GetRecord(cast->spellID);
+    const SpellRec *spell = g_spellDB.GetRecord(cast->spellID);
     if (spell->m_startRecoveryCategory || spell->m_startRecoveryTime) {
       s_spellHistory[0].AddHistory(
           cast->spellID, 0, OsGetAsyncTimeMs(), 0, 0, OsGetAsyncTimeMs(), 0, false, spell->m_startRecoveryCategory, spell->m_startRecoveryTime
@@ -1579,7 +1591,7 @@ static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* 
   if (!stats) {
     return;
   }
-  GameObjectDisplayInfoRec *display =
+  const GameObjectDisplayInfoRec *display =
       g_gameObjectDisplayInfoDB.GetRecord(stats->m_displayID);
   if (!display) {
     return;
@@ -1596,7 +1608,7 @@ static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* 
 }
 
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
-  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell || (spell->m_attributes & 0x40)) {
     return false;
   }
@@ -1735,7 +1747,7 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
           reinterpret_cast<void *>(spellID)
       );
       if (stats) {
-        GameObjectDisplayInfoRec *display = g_gameObjectDisplayInfoDB.GetRecord(stats->m_displayID);
+        const GameObjectDisplayInfoRec *display = g_gameObjectDisplayInfoDB.GetRecord(stats->m_displayID);
         if (display) {
           NTempest::C3Vector position = player->GetPosition();
           s_spellWorldModel = CWorld::ObjectCreate(display->m_modelName, position, 0.0f, 0, 0, 0);
@@ -1775,7 +1787,7 @@ bool Spell_C_HandleSpriteClick(CGObject_C *object) {
   FATALASSERT(player);
 
   if (object->GetGUID() == s_spellCast.casterUnit) {
-    SpellRec *spell = g_spellDB.GetRecord(s_spellCast.spellID);
+    const SpellRec *spell = g_spellDB.GetRecord(s_spellCast.spellID);
     if (spell->m_attributesEx & 0x80000) {
       return 0;
     }
@@ -1924,8 +1936,8 @@ float Spell_C_GetSpellRadius() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   FATALASSERT(player);
 
-  SpellRec       *spell = g_spellDB.GetRecord(s_spellCast.spellID);
-  SpellRadiusRec *radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[0]);
+  const SpellRec       *spell = g_spellDB.GetRecord(s_spellCast.spellID);
+  const SpellRadiusRec *radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[0]);
   float           radius1 = radius ? radius->m_radius + player->GetUnitData()->level * radius->m_radiusPerLevel : 0.0f;
   radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[1]);
   float radius2 = radius ? radius->m_radius + player->GetUnitData()->level * radius->m_radiusPerLevel : 0.0f;
@@ -1942,7 +1954,7 @@ bool Spell_C_HandleSpriteRay(const CSpriteClickEvent &evt, bool checkRange) {
   FATALASSERT(player);
 
   if (object->GetGUID() == s_spellCast.casterUnit) {
-    SpellRec *spell = g_spellDB.GetRecord(s_spellCast.spellID);
+    const SpellRec *spell = g_spellDB.GetRecord(s_spellCast.spellID);
     if (spell->m_attributesEx & 0x80000) {
       return false;
     }
@@ -1972,7 +1984,7 @@ bool Spell_C_HandleSpriteRay(const CSpriteClickEvent &evt, bool checkRange) {
       return false;
     }
 
-    SpellRec *spell = g_spellDB.GetRecord(s_spellCast.spellID);
+    const SpellRec *spell = g_spellDB.GetRecord(s_spellCast.spellID);
     if (spell && spell->m_targetCreatureType) {
       int type = unit->GetCreatureType();
       if (!type || !(spell->m_targetCreatureType & (1 << (type - 1)))) {

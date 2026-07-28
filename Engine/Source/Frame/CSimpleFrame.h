@@ -23,10 +23,20 @@ class CSimpleTop;
 static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect);
 
 NODEDECL(REGIONNODE) {
+  REGIONNODE() {
+  }
+
+  REGIONNODE(const REGIONNODE &);
+
   CSimpleRegion *region;
 };
 
 NODEDECL(SIMPLEFRAMENODE) {
+  SIMPLEFRAMENODE() {
+  }
+
+  SIMPLEFRAMENODE(const SIMPLEFRAMENODE &);
+
   CSimpleFrame *frame;
 };
 

@@ -8,15 +8,6 @@
 
 namespace NTempest {
 
-  C3Spline &C3Spline::operator=(const C3Spline &spline) {
-    if (this != &spline) {
-      cachedLength = spline.cachedLength;
-      points = spline.points;
-      cachedSegLength = spline.cachedSegLength;
-    }
-    return *this;
-  }
-
   void C3Spline::ValidateCache() const {
     IValidateCache();
     cachedLength = ILength();

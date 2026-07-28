@@ -71,7 +71,9 @@ class CGGameObject {
 
   int GetDisplayID() const;
   const NTempest::C4Quaternion &GetRotation() const;
-  int GetState() const;
+  int GetState() const {
+    return m_gameObj->m_state;
+  }
   unsigned int GetTimeStamp() const;
   unsigned int GetGameObjectFlags() const;
   void GetObjectPosition(NTempest::C3Vector &position) const;

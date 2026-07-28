@@ -27,6 +27,7 @@ enum FRAMESCRIPT_GENDER {
 class FrameScript_Object {
  public:
   FrameScript_Object();
+  FrameScript_Object(lua_State *state);
   virtual ~FrameScript_Object();
 
   virtual const char *GetName() const;

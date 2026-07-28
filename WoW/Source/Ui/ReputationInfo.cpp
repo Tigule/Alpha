@@ -35,7 +35,7 @@ void CGReputationInfo::EnterWorld() {
   memset(m_factionMap, 0, sizeof(m_factionMap));
 
   for (int i = g_factionDB.GetNumRecords() - 1; i >= 0; --i) {
-    FactionRec *faction = g_factionDB.GetRecordByIndex(i);
+    const FactionRec *faction = g_factionDB.GetRecordByIndex(i);
     if (static_cast<unsigned int>(faction->m_reputationIndex) >= 64) {
       continue;
     }
@@ -60,14 +60,10 @@ void CGReputationInfo::ShutdownGame() {
 }
 
 int CGReputationInfo::FactionToIndex(int faction) {
-  FactionRec *rec = g_factionDB.GetRecord(faction);
+  const FactionRec *rec = g_factionDB.GetRecord(faction);
   FATALASSERT(rec);
   FATALASSERT(rec->m_reputationIndex >= 0 && rec->m_reputationIndex < 64);
   return rec->m_reputationIndex;
-}
-
-unsigned int CGReputationInfo::GetNumFactions() {
-  return m_numFactions;
 }
 
 int CGReputationInfo::IndexToFaction(int index) {
@@ -147,8 +143,8 @@ static int __cdecl QSortFactions(const void *a, const void *b) {
   FATALASSERT(b);
   int         factionA = CGReputationInfo::IndexToFaction(*static_cast<const int *>(a));
   int         factionB = CGReputationInfo::IndexToFaction(*static_cast<const int *>(b));
-  FactionRec *recordA = g_factionDB.GetRecord(factionA);
-  FactionRec *recordB = g_factionDB.GetRecord(factionB);
+  const FactionRec *recordA = g_factionDB.GetRecord(factionA);
+  const FactionRec *recordB = g_factionDB.GetRecord(factionB);
   return recordA && recordB ? SStrCmpI(recordA->m_name_lang[CURRENT_LANGUAGE], recordB->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
@@ -161,20 +157,16 @@ int CGReputationInfo::GetFactionFromSortIndex(unsigned int index) {
 }
 
 void CGReputationInfo::SetFactionFlags(int index, unsigned char flags) {
-  FATALASSERT(index >= 0 && index < 64);
   m_factionFlags[index] = flags;
 }
 
-void CGReputationInfo::SetAtWar(int faction, unsigned char state) {
+void CGReputationInfo::SetAtWar(int faction, bool state) {
   int          index = FactionToIndex(faction);
   unsigned int flags = m_factionFlags[index];
   if (state) {
     flags |= 2;
   } else {
     flags &= ~2;
-  }
-  if (flags == m_factionFlags[index]) {
-    return;
   }
   SetFactionFlags(index, static_cast<unsigned char>(flags));
   CDataStore msg;

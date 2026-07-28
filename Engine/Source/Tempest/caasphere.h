@@ -1,13 +1,11 @@
 #pragma once
 
 #include "Tempest/c3vector.h"
+#include "Tempest/cdyntable.h"
 
 namespace NTempest {
 
   class CAaBox;
-
-  template <class T>
-  class CDynTable;
 
   class CAaSphere {
    public:

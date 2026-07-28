@@ -242,7 +242,7 @@ static bool ValidateCameraDistance(CVar *cvar, const char *oldValue, const char 
 
   ASSERT(newValue);
 
-  min = s_cameraNearZ->m_floatValue;
+  min = s_cameraNearZ->GetFloat();
   min += TARGET_RADIUS;
   return ValidateIsInRange(newValue, min, 27.777779f);
 }
@@ -420,12 +420,12 @@ void CameraDestroy() {
 }
 
 CGCamera::CGCamera()
-    : CSimpleCamera(s_cameraNearZ->m_floatValue, s_cameraFarZ->m_floatValue, s_cameraFOV->m_floatValue * 0.017453292f),
+    : CSimpleCamera(s_cameraNearZ->GetFloat(), s_cameraFarZ->GetFloat(), s_cameraFOV->GetFloat() * 0.017453292f),
       m_model(0),
       m_modelCamera(0),
       m_flags(0x11),
       m_relativeTo(0),
-      m_distance(s_cameraDistanceA->m_floatValue),
+      m_distance(s_cameraDistanceA->GetFloat()),
       m_yaw(0.0f),
       m_pitch(0.0f),
       m_roll(0.0f),
@@ -554,7 +554,7 @@ void CGCamera::ClampAngles() {
 }
 
 float CGCamera::GetSmoothedYawAngle(float yaw, int moving) {
-  if (!s_cameraSmooth->m_intValue || !moving) {
+  if (!s_cameraSmooth->GetInt() || !moving) {
     m_lastFacing = yaw;
     return yaw;
   }
@@ -786,7 +786,7 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
     m_previousDistance = m_distance;
   }
 
-  float fadeDistance = s_cameraDistanceA->m_floatValue * 0.33f;
+  float fadeDistance = s_cameraDistanceA->GetFloat() * 0.33f;
   if (m_pitch < -1.1868238f) {
     float pitchFactor = (-1.5533431f - m_pitch) / (-1.5533431f + 1.1868238f);
     fadeDistance /= pitchFactor * pitchFactor;
@@ -912,7 +912,7 @@ void CGCamera::DisableFreeLook(int sticky) {
     desiredAngle = 6.2831855f - desiredAngle;
   }
 
-  float motionTime = static_cast<float>(fabs(m_yawOffset - desiredAngle)) / 3.1415927f * s_cameraSmoothingTime->m_floatValue;
+  float motionTime = static_cast<float>(fabs(m_yawOffset - desiredAngle)) / 3.1415927f * s_cameraSmoothingTime->GetFloat();
   m_yawSmoothingTimestamp = OsGetAsyncTimeMs();
   m_yawTime = motionTime;
   m_previousYaw = m_yawOffset;
@@ -972,20 +972,20 @@ void CGCamera::ResetView(int view) {
       m_views[view].pitch = 0.0f;
       break;
     case 1:
-      m_views[view].dist = s_cameraDistanceA->m_floatValue;
-      m_views[view].pitch = s_cameraAngleA->m_floatValue * 0.017453292f;
+      m_views[view].dist = s_cameraDistanceA->GetFloat();
+      m_views[view].pitch = s_cameraAngleA->GetFloat() * 0.017453292f;
       break;
     case 2:
-      m_views[view].dist = s_cameraDistanceB->m_floatValue;
-      m_views[view].pitch = s_cameraAngleB->m_floatValue * 0.017453292f;
+      m_views[view].dist = s_cameraDistanceB->GetFloat();
+      m_views[view].pitch = s_cameraAngleB->GetFloat() * 0.017453292f;
       break;
     case 3:
-      m_views[view].dist = s_cameraDistanceC->m_floatValue;
-      m_views[view].pitch = s_cameraAngleC->m_floatValue * 0.017453292f;
+      m_views[view].dist = s_cameraDistanceC->GetFloat();
+      m_views[view].pitch = s_cameraAngleC->GetFloat() * 0.017453292f;
       break;
     case 4:
-      m_views[view].dist = s_cameraDistanceD->m_floatValue;
-      m_views[view].pitch = s_cameraAngleD->m_floatValue * 0.017453292f;
+      m_views[view].dist = s_cameraDistanceD->GetFloat();
+      m_views[view].pitch = s_cameraAngleD->GetFloat() * 0.017453292f;
       break;
   }
   m_views[view].yaw = 0.0f;
@@ -995,7 +995,7 @@ void CGCamera::ResetView(int view) {
 }
 
 void CGCamera::ZoomIn(float distance, unsigned long timestamp) {
-  unsigned long timeout = static_cast<unsigned long>(distance / s_cameraLinearSpeed->m_floatValue * 1000.0f);
+  unsigned long timeout = static_cast<unsigned long>(distance / s_cameraLinearSpeed->GetFloat() * 1000.0f);
   if (m_motionMask & (1 << (2 * CAMERA_MOVE_OUT))) {
     StopMotion(CAMERA_MOVE_OUT, timestamp);
   }
@@ -1007,7 +1007,7 @@ void CGCamera::ZoomIn(float distance, unsigned long timestamp) {
 }
 
 void CGCamera::ZoomOut(float distance, unsigned long timestamp) {
-  unsigned long timeout = static_cast<unsigned long>(distance / s_cameraLinearSpeed->m_floatValue * 1000.0f);
+  unsigned long timeout = static_cast<unsigned long>(distance / s_cameraLinearSpeed->GetFloat() * 1000.0f);
   if (m_motionMask & (1 << (2 * CAMERA_MOVE_IN))) {
     StopMotion(CAMERA_MOVE_IN, timestamp);
   }
@@ -1040,8 +1040,8 @@ void CGCamera::UpdateFreeLookFacing(float dx, float dy) {
   DDCToNDC(dx, dy, &dx, &dy);
   dx *= 0.00125f * FREE_LOOK_SPEED;
   dy *= 0.0016666667f * FREE_LOOK_SPEED;
-  m_pitch += (s_mouseInvertPitch->m_intValue ? -1.0f : 1.0f) * dy;
-  if ((m_flags & 0x7) && s_mouseInvertYaw->m_intValue) {
+  m_pitch += (s_mouseInvertPitch->GetInt() ? -1.0f : 1.0f) * dy;
+  if ((m_flags & 0x7) && s_mouseInvertYaw->GetInt()) {
     dx = -dx;
   }
   m_yaw -= dx;
@@ -1091,7 +1091,7 @@ void CGCamera::UpdateMotion(unsigned long timestamp) {
     switch (move) {
       case CAMERA_MOVE_IN:
         if (!m_zoomSmoothingTimestamp) {
-          m_desiredDistance -= s_cameraLinearSpeed->m_floatValue * elapsed * 0.001f;
+          m_desiredDistance -= s_cameraLinearSpeed->GetFloat() * elapsed * 0.001f;
           if (m_desiredDistance < m_nearZ) {
             m_desiredDistance = m_nearZ;
           }
@@ -1101,7 +1101,7 @@ void CGCamera::UpdateMotion(unsigned long timestamp) {
 
       case CAMERA_MOVE_OUT:
         if (!m_zoomSmoothingTimestamp) {
-          m_desiredDistance += s_cameraLinearSpeed->m_floatValue * elapsed * 0.001f;
+          m_desiredDistance += s_cameraLinearSpeed->GetFloat() * elapsed * 0.001f;
           if (m_desiredDistance > 15.0f) {
             m_desiredDistance = 15.0f;
           }
@@ -1111,7 +1111,7 @@ void CGCamera::UpdateMotion(unsigned long timestamp) {
 
       case CAMERA_MOVE_RIGHT:
         if (!m_yawSmoothingTimestamp) {
-          m_desiredYaw += s_cameraAngularSpeed->m_floatValue * elapsed * 0.001f * 0.017453292f;
+          m_desiredYaw += s_cameraAngularSpeed->GetFloat() * elapsed * 0.001f * 0.017453292f;
           if (m_desiredYaw > 6.2831855f) {
             m_desiredYaw -= 6.2831855f;
           }
@@ -1121,7 +1121,7 @@ void CGCamera::UpdateMotion(unsigned long timestamp) {
 
       case CAMERA_MOVE_LEFT:
         if (!m_yawSmoothingTimestamp) {
-          m_desiredYaw -= s_cameraAngularSpeed->m_floatValue * elapsed * 0.001f * 0.017453292f;
+          m_desiredYaw -= s_cameraAngularSpeed->GetFloat() * elapsed * 0.001f * 0.017453292f;
           if (m_desiredYaw < 0.0f) {
             m_desiredYaw += 6.2831855f;
           }
@@ -1131,7 +1131,7 @@ void CGCamera::UpdateMotion(unsigned long timestamp) {
 
       case CAMERA_MOVE_UP:
         if (!m_pitchSmoothingTimestamp) {
-          m_desiredPitch += s_cameraAngularSpeed->m_floatValue * elapsed * 0.00025f * 0.017453292f;
+          m_desiredPitch += s_cameraAngularSpeed->GetFloat() * elapsed * 0.00025f * 0.017453292f;
           if (m_desiredPitch - m_smoothingAngle > 1.5533431f) {
             m_desiredPitch = m_smoothingAngle + 1.5533431f;
           }
@@ -1141,7 +1141,7 @@ void CGCamera::UpdateMotion(unsigned long timestamp) {
 
       case CAMERA_MOVE_DOWN:
         if (!m_pitchSmoothingTimestamp) {
-          m_desiredPitch -= s_cameraAngularSpeed->m_floatValue * elapsed * 0.00025f * 0.017453292f;
+          m_desiredPitch -= s_cameraAngularSpeed->GetFloat() * elapsed * 0.00025f * 0.017453292f;
           float minimum = (m_flags & 7) ? -0.34906584f : -1.5533431f;
           if (m_desiredPitch - m_smoothingAngle < minimum) {
             m_desiredPitch = m_smoothingAngle + minimum;
@@ -1201,9 +1201,9 @@ int CGCamera::UpdateCallback(const void *__formal, void *param) {
   if (param) {
     CGCamera     *camera = static_cast<CGCamera *>(param);
     unsigned long timestamp = OsGetAsyncTimeMs();
-    camera->m_fov = s_cameraFOV->m_floatValue * 0.017453292f;
-    camera->m_nearZ = s_cameraNearZ->m_floatValue;
-    camera->m_farZ = s_cameraFarZ->m_floatValue;
+    camera->m_fov = s_cameraFOV->GetFloat() * 0.017453292f;
+    camera->m_nearZ = s_cameraNearZ->GetFloat();
+    camera->m_farZ = s_cameraFarZ->GetFloat();
 
     if (camera->m_model) {
       camera->CalcModelCamera(timestamp);
@@ -1449,7 +1449,7 @@ float CGCamera::GetSmoothedHeight(float z, int moving) {
 
 void CGCamera::SetDesiredDistance(float desiredDistance, unsigned long timestamp) {
   if (NTempest::CMath::fnotequal_(m_desiredDistance, desiredDistance)) {
-    m_zoomTime = NTempest::CMath::fabs_((desiredDistance - m_distance) / (desiredDistance - m_desiredDistance)) * s_cameraSmoothingTime->m_floatValue;
+    m_zoomTime = NTempest::CMath::fabs_((desiredDistance - m_distance) / (desiredDistance - m_desiredDistance)) * s_cameraSmoothingTime->GetFloat();
     m_zoomSmoothingTimestamp = timestamp;
     m_previousDistance = m_distance;
     m_desiredDistance = desiredDistance;
@@ -1467,7 +1467,7 @@ void CGCamera::SetDesiredPitchAngle(float desiredAngle, float delay, unsigned lo
   if (NTempest::CMath::fnotequal_(m_desiredPitch, desiredAngle)) {
     m_flags &= ~0x10u;
     m_smoothingAngle = 0.0f;
-    float motionTime = NTempest::CMath::fabs_((desiredAngle - m_pitch) / (desiredAngle - m_desiredPitch)) * s_cameraSmoothingTime->m_floatValue;
+    float motionTime = NTempest::CMath::fabs_((desiredAngle - m_pitch) / (desiredAngle - m_desiredPitch)) * s_cameraSmoothingTime->GetFloat();
     SetDesiredPitchAngleOverTime(desiredAngle, motionTime, timestamp + static_cast<unsigned long>(delay * 1000.0f));
   }
 }
@@ -1484,7 +1484,7 @@ void CGCamera::SetDesiredYawAngle(float desiredAngle, float delay, unsigned long
     desiredAngle = 6.2831855f - desiredAngle;
   }
   if (m_desiredYaw != desiredAngle) {
-    float motionTime = (desiredAngle - m_yawOffset) / (desiredAngle - m_desiredYaw) * s_cameraSmoothingTime->m_floatValue;
+    float motionTime = (desiredAngle - m_yawOffset) / (desiredAngle - m_desiredYaw) * s_cameraSmoothingTime->GetFloat();
     SetDesiredYawAngleOverTime(desiredAngle, motionTime, timestamp + static_cast<unsigned long>(delay * 1000.0f));
   }
 }
@@ -1523,7 +1523,7 @@ void CGCamera::SetSmoothingAngle(float smoothingAngle, unsigned long timestamp, 
 void CGCamera::PerformTerrainTilt(
     unsigned long timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly
 ) {
-  if (!s_cameraSmooth->m_intValue) {
+  if (!s_cameraSmooth->GetInt()) {
     return;
   }
   if ((m_flags & 0x8) || (m_flags & 0x7) != 1) {

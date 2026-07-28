@@ -8,6 +8,7 @@ class WowConnectionNet {
   struct Worker {
     Worker() : event(0, 0) {
     }
+    Worker(const Worker &worker);
 
     WowConnectionNet *owner;
     SThread           thread;
@@ -16,10 +17,15 @@ class WowConnectionNet {
     SEvent            event;
     unsigned char     quit;
     SCritSect         lock;
+
+   private:
+    Worker &operator=(const Worker &worker);
   };
 
   WowConnectionNet(int numThreads, void(*threadinit)());
+  WowConnectionNet(const WowConnectionNet &net);
   ~WowConnectionNet();
+  WowConnectionNet &operator=(const WowConnectionNet &net);
 
   void Start();
   void Stop();
@@ -27,6 +33,7 @@ class WowConnectionNet {
   void Run();
   void Service(WowConnection *conn);
   void SignalWorker(WowConnection *conn, unsigned int flags);
+  void ChangeState(WowConnection *conn, WOW_CONN_STATE state);
   void Delete(WowConnection *conn);
 
   void PlatformInit(bool useEngine);

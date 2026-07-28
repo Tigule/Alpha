@@ -93,6 +93,13 @@ struct SECTIONPRIORITIES {
   LAYERPRIORITY priorities[NUM_TEXCOMPONENT_SECTIONS];
 };
 
+struct GEOCOMPONENTINFO {
+  __int64 allowedSlots;
+  int     itemLinks[2];
+  int     altItemLinks[2];
+};
+
+extern GEOCOMPONENTINFO         g_geometryComponentLookups[INDEX_NUMSLOTS];
 extern const LAYERIDS          g_sectionLayers[INDEX_NUMSLOTS];
 extern const SECTIONPRIORITIES g_sectionPriorities[INDEX_NUMSLOTS];
 
@@ -116,6 +123,7 @@ unsigned int CompUtilGetObjComponents(
     unsigned int              numSubComponents,
     int                       useAlternate
 );
+unsigned int CompUtilGetObjComponentSlotFlags(const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType, int useAlternateSlot);
 int
 GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool isPlayer, bool useAlternate, HMODEL *models, int *attachmentPoints);
 HMODEL ObjComponentBuildAmmoModel(const ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration);
@@ -401,7 +409,9 @@ void HeadGeosetHideCharGeosets(
     const unsigned int       *preferredGeosets,
     unsigned int              numPreferredGeosets
 );
+void HeadGeosetUnhideCharGeosets(HCHARGEOSET geosetHandle, const unsigned int *preferredGeosets, unsigned int numPreferredGeosets);
 typedef void(*OBJCALLBACK)(void *param, unsigned int inventorySlot, HMODEL model, unsigned int unk, int loaded);
+typedef HMODEL(*OBJREMOVECALLBACK)(void *param, unsigned int inventorySlot, unsigned int componentLink);
 int ObjComponentAdd(
     int                       unitSex,
     int                       unitRace,
@@ -415,3 +425,15 @@ int ObjComponentAdd(
     void                     *param,
     unsigned int              inventorySlot
 );
+HMODEL ObjComponentCreate(unsigned int itemClass, unsigned int itemInventoryType, const ItemDisplayInfoRec *displayInfoRec);
+void ObjComponentRemove(HMODEL charModel, unsigned int inventoryType);
+HMODEL ObjComponentRemove(
+    HMODEL            charModel,
+    unsigned int      unitRace,
+    unsigned int      unitSex,
+    unsigned int      slot,
+    int               returnModelIfOnlyOneSubcomponent,
+    OBJREMOVECALLBACK callback,
+    void             *callbackParam
+);
+void TexComponentRemove(HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType);

@@ -105,7 +105,7 @@ void CGBuffBar::UpdateBuffs() {
   unsigned int      desc = 0;
   while (desc < 56 && m_buffs[desc].m_auraSpell > 0) {
     int       spellID = m_buffs[desc].m_auraSpell;
-    SpellRec *spell = g_spellDB.GetRecord(spellID);
+    const SpellRec *spell = g_spellDB.GetRecord(spellID);
     if (spell && (static_cast<signed char>(spell->m_attributes) < 0 || (spell->m_attributesEx & 0x10000000))) {
       continue;
     }
@@ -128,7 +128,7 @@ void CGBuffBar::UpdateBuffs() {
   for (int aura = 0; aura < 56; ++aura) {
     int          spellID = unitData->auras[aura];
     unsigned int flags = (unitData->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
-    SpellRec    *spell = g_spellDB.GetRecord(spellID);
+    const SpellRec    *spell = g_spellDB.GetRecord(spellID);
     if (spellID <= 0 || !(flags & 0xE) ||
         (spell && (static_cast<signed char>(spell->m_attributes) < 0 || (spell->m_attributesEx & 0x10000000)))) {
       continue;
@@ -151,7 +151,7 @@ void CGBuffBar::UpdateDuration(unsigned char slot, unsigned int duration) {
   }
 }
 
-inline const CGBuffDesc *CGBuffBar::GetBuffByFilter(int index, unsigned int filter, int &buffIndex) {
+const CGBuffDesc *CGBuffBar::GetBuffByFilter(int index, unsigned int filter, int &buffIndex) {
   for (int i = 0; i < 56; ++i) {
     CGBuffDesc &buff = m_buffs[i];
     bool matches = buff.m_auraIndex >= 0;
@@ -206,9 +206,9 @@ void CGBuffDesc::SetAuraIndex(int index, CGPlayer_C *player) {
   const CGUnitData *unitData = player->GetUnitData();
   m_auraSpell = unitData->auras[index];
   m_auraFlags = (unitData->auraFlags[index / 2] >> (4 * (index % 2))) & 0xF;
-  SpellRec *spell = g_spellDB.GetRecord(m_auraSpell);
+  const SpellRec *spell = g_spellDB.GetRecord(m_auraSpell);
   if (spell) {
-    SpellDurationRec *duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);
+    const SpellDurationRec *duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);
     m_untilCancelled = !duration || duration->m_duration < 0;
   }
 }
@@ -252,8 +252,8 @@ static int Script_GetPlayerBuffTexture(lua_State *L) {
     return luaL_error(L, "Usage: GetPlayerBuffTexture(buffIndex)");
   }
   const CGBuffDesc *buff = CGBuffBar::GetBuffByIndex(static_cast<int>(lua_tonumber(L, 1)));
-  SpellRec     *spell = buff ? g_spellDB.GetRecord(buff->GetAuraSpell()) : 0;
-  SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
+  const SpellRec     *spell = buff ? g_spellDB.GetRecord(buff->GetAuraSpell()) : 0;
+  const SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
   if (icon) {
     lua_pushstring(L, icon->m_textureFilename);
   } else {

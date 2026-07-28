@@ -2441,7 +2441,7 @@ void CGxStringBatch::AddString(CGxString *string) {
   CGxFont *currentFace;
 
   ASSERT(string);
-  currentFace = string->m_currentFace;
+  currentFace = string->GetCurrentFace();
   ASSERT(currentFace);
 
   BATCHEDRENDERFONTDESC *batchDesc = m_fontBatch.Ptr(reinterpret_cast<unsigned int>(currentFace), HASHKEY_PTR(currentFace));

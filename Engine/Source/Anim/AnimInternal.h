@@ -62,7 +62,7 @@ static void AnimateAllMaterialLayers(AnimInfo *animInfo, unsigned int *tex);
 #ifndef MDL_TRACK_TYPE_DEFINED
 #define MDL_TRACK_TYPE_DEFINED
 enum MDLTRACKTYPE {
-  TRACK_DONT_INTERP = 0,
+  TRACK_NO_INTERP = 0,
   TRACK_LINEAR = 1,
   TRACK_HERMITE = 2,
   TRACK_BEZIER = 3,
@@ -241,7 +241,7 @@ struct CVariations {
   }
 
   CArray<unsigned char> variation;
-  unsigned int          primary;
+  unsigned char         primary;
 };
 
 struct CSeqOrdering {
@@ -478,12 +478,18 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
   }
 
   const CLinearKeyFrame<T> *ToLinearKey(const CKeyFrame *key) const {
-    ASSERT(KeyFrameSize() == sizeof(CLinearKeyFrame<T>));
+    ASSERT(
+        (KeyFrameSize() == sizeof(CLinearKeyFrame<T>)) ||
+        (KeyFrameSize() == sizeof(CSplineKeyFrame<T>))
+    );
     return reinterpret_cast<const CLinearKeyFrame<T> *>(key);
   }
 
   CLinearKeyFrame<T> *ToLinearKey(CKeyFrame *key) {
-    ASSERT(KeyFrameSize() == sizeof(CLinearKeyFrame<T>));
+    ASSERT(
+        (KeyFrameSize() == sizeof(CLinearKeyFrame<T>)) ||
+        (KeyFrameSize() == sizeof(CSplineKeyFrame<T>))
+    );
     return reinterpret_cast<CLinearKeyFrame<T> *>(key);
   }
 
@@ -565,6 +571,9 @@ struct CAnimObj : public CAnimTransform {
     name[0] = 0;
   }
 
+  int          Animates();
+  unsigned int Bytes() const;
+
   unsigned int                animObjId;
   unsigned int                splitIndex;
   char                        name[80];
@@ -577,6 +586,9 @@ struct CAnimBoneObj : public CAnimObj {
   CAnimBoneObj() : CAnimObj(OBJ_TYPE_BONE), geosetId(0) {
   }
 
+  unsigned int Bytes() const;
+  int          IsVisible(const CAnim &anim) const;
+
   unsigned char geosetId;
 };
 
@@ -588,6 +600,13 @@ struct CAnimVisibleObj {
 };
 
 struct CAnimCameraObj : public CAnimVisibleObj {
+  CAnimCameraObj() {
+  }
+  CAnimCameraObj(const CAnimCameraObj &);
+
+  int          Animates();
+  unsigned int Bytes() const;
+
   char                                                   name[80];
   NTempest::C3Vector                                     pivot;
   CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector> translation;
@@ -597,6 +616,13 @@ struct CAnimCameraObj : public CAnimVisibleObj {
 };
 
 struct CAnimGeoset : public CAnimVisibleObj {
+  CAnimGeoset() {
+  }
+  CAnimGeoset(const CAnimGeoset &);
+
+  int          Animates();
+  unsigned int Bytes() const;
+
   CKeyFrameTrack<C3Color, C3Color> color;
   unsigned int                     sgGeosetId;
 };
@@ -604,6 +630,9 @@ struct CAnimGeoset : public CAnimVisibleObj {
 struct CAnimModelObj : public CAnimObj, public CAnimVisibleObj {
   CAnimModelObj() : CAnimObj(OBJ_TYPE_MODEL), geosetId(0xFF) {
   }
+
+  int          Animates();
+  unsigned int Bytes() const;
 
   unsigned char geosetId;
 };
@@ -681,6 +710,9 @@ struct CAnimLightObj : public CAnimObj, public CAnimVisibleObj {
 
 template <class T>
 struct CCallbackFcn {
+  CCallbackFcn() {
+  }
+
   T     callback;
   void *param;
 };
@@ -736,9 +768,9 @@ struct CAnim : public CHandleObject {
   CCallbackFcn<void(*)(const char *, const NTempest::C3Vector &, void *)> appEvent;
   HANIMDATA                                                                          hdata;
   unsigned long                                                                      seqLastTime;
-  unsigned int                                                                       flags : 8;
-  unsigned int                                                                       primarySeq : 8;
-  unsigned int                                                                       seqMapIndex : 8;
+  unsigned char                                                                      flags;
+  unsigned char                                                                      primarySeq;
+  unsigned char                                                                      seqMapIndex;
 };
 
 struct CAnimData : public CHandleObject {
@@ -779,16 +811,22 @@ struct InterpInfo {
   NTempest::C3Vector                      basisScale;
   NTempest::C3Vector                      basisPosition;
   const TSFixedArray<NTempest::C3Vector> &positions;
+
+ private:
+  InterpInfo &operator=(const InterpInfo &);
 };
 
 struct AnimInfo : public InterpInfo {
-  AnimInfo(CAnim *container, CAnimData *animptr, const TSFixedArray<NTempest::C3Vector> &positions, const CAnimationData &animationData)
-      : InterpInfo(container, animptr, positions), data(animationData) {
+  AnimInfo(CAnim *container, CAnimData *animptr, const CAnimationData &animationData)
+      : InterpInfo(container, animptr, *animationData.positions), data(animationData) {
   }
 
   const CAnimationData &data;
   NTempest::C3Vector    cameraVector;
   NTempest::C3Vector    cameraWorldPos;
+
+ private:
+  AnimInfo &operator=(const AnimInfo &);
 };
 
 template <class T, class U>
@@ -843,17 +881,15 @@ inline int CKeyFrameTrack<T, U>::InterpolateRetained(
 
 template <class T, class U>
 inline int CKeyFrameTrack<T, U>::InterpolateVolatileFewKeys(const CKeyTrackStatus &keyStatus, U *transform) {
-  const unsigned char *key = reinterpret_cast<const unsigned char *>(GetKeyFrame(keyStatus.currKey));
-  const unsigned int   valueOffset = sizeof(T) == sizeof(__int64) ? 8 : sizeof(int);
-  *transform = *reinterpret_cast<T *>(const_cast<unsigned char *>(key + valueOffset));
+  ASSERT(transform);
+  *transform = reinterpret_cast<const CLinearKeyFrame<T> *>(GetKeyFrame(keyStatus.currKey))->transform;
   return 1;
 }
 
 template <class T, class U>
 inline int CKeyFrameTrack<T, U>::InterpolateRetainedFewKeys(const CKeyTrackStatus &keyStatus, U *transform) {
-  const unsigned char *key = reinterpret_cast<const unsigned char *>(GetKeyFrame(keyStatus.currKey));
-  const unsigned int   valueOffset = sizeof(T) == sizeof(__int64) ? 8 : sizeof(int);
-  *transform = *reinterpret_cast<T *>(const_cast<unsigned char *>(key + valueOffset));
+  ASSERT(transform);
+  *transform = reinterpret_cast<const CLinearKeyFrame<T> *>(GetKeyFrame(keyStatus.currKey))->transform;
   return 1;
 }
 

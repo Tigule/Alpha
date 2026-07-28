@@ -86,7 +86,7 @@ inline void WriteTrackHeader(
         }                                                                          \
       } else if ((result) == 0x140) {                                              \
         if (track) {                                                               \
-          (track)->type = TRACK_DONT_INTERP;                                        \
+          (track)->type = TRACK_NO_INTERP;                                          \
         }                                                                          \
       } else if ((result) == 0x152) {                                              \
         if (track) {                                                               \
@@ -216,7 +216,7 @@ inline void ReadObjectFloatKeyframes(
   do {                                                                          \
     unsigned int writeTrackToken = 0;                                           \
     switch (trackType) {                                                        \
-      case TRACK_DONT_INTERP: writeTrackToken = 0x140; break;                  \
+      case TRACK_NO_INTERP: writeTrackToken = 0x140; break;                    \
       case TRACK_LINEAR:      writeTrackToken = 0x167; break;                  \
       case TRACK_HERMITE:     writeTrackToken = 0x15B; break;                  \
       case TRACK_BEZIER:      writeTrackToken = 0x128; break;                  \

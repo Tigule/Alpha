@@ -27,26 +27,6 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 void ClntObjMgrHideObject(unsigned __int64 guid);
 void ClntObjMgrShowObject(unsigned __int64 guid);
 
-int CGItem::GetStackCount() const {
-  return m_item->m_stackCount;
-}
-
-unsigned __int64 CGItem::GetOwner() const {
-  return m_item->m_owner;
-}
-
-unsigned __int64 CGItem::GetContainedIn() const {
-  return m_item->m_containedIn;
-}
-
-bool CGItem::IsTranslated() const {
-  return (m_item->m_dynamicFlags & ITEM_DFLAG_TRANSLATED) != 0;
-}
-
-bool CGItem::IsUnlocked() const {
-  return (m_item->m_dynamicFlags & ITEM_DFLAG_BOUND) == 0;
-}
-
 class CGContainerInfo {
  public:
   static void UpdateContents(unsigned __int64 guid);
@@ -509,7 +489,7 @@ int CGItem_C::IsMetal() const {
 }
 
 int CGItem_C::IsMetal(unsigned int material) {
-  MaterialRec *rec = g_materialDB.GetRecord(material);
+  const MaterialRec *rec = g_materialDB.GetRecord(material);
   return rec && (rec->m_flags & 1);
 }
 

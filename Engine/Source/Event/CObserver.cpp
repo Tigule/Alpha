@@ -54,7 +54,7 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
     return !callbackList.Head() && !dispatchList.Head();
   }
 
-  int Locked() const {
+  int Locked() {
     return (flags & 0x0FFFFFFF) != 0;
   }
 
@@ -66,7 +66,7 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
     --flags;
   }
 
-  int Changed() const {
+  int Changed() {
     return (flags & 0x80000000) != 0;
   }
 
@@ -85,11 +85,25 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
 };
 
 NODEDECL(EventReg::EVENTCALLBACKREG) {
+  EVENTCALLBACKREG() : callback(0), param(0) {
+  }
+  EVENTCALLBACKREG(const EVENTCALLBACKREG &);
+  ~EVENTCALLBACKREG() {
+    callback = 0;
+    param = 0;
+  }
+
   EVENTCALLBACK callback;
   void         *param;
 };
 
 NODEDECL(EventReg::EVENTDISPATCHREG) {
+  EVENTDISPATCHREG() : pObserver(0), expectedEventId(-1) {
+  }
+  EVENTDISPATCHREG(const EVENTDISPATCHREG &);
+  ~EVENTDISPATCHREG() {
+  }
+
   TRefCntPtr<CObserver> pObserver;
   int                   expectedEventId;
 };

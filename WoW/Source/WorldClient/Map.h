@@ -37,18 +37,18 @@ struct HMODEL__;
 struct HTEXTURE__;
 
 struct SWVert {
-  unsigned int depth : 8;
-  unsigned int flow0Pct : 8;
-  unsigned int flow1Pct : 8;
-  unsigned int filler : 8;
-  float        height;
+  unsigned char depth;
+  unsigned char flow0Pct;
+  unsigned char flow1Pct;
+  unsigned char filler;
+  float         height;
 };
 
 struct SOVert {
-  unsigned int depth : 8;
-  unsigned int foam : 8;
-  unsigned int wet : 8;
-  unsigned int filler : 8;
+  unsigned char depth;
+  unsigned char foam;
+  unsigned char wet;
+  unsigned char filler;
 };
 
 struct SMVert {
@@ -66,7 +66,16 @@ struct SLVert {
 };
 
 struct SLTiles {
-  unsigned char flags[64];
+ public:
+  int  GetLiquid(const NTempest::C2iVector &pos, unsigned int &liquid, int &fishable, int &deep) const;
+  void SetLiquid(const NTempest::C2iVector &pos, unsigned int liquid, int fishable, int deep);
+
+ private:
+  friend class CChunkLiquid;
+  friend class CMap;
+  friend class CMapArea;
+
+  unsigned char tiles[8][8];
 };
 
 class CWSoundEmitter {
@@ -141,12 +150,16 @@ class CChunkLiquid {
 class CMapBaseObj;
 
 NODEDECL(CChunkTex) {
+  CChunkTex();
+  CChunkTex(const CChunkTex &);
   ~CChunkTex();
 
   unsigned long pixels[4096];
 };
 
 NODEDECL(CChunkLayer) {
+  CChunkLayer();
+  CChunkLayer(const CChunkLayer &);
   ~CChunkLayer();
 
   unsigned short props;
@@ -329,6 +342,7 @@ struct CMapEntity : public CMapStaticEntity {
   int          QueryMapObjSubzoneName(const char *&subzoneName, unsigned int &subzoneId);
   int          QueryMapObjFileName(const char *&fileName);
   int          QueryMapObjListenerId(unsigned int &listenerId);
+  int          QueryMapGroundType(unsigned int &groundType);
   int          QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct);
   static int   QueryCameraFog(SMOFog::Fogs &oFog, float &oPct);
   bool QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorld::MinimapQuad> &quads);
@@ -420,20 +434,20 @@ class CMapObjDefGroup : public CMapBaseObj {
 };
 
 struct SMAreaHeader {
-  unsigned int  offsInfo;
-  unsigned int  offsTex;
-  unsigned int  sizeTex;
-  unsigned int  offsDoo;
-  unsigned int  sizeDoo;
-  unsigned int  offsMob;
-  unsigned int  sizeMob;
+  unsigned long offsInfo;
+  unsigned long offsTex;
+  unsigned long sizeTex;
+  unsigned long offsDoo;
+  unsigned long sizeDoo;
+  unsigned long offsMob;
+  unsigned long sizeMob;
   unsigned char pad[36];
 };
 
 struct SMDoodadDef {
 
-  unsigned int       nameId;
-  unsigned int       uniqueId;
+  unsigned long      nameId;
+  unsigned long      uniqueId;
   NTempest::C3Vector pos;
   NTempest::C3Vector rot;
   unsigned short     scale;
@@ -442,8 +456,8 @@ struct SMDoodadDef {
 
 struct SMMapObjDef {
 
-  unsigned int       nameId;
-  unsigned int       uniqueId;
+  unsigned long      nameId;
+  unsigned long      uniqueId;
   NTempest::C3Vector pos;
   NTempest::C3Vector rot;
   NTempest::CAaBox   extents;

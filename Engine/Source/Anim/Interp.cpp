@@ -1,4 +1,19 @@
 #include "Anim/AnimInternal.h"
+#include "Tempest/c44matrix.h"
+
+static NTempest::C44Matrix s_hermiteCoeffs(
+    2.0f, -3.0f, 0.0f, 1.0f,
+    1.0f, -2.0f, 1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f, 0.0f,
+    -2.0f, 3.0f, 0.0f, 0.0f
+);
+
+static NTempest::C44Matrix s_bezierCoeffs(
+    -1.0f, 3.0f, -3.0f, 1.0f,
+    3.0f, -6.0f, 3.0f, 0.0f,
+    -3.0f, 3.0f, 0.0f, 0.0f,
+    1.0f, 0.0f, 0.0f, 0.0f
+);
 
 static float EvaluateCubicPolynomial(float t, const float* coefficients) {
   float result = coefficients[0];
@@ -328,6 +343,190 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
   NTempest::C4Quaternion curr = currkey.transform;
   NTempest::C4Quaternion next = nextkey.transform;
   *transform = NTempest::C4Quaternion::Slerp(ratio, curr, next);
+}
+
+template <>
+void CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector>::InterpolateHermite(
+    const CSplineKeyFrame<NTempest::C3Vector> &currkey,
+    const CSplineKeyFrame<NTempest::C3Vector> &nextkey,
+    float                                      ratio,
+    NTempest::C3Vector                        *transform
+) {
+  ASSERT(transform);
+  float coefficients[4];
+  for (unsigned int i = 0; i < 4; ++i) {
+    coefficients[i] = EvaluateCubicPolynomial(ratio, s_hermiteCoeffs[i]);
+  }
+  *transform = currkey.transform * coefficients[0] +
+               currkey.outTan * coefficients[1] +
+               nextkey.inTan * coefficients[2] +
+               nextkey.transform * coefficients[3];
+}
+
+template <>
+void CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector>::InterpolateBezier(
+    const CSplineKeyFrame<NTempest::C3Vector> &currkey,
+    const CSplineKeyFrame<NTempest::C3Vector> &nextkey,
+    float                                      ratio,
+    NTempest::C3Vector                        *transform
+) {
+  ASSERT(transform);
+  float coefficients[4];
+  for (unsigned int i = 0; i < 4; ++i) {
+    coefficients[i] = EvaluateCubicPolynomial(ratio, s_bezierCoeffs[i]);
+  }
+  *transform = currkey.transform * coefficients[0] +
+               currkey.outTan * coefficients[1] +
+               nextkey.inTan * coefficients[2] +
+               nextkey.transform * coefficients[3];
+}
+
+template <>
+void CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector>::InterpolateLinear(
+    const CLinearKeyFrame<NTempest::C3Vector> &currkey,
+    const CLinearKeyFrame<NTempest::C3Vector> &nextkey,
+    float                                      ratio,
+    NTempest::C3Vector                        *transform
+) {
+  ASSERT(transform);
+  *transform = currkey.transform * (1.0f - ratio) + nextkey.transform * ratio;
+}
+
+template <>
+void CKeyFrameTrack<C3Color, C3Color>::InterpolateHermite(
+    const CSplineKeyFrame<C3Color> &currkey,
+    const CSplineKeyFrame<C3Color> &nextkey,
+    float                           ratio,
+    C3Color                        *transform
+) {
+  ASSERT(transform);
+  float coefficients[4];
+  for (unsigned int i = 0; i < 4; ++i) {
+    coefficients[i] = EvaluateCubicPolynomial(ratio, s_hermiteCoeffs[i]);
+  }
+  *transform = C3Color(
+      currkey.transform.r * coefficients[0] + currkey.outTan.r * coefficients[1] +
+          nextkey.inTan.r * coefficients[2] + nextkey.transform.r * coefficients[3],
+      currkey.transform.g * coefficients[0] + currkey.outTan.g * coefficients[1] +
+          nextkey.inTan.g * coefficients[2] + nextkey.transform.g * coefficients[3],
+      currkey.transform.b * coefficients[0] + currkey.outTan.b * coefficients[1] +
+          nextkey.inTan.b * coefficients[2] + nextkey.transform.b * coefficients[3]
+  );
+}
+
+template <>
+void CKeyFrameTrack<C3Color, C3Color>::InterpolateBezier(
+    const CSplineKeyFrame<C3Color> &currkey,
+    const CSplineKeyFrame<C3Color> &nextkey,
+    float                           ratio,
+    C3Color                        *transform
+) {
+  ASSERT(transform);
+  float coefficients[4];
+  for (unsigned int i = 0; i < 4; ++i) {
+    coefficients[i] = EvaluateCubicPolynomial(ratio, s_bezierCoeffs[i]);
+  }
+  *transform = C3Color(
+      currkey.transform.r * coefficients[0] + currkey.outTan.r * coefficients[1] +
+          nextkey.inTan.r * coefficients[2] + nextkey.transform.r * coefficients[3],
+      currkey.transform.g * coefficients[0] + currkey.outTan.g * coefficients[1] +
+          nextkey.inTan.g * coefficients[2] + nextkey.transform.g * coefficients[3],
+      currkey.transform.b * coefficients[0] + currkey.outTan.b * coefficients[1] +
+          nextkey.inTan.b * coefficients[2] + nextkey.transform.b * coefficients[3]
+  );
+}
+
+template <>
+void CKeyFrameTrack<C3Color, C3Color>::InterpolateLinear(
+    const CLinearKeyFrame<C3Color> &currkey,
+    const CLinearKeyFrame<C3Color> &nextkey,
+    float                           ratio,
+    C3Color                        *transform
+) {
+  ASSERT(transform);
+  float inverseRatio = 1.0f - ratio;
+  *transform = C3Color(
+      currkey.transform.r * inverseRatio + nextkey.transform.r * ratio,
+      currkey.transform.g * inverseRatio + nextkey.transform.g * ratio,
+      currkey.transform.b * inverseRatio + nextkey.transform.b * ratio
+  );
+}
+
+template <>
+void CKeyFrameTrack<float, float>::InterpolateHermite(
+    const CSplineKeyFrame<float> &currkey,
+    const CSplineKeyFrame<float> &nextkey,
+    float                         ratio,
+    float                        *transform
+) {
+  ASSERT(transform);
+  float coefficients[4];
+  for (unsigned int i = 0; i < 4; ++i) {
+    coefficients[i] = EvaluateCubicPolynomial(ratio, s_hermiteCoeffs[i]);
+  }
+  *transform = currkey.transform * coefficients[0] +
+               currkey.outTan * coefficients[1] +
+               nextkey.inTan * coefficients[2] +
+               nextkey.transform * coefficients[3];
+}
+
+template <>
+void CKeyFrameTrack<float, float>::InterpolateBezier(
+    const CSplineKeyFrame<float> &currkey,
+    const CSplineKeyFrame<float> &nextkey,
+    float                         ratio,
+    float                        *transform
+) {
+  ASSERT(transform);
+  float coefficients[4];
+  for (unsigned int i = 0; i < 4; ++i) {
+    coefficients[i] = EvaluateCubicPolynomial(ratio, s_bezierCoeffs[i]);
+  }
+  *transform = currkey.transform * coefficients[0] +
+               currkey.outTan * coefficients[1] +
+               nextkey.inTan * coefficients[2] +
+               nextkey.transform * coefficients[3];
+}
+
+template <>
+void CKeyFrameTrack<float, float>::InterpolateLinear(
+    const CLinearKeyFrame<float> &currkey,
+    const CLinearKeyFrame<float> &nextkey,
+    float                         ratio,
+    float                        *transform
+) {
+  ASSERT(transform);
+  *transform = currkey.transform * (1.0f - ratio) + nextkey.transform * ratio;
+}
+
+template <>
+void CKeyFrameTrack<unsigned int, unsigned int>::InterpolateHermite(
+    const CSplineKeyFrame<unsigned int> &,
+    const CSplineKeyFrame<unsigned int> &,
+    float,
+    unsigned int *
+) {
+  FATALASSERT(0);
+}
+
+template <>
+void CKeyFrameTrack<unsigned int, unsigned int>::InterpolateBezier(
+    const CSplineKeyFrame<unsigned int> &,
+    const CSplineKeyFrame<unsigned int> &,
+    float,
+    unsigned int *
+) {
+  FATALASSERT(0);
+}
+
+template <>
+void CKeyFrameTrack<unsigned int, unsigned int>::InterpolateLinear(
+    const CLinearKeyFrame<unsigned int> &,
+    const CLinearKeyFrame<unsigned int> &,
+    float,
+    unsigned int *
+) {
+  FATALASSERT(0);
 }
 
 void Blend(const NTempest::C3Vector &previous, NTempest::C3Vector *current, int timeLeft, unsigned int blendTime) {

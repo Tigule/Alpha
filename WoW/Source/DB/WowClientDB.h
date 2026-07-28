@@ -82,7 +82,7 @@ class WowClientDB {
     Init();
   }
 
-  RECORD *GetRecord(int id) {
+  const RECORD *GetRecord(int id) const {
     if (id < 0 || id > m_maxID) {
       return 0;
     }
@@ -90,15 +90,15 @@ class WowClientDB {
     return m_recordsById[id];
   }
 
-  int GetMaxID() {
+  int GetMaxID() const {
     return m_maxID;
   }
 
-  int GetNumRecords() {
+  int GetNumRecords() const {
     return m_numRecords;
   }
 
-  RECORD *GetRecordByIndex(int index) {
+  const RECORD *GetRecordByIndex(int index) const {
     return index < 0 || index >= m_numRecords ? 0 : &m_records[index];
   }
 

@@ -280,12 +280,15 @@ namespace NTempest {
     enum {
       eBlueMask = 0x001F,
       eGreenMask = 0x07C0,
-      eRedMask = 0xF800
-    };
-    enum {
+      eRedMask = 0xF800,
       eNotBlueMask = ~eBlueMask,
       eNotGreenMask = ~eGreenMask,
       eNotRedMask = ~eRedMask
+    };
+    enum {
+      eRedS = 11,
+      eGreenS = 5,
+      eBlueS = 0
     };
 
     CRgb565() {
@@ -347,13 +350,17 @@ namespace NTempest {
       eBlueMask = 0x001F,
       eGreenMask = 0x03E0,
       eRedMask = 0x7C00,
-      eAlphaMask = 0x8000
-    };
-    enum {
+      eAlphaMask = 0x8000,
       eNotBlueMask = ~eBlueMask,
       eNotGreenMask = ~eGreenMask,
       eNotRedMask = ~eRedMask,
       eNotAlphaMask = ~eAlphaMask
+    };
+    enum {
+      eAlphaS = 15,
+      eRedS = 10,
+      eGreenS = 5,
+      eBlueS = 0
     };
 
     CArgb1555() {
@@ -419,13 +426,17 @@ namespace NTempest {
       eBlueMask = 0x000F,
       eGreenMask = 0x00F0,
       eRedMask = 0x0F00,
-      eAlphaMask = 0xF000
-    };
-    enum {
+      eAlphaMask = 0xF000,
       eNotBlueMask = ~eBlueMask,
       eNotGreenMask = ~eGreenMask,
       eNotRedMask = ~eRedMask,
       eNotAlphaMask = ~eAlphaMask
+    };
+    enum {
+      eAlphaS = 12,
+      eRedS = 8,
+      eGreenS = 4,
+      eBlueS = 0
     };
 
     CArgb4444() {

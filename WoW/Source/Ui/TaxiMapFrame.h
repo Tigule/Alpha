@@ -8,9 +8,9 @@ namespace NTempest {
 #include <stpl.h>
 
 struct TaxiNode {
-  unsigned int id;
-  float        x;
-  float        y;
+  int   id;
+  float offsetx;
+  float offsety;
 };
 
 class CGTaxiMap {

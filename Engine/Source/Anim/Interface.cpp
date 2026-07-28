@@ -21,12 +21,12 @@ int CAnimData::Animates() {
     }
   }
   for (index = 0; index < baseObjs.Count(); ++index) {
-    if (baseObjs[index].Animates() || (baseObjs[index].flags & 0x3F)) {
+    if (baseObjs[index].CAnimTransform::Animates() || (baseObjs[index].flags & 0x3F)) {
       return 1;
     }
   }
   for (index = 0; index < boneObjs.Count(); ++index) {
-    if (boneObjs[index].Animates() || (boneObjs[index].flags & 0x3F)) {
+    if (boneObjs[index].CAnimTransform::Animates() || (boneObjs[index].flags & 0x3F)) {
       return 1;
     }
   }
@@ -74,7 +74,7 @@ unsigned int CAnimVisibleObj::Bytes() const {
 int CAnimData::Moves() {
   for (unsigned int index = 0; index < boneObjs.Count(); ++index) {
     CAnimBoneObj &bone = boneObjs[index];
-    if (bone.Animates() || (bone.flags & 0x3F)) {
+    if (bone.CAnimTransform::Animates() || (bone.flags & 0x3F)) {
       return 1;
     }
   }

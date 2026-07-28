@@ -215,6 +215,8 @@ class CMovementData {
   friend class CGGameObject_C_Type_Chair;
   friend class CGGameObject_C_Type_MapObjTransport;
   friend class CGGameObject_C_Type_Transport;
+  friend int MoveHeartBeatHandler(const void *packetData, void *param);
+  friend int Player_C_AppFocusMovementHandler(int focus);
 
   LINKDECLEX(CMovementData, moveLink);
   LINKDECLEX(CMovementData, transportLink);
@@ -289,7 +291,7 @@ struct CMovementGlobals {
 
 class CMovement : public CMovementData {
  public:
-  CMovement(const NTempest::C3Vector &position, float facing, const unsigned __int64 &guid);
+  CMovement(const unsigned __int64 &guid);
   void SetUpdateInfo(unsigned long eventTime, const CClientMoveUpdate &init, int localPlayer);
   void GetMoveStatus(CMovementStatus *status) const;
   void UpdateTransportStatus(const CMovementStatus &update);

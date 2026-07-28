@@ -17,9 +17,17 @@
 #include <lauxlib.h>
 #include <lua.h>
 
+enum TRADESKILL_CATEGORY {
+  TRADESKILL_OPTIMAL = 0,
+  TRADESKILL_MEDIUM = 1,
+  TRADESKILL_EASY = 2,
+  TRADESKILL_TRIVIAL = 3,
+  NUM_TRADESKILL_CATEGORIES = 4
+};
+
 struct TradeSkillInfo {
   int spellID;
-  int category;
+  TRADESKILL_CATEGORY category;
   int classID;
   int subClassID;
   int invSlots;
@@ -52,7 +60,7 @@ class CGTradeSkillInfo {
   static void RefreshList(int resetFilters);
   static void DecrementPendingItem() {
     if (!m_itemsPending || !--m_itemsPending) {
-      RefreshList(1);
+      RefreshList(0);
     }
   }
   static void SetSkillLine(int id);
@@ -137,7 +145,7 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 
 static void TradeSkillItemCallback(int, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
-    CGTradeSkillInfo::RefreshList(0);
+    CGTradeSkillInfo::RefreshList(1);
   }
 }
 
@@ -196,9 +204,6 @@ void CGTradeSkillInfo::SetSkillLine(int id) {
 void CGTradeSkillInfo::SetSelection(int index) {
   if (index >= 0 && static_cast<unsigned int>(index) < m_numSkills && m_skills[index]->spellID > 0) {
     m_currentSelection = m_skills[index]->spellID;
-    g_itemDBCache.GetRecord(
-        m_currentSelection, static_cast<unsigned __int64>(m_currentSelection) | 0xB000000000000000ui64, TradeSkillItemCallback, 0
-    );
   } else {
     m_currentSelection = 0;
   }
@@ -339,7 +344,7 @@ void CGTradeSkillInfo::RefreshList(int resetFilters) {
     TradeSkillInfo *info = m_skills[i];
     info->spellID = spellID;
     const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetUnitData()->race, player->GetUnitData()->classId, spellID);
-    info->category = 0;
+    info->category = TRADESKILL_OPTIMAL;
     if (ability) {
       int trivialMax = ability->m_trivialSkillLineRankHigh;
       int trivialMin = ability->m_trivialSkillLineRankLow;
@@ -348,7 +353,9 @@ void CGTradeSkillInfo::RefreshList(int resetFilters) {
       }
       int midpoint = (trivialMin + trivialMax) / 2;
       int rank = player->GetSkillRank(ability->m_skillLine);
-      info->category = rank < trivialMin ? 0 : rank < midpoint ? 1 : rank < trivialMax ? 2 : 3;
+      info->category = rank < trivialMin ? TRADESKILL_OPTIMAL :
+                       rank < midpoint ? TRADESKILL_MEDIUM :
+                       rank < trivialMax ? TRADESKILL_EASY : TRADESKILL_TRIVIAL;
     }
     const SpellRec *spell = g_spellDB.GetRecord(spellID);
     if (!spell) {

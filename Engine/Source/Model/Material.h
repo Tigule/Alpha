@@ -65,6 +65,10 @@ struct CTexLayerShared {
 
 struct CMaterialShared : public CHandleObject {
  public:
+  CMaterialShared() {
+  }
+  CMaterialShared(const CMaterialShared &);
+
   TSGrowableArray<CTexLayerShared> layers;
   int                              priorityPlane;
 };

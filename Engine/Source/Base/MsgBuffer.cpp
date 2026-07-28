@@ -3,57 +3,6 @@
 #include <storm.h>
 #include <string.h>
 
-CMsgBuffer::CMsgBuffer(unsigned int count)
-    : m_alloc(count), m_freeData(1), m_read(0), m_write(0),
-      m_data(count ? static_cast<unsigned char *>(SMemAlloc(count, __FILE__, __LINE__, 0)) : 0) {
-}
-
-CMsgBuffer::~CMsgBuffer() {
-  if (m_freeData && m_data) {
-    SMemFree(m_data, __FILE__, __LINE__, 0);
-  }
-}
-
-void CMsgBuffer::Reset() {
-  m_read = 0;
-  m_write = 0;
-}
-
-int CMsgBuffer::Bytes() const {
-  return m_write - m_read;
-}
-
-unsigned int CMsgBuffer::GetReadPosition() {
-  return m_read;
-}
-
-void CMsgBuffer::SetReadPosition(unsigned int position) {
-  m_read = position;
-}
-
-unsigned int CMsgBuffer::GetWritePosition() {
-  return m_write;
-}
-
-void CMsgBuffer::SetWritePosition(unsigned int position) {
-  m_write = position;
-}
-
-unsigned char *CMsgBuffer::Data() {
-  return m_data;
-}
-
-void CMsgBuffer::SetData(unsigned char *data, unsigned int count, int freeData) {
-  if (m_freeData && m_data) {
-    SMemFree(m_data, __FILE__, __LINE__, 0);
-  }
-  m_alloc = count;
-  m_freeData = freeData;
-  m_read = 0;
-  m_write = count;
-  m_data = data;
-}
-
 void CMsgBuffer::ReallocData(unsigned int count) {
   if (count & 0xFF) {
     count += 0x100 - (count & 0xFF);
@@ -67,12 +16,6 @@ void CMsgBuffer::ReallocData(unsigned int count) {
     m_data = data;
   }
   m_freeData = 1;
-}
-
-void CMsgBuffer::Reserve(unsigned int count) {
-  if (m_write + count > m_alloc) {
-    ReallocData(m_write + count);
-  }
 }
 
 #define DEFINE_ADD_SCALAR(functionName, valueType) \

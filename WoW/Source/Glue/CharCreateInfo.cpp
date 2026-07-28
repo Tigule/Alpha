@@ -415,7 +415,7 @@ void CHARCREATEINFO::UpdateEquipment(int doNotCommitGeosets, uint race, uint sex
   uint                itemInventoryTypes[20];
   uint                itemDisplayIDs[20];
   CStatus             status;
-  ItemDisplayInfoRec *displayInfoRec;
+  const ItemDisplayInfoRec *displayInfoRec;
   int                 itemSlotNum;
 
   FATALASSERT(sex < 2);

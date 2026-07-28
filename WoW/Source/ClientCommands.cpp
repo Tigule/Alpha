@@ -227,7 +227,7 @@ static int CCommand_Speed(const char* command, const char* arguments) {
   if (speed > 0.0f) {
     unsigned long eventTime = OsGetAsyncTimeMs();
     CGUnit_C *unit = static_cast<CGUnit_C *>(
-        ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
+        ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
     if (unit) {
       unit->OnRunSpeedChangeLocal(
           eventTime, MSG_MOVE_SET_RUN_SPEED_CHEAT, speed);
@@ -241,7 +241,7 @@ static int CCommand_WalkSpeed(const char* command, const char* arguments) {
   if (speed > 0.0f) {
     unsigned long eventTime = OsGetAsyncTimeMs();
     CGUnit_C *unit = static_cast<CGUnit_C *>(
-        ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
+        ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
     if (unit) {
       unit->OnWalkSpeedChangeLocal(eventTime, speed);
     }
@@ -254,7 +254,7 @@ static int CCommand_SwimSpeed(const char* command, const char* arguments) {
   if (speed > 0.0f) {
     unsigned long eventTime = OsGetAsyncTimeMs();
     CGUnit_C *unit = static_cast<CGUnit_C *>(
-        ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
+        ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
     if (unit) {
       unit->OnSwimSpeedChangeLocal(
           eventTime, MSG_MOVE_SET_SWIM_SPEED_CHEAT, speed);
@@ -268,7 +268,7 @@ static int CCommand_TurnSpeed(const char* command, const char* arguments) {
   if (rate > 0.0f) {
     unsigned long eventTime = OsGetAsyncTimeMs();
     CGUnit_C *unit = static_cast<CGUnit_C *>(
-        ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
+        ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
     if (unit) {
       unit->OnTurnRateChangeLocal(eventTime, rate);
     }

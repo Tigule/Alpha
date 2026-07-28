@@ -4,7 +4,15 @@
 
 namespace NTempest {
 
-  class CIterator;
+  class CIterator {
+   public:
+    CIterator();
+    unsigned long Index() const;
+    void          SetIndex(unsigned long index);
+
+   protected:
+    unsigned long iscan;
+  };
 
   class CDynParms {
    public:

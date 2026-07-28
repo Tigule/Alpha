@@ -42,6 +42,10 @@ class AREAHASHKEY {
 };
 
 struct AREAHASHOBJECT : TSHashObject<AREAHASHOBJECT, AREAHASHKEY> {
+  AREAHASHOBJECT() {
+  }
+  AREAHASHOBJECT(const AREAHASHOBJECT &);
+
   AREAHASHOBJECT *GetParent() const;
 
   const AreaTableRec *rec;

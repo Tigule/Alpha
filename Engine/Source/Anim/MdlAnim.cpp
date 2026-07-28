@@ -72,6 +72,12 @@ void AnimObjectSetRibbonSlot(CAnimData *, CAnimRibbonObj *, const MDLSIMPLEKEYTR
 void AnimObjectSetEventTrack(CAnimData *, CAnimEventObj *, const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &);
 
 struct ANIMHASH : public TSHashObject<ANIMHASH, HASHKEY_STRI> {
+  ANIMHASH() : anim(0) {
+  }
+  ANIMHASH(const ANIMHASH &);
+  ~ANIMHASH() {
+  }
+
   HANIM anim;
 };
 

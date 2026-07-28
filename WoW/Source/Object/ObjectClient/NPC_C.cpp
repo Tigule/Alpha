@@ -43,3 +43,12 @@ void NPC_C_Destroy() {
   ClientServices_ClearMessageHandler(SMSG_NPC_HYPERTEXT);
   ClientServices_ClearMessageHandler(SMSG_NPC_WONT_TALK);
 }
+
+void NPC_C_OfferItem(unsigned __int64 npc, unsigned __int64 itemGUID) {
+  CDataStore msg;
+  msg.Put(static_cast<unsigned int>(CMSG_NPC_OFFER_ITEM));
+  msg.Put(npc);
+  msg.Put(itemGUID);
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}

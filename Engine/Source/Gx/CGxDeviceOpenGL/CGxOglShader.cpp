@@ -155,17 +155,17 @@ void CGxDeviceOpenGl::ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &p
 }
 
 void CGxDeviceOpenGl::IShaderForceRecreation() {
-  CGxPixelShader *ps = m_pixelShaderList.Head();
-  while (ps) {
-    if (ps->apiSpecific) {
-      glDeleteProgramsARB(1, &ps->apiSpecific);
-      ps->apiSpecific = 0;
+  {
+    ITERATELIST(CGxPixelShader, m_pixelShaderList, ps) {
+      if (ps->apiSpecific) {
+        glDeleteProgramsARB(1, &ps->apiSpecific);
+        ps->apiSpecific = 0;
+      }
     }
-    ps = m_pixelShaderList.Next(ps);
   }
 
-  CGxVertexShader *vs = m_vertexShaderList.Head();
-  while (vs) {
-    vs = m_vertexShaderList.Next(vs);
+  {
+    ITERATELIST(CGxVertexShader, m_vertexShaderList, vs) {
+    }
   }
 }

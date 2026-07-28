@@ -38,8 +38,8 @@ CGCharacterModelBase *CGCharacterInfo::m_paperDoll;
 static unsigned int s_playerLevel;
 
 struct ProficiencyInfo {
-  int level;
-  int index;
+  int minLevel;
+  int slot;
 };
 
 static int __cdecl            QSortCompareByCategoryAndLevel(const void *a, const void *b);
@@ -200,7 +200,7 @@ static int __cdecl QSortCompareByCategoryAndLevel(const void *a, const void *b) 
 }
 
 void CGCharacterInfo::OrderSkillLines() {
-  SkillLineRec *skillInfo[64];
+  const SkillLineRec *skillInfo[64];
   unsigned int  count = 0;
   CGPlayer_C   *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!playerPtr) {
@@ -214,7 +214,7 @@ void CGCharacterInfo::OrderSkillLines() {
     if (i < 64) {
       unsigned int skillID = playerPtr->GetMirrorSkillID(i);
       if (skillID) {
-        SkillLineRec *rec = g_skillLineDB.GetRecord(skillID);
+        const SkillLineRec *rec = g_skillLineDB.GetRecord(skillID);
         if (rec && playerPtr->GetMirrorSkillMaxRank(i) && rec->m_categoryID < 4) {
           if (!rec->m_skillType) {
             ++numClassSkills;
@@ -237,7 +237,7 @@ void CGCharacterInfo::OrderSkillLines() {
   unsigned int skillCount = 1;
   unsigned int output = profSpan + 1;
   for (i = 0; i < count; ++i) {
-    SkillLineRec *rec = skillInfo[i];
+    const SkillLineRec *rec = skillInfo[i];
     if (!m_specialOffset && rec->m_skillType == 1) {
       m_specialOffset = output++;
       ++skillCount;
@@ -306,10 +306,10 @@ static int __cdecl QSortCompareProficiency(const void *a, const void *b) {
   FATALASSERT(b);
   const ProficiencyInfo *info1 = static_cast<const ProficiencyInfo *>(a);
   const ProficiencyInfo *info2 = static_cast<const ProficiencyInfo *>(b);
-  if (info1->level == info2->level) {
+  if (info1->minLevel == info2->minLevel) {
     return 0;
   }
-  return info1->level > info2->level ? 1 : -1;
+  return info1->minLevel > info2->minLevel ? 1 : -1;
 }
 
 unsigned int CGCharacterInfo::OrderProficiencies(unsigned int offset) {
@@ -350,14 +350,14 @@ unsigned int CGCharacterInfo::OrderProficiencies(unsigned int offset) {
   unsigned int orderedCount = 0;
   for (i = 0; i < 16; ++i) {
     if (proficiencyRec->m_proficiency_minLevel[i] > playerPtr->GetUnitData()->level && proficiencyRec->m_proficiency_acquireMethod[i] == 1) {
-      orderedSlots[orderedCount].level = proficiencyRec->m_proficiency_minLevel[i];
-      orderedSlots[orderedCount].index = i;
+      orderedSlots[orderedCount].minLevel = proficiencyRec->m_proficiency_minLevel[i];
+      orderedSlots[orderedCount].slot = i;
       ++orderedCount;
     }
   }
   qsort(orderedSlots, orderedCount, sizeof(ProficiencyInfo), QSortCompareProficiency);
   for (i = 0; i < static_cast<int>(orderedCount); ++i) {
-    int          slot = orderedSlots[i].index;
+    int          slot = orderedSlots[i].slot;
     int          itemClass = proficiencyRec->m_proficiency_itemClass[slot];
     unsigned int proficiency = CGPlayer_C::GetProficiency(static_cast<unsigned char>(itemClass));
     unsigned int bit;
@@ -425,7 +425,7 @@ static int Script_GetInventorySlotInfo(lua_State *L) {
     string = lua_tostring(L, 1);
     numEntries = g_paperDollItemFrameDB.GetNumRecords();
     for (int i = 0; i < numEntries; ++i) {
-      PaperDollItemFrameRec *record = g_paperDollItemFrameDB.GetRecordByIndex(i);
+      const PaperDollItemFrameRec *record = g_paperDollItemFrameDB.GetRecordByIndex(i);
       if (record && !SStrCmpI(record->m_ItemButtonName, string, 0x7FFFFFFF)) {
         lua_pushnumber(L, record->m_SlotNumber);
         lua_pushstring(L, record->m_SlotIcon);
@@ -615,7 +615,7 @@ static int Script_GetSkillByIndex(lua_State *L) {
     lua_pushnumber(L, 0.0);
     lua_pushnumber(L, 0.0);
   } else {
-    SkillLineRec *skill = g_skillLineDB.GetRecord(info->skillID);
+    const SkillLineRec *skill = g_skillLineDB.GetRecord(info->skillID);
     if (!skill) {
       return 5;
     }

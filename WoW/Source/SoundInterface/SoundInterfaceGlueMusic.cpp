@@ -53,7 +53,7 @@ void SndInterfaceSetGlueMusic(const char *musicFile) {
   SndInterfaceStopGlueMusic(FADEOUT_TIME);
 
   CVar *enableMusic = CVar::Lookup("EnableMusic");
-  if (!enableMusic || !enableMusic->m_intValue) {
+  if (!enableMusic || !enableMusic->GetInt()) {
     return;
   }
 

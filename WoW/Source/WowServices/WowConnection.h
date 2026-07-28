@@ -40,8 +40,8 @@ struct WowConnectionStats {
   int          m_bytesSent;
   int          m_messagesReceived;
   int          m_messagesSent;
-  unsigned int m_connectTime;
-  unsigned int m_lastDataReceived;
+  unsigned long m_connectTime;
+  unsigned long m_lastDataReceived;
 };
 
 class WowConnection;
@@ -99,11 +99,19 @@ class WowConnection {
     unsigned int   offset;
     unsigned int   datasize;
   };
+  typedef SENDNODE       *PSENDNODE;
+  typedef const SENDNODE *PCSENDNODE;
 
   ~WowConnection();
 
   WowConnection(WowConnectionResponse *response, void(*func)());
   WowConnection(int sock, sockaddr_in *addr, WowConnectionResponse *response);
+  WowConnection(
+      int connection,
+      const NETCONNADDR *address,
+      WowConnectionResponse *response,
+      void(*func)()
+  );
   WowConnection(const WowConnection &connection);
   WowConnection &operator=(const WowConnection &connection);
 
@@ -117,6 +125,14 @@ class WowConnection {
     return m_connState;
   }
   void                             SetResponse(WowConnectionResponse *response);
+  WowConnectionResponse           *GetResponse();
+  unsigned long                    Connection();
+  void                             AddIncomingData(
+      const void *data,
+      unsigned long bytes,
+      unsigned long timeStamp,
+      unsigned long *consumed
+  );
   void                             SetType(WOWC_TYPE type);
   void                             AcquireResponseRef();
   void                             ReleaseResponseRef();
@@ -130,8 +146,12 @@ class WowConnection {
   void                             DoExceptions();
   void                             DoDisconnect();
   WC_SEND_RESULT                   Send(CDataStore *msg);
+  WC_SEND_RESULT                   Send(CDataStore *msg, CDataStore *reply);
   WC_SEND_RESULT                   SendRaw(unsigned char *data, int len);
   void                             RequestWriteNotification();
+  void                             Idle();
+  void                             GetPeer(NETADDR &address);
+  void                             GetPeer(NETCONNADDR &address);
   bool                             GetLocal(NETADDR &addr);
   static unsigned long GetAddr(NETADDR &addr);
   static unsigned short GetPort(NETADDR &addr);
@@ -140,6 +160,12 @@ class WowConnection {
   bool                             Listen(unsigned short port);
   void                             StopListening();
   char                            *GetStringAddress(char *buf, int size);
+  unsigned long                    GetConnectAddress();
+  unsigned short                   GetConnectPort();
+  void                             SetAutoSendSize(unsigned long bytes);
+  unsigned short                   GetListenPort();
+  WOWC_TYPE                        GetType();
+  bool                             WantsWriteNotification();
 
   static int InitOsNet(bool(*verifyAddr)(const NETADDR *), void(*threadInit)(), int numThreads, bool useEngine);
   static void DestroyOsNet();
@@ -153,6 +179,7 @@ class WowConnection {
   void      CloseSocket(int sock);
   SENDNODE *NewSendNode(void *data, int size, bool raw);
   void      FreeSendNode(SENDNODE *sn);
+  void      DoSends();
   void      SetState(WOW_CONN_STATE state);
 
   int                    m_refCount;
@@ -161,24 +188,24 @@ class WowConnection {
   unsigned char          m_connectionFreed;
   WOW_CONN_STATE         m_connState;
   WowConnectionResponse *m_response;
-  unsigned int           m_needBytes;
+  unsigned long          m_needBytes;
   unsigned char         *m_readBuffer;
   int                    m_readBytes;
   int                    m_readBufferSize;
   SCritSect              m_outLock;
   WowConnectionStats     m_stats;
-  unsigned int           m_haveSizeBytes;
+  unsigned long          m_haveSizeBytes;
   unsigned short         m_listenPort;
   void(*m_threadInit)();
-  unsigned int   m_connectAddress;
+  unsigned long  m_connectAddress;
   unsigned short m_connectPort;
   int            m_connectRetryInterval;
-  unsigned int   m_retryConnection;
+  unsigned long  m_retryConnection;
   NETCONNADDR    m_peer;
-  unsigned int   m_bufferAutoSendSize;
+  unsigned long  m_bufferAutoSendSize;
   SCritSect      m_responseLock;
   int            m_responseRef;
-  unsigned int   m_responseRefThread;
+  unsigned long  m_responseRefThread;
   static bool(*m_verifyAddr)(const NETADDR *);
   LINKDECLEX(WowConnection, netlink);
   LISTDECL(SENDNODE, m_sendList);

@@ -56,6 +56,7 @@ struct COMBATLOGDESC {
   char          m_name[48];
 
   COMBATLOGDESC(const char *name);
+  ~COMBATLOGDESC();
   void Clear();
   void LogAttack(const ATTACKROUNDINFO &info);
   void LogAttack(const SPELLLOG &info);
@@ -105,6 +106,10 @@ COMBATLOGDESC::COMBATLOGDESC(const char *name) {
   } else {
     m_name[0] = 0;
   }
+}
+
+COMBATLOGDESC::~COMBATLOGDESC() {
+  Clear();
 }
 
 void COMBATLOGDESC::Clear() {
@@ -402,7 +407,7 @@ static void UnitCombatLogSpellTeach(const SpellRec* rec, unsigned __int64 caster
 static void HandleTerseVictimLogging(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID) {
   CGObject_C *attackerObject = ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__);
   CGObject_C *victimObject = ClntObjMgrObjectPtr(victim, __FILE__, __LINE__);
-  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (attackerObject && victimObject && spell &&
       (attackerObject->GetType() & TYPE_UNIT) && (victimObject->GetType() & TYPE_UNIT)) {
     GeneralLogPrintf(
@@ -417,7 +422,7 @@ static void HandleTerseVictimLogging(unsigned __int64 attacker, unsigned __int64
 static void HandleGeneralHealLogging(const DamageData& dmg, unsigned int spellID, unsigned __int64 attacker, unsigned __int64 victim) {
   CGObject_C *attackerObject = ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__);
   CGObject_C *victimObject = ClntObjMgrObjectPtr(victim, __FILE__, __LINE__);
-  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (attackerObject && victimObject && spell &&
       (attackerObject->GetType() & TYPE_UNIT) && (victimObject->GetType() & TYPE_UNIT)) {
     GeneralLogPrintf(
@@ -434,7 +439,7 @@ static void HandleGeneralCombatOrSpellHitLogging(int combat, const DamageData& d
   if (!attackerPtr || !victimPtr) {
     return;
   }
-  SpellRec *spell = spellID ? g_spellDB.GetRecord(spellID) : 0;
+  const SpellRec *spell = spellID ? g_spellDB.GetRecord(spellID) : 0;
   const char *spellName = spell ? spell->m_name_lang[CURRENT_LANGUAGE] : 0;
   if (spellName) {
     GeneralLogPrintf(s_affiliationLogType[aAff], "%s's %s hits %s for %d%s.",
@@ -485,12 +490,12 @@ static void HandleGeneralCombatLogging(const ATTACKROUNDINFO& info) {
 }
 
 static void FormatSpellMissString(char* string, unsigned int size, const SPELLMISSLOG& log) {
-  SpellRec *spell = g_spellDB.GetRecord(log.spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(log.spellID);
   SStrPrintf(string, size, "%s missed (reason %u).", spell ? spell->m_name_lang[CURRENT_LANGUAGE] : "Spell", log.reason);
 }
 
 static void FormatSpellString(char* string, unsigned int size, const SPELLLOG& log) {
-  SpellRec *spell = g_spellDB.GetRecord(log.spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(log.spellID);
   SStrPrintf(string, size, "%s hit for %d.", spell ? spell->m_name_lang[CURRENT_LANGUAGE] : "Spell", log.dmg.totalDamage);
 }
 
@@ -878,7 +883,7 @@ void UnitCombatLogCastGo(unsigned int spellID, unsigned __int64 casterUnit, unsi
   if (!s_activePlayer) {
     return;
   }
-  SpellRec *rec = g_spellDB.GetRecord(spellID);
+  const SpellRec *rec = g_spellDB.GetRecord(spellID);
   if (!rec || IsSpellQuiet(rec)) {
     return;
   }
@@ -911,7 +916,7 @@ void UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster) {
     return;
   }
 
-  SpellRec *rec = g_spellDB.GetRecord(spellID);
+  const SpellRec *rec = g_spellDB.GetRecord(spellID);
   if (!rec || IsSpellQuiet(rec) || (caster == ClntObjMgrGetActivePlayer() && !IsSpellAura(rec)) || IsSpellTeach(rec)) {
     return;
   }
@@ -993,7 +998,7 @@ void UnitCombatLog(const SPELLLOG &log) {
     return;
   }
 
-  SpellRec   *spellRec = g_spellDB.GetRecord(log.spellID);
+  const SpellRec   *spellRec = g_spellDB.GetRecord(log.spellID);
   const char *spellName = spellRec ? spellRec->m_name_lang[CURRENT_LANGUAGE] : "Unknown Spell";
   const char *attackerName = static_cast<CGUnit_C *>(attackerObjPtr)->GetUnitName();
   const char *victimName = static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName();
@@ -1073,7 +1078,7 @@ void UnitCombatLog(const ENVIRONMENTALDAMAGE &log) {
 }
 
 void UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added, int auraSlot) {
-  SpellRec       *spellRec = g_spellDB.GetRecord(spellID);
+  const SpellRec       *spellRec = g_spellDB.GetRecord(spellID);
   CGObject_C     *dummy;
   UNITAFFILIATION aAff;
   if (!unitPtr || !spellRec || (spellRec->m_attributes & 0xC0) || IsSpellQuiet(spellRec) ||
@@ -1125,7 +1130,7 @@ void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, uns
     return;
   }
 
-  SpellRec   *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec   *spell = g_spellDB.GetRecord(spellID);
   CGUnit_C   *attackerPtr = static_cast<CGUnit_C *>(attackerObjPtr);
   CGUnit_C   *victimPtr = static_cast<CGUnit_C *>(victimObjPtr);
   const char *casterName = attackerPtr->GetUnitName();
@@ -1247,7 +1252,7 @@ void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message) 
     return;
   }
 
-  SpellRec *spellRec = g_spellDB.GetRecord(spellID);
+  const SpellRec *spellRec = g_spellDB.GetRecord(spellID);
   if (!spellRec || IsSpellQuiet(spellRec)) {
     return;
   }
@@ -1296,7 +1301,7 @@ void UnitCombatLogHeartbeatResist(const RESISTLOG &log) {
     return;
   }
 
-  SpellRec *spellRec = g_spellDB.GetRecord(log.spell);
+  const SpellRec *spellRec = g_spellDB.GetRecord(log.spell);
   if (!spellRec || IsSpellQuiet(spellRec)) {
     return;
   }
@@ -1324,7 +1329,7 @@ void UnitCombatLogEnchantment(const ENCHANTMENTLOG &log) {
     return;
   }
 
-  SpellItemEnchantmentRec *enchantment = g_spellItemEnchantmentDB.GetRecord(log.enchantment);
+  const SpellItemEnchantmentRec *enchantment = g_spellItemEnchantmentDB.GetRecord(log.enchantment);
   const char              *enchantmentName = enchantment ? enchantment->m_name_lang[CURRENT_LANGUAGE] : "Unknown Enchantment";
   const ItemStats_C       *item = g_itemDBCache.GetRecord(log.itemID, 0, 0, 0);
   if (!item) {
@@ -1384,7 +1389,7 @@ void UnitCombatLogString(const char* buffer) {
 }
 
 void UnitCombatLogFactionChanged(int faction, int delta) {
-  FactionRec *rec = g_factionDB.GetRecord(faction);
+  const FactionRec *rec = g_factionDB.GetRecord(faction);
   if (!rec || !delta) {
     return;
   }

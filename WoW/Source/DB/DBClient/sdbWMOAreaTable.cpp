@@ -18,7 +18,7 @@ const char *SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID) {
   key.m_NameSetID = nameSetID;
   key.m_WMOGroupID = wmoGroupID;
 
-  WMOAreaTableRec *rec = static_cast<WMOAreaTableRec *>(
+  const WMOAreaTableRec *rec = static_cast<const WMOAreaTableRec *>(
       bsearch(&key, g_wMOAreaTableDB.GetRecordByIndex(0), g_wMOAreaTableDB.GetNumRecords(), sizeof(WMOAreaTableRec), bscompare)
   );
 
@@ -31,7 +31,7 @@ bool SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAr
   key.m_NameSetID = nameSetID;
   key.m_WMOGroupID = wmoGroupID;
 
-  rec = static_cast<WMOAreaTableRec *>(
+  rec = static_cast<const WMOAreaTableRec *>(
       bsearch(&key, g_wMOAreaTableDB.GetRecordByIndex(0), g_wMOAreaTableDB.GetNumRecords(), sizeof(WMOAreaTableRec), bscompare)
   );
 

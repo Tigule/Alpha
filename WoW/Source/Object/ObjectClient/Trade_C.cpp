@@ -20,10 +20,10 @@ static unsigned int     s_tradeGold[2];
 static unsigned int     s_tradeFlags[2];
 
 struct TradeItemData {
-  int              itemID;
-  int              displayID;
-  int              enchantment;
-  int              count;
+  unsigned int     entryID;
+  unsigned int     displayID;
+  unsigned int     count;
+  unsigned int     enchantmentID;
   unsigned __int64 creator;
 };
 
@@ -111,7 +111,7 @@ static int CCommand_ShowTrade(const char*, const char*) {
   for (unsigned int player = 0; player < 2; ++player) {
     ConsoleWrite(player ? "He is offering:" : "You are offering:", DEFAULT_COLOR);
     for (unsigned int slot = 0; slot < 8; ++slot) {
-      ConsolePrintf("%d: item=%d, display=%d", slot, s_tradeItems[player][slot].itemID, s_tradeItems[player][slot].displayID);
+      ConsolePrintf("%d: item=%d, display=%d", slot, s_tradeItems[player][slot].entryID, s_tradeItems[player][slot].displayID);
     }
   }
   return 1;
@@ -237,10 +237,10 @@ static int TradeExtendedStatusHandler(void *, NETMESSAGE, unsigned long, CDataSt
     unsigned char slot;
     msg->Get(slot);
     TradeItemData &item = s_tradeItems[whichPlayer][slot];
-    msg->Get(item.itemID);
+    msg->Get(item.entryID);
     msg->Get(item.displayID);
-    msg->Get(item.enchantment);
     msg->Get(item.count);
+    msg->Get(item.enchantmentID);
     msg->Get(item.creator);
   }
   FATALASSERT(msg->IsRead() && msg->IsValid());

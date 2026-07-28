@@ -394,6 +394,7 @@ class CModel : public CHandleObject {
   LISTDECL(CModelModItem, modelModQueue);
 
  private:
+  CModel &operator=(const CModel &source);
   void RemoveModelCommandsFromQueue();
 };
 

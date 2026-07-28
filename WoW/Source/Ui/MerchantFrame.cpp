@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "MerchantFrame.h"
 
 #include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/DBClient.h"
@@ -21,40 +22,6 @@ void CursorModelSetSequence(CURSORANIMATIONS sequence);
 static const float MAX_SHOP_DISTANCE = 5.5555553f;
 static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
 
-struct VendorItem {
-  unsigned int m_muid;
-  unsigned int m_itemType;
-  unsigned int m_itemDisplayID;
-  int          m_quantity;
-  int          m_price;
-  int          m_durability;
-  int          m_stackCount;
-};
-
-class CGMerchantInfo {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count);
-  static unsigned __int64 GetMerchant();
-  static void CloseMerchant();
-  static void UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity);
-  static int GetNumItems() {
-    return m_itemCount;
-  }
-  static const VendorItem *GetItem(int index) {
-    return index >= 0 && index < m_itemCount ? &m_items[index] : 0;
-  }
-  static const ItemStats *GetItemStats(unsigned int itemID);
-  static void DecrementCallbackCount();
-
- protected:
-  static unsigned __int64 m_merchant;
-  static VendorItem       m_items[128];
-  static int              m_itemCount;
-  static unsigned int     m_callbackCount;
-};
-
 unsigned __int64 CGMerchantInfo::m_merchant;
 VendorItem       CGMerchantInfo::m_items[128];
 int              CGMerchantInfo::m_itemCount;
@@ -68,10 +35,6 @@ void CGMerchantInfo::EnterWorld() {
   memset(m_items, 0, sizeof(m_items));
   m_merchant = 0;
   m_itemCount = 0;
-}
-
-unsigned __int64 CGMerchantInfo::GetMerchant() {
-  return m_merchant;
 }
 
 void CGMerchantInfo::LeaveWorld() {
@@ -187,7 +150,7 @@ static int Script_GetMerchantItemInfo(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(item->m_quantity));
 
   CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  GAME_ERROR_TYPE reason = GAME_ERROR_NONE;
+  GAME_ERROR_TYPE reason = GERR_NONE;
   if (player && stats && !player->CanUseItem(stats, reason)) {
     lua_pushnil(L);
   } else {

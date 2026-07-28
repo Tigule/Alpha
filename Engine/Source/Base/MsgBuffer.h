@@ -1,6 +1,8 @@
 #ifndef ENGINE_SOURCE_BASE_MSGBUFFER_H
 #define ENGINE_SOURCE_BASE_MSGBUFFER_H
 
+#include <storm.h>
+
 class CMsgBuffer {
   private:
     void ReallocData(unsigned int count);
@@ -91,5 +93,62 @@ class CMsgBuffer {
     unsigned int m_write;
     unsigned char *m_data;
 };
+
+inline CMsgBuffer::CMsgBuffer(unsigned int count)
+    : m_alloc(count), m_freeData(1), m_read(0), m_write(0),
+      m_data(count ? static_cast<unsigned char *>(SMemAlloc(count, __FILE__, __LINE__, 0)) : 0) {
+}
+
+inline CMsgBuffer::~CMsgBuffer() {
+  if (m_freeData && m_data) {
+    SMemFree(m_data, __FILE__, __LINE__, 0);
+  }
+}
+
+inline void CMsgBuffer::Reserve(unsigned int count) {
+  if (m_write + count > m_alloc) {
+    ReallocData(m_write + count);
+  }
+}
+
+inline void CMsgBuffer::Reset() {
+  m_read = 0;
+  m_write = 0;
+}
+
+inline int CMsgBuffer::Bytes() const {
+  return m_write - m_read;
+}
+
+inline unsigned int CMsgBuffer::GetReadPosition() {
+  return m_read;
+}
+
+inline void CMsgBuffer::SetReadPosition(unsigned int position) {
+  m_read = position;
+}
+
+inline unsigned int CMsgBuffer::GetWritePosition() {
+  return m_write;
+}
+
+inline void CMsgBuffer::SetWritePosition(unsigned int position) {
+  m_write = position;
+}
+
+inline unsigned char *CMsgBuffer::Data() {
+  return m_data;
+}
+
+inline void CMsgBuffer::SetData(unsigned char *data, unsigned int count, int freeData) {
+  if (m_freeData && m_data) {
+    SMemFree(m_data, __FILE__, __LINE__, 0);
+  }
+  m_alloc = count;
+  m_freeData = freeData;
+  m_read = 0;
+  m_write = count;
+  m_data = data;
+}
 
 #endif

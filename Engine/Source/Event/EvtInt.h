@@ -55,8 +55,11 @@ class EvtIdTable {
     return const_cast<EvtIdTable<T> *>(this)->m_allocArray[id];
   }
 
+ private:
   TSGrowableArray<T>            m_allocArray;
   TSGrowableArray<unsigned int> m_freeArray;
+
+  friend struct EvtContext;
 };
 
 class EvtTimerQueue : public TSPriorityQueue<EvtTimer> {
@@ -105,8 +108,21 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   enum SCHEDSTATE {
     SCHEDSTATE_ACTIVE = 0,
     SCHEDSTATE_CLOSED = 1,
-    SCHEDSTATE_DESTROYED = 2
+    SCHEDSTATE_DESTROYED = 2,
+    _UNIQUE_SYMBOL_SCHEDSTATE_96 = -1
   };
+
+ private:
+  EvtContext(unsigned long idleTime, unsigned long flags, unsigned int weight, void *callContext, int startWatchdog);
+  EvtContext(const EvtContext &);
+  EvtContext &operator=(const EvtContext &);
+
+  friend void DestroySchedulerThread(unsigned int hThread);
+  friend HEVENTCONTEXT AttachContextToThread(EvtContext *context);
+  friend void DetachContextFromThread(unsigned int hThread, EvtContext *context);
+  friend void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
+  friend HEVENTCONTEXT
+  IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags);
 
   SCritSect                     m_critsect;
   DWORD                         m_currTime;
@@ -121,7 +137,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   int                           m_schedRebalance;
   LISTDECLEX(EvtHandler, link, m_queueHandlerList[EVENTIDS]);
   LISTDECLEX(EvtMessage, link, m_queueMessageList);
-  DWORD                         m_queueSyncButtonState;
+  unsigned int                  m_queueSyncButtonState;
   LISTDECLEX(EvtKeyDown, link, m_queueSyncKeyDownList);
   EvtIdTable<EvtTimer *>        m_timerIdTable;
   EvtTimerQueue                 m_timerQueue;
@@ -129,6 +145,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   void                         *m_callContext;
   unsigned int                  m_startWatchdog;
 
+ public:
   ~EvtContext() {
     EvtTimer    *timer;
     unsigned int i;
@@ -150,15 +167,15 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     OsCallDestroyContext(m_callContext);
   }
 
-  int IsCurrentContext() {
+  int IsCurrentContext() const {
     return !Id() || reinterpret_cast<void *>(Id()) == PropGet(PROP_EVENTCONTEXT);
   }
 
-  HEVENTCONTEXT Handle() {
+  HEVENTCONTEXT Handle() const {
     return reinterpret_cast<HEVENTCONTEXT>(Id());
   }
 
-  unsigned long GetCurrTime() {
+  unsigned long GetCurrTime() const {
     ASSERT(IsCurrentContext());
     return m_currTime;
   }
@@ -212,7 +229,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_critsect.Leave();
   }
 
-  unsigned long SchedGetNextWakeTime() {
+  unsigned long SchedGetNextWakeTime() const {
     return m_schedNextWakeTime.Get();
   }
 
@@ -220,7 +237,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_schedNextWakeTime.Set(nextWakeTime);
   }
 
-  unsigned long SchedGetLastIdle() {
+  unsigned long SchedGetLastIdle() const {
     ASSERT(IsCurrentContext());
     return m_schedLastIdle;
   }
@@ -230,7 +247,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_schedLastIdle = lastIdle;
   }
 
-  unsigned long SchedGetFlags(unsigned long flags) {
+  unsigned long SchedGetFlags(unsigned long flags) const {
     ASSERT(IsCurrentContext());
     return m_schedFlags & flags;
   }
@@ -245,12 +262,12 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_schedFlags &= ~flags;
   }
 
-  unsigned long SchedGetInitialIdleTime() {
+  unsigned long SchedGetInitialIdleTime() const {
     ASSERT(IsCurrentContext());
     return m_schedInitialIdleTime;
   }
 
-  unsigned long SchedGetIdleTime() {
+  unsigned long SchedGetIdleTime() const {
     ASSERT(IsCurrentContext());
     return m_schedIdleTime;
   }
@@ -259,7 +276,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_schedIdleTime = idleTime;
   }
 
-  unsigned int SchedGetWeight() {
+  unsigned int SchedGetWeight() const {
     return m_schedWeight;
   }
 
@@ -267,7 +284,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_schedWeight = weight;
   }
 
-  unsigned int SchedGetSmoothWeight() {
+  unsigned int SchedGetSmoothWeight() const {
     return m_schedSmoothWeight;
   }
 
@@ -275,7 +292,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_schedSmoothWeight = smoothWeight;
   }
 
-  int SchedGetRebalance() {
+  int SchedGetRebalance() const {
     return m_schedRebalance;
   }
 
@@ -346,12 +363,12 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
 };
 
 NODEDECL(EvtThread) {
-  DWORD           m_threadSlot;
-  DWORD           m_threadCount;
-  DWORD           m_weightTotal;
-  DWORD           m_weightAvg;
-  DWORD           m_contextCount;
-  DWORD           m_rebalance;
+  unsigned int    m_threadSlot;
+  unsigned int    m_threadCount;
+  unsigned int    m_weightTotal;
+  unsigned int    m_weightAvg;
+  unsigned int    m_contextCount;
+  unsigned int    m_rebalance;
   SEvent          m_wakeEvent;
   EvtContextQueue m_contextQueue;
 };

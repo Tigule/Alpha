@@ -316,65 +316,6 @@ unsigned int CompUtilGetObjComponents(
     unsigned int              numSubComponents,
     int                       useAlternate
 ) {
-  static const int attachmentPoints[INDEX_NUMSLOTS][2] = {
-      {-1, -1},
-      {11, -1},
-      {-1, -1},
-      { 6,  5},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      { 1, -1},
-      { 0, -1},
-      { 2, -1},
-      {-1, -1},
-      { 1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      { 1, -1},
-      { 2, -1},
-      { 2, -1},
-      {-1, -1},
-      { 1, -1},
-      { 1, -1}
-  };
-  static const int alternateAttachmentPoints[INDEX_NUMSLOTS][2] = {
-      {-1, -1},
-      {11, -1},
-      {-1, -1},
-      { 6,  5},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      { 2, -1},
-      { 0, -1},
-      { 2, -1},
-      {-1, -1},
-      { 1, -1},
-      {-1, -1},
-      {-1, -1},
-      {-1, -1},
-      { 1, -1},
-      { 2, -1},
-      { 2, -1},
-      {-1, -1},
-      { 1, -1},
-      { 1, -1}
-  };
-
   ASSERT(numSubComponents == 2);
   ASSERT(subComponents);
   if (!displayInfoRec) {
@@ -386,9 +327,33 @@ unsigned int CompUtilGetObjComponents(
   for (whichComponent = 0; whichComponent < 2 && count < numSubComponents; ++whichComponent) {
     if (ReadSubComponent(displayInfoRec, whichComponent, itemInventoryType, &subComponents[count])) {
       subComponents[count].connectionPointIndex =
-          useAlternate ? alternateAttachmentPoints[itemInventoryType][count] : attachmentPoints[itemInventoryType][count];
+          useAlternate ? g_geometryComponentLookups[itemInventoryType].altItemLinks[count]
+                       : g_geometryComponentLookups[itemInventoryType].itemLinks[count];
       ++count;
     }
   }
   return count;
+}
+
+unsigned int CompUtilGetObjComponentSlotFlags(const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType, int useAlternateSlot) {
+  if (!displayInfoRec || !g_geometryComponentLookups[itemInventoryType].allowedSlots) {
+    return 0;
+  }
+
+  unsigned int flags = 0;
+  unsigned int componentIndex = 0;
+  for (unsigned int componentLink = 0; componentLink < 36 && componentIndex < 2; ++componentLink) {
+    if (!(g_geometryComponentLookups[itemInventoryType].allowedSlots & (static_cast<__int64>(1) << componentLink))) {
+      continue;
+    }
+    if (ReadSubComponent(displayInfoRec, componentIndex, itemInventoryType, 0)) {
+      int link = useAlternateSlot ? g_geometryComponentLookups[itemInventoryType].altItemLinks[componentIndex]
+                                  : g_geometryComponentLookups[itemInventoryType].itemLinks[componentIndex];
+      if (link >= 0) {
+        flags |= 1 << link;
+      }
+      ++componentIndex;
+    }
+  }
+  return flags;
 }

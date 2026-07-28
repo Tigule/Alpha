@@ -35,6 +35,20 @@
 
 class CDataStore;
 
+struct SPELLVISUALNODE : public TSHashObject<SPELLVISUALNODE, HASHKEY_NONE> {
+  SPELLVISUALNODE();
+  SPELLVISUALNODE(const SPELLVISUALNODE &);
+
+  unsigned int    m_effects[15];
+  ANIMENUMERATION m_anims[2];
+};
+
+SPELLVISUALNODE::SPELLVISUALNODE() {
+  memset(m_effects, 0, sizeof(m_effects));
+  m_anims[0] = RESET_ANIMATION_INDICES0;
+  m_anims[1] = RESET_ANIMATION_INDICES0;
+}
+
 NODEDECL(BlizzardObject) {
   NODEDECL(Shard) {
     NTempest::C3Vector pos;
@@ -370,6 +384,26 @@ static EclipseObject                                        s_eclipseObject;
 
 class SpellCast {
  public:
+  SpellCast() {
+    caster = 0;
+    spellID = 0;
+    castTime = 0;
+    targets = 0;
+    castEndTime = 0;
+    unitTarget = 0;
+    itemTarget = 0;
+    ammoItem = 0;
+    spellLevel = 0;
+    spellIndex = 0;
+    reflector = 0;
+    overrideRank = -1;
+    flags = 0;
+    selectedTarget = 0;
+  }
+
+  ~SpellCast() {
+  }
+
   void BuildFullZoneUpdate(CDataStore *msg);
   void UnpackFullZoneUpdate(CDataStore *msg);
 
@@ -492,8 +526,8 @@ static void InitializeAuraNames() {
 void PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT attach, int spellID, bool isCastEffect) {
   if (effectID) {
     FATALASSERT(object);
-    FATALASSERT(attach < NUM_UNITEFFECT_ATTACHPOINTS);
-    SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
+    FATALASSERT(attach < NUM_UNITEFFECTATTACHPOINTS);
+    const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
     UnitEffectOneShot(effectRec, object, attach, spellID, isCastEffect, 0);
   }
 }
@@ -637,7 +671,7 @@ SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, uns
 
   UnitCombatLogCastStart(id, caster->GetGUID());
 
-  SpellRec *spellRec = g_spellDB.GetRecord(id);
+  const SpellRec *spellRec = g_spellDB.GetRecord(id);
   if (!spellRec) {
     SysMsgPrintf(SYSMSG_ERROR, 2, "NOSPELLIDFOUND|%d", id);
     return;
@@ -818,7 +852,7 @@ static void CreateLightningObj(
     return;
   }
 
-  SpellChainEffectsRec *rec = g_spellChainEffectsDB.GetRecord(static_cast<int>(kitRec->m_characterParam[0]));
+  const SpellChainEffectsRec *rec = g_spellChainEffectsDB.GetRecord(static_cast<int>(kitRec->m_characterParam[0]));
   if (!rec) {
     return;
   }

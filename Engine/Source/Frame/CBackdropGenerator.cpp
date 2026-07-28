@@ -45,7 +45,7 @@ void CBackdropGenerator::LoadXML(const XMLNode *node, CStatus *status) {
   }
 
   m_background = background;
-  m_pieces = BACKDROPALL;
+  m_pieces = THEWORKS;
   m_tileBackground = tile;
   m_border = border;
 
@@ -96,7 +96,7 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
     m_backgroundTexture->SetTexture(m_background, m_tileBackground);
   }
 
-  if (m_pieces & BACKDROPLEFT) {
+  if (m_pieces & LEFTSIDE) {
     m_leftTexture = NEW(CSimpleTexture)(output, 1, 1);
     m_leftTexture->SetWidth(m_cornerSize);
     m_leftTexture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, 0.0f, -m_cornerSize, 1);
@@ -104,7 +104,7 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
     m_leftTexture->SetTexture(m_border, 1);
   }
 
-  if (m_pieces & BACKDROPRIGHT) {
+  if (m_pieces & RIGHTSIDE) {
     m_rightTexture = NEW(CSimpleTexture)(output, 1, 1);
     m_rightTexture->SetWidth(m_cornerSize);
     m_rightTexture->SetPoint(FRAMEPOINT_TOPRIGHT, output, FRAMEPOINT_TOPRIGHT, 0.0f, -m_cornerSize, 1);
@@ -112,7 +112,7 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
     m_rightTexture->SetTexture(m_border, 1);
   }
 
-  if (m_pieces & BACKDROPTOP) {
+  if (m_pieces & TOPSIDE) {
     m_topTexture = NEW(CSimpleTexture)(output, 1, 1);
     m_topTexture->SetHeight(m_cornerSize);
     m_topTexture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, m_cornerSize, 0.0f, 1);
@@ -120,7 +120,7 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
     m_topTexture->SetTexture(m_border, 1);
   }
 
-  if (m_pieces & BACKDROPBOTTOM) {
+  if (m_pieces & BOTTOMSIDE) {
     m_bottomTexture = NEW(CSimpleTexture)(output, 1, 1);
     m_bottomTexture->SetHeight(m_cornerSize);
     m_bottomTexture->SetPoint(FRAMEPOINT_BOTTOMLEFT, output, FRAMEPOINT_BOTTOMLEFT, m_cornerSize, 0.0f, 1);
@@ -128,7 +128,7 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
     m_bottomTexture->SetTexture(m_border, 1);
   }
 
-  if (m_pieces & BACKDROPTOPLEFT) {
+  if (m_pieces & TOPLEFTCORNER) {
     m_topLeftTexture = NEW(CSimpleTexture)(output, 1, 1);
     m_topLeftTexture->SetWidth(m_cornerSize);
     m_topLeftTexture->SetHeight(m_cornerSize);
@@ -141,7 +141,7 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
     m_topLeftTexture->SetTexCoord(texCoords);
   }
 
-  if (m_pieces & BACKDROPTOPRIGHT) {
+  if (m_pieces & TOPRIGHTCORNER) {
     m_topRightTexture = NEW(CSimpleTexture)(output, 1, 1);
     m_topRightTexture->SetWidth(m_cornerSize);
     m_topRightTexture->SetHeight(m_cornerSize);
@@ -154,7 +154,7 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
     m_topRightTexture->SetTexCoord(texCoords);
   }
 
-  if (m_pieces & BACKDROPBOTTOMLEFT) {
+  if (m_pieces & BOTTOMLEFTCORNER) {
     m_bottomLeftTexture = NEW(CSimpleTexture)(output, 1, 1);
     m_bottomLeftTexture->SetWidth(m_cornerSize);
     m_bottomLeftTexture->SetHeight(m_cornerSize);
@@ -167,7 +167,7 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
     m_bottomLeftTexture->SetTexCoord(texCoords);
   }
 
-  if (m_pieces & BACKDROPBOTTOMRIGHT) {
+  if (m_pieces & BOTTOMRIGHTCORNER) {
     m_bottomRightTexture = NEW(CSimpleTexture)(output, 1, 1);
     m_bottomRightTexture->SetWidth(m_cornerSize);
     m_bottomRightTexture->SetHeight(m_cornerSize);
@@ -214,7 +214,7 @@ void CBackdropGenerator::Generate(const NTempest::CRect *rect) {
     texture->SetTexCoord(texCoords);
   }
 
-  if (m_pieces & BACKDROPLEFT) {
+  if (m_pieces & LEFTSIDE) {
     CSimpleTexture *texture = m_leftTexture;
 
     ASSERT(texture);
@@ -226,7 +226,7 @@ void CBackdropGenerator::Generate(const NTempest::CRect *rect) {
     texture->SetTexCoord(texCoords);
   }
 
-  if (m_pieces & BACKDROPRIGHT) {
+  if (m_pieces & RIGHTSIDE) {
     CSimpleTexture *texture = m_rightTexture;
 
     ASSERT(texture);
@@ -238,7 +238,7 @@ void CBackdropGenerator::Generate(const NTempest::CRect *rect) {
     texture->SetTexCoord(texCoords);
   }
 
-  if (m_pieces & BACKDROPTOP) {
+  if (m_pieces & TOPSIDE) {
     CSimpleTexture *texture = m_topTexture;
 
     ASSERT(texture);
@@ -250,7 +250,7 @@ void CBackdropGenerator::Generate(const NTempest::CRect *rect) {
     texture->SetTexCoord(texCoords);
   }
 
-  if (m_pieces & BACKDROPBOTTOM) {
+  if (m_pieces & BOTTOMSIDE) {
     CSimpleTexture *texture = m_bottomTexture;
 
     ASSERT(texture);

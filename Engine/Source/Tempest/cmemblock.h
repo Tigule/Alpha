@@ -9,6 +9,10 @@ namespace NTempest {
 
   class CEntity {
    public:
+    CEntity() {
+    }
+    CEntity(const CEntity &) {
+    }
     virtual ~CEntity() {
     }
   };

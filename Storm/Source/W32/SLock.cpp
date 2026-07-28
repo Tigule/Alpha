@@ -39,17 +39,17 @@ namespace SRWLock {
 }  // namespace SRWLock
 
 struct CDebugLockData {
-  DWORD           entry;
-  CDebugLockData *prev;
-  CDebugLockData *next;
+  DWORD           m_entries;
+  CDebugLockData *m_prevLock;
+  CDebugLockData *m_nextLock;
 };
 
 struct CDebugLockEntry {
-  DWORD       tick;
-  DWORD       threadId;
-  DWORD       next;
-  const char *filename;
-  DWORD       flags;
+  DWORD       m_time;
+  DWORD       m_threadId;
+  DWORD       m_next;
+  const char *m_fileName;
+  DWORD       m_line;
 };
 
 #define SRW_EVENT_TYPES      2
@@ -481,9 +481,9 @@ template <class T>
 void CDebugLock<T>::IRepairBadEntry(CDebugLockData *lock, DWORD e, CDebugLockEntry *eptr, const char *fileName, DWORD line) {
   SOutputDebugString("%s(%u) : CDebugLock:%08x: entry has bad next %u\n", fileName, line, lock, e);
   if (eptr) {
-    eptr->next = 0;
+    eptr->m_next = 0;
   } else {
-    lock->entry = 0;
+    lock->m_entries = 0;
   }
 }
 
@@ -494,7 +494,7 @@ void CDebugLock<T>::IEnter() {
   if (s_critsect.Enter()) {
     memset(s_entries, 0, sizeof(s_entries));
     for (i = 1; i < 255; ++i) {
-      s_entries[i].next = i + 1;
+      s_entries[i].m_next = i + 1;
     }
     s_freeEntries = 1;
   }
@@ -512,7 +512,7 @@ void CDebugLock<T>::IDumpAllEntries() {
   data = s_locks;
   while (data) {
     IDumpEntries(data);
-    data = data->next;
+    data = data->m_nextLock;
   }
 }
 
@@ -525,7 +525,7 @@ void CDebugLock<T>::IDumpEntries(CDebugLockData *lock) {
 
   previous = NULL;
   now = GetTickCount();
-  index = lock->entry;
+  index = lock->m_entries;
   while (index) {
     if (index >= 256) {
       IRepairBadEntry(lock, index, previous, __FILE__, __LINE__);
@@ -534,11 +534,11 @@ void CDebugLock<T>::IDumpEntries(CDebugLockData *lock) {
 
     entry = &s_entries[index];
     SOutputDebugString(
-        "%s(%u) : CDebugLock:%08x: tid:%03x %c %c t:%u\n", entry->filename, entry->flags & 0x3FFFFFFF, lock, entry->threadId,
-        (entry->flags & 0x40000000) ? 'W' : 'R', (entry->flags & 0x80000000) ? 'T' : 'F', now - entry->tick
+        "%s(%u) : CDebugLock:%08x: tid:%03x %c %c t:%u\n", entry->m_fileName, entry->m_line & 0x3FFFFFFF, lock, entry->m_threadId,
+        (entry->m_line & 0x40000000) ? 'W' : 'R', (entry->m_line & 0x80000000) ? 'T' : 'F', now - entry->m_time
     );
     previous = entry;
-    index = entry->next;
+    index = entry->m_next;
   }
 }
 
@@ -549,7 +549,7 @@ DWORD CDebugLock<T>::IClashingEntry(CDebugLockData *lock, DWORD threadId, int fo
   CDebugLockEntry *previous;
 
   previous = NULL;
-  index = lock->entry;
+  index = lock->m_entries;
   while (index) {
     if (index >= 256) {
       IRepairBadEntry(lock, index, previous, __FILE__, __LINE__);
@@ -557,11 +557,11 @@ DWORD CDebugLock<T>::IClashingEntry(CDebugLockData *lock, DWORD threadId, int fo
     }
 
     entry = &s_entries[index];
-    if (entry->threadId == threadId && (forwriting || (entry->flags & 0x40000000))) {
+    if (entry->m_threadId == threadId && (forwriting || (entry->m_line & 0x40000000))) {
       return index;
     }
     previous = entry;
-    index = entry->next;
+    index = entry->m_next;
   }
   return 0;
 }
@@ -579,13 +579,13 @@ DWORD CDebugLock<T>::IAddEntry(CDebugLockData *lock, DWORD threadId, int forwrit
   }
 
   entry = &s_entries[index];
-  entry->tick = GetTickCount();
-  entry->threadId = threadId;
-  entry->filename = fileName;
-  entry->flags = (line & 0x3FFFFFFF) | (forwriting ? 0x40000000 : 0);
-  s_freeEntries = entry->next;
-  entry->next = lock->entry;
-  lock->entry = index;
+  entry->m_time = GetTickCount();
+  entry->m_threadId = threadId;
+  entry->m_fileName = fileName;
+  entry->m_line = (line & 0x3FFFFFFF) | (forwriting ? 0x40000000 : 0);
+  s_freeEntries = entry->m_next;
+  entry->m_next = lock->m_entries;
+  lock->m_entries = index;
   return index;
 }
 
@@ -596,7 +596,7 @@ DWORD CDebugLock<T>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int from
   CDebugLockEntry *previous;
 
   previous = NULL;
-  index = lock->entry;
+  index = lock->m_entries;
   while (index) {
     if (index >= 256) {
       IRepairBadEntry(lock, index, previous, __FILE__, __LINE__);
@@ -604,20 +604,20 @@ DWORD CDebugLock<T>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int from
     }
 
     entry = &s_entries[index];
-    if (entry->threadId == threadId && (entry->flags & 0x80000000) && ((entry->flags >> 30) & 1) == (DWORD)fromwriting) {
+    if (entry->m_threadId == threadId && (entry->m_line & 0x80000000) && ((entry->m_line >> 30) & 1) == (DWORD)fromwriting) {
       if (previous) {
-        previous->next = entry->next;
+        previous->m_next = entry->m_next;
       } else {
-        lock->entry = entry->next;
+        lock->m_entries = entry->m_next;
       }
-      entry->threadId = 0;
-      entry->next = s_freeEntries;
+      entry->m_threadId = 0;
+      entry->m_next = s_freeEntries;
       s_freeEntries = index;
       return index;
     }
 
     previous = entry;
-    index = entry->next;
+    index = entry->m_next;
   }
   return 0;
 }
@@ -625,20 +625,20 @@ DWORD CDebugLock<T>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int from
 template <class T>
 void CDebugLock<T>::IEnterEntry(DWORD e) {
   if (e) {
-    s_entries[e].flags |= 0x80000000;
+    s_entries[e].m_line |= 0x80000000;
   }
 }
 
 template <class T>
 void CDebugLock<T>::Construct(CDebugLockData *lock) {
-  lock->entry = 0;
-  lock->prev = NULL;
+  lock->m_entries = 0;
+  lock->m_prevLock = NULL;
 
   IEnter();
   if (s_locks) {
-    s_locks->prev = lock;
+    s_locks->m_prevLock = lock;
   }
-  lock->next = s_locks;
+  lock->m_nextLock = s_locks;
   s_locks = lock;
   ILeave();
 }
@@ -649,16 +649,16 @@ void CDebugLock<T>::Destruct(CDebugLockData *lock) {
   CDebugLockEntry *entry;
 
   IEnter();
-  if (lock->prev) {
-    lock->prev->next = lock->next;
+  if (lock->m_prevLock) {
+    lock->m_prevLock->m_nextLock = lock->m_nextLock;
   } else {
-    s_locks = lock->next;
+    s_locks = lock->m_nextLock;
   }
-  if (lock->next) {
-    lock->next->prev = lock->prev;
+  if (lock->m_nextLock) {
+    lock->m_nextLock->m_prevLock = lock->m_prevLock;
   }
 
-  index = lock->entry;
+  index = lock->m_entries;
   while (index) {
     if (index >= 256) {
       IRepairBadEntry(lock, index, NULL, __FILE__, __LINE__);
@@ -666,11 +666,11 @@ void CDebugLock<T>::Destruct(CDebugLockData *lock) {
     }
 
     entry = &s_entries[index];
-    lock->entry = entry->next;
-    entry->threadId = 0;
-    entry->next = s_freeEntries;
+    lock->m_entries = entry->m_next;
+    entry->m_threadId = 0;
+    entry->m_next = s_freeEntries;
     s_freeEntries = index;
-    index = lock->entry;
+    index = lock->m_entries;
   }
   ILeave();
 }

@@ -19,7 +19,7 @@ struct CGLootSlot {
   int          itemID;
   int          itemDisplayID;
   int          quantity;
-  unsigned int slot;
+  unsigned char slot;
 };
 
 class CGLootInfo {

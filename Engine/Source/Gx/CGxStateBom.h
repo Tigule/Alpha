@@ -38,7 +38,7 @@ class CGxStateBom {
 struct CGxPushedRenderState {
   EGxRenderState mWhich;
   CGxStateBom    mValue;
-  unsigned int   mStackDepth;
+  unsigned long  mStackDepth;
 };
 
 struct CGxAppRenderState {
@@ -48,7 +48,7 @@ struct CGxAppRenderState {
     mDirty = 0;
   }
 
-  CGxStateBom  mValue;
-  unsigned int mStackDepth;
-  int          mDirty;
+  CGxStateBom mValue;
+  unsigned long mStackDepth;
+  int mDirty;
 };

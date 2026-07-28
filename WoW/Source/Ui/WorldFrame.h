@@ -34,6 +34,9 @@ struct CSpriteClickEvent {
 };
 
 struct CObjectTrackEvent {
+  CObjectTrackEvent() {
+  }
+
   unsigned __int64 object;
   unsigned __int64 oldGUID;
   float            x;
@@ -46,8 +49,8 @@ class CGWorldFrame : public CSimpleFrame {
  public:
   enum HIT_TYPE {
     HIT_NONE = 0,
-    HIT_TERRAIN = 1,
-    HIT_SPRITE = 2
+    HIT_GROUND = 1,
+    HIT_OBJECT = 2
   };
 
   struct HitTestResult {
@@ -60,11 +63,31 @@ class CGWorldFrame : public CSimpleFrame {
   };
 
   enum PLAYERFADEMODE {
-    PLAYER_FADE_NONE = 0,
-    PLAYER_FADE_OUT = 1,
-    PLAYER_FADE_IN = 2
+    PLAYERFADE_NONE = 0,
+    PLAYERFADE_OUT = 1,
+    PLAYERFADE_IN = 2,
+    NUM_PLAYERFADEMODES = 3
   };
 
+  enum HIT_FILTER {
+    HIT_TEST_NOTHING = 0,
+    HIT_TEST_GROUND = 1,
+    HIT_TEST_OBJECTS = 2,
+    HIT_TEST_UNITS = 4,
+    HIT_TEST_PLAYERS = 8,
+    HIT_TEST_ME = 16,
+    HIT_TEST_PARTY = 0x10000,
+    HIT_TEST_FRIENDS = 0x20000,
+    HIT_TEST_ENEMIES = 0x40000,
+    HIT_TEST_LIVE = 0x100000,
+    HIT_TEST_DEAD = 0x200000,
+    HIT_TEST_ALL_OBJS_EXCEPT_ME = 14,
+    HIT_TEST_ALL_OBJS = 30,
+    HIT_TEST_ALL_EXCEPT_ME = 15,
+    HIT_TEST_ALL = 31
+  };
+
+ protected:
   virtual ~CGWorldFrame();
   virtual void OnLayerUpdate(float elapsedSec);
   virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
@@ -77,6 +100,7 @@ class CGWorldFrame : public CSimpleFrame {
   virtual int  OnLayerMouseWheel(CMouseEvent &evt);
   virtual int  OnLayerMouseMoveRelative(CMouseEvent &evt);
 
+ public:
   static CSimpleFrame *Create(CSimpleFrame *parent) {
     return NEW(CGWorldFrame)(parent);
   }
@@ -132,9 +156,9 @@ class CGWorldFrame : public CSimpleFrame {
   unsigned __int64 FindClosestModel(const NTempest::C3Vector &a, const NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist);
   float            GetSkyProgress();
 
- private:
   CGWorldFrame(CSimpleFrame *parent);
 
+ private:
   unsigned int           SphereTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector, unsigned int hitFilter);
   unsigned int           VolumeTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector);
   unsigned int           GeometryTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector);
@@ -154,13 +178,19 @@ class CGWorldFrame : public CSimpleFrame {
   void                   CursorTrackObject(CGGameObject_C *gameObject);
   void                   HideObstructingModels(float maxDist);
   unsigned int           GetHitTestFilterFlags() const;
+
+ protected:
   void                   UpdateDayNightInfo(float elapsedSec);
   void                   UpdatePlayerAlpha(float elapsedSeconds);
   void                   HandleUnitFade(int nowTracking, int immediateFade);
   void                   UnitUpdate();
   void                   OnWorldUpdate();
   void                   OnWorldRender();
+
+ public:
   static void RenderWorld(void *param);
+
+ private:
   int                    GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
 
   LISTDECL(CModelRecord, m_models);
@@ -184,7 +214,11 @@ class CGWorldFrame : public CSimpleFrame {
 
  protected:
   CGCamera      *m_camera;
+
+ private:
   unsigned long  m_updateTimeStamp;
+
+ protected:
   PLAYERFADEMODE m_playerFadeMode;
   int            m_playerAlpha;
   int            m_cameraAlpha;

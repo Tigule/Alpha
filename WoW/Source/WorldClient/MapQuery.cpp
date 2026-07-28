@@ -146,7 +146,7 @@ bool CMap::QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable) {
       continue;
     }
 
-    unsigned char tile = liquid->tiles.flags[lx + 8 * ly];
+    unsigned char tile = liquid->tiles.tiles[ly][lx];
     if ((tile & 0xF) != 0xF) {
       fishable = (tile >> 6) & 1;
       return true;
@@ -260,7 +260,7 @@ bool CMap::QueryLiquidStatus(
       continue;
     }
 
-    unsigned char tile = cl->tiles.flags[lsub.x + 8 * lsub.y];
+    unsigned char tile = cl->tiles.tiles[lsub.y][lsub.x];
     unsigned int  liquidType = tile & 3;
     deep = tile >> 7;
 

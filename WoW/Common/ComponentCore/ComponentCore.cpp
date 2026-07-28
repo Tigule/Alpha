@@ -910,6 +910,36 @@ void TexComponentAdd(
   componentptr->UpdateUnderwearVisibility();
 }
 
+void TexComponentRemove(HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType) {
+  CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
+  FATALASSERT(componentptr);
+
+  LAYERPRIORITY         priorityList[6];
+  TEXCOMPONENT_LAYERS   layerList[6];
+  TEXCOMPONENT_SECTIONS sectionList[6];
+  unsigned int          numTextureComponents;
+  if (!displayInfoRec ||
+      !CompUtilItemSectionInfo(displayInfoRec, itemInventoryType, &numTextureComponents, sectionList, layerList, priorityList, 0))
+  {
+    return;
+  }
+
+  for (unsigned int i = 0; i < numTextureComponents; ++i) {
+    TEXCOMPONENT_SECTIONS section = sectionList[i];
+    if (section >= NUM_TEXCOMPONENT_SECTIONS) {
+      continue;
+    }
+
+    CStatus status;
+    componentptr->SetTexture(&status, 0, 0, section, layerList[i], priorityList[i], 0, 0);
+    if (displayInfoRec->m_flags & 2) {
+      componentptr->DecUnderwearHideCount(itemInventoryType, section);
+    }
+  }
+
+  componentptr->UpdateUnderwearVisibility();
+}
+
 void TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperHead, const char *lowerHead, unsigned int layer) {
   CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentptr);
@@ -949,6 +979,10 @@ void CTexComponent::SetLowerHeadTexture(const char *lowerHead) {
   SStrCopy(m_lowerFaceTexture, lowerHead, sizeof(m_lowerFaceTexture));
 }
 
+static const HelmetGeosetVisDataRec *GetHelmGeosetHideData(const ItemDisplayInfoRec *displayInfoRec) {
+  return displayInfoRec ? g_helmetGeosetVisDataDB.GetRecord(displayInfoRec->m_helmetGeosetVisID) : 0;
+}
+
 void HeadGeosetHideCharGeosets(
     HCHARGEOSET               geosetHandle,
     const ItemDisplayInfoRec *displayInfoRec,
@@ -964,10 +998,7 @@ void HeadGeosetHideCharGeosets(
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(!preferredGeosets || numPreferredGeosets == NUM_CHARGEOSETS);
 
-  if (!displayInfoRec || !displayInfoRec->m_helmetGeosetVisID) {
-    return;
-  }
-  const HelmetGeosetVisDataRec *helmData = g_helmetGeosetVisDataDB.GetRecord(displayInfoRec->m_helmetGeosetVisID);
+  const HelmetGeosetVisDataRec *helmData = GetHelmGeosetHideData(displayInfoRec);
   if (!helmData) {
     return;
   }
@@ -987,6 +1018,25 @@ void HeadGeosetHideCharGeosets(
       CharCustomizationShowGeoset(geosetHandle, static_cast<CHARACTER_GEOSET_SECTIONS>(section), preferredGeosets[section]);
     } else if (!(sectionFlag & helmData->m_HideFlags[raceID])) {
       CharCustomizationShowGeoset(geosetHandle, static_cast<CHARACTER_GEOSET_SECTIONS>(section), 1);
+    }
+  }
+}
+
+void HeadGeosetUnhideCharGeosets(HCHARGEOSET geosetHandle, const unsigned int *preferredGeosets, unsigned int numPreferredGeosets) {
+  if (!geosetHandle) {
+    return;
+  }
+
+  FATALASSERT(numPreferredGeosets == NUM_CHARGEOSETS);
+  FATALASSERT(preferredGeosets);
+
+  for (unsigned int section = 0; section < NUM_CHARGEOSETS; ++section) {
+    if ((1 << section) & 0x8F) {
+      CharCustomizationShowGeoset(
+          geosetHandle,
+          static_cast<CHARACTER_GEOSET_SECTIONS>(section),
+          preferredGeosets[section]
+      );
     }
   }
 }
@@ -1119,6 +1169,77 @@ int ObjComponentAdd(
     }
   }
   return 1;
+}
+
+HMODEL ObjComponentCreate(unsigned int itemClass, unsigned int itemInventoryType, const ItemDisplayInfoRec *displayInfoRec) {
+  if (itemClass != 2 && itemInventoryType != 23 && itemInventoryType != 14) {
+    return 0;
+  }
+
+  SUBCOMPONENTDESC subComponents[2];
+  unsigned int numSubComponents = CompUtilGetObjComponents(displayInfoRec, itemInventoryType, subComponents, 2, 0);
+  if (!numSubComponents) {
+    return 0;
+  }
+
+  AddSubcomponentPrefixes(subComponents, numSubComponents, itemInventoryType);
+  return ObjComponentBuildSubComponent(&subComponents[0], displayInfoRec);
+}
+
+void ObjComponentRemove(HMODEL charModel, unsigned int inventoryType) {
+  if (!charModel || inventoryType >= INDEX_NUMSLOTS) {
+    return;
+  }
+
+  for (unsigned int componentIndex = 0; componentIndex < 2; ++componentIndex) {
+    int link = g_geometryComponentLookups[inventoryType].itemLinks[componentIndex];
+    if (link != -1) {
+      ModelClearLink(charModel, link);
+    }
+    link = g_geometryComponentLookups[inventoryType].altItemLinks[componentIndex];
+    if (link != -1) {
+      ModelClearLink(charModel, link);
+    }
+  }
+}
+
+HMODEL ObjComponentRemove(
+    HMODEL            charModel,
+    unsigned int      unitRace,
+    unsigned int      unitSex,
+    unsigned int      slot,
+    int               returnModelIfOnlyOneSubcomponent,
+    OBJREMOVECALLBACK callback,
+    void             *callbackParam
+) {
+  FATALASSERT(charModel);
+
+  HMODEL savedSubComponent = 0;
+  for (unsigned int componentLink = 0; componentLink < 36; ++componentLink) {
+    HMODEL subComponent = callback ? callback(callbackParam, slot, componentLink) : 0;
+    if (!subComponent) {
+      continue;
+    }
+
+    ModelClearAllLinks(subComponent);
+    if (!ModelRemoveLink(charModel, componentLink, subComponent)) {
+      SysMsgPrintf(SYSMSG_ERROR, 0x10, "PLAYERMODELNOCONNECTION|%d|%d|%d", unitRace, unitSex, componentLink);
+    }
+
+    if (returnModelIfOnlyOneSubcomponent) {
+      if (savedSubComponent) {
+        HandleClose(savedSubComponent);
+        HandleClose(subComponent);
+        savedSubComponent = 0;
+        returnModelIfOnlyOneSubcomponent = 0;
+      } else {
+        savedSubComponent = subComponent;
+      }
+    } else {
+      HandleClose(subComponent);
+    }
+  }
+  return savedSubComponent;
 }
 
 int TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce) {
@@ -1277,8 +1398,8 @@ GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool is
   FATALASSERT(models);
   FATALASSERT(attachmentPoints);
 
-  ItemDisplayInfoRec *displayInfoRec = g_itemDisplayInfoDB.GetRecord(displayID);
-  unsigned int        numSubComponents = CompUtilGetObjComponents(displayInfoRec, inventoryType, subComponents, 2, useAlternate);
+  const ItemDisplayInfoRec *displayInfoRec = g_itemDisplayInfoDB.GetRecord(displayID);
+  unsigned int              numSubComponents = CompUtilGetObjComponents(displayInfoRec, inventoryType, subComponents, 2, useAlternate);
   if (!numSubComponents) {
     return 0;
   }

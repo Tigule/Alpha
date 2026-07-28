@@ -131,8 +131,8 @@ static int __cdecl QSortSkillLines(const void *a, const void *b) {
   if (info1->allCostPoints != info2->allCostPoints) {
     return info1->allCostPoints ? 1 : -1;
   }
-  SkillLineRec *line1 = g_skillLineDB.GetRecord(info1->skillLine);
-  SkillLineRec *line2 = g_skillLineDB.GetRecord(info2->skillLine);
+  const SkillLineRec *line1 = g_skillLineDB.GetRecord(info1->skillLine);
+  const SkillLineRec *line2 = g_skillLineDB.GetRecord(info2->skillLine);
   if (!line1 || !line2) {
     return 0;
   }
@@ -180,8 +180,8 @@ int __cdecl QSortServices_General(const void *a, const void *b) {
   if (info1->reqSkillRank != info2->reqSkillRank) {
     return info1->reqSkillRank > info2->reqSkillRank ? 1 : -1;
   }
-  SpellRec *spell1 = g_spellDB.GetRecord(info1->spellID);
-  SpellRec *spell2 = g_spellDB.GetRecord(info2->spellID);
+  const SpellRec *spell1 = g_spellDB.GetRecord(info1->spellID);
+  const SpellRec *spell2 = g_spellDB.GetRecord(info2->spellID);
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
@@ -202,8 +202,8 @@ int __cdecl QSortServices_Tradeskill(const void *a, const void *b) {
   if (info1->reqSkillRank != info2->reqSkillRank) {
     return info1->reqSkillRank > info2->reqSkillRank ? 1 : -1;
   }
-  SpellRec *spell1 = g_spellDB.GetRecord(info1->spellID);
-  SpellRec *spell2 = g_spellDB.GetRecord(info2->spellID);
+  const SpellRec *spell1 = g_spellDB.GetRecord(info1->spellID);
+  const SpellRec *spell2 = g_spellDB.GetRecord(info2->spellID);
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
@@ -224,13 +224,13 @@ int __cdecl QSortServices_Talent(const void *a, const void *b) {
   if (info1->usable != info2->usable) {
     return info1->usable > info2->usable ? 1 : -1;
   }
-  SpellRec *spell1 = g_spellDB.GetRecord(info1->spellID);
-  SpellRec *spell2 = g_spellDB.GetRecord(info2->spellID);
+  const SpellRec *spell1 = g_spellDB.GetRecord(info1->spellID);
+  const SpellRec *spell2 = g_spellDB.GetRecord(info2->spellID);
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
 int GetSkillLineFromService(int serviceSpell) {
-  SpellRec *spell = g_spellDB.GetRecord(serviceSpell);
+  const SpellRec *spell = g_spellDB.GetRecord(serviceSpell);
   if (!spell) {
     return 0;
   }
@@ -317,7 +317,7 @@ void CGClassTrainer::AddServices(
 
     if (m_trainerType == TRAINER_TYPE_TRADESKILLS) {
       info->skillLine = 2;
-      SpellRec *spell = g_spellDB.GetRecord(info->spellID);
+      const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
       if (spell) {
         for (unsigned int effect = 0; effect < 3; ++effect) {
           if (spell->m_effect[effect] == 44) {
@@ -412,7 +412,7 @@ void CGClassTrainer::RefreshList() {
       continue;
     }
 
-    SpellRec *srec = g_spellDB.GetRecord(info->spellID);
+    const SpellRec *srec = g_spellDB.GetRecord(info->spellID);
     if (!srec) {
       continue;
     }
@@ -486,7 +486,7 @@ void CGClassTrainer::RefreshList() {
         break;
       }
 
-      SpellRec *steprec = g_spellDB.GetRecord(info->reqSkillStep);
+      const SpellRec *steprec = g_spellDB.GetRecord(info->reqSkillStep);
       if (steprec) {
         for (j = 0; j < 3; ++j) {
           if (steprec->m_effect[j] != 44 || steprec->m_effectMiscValue[j] != info->reqSkillLine) {
@@ -913,7 +913,7 @@ static int Script_GetTrainerServiceStepReq(lua_State *L) {
   return 2;
 }
 
-static const SpellRec *GetLearnedSpell(const TrainerServiceInfo *service, int *learnEffect) {
+static inline const SpellRec *GetLearnedSpell(const TrainerServiceInfo *service, int *learnEffect) {
   const SpellRec *trainer = service ? g_spellDB.GetRecord(service->spellID) : 0;
   if (!trainer) {
     return 0;

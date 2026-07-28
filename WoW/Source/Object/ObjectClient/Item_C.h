@@ -84,17 +84,27 @@ class CGItem {
   static unsigned int GetUpdateMaskBytes();
   static unsigned int GetUpdateMaskBlocks();
 
-  int GetStackCount() const;
-  unsigned __int64 GetOwner() const;
-  unsigned __int64 GetContainedIn() const;
+  int GetStackCount() const {
+    return m_item->m_stackCount;
+  }
+  unsigned __int64 GetOwner() const {
+    return m_item->m_owner;
+  }
+  unsigned __int64 GetContainedIn() const {
+    return m_item->m_containedIn;
+  }
   unsigned __int64 GetCreator() const {
     return m_item->m_creator;
   }
   unsigned int GetItemStaticFlags() const;
   unsigned int GetItemDynamicFlags() const;
   bool IsBound() const;
-  bool IsTranslated() const;
-  bool IsUnlocked() const;
+  bool IsTranslated() const {
+    return (m_item->m_dynamicFlags & ITEM_DFLAG_TRANSLATED) != 0;
+  }
+  bool IsUnlocked() const {
+    return (m_item->m_dynamicFlags & ITEM_DFLAG_BOUND) == 0;
+  }
   bool IsWrapped() const;
   unsigned int GetExpiration() const;
   int GetItemDynamicFlag(ITEM_DYNAMIC_FLAGS flag) const;

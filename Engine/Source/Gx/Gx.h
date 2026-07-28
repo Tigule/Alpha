@@ -10,6 +10,7 @@
 #include <Tempest/crect.h>
 
 #include <stddef.h>
+#include <string.h>
 
 template <class T>
 class TSGrowableArray;
@@ -419,6 +420,16 @@ struct CGxGammaRamp {
     ENTRIES = 256
   };
 
+  CGxGammaRamp() {
+  }
+  CGxGammaRamp(float gamma) {
+    Set(gamma);
+  }
+  CGxGammaRamp &operator=(const CGxGammaRamp &ramp) {
+    memcpy(this, &ramp, sizeof(*this));
+    return *this;
+  }
+
   void Set(float gamma);
 
   unsigned short red[ENTRIES];
@@ -427,13 +438,13 @@ struct CGxGammaRamp {
 };
 
 struct CGxTexFlags {
-  unsigned int m_filter : 3;
-  unsigned int m_wrapU : 1;
-  unsigned int m_wrapV : 1;
-  unsigned int m_forceMipTracking : 1;
-  unsigned int m_generateMipMaps : 1;
-  unsigned int m_renderTarget : 1;
-  unsigned int m_maxAnisotropy : 5;
+  unsigned long m_filter : 3;
+  unsigned long m_wrapU : 1;
+  unsigned long m_wrapV : 1;
+  unsigned long m_forceMipTracking : 1;
+  unsigned long m_generateMipMaps : 1;
+  unsigned long m_renderTarget : 1;
+  unsigned long m_maxAnisotropy : 5;
 
   CGxTexFlags(
       EGxTexFilter  filter = GxTex_Linear,
@@ -444,6 +455,9 @@ struct CGxTexFlags {
       unsigned long renderTarget = 0,
       unsigned long maxAnisotropy = 1
   );
+
+  bool operator==(const CGxTexFlags &flags) const;
+  bool operator!=(const CGxTexFlags &flags) const;
 };
 
 struct CGxTexParms {

@@ -106,7 +106,7 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
     return bitmapData->m_textureValid;
   }
 
-  unsigned int GetCellWidth() {
+  unsigned int GetCellWidth() const {
     return glyphEndPixel - glyphStartPixel + 1;
   }
 
@@ -195,7 +195,7 @@ struct TEXTURECACHE {
   );
   void Update();
 
-  CGxTex *GetTexturePtr() const {
+  CGxTex *GetTexturePtr() {
     return m_texture;
   }
 
@@ -236,7 +236,7 @@ NODEDECL(CGxFont) {
   float               ComputeStep(unsigned int currentCode, unsigned int nextCode);
   float               ComputeStepFixedWidth(unsigned int currentCode, unsigned int nextCode);
   float               GetCharAdvance(unsigned int code);
-  unsigned int        GetFlags() {
+  unsigned int        GetFlags() const {
     return m_flags;
   }
 
@@ -339,6 +339,7 @@ struct IGXUTEXTBLOCK {
 
 NODEDECL(CGxString) {
   CGxString();
+  CGxString(const CGxString &);
   ~CGxString();
   CGxString *Duplicate() const;
 
@@ -367,10 +368,10 @@ NODEDECL(CGxString) {
   int  SetGradient(int startCharacter, int length, const TSGrowableArray<NTempest::CImVector *> &array, unsigned char alpha);
   void SetColor(const NTempest::CImVector &color);
   void SetStringPosition(const NTempest::C3Vector &position);
-  int IsBillboarded() {
+  int IsBillboarded() const {
     return (m_flags & 0x80) != 0;
   }
-  float GetStringHeight() {
+  float GetStringHeight() const {
     return m_stringHeight;
   }
   unsigned int Flags() {
@@ -379,13 +380,13 @@ NODEDECL(CGxString) {
   void AddFlag(unsigned int flag) {
     m_flags |= flag;
   }
-  CGxFont *GetCurrentFace() {
+  CGxFont *GetCurrentFace() const {
     return m_currentFace;
   }
-  float GetSavedWidth() {
+  float GetSavedWidth() const {
     return m_savedWidth;
   }
-  float GetSavedHeight() {
+  float GetSavedHeight() const {
     return m_stringHeight;
   }
   void BuildProjection(NTempest::C44Matrix *projPtr, float minx, float maxx, float miny, float maxy, float pixWidth, float pixHeight);
@@ -408,6 +409,8 @@ NODEDECL(CGxString) {
 
   LINKDECLEX(CGxString, m_fontStringLink);
   LINKDECLEX(CGxString, m_batchedStringLink);
+
+ private:
   float                                  m_requestedFontHeight;
   float                                  m_currentFontHeight;
   NTempest::C3Vector                     m_position;
@@ -435,11 +438,11 @@ NODEDECL(CGxString) {
   int                                    m_lastGradientStart;
   int                                    m_lastGradientLength;
 
- private:
   void        CheckEvictedTextures();
   void        AddHyperlinkParseInfo(GXUFONTHYPERLINKINFO currentParseInfo);
   inline void ClearStringMatrixEntry();
   void        InternalRender();
+  void        InternalRender(unsigned char);
   void        RenderTexture(bool initGxRenderStates, int texture);
   void        RenderTexture(int line, int texture);
 
@@ -447,6 +450,9 @@ NODEDECL(CGxString) {
 };
 
 struct BATCHEDRENDERFONTDESC : public TSHashObject<BATCHEDRENDERFONTDESC, HASHKEY_PTR> {
+  BATCHEDRENDERFONTDESC() : face(0) {
+  }
+  BATCHEDRENDERFONTDESC(const BATCHEDRENDERFONTDESC &);
   ~BATCHEDRENDERFONTDESC();
   void RenderBatch();
 
@@ -465,6 +471,7 @@ NODEDECL(CGxStringBatch) {
   }
   void RenderBatch();
 
+ private:
   TSHashTable<BATCHEDRENDERFONTDESC, HASHKEY_PTR> m_fontBatch;
 };
 

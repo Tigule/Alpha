@@ -226,7 +226,7 @@ void CMapArea::QueryLiquidSounds(
         }
         for (unsigned int tileY = 0; tileY < 8; ++tileY) {
           for (unsigned int tileX = 0; tileX < 8; ++tileX) {
-            unsigned int tile = liquid->tiles.flags[tileY * 8 + tileX] & 0xF;
+            unsigned int tile = liquid->tiles.tiles[tileY][tileX] & 0xF;
             if (tile == 0xF) {
               continue;
             }
@@ -980,7 +980,7 @@ unsigned short CChunkLiquid::Render0I(unsigned short *idxBase, unsigned int liqu
     i2 = static_cast<unsigned short>(i1 + 1);
     for (unsigned int tx = 0; tx < 8; ++tx) {
       FATALASSERT(tx < 8);
-      if ((tiles.flags[tx + 8 * ty] & 0xF) == liquidType) {
+      if ((tiles.tiles[ty][tx] & 0xF) == liquidType) {
         if (!inStrip) {
           *idx++ = i0;
           *idx++ = i0;

@@ -1,4 +1,5 @@
 #include "Ui/TabardModelFrame.h"
+#include "Ui/TabardCreationFrame.h"
 
 #include "Component/CharacterCustomization.h"
 #include "Component/Component.h"
@@ -24,14 +25,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-class CGTabardCreationFrame {
- public:
-  static unsigned __int64 GetVendor();
-};
-
 static void GuildCallback(int, const unsigned __int64 &, void *, bool granted);
 
-static const unsigned int s_maxVariations[5] = {42, 4, 2, 4, 19};
+static const unsigned int s_maxVariations[TABARDVARS_NUMVARS] = {42, 4, 2, 4, 19};
 
 static void EmblemTextureUpdate(
     EGxTexCommand cmd,
@@ -46,12 +42,6 @@ static void EmblemTextureUpdate(
   if (cmd == GxTex_Latch) {
     texelStrideInBytes = 4 * w;
     texels = static_cast<TSFixedArray<NTempest::CImVector> *>(userArg)->Ptr();
-  }
-}
-
-CGTabardModelFrame::~CGTabardModelFrame() {
-  if (m_charComponent) {
-    HandleClose(m_charComponent);
   }
 }
 
@@ -121,7 +111,7 @@ void CGTabardModelFrame::InitializeTabardColors(const CGPlayer_C *playerPtr) {
   } else {
     NTempest::CRndSeed seed;
     seed.SetSeed(OsGetAsyncTimeMs());
-    for (unsigned int i = 0; i < 5; ++i) {
+  for (unsigned int i = 0; i < TABARDVARS_NUMVARS; ++i) {
       m_variations[i] = NTempest::CMath::mulhwu_(s_maxVariations[i], NTempest::CRandom::uint32_(seed));
     }
   }
@@ -159,7 +149,7 @@ int CGTabardModelFrame::CanSaveTabard() {
 }
 
 void CGTabardModelFrame::CycleVariation(unsigned int index, int delta) {
-  FATALASSERT(index < 5);
+  FATALASSERT(index < TABARDVARS_NUMVARS);
   if (static_cast<unsigned int>(abs(delta)) < s_maxVariations[index]) {
     m_variations[index] = (m_variations[index] + delta + s_maxVariations[index]) % s_maxVariations[index];
     UpdateTabard();

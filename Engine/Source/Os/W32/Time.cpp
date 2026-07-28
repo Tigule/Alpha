@@ -27,7 +27,7 @@ class OsTimeManager {
     struct TimeSnapshot {
       __int64       rdtsc;
       unsigned long tickCount;
-      unsigned long pad;
+
       LARGE_INTEGER qperfCount;
     };
 

@@ -24,17 +24,28 @@
 
 NODEDECL(PENDINGUSERLIST) {
   unsigned __int64 guid;
-  unsigned int     flags;
+  unsigned char    flags;
 };
 
 struct ChatChannel {
   int                                                  localID;
   char                                                 name[128];
   LISTDECL(PENDINGUSERLIST, pendingNames);
-  unsigned int                                         channelFlags;
+  unsigned char                                        channelFlags;
+
+  ~ChatChannel() {
+  }
 };
 
 NODEDECL(PENDINGCHAT) {
+  PENDINGCHAT() {
+  }
+
+  PENDINGCHAT(const PENDINGCHAT &);
+
+  ~PENDINGCHAT() {
+  }
+
   int              slashCmd;
   unsigned __int64 guid;
   char            *text;
@@ -47,6 +58,14 @@ NODEDECL(PENDINGCHAT) {
 };
 
 NODEDECL(PENDINGTEXTEMOTE) {
+  PENDINGTEXTEMOTE() {
+  }
+
+  PENDINGTEXTEMOTE(const PENDINGTEXTEMOTE &);
+
+  ~PENDINGTEXTEMOTE() {
+  }
+
   unsigned __int64 sender;
   int              textEmoteID;
   char            *target;
@@ -100,7 +119,7 @@ int CGChat::m_filterChat = 1;
 void CGChat::InitializeGame() {
   unsigned int numEntries = g_languageWordsDB.GetNumRecords();
   for (unsigned int i = 0; i < numEntries; ++i) {
-    LanguageWordsRec *wordRec = g_languageWordsDB.GetRecordByIndex(i);
+    const LanguageWordsRec *wordRec = g_languageWordsDB.GetRecordByIndex(i);
     unsigned int      len = SStrLen(wordRec->m_word);
     HASHKEY_LANGUAGE  key(wordRec->m_languageID, len);
     unsigned int      hash = wordRec->m_languageID ^ (len << 16);
@@ -555,7 +574,7 @@ void CGChat::DisplayPendingUserList(ChatChannel *channel) {
       marker = '#';
     SStrPrintf(buffer, sizeof(buffer), "%c%s", marker, nc->m_name);
     if (SStrLen(line) + SStrLen(buffer) >= sizeof(line)) {
-      AddChatMessage(line, SLASH_COMMAND_SAY, 0, 0, channel->name, 0, 0);
+      AddChatMessage(line, SLASH_CMD_SAY, 0, 0, channel->name, 0, 0);
       line[0] = 0;
       namesThisLine = 0;
     }
@@ -564,7 +583,7 @@ void CGChat::DisplayPendingUserList(ChatChannel *channel) {
     SStrPack(line + SStrLen(line), buffer, sizeof(line) - SStrLen(line));
   }
   if (namesThisLine)
-    AddChatMessage(line, SLASH_COMMAND_SAY, 0, 0, channel->name, 0, 0);
+    AddChatMessage(line, SLASH_CMD_SAY, 0, 0, channel->name, 0, 0);
   channel->pendingNames.Clear();
 }
 
@@ -740,9 +759,9 @@ void CGChat::CheckFlagChanged(
     const char      *unsetText
 ) {
   if (!(oldFlags & flagToCheck) && (newFlags & flagToCheck)) {
-    AddChatMessage(setText, SLASH_COMMAND_SAY, nc->m_name, 0, channel, 0, 0);
+    AddChatMessage(setText, SLASH_CMD_SAY, nc->m_name, 0, channel, 0, 0);
   } else if ((oldFlags & flagToCheck) && !(newFlags & flagToCheck)) {
-    AddChatMessage(unsetText, SLASH_COMMAND_SAY, nc->m_name, 0, channel, 0, 0);
+    AddChatMessage(unsetText, SLASH_CMD_SAY, nc->m_name, 0, channel, 0, 0);
   }
 }
 
@@ -800,7 +819,7 @@ static int Script_SendChatMessage(lua_State *L) {
     return luaL_error(L, "Usage: SendChatMessage(message [, chatType, language, channel])");
   }
   const char      *text = lua_tostring(L, 1);
-  SLASH_COMMAND_ID type = SLASH_COMMAND_SAY;
+  SLASH_COMMAND_ID type = SLASH_CMD_SAY;
   if (lua_isstring(L, 2) && !StringToChatType(lua_tostring(L, 2), type)) {
     return luaL_error(L, "Unknown chat type");
   }

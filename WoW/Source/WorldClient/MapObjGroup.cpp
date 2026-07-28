@@ -18,44 +18,12 @@
 TSCArray<CGxBuf *, 512> CMapObjGroup::extGxBufFreeList;
 TSCArray<CGxBuf *, 512> CMapObjGroup::intGxBufFreeList;
 const SMOGxBatch       *CMapObjGroup::sLockGxBatch;
+const EGxTexFormat      CMapObjGroup::LIGHTMAP_FORMAT = GxTex_Dxt1;
 unsigned int            CMapObjGroup::rDrawSharedLiquidFirst;
 unsigned int            CMapObjGroup::rDrawSharedLiquidToggle;
 
 static float *t[16];
 static const float OOSMOLTILE_SIZE = 1.0f / 4.1666665f;
-
-void CMapObjGroup::UpdateLightmapTex(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
-  FATALASSERT(userArg);
-
-  if (cmd == GxTex_Latch) {
-    texelStrideInBytes = CalcRowStride(GxGetBlitFormat(GxTex_Dxt1), w);
-    texels = userArg;
-  }
-}
-
-void CMapObjGroup::CreateLightmaps() {
-  lightmapTexFlushTime = 30.0f;
-
-  for (unsigned int i = 0; i < lightmapTexCount; ++i) {
-    SMOLightmapTex &lightmapTex = lightmapTexList[i];
-    if (!lightmapTex.hTexture) {
-      EGxTexFormat format = GxCaps().m_texFmtDxt ? GxTex_Dxt1 : GxTex_Rgb565;
-      CGxTexFlags  flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-      lightmapTex.hTexture = TextureCreate("Lightmap", 256, 256, format, GxTex_Dxt1, flags);
-      CGxTex *texture = TextureGetGxTex(lightmapTex.hTexture, 1, 0);
-      GxTexSetUserData(texture, UpdateLightmapTex, &lightmapTex);
-    }
-  }
-}
 
 class BspQuery {
  public:
@@ -72,8 +40,8 @@ class BspQuery {
   static unsigned int   hitFaceSub;
 };
 
-unsigned char QueryCull(const NTempest::CAaBox &aaBox, const NTempest::C3Vector *verts);
-unsigned char QueryCull(const CWFrustum &frustum, const NTempest::C3Vector *verts);
+bool QueryCull(const NTempest::CAaBox &aaBox, const NTempest::C3Vector *verts);
+bool QueryCull(const CWFrustum &frustum, const NTempest::C3Vector *verts);
 
 template <class VOLUME>
 class BspQuery_Volume : public BspQuery {
@@ -761,7 +729,7 @@ bool CMapObjGroup::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVe
   return false;
 }
 
-unsigned char QueryCull(const NTempest::CAaBox& aaBox, const NTempest::C3Vector* verts) {
+bool QueryCull(const NTempest::CAaBox& aaBox, const NTempest::C3Vector* verts) {
   for (unsigned int component = 0; component < 3; ++component) {
     unsigned int signMax = 0xFFFFFFFF;
     unsigned int signMin = 0xFFFFFFFF;
@@ -782,7 +750,7 @@ unsigned char QueryCull(const NTempest::CAaBox& aaBox, const NTempest::C3Vector*
   return 0;
 }
 
-unsigned char QueryCull(const CWFrustum& frustum, const NTempest::C3Vector* verts) {
+bool QueryCull(const CWFrustum& frustum, const NTempest::C3Vector* verts) {
   unsigned int cc[3];
   frustum.Cull(verts[0], cc[0]);
   frustum.Cull(verts[1], cc[1]);

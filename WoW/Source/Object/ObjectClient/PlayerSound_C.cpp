@@ -16,7 +16,7 @@ int CheckUnitSoundTimer(UNITSOUNDTYPE soundType);
 static unsigned int s_playerSoundChances[16] = {35, 100, 30, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 
 int CheckPlayerPlaySound(UNITSOUNDTYPE soundType) {
-  FATALASSERT(static_cast<unsigned int>(soundType) < 16);
+  FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   unsigned int random = NTempest::CRandom::uint32_(g_rndSeed);
   unsigned int value = static_cast<unsigned int>((static_cast<unsigned __int64>(101) * random) >> 32);
   return s_playerSoundChances[soundType] >= value;
@@ -55,7 +55,7 @@ void CGPlayer_C::HandleSpellEventSound() {
     return;
   }
 
-  SpellRec *spell = g_spellDB.GetRecord(m_castingSpell);
+  const SpellRec *spell = g_spellDB.GetRecord(m_castingSpell);
   if (!spell) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", m_castingSpell);
     return;
@@ -83,7 +83,7 @@ unsigned int CGPlayer_C::GetImpactType() const {
     return 0;
   }
 
-  MaterialRec *material = g_materialDB.GetRecord(item->GetMaterial());
+  const MaterialRec *material = g_materialDB.GetRecord(item->GetMaterial());
   if (!material) {
     return 0;
   }

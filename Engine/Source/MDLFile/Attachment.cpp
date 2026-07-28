@@ -51,7 +51,7 @@ static void IReadAttachment(
           if (token == 0x128) {
             track.type = TRACK_BEZIER;
           } else if (token == 0x140) {
-            track.type = TRACK_DONT_INTERP;
+            track.type = TRACK_NO_INTERP;
           } else if (token == 0x152) {
             track.globalSeqId = parse.ExpectInt();
           } else if (token == 0x15B) {
@@ -150,7 +150,7 @@ int WriteAttachments(
         );
         unsigned int typeToken = 0;
         switch (track.type) {
-          case TRACK_DONT_INTERP: typeToken = 0x140; break;
+          case TRACK_NO_INTERP: typeToken = 0x140; break;
           case TRACK_LINEAR:      typeToken = 0x167; break;
           case TRACK_HERMITE:     typeToken = 0x15B; break;
           case TRACK_BEZIER:      typeToken = 0x128; break;

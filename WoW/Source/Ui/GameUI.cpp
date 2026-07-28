@@ -1,20 +1,26 @@
 #include "GameUI.h"
+#include "TabardCreationFrame.h"
 #include <Os/OsTime.h>
 #include "ActionBarFrame.h"
 #include "ChatFrame.h"
 #include "CharacterModelBase.h"
 #include "ClassTrainerFrame.h"
+#include "ContainerFrame.h"
+#include "GuildRegistrar.h"
 #include "ItemTextFrame.h"
 #include "LootFrame.h"
 #include "MinimapFrame.h"
+#include "MerchantFrame.h"
 #include "PaperDollInfoFrame.h"
 #include "PartyFrame.h"
 #include "PetInfo.h"
 #include "QuestLog.h"
+#include "QuestFrame.h"
 #include "ReputationInfo.h"
 #include "SpellBookFrame.h"
 #include "TabardModelFrame.h"
 #include "TaxiMapFrame.h"
+#include "TradeFrame.h"
 #include "Tutorial.h"
 #include "WorldFrame.h"
 #include "UIBindings.h"
@@ -192,36 +198,6 @@ class CGBuffBar {
   static void LeaveWorld();
 };
 
-class CGQuestInfo {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void QuestGiverFinished();
-  static const unsigned __int64 &GetQuestGiver();
-};
-
-class CGContainerInfo {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-};
-
-class CGMerchantInfo {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void CloseMerchant();
-  static unsigned __int64 GetMerchant();
-};
-
-class CGTradeInfo {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void SetTradePartner(unsigned __int64 partner);
-  static unsigned __int64 GetTradePartner();
-};
-
 class CGBankInfo {
  public:
   static void EnterWorld();
@@ -247,22 +223,6 @@ class CGDuelInfo {
  public:
   static void InitializeGame();
   static void ShutdownGame();
-};
-
-class CGTabardCreationFrame {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void Close();
-  static unsigned __int64 GetVendor();
-};
-
-class CGGuildRegistrar {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void CloseRegistrar();
-  static unsigned __int64 GetRegistrar();
 };
 
 class CGPetitionInfo {
@@ -3112,8 +3072,8 @@ static int Script_HideNameplates(lua_State *__formal) {
 
 static int Script_SetCursor(lua_State *L) {
   struct {
-    CURSORANIMATIONS mode;
-    const char      *name;
+    CURSORANIMATIONS animation;
+    const char      *string;
   } cursorModes[8] = {
       {       POINT_CURSOR,        "POINT_CURSOR"},
       {        CAST_CURSOR,         "CAST_CURSOR"},
@@ -3132,14 +3092,14 @@ static int Script_SetCursor(lua_State *L) {
   const char *name = lua_tostring(L, 1);
   int         i;
   for (i = 0; i < 8; ++i) {
-    if (!SStrCmp(cursorModes[i].name, name, INT_MAX)) {
+    if (!SStrCmp(cursorModes[i].string, name, INT_MAX)) {
       break;
     }
   }
   if (i == 8) {
     luaL_error(L, "Usage: SetCursor(\"cursor\")");
   }
-  CursorSetCursorMode(cursorModes[i].mode);
+  CursorSetCursorMode(cursorModes[i].animation);
   return 0;
 }
 
@@ -3389,7 +3349,7 @@ static int Script_ToggleSheath(lua_State *__formal) {
 
 static int Script_ToggleRun(lua_State *L) {
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
-  CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
+  CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
     unsigned int moveFlags = mover->GetMoveFlags();
     if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
@@ -3411,7 +3371,7 @@ static int Script_ToggleRun(lua_State *L) {
 
 static int Script_Jump(lua_State *L) {
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
-  CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
+  CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
     unsigned int moveFlags = mover->GetMoveFlags();
     if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
@@ -4506,7 +4466,7 @@ int CGGameUI::StartCinematicCamera() {
   CGCamera *camera = CGWorldFrame::GetActiveCamera();
   FATALASSERT(camera);
 
-  CinematicCameraRec *cinematicCamera = m_cinematic.camera;
+  const CinematicCameraRec *cinematicCamera = m_cinematic.camera;
   if (!cinematicCamera) {
     return 0;
   }
@@ -5820,12 +5780,12 @@ void CGGameUI::SetCursorMoney(unsigned int money) {
 
 void CGGameUI::SetCursorSpell(int spellId, int pet) {
   if ((m_hasControl || !pet) && spellId >= 0) {
-    SpellRec     *spell = g_spellDB.GetRecord(spellId);
+    const SpellRec     *spell = g_spellDB.GetRecord(spellId);
     const char   *texture = 0;
     if (spell && spell->m_effect[0] == 78) {
       texture = CGActionBar::GetAttackTexture();
     } else if (spell) {
-      SpellIconRec *icon = g_spellIconDB.GetRecord(spell->m_spellIconID);
+      const SpellIconRec *icon = g_spellIconDB.GetRecord(spell->m_spellIconID);
       texture = icon ? icon->m_textureFilename : 0;
     }
     if (texture && *texture) {
@@ -5867,9 +5827,9 @@ void CGGameUI::SetCursorPetAction(const PetAction &action) {
     case 3:
     case 4:
     case 5: {
-      SpellRec *spell = g_spellDB.GetRecord(id);
+      const SpellRec *spell = g_spellDB.GetRecord(id);
       if (spell) {
-        SpellIconRec *icon = g_spellIconDB.GetRecord(spell->m_spellIconID);
+        const SpellIconRec *icon = g_spellIconDB.GetRecord(spell->m_spellIconID);
         texture = icon ? icon->m_textureFilename : 0;
       }
       break;

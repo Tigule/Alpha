@@ -231,10 +231,8 @@ class CFrameStrata {
       unsigned int delta = level - firstEmpty;
       while (level < topLevel) {
         CSimpleFrame *frame = levels[level]->frames.Head();
-
         while (frame) {
           CSimpleFrame *next = levels[level]->frames.Next(frame);
-
           frame->SetFrameLevel(frame->GetFrameLevel() - delta, 0);
           frame = next;
         }

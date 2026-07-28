@@ -10,6 +10,9 @@ struct CameraInfo : public InterpInfo {
   }
 
   const TSFixedArray<HCAMERA> &cameras;
+
+ private:
+  CameraInfo &operator=(const CameraInfo &);
 };
 
 #include "Anim/WorldMatrix.h"
@@ -52,7 +55,7 @@ void CKeyFrameTrack<T, U>::Interpolate(const CKeyTrackStatus &keyStat, unsigned 
     }
   }
 
-  if (m_trackType == TRACK_DONT_INTERP) {
+  if (m_trackType == TRACK_NO_INTERP) {
     *transform = currValue;
     return;
   }
@@ -232,7 +235,7 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
   unsigned int     timePerKey = TimeDiff(*curr, *next, seqTime);
   float            ratio = timePerKey ? static_cast<float>(keyStat.timepastkey) / static_cast<float>(timePerKey) : 0.0f;
 
-  if (m_trackType == TRACK_DONT_INTERP) {
+  if (m_trackType == TRACK_NO_INTERP) {
     const CLinearKeyFrame<NTempest::C4QuaternionCompressed> *key =
         reinterpret_cast<const CLinearKeyFrame<NTempest::C4QuaternionCompressed> *>(curr);
     *transform = key->transform;
@@ -271,7 +274,7 @@ void CKeyFrameTrack<C3Color, C3Color>::Interpolate(
   const float *next = reinterpret_cast<const float *>(&nextValue);
   float       *result = reinterpret_cast<float *>(transform);
 
-  if (m_trackType == TRACK_DONT_INTERP) {
+  if (m_trackType == TRACK_NO_INTERP) {
     *transform = currValue;
     return;
   }
@@ -1069,7 +1072,7 @@ void IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnimationData &d
   ASSERT(!(shared->flags & 4));
   ASSERT(data.boneMtx || !data.numBones);
 
-  AnimInfo animInfo(unique, shared, *data.positions, data);
+  AnimInfo animInfo(unique, shared, data);
   animInfo.cameraWorldPos = *data.cameraWorldPos;
   animInfo.cameraVector = *data.cameraVector;
   if (NTempest::CMath::fabs_(animInfo.cameraVector.SquaredMag()) >= 0.00000023841858f) {

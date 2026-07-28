@@ -2,17 +2,16 @@
 
 #include <stpl.h>
 
-struct CVar;
-
-typedef bool(*CVARCALLBACK)(CVar *, const char *, const char *, void *);
-
 struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
+  typedef bool(*CVARCALLBACKFCN)(CVar *, const char *, const char *, void *);
+
   enum {
     ARCHIVE = 0x1,
     LATCH = 0x2
   };
 
   CVar();
+  CVar(const CVar &);
   ~CVar();
 
   static void Initialize(const char *filename);
@@ -23,38 +22,38 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
       const char  *help,
       unsigned int flags,
       const char  *value,
-      CVARCALLBACK fcn,
+      CVARCALLBACKFCN fcn,
       unsigned int category,
       bool         setCommand,
       void        *arg
   );
   static CVar *Lookup(const char *name);
 
-  const char *GetString() {
+  const char *GetString() const {
     return m_stringValue;
   }
-  float GetFloat() {
+  float GetFloat() const {
     return m_floatValue;
   }
-  int GetInt() {
+  int GetInt() const {
     return m_intValue;
   }
-  const char *GetName() {
+  const char *GetName() const {
     return m_name;
   }
-  const char *GetLatchedValue() {
+  const char *GetLatchedValue() const {
     return m_latchedValue;
   }
-  const char *GetDefaultValue() {
+  const char *GetDefaultValue() const {
     return m_defaultValue;
   }
-  const char *GetResetValue() {
+  const char *GetResetValue() const {
     return m_resetValue;
   }
-  int Modified() {
+  int Modified() const {
     return m_modified;
   }
-  bool IsArchived() {
+  bool IsArchived() const {
     return (m_flags & ARCHIVE) != 0;
   }
 
@@ -63,6 +62,7 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
   void Default();
   bool Update();
 
+ private:
   char         m_name[32];
   unsigned int m_category;
   unsigned int m_flags;
@@ -73,9 +73,8 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
   char        *m_defaultValue;
   char        *m_resetValue;
   char        *m_latchedValue;
-  CVARCALLBACK m_callback;
+  CVARCALLBACKFCN m_callback;
   void        *m_arg;
 
- private:
   void InternalSet(const char *value, bool setValue, bool setReset, bool setDefault);
 };

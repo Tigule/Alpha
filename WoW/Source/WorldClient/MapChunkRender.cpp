@@ -604,7 +604,7 @@ void CMapChunk::CreateDetailDoodads() {
       continue;
     }
     unsigned int            effectId = layerList[layerIndex]->effectId;
-    GroundEffectTextureRec *effectTex = g_groundEffectTextureDB.GetRecordByIndex(effectId);
+    const GroundEffectTextureRec *effectTex = g_groundEffectTextureDB.GetRecordByIndex(effectId);
     if (!effectTex) {
       continue;
     }

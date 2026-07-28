@@ -393,7 +393,7 @@ void CGInputControl::OnUpdate(float elapsedSec) {
 }
 
 void CGInputControl::UpdatePlayer(unsigned long now) {
-  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (!player) {
     return;
   }
@@ -665,7 +665,7 @@ void CGInputControl::CameraTurnPlayer(unsigned long timestamp, float yaw, float 
     return;
   }
 
-  CGUnit_C *activeMover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::m_activeMover, __FILE__, __LINE__));
+  CGUnit_C *activeMover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (!activeMover) {
     return;
   }

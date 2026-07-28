@@ -19,7 +19,14 @@ class CGBag {
   unsigned __int64 GetItem(unsigned int slot) const {
     return slot < *m_slotCount ? m_slots[slot] : 0;
   }
-  int GetIndexOfObject(unsigned __int64 guid) const;
+  int GetIndexOfObject(unsigned __int64 guid) const {
+    for (unsigned int index = 0; index < NumSlots(); ++index) {
+      if (GetItem(index) == guid) {
+        return index;
+      }
+    }
+    return -1;
+  }
   unsigned int NumItems() const;
   unsigned int NumSlots() const {
     return *m_slotCount;

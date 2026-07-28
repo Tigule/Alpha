@@ -7,6 +7,7 @@
 #include <stpl.h>
 
 struct CGxBatch;
+struct HTEXTURE__;
 class CGxDevice;
 class CGxDeviceD3d;
 class CGxDeviceOpenGl;
@@ -88,15 +89,15 @@ class CGxShader {
     unsigned int count;
   };
 
-  typedef TSExplicitList<CGxShaderParam, 108> ParamList;
+  typedef LISTEX(CGxShaderParam, lameAssLink) ParamList;
 
   void Read(SFile *file);
 
   unsigned int                        apiSpecific;
   int                                 valid;
   int                                 paramsDirty;
-  TSExplicitList<CGxShaderParam, 108> consts;
-  TSExplicitList<CGxShaderParam, 108> params;
+  LISTDECLEX(CGxShaderParam, lameAssLink, consts);
+  LISTDECLEX(CGxShaderParam, lameAssLink, params);
   TSGrowableArray<unsigned char>      code;
 
  public:
@@ -226,17 +227,17 @@ struct CGxBuf {
   CGxBuf();
   void Invalidate(Status vertexStatus, Status indexStatus);
 
-  unsigned int VertexCount() {
+  unsigned int VertexCount() const {
     return m_numVertices;
   }
 
-  unsigned int IndexCount() {
+  unsigned int IndexCount() const {
     return m_numIndices;
   }
 
   void CountSet(unsigned int numVertices, unsigned int numIndices);
 
-  void *UserArg() {
+  void *UserArg() const {
     return m_userArg;
   }
 
@@ -244,7 +245,7 @@ struct CGxBuf {
     m_userArg = userArg;
   }
 
-  void(*UserCallback())(CGxBufCommand &, CGxBuf *) {
+  void(*UserCallback() const)(CGxBufCommand &, CGxBuf *) {
     return m_userCallback;
   }
 
@@ -445,10 +446,9 @@ class CGxDevice {
     void        *m_apiSpecific;
   };
 
- public:
-  static const unsigned int s_texFormatBitDepth[GxTexFormats_Last];
-
  protected:
+  static const unsigned int s_texFormatBitDepth[];
+
   unsigned int ITexComputeByteSize(const CGxTex *texId, const unsigned int width, const unsigned int height);
   int          EnableState(unsigned long app, unsigned long appDisables, unsigned int flagPos);
   int  NeedsUpdate(unsigned long app, unsigned long hw, unsigned long appDisables, unsigned long hwDisables, unsigned int flagPos, int &enable);
@@ -469,6 +469,14 @@ class CGxDevice {
   void                   DeviceSetCurWindow(const NTempest::CRect &rect);
   void                   CreateDynamicBufs();
   void                   DestroyDynamicBufs();
+  void                   Log(const CGxCaps &caps) const;
+  void                   Log(const CGxFormat &format) const;
+  void                   PerfAcc(EGxPerfCounter counter, unsigned int value) {
+    m_perfCountersAcc[counter] += value;
+  }
+
+ private:
+  CGxDevice(const CGxDevice &);
 
  public:
   CGxDevice();
@@ -608,9 +616,6 @@ class CGxDevice {
   const CGxCaps            &Caps() const;
   void                      DeviceClearScreenShot();
   unsigned int              PerfCounter(EGxPerfCounter counter);
-  void                      PerfAcc(EGxPerfCounter counter, unsigned int value) {
-    m_perfCountersAcc[counter] += value;
-  }
   static float CpuFrequency();
   static __int64 CpuTicks();
   void                      XformProjection(NTempest::C44Matrix &matrix);
@@ -649,10 +654,10 @@ class CGxDevice {
   static void __cdecl    DbgPrintf(const char *format, ...);
 
  private:
+  friend HTEXTURE__ *TextureAllocImage(EGxTexFormat format, unsigned int width, unsigned int height);
   friend class CGxDeviceD3d;
   friend class CGxDeviceOpenGl;
 
-  CGxDevice(const CGxDevice &);
   const CGxDevice &operator=(const CGxDevice &);
   void             IRsInit();
 
@@ -689,9 +694,6 @@ class CGxDevice {
   NTempest::CRect                       m_curWindowRect;
 
  protected:
-  void Log(const CGxCaps &caps) const;
-  void Log(const CGxFormat &format) const;
-
   int                                                m_context;
   EGxApi                                             m_api;
   unsigned long                                      m_cpuFeatures;

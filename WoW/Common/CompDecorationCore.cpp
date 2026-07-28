@@ -1,13 +1,55 @@
 #include <Component/Component.h>
 #include <Component/CharacterCustomization.h>
+#include <Services/SysMessage.h>
 #include <Services/Texture.h>
 
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
 
+#include <Base/Base.h>
 #include <storm.h>
 
 static const char *const s_texComponentBasePath = "Item\\TextureComponents\\";
 static char *const       s_sexSuffixNames[UNITSEX_LAST] = {"M", "F", "U"};
+
+static void
+ConstructSuffixString(unsigned int race, unsigned int sex, int includeRace, int includeSex, char *buffer, unsigned int size) {
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+
+  buffer[0] = 0;
+  if (includeRace) {
+    FATALASSERT(!includeRace || includeSex);
+    const ChrRacesRec *rec = g_chrRacesDB.GetRecord(race);
+    FATALASSERT(rec);
+    SStrPrintf(buffer, size, "_%s%s", rec->m_ClientPrefix, s_sexSuffixNames[sex]);
+  } else if (includeSex) {
+    SStrPrintf(buffer, size, "_%s", s_sexSuffixNames[sex]);
+  }
+}
+
+static void BuildObjComponentPath(const char *fileName, unsigned int race, unsigned int sex, char *buffer, unsigned int size) {
+  char inputFile[MAX_PATH];
+  char filenameExtension[12] = "";
+  char suffixBuffer[12];
+  char finalBuffer[MAX_PATH];
+
+  FATALASSERT(fileName);
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+  FATALASSERT(race != 0);
+  FATALASSERT(race <= (uint)g_chrRacesDB.GetMaxID());
+
+  SStrCopy(inputFile, fileName, sizeof(inputFile));
+  char *extension = SStrChrR(inputFile, '.');
+  if (extension) {
+    SStrCopy(filenameExtension, extension, sizeof(filenameExtension));
+    *extension = 0;
+  }
+
+  ConstructSuffixString(race, sex, 1, 1, suffixBuffer, sizeof(suffixBuffer));
+  SStrPrintf(finalBuffer, sizeof(finalBuffer), "%s%s%s", inputFile, suffixBuffer, filenameExtension);
+  SStrCopy(buffer, finalBuffer, size);
+}
 
 void CompDecorateObjName(const char *string, char *buffer, unsigned int size, unsigned int race, unsigned int sex) {
   FATALASSERT(buffer);
@@ -17,19 +59,16 @@ void CompDecorateObjName(const char *string, char *buffer, unsigned int size, un
     return;
   }
 
-  FATALASSERT(race != 0);
-  const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(race);
-  FATALASSERT(raceRec);
-
-  char inputFile[MAX_PATH];
-  char extension[12] = "";
-  SStrCopy(inputFile, string, sizeof(inputFile));
-  char *dot = SStrChr(inputFile, '.');
-  if (dot) {
-    SStrCopy(extension, dot, sizeof(extension));
-    *dot = 0;
+  char finalName[MAX_PATH];
+  BuildObjComponentPath(string, race, sex, finalName, size);
+  if (!finalName[0]) {
+    BuildObjComponentPath(string, race, UNITSEX_NONE, finalName, size);
   }
-  SStrPrintf(buffer, size, "%s_%s%s%s", inputFile, raceRec->m_ClientPrefix, s_sexSuffixNames[sex], extension);
+  if (finalName[0]) {
+    SStrCopy(buffer, finalName, size);
+  } else {
+    SysMsgPrintf(SYSMSG_ERROR, "Error, object component file \"%s\" not found!", finalName);
+  }
 }
 
 static void
@@ -39,6 +78,7 @@ BuildTexComponentPath(const char *string, TEXCOMPONENT_SECTIONS section, char *b
                                                                 "LegLowerTexture",  "FootTexture"};
   char               stringBuffer[MAX_PATH];
   char               suffixBuffer[16];
+  char               extension[16] = "";
 
   FATALASSERT(string);
   FATALASSERT(buffer);
@@ -46,14 +86,12 @@ BuildTexComponentPath(const char *string, TEXCOMPONENT_SECTIONS section, char *b
   FATALASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
 
   SStrCopy(stringBuffer, string, sizeof(stringBuffer));
-  suffixBuffer[0] = 0;
-  if (includeSex) {
-    SStrPrintf(suffixBuffer, sizeof(suffixBuffer), "_%s", s_sexSuffixNames[sex]);
-  }
+  ConstructSuffixString(0, sex, 0, includeSex, suffixBuffer, sizeof(suffixBuffer));
 
-  char *extension = SStrChr(stringBuffer, '.');
-  if (extension) {
-    *extension = 0;
+  char *extensionPtr = SStrChrR(stringBuffer, '.');
+  if (extensionPtr) {
+    SStrCopy(extension, extensionPtr, sizeof(extension));
+    *extensionPtr = 0;
   }
 
   SStrPrintf(buffer, size, "%s%s\\%s%s%s", s_texComponentBasePath, sectionNames[section], stringBuffer, suffixBuffer, ".BLP");
@@ -92,5 +130,89 @@ CompDecorateTexName(const char *string, TEXCOMPONENT_SECTIONS section, char *buf
   BuildTexComponentPath(string, section, finalName, sizeof(finalName), static_cast<UNIT_SEX>(sex), includeSex);
   if (finalName[0] && ComponentUtilImageFileExists(finalName)) {
     SStrCopy(buffer, finalName, size);
+  } else {
+    SysMsgPrintf(SYSMSG_ERROR, "Error, texture component file \"%s\" not found!", finalName);
   }
+}
+
+int CompDecorateUndecorateObjName(const char *string, char *buffer, unsigned int size) {
+  enum STATES {
+    FINDING_PERIOD = 0,
+    FINDING_DIRECTORYSEPARATOR = 1,
+    FINDING_PURGEDIRECTORYSEPARATOR = 2
+  };
+
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+
+  buffer[0] = 0;
+  if (!string || !*string) {
+    return 0;
+  }
+
+  SStrCopy(buffer, string, size);
+  char extensionBuffer[12] = "";
+  char fileNameBuffer[MAX_PATH] = "";
+  STATES state = FINDING_PERIOD;
+  char *cursor = buffer + SStrLen(buffer) - 1;
+  for (; cursor >= buffer; --cursor) {
+    if (state == FINDING_PERIOD) {
+      if (*cursor == '.') {
+        SStrCopy(extensionBuffer, cursor, sizeof(extensionBuffer));
+        *cursor = 0;
+        state = FINDING_DIRECTORYSEPARATOR;
+      }
+    } else if (state == FINDING_DIRECTORYSEPARATOR) {
+      if (*cursor == '\\') {
+        SStrCopy(fileNameBuffer, cursor + 1, sizeof(fileNameBuffer));
+        char *suffix = SStrChrR(fileNameBuffer, '_');
+        if (suffix) {
+          *suffix = 0;
+        }
+        state = FINDING_PURGEDIRECTORYSEPARATOR;
+      }
+    } else if (*cursor == '\\') {
+      cursor[1] = 0;
+      SStrPack(buffer, fileNameBuffer, size);
+      SStrPack(buffer, extensionBuffer, size);
+      return 1;
+    }
+  }
+
+  SStrCopy(buffer, string, size);
+  return 0;
+}
+
+int CompDecorateUndecorateTexName(const char *string, char *buffer, unsigned int size) {
+  enum STATES {
+    FINDING_PERIOD = 0,
+    FINDING_UNDERSCORE = 1
+  };
+
+  FATALASSERT(buffer);
+  FATALASSERT(size);
+
+  buffer[0] = 0;
+  if (!string || !*string) {
+    return 0;
+  }
+
+  SStrCopy(buffer, string, size);
+  char extension[12] = "";
+  STATES state = FINDING_PERIOD;
+  char *cursor = buffer + SStrLen(buffer) - 1;
+  for (; cursor >= buffer; --cursor) {
+    if (state == FINDING_PERIOD && *cursor == '.') {
+      SStrCopy(extension, cursor, sizeof(extension));
+      state = FINDING_UNDERSCORE;
+    } else if (state == FINDING_UNDERSCORE && *cursor == '_') {
+      *cursor = 0;
+      FATALASSERT(extension[0]);
+      SStrPack(buffer, extension, size);
+      return 1;
+    }
+  }
+
+  SStrCopy(buffer, string, size);
+  return 0;
 }

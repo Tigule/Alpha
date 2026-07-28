@@ -29,18 +29,36 @@ static long                                     s_interactiveCount;
 static int                                      s_originalThreadPriority;
 static unsigned int                             s_mainThread;
 
+inline EvtContext::EvtContext(
+    unsigned long idleTime, unsigned long flags, unsigned int weight, void *callContext, int startWatchdog
+)
+    : m_currTime(0),
+      m_schedState(SCHEDSTATE_ACTIVE),
+      m_schedLastIdle(OsGetAsyncTimeMs()),
+      m_schedFlags(flags),
+      m_schedIdleTime(idleTime),
+      m_schedInitialIdleTime(idleTime),
+      m_schedWeight(weight),
+      m_schedSmoothWeight(weight),
+      m_schedRebalance(0),
+      m_queueSyncButtonState(0),
+      m_propContext(PropCreateContext()),
+      m_callContext(callContext),
+      m_startWatchdog(startWatchdog) {
+}
+
 static int SynthesizeInitialize(EvtContext *context);
 static void SynthesizeDestroy(EvtContext *context);
 static void SynthesizeIdle(EvtContext *context);
 static void SynthesizePoll(EvtContext *context);
 static void SynthesizePaint(EvtContext *context);
 static unsigned int InitializeSchedulerThread();
-static void DestroySchedulerThread(unsigned int hThread);
-static void DetachContextFromThread(unsigned int hThread, EvtContext *context);
+void DestroySchedulerThread(unsigned int hThread);
+void DetachContextFromThread(unsigned int hThread, EvtContext *context);
 static EvtContext *GetNextContext(unsigned int hThread);
 static SEvent *GetWakeEvent(unsigned int hThread);
-static void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
-static HEVENTCONTEXT AttachContextToThread(EvtContext *context);
+void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
+HEVENTCONTEXT AttachContextToThread(EvtContext *context);
 static unsigned int APIENTRY    SchedulerThreadProc(void *mainThread);
 static unsigned int APIENTRY    ShutdownThreadProc(void *pEvent);
 
@@ -147,7 +165,7 @@ static unsigned int InitializeSchedulerThread() {
   return bestSlot;
 }
 
-static void DestroySchedulerThread(unsigned int hThread) {
+void DestroySchedulerThread(unsigned int hThread) {
   TSGrowableArray<EvtContext *> contextArray;
   EvtThread                    *thread;
   EvtContextQueue              *queue;
@@ -186,7 +204,7 @@ static void DestroySchedulerThread(unsigned int hThread) {
   }
 }
 
-static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
+HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
   EvtThread              *thread;
   EvtContextQueue        *queue;
   TSTimerPriority<DWORD> *priority;
@@ -228,7 +246,7 @@ static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
   return reinterpret_cast<HEVENTCONTEXT>(contextId);
 }
 
-static void DetachContextFromThread(unsigned int hThread, EvtContext *context) {
+void DetachContextFromThread(unsigned int hThread, EvtContext *context) {
   EvtThread   *thread;
   unsigned int amount;
 
@@ -274,7 +292,7 @@ static SEvent *GetWakeEvent(unsigned int hThread) {
   return &thread->m_wakeEvent;
 }
 
-static void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
+void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
   TSTimerPriority<DWORD> *priority = &context->m_schedNextWakeTime;
   EvtThread              *thread;
   EvtThread              *bestThread;
@@ -619,22 +637,8 @@ IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVEN
   }
   startWatchdog = (debugFlags >> 1) & 1;
 
-  context = NEW(EvtContext);
-  if (context) {
-    context->m_currTime = 0;
-    context->m_schedState = EvtContext::SCHEDSTATE_ACTIVE;
-    context->m_schedLastIdle = OsGetAsyncTimeMs();
-    context->m_schedFlags = interactive ? 0x2 : 0;
-    context->m_schedIdleTime = idleTime;
-    context->m_schedInitialIdleTime = idleTime;
-    context->m_schedWeight = interactive ? 1000 : 1;
-    context->m_schedSmoothWeight = context->m_schedWeight;
-    context->m_schedRebalance = 0;
-    context->m_queueSyncButtonState = 0;
-    context->m_propContext = PropCreateContext();
-    context->m_callContext = callContext;
-    context->m_startWatchdog = startWatchdog;
-  }
+  unsigned int weight = interactive ? 1000 : 1;
+  context = NEW(EvtContext)(idleTime, interactive ? 0x2 : 0, weight, callContext, startWatchdog);
 
   if (interactive) {
     SInterlockedIncrement(&s_interactiveCount);

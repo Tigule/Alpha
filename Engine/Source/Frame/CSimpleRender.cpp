@@ -552,14 +552,14 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
   m_font = fontName;
   m_fontHeight = fontHeight;
   m_fontFlags = fontFlags;
-  m_flags |= FLAG_FONT;
+  m_flags |= FLAG_FONT_UPDATE;
 
   m_styleFlags = rhs.m_styleFlags;
-  m_flags |= FLAG_STYLE;
+  m_flags |= FLAG_STYLE_UPDATE;
 
   rhs.GetVertexColor(color);
   m_color = color;
-  m_flags |= FLAG_COLOR;
+  m_flags |= FLAG_COLOR_UPDATE;
 
   shadowColor = color;
   if (rhs.m_styleFlags & 0x100) {
@@ -568,10 +568,10 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
   }
   m_shadowColor = shadowColor;
   m_shadowOffset = shadowOffset;
-  m_flags |= FLAG_SHADOW;
+  m_flags |= FLAG_SHADOW_UPDATE;
 
   m_spacing = rhs.m_spacing;
-  m_flags |= FLAG_SPACING;
+  m_flags |= FLAG_SPACING_UPDATE;
   return *this;
 }
 
@@ -583,17 +583,17 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
     m_font = attribFont;
     m_fontHeight = rhs.m_fontHeight;
     m_fontFlags = rhs.m_fontFlags;
-    m_flags |= FLAG_FONT;
+    m_flags |= FLAG_FONT_UPDATE;
   }
 
   if (m_styleFlags != rhs.m_styleFlags) {
     m_styleFlags = rhs.m_styleFlags;
-    m_flags |= FLAG_STYLE;
+    m_flags |= FLAG_STYLE_UPDATE;
   }
 
   if (*reinterpret_cast<unsigned long *>(&m_color) != *reinterpret_cast<const unsigned long *>(&rhs.m_color)) {
     m_color = rhs.m_color;
-    m_flags |= FLAG_COLOR;
+    m_flags |= FLAG_COLOR_UPDATE;
   }
 
   if (*reinterpret_cast<unsigned long *>(&m_shadowColor) != *reinterpret_cast<const unsigned long *>(&rhs.m_shadowColor) ||
@@ -601,12 +601,12 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
   {
     m_shadowColor = rhs.m_shadowColor;
     m_shadowOffset = rhs.m_shadowOffset;
-    m_flags |= FLAG_SHADOW;
+    m_flags |= FLAG_SHADOW_UPDATE;
   }
 
   if (m_spacing != rhs.m_spacing) {
     m_spacing = rhs.m_spacing;
-    m_flags |= FLAG_SPACING;
+    m_flags |= FLAG_SPACING_UPDATE;
   }
 
   return *this;
@@ -1018,38 +1018,38 @@ void CSimpleFontStringAttributes::UpdateString(CSimpleFontString *string, int fo
     m_flags |= FLAG_COMPLETE_UPDATE;
   }
 
-  if (m_flags & FLAG_FONT) {
+  if (m_flags & FLAG_FONT_UPDATE) {
     string->SetFont(m_font, m_fontHeight, m_fontFlags);
-    m_flags &= ~FLAG_FONT;
+    m_flags &= ~FLAG_FONT_UPDATE;
   }
 
-  if (m_flags & FLAG_STYLE) {
+  if (m_flags & FLAG_STYLE_UPDATE) {
     if (string->m_styleFlags != m_styleFlags) {
       string->m_styleFlags = m_styleFlags;
       if (string->m_string) {
         string->UpdateString(0);
       }
     }
-    m_flags &= ~FLAG_STYLE;
+    m_flags &= ~FLAG_STYLE_UPDATE;
   }
 
-  if (m_flags & FLAG_COLOR) {
+  if (m_flags & FLAG_COLOR_UPDATE) {
     string->SetVertexColor(m_color);
-    m_flags &= ~FLAG_COLOR;
+    m_flags &= ~FLAG_COLOR_UPDATE;
   }
 
-  if (m_flags & FLAG_SHADOW) {
+  if (m_flags & FLAG_SHADOW_UPDATE) {
     if (m_shadowOffset.x == 0.0f && m_shadowOffset.y == 0.0f) {
       string->RemoveShadow();
     } else {
       string->AddShadow(m_shadowColor, m_shadowOffset);
     }
-    m_flags &= ~FLAG_SHADOW;
+    m_flags &= ~FLAG_SHADOW_UPDATE;
   }
 
-  if (m_flags & FLAG_SPACING) {
+  if (m_flags & FLAG_SPACING_UPDATE) {
     string->SetSpacing(m_spacing);
-    m_flags &= ~FLAG_SPACING;
+    m_flags &= ~FLAG_SPACING_UPDATE;
   }
 }
 

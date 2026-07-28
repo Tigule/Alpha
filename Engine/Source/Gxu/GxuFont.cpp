@@ -262,7 +262,7 @@ void GxuFontRender(CGxString *string, const NTempest::C44Matrix &xform) {
   }
 }
 float GxuFontGetStringHeight(CGxString *string) {
-  return string ? string->m_stringHeight : 0.0f;
+  return string ? string->GetStringHeight() : 0.0f;
 }
 CGxStringBatch *GxuFontCreateBatch() {
   CGxStringBatch *batch = s_unusedBatches.Head();
@@ -661,7 +661,7 @@ void GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos) 
 void GxuFontSetCharSpacing(CGxString *string, float spacing) {
 }
 void GxuFontAddShadow(CGxString *string, const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
-  if (string && !(string->m_flags & 0x80)) {
+  if (string && !string->IsBillboarded()) {
     string->AddShadow(offset, color);
   }
 }
@@ -677,7 +677,7 @@ int GxuFontGetStringWidth(CGxString *string, float *width) {
   FATALASSERT(width);
 
   if (string) {
-    *width = string->m_savedWidth;
+    *width = string->GetSavedWidth();
   }
   return string != 0;
 }
@@ -685,7 +685,7 @@ int GxuFontGetStringHeight(CGxString *string, float *height) {
   FATALASSERT(height);
 
   if (string) {
-    *height = string->m_stringHeight;
+    *height = string->GetStringHeight();
   }
   return string != 0;
 }

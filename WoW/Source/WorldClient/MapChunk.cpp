@@ -163,7 +163,20 @@ unsigned char *CMapChunk::AllocAsyncLoadBuffer() {
   return buffer;
 }
 
+CChunkTex::CChunkTex() {
+}
+
 CChunkTex::~CChunkTex() {
+}
+
+CChunkLayer::CChunkLayer() {
+  props = 0;
+  texId = 0;
+  offsAlpha = 0;
+  tex = 0;
+  gxTexture = 0;
+  chunk = 0;
+  effectId = 0;
 }
 
 CChunkLayer::~CChunkLayer() {

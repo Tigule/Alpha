@@ -24,14 +24,20 @@ extern FrameScript_Method s_FriendListScriptFunctions[19];
 
 FriendList *g_friendList;
 
+enum PARTY_STATUS {
+  PARTY_STATUS_NOT_IN_PARTY = 0,
+  PARTY_STATUS_IN_PARTY = 1,
+  PARTY_STATUS_LFG = 2
+};
+
 struct WhoListEntry {
-  char name[48];
-  char guild[96];
-  int  level;
-  int  raceID;
-  int  classID;
-  int  areaID;
-  int  partyStatus;
+  char         name[48];
+  char         guild[96];
+  int          level;
+  int          raceID;
+  int          classID;
+  int          areaID;
+  PARTY_STATUS partyStatus;
 };
 
 static WhoListEntry s_whoList[50];
@@ -251,9 +257,9 @@ static int Script_GetFriendInfo(lua_State *L) {
   }
   lua_pushstring(L, entry->m_name ? entry->m_name : "");
   lua_pushnumber(L, entry->m_level);
-  ChrClassesRec *classRec = g_chrClassesDB.GetRecord(entry->m_class);
+  const ChrClassesRec *classRec = g_chrClassesDB.GetRecord(entry->m_class);
   lua_pushstring(L, classRec ? classRec->m_name_lang[CURRENT_LANGUAGE] : "");
-  AreaTableRec *areaRec = g_areaTableDB.GetRecord(entry->m_area);
+  const AreaTableRec *areaRec = g_areaTableDB.GetRecord(entry->m_area);
   lua_pushstring(L, areaRec ? areaRec->m_AreaName_lang[CURRENT_LANGUAGE] : "");
   lua_pushnumber(L, entry->m_connected != 0);
   lua_pushstring(L, "");
@@ -280,7 +286,8 @@ void FriendList::DelIgnore(const char *name) {
     return;
   }
   for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
-    NameCache *entry = const_cast<NameCache *>(g_nameDBCache.GetRecord(m_ignore[i], m_ignore[i], 0, 0));
+    unsigned __int64 noGuid = 0;
+    const NameCache *entry = g_nameDBCache.GetRecord(m_ignore[i], noGuid, 0, 0);
     if (entry && !SStrCmpI(entry->m_name, name, 0x7FFFFFFF)) {
       CDataStore msg;
       msg.Put(static_cast<unsigned int>(CMSG_DEL_IGNORE));
@@ -338,13 +345,11 @@ static int Script_GetIgnoreName(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetIgnoreName(index)");
   }
-  unsigned __int64 guid = g_friendList ? g_friendList->GetIgnore(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1) : 0;
-  NameCache       *entry = guid ? const_cast<NameCache *>(g_nameDBCache.GetRecord(guid, guid, 0, 0)) : 0;
-  if (entry) {
-    lua_pushstring(L, entry->m_name);
-    return 1;
-  }
-  return 0;
+  unsigned __int64 guid = g_friendList->GetIgnore(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  unsigned __int64 noGuid = 0;
+  const NameCache *entry = g_nameDBCache.GetRecord(guid, noGuid, 0, 0);
+  lua_pushstring(L, entry ? entry->m_name : FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
+  return 1;
 }
 
 static int Script_SetSelectedIgnore(lua_State *L) {
@@ -410,11 +415,11 @@ static int Script_GetWhoInfo(lua_State *L) {
   lua_pushstring(L, entry.name);
   lua_pushstring(L, entry.guild);
   lua_pushnumber(L, entry.level);
-  ChrRacesRec *race = g_chrRacesDB.GetRecord(entry.raceID);
+  const ChrRacesRec *race = g_chrRacesDB.GetRecord(entry.raceID);
   lua_pushstring(L, race ? race->m_name_lang[CURRENT_LANGUAGE] : "");
-  ChrClassesRec *playerClass = g_chrClassesDB.GetRecord(entry.classID);
+  const ChrClassesRec *playerClass = g_chrClassesDB.GetRecord(entry.classID);
   lua_pushstring(L, playerClass ? playerClass->m_name_lang[CURRENT_LANGUAGE] : "");
-  AreaTableRec *area = g_areaTableDB.GetRecord(entry.areaID);
+  const AreaTableRec *area = g_areaTableDB.GetRecord(entry.areaID);
   lua_pushstring(L, area ? area->m_AreaName_lang[CURRENT_LANGUAGE] : "");
   lua_pushstring(L, entry.partyStatus == 0 ? "" : (entry.partyStatus == 1 ? "LFG" : "FULL"));
   return 7;
@@ -449,9 +454,9 @@ void FriendList::UnregisterScriptFunctions() {
 }
 
 static void PrintWho(const char* name, const char* guild, int level, int classID, int raceID, int areaID) {
-  ChrRacesRec *race = g_chrRacesDB.GetRecord(raceID);
-  ChrClassesRec *playerClass = g_chrClassesDB.GetRecord(classID);
-  AreaTableRec *area = g_areaTableDB.GetRecord(areaID);
+  const ChrRacesRec *race = g_chrRacesDB.GetRecord(raceID);
+  const ChrClassesRec *playerClass = g_chrClassesDB.GetRecord(classID);
+  const AreaTableRec *area = g_areaTableDB.GetRecord(areaID);
   const char *unknown = FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE);
   const char *raceName = race ? race->m_name_lang[CURRENT_LANGUAGE] : unknown;
   const char *className = playerClass ? playerClass->m_name_lang[CURRENT_LANGUAGE] : unknown;
@@ -485,7 +490,9 @@ static int OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStor
     msg->Get(entry.classID);
     msg->Get(entry.raceID);
     msg->Get(entry.areaID);
-    msg->Get(entry.partyStatus);
+    int partyStatus = 0;
+    msg->Get(partyStatus);
+    entry.partyStatus = static_cast<PARTY_STATUS>(partyStatus);
     if (i < 50) {
       s_whoList[i] = entry;
     }
@@ -1014,7 +1021,7 @@ void FriendList::SendWho(const char *str) {
     if (!SStrCmp(word, tag, tagLength)) {
       const char *zone = StripQuotes(word + tagLength);
       for (int index = 0; index < g_areaTableDB.GetNumRecords() && numZones < 10; ++index) {
-        AreaTableRec *rec = g_areaTableDB.GetRecordByIndex(index);
+        const AreaTableRec *rec = g_areaTableDB.GetRecordByIndex(index);
         if (!rec->m_ParentAreaNum && SStrStrI(rec->m_AreaName_lang[CURRENT_LANGUAGE], zone)) {
           zones[numZones++] = rec->m_ID;
         }
@@ -1033,7 +1040,7 @@ void FriendList::SendWho(const char *str) {
         raceFilter = 0;
       }
       for (int index = 0; index < g_chrRacesDB.GetNumRecords(); ++index) {
-        ChrRacesRec *rec = g_chrRacesDB.GetRecordByIndex(index);
+        const ChrRacesRec *rec = g_chrRacesDB.GetRecordByIndex(index);
         if (SStrStrI(rec->m_name_lang[CURRENT_LANGUAGE], race)) {
           raceFilter |= 1 << rec->m_ID;
         }
@@ -1049,7 +1056,7 @@ void FriendList::SendWho(const char *str) {
         classFilter = 0;
       }
       for (int index = 0; index < g_chrClassesDB.GetNumRecords(); ++index) {
-        ChrClassesRec *rec = g_chrClassesDB.GetRecordByIndex(index);
+        const ChrClassesRec *rec = g_chrClassesDB.GetRecordByIndex(index);
         if (SStrStrI(rec->m_name_lang[CURRENT_LANGUAGE], playerClass)) {
           classFilter |= 1 << rec->m_ID;
         }
@@ -1106,7 +1113,8 @@ void FriendList::AddOrDelIgnore(const char *name) {
     return;
   }
   for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
-    NameCache *entry = const_cast<NameCache *>(g_nameDBCache.GetRecord(m_ignore[i], m_ignore[i], 0, 0));
+    unsigned __int64 noGuid = 0;
+    const NameCache *entry = g_nameDBCache.GetRecord(m_ignore[i], noGuid, 0, 0);
     if (entry && !SStrCmpI(entry->m_name, name, 0x7FFFFFFF)) {
       DelIgnore(name);
       return;

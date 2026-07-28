@@ -26,6 +26,7 @@ static void UpdateParticleEmitters(CModelComplex *unique, unsigned int replaceab
 struct CMatrixGroup {
   CMatrixGroup() : matrices(0), numMatrices(0), index(0), leftIndex(static_cast<unsigned int>(-1)), rightIndex(static_cast<unsigned int>(-1)) {
   }
+  CMatrixGroup(unsigned int *, unsigned int);
 
   unsigned int *matrices;
   unsigned int  numMatrices;

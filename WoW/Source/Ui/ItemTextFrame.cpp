@@ -90,15 +90,27 @@ void CGItemText::SetItem(const unsigned __int64 &item, int callback) {
   CGGameUI::SetInteractTarget(item, MAX_SHOP_DISTANCE_SQUARED);
   FrameScript_SignalEvent(273);
 
-  if (!(object->GetType() & TYPE_ITEM) || static_cast<CGItem_C *>(object)->IsTranslated())
-  {
-    DisplayText(item, 1);
+  if (!(object->GetType() & TYPE_ITEM)) {
+    DisplayText(item, callback);
+    return;
+  }
+
+  CGItem_C *itemObject = static_cast<CGItem_C *>(object);
+  if (itemObject->IsTranslated()) {
+    DisplayText(item, callback);
     return;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->ReadItem(item, 0);
+    unsigned __int64 containerGUID = itemObject->GetContainedIn();
+    CGObject_C      *container = ClntObjMgrObjectPtr(containerGUID, __FILE__, __LINE__);
+    if (container) {
+      int slot = container->GetBag()->GetIndexOfObject(item);
+      if (slot >= 0) {
+        player->ReadItem(containerGUID, static_cast<unsigned char>(slot));
+      }
+    }
   }
 }
 

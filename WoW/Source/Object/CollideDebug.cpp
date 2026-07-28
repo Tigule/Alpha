@@ -1,12 +1,12 @@
 #include "Object/MovementData.h"
 
 struct CARgbColor {
-  unsigned int a : 8;
-  unsigned int r : 8;
-  unsigned int g : 8;
-  unsigned int b : 8;
+  unsigned char a;
+  unsigned char r;
+  unsigned char g;
+  unsigned char b;
 
-  operator NTempest::CImVector() {
+  operator NTempest::CImVector() const {
     return NTempest::CImVector(a, r, g, b);
   }
 };

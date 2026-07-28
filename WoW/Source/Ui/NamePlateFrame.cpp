@@ -75,16 +75,20 @@ void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
 }
 
 void CGNamePlateFrame::OnLayerCursorEnter() {
-  CSimpleButton::OnLayerCursorEnter();
+  CGGameUI::HandleObjectTrackChange(m_unit, 0, 0.0f, 0.0f);
   m_highlight->Show();
+  m_nameFrame->SetVertexColor(NTempest::CImVector(0xFFFFFF00));
+  CSimpleButton::OnLayerCursorEnter();
 }
 
 void CGNamePlateFrame::OnLayerCursorExit() {
-  CSimpleButton::OnLayerCursorExit();
+  CGGameUI::HandleObjectTrackChange(0, 0, 0.0f, 0.0f);
   m_highlight->Hide();
+  m_nameFrame->SetVertexColor(NTempest::CImVector(0xFFFFFFFF));
+  CSimpleButton::OnLayerCursorExit();
 }
 
 void CGNamePlateFrame::OnClick(MOUSEBUTTON button) {
-  CGGameUI::Target(m_unit, 0);
+  CGGameUI::NamePlateClicked(m_unit, button);
   CSimpleButton::OnClick(button);
 }

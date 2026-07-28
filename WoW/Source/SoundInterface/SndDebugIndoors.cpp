@@ -9,6 +9,11 @@
 #include <storm.h>
 
 struct CHUNKHASHOBJ : public TSHashObject<CHUNKHASHOBJ, HASHKEY_STRI> {
+  CHUNKHASHOBJ() {
+  }
+
+  CHUNKHASHOBJ(const CHUNKHASHOBJ &rhs);
+
   char                      zoneName[128];
   char                      subZoneName[128];
   unsigned int              chunkNumber;

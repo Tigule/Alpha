@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Object/Unit.h"
+
 #include <stpl.h>
 
 struct HMODEL__;
@@ -11,14 +13,7 @@ typedef HTEXCOMPONENT__ *HTEXCOMPONENT;
 struct HCHARGEOSET__;
 typedef HCHARGEOSET__ *HCHARGEOSET;
 class ItemDisplayInfoRec;
-
-enum UNIT_SEX {
-  UNITSEX_MALE = 0,
-  UNITSEX_FEMALE = 1,
-  UNITSEX_NONE = 2,
-  UNITSEX_LAST = 3,
-  UNITSEX_BOTH = 3
-};
+class CharacterFacialHairStylesRec;
 
 enum CHARTEXTURESECTIONID {
   CHARTEXTURESECTION_SKIN = 0,
@@ -97,6 +92,9 @@ struct STRINGWANNABE {
 };
 
 struct CHARACTERVARIATIONS {
+  ~CHARACTERVARIATIONS() {
+  }
+
   STRINGWANNABE &GetColor(int colorID) {
     return color[colorID % color.Count()];
   }
@@ -125,6 +123,9 @@ struct CHARACTERSEXVARIATIONS {
       firstNPCVar[section] = INT_MAX;
       lastNPCVar[section] = -1;
     }
+  }
+
+  ~CHARACTERSEXVARIATIONS() {
   }
 
   void GetNumVariations(CHARTEXTURESECTIONID section, int *pcVars, int *npcVars);
@@ -167,6 +168,9 @@ struct CHARACTERRACEVARIATIONS {
 };
 
 struct FACIALGEOSETS {
+  FACIALGEOSETS() {
+  }
+
   unsigned int beardGeoset;
   unsigned int sideBurnGeoset;
   unsigned int moustacheGeoset;
@@ -179,10 +183,19 @@ struct BEARDSTYLEDATA {
 };
 
 struct FACIALVARIATIONS {
+  ~FACIALVARIATIONS() {
+  }
+
+  void AddVariation(const CharacterFacialHairStylesRec *);
+  unsigned int NumVariations();
+
   TSFixedArray<FACIALGEOSETS> facialGeosets;
 };
 
 struct INTDATA {
+  INTDATA() {
+  }
+
   operator int &() {
     return theInt;
   }
@@ -191,6 +204,9 @@ struct INTDATA {
 };
 
 struct VARIATIONS {
+  ~VARIATIONS() {
+  }
+
   unsigned int             textureHolds[CHARTEXTUREVARIATIONS_NUM];
   FACIALVARIATIONS         facialVariations;
   TSGrowableArray<INTDATA> hairGeosets;

@@ -29,20 +29,25 @@ struct HTEXTFONT__;
 enum HIGHLIGHTSTATE {
   HS_NONE = 0,
   HS_HIGHLIGHTING = 1,
-  HS_ENDHIGHLIGHT = 2
+  HS_ENDHIGHLIGHT = 2,
+  NUM_HIGHLIGHTSTATES = 3
 };
 
 enum CONSOLERESIZESTATE {
   CS_NONE = 0,
-  CS_STRETCH = 1
+  CS_STRETCH = 1,
+  NUM_CONSOLERESIZESTATES = 2
 };
 
 NODEDECL(CONSOLELINE) {
+  ~CONSOLELINE() {
+  }
+
   char        *buffer;
-  unsigned int chars;
-  unsigned int charsalloc;
-  unsigned int inputpos;
-  unsigned int inputstart;
+  unsigned long chars;
+  unsigned long charsalloc;
+  unsigned long inputpos;
+  unsigned long inputstart;
   COLOR_T      colorType;
   CGxString   *fontPointer;
 };

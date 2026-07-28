@@ -78,15 +78,6 @@ namespace NTempest {
       DEFAULT_STEPS = 20
     };
 
-    C3Spline() : cachedLength(0.0f) {
-    }
-    C3Spline(const C3Spline &spline)
-        : cachedLength(spline.cachedLength), points(spline.points), cachedSegLength(spline.cachedSegLength) {
-    }
-    ~C3Spline() {
-    }
-
-    C3Spline &operator=(const C3Spline &spline);
     unsigned int NumPoints() const {
       return points.Count();
     }
@@ -108,8 +99,8 @@ namespace NTempest {
 
    protected:
     friend class ::CSplineParticleEmitter;
-    virtual float ILength(unsigned int segmentCount) const;
     virtual float ILength() const = 0;
+    float         ILength(unsigned int segmentCount) const;
     virtual void  IValidateCache() const = 0;
     virtual void  IPosArclength(float t, C3Vector &result) const = 0;
     virtual void  IPosParametric(float t, C3Vector &result) const = 0;

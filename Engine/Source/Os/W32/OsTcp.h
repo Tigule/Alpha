@@ -94,14 +94,15 @@ namespace OsNet {
       }
     }
 
-    void Lock() {
-      WaitForSingleObject(m_event, INFINITE);
+    int Enter() {
+      return WaitForSingleObject(m_event, INFINITE);
     }
 
-    void Unlock() {
+    void Leave() {
       SetEvent(m_event);
     }
 
+   private:
     void *m_event;
   };
 
@@ -116,6 +117,10 @@ namespace OsNet {
   };
 
   NODEDECL(OUTPUT) {
+    OUTPUT() {
+    }
+    OUTPUT(const OUTPUT &);
+
     NETOVERLAP  m_overlap;
     OUTPUTSTATE m_state;
     union {
@@ -135,21 +140,38 @@ namespace OsNet {
   };
 
   NODEDECL(INPUT) {
-    NETOVERLAP    m_overlap;
-    void         *m_operationId;
-    unsigned long m_bytes;
-    void         *m_data;
+    INPUT() {
+    }
+    INPUT(const INPUT &);
+
+    NETOVERLAP m_overlap;
+    union {
+      struct {
+        void *m_operationId;
+      } m_file;
+      struct {
+      } m_sock;
+    };
+    unsigned long  m_bytes;
+    unsigned char *m_buffer;
   };
 
   struct NETSELSOCK {
-    NETSELSOCK(unsigned int sock = INVALID_SOCKET) : m_sock(sock) {
+    NETSELSOCK() : m_sock(INVALID_SOCKET) {
+    }
+    NETSELSOCK(const NETSELSOCK &);
+    NETSELSOCK(unsigned int sock) : m_sock(sock) {
     }
 
-    virtual void Selected(TCPNET *net, SELECTSET selectSet) = 0;
     virtual int  IsClosed() const;
     virtual void AddToSelectSets(NETSELECTSETS *selectSets) = 0;
 
     unsigned int m_sock;
+
+   private:
+    virtual void Selected(TCPNET *net, SELECTSET selectSet) = 0;
+
+    friend class NETSELECTSETS;
   };
 
   struct NETSELSOCKPTR : public TSHashObject<NETSELSOCKPTR, HASHKEY_NONE> {
@@ -442,6 +464,9 @@ namespace OsNet {
 
     };
 
+    typedef INPUT       *PINPUT;
+    typedef const INPUT *PCINPUT;
+
     LOOPCONN(TCPNET *net, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
     virtual ~LOOPCONN();
     virtual void    Send(const void *data, unsigned long bytes);
@@ -449,6 +474,7 @@ namespace OsNet {
     virtual void    Close();
     virtual int     IsClosed() const;
 
+   private:
     LOOPCONN                *m_loopConn;
     LINKDECLEX(LOOPCONN, m_linkNet);
     LISTDECLEX(INPUT, m_link, m_inputList);
@@ -484,6 +510,9 @@ namespace OsNet {
 
   template <class T, int LINKOFFSET, int SLOTS>
   class TSSlottedListEx {
+   private:
+    TSSlottedListEx(const TSSlottedListEx &);
+
    public:
     enum {
       MAXSLOTS = 256
@@ -599,7 +628,6 @@ namespace OsNet {
     TSExplicitList<T, LINKOFFSET> &UnlinkAll(TSExplicitList<T, LINKOFFSET> &list);
 
    private:
-    TSSlottedListEx(const TSSlottedListEx &);
     TSSlottedListEx &operator=(const TSSlottedListEx &);
 
     TSExplicitList<T, LINKOFFSET> m_lists[SLOTS];
@@ -676,11 +704,13 @@ namespace OsNet {
 
   struct TCPNET {
    public:
-    TCPNET();
     ~TCPNET();
 
     static int Initialize(unsigned long hints, unsigned long parts);
     static void Destroy(unsigned long parts);
+    static TCPNET *Net() {
+      return s_pnet;
+    }
 
     void Pump(unsigned long timeout);
     int  TcpListen(unsigned short port, NETEVENTPROC eventProc, void *user);
@@ -713,6 +743,10 @@ namespace OsNet {
     void CompleteAccept(TCPLISTEN *plisten, unsigned int sock, const NETCONNADDR *pconnAddr);
 
    private:
+    TCPNET();
+    TCPNET(const TCPNET &);
+    TCPNET &operator=(const TCPNET &);
+
     static void MakeConnAddr(unsigned int sock, unsigned long port, NETCONNADDR *connAddr);
     static unsigned int CreateListenSocket(unsigned short port);
     static void *IoCompletionPresent(unsigned long *pumpThreadCount);
@@ -729,6 +763,8 @@ namespace OsNet {
     void IncRef();
     void DecRef();
     void WakePumpThread();
+
+   public:
     int  PostIo(unsigned long bytes, unsigned long key, OVERLAPPED *overlap) {
       return PostQueuedCompletionStatus(m_port, bytes, key, overlap);
     }
@@ -747,6 +783,8 @@ namespace OsNet {
     void LoopLinkDisconnectConn(LOOPCONN *conn) {
       m_loopDisconnectList.LinkNode(conn, LIST_TAIL, 0);
     }
+
+   private:
     int  PumpThreadsInitialize();
     void PumpThreadsDestroy();
 
@@ -766,27 +804,43 @@ namespace OsNet {
     void TcpConnectInit(TCPCONNECT *pconnect);
     void FileConnectInit(FILECONNECT *pconnect);
 
-    LOCKEDLONG                                           m_refCount;
-    unsigned int                                         m_pumpThreadCount;
-    TSGrowableArray<void *>                              m_pumpThreads;
-    void                                                *m_udpPumpThread;
-    void                                                *m_udpPumpEvent;
-    CCritSect                                            m_loopLock;
-    LISTDECLEX(LOOPCONN::INPUT, m_linkNet, m_loopInputRecycleList);
-    LISTDECLEX(LOOPCONN::INPUT, m_linkNet, m_loopInputList);
-    LISTDECLEX(LOOPCONN, m_linkNet, m_loopDisconnectList);
-    TSSlottedListEx<NETCONN, 8, 8>                       m_connList[CONNLISTS];
-    void                                                *m_listenThread;
-    TSSlottedListEx<TCPLISTEN, 8, 1>                     m_listenList;
-    void                                                *m_baseThread;
-    void                                                *m_baseEvent;
-    int                                                  m_baseTcpShutdown;
-    void                                                *m_baseTcpShutdownEvent;
-    TSSlottedListEx<NETCONNECT, 8, 1>                    m_connectList[CONNLISTS];
-    void                                                *m_port;
-    LOCKEDLONG                                           m_hostAddrInfoCount;
-    CEventLock                                           m_hostAddrInfoLock;
-    unsigned long                                        m_hostAddrInfoId;
+    enum CONNECTLIST {
+      CONNECTLIST_LOOP_CONNECTED = 0,
+      CONNECTLIST_TCP_CONNECTED = 1,
+      CONNECTLIST_TCP_CONNECTING = 2,
+      CONNECTLIST_FILE_CONNECTED = 3,
+      CONNECTLISTS = 4
+    };
+
+    typedef TSExplicitList<LOOPCONN, 108> LISTLOOPCONN;
+    typedef TSExplicitList<LOOPCONN::INPUT, 8> LISTLOOPCONNINPUT;
+    typedef TSSlottedListEx<NETCONNECT, 8, 1> NETCONNECTLIST;
+    typedef TSExplicitList<NETCONNECT, 8> NETCONNECTSIMPLELIST;
+    typedef TSSlottedListEx<NETCONN, 8, 8> NETCONNLIST;
+    typedef TSExplicitList<NETCONN, 8> NETCONNSIMPLELIST;
+    typedef TSSlottedListEx<TCPLISTEN, 8, 1> TCPLISTENLIST;
+
+    LOCKEDLONG                     m_refCount;
+    unsigned long                  m_pumpThreadCount;
+    TSGrowableArray<void *>        m_pumpThreads;
+    void                          *m_udpPumpThread;
+    void                          *m_udpPumpEvent;
+    CCritSect                      m_loopLock;
+    LISTLOOPCONNINPUT              m_loopInputRecycleList;
+    LISTLOOPCONNINPUT              m_loopInputList;
+    LISTEXDYN(LOOPCONN)            m_loopDisconnectList;
+    NETCONNLIST                    m_connList[CONNLISTS];
+    void                          *m_listenThread;
+    TCPLISTENLIST                  m_listenList;
+    void                          *m_baseThread;
+    void                          *m_baseEvent;
+    int                            m_baseTcpShutdown;
+    void                          *m_baseTcpShutdownEvent;
+    NETCONNECTLIST                 m_connectList[CONNECTLISTS];
+    void                          *m_port;
+    LOCKEDLONG                     m_hostAddrInfoCount;
+    CEventLock                     m_hostAddrInfoLock;
+    unsigned long                  m_hostAddrInfoId;
     LISTDECL(TCPHOSTADDRINFO, m_hostAddrInfoList);
 
     static CInitCritSect s_initLock;

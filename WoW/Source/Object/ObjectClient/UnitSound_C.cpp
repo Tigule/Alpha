@@ -34,7 +34,7 @@ static int          soundDataOffsets[16] = {4, 8, 12, 16, 24, 28, 32, 0, 36, 40,
 
 int GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
   FATALASSERT(soundData);
-  FATALASSERT(static_cast<unsigned int>(soundType) < 16);
+  FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   int offset = soundDataOffsets[soundType];
   return offset ? *reinterpret_cast<const int *>(reinterpret_cast<const unsigned char *>(soundData) + offset) : 0;
 }
@@ -46,7 +46,7 @@ int GetFidgetSoundID(const CreatureSoundDataRec* soundData, unsigned int soundTy
 }
 
 static int CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
-  FATALASSERT(static_cast<unsigned int>(soundType) < 16);
+  FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   unsigned int random = NTempest::CRandom::uint32_(g_rndSeed);
   unsigned int value = static_cast<unsigned int>((static_cast<unsigned __int64>(101) * random) >> 32);
   return s_unitSoundChances[soundType] >= value;
@@ -91,7 +91,7 @@ void UnitSoundInitialize() {
 }
 
 int CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
-  FATALASSERT(static_cast<unsigned int>(soundType) < 16);
+  FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   unsigned long currentTime = OsGetAsyncTimeMs();
   int           canPlay = static_cast<long>(currentTime - s_unitSoundTimers[soundType]) > 0;
   s_unitSoundTimers[soundType] = currentTime + s_unitSoundTimeouts[soundType];

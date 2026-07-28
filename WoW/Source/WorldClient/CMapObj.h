@@ -228,6 +228,12 @@ struct SPortalExt {
 
 struct SMOMaterial {
   enum {
+    MAPID_DIFFUSE = 0,
+    MAPID_ENV = 1,
+    MAPID_COUNT = 2
+  };
+
+  enum {
     F_UNLIT = 1,
     F_UNFOGGED = 2,
     F_UNCULLED = 4,
@@ -493,7 +499,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   unsigned int GetWmoID() {
     return header->wmoID;
   }
-  CMapObjGroup *GetGroup(unsigned int index, int force);
+  CMapObjGroup *GetGroup(unsigned int index, int force = 0);
   const SMOGroupInfo *GetGroupInfo(unsigned int index);
   char          *GetGroupName(unsigned int index);
   void          GetBounds(NTempest::CAaBox &aaBox);

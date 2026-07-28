@@ -7,15 +7,7 @@
 #include <Tempest/c3vector.h>
 #include <Tempest/cimvector.h>
 
-static NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
-static NTempest::C3Vector position[4] = {
-    NTempest::C3Vector(0.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(0.0f, 1.0f, 0.0f),
-    NTempest::C3Vector(1.0f, 1.0f, 0.0f)
-};
-static unsigned short     indices[4] = {0, 1, 2, 3};
-static NTempest::C2Vector texCoord[4] = {
-    NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(1.0f, 0.0f)
-};
+static unsigned short indices[4] = {0, 1, 2, 3};
 
 static unsigned int  s_fadingScreenEnabled;
 static unsigned int  s_drawingFadingScreen;
@@ -63,6 +55,16 @@ void FadingScreenCleanup() {
 }
 
 void FadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
+  static NTempest::C3Vector position[4] = {
+      NTempest::C3Vector(0.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f),
+      NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f)
+  };
+  static NTempest::C2Vector texCoord[4] = {
+      NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f),
+      NTempest::C2Vector(1.0f, 0.0f)
+  };
+  static NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
+
   float               elapsed = 0.0f;
   NTempest::CImVector color(0xFFFFFFFF);
   unsigned int        fadeComplete = 0;

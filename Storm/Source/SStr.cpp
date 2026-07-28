@@ -246,9 +246,6 @@ const char *SStrChr(const char *string, char ch) {
   char current;
 
   FATALASSERT(string);
-  if (!string) {
-    return NULL;
-  }
 
   current = *string;
   while (current) {
@@ -354,9 +351,6 @@ char *APIENTRY SStrDupA(LPCSTR string, LPCSTR fileName, unsigned int lineNumber)
   char *result;
 
   FATALASSERT(string);
-  if (!string) {
-    return NULL;
-  }
 
   bytes = SStrLen(string) + 1;
   result = (char *)SMemAlloc(bytes, fileName, lineNumber, 0);
@@ -375,9 +369,6 @@ extern "C" void APIENTRY SStrDestroy() {
 
 DWORD APIENTRY SStrLen(LPCSTR string) {
   FATALASSERT(string);
-  if (!string) {
-    return 0;
-  }
 
   {
     SSTR_INIT_DWORD_OPERATIONS;
@@ -394,9 +385,6 @@ DWORD APIENTRY SStrLen(const unsigned short *string) {
   const unsigned short *scan;
 
   FATALASSERT(string);
-  if (!string) {
-    return 0;
-  }
 
   scan = string;
   if (*scan) {
@@ -469,28 +457,16 @@ static int ISStrVPrintf(char *dest, unsigned int maxchars, LPCSTR format, char *
 DWORD __cdecl SStrPrintf(char *dest, DWORD maxchars, LPCSTR format, ...) {
   va_list args;
 
-  FATALASSERT(dest);
-  if (!dest) {
-    return 0;
-  }
-  FATALASSERT(format);
-  if (!format) {
-    return 0;
-  }
-
   va_start(args, format);
+  FATALASSERT(dest);
+  FATALASSERT(format);
+
   return ISStrVPrintf(dest, maxchars, format, (char *)args);
 }
 
 DWORD __cdecl SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, char *arglist) {
   FATALASSERT(dest);
-  if (!dest) {
-    return 0;
-  }
   FATALASSERT(format);
-  if (!format) {
-    return 0;
-  }
 
   return (DWORD)ISStrVPrintf(dest, maxchars, format, arglist);
 }
@@ -535,9 +511,6 @@ static inline int SStrParseInt(LPCSTR string) {
 
 int APIENTRY SStrToInt(LPCSTR string) {
   FATALASSERT(string);
-  if (!string) {
-    return 0;
-  }
 
   return SStrParseInt(string);
 }
@@ -588,9 +561,6 @@ __int64 APIENTRY SStrToInt64(LPCSTR string) {
   int              negative;
 
   FATALASSERT(string);
-  if (!string) {
-    return 0;
-  }
 
   result = 0;
   negative = FALSE;
@@ -752,9 +722,6 @@ __int64 APIENTRY SStrHash64(LPCSTR string, DWORD flags, __int64 seed) {
   __int64 adjust;
 
   FATALASSERT(string);
-  if (!string) {
-    return 0;
-  }
 
   result = seed;
   if (!result) {
@@ -911,13 +878,7 @@ const char *SStrStr(const char *string, const char *search) {
   DWORD searchLen;
 
   FATALASSERT(string);
-  if (!string) {
-    return NULL;
-  }
   FATALASSERT(search);
-  if (!search) {
-    return NULL;
-  }
 
   searchLen = SStrLen(search);
   while (*string) {
@@ -934,13 +895,7 @@ char *SStrStr(char *string, const char *search) {
   DWORD searchLen;
 
   FATALASSERT(string);
-  if (!string) {
-    return NULL;
-  }
   FATALASSERT(search);
-  if (!search) {
-    return NULL;
-  }
 
   searchLen = SStrLen(search);
   while (*string) {
@@ -957,13 +912,7 @@ const char *SStrStrI(const char *string, const char *search) {
   DWORD searchLen;
 
   FATALASSERT(string);
-  if (!string) {
-    return NULL;
-  }
   FATALASSERT(search);
-  if (!search) {
-    return NULL;
-  }
 
   searchLen = SStrLen(search);
   while (*string) {
@@ -980,13 +929,7 @@ char *SStrStrI(char *string, const char *search) {
   DWORD searchLen;
 
   FATALASSERT(string);
-  if (!string) {
-    return NULL;
-  }
   FATALASSERT(search);
-  if (!search) {
-    return NULL;
-  }
 
   searchLen = SStrLen(search);
   while (*string) {
@@ -1016,13 +959,7 @@ char *Int64ToString(__int64 num, char *buf, DWORD destsize) {
     *scan++ = '0';
   }
 
-  while (num) {
-    if (scan >= nbuf + destsize - 1) {
-      memset(buf, '*', destsize - 1);
-      buf[destsize - 1] = 0;
-      return buf;
-    }
-
+  while (num && scan < nbuf + destsize - 1) {
     *scan++ = (char)('0' + (int)(num % 10));
     num /= 10;
     if (++thou == 3) {
@@ -1033,8 +970,14 @@ char *Int64ToString(__int64 num, char *buf, DWORD destsize) {
     }
   }
 
+  if (num) {
+    memset(buf, '*', destsize - 1);
+    buf[destsize - 1] = 0;
+    return buf;
+  }
+
   out = buf;
-  while (scan > nbuf) {
+  while (scan >= nbuf) {
     *out++ = *--scan;
   }
   *out = 0;

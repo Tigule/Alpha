@@ -231,7 +231,7 @@ static bool EnableMusicHandler(CVar *cvar, const char *oldValue, const char *new
 static bool EnableSoundHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
   CVar *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
 
-  if (masterSoundEffects && masterSoundEffects->m_intValue && SStrToInt(newValue)) {
+  if (masterSoundEffects && masterSoundEffects->GetInt() && SStrToInt(newValue)) {
     Sound::MuteSFX(false);
   } else {
     Sound::MuteSFX(true);
@@ -264,7 +264,7 @@ static bool SoundGetParamValueInt(const char *parameter, int &value) {
     return false;
   }
 
-  value = cvar->m_intValue;
+  value = cvar->GetInt();
   return true;
 }
 
@@ -274,7 +274,7 @@ static bool SoundGetParamValueFloat(const char *parameter, float &value) {
     return false;
   }
 
-  value = cvar->m_floatValue;
+  value = cvar->GetFloat();
   return true;
 }
 
@@ -284,7 +284,7 @@ static bool SoundGetParamValueString(const char *parameter, const char *&value) 
     return false;
   }
 
-  value = cvar->m_stringValue;
+  value = cvar->GetString();
   return true;
 }
 
@@ -336,9 +336,9 @@ void SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, const CGItem_C *itemPtr)
 void SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, int itemDisplayID) {
   ASSERT(soundType < NUM_ITEMSOUNDS);
 
-  ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(itemDisplayID);
+  const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(itemDisplayID);
   if (displayInfo) {
-    ItemGroupSoundsRec *sounds = g_itemGroupSoundsDB.GetRecord(displayInfo->m_groupSoundIndex);
+    const ItemGroupSoundsRec *sounds = g_itemGroupSoundsDB.GetRecord(displayInfo->m_groupSoundIndex);
     if (sounds) {
       SndInterfacePlaySound(sounds->m_sound[soundType], -1);
     }
@@ -453,7 +453,7 @@ void SndInterfacePlayDeflectedSound(const NTempest::C3Vector &position) {
 }
 
 void SndInterfacePlayWeaponSwooshSound(WEAPONSWING_SOUNDTYPES soundType, int criticalHit, const NTempest::C3Vector &position, int missed) {
-  if (soundType >= NUM_WEAPONSWING_SOUNDTYPES) {
+  if (soundType >= NUM_WEAPONSWINGSOUNDTYPES) {
     return;
   }
 
@@ -506,7 +506,7 @@ void SndInterfaceInitializeVocalUISounds(unsigned int race, unsigned int sex) {
   }
 
   for (i = g_vocalUISoundsDB.GetNumRecords(); i; --i) {
-    VocalUISoundsRec *rec = g_vocalUISoundsDB.GetRecordByIndex(i - 1);
+    const VocalUISoundsRec *rec = g_vocalUISoundsDB.GetRecordByIndex(i - 1);
     FATALASSERT(rec);
 
     if (static_cast<unsigned int>(rec->m_vocalUIEnum) < 66 && static_cast<unsigned int>(rec->m_raceID) == race) {
@@ -524,10 +524,10 @@ void SndInterfaceInitializeVocalUISounds(unsigned int race, unsigned int sex) {
 
 void SndInterfacePlayVocalUISound(VOCALUISOUNDS soundType) {
   CVar *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
-  bool  soundEffectsEnabled = masterSoundEffects && masterSoundEffects->m_intValue;
+  bool  soundEffectsEnabled = masterSoundEffects && masterSoundEffects->GetInt();
   CVar *enableErrorSpeech = CVar::Lookup("EnableErrorSpeech");
 
-  if (!enableErrorSpeech || !enableErrorSpeech->m_intValue || soundType >= 66 || !soundEffectsEnabled) {
+  if (!enableErrorSpeech || !enableErrorSpeech->GetInt() || soundType >= 66 || !soundEffectsEnabled) {
     return;
   }
 
@@ -781,12 +781,12 @@ bool SndInterfacePlaySplashSound(unsigned int soundID, const NTempest::C3Vector 
 }
 
 void SndInterfacePlaySpellFizzleSound(unsigned int spellID, const CGUnit_C *caster) {
-  SpellRec *spellRec = g_spellDB.GetRecord(spellID);
+  const SpellRec *spellRec = g_spellDB.GetRecord(spellID);
   if (!spellRec) {
     return;
   }
 
-  ResistancesRec *resistance = g_resistancesDB.GetRecord(spellRec->m_school);
+  const ResistancesRec *resistance = g_resistancesDB.GetRecord(spellRec->m_school);
   if (resistance) {
     SndInterfacePlaySpellSound(resistance->m_FizzleSoundID, const_cast<CGUnit_C *>(caster));
   }

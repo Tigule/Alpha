@@ -15,7 +15,7 @@
 
 static HTEXTURE                  s_texture;
 static C4Pixel                   s_textureData[512 * 512];
-static TaxiPathRec              *s_taxiPathCosts[63][63];
+static const TaxiPathRec        *s_taxiPathCosts[63][63];
 static int                       s_continent = -1;
 static NTempest::CRect           s_taxiTextureRect;
 static NTempest::CRect           s_visibleWorldRect;
@@ -132,7 +132,7 @@ static void GenerateRouteInfo(__int64 allNodes, int currentContinent) {
 
   for (i = 0; i < 64; ++i) {
     __int64       mask = static_cast<__int64>(1) << i;
-    TaxiNodesRec *node = g_taxiNodesDB.GetRecord(i + 1);
+    const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(i + 1);
     if ((allNodes & mask) && (!node || node->m_ContinentID != currentContinent)) {
       allNodes &= ~mask;
     }
@@ -141,7 +141,7 @@ static void GenerateRouteInfo(__int64 allNodes, int currentContinent) {
   char grid[64][64];
   memset(grid, 0, sizeof(grid));
   for (i = g_taxiPathDB.GetNumRecords() - 1; i >= 0; --i) {
-    TaxiPathRec *path = g_taxiPathDB.GetRecordByIndex(i);
+    const TaxiPathRec *path = g_taxiPathDB.GetRecordByIndex(i);
     __int64      srcMask = static_cast<__int64>(1) << (path->m_FromTaxiNode - 1);
     __int64      dstMask = static_cast<__int64>(1) << (path->m_ToTaxiNode - 1);
     if ((allNodes & (srcMask | dstMask)) == (srcMask | dstMask)) {
@@ -162,8 +162,8 @@ static void GenerateRouteInfo(__int64 allNodes, int currentContinent) {
       if (!grid[i][j]) {
         continue;
       }
-      TaxiNodesRec *src = g_taxiNodesDB.GetRecord(i + 1);
-      TaxiNodesRec *dst = g_taxiNodesDB.GetRecord(j + 1);
+      const TaxiNodesRec *src = g_taxiNodesDB.GetRecord(i + 1);
+      const TaxiNodesRec *dst = g_taxiNodesDB.GetRecord(j + 1);
       FATALASSERT(src && dst);
       TAXILINE          *line = s_lines.New();
       NTempest::C2Vector srcPos(src->m_X, src->m_Y);
@@ -200,7 +200,7 @@ void TaxiMapInitialize() {
     memset(s_taxiPathCosts, 0, sizeof(s_taxiPathCosts));
 
     for (index = g_taxiPathDB.GetNumRecords() - 1; index >= 0; --index) {
-      TaxiPathRec *rec = g_taxiPathDB.GetRecordByIndex(index);
+      const TaxiPathRec *rec = g_taxiPathDB.GetRecordByIndex(index);
 
       ASSERT(rec);
       if (rec->m_FromTaxiNode && rec->m_ToTaxiNode && rec->m_FromTaxiNode <= 63 && rec->m_ToTaxiNode <= 63) {
@@ -242,7 +242,7 @@ HTEXTURE TaxiMapGetTexture() {
 }
 
 int TaxiMapUpdatePosition(int currentTaxiNode, __int64 reachable, __int64 known, NTempest::CRect &rect) {
-  TaxiNodesRec *currentNode = g_taxiNodesDB.GetRecord(currentTaxiNode);
+  const TaxiNodesRec *currentNode = g_taxiNodesDB.GetRecord(currentTaxiNode);
   if (currentTaxiNode >= 0 && currentNode && UpdateTexture(currentNode->m_ContinentID)) {
     s_currentTaxiNode = currentTaxiNode;
     s_currentReachable = reachable & known;
@@ -272,7 +272,7 @@ int TaxiMapUpdatePosition(int currentTaxiNode, __int64 reachable, __int64 known,
 
 unsigned int TaxiNodeCost(unsigned int srcNode, unsigned int dstNode) {
   if (srcNode && dstNode && srcNode <= 63 && dstNode <= 63) {
-    TaxiPathRec *path = s_taxiPathCosts[srcNode][dstNode];
+    const TaxiPathRec *path = s_taxiPathCosts[srcNode][dstNode];
     if (path) {
       return path->m_Cost;
     }
@@ -298,8 +298,8 @@ TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
     return TAXINODE_REACHABLE;
   }
 
-  TaxiNodesRec *node = g_taxiNodesDB.GetRecord(nodeID);
-  TaxiNodesRec *current = g_taxiNodesDB.GetRecord(s_currentTaxiNode);
+  const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(nodeID);
+  const TaxiNodesRec *current = g_taxiNodesDB.GetRecord(s_currentTaxiNode);
   if ((s_knownNodes & mask) && node && current && node->m_ContinentID == current->m_ContinentID) {
     return TAXINODE_DISTANT;
   }

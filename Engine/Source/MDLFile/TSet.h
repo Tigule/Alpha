@@ -5,7 +5,7 @@ class CMDLStatus;
 
 class TSet {
  public:
-  TSet() : m_count(0) {}
+  TSet() : count(0) {}
 
   void Add(unsigned int token, int needed, int allowDuplicates);
   int Check(unsigned int token);
@@ -14,15 +14,14 @@ class TSet {
   void Complete(CMDLStatus *status);
 
  private:
-  struct ENTRY {
+  struct {
     unsigned int token;
     int needed;
     int dupsOk;
     int seen;
-  };
+  } set[64];
 
-  ENTRY m_set[64];
-  int m_count;
+  int count;
 };
 
 #endif

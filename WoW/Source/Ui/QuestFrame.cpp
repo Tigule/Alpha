@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "QuestFrame.h"
 
 #include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/DBClient.h"
@@ -24,39 +25,6 @@
 static const float MAX_SHOP_DISTANCE = 5.5555553f;
 static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
 
-enum QUEST_STATE {
-  QUEST_GREETING = 0,
-  QUEST_DETAIL = 1,
-  QUEST_PROGRESS = 2,
-  QUEST_REWARD = 3,
-  QUEST_STATE_NUM_TYPES = 4
-};
-
-class QuestInfo {
- public:
-  int  id;
-  int  level;
-  char name[64];
-  int  turnIn;
-
-  void Clear();
-};
-
-class QuestItemInfo {
- public:
-  int rewardItemID;
-  int rewardDisplayID;
-  int rewardAmount;
-  int choiceItemID;
-  int choiceDisplayID;
-  int choiceAmount;
-  int requiredItemID;
-  int requiredDisplayID;
-  int requiredAmount;
-
-  void Clear();
-};
-
 bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
 
 static void QuestItemStatsCallback(int, const unsigned __int64 &, void *, bool granted) {
@@ -64,138 +32,6 @@ static void QuestItemStatsCallback(int, const unsigned __int64 &, void *, bool g
     FrameScript_SignalEvent(280);
   }
 }
-
-class CGQuestInfo {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void SetState(unsigned __int64 guid, QUEST_STATE state, const char *text, int quest);
-  static void SetLogDescription(const char *desc);
-  static void AddQuest(int quest, const char *desc, int questLevel, int turnIn);
-  static void AddQuestInProgress(int quest, const char *desc, int questLevel);
-  static void EndQuestList();
-  static void AddReward(
-      const char *title,
-      int        *itemChoice,
-      int        *choiceDisplay,
-      int        *choiceAmount,
-      int         numChoice,
-      int        *itemReward,
-      int        *itemDisplay,
-      int        *itemAmount,
-      int         numReward,
-      int         money,
-      int         autoLaunched
-  );
-  static void
-  AddItemRequest(const char *title, int *items, int *itemAmount, int *itemDisplay, int numItems, int completed, int autoLaunched);
-  static void QuestGiverFinished();
-  static const unsigned __int64 &GetQuestGiver();
-  static int GetCurrentQuest() {
-    return m_currentQuest;
-  }
-  static int IsCompletable();
-  static int GetLastChosenItem();
-  static void ClearLastChosenItem();
-  static const char *GetTitleText() {
-    return m_questTitle;
-  }
-  static const char *GetGreetingText() {
-    return m_greetingText;
-  }
-  static const char *GetQuestText() {
-    return m_questText;
-  }
-  static const char *GetQuestLogText() {
-    return m_questLogText;
-  }
-  static const char *GetProgressText() {
-    return m_progressText;
-  }
-  static const char *GetRewardText() {
-    return m_rewardText;
-  }
-  static void QueryQuest(unsigned int index);
-  static void CompleteQuest(unsigned int index);
-  static void AcceptQuest();
-  static void DeclineQuest();
-  static void GiveQuestItems();
-  static int GetReward(int choice);
-  static int GetRewardMoney() {
-    return m_rewardMoney;
-  }
-  static unsigned int GetNumQuestRewards();
-  static unsigned int GetNumQuestChoices();
-  static unsigned int GetNumQuestItems();
-  static int GetQuestItemInfo(
-      const char   *type,
-      unsigned int  index,
-      char         *name,
-      unsigned int  nameSize,
-      char         *texture,
-      unsigned int  textureSize,
-      unsigned int &amount,
-      int          &quality,
-      int          &usable
-  );
-  static int GetQuestItemID(const char *type, unsigned int index);
-  static void ConfirmAcceptQuest(int questID, const char *questTitle, const unsigned __int64 &initiatedBy);
-  static int GetPendingConfirmQuest() {
-    return m_pendingQuest;
-  }
-  static int GetNumQuests() {
-    return m_numQuests;
-  }
-  static int GetNumInProgress() {
-    return m_numInProgress;
-  }
-  static const char *GetQuestName(unsigned int index) {
-    return index < m_numQuests ? m_quests[index].name : 0;
-  }
-  static const char *GetInProgressName(unsigned int index) {
-    return index < m_numInProgress ? m_inProgress[index].name : 0;
-  }
-  static int GetQuestLevel(unsigned int index) {
-    return index < m_numQuests ? m_quests[index].level : 0;
-  }
-  static int GetInProgressLevel(unsigned int index) {
-    return index < m_numInProgress ? m_inProgress[index].level : 0;
-  }
-
- private:
-  static void ClearQuests() {
-    memset(m_quests, 0, sizeof(m_quests));
-    memset(m_inProgress, 0, sizeof(m_inProgress));
-    m_numQuests = 0;
-    m_numInProgress = 0;
-  }
-
-  static void ClearItems() {
-    memset(m_questItems, 0, sizeof(m_questItems));
-    m_questTitle[0] = 0;
-  }
-
- protected:
-  static unsigned __int64 m_npc;
-  static QUEST_STATE      m_state;
-  static int              m_currentQuest;
-  static int              m_completable;
-  static int              m_autoLaunched;
-  static int              m_lastChosenItem;
-  static int              m_rewardMoney;
-  static unsigned int     m_numQuests;
-  static unsigned int     m_numInProgress;
-  static QuestInfo        m_quests[8];
-  static QuestInfo        m_inProgress[8];
-  static QuestItemInfo    m_questItems[6];
-  static char             m_greetingText[256];
-  static char             m_questTitle[64];
-  static char             m_questText[1024];
-  static char             m_questLogText[1024];
-  static char             m_progressText[1024];
-  static char             m_rewardText[1024];
-  static int              m_pendingQuest;
-};
 
 unsigned __int64 CGQuestInfo::m_npc;
 QUEST_STATE      CGQuestInfo::m_state;
@@ -273,10 +109,10 @@ void CGQuestInfo::SetState(unsigned __int64 guid, QUEST_STATE state, const char 
     case QUEST_GREETING:
       SStrCopy(m_greetingText, parsed, sizeof(m_greetingText));
       break;
-    case QUEST_DETAIL:
+    case QUEST_OFFER:
       SStrCopy(m_questText, parsed, sizeof(m_questText));
       break;
-    case QUEST_PROGRESS:
+    case QUEST_ACCEPTED:
       SStrCopy(m_progressText, parsed, sizeof(m_progressText));
       break;
     case QUEST_REWARD:
@@ -375,7 +211,7 @@ void CGQuestInfo::AddReward(
   }
   m_rewardMoney = money;
   m_autoLaunched = autoLaunched;
-  FrameScript_SignalEvent(m_state == QUEST_DETAIL ? 278 : 280);
+  FrameScript_SignalEvent(m_state == QUEST_OFFER ? 278 : 280);
 }
 
 void CGQuestInfo::AddItemRequest(
@@ -415,18 +251,6 @@ void CGQuestInfo::QuestGiverFinished() {
     CGGameUI::ClearInteractTarget(m_npc);
     m_npc = 0;
   }
-}
-
-const unsigned __int64 &CGQuestInfo::GetQuestGiver() {
-  return m_npc;
-}
-
-int CGQuestInfo::GetLastChosenItem() {
-  return m_lastChosenItem;
-}
-
-void CGQuestInfo::ClearLastChosenItem() {
-  m_lastChosenItem = 0;
 }
 
 int CGQuestInfo::IsCompletable() {
@@ -471,7 +295,7 @@ void CGQuestInfo::CompleteQuest(unsigned int index) {
 }
 
 void CGQuestInfo::AcceptQuest() {
-  if (m_state != QUEST_DETAIL) {
+  if (m_state != QUEST_OFFER) {
     return;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -490,7 +314,7 @@ void CGQuestInfo::DeclineQuest() {
 }
 
 void CGQuestInfo::GiveQuestItems() {
-  if (m_state != QUEST_PROGRESS) {
+  if (m_state != QUEST_ACCEPTED) {
     return;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -787,7 +611,7 @@ static int Script_GetQuestItemInfo(lua_State *L) {
 }
 
 static int Script_QuestChooseRewardError(lua_State *__formal) {
-  CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(129));
+  CGGameUI::DisplayError(GERR_QUEST_MUST_CHOOSE);
   return 0;
 }
 

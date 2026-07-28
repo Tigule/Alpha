@@ -854,7 +854,7 @@ class CSBasePriorityQueue : public TSGrowableArray<void *> {
     Link(index)->SetQueuePosition(0, 0);
   }
 
-  int Compare(CSBasePriority *left, CSBasePriority *right) const {
+  int Compare(CSBasePriority *left, CSBasePriority *right) {
     return left->Compare(right);
   }
 
@@ -1757,7 +1757,7 @@ class TSHashTable {
   friend class CGameTime;
 
   virtual void InternalDelete(T *ptr);
-  virtual T   *InternalNew(TSExplicitList<T, -572662307> *list, unsigned long extrabytes, unsigned long flags);
+  virtual T   *InternalNew(LISTEXDYN(T) *list, unsigned long extrabytes, unsigned long flags);
 
   unsigned int ComputeSlot(unsigned int hashval) const {
     return hashval & m_slotmask;
@@ -1967,11 +1967,11 @@ class TSHashTable {
   }
 
  protected:
-  TSExplicitList<T, -572662307> m_fulllist;
+  LISTEXDYN(T) m_fulllist;
 
  private:
   unsigned int                                    m_fullnessIndicator;
-  TSGrowableArray<TSExplicitList<T, -572662307> > m_slotlistarray;
+  TSGrowableArray<LISTEXDYN(T) > m_slotlistarray;
   unsigned int                                    m_slotmask;
 };
 
@@ -1987,7 +1987,7 @@ class TSHashTableReuse : public TSHashTable<T, KEY> {
  private:
   void         Destructor();
   virtual void InternalDelete(T *ptr);
-  virtual T   *InternalNew(TSExplicitList<T, -572662307> *list, unsigned long extrabytes, unsigned long flags);
+  virtual T   *InternalNew(LISTEXDYN(T) *list, unsigned long extrabytes, unsigned long flags);
 
  public:
   TSHashTableReuse();
@@ -1995,7 +1995,7 @@ class TSHashTableReuse : public TSHashTable<T, KEY> {
   virtual void Destroy();
 
  private:
-  TSExplicitList<T, -572662307> m_reuseList;
+  LISTEXDYN(T) m_reuseList;
   unsigned long                 m_chunkSize;
   TSExplicitList<TSHashObjectChunk<T, KEY>, 20> m_chunkList;
 };
@@ -2061,7 +2061,7 @@ void TSHashTable<T, KEY>::InternalDelete(T *ptr) {
 }
 
 template <class T, class KEY>
-T *TSHashTable<T, KEY>::InternalNew(TSExplicitList<T, -572662307> *list, unsigned long extrabytes, unsigned long flags) {
+T *TSHashTable<T, KEY>::InternalNew(LISTEXDYN(T) *list, unsigned long extrabytes, unsigned long flags) {
   return list->NewNode(LIST_HEAD, extrabytes, flags);
 }
 
@@ -2222,7 +2222,7 @@ int TSHashTable<T, KEY>::MonitorFullness(unsigned int slot) {
 
 template <class T, class KEY>
 void TSHashTable<T, KEY>::GrowListArray(unsigned int newarraysize) {
-  TSExplicitList<T, -572662307> templist;
+  LISTEXDYN(T) templist;
   unsigned int                  oldarraysize = m_slotmask + 1;
   unsigned int                  index;
   T                            *ptr;
@@ -2269,7 +2269,7 @@ void TSHashTableReuse<T, KEY, REUSE>::InternalDelete(T *ptr) {
 }
 
 template <class T, class KEY, int REUSE>
-T *TSHashTableReuse<T, KEY, REUSE>::InternalNew(TSExplicitList<T, -572662307> *list, unsigned long extrabytes, unsigned long flags) {
+T *TSHashTableReuse<T, KEY, REUSE>::InternalNew(LISTEXDYN(T) *list, unsigned long extrabytes, unsigned long flags) {
   T     *ptr;
   TSHashObjectChunk<T, KEY> *chunk;
 

@@ -5,18 +5,18 @@ void CGxDeviceD3d::IShaderForceRecreation(int freeShaders) {
     return;
   }
 
-  CGxPixelShader *pixelShader = m_pixelShaderList.Head();
-  while (pixelShader) {
-    if (pixelShader->apiSpecific) {
-      reinterpret_cast<IDirect3DPixelShader9 *>(pixelShader->apiSpecific)->Release();
-      pixelShader->apiSpecific = 0;
+  {
+    ITERATELIST(CGxPixelShader, m_pixelShaderList, pixelShader) {
+      if (pixelShader->apiSpecific) {
+        reinterpret_cast<IDirect3DPixelShader9 *>(pixelShader->apiSpecific)->Release();
+        pixelShader->apiSpecific = 0;
+      }
     }
-    pixelShader = m_pixelShaderList.Next(pixelShader);
   }
 
-  CGxVertexShader *vertexShader = m_vertexShaderList.Head();
-  while (vertexShader) {
-    vertexShader = m_vertexShaderList.Next(vertexShader);
+  {
+    ITERATELIST(CGxVertexShader, m_vertexShaderList, vertexShader) {
+    }
   }
 }
 

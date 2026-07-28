@@ -468,13 +468,13 @@ CGWorldFrame::HIT_TYPE CGWorldFrame::HitTest(const NTempest::C3Vector &a, const 
     hitTestResult->object = 0;
     hitTestResult->point = a + direction * terrDist;
     hitTestResult->distance = terrDist;
-    return HIT_TERRAIN;
+    return HIT_GROUND;
   }
 
   hitTestResult->object = object;
   hitTestResult->point = a + direction * objDist;
   hitTestResult->distance = objDist;
-  return HIT_SPRITE;
+  return HIT_OBJECT;
 }
 
 unsigned int CGWorldFrame::GetHitTestFilterFlags() const {
@@ -523,7 +523,7 @@ CGWorldFrame::HIT_TYPE CGWorldFrame::HitTestPoint(float x, float y, HitTestResul
   NTempest::C3Vector b;
   if (hitFilter && GetLineSegment(x, y, &a, &b)) {
     hitType = HitTest(a, b, hitFilter, hitTestResult);
-    if (hitType < HIT_SPRITE) {
+    if (hitType < HIT_OBJECT) {
       MoveToFreeList(&m_filteredModels);
     }
   }
@@ -650,11 +650,11 @@ void CGWorldFrame::OnLayerUpdate(float elapsedSec) {
     HitTestResult hitTestResult;
     s_spellShadowStyle = SPELL_NONE;
     switch (HitTestPoint(mousePos.x, mousePos.y, &hitTestResult)) {
-      case HIT_TERRAIN:
+      case HIT_GROUND:
         OnLayerTrackTerrain(hitTestResult);
         break;
 
-      case HIT_SPRITE:
+      case HIT_OBJECT:
         OnLayerTrackObject(hitTestResult, mousePos.x, mousePos.y);
         break;
 
@@ -726,7 +726,7 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
       m_flags(0),
       m_camera(0),
       m_updateTimeStamp(0),
-      m_playerFadeMode(PLAYER_FADE_NONE),
+      m_playerFadeMode(PLAYERFADE_NONE),
       m_playerAlpha(255),
       m_cameraAlpha(255),
       m_cameraAlphaChanged(0) {
@@ -922,14 +922,14 @@ int CGWorldFrame::PerformDefaultAction(MOUSEBUTTON button, unsigned int timestam
 
   HitTestResult hitTestResult;
   HIT_TYPE      hitType = HitTestPoint(mousePos.x, mousePos.y, &hitTestResult);
-  if (hitType == HIT_TERRAIN) {
+  if (hitType == HIT_GROUND) {
     CTerrainClickEvent terrainClickEvent;
     terrainClickEvent.point = hitTestResult.point;
     terrainClickEvent.button = button;
     return CGGameUI::HandleTerrainClick(terrainClickEvent);
   }
 
-  if (hitType == HIT_SPRITE) {
+  if (hitType == HIT_OBJECT) {
     CSpriteClickEvent spriteClickEvent;
     spriteClickEvent.objectGUID = hitTestResult.object;
     spriteClickEvent.button = button;
@@ -1158,16 +1158,16 @@ void CGWorldFrame::UpdatePlayerAlpha(float elapsedSeconds) {
   if (m_cameraAlpha && (m_playerFadeMode || m_cameraAlphaChanged)) {
     if (m_playerFadeMode) {
       switch (m_playerFadeMode) {
-        case PLAYER_FADE_IN:
+        case PLAYERFADE_IN:
           FATALASSERT(s_playerFadeInRateCVar);
           m_playerAlpha += static_cast<int>(s_playerFadeInRateCVar->GetFloat() * elapsedSeconds);
           if (m_playerAlpha > 255) {
             m_playerAlpha = 255;
-            m_playerFadeMode = PLAYER_FADE_NONE;
+            m_playerFadeMode = PLAYERFADE_NONE;
           }
           break;
 
-        case PLAYER_FADE_OUT: {
+        case PLAYERFADE_OUT: {
           FATALASSERT(s_playerFadeOutRateCVar);
           FATALASSERT(s_playerFadeOutAlphaCVar);
           m_playerAlpha -= static_cast<int>(s_playerFadeOutRateCVar->GetFloat() * elapsedSeconds);
@@ -1177,7 +1177,7 @@ void CGWorldFrame::UpdatePlayerAlpha(float elapsedSeconds) {
           }
           if (m_playerAlpha < minAlpha) {
             m_playerAlpha = minAlpha;
-            m_playerFadeMode = PLAYER_FADE_NONE;
+            m_playerFadeMode = PLAYERFADE_NONE;
           }
           break;
         }
@@ -1197,9 +1197,9 @@ void CGWorldFrame::HandleUnitFade(int nowTracking, int immediateFade) {
   if (!s_playerFadeCVar || s_playerFadeCVar->GetInt()) {
     if (immediateFade) {
       m_playerAlpha = 255;
-      m_playerFadeMode = PLAYER_FADE_IN;
+      m_playerFadeMode = PLAYERFADE_IN;
     } else {
-      m_playerFadeMode = nowTracking ? PLAYER_FADE_OUT : PLAYER_FADE_IN;
+      m_playerFadeMode = nowTracking ? PLAYERFADE_OUT : PLAYERFADE_IN;
     }
   }
 }

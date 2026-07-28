@@ -164,7 +164,7 @@ void SndInterfaceSetProviderPrefs(unsigned int index, unsigned int indexUnderwat
     SaveDesc(s_descUnderwater, recUnderwater);
   }
 
-  if ((g_underWater && !(s_flags & 2)) || (!g_underWater && (s_flags & 3) != 3)) {
+  if ((g_underWater && !(s_flags & 2)) || (s_flags & 3) != 3) {
     const _FSOUND_REVERB_PROPERTIES defaultDesc = {
         0,     7.5f, 1.0f,  -10000, -10000, 0,       1.0f,   1.0f, 1.0f, -2602, 0.007f, {0.0f, 0.0f, 0.0f},
                                 200, 0.011f, {0.0f, 0.0f, 0.0f},

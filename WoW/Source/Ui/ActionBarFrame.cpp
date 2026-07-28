@@ -35,6 +35,7 @@ int Spell_C_NeedsCooldownEvent(const SpellRec *spell, int isPet);
 int Spell_C_NeedsCooldownEvent(int itemID);
 void Spell_C_StopTargeting();
 void Spell_C_CancelAura(int spellID);
+void UnitEffectPreloadSpellEffects(int spellID);
 const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
 
 class CGTradeSkillInfo {
@@ -57,7 +58,7 @@ class CGCraftInfo {
   static SPELL_CAST_UI_TYPE m_craftType;
 };
 
-int          CGActionBar::m_slotActions[120];
+int          CGActionBar::m_slotActions[NUM_ACTION_BUTTONS];
 unsigned int CGActionBar::m_bonusPage;
 
 void CGActionBar::InitializeGame() {
@@ -189,7 +190,7 @@ int CGActionBar::IsCurrentAction(int id) {
     return 1;
   }
 
-  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
     return 0;
   }
@@ -231,7 +232,7 @@ int CGActionBar::IsToggledAction(int id) {
     return 0;
   }
 
-  SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
+  const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
   if (!spell || !spell->m_activeIconID) {
     return 0;
   }
@@ -254,8 +255,8 @@ void CGActionBar::HideGrid() {
   FrameScript_SignalEvent(202);
 }
 
-inline void CGActionBar::SlotChanged(int id) {
-  FATALASSERT(id >= 0 && id < 120);
+void CGActionBar::SlotChanged(int id) {
+  FATALASSERT(id >= 0 && id < NUM_ACTION_BUTTONS);
 
   CDataStore msg;
   msg.Put(CMSG_SET_ACTION_BUTTON);
@@ -267,7 +268,7 @@ inline void CGActionBar::SlotChanged(int id) {
 }
 
 int CGActionBar::IsAttackAction(int id) {
-  SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
+  const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
   return spell && spell->m_effect[0] == 78;
 }
 
@@ -276,9 +277,20 @@ void CGActionBar::UpdateSelection() {
 }
 
 void CGActionBar::UpdateItem(int entryID) {
-  for (int id = 0; id < 120; ++id) {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
+    return;
+  }
+
+  int count = player->GetBag()->GetItemTypeCount(entryID, 0);
+
+  for (int id = 0; id < NUM_ACTION_BUTTONS; ++id) {
     if (GetItem(id) == entryID) {
-      FrameScript_SignalEvent(204, "%d", id + 1);
+      if (count > 0) {
+        SlotChanged(id);
+      } else {
+        RemoveAction(id);
+      }
     }
   }
 }
@@ -292,7 +304,7 @@ void CGActionBar::UpdateCooldowns() {
 }
 
 void CGActionBar::SetAction(int id, int action) {
-  if (static_cast<unsigned int>(id) >= 120) {
+  if (static_cast<unsigned int>(id) >= NUM_ACTION_BUTTONS) {
     return;
   }
 
@@ -311,9 +323,10 @@ void CGActionBar::SetAction(int id, int action) {
 }
 
 void CGActionBar::AddAction(int action) {
-  for (int id = 0; id < 120; ++id) {
+  for (int id = 0; id < NUM_ACTION_BUTTONS; ++id) {
     if (!m_slotActions[id]) {
-      SetAction(id, action);
+      m_slotActions[id] = action;
+      SlotChanged(id);
       return;
     }
   }
@@ -325,7 +338,7 @@ void CGActionBar::RemoveAction(int id) {
 }
 
 void CGActionBar::RemoveSpell(int spellID) {
-  for (unsigned int id = 0; id < 120; ++id) {
+  for (unsigned int id = 0; id < NUM_ACTION_BUTTONS; ++id) {
     if (m_slotActions[id] == spellID) {
       RemoveAction(id);
     }
@@ -333,7 +346,7 @@ void CGActionBar::RemoveSpell(int spellID) {
 }
 
 void CGActionBar::ReplaceSpell(int oldSpell, int newSpell) {
-  for (unsigned int id = 0; id < 120; ++id) {
+  for (unsigned int id = 0; id < NUM_ACTION_BUTTONS; ++id) {
     if (m_slotActions[id] == oldSpell) {
       RemoveAction(id);
       SetAction(id, newSpell);
@@ -343,7 +356,7 @@ void CGActionBar::ReplaceSpell(int oldSpell, int newSpell) {
 
 void CGActionBar::UseAction(int id, int checkCursor) {
   ASSERT(id >= 0);
-  ASSERT(id < 120);
+  ASSERT(id < NUM_ACTION_BUTTONS);
 
   if (checkCursor &&
       (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
@@ -377,7 +390,7 @@ void CGActionBar::UseAction(int id, int checkCursor) {
 
 void CGActionBar::PickupAction(int id) {
   ASSERT(id >= 0);
-  ASSERT(id < 120);
+  ASSERT(id < NUM_ACTION_BUTTONS);
 
   if (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
       (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR && CGGameUI::GetCursorVirtualItem()))
@@ -411,7 +424,9 @@ void CGActionBar::PutActionInSlot(int id) {
 
   if (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR) {
     cursorItem = static_cast<int>(CGGameUI::GetCursorVirtualItem());
-  } else {
+  }
+
+  if (!cursorItem && CGGameUI::GetCursorItem()) {
     CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGGameUI::GetCursorItem(), __FILE__, __LINE__));
     if (item) {
       cursorItem = item->GetEntryID();
@@ -420,7 +435,7 @@ void CGActionBar::PutActionInSlot(int id) {
 
   int oldAction = m_slotActions[id];
   if (cursorSpell > 0) {
-    SpellRec *spell = g_spellDB.GetRecord(cursorSpell);
+    const SpellRec *spell = g_spellDB.GetRecord(cursorSpell);
     if (!spell) {
       return;
     }
@@ -518,13 +533,13 @@ const char *CGActionBar::GetTexture(int id) {
   }
 
   if (IsSpell(id)) {
-    SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
+    const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
     if (!spell) {
       return 0;
     }
 
     int           iconID = IsToggledAction(id) ? spell->m_activeIconID : spell->m_spellIconID;
-    SpellIconRec *icon = g_spellIconDB.GetRecord(iconID);
+    const SpellIconRec *icon = g_spellIconDB.GetRecord(iconID);
     return icon ? icon->m_textureFilename : 0;
   }
 
@@ -542,14 +557,12 @@ int CGActionBar::GetCount(int id) {
     return 0;
   }
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
-  CGBag_C    *inventory = player ? player->GetBag() : 0;
-  return inventory ? inventory->GetItemTypeCount(GetItem(id), 0) : 0;
+  return player ? player->GetBag()->GetItemTypeCount(GetItem(id), 0) : 0;
 }
 
 void CGActionBar::GetCooldown(int id, unsigned long &startTime, unsigned int &duration, unsigned int &enable) {
   startTime = 0;
   duration = 0;
-  enable = 0;
   if (IsSpell(id)) {
     Spell_C_GetSpellCooldown(GetSpell(id), 0, &duration, &startTime, &enable);
   } else if (IsItem(id)) {
@@ -558,7 +571,16 @@ void CGActionBar::GetCooldown(int id, unsigned long &startTime, unsigned int &du
 }
 
 void CGActionBar::PrecacheButtonArt(int id) {
-  GetTexture(id);
+  int action = m_slotActions[id];
+  if (action > 0) {
+    UnitEffectPreloadSpellEffects(action);
+  } else if (action < 0) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    CGItem_C   *item = player ? player->GetBag()->FindItemOfType(-action, 0) : 0;
+    if (item) {
+      UnitEffectPreloadSpellEffects(item->GetUseSpell());
+    }
+  }
 }
 
 static int Script_GetActionTexture(lua_State *L) {

@@ -33,56 +33,53 @@ long SInterlockedCompareExchange(long *destPtr, long exchange, long comperand) {
 }
 
 __int64 SInterlockedIncrement(__int64 *valuePtr) {
-  __int64 result = ++*valuePtr;
-  return result;
+  return ++*valuePtr;
 }
 
 __int64 SInterlockedDecrement(__int64 *valuePtr) {
-  __int64 result = --*valuePtr;
-  return result;
+  return --*valuePtr;
 }
 
 __int64 SInterlockedExchangeAdd(__int64 *valuePtr, long delta) {
-  __int64 result = *valuePtr;
+  __int64 original = *valuePtr;
   *valuePtr += delta;
-  return result;
+  return original;
 }
 
 __int64 SInterlockedExchangeSub(__int64 *valuePtr, long delta) {
-  __int64 result = *valuePtr;
+  __int64 original = *valuePtr;
   *valuePtr -= delta;
-  return result;
+  return original;
 }
 
 __int64 SInterlockedExchangeAdd(__int64 *valuePtr, const __int64 &delta) {
-  __int64 result = *valuePtr;
+  __int64 original = *valuePtr;
   *valuePtr += delta;
-  return result;
+  return original;
 }
 
 __int64 SInterlockedExchangeSub(__int64 *valuePtr, const __int64 &delta) {
-  __int64 result = *valuePtr;
+  __int64 original = *valuePtr;
   *valuePtr -= delta;
-  return result;
+  return original;
 }
 
 __int64 SInterlockedRead(const __int64 *sourcePtr) {
-  __int64 result = *sourcePtr;
-  return result;
+  return *sourcePtr;
 }
 
 __int64 SInterlockedExchange(__int64 *destPtr, const __int64 &exchange) {
-  __int64 result = *destPtr;
+  __int64 original = *destPtr;
   *destPtr = exchange;
-  return result;
+  return original;
 }
 
 __int64 SInterlockedCompareExchange(__int64 *destPtr, const __int64 &exchange, const __int64 &comperand) {
-  __int64 result = *destPtr;
-  if (result == comperand) {
+  __int64 original = *destPtr;
+  if (original == comperand) {
     *destPtr = exchange;
   }
-  return result;
+  return original;
 }
 
 void SInterlockedIncrementNonAtomic(__int64 *valuePtr) {

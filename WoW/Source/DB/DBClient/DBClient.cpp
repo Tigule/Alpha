@@ -223,16 +223,10 @@ static unsigned int                          s_firstNonPhysicalDamageClass = -1;
 static TSFixedArray<const ResistancesRec *>  s_damageTypeRecordIDs;
 static TSFixedArray<unsigned int>            s_terrainSoundType;
 static TSFixedArray<const ItemSubClassRec *> s_weaponSubClasses;
-static ItemClassRec                         *s_weaponClassRecPtr;
-static ItemSubClassRec                      *s_unarmedWeaponSubclass;
-static SoundProviderPreferencesRec          *s_defaultOutdoorProviderPrefs;
-static SoundProviderPreferencesRec          *s_defaultIndoorProviderPrefs;
-
-enum {
-  NUM_WEAPONPARRYSEQS = 4,
-  NUM_WEAPONREADYSEQS = 6,
-  NUM_WEAPONATTACKSEQS = 6
-};
+static const ItemClassRec                   *s_weaponClassRecPtr;
+static const ItemSubClassRec                *s_unarmedWeaponSubclass;
+static const SoundProviderPreferencesRec    *s_defaultOutdoorProviderPrefs;
+static const SoundProviderPreferencesRec    *s_defaultIndoorProviderPrefs;
 
 void StaticDBLoadAll();
 void CheckDamageClassConsistency();
@@ -312,7 +306,7 @@ static void LocateWeaponSubclass() {
   int i;
   s_weaponClassRecPtr = 0;
   for (i = g_itemClassDB.GetNumRecords(); i;) {
-    ItemClassRec *rec = g_itemClassDB.GetRecordByIndex(--i);
+    const ItemClassRec *rec = g_itemClassDB.GetRecordByIndex(--i);
     ASSERT(rec);
 
     if (rec->m_flags & 1) {
@@ -337,14 +331,14 @@ void InitWeaponSubclasses() {
   weaponClass = s_weaponClassRecPtr->m_classID;
 
   for (i = g_itemSubClassDB.GetNumRecords(); i;) {
-    ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(--i);
+    const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(--i);
     if (rec->m_classID == weaponClass && numWeaponSubclasses <= rec->m_subClassID + 1) {
       numWeaponSubclasses = rec->m_subClassID + 1;
     }
   }
   s_weaponSubClasses.SetCount(numWeaponSubclasses);
   for (i = g_itemSubClassDB.GetNumRecords(); i;) {
-    ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(--i);
+    const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(--i);
 
     if (rec->m_classID == weaponClass) {
       s_weaponSubClasses[rec->m_subClassID] = rec;
@@ -377,7 +371,7 @@ void InitSoundProviderPreferences() {
   s_defaultIndoorProviderPrefs = 0;
 
   for (i = g_soundProviderPreferencesDB.GetNumRecords(); i;) {
-    SoundProviderPreferencesRec *rec = g_soundProviderPreferencesDB.GetRecordByIndex(--i);
+    const SoundProviderPreferencesRec *rec = g_soundProviderPreferencesDB.GetRecordByIndex(--i);
     ASSERT(rec);
     if (rec->m_Flags & 1) {
       ASSERT(!s_defaultOutdoorProviderPrefs);

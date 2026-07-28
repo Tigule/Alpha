@@ -575,6 +575,14 @@ void CalcGeosetColor(
   }
 }
 
+int CAnimBoneObj::IsVisible(const CAnim &anim) const {
+  if (geosetId == 0xFF) {
+    return 1;
+  }
+
+  return anim.geosetStatus[geosetId].base.flags & 1;
+}
+
 static int PickRandomSequence(const CVariations &selection, const CArray<CAnimSequence> &seqs) {
   if (!selection.variation.Count()) {
     return selection.primary;

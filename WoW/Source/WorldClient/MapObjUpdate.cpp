@@ -1,7 +1,47 @@
 #include "WorldClient/CMapObj.h"
 
+#include "Gx/Gx.h"
+#include "Images/blit.h"
 #include "Services/SysMessage.h"
 #include "Services/Texture.h"
+
+void CMapObjGroup::UpdateLightmapTex(
+    EGxTexCommand cmd,
+    unsigned int  w,
+    unsigned int  h,
+    unsigned int  d,
+    unsigned int  mipLevel,
+    void         *userArg,
+    unsigned int &texelStrideInBytes,
+    const void  *&texels
+) {
+  SMOLightmapTex *lightmapTex = static_cast<SMOLightmapTex *>(userArg);
+  FATALASSERT(lightmapTex);
+
+  if (cmd == GxTex_Latch) {
+    texelStrideInBytes = CalcRowStride(GxGetBlitFormat(LIGHTMAP_FORMAT), w);
+    texels = lightmapTex->texels;
+  }
+}
+
+void CMapObjGroup::CreateLightmaps() {
+  lightmapTexFlushTime = 30.0f;
+
+  for (unsigned int i = 0; i < lightmapTexCount; ++i) {
+    SMOLightmapTex &lightmapTex = lightmapTexList[i];
+    if (!lightmapTex.hTexture) {
+      EGxTexFormat format = LIGHTMAP_FORMAT;
+      if (!GxCaps().m_texFmtDxt) {
+        format = GxTex_Rgb565;
+      }
+
+      CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
+      lightmapTex.hTexture = TextureCreate("Lightmap", 256, 256, format, LIGHTMAP_FORMAT, flags);
+      CGxTex *texture = TextureGetGxTex(lightmapTex.hTexture, 1, 0);
+      GxTexSetUserData(texture, UpdateLightmapTex, &lightmapTex);
+    }
+  }
+}
 
 void CMapObjGroup::FreeLightmaps() {
   unsigned int freed = 0;

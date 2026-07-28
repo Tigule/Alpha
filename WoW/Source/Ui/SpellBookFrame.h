@@ -3,10 +3,13 @@
 
 #include <WowServices/BitField.h>
 
+#define MAXIMUM_LEARNED_SPELLS 1024
+
 enum UI_SPELL_TYPE {
   PLAYER_SPELL = 0,
   PLAYER_ABILITY = 1,
-  PET_SPELL = 2
+  PET_SPELL = 2,
+  NUM_SPELL_TYPES = 3
 };
 
 class CGSpellBook {
@@ -16,8 +19,17 @@ class CGSpellBook {
   static void InitializeGame();
   static void ShutdownGame();
   static void ClearSpells();
-  static unsigned char IsSpellKnown(int spellID);
-  static unsigned char IsPetSpellKnown(int spellID);
+  static unsigned char IsSpellKnown(int spellID) {
+    return m_knownSpellBits.IsBitSet(spellID);
+  }
+  static unsigned char IsPetSpellKnown(int spellID) {
+    for (unsigned int i = 0; i < MAXIMUM_LEARNED_SPELLS; ++i) {
+      if (m_petSpells[i] == spellID) {
+        return 1;
+      }
+    }
+    return 0;
+  }
   static void ClearPetSpells();
   static void AddPetSpell(int spellID);
   static void                    SetKnowsPetSpells() {
@@ -41,7 +53,18 @@ class CGSpellBook {
   static void DelKnownSpell(int spellID);
   static void PickupSpell(int slot, UI_SPELL_TYPE type);
   static void CastSpell(int slot, UI_SPELL_TYPE type);
-  static int GetSpell(unsigned int slot, UI_SPELL_TYPE type);
+  static int GetSpell(unsigned int slot, UI_SPELL_TYPE type) {
+    if (slot >= MAXIMUM_LEARNED_SPELLS) {
+      return 0;
+    }
+    if (type == PLAYER_SPELL) {
+      return m_knownSpells[slot];
+    }
+    if (type == PLAYER_ABILITY) {
+      return m_knownAbilities[slot];
+    }
+    return type == PET_SPELL ? m_petSpells[slot] : 0;
+  }
   static int IsSelectedSlot(int slot, UI_SPELL_TYPE type);
   static int IsToggledSpell(int slot, UI_SPELL_TYPE type);
   static const TSGrowableArray<int> &GetUnlockSpells();
@@ -57,9 +80,9 @@ class CGSpellBook {
 
  private:
   static FBitField            m_knownSpellBits;
-  static int                  m_knownSpells[1024];
-  static int                  m_knownAbilities[1024];
-  static int                  m_petSpells[1024];
+  static int                  m_knownSpells[MAXIMUM_LEARNED_SPELLS];
+  static int                  m_knownAbilities[MAXIMUM_LEARNED_SPELLS];
+  static int                  m_petSpells[MAXIMUM_LEARNED_SPELLS];
   static int                  m_duelSpell;
   static int                  m_stuckSpell;
   static TSFixedArray<int>    m_languageSpells;

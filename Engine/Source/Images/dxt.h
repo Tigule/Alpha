@@ -4,6 +4,24 @@
 #include "Tempest/cimvector.h"
 
 struct C4Pixel {
+  C4Pixel() {
+  }
+
+  C4Pixel(unsigned int color) {
+    *reinterpret_cast<unsigned int *>(this) = color;
+  }
+
+  C4Pixel(unsigned char b, unsigned char g, unsigned char r, unsigned char a) : b(b), g(g), r(r), a(a) {
+  }
+
+  unsigned int BitDepth() const {
+    return 8;
+  }
+
+  operator unsigned int() {
+    return *reinterpret_cast<unsigned int *>(this);
+  }
+
   unsigned char b;
   unsigned char g;
   unsigned char r;
@@ -11,10 +29,31 @@ struct C4Pixel {
 };
 
 struct C4LargePixel {
-  int b;
-  int g;
-  int r;
-  int a;
+  C4LargePixel() {
+  }
+
+  C4LargePixel(unsigned int value) : b(value), g(value), r(value), a(value) {
+  }
+
+  C4LargePixel(long b, long g, long r, long a) : b(b), g(g), r(r), a(a) {
+  }
+
+  C4LargePixel &operator+=(const C4LargePixel &value) {
+    b += value.b;
+    g += value.g;
+    r += value.r;
+    a += value.a;
+    return *this;
+  }
+
+  unsigned int BitDepth() const {
+    return 32;
+  }
+
+  long b;
+  long g;
+  long r;
+  long a;
 };
 
 struct DxtBlock {
@@ -24,7 +63,7 @@ struct DxtBlock {
   };
 };
 
-struct DxtColorBlock {
+struct DxtColorBlock : public DxtBlock {
   enum {
     BPP = 2,
     PIXEL_LSB_MASK = 3
@@ -46,11 +85,11 @@ struct DxtColorBlock {
   unsigned char     row[DxtBlock::ROWS];
 };
 
-struct Dxt1Block {
+struct Dxt1Block : public DxtBlock {
   DxtColorBlock color;
 };
 
-struct Dxt3AlphaBlock {
+struct Dxt3AlphaBlock : public DxtBlock {
   enum {
     BPP = 4,
     PIXEL_LSB_MASK = 15
@@ -59,7 +98,7 @@ struct Dxt3AlphaBlock {
   unsigned short row[DxtBlock::ROWS];
 };
 
-struct Dxt3Block {
+struct Dxt3Block : public DxtBlock {
   Dxt3AlphaBlock alpha;
   DxtColorBlock  color;
 };
@@ -71,6 +110,9 @@ struct DxtRect {
   DxtRect(unsigned int left, unsigned int top, unsigned int right, unsigned int bottom, unsigned int width, unsigned int height)
       : l(left), t(top), r(right), b(bottom), w(width), h(height) {
   }
+
+  DxtRect(unsigned int left, unsigned int top, unsigned int right, unsigned int bottom);
+  void Check();
 
   unsigned int l;
   unsigned int t;

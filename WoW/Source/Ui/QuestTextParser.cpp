@@ -94,7 +94,7 @@ bool QuestParserReplaceText(char *buf, unsigned int size, const unsigned __int64
     case 'C':
     case 'c': {
       unsigned int   classID = unit ? unit->GetUnitData()->classId : nc->m_race;
-      ChrClassesRec *classRec = g_chrClassesDB.GetRecord(classID);
+      const ChrClassesRec *classRec = g_chrClassesDB.GetRecord(classID);
       SStrCopy(classStr, classRec->m_name_lang[CURRENT_LANGUAGE], sizeof(classStr));
       if (*token == 'c') {
         SStrLower(classStr);
@@ -120,7 +120,7 @@ bool QuestParserReplaceText(char *buf, unsigned int size, const unsigned __int64
       if (!(unit->GetType() & TYPE_PLAYER)) {
         SStrPack(buf, unit->GetUnitName(), size);
       } else {
-        ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(unit->GetUnitData()->race);
+        const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(unit->GetUnitData()->race);
         SStrCopy(race, raceRec->m_name_lang[CURRENT_LANGUAGE], sizeof(race));
         if (*token == 'r') {
           SStrLower(race);

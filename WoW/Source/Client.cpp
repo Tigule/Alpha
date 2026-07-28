@@ -299,8 +299,8 @@ static int DebugAIStateHandler(void *, NETMESSAGE msgID, unsigned long timestamp
 static int MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
   if (CMovement::ToggleFallLogging()) {
     SysMsgAdd("MOVEMENT|Movement fall logging started", SYSMSG_INFO, 1);
-    if (CGUnit_C::m_activeMover) {
-      CMovement::FallLogWrite("Local mover guid (0x%016I64X)\n", CGUnit_C::m_activeMover);
+    if (CGUnit_C::GetActiveMover()) {
+      CMovement::FallLogWrite("Local mover guid (0x%016I64X)\n", CGUnit_C::GetActiveMover());
     }
 
     unsigned __int64 guid = ClntObjMgrGetActivePlayer();
@@ -319,8 +319,8 @@ static int MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned lo
 static int MovementLoggingHandler(void *param, NETMESSAGE msgID, unsigned long time, CDataStore *msg) {
   if (CMovement::ToggleLogging()) {
     SysMsgAdd("MOVEMENT|Movement logging started", SYSMSG_INFO, 1);
-    if (CGUnit_C::m_activeMover) {
-      CMovement::LogWrite("Local mover guid (0x%016I64X)\n", CGUnit_C::m_activeMover);
+    if (CGUnit_C::GetActiveMover()) {
+      CMovement::LogWrite("Local mover guid (0x%016I64X)\n", CGUnit_C::GetActiveMover());
     }
   } else {
     SysMsgAdd("MOVEMENT|Movement logging stopped", SYSMSG_INFO, 1);

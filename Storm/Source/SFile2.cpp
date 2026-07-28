@@ -21,7 +21,7 @@ int ZipFileFileExists(const char *filename);
 int ZipFileList(unsigned long archive, int(*cb)(const char *filename, void *param), void *param);
 void __cdecl             SOutputDebugString(const char *format, ...);
 
-class ASYNCREAD : public TSLinkedNode<ASYNCREAD> {
+NODEDECL(ASYNCREAD) {
  public:
   SFile       *fileptr;
   void        *buffer;
@@ -860,7 +860,11 @@ DWORD APIENTRY SFile::Close(SFile *file) {
 
 int APIENTRY SFile::GetActualFileName(SFile *file, char *buffer, DWORD bufferchars) {
   ASSERT(file);
-  SStrCopy(buffer, file->m_actualname ? file->m_actualname : file->m_filename, bufferchars);
+  if (file->m_actualname) {
+    SStrCopy(buffer, file->m_actualname, bufferchars);
+  } else {
+    SStrCopy(buffer, file->m_filename, bufferchars);
+  }
   return TRUE;
 }
 

@@ -83,7 +83,7 @@ void CGPetInfo::ClearActions() {
 }
 
 void CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
-  FATALASSERT(index < sizeof(m_actions) / sizeof(m_actions[0]));
+  FATALASSERT(index < (sizeof(m_actions) / sizeof(m_actions[0])));
 
   unsigned int &rawAction = action;
   unsigned int  actionType = rawAction >> 24 & 0x3F;
@@ -91,7 +91,7 @@ void CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
     return;
   }
   if (actionType == 1) {
-    SpellRec *spell = g_spellDB.GetRecord(rawAction & 0xFFFF);
+    const SpellRec *spell = g_spellDB.GetRecord(rawAction & 0xFFFF);
     if (!spell || spell->m_attributes & 0x40) {
       return;
     }
@@ -169,12 +169,12 @@ void CGPetInfo::PutActionInSlot(PetAction &action, unsigned int slot) {
 }
 
 const char *CGPetInfo::GetModeToken(unsigned int id) {
-  FATALASSERT(id < sizeof(s_petModeTokens) / sizeof(s_petModeTokens[0]));
+  FATALASSERT(id < (sizeof(s_petModeTokens) / sizeof(s_petModeTokens[0])));
   return s_petModeTokens[id];
 }
 
 const char *CGPetInfo::GetOrdersToken(unsigned int id) {
-  FATALASSERT(id < sizeof(s_petOrdersTokens) / sizeof(s_petOrdersTokens[0]));
+  FATALASSERT(id < (sizeof(s_petOrdersTokens) / sizeof(s_petOrdersTokens[0])));
   return s_petOrdersTokens[id];
 }
 
@@ -323,8 +323,8 @@ static int Script_GetPetActionInfo(lua_State *L) {
     return 7;
   }
   if (type >= 1 && type <= 5) {
-    SpellRec     *spell = g_spellDB.GetRecord(raw & 0xFFFF);
-    SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
+    const SpellRec     *spell = g_spellDB.GetRecord(raw & 0xFFFF);
+    const SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
     if (spell)
       lua_pushstring(L, spell->m_name_lang[CURRENT_LANGUAGE]);
     else

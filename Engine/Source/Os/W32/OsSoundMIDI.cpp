@@ -10,6 +10,10 @@ typedef unsigned long DWORD_PTR;
 #include <dmusici.h>
 
 struct ASYNCLOADER {
+  ASYNCLOADER() : asyncLoader(0) {}
+  ASYNCLOADER(const ASYNCLOADER &);
+  ~ASYNCLOADER();
+
   CAsyncObject         *asyncLoader;
   TSGrowableArray<char> buffer;
 
@@ -498,4 +502,9 @@ void ASYNCLOADER::Clear() {
       SFile::Close(file);
     }
   }
+}
+
+ASYNCLOADER::~ASYNCLOADER() {
+  buffer.Clear();
+  Clear();
 }

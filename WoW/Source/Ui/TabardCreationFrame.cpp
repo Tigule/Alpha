@@ -1,3 +1,5 @@
+#include "TabardCreationFrame.h"
+
 #include "GameUI.h"
 #include "Game/GameClient/GuildClient.h"
 
@@ -8,21 +10,6 @@
 static const float MAX_SHOP_DISTANCE = 5.5555553f;
 static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
 
-class CGTabardCreationFrame {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void Open(const unsigned __int64 &vendor);
-  static void Close();
-  static void ClearVendor() {
-    m_vendor = 0;
-  }
-  static unsigned __int64 GetVendor();
-
- private:
-  static unsigned __int64 m_vendor;
-};
-
 unsigned __int64 CGTabardCreationFrame::m_vendor;
 
 void CGTabardCreationFrame::EnterWorld() {
@@ -31,10 +18,6 @@ void CGTabardCreationFrame::EnterWorld() {
 
 void CGTabardCreationFrame::LeaveWorld() {
   Close();
-}
-
-unsigned __int64 CGTabardCreationFrame::GetVendor() {
-  return m_vendor;
 }
 
 void CGTabardCreationFrame::Open(const unsigned __int64 &vendor) {

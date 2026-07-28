@@ -204,20 +204,27 @@ class CHuffmanDecoder : public CHuffman {
   _CACHEREC m_cache[0x80];
 };
 
-struct ZLIB_BUFFER {
-  BYTE *current;
-  DWORD size;
-  BYTE *base;
+struct ZlibAllocBufferHeader {
+  BYTE *nextPtr;
+  DWORD bufSize;
+  BYTE *bufStart;
 };
 
-struct ZlibUncompressAllocBuffer {
-  ZLIB_BUFFER arena;
-  BYTE        workspace[47000];
+struct ZlibUncompressAllocBuffer : ZlibAllocBufferHeader {
+  BYTE buf[47000];
 };
 
-struct ZlibCompressAllocBuffer {
-  ZLIB_BUFFER arena;
-  BYTE        workspace[300000];
+struct ZlibCompressAllocBuffer : ZlibAllocBufferHeader {
+  BYTE buf[300000];
+};
+
+struct _PKWAREINFO {
+  void          *dest;
+  unsigned long  destpos;
+  unsigned long  destsize;
+  const void    *source;
+  unsigned long  sourcepos;
+  unsigned long  sourcesize;
 };
 
 CBitInput::CBitInput(const void *source) {
@@ -913,17 +920,27 @@ namespace {
 static void
 HuffmanCompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, unsigned long *hint, unsigned long optimization);
 
-static unsigned int PkwareBufferRead(char *buffer, unsigned int *size, void *param) {
-  (void)buffer;
-  (void)size;
-  (void)param;
-  return 0;
+static unsigned int __cdecl PkwareBufferRead(char *buffer, unsigned int *size, void *param) {
+  _PKWAREINFO *info = (_PKWAREINFO *)param;
+  unsigned int readsize = info->sourcesize - info->sourcepos;
+
+  if (*size < readsize) {
+    readsize = *size;
+  }
+  memcpy(buffer, (const BYTE *)info->source + info->sourcepos, readsize);
+  info->sourcepos += readsize;
+  return readsize;
 }
 
-static void PkwareBufferWrite(char *buffer, unsigned int *size, void *param) {
-  (void)buffer;
-  (void)size;
-  (void)param;
+static void __cdecl PkwareBufferWrite(char *buffer, unsigned int *size, void *param) {
+  _PKWAREINFO *info = (_PKWAREINFO *)param;
+  unsigned int writesize = *size;
+
+  if (*size >= info->destsize - info->destpos) {
+    writesize = info->destsize - info->destpos;
+  }
+  memcpy((BYTE *)info->dest + info->destpos, buffer, writesize);
+  info->destpos += writesize;
 }
 
 static void
@@ -946,28 +963,28 @@ static void PkwareDecompress(void *dest, unsigned long *destsize, const void *so
 }
 
 static void *ZlibAlloc(void *opaque, unsigned int items, unsigned int size) {
-  ZLIB_BUFFER *arena = (ZLIB_BUFFER *)opaque;
-  DWORD        bytes;
-  BYTE        *result;
+  ZlibAllocBufferHeader *buffer = (ZlibAllocBufferHeader *)opaque;
+  DWORD                  bytes;
+  BYTE                  *result;
 
-  if (!arena) {
+  if (!buffer) {
     SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "buffer", FALSE, 1);
   }
   bytes = items * size;
   if (bytes & 3) {
     bytes += 4 - (bytes & 3);
   }
-  result = arena->current;
-  if (bytes < arena->base + arena->size - result) {
-    arena->current += bytes;
+  result = buffer->nextPtr;
+  if (bytes < buffer->bufStart + buffer->bufSize - result) {
+    buffer->nextPtr += bytes;
     return result;
   }
   return SMemAlloc(bytes, __FILE__, __LINE__, 0);
 }
 
 static void ZlibFree(void *opaque, void *ptr) {
-  ZLIB_BUFFER *arena = (ZLIB_BUFFER *)opaque;
-  if ((BYTE *)ptr < arena->base || (BYTE *)ptr >= arena->base + arena->size) {
+  ZlibAllocBufferHeader *buffer = (ZlibAllocBufferHeader *)opaque;
+  if ((BYTE *)ptr < buffer->bufStart || (BYTE *)ptr >= buffer->bufStart + buffer->bufSize) {
     SMemFree(ptr, __FILE__, __LINE__, 0);
   }
 }
@@ -982,12 +999,12 @@ zlib_compress(unsigned char *dest, unsigned long *destLen, const unsigned char *
   stream.avail_in = sourceLen;
   stream.next_out = dest;
   stream.avail_out = *destLen;
-  buffer.arena.current = buffer.workspace;
-  buffer.arena.size = sizeof(buffer.workspace);
-  buffer.arena.base = buffer.workspace;
+  buffer.nextPtr = buffer.buf;
+  buffer.bufSize = sizeof(buffer.buf);
+  buffer.bufStart = buffer.buf;
   stream.zalloc = (alloc_func)ZlibAlloc;
   stream.zfree = (free_func)ZlibFree;
-  stream.opaque = &buffer.arena;
+  stream.opaque = &buffer;
   result = deflateInit(&stream, level);
   if (result == Z_OK) {
     result = deflate(&stream, Z_FINISH);
@@ -1044,12 +1061,12 @@ zlib_uncompress(unsigned char *dest, unsigned long *destLen, const unsigned char
   stream.avail_in = sourceLen;
   stream.next_out = dest;
   stream.avail_out = *destLen;
-  buffer.arena.current = buffer.workspace;
-  buffer.arena.size = sizeof(buffer.workspace);
-  buffer.arena.base = buffer.workspace;
+  buffer.nextPtr = buffer.buf;
+  buffer.bufSize = sizeof(buffer.buf);
+  buffer.bufStart = buffer.buf;
   stream.zalloc = (alloc_func)ZlibAlloc;
   stream.zfree = (free_func)ZlibFree;
-  stream.opaque = &buffer.arena;
+  stream.opaque = &buffer;
   result = inflateInit(&stream);
   if (result != Z_OK) {
     return result;
@@ -1196,13 +1213,13 @@ typedef void(*SCOMP_COMPRESS_CALLBACK)(void *, unsigned long *, const void *, un
 typedef void(*SCOMP_DECOMPRESS_CALLBACK)(void *, unsigned long *, const void *, unsigned long, const char *);
 
 struct _COMPRESSALGORITHM {
-  DWORD                   codec;
-  SCOMP_COMPRESS_CALLBACK callback;
+  DWORD                   id;
+  SCOMP_COMPRESS_CALLBACK func;
 };
 
 struct _DECOMPRESSALGORITHM {
-  DWORD                     codec;
-  SCOMP_DECOMPRESS_CALLBACK callback;
+  DWORD                     id;
+  SCOMP_DECOMPRESS_CALLBACK func;
 };
 
 static _COMPRESSALGORITHM s_compressalgorithm[ALGORITHMS] = {
@@ -1239,10 +1256,10 @@ SCompCompress(void *dest, DWORD *destsize, const void *source, DWORD sourcesize,
   operations = 0;
   remainingTypes = compressiontypes;
   for (i = 0; i < ALGORITHMS; ++i) {
-    if (compressiontypes & s_compressalgorithm[i].codec) {
+    if (compressiontypes & s_compressalgorithm[i].id) {
       ++operations;
     }
-    remainingTypes &= ~s_compressalgorithm[i].codec;
+    remainingTypes &= ~s_compressalgorithm[i].id;
   }
   if (remainingTypes) {
     return FALSE;
@@ -1258,7 +1275,7 @@ SCompCompress(void *dest, DWORD *destsize, const void *source, DWORD sourcesize,
   targetsize = sourcesize;
 
   for (i = 0; i < ALGORITHMS; ++i) {
-    DWORD codec = s_compressalgorithm[i].codec;
+    DWORD codec = s_compressalgorithm[i].id;
     DWORD outSize;
     BYTE *target;
 
@@ -1273,7 +1290,7 @@ SCompCompress(void *dest, DWORD *destsize, const void *source, DWORD sourcesize,
     }
 
     outSize = targetsize - 1;
-    s_compressalgorithm[i].callback(target, &outSize, current, targetsize, &hint, optimization);
+    s_compressalgorithm[i].func(target, &outSize, current, targetsize, &hint, optimization);
 
     if (outSize + 1 < targetsize) {
       current = target;
@@ -1335,10 +1352,10 @@ int APIENTRY SCompDecompress2(void *dest, DWORD *destsize, const void *source, D
   operations = 0;
   remainingTypes = compressiontypes;
   for (i = 0; i < ALGORITHMS; ++i) {
-    if (compressiontypes & s_decompressalgorithm[i].codec) {
+    if (compressiontypes & s_decompressalgorithm[i].id) {
       ++operations;
     }
-    remainingTypes &= ~s_decompressalgorithm[i].codec;
+    remainingTypes &= ~s_decompressalgorithm[i].id;
   }
   if (remainingTypes) {
     return FALSE;
@@ -1351,7 +1368,7 @@ int APIENTRY SCompDecompress2(void *dest, DWORD *destsize, const void *source, D
   }
 
   for (i = 0; i < ALGORITHMS; ++i) {
-    DWORD codec = s_decompressalgorithm[i].codec;
+    DWORD codec = s_decompressalgorithm[i].id;
     DWORD outSize;
     BYTE *target;
 
@@ -1366,7 +1383,7 @@ int APIENTRY SCompDecompress2(void *dest, DWORD *destsize, const void *source, D
     }
 
     outSize = destbuffersize;
-    s_decompressalgorithm[i].callback(target, &outSize, current, targetsize, filename);
+    s_decompressalgorithm[i].func(target, &outSize, current, targetsize, filename);
     current = target;
     targetsize = outSize;
   }

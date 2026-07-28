@@ -388,7 +388,7 @@ int MinimapInitialize(int continentID) {
 
     numPoints = 0;
     for (int index = g_areaPOIDB.GetNumRecords() - 1; index >= 0; --index) {
-      AreaPOIRec *rec = g_areaPOIDB.GetRecordByIndex(index);
+      const AreaPOIRec *rec = g_areaPOIDB.GetRecordByIndex(index);
       if (rec->m_continentID == continentID && (rec->m_flags & 1)) {
         if (pass) {
           s_pointsOfInterest[numPoints] = rec;

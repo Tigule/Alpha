@@ -67,7 +67,7 @@ static int CvarCommandHandler(const char *command, const char *arguments) {
   if (*arguments) {
     cvar->Set(arguments, true, true, false);
   } else {
-    ConsolePrintf("CVar \"%s\" is \"%s\"", command, cvar->m_stringValue);
+    ConsolePrintf("CVar \"%s\" is \"%s\"", command, cvar->GetString());
   }
 
   return 1;
@@ -140,15 +140,15 @@ static int CvarListCommandHandler(const char *command, const char *arguments) {
   char  text[256];
   char  text2[256];
   ITERATELIST(CVar, s_registeredCVars, cvar) {
-    SStrPrintf(text, sizeof(text), "  \"%s\" is \"%s\"", cvar->m_name, cvar->m_stringValue);
+    SStrPrintf(text, sizeof(text), "  \"%s\" is \"%s\"", cvar->GetName(), cvar->GetString());
 
-    if (cvar->m_defaultValue && SStrCmp(cvar->m_stringValue, cvar->m_defaultValue, 0x7FFFFFFF)) {
-      SStrPrintf(text2, sizeof(text2), " (default \"%s\")", cvar->m_defaultValue);
+    if (cvar->GetDefaultValue() && SStrCmp(cvar->GetString(), cvar->GetDefaultValue(), 0x7FFFFFFF)) {
+      SStrPrintf(text2, sizeof(text2), " (default \"%s\")", cvar->GetDefaultValue());
       SStrPack(text, text2, sizeof(text));
     }
 
-    if (cvar->m_resetValue && SStrCmp(cvar->m_stringValue, cvar->m_resetValue, 0x7FFFFFFF)) {
-      SStrPrintf(text2, sizeof(text2), " (reset \"%s\")", cvar->m_resetValue);
+    if (cvar->GetResetValue() && SStrCmp(cvar->GetString(), cvar->GetResetValue(), 0x7FFFFFFF)) {
+      SStrPrintf(text2, sizeof(text2), " (reset \"%s\")", cvar->GetResetValue());
       SStrPack(text, text2, sizeof(text));
     }
 
@@ -178,8 +178,8 @@ static int CVarSaveFile() {
   }
 
   ITERATELIST(CVar, s_registeredCVars, cvar) {
-    if (cvar->m_flags & 1) {
-      SStrPrintf(buffer, sizeof(buffer), "SET %s \"%s\"\n", cvar->m_name, cvar->m_stringValue);
+    if (cvar->IsArchived()) {
+      SStrPrintf(buffer, sizeof(buffer), "SET %s \"%s\"\n", cvar->GetName(), cvar->GetString());
       count = 0;
       OsWriteFile(file, buffer, SStrLen(buffer), &count);
       if (!count) {
@@ -225,7 +225,7 @@ CVar *CVar::Register(
     const char  *help,
     unsigned int flags,
     const char  *value,
-    CVARCALLBACK fcn,
+    CVar::CVARCALLBACKFCN fcn,
     unsigned int category,
     bool         setCommand,
     void        *arg

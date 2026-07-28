@@ -54,6 +54,22 @@ struct WEAPONHANDCHANCES {
   }
 };
 
+NODEDECL(HITSPRITE) {
+  HITSPRITE();
+  HITSPRITE(const HITSPRITE &);
+  ~HITSPRITE();
+
+  unsigned int start;
+  unsigned int duration;
+  HMODEL       model;
+};
+
+HITSPRITE::~HITSPRITE() {
+  if (model) {
+    HandleClose(model);
+  }
+}
+
 void DamageData::Clear() {
   totalDamage = 0;
   for (unsigned int i = 0; i < 5; ++i) {
@@ -66,23 +82,8 @@ void DamageData::Clear() {
   }
 }
 
-ATTACKROUNDINFO::ATTACKROUNDINFO() {
-  attacker = 0;
-  victim = 0;
-  intellectBonus = 0.0f;
-  DPSScaler = 0.0f;
-  modDamageTaken = 0.0f;
-  modDamageDone = 0.0f;
-  scaledDamage = 0.0f;
-  netDamageMultiplier = 0.0f;
-  maxDamageReduction = 0.0f;
-  scaledArmorReduction = 0.0f;
-  hitRollFloat = 0.0f;
-  hitRollNeededFloat = 0.0f;
-  critRollFloat = 0.0f;
-  critRollNeededFloat = 0.0f;
-  flags = 0;
-  dmg.Clear();
+ATTACKROUNDINFO::ATTACKROUNDINFO()
+    : DAMAGELOGBASE(0, 0) {
   armorReduction = 0;
   newVictimState = VS_NONE;
   victimRoundDuration = 0;
@@ -155,7 +156,7 @@ static unsigned int FindAnimation(unsigned int ID) {
 static void LoadAnimKitTable() {
   unsigned int count = g_attackAnimKitsDB.GetNumRecords();
   while (count) {
-    AttackAnimKitsRec *rec = g_attackAnimKitsDB.GetRecordByIndex(--count);
+    const AttackAnimKitsRec *rec = g_attackAnimKitsDB.GetRecordByIndex(--count);
     FATALASSERT(rec);
     FATALASSERT(rec->m_AnimTypeID >= 0);
     FATALASSERT(rec->m_AnimFrequency >= 0);
@@ -362,14 +363,14 @@ int OnUnitCombatEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime,
       return 1;
     }
     case SMSG_ATTACKERSTATEUPDATEDEBUGINFOSPELL: {
-      SPELLLOG log;
+      SPELLLOG log(0, 0, 0);
       log.UI(*msg);
       UnitCombatLog(log);
       CGGameUI::ShowCombatFeedback(log);
       return 1;
     }
     case SMSG_ATTACKERSTATEUPDATEDEBUGINFOSPELLMISS: {
-      SPELLMISSLOG log;
+      SPELLMISSLOG log(0, 0, 0);
       log.UI(*msg);
       UnitCombatLog(log);
       return 1;
@@ -832,13 +833,13 @@ void CGUnit_C::DetermineReadySequence(bool forceNormal) {
   unsigned int     weaponMode = forceNormal ? 0 : m_unit->weaponMode;
   const VirtualItemInfo *itemInfo = 0;
 
-  if (weaponMode == WEAPONMODE_RANGED) {
+  if (weaponMode == WEAPONMODE_RANGEDMODE) {
     if (GetType() & TYPE_PLAYER) {
       itemInfo = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(2, 0);
     } else {
       itemInfo = CGUnit_C::GetVirtualItem(2, 0);
     }
-  } else if (weaponMode == WEAPONMODE_SHEATHED) {
+  } else if (weaponMode == WEAPONMODE_NORMALMODE) {
     if (GetType() & TYPE_PLAYER) {
       itemInfo = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetVirtualItem(0, 0);
     } else {
@@ -851,7 +852,7 @@ void CGUnit_C::DetermineReadySequence(bool forceNormal) {
     static const ANIMENUMERATION s_anims[6] = {static_cast<ANIMENUMERATION>(27), static_cast<ANIMENUMERATION>(28), static_cast<ANIMENUMERATION>(26),
                                                static_cast<ANIMENUMERATION>(29), static_cast<ANIMENUMERATION>(48), static_cast<ANIMENUMERATION>(108)};
     WEAPONREADYSEQ               readySeq = ClientDBGetWeaponSubclassReadySeq(itemInfo->m_subclassID);
-    FATALASSERT(readySeq < 6);
+    FATALASSERT(readySeq < NUM_WEAPONREADYSEQS);
     sequence = s_anims[readySeq];
   }
 
@@ -1197,17 +1198,17 @@ void CGUnit_C::ShowWorldText(const ATTACKROUNDINFO *roundInfo) {
 }
 
 void CGUnit_C::PerformSpellProcImpact(int spell) {
-  SpellRec *spellRec = g_spellDB.GetRecord(spell);
+  const SpellRec *spellRec = g_spellDB.GetRecord(spell);
   if (!spellRec) {
     return;
   }
 
-  SpellVisualRec *visualRec = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
+  const SpellVisualRec *visualRec = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
   if (!visualRec) {
     return;
   }
 
-  SpellVisualKitRec *impactKit = g_spellVisualKitDB.GetRecord(visualRec->m_impactKit);
+  const SpellVisualKitRec *impactKit = g_spellVisualKitDB.GetRecord(visualRec->m_impactKit);
   if (impactKit) {
     SetImpactKitEffect(spell, this, impactKit, 1);
   }
@@ -1227,7 +1228,7 @@ void CGUnit_C::ShowBloodSpurt(CGUnit_C *attacker, int crushingBlow) {
     effectID = bloodRec->m_CombatBloodSpurtFront[crushingBlow != 0];
   }
 
-  SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
+  const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (effectRec) {
     UnitEffectOneShot(static_cast<UNITEFFECTSPECIALS>(effectRec->m_specialID), GetGUID(), 0, 0.0f, 1.0f, 0);
   }
@@ -1502,7 +1503,7 @@ void CGUnit_C::AttackUnit(CGUnit_C *newVictim) {
     return;
   }
 
-  SpellRec *spell = m_castingSpell ? g_spellDB.GetRecord(m_castingSpell) : 0;
+  const SpellRec *spell = m_castingSpell ? g_spellDB.GetRecord(m_castingSpell) : 0;
   if (spell && (spell->m_interruptFlags & 8)) {
     return;
   }

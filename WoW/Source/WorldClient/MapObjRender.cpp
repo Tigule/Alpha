@@ -1,5 +1,6 @@
 #include "WorldClient/CMapObj.h"
 #include "WorldClient/World.h"
+#include "WorldCommon/WorldMath.h"
 
 #include "Base/Base.h"
 #include "DayNight.h"
@@ -20,6 +21,75 @@ static MapObjRenderFunc    s_extFunc;
 static NTempest::C44Matrix s_mvp;
 static NTempest::C44Matrix s_mw;
 static NTempest::C44Matrix s_cm;
+
+unsigned int CMapObj::StabPortals(
+    unsigned int groupIndex,
+    const NTempest::C3Vector &start,
+    const NTempest::C3Vector &end
+) {
+  FATALASSERT(GetGroup(groupIndex));
+
+  NTempest::C3Vector rayOrig = start;
+  NTempest::C3Vector rayDir = end - start;
+  unsigned int       currentGroup = groupIndex;
+  unsigned int       fromGroup = groupIndex;
+
+  for (;;) {
+    unsigned int nextGroup = StabPortals(fromGroup, currentGroup, rayOrig, rayDir);
+    if (nextGroup == currentGroup) {
+      if (groupInfoList[nextGroup].flags & 0x8) {
+        return -1;
+      }
+      return nextGroup;
+    }
+
+    fromGroup = currentGroup;
+    currentGroup = nextGroup;
+  }
+}
+
+unsigned int CMapObj::StabPortals(
+    unsigned int fromGroupIndex,
+    unsigned int groupIndex,
+    NTempest::C3Vector &rayOrig,
+    NTempest::C3Vector &rayDir
+) {
+  CMapObjGroup *group = GetGroup(groupIndex, 0);
+  FATALASSERT(group);
+
+  SMOPortalRef *portalRef = &portalRefList[group->portalStart];
+  for (unsigned int i = 0; i < group->portalCount; ++i, ++portalRef) {
+    if (portalRef->groupIndex == fromGroupIndex || portalRef->groupIndex == 0xFFFF) {
+      continue;
+    }
+
+    float epsilon = 1.0194445f;
+    CMapObjGroup *toGroup = GetGroup(portalRef->groupIndex, 0);
+    FATALASSERT(toGroup);
+    if (toGroup->flags & 0x8) {
+      epsilon = 0.98055553f;
+    }
+
+    const SMOPortal *portal = &portalList[portalRef->portalIndex];
+    for (unsigned int j = 1; j < portal->count - 1; ++j) {
+      float dist;
+      if (CWorldMath::RayIntersectTri(
+              rayOrig,
+              rayDir,
+              portalVertexList[portal->startVertex],
+              portalVertexList[portal->startVertex + j],
+              portalVertexList[portal->startVertex + j + 1],
+              dist
+          ) &&
+          dist >= 0.0f && dist <= epsilon)
+      {
+        return portalRef->groupIndex;
+      }
+    }
+  }
+
+  return groupIndex;
+}
 
 void CMapObj::SetGroupRenderCallback(void(*func)(const unsigned int, const void *, const int), void *userParam) {
   gRenderCallback = func;

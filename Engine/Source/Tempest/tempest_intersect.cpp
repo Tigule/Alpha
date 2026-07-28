@@ -423,8 +423,8 @@ namespace NTempest {
   bool Intersect(const CObBox &a, const CObBox &b) {
     float c[3][3];
     float absC[3][3];
-    const C3Vector aAxis[3] = {a.b.Row0(), a.b.Row1(), a.b.Row2()};
-    const C3Vector bAxis[3] = {b.b.Row0(), b.b.Row1(), b.b.Row2()};
+    const C3Vector *aAxis = a.b.Row0AsVec3();
+    const C3Vector *bAxis = b.b.Row0AsVec3();
     C3Vector difference = b.c - a.c;
     float projectedDifference[3];
 

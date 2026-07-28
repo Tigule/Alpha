@@ -12,7 +12,7 @@ int ToggleCollisionInfo() {
 
   s_debugCollision = !s_debugCollision;
   if (s_debugCollision) {
-    watchTarget = CGUnit_C::m_activeMover;
+    watchTarget = CGUnit_C::GetActiveMover();
     if (!watchTarget) {
       s_debugCollision = 0;
     }

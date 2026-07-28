@@ -71,8 +71,11 @@ class ClientConnection : public NetClient {
   void              CharacterForceLogout();
   int               CharacterLoggingOut();
   void              SetPlaying(int value);
+  void              SetIsBot(int value);
+  int               IsBot();
   int               PollStatus(WOWCS_OPS &op, int &errorCode, int &result);
   void              RealmEnumCallback(CDataStore *data);
+  const char       *GetCharacterName();
 
   unsigned int GetWaitCount() {
     return m_waitCount;
@@ -102,6 +105,13 @@ class ClientConnection : public NetClient {
 
  private:
   ClientConnection &operator=(const ClientConnection &connection);
+  void              Initiate(WOWCS_OPS op, int errorCode, void (ClientConnection::*cleanup)());
+  void              Complete(int result, int errorCode);
+  void              Abort();
+  void              AccountLogin_Cleanup();
+  void              GetCharacterList_Cleanup();
+  void              CharacterLogin_Cleanup();
+  void              CharacterCreate_Cleanup();
   void              AccountLogin_Finish(int reason);
   void              ConnectToSelectedServer();
 

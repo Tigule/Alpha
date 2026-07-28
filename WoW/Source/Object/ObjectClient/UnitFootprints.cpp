@@ -64,7 +64,7 @@ static void InitializeBloodSplatTable() {
   for (int i = 0; i < 5; ++i) {
     s_bloodSplatTextureTable[i].SetCount(count);
     for (int j = 0; j < count; ++j) {
-      UnitBloodRec *rec = g_unitBloodDB.GetRecord(j);
+      const UnitBloodRec *rec = g_unitBloodDB.GetRecord(j);
       if (rec) {
         s_bloodSplatTextureTable[i][j].SetTexture(rec->m_GroundBlood[i]);
       }
@@ -77,7 +77,7 @@ static void InitializeTextureTable() {
   int     count = g_footprintTexturesDB.GetMaxID() + 1;
   s_footStepTextureTable.SetCount(count);
   for (int i = 0; i < g_footprintTexturesDB.GetNumRecords(); ++i) {
-    FootprintTexturesRec *rec = g_footprintTexturesDB.GetRecordByIndex(i);
+    const FootprintTexturesRec *rec = g_footprintTexturesDB.GetRecordByIndex(i);
     s_footStepTextureTable[rec->m_ID].SetTexture(rec->m_FootstepFilename);
   }
 }
@@ -442,7 +442,7 @@ void UnitFootprintNewSplat(
     int                 mirrorLength,
     unsigned int        terrain
 ) {
-  TerrainTypeRec *rec = g_terrainTypeDB.GetRecord(terrain);
+  const TerrainTypeRec *rec = g_terrainTypeDB.GetRecord(terrain);
   if (rec && s_renderSplatsCVar->GetInt() && (rec->m_Flags & 1) && textureID < s_footStepTextureTable.Count()) {
     NTempest::C44Matrix basis = MakeBasis(mirrorLength, facing, size);
     NTempest::CAaBox    box = MakeCAaBox(size, position);
@@ -485,7 +485,7 @@ void UnitFootprintPlayParticle(CGUnit_C *unit, const NTempest::C3Vector &positio
       UnitEffectOneShot(static_cast<UNITEFFECTSPECIALS>(effect), unit->GetGUID(), &splashPos, unit->GetFacing(), scale, false);
     }
 
-    TerrainTypeRec *rec = g_terrainTypeDB.GetRecord(terrainID);
+    const TerrainTypeRec *rec = g_terrainTypeDB.GetRecord(terrainID);
     if (rec) {
       effect = unit->IsWalking() ? rec->m_FootstepSprayWalk : rec->m_FootstepSprayRun;
       if (effect != static_cast<unsigned int>(-1)) {

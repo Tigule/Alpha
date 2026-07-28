@@ -182,15 +182,15 @@ int AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, unsigned int parent
 static KEYTYPE GetTrackType(unsigned int mdlTrackType, MDLTRACKTYPE forceType) {
   ASSERT(mdlTrackType < NUM_TRACK_TYPES);
   if (forceType != NUM_TRACK_TYPES) {
-    if (forceType == TRACK_DONT_INTERP) {
-      mdlTrackType = TRACK_DONT_INTERP;
+    if (forceType == TRACK_NO_INTERP) {
+      mdlTrackType = TRACK_NO_INTERP;
     } else if (forceType == TRACK_LINEAR && mdlTrackType > TRACK_LINEAR) {
       mdlTrackType = TRACK_LINEAR;
     }
   }
 
   switch (mdlTrackType) {
-    case TRACK_DONT_INTERP:
+    case TRACK_NO_INTERP:
       return KEY_DONT_INTERP;
     case TRACK_LINEAR:
       return KEY_LINEAR;

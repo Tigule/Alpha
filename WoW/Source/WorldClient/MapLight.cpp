@@ -145,6 +145,104 @@ CGxTex *CMapLight::GetPointAttenTex() {
   return TextureGetGxTex(s_hPointAttenTex, 1, 0);
 }
 
+void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
+  const CWTriData::Batch *batch = static_cast<const CWTriData::Batch *>(buf->UserArg());
+  CGxVertexPN            *vertices = 0;
+
+  switch (cmd.vertex.op) {
+    case GxBufOp_Fill:
+      vertices = static_cast<CGxVertexPN *>(*cmd.vertex.mem[GxVM_Position]);
+      break;
+
+    case GxBufOp_Assign:
+      vertices = static_cast<CGxVertexPN *>(GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices)));
+      *cmd.vertex.mem[GxVM_Position] = &vertices->p;
+      *cmd.vertex.mem[GxVM_Normal] = &vertices->n;
+      break;
+
+    default:
+      FATALASSERT(0);
+  }
+
+  unsigned short vertexIndex = batch->GetMinIndex();
+  for (unsigned int i = 0; i < batch->GetVertexCount(); ++i, ++vertexIndex) {
+    vertices[i].p = batch->GetVertex(vertexIndex);
+    vertices[i].n = batch->GetNormal(vertexIndex);
+  }
+
+  unsigned short *indices = 0;
+  switch (cmd.index.op) {
+    case GxBufOp_Fill:
+      indices = static_cast<unsigned short *>(*cmd.index.mem[GxVM_Indices]);
+      break;
+
+    case GxBufOp_Assign:
+      indices = static_cast<unsigned short *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*indices)));
+      *cmd.index.mem[GxVM_Indices] = indices;
+      break;
+
+    default:
+      FATALASSERT(0);
+  }
+
+  for (unsigned int j = 0; j < batch->GetIndexCount(); ++j) {
+    indices[j] = batch->GetIndex(j) - batch->GetMinIndex();
+  }
+}
+
+void CMapLight::Project() {
+  NTempest::C44Matrix texMtx0;
+  NTempest::C44Matrix texMtx1;
+  NTempest::C44Matrix worldTransMat;
+  worldTransMat.Translate(CWorldScene::camPos - pos);
+
+  NTempest::C44Matrix texScale;
+  texScale.a0 = 1.0f / (aaBox.t.x - aaBox.b.x);
+  texScale.b1 = texScale.a0;
+  texScale.c2 = texScale.a0;
+
+  texMtx0 = worldTransMat * texScale;
+  texMtx0.d0 += 0.5f;
+  texMtx0.d1 += 0.5f;
+  texMtx0.d2 += 0.5f;
+
+  texMtx1 = worldTransMat * texScale;
+  NTempest::C44Matrix rotateToScreen(
+      0.0f, 0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 0.0f,
+      1.0f, 0.0f, 0.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 1.0f
+  );
+  texMtx1 *= rotateToScreen;
+  texMtx1.d0 += 0.5f;
+  texMtx1.d1 += 0.5f;
+  texMtx1.d2 += 0.5f;
+
+  GxXformSet(GxXform_Tex0, texMtx0);
+  GxXformSet(GxXform_Tex1, texMtx1);
+
+  CGxBuf *buf = GxBufGetDynamic(GxVBF_PN);
+  buf->UserCallbackSet(ProjectLightRenderPN);
+
+  CWTriData triData;
+  CMap::GetTris(aaBox, triData, 0x122);
+
+  NTempest::C44Matrix worldMtx;
+  worldMtx.Translate(-CWorldScene::camPos);
+
+  for (unsigned int i = 0; i < triData.GetNumBatches(); ++i) {
+    const CWTriData::Batch &batch = triData.GetBatch(i);
+    NTempest::C44Matrix batchMtx = *batch.matrix * worldMtx;
+    GxXformSet(GxXform_World, batchMtx);
+    buf->UserArgSet(const_cast<CWTriData::Batch *>(&batch));
+    buf->CountSet(batch.GetVertexCount(), batch.GetIndexCount());
+    GxBufLock(buf);
+    CGxBatch gxBatch(GxPrim_Triangles, batch.GetIndexCount(), 0, -1, -1);
+    GxBufRender(gxBatch);
+    GxBufUnlock();
+  }
+}
+
 CMapLight *CMap::CreateLight(bool dynamic) {
   CMapLight *light = AllocLight();
 

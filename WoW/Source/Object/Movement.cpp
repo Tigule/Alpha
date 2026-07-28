@@ -30,9 +30,6 @@ CMovementData::~CMovementData() {
   RemoveSpline();
 }
 
-CMovement::CMovement(const NTempest::C3Vector &position, float facing, const unsigned __int64 &guid) : CMovementData(position, facing, guid) {
-}
-
 int CMovement::MoversOnList() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   return globals && globals->numMovers > 0;

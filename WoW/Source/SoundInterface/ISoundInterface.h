@@ -33,6 +33,19 @@ struct FILENAMEENTRY {
     fileName[0] = 0;
   }
 
+  FILENAMEENTRY(const FILENAMEENTRY &rhs) {
+    *this = rhs;
+  }
+
+  const FILENAMEENTRY &operator=(const FILENAMEENTRY &rhs) {
+    if (this != &rhs) {
+      unsigned int frequency = rhs.accumulatedFreq;
+      SStrCopy(fileName, rhs.fileName, sizeof(fileName));
+      accumulatedFreq = frequency;
+    }
+    return *this;
+  }
+
   void SetName(const char *name, unsigned int frequency) {
     SStrCopy(fileName, name, sizeof(fileName));
     accumulatedFreq = frequency;
@@ -54,6 +67,15 @@ struct WEAPONSOUNDS {
 };
 
 struct IMPACTSOUNDDESC {
+  IMPACTSOUNDDESC() {
+  }
+
+  IMPACTSOUNDDESC(const IMPACTSOUNDDESC &rhs) {
+    for (unsigned int i = 0; i < 2; ++i) {
+      materialSounds[i] = rhs.materialSounds[i];
+    }
+  }
+
   ~IMPACTSOUNDDESC();
 
   WEAPONSOUNDS materialSounds[2];

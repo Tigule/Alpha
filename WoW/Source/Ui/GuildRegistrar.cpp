@@ -1,4 +1,5 @@
 #include "Ui/GameUI.h"
+#include "Ui/GuildRegistrar.h"
 #include "Game/ValidateName.h"
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Object/Petition.h"
@@ -13,29 +14,6 @@
 #include <lauxlib.h>
 #include <lua.h>
 #include <string.h>
-
-struct PetitionVendorItem {
-  unsigned int m_muid;
-  unsigned int m_itemID;
-  unsigned int m_itemDisplayID;
-  int          m_price;
-  int          m_flags;
-};
-
-class CGGuildRegistrar {
- public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void SetRegistrar(unsigned __int64 registrar, const PetitionVendorItem *petition);
-  static void CloseRegistrar();
-  static unsigned __int64 GetRegistrar();
-  static unsigned int GetGuildCharterCost();
-  static void BuyGuildCharter(const char *guildName);
-
- protected:
-  static unsigned __int64   m_registrar;
-  static PetitionVendorItem m_petition;
-};
 
 unsigned __int64   CGGuildRegistrar::m_registrar;
 PetitionVendorItem CGGuildRegistrar::m_petition;
@@ -53,10 +31,6 @@ void CGGuildRegistrar::SetRegistrar(unsigned __int64 registrar, const PetitionVe
   m_registrar = registrar;
   m_petition = *petition;
   FrameScript_SignalEvent(361);
-}
-
-unsigned __int64 CGGuildRegistrar::GetRegistrar() {
-  return m_registrar;
 }
 
 void CGGuildRegistrar::CloseRegistrar() {
@@ -118,12 +92,10 @@ static int Script_TurnInGuildCharter(lua_State *__formal) {
 }
 
 static int Script_GetTabardInfo(lua_State *__formal) {
-  unsigned __int64 registrar = CGGuildRegistrar::GetRegistrar();
-  if (registrar) {
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    if (player) {
-      player->TalkToTabardVendor(registrar);
-    }
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (player) {
+    const unsigned __int64 registrar = CGGuildRegistrar::GetRegistrar();
+    player->TalkToTabardVendor(registrar);
   }
   CGGuildRegistrar::CloseRegistrar();
   return 0;

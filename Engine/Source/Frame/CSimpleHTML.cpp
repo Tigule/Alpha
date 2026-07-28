@@ -134,12 +134,12 @@ void CSimpleHTML::ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *
   }
 
   attrib->m_styleFlags = (attrib->m_styleFlags & ~0x7U) | 0x1;
-  attrib->m_flags |= CSimpleFontStringAttributes::FLAG_STYLE;
+  attrib->m_flags |= CSimpleFontStringAttributes::FLAG_STYLE_UPDATE;
 
   const char *value = node->GetAttributeByName("align");
   if (value && *value && StringToJustify(value, flag)) {
     attrib->m_styleFlags = (attrib->m_styleFlags & ~0x7U) | (flag & 0x7);
-    attrib->m_flags |= CSimpleFontStringAttributes::FLAG_STYLE;
+    attrib->m_flags |= CSimpleFontStringAttributes::FLAG_STYLE_UPDATE;
   }
 
   body = node->GetBody();

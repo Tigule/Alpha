@@ -14,9 +14,11 @@ class CGReputationInfo {
   static void OnSetFactionStanding(CDataStore *msg);
   static int FactionToIndex(int faction);
   static int IndexToFaction(int index);
-  static unsigned int GetNumFactions();
+  static unsigned int GetNumFactions() {
+    return m_numFactions;
+  }
   static int GetFactionFromSortIndex(unsigned int index);
-  static void SetAtWar(int faction, unsigned char state);
+  static void SetAtWar(int faction, bool state);
   static bool IsAtWar(int faction);
   static unsigned char IsVisible(int faction);
   static int GetFactionStanding(int faction);

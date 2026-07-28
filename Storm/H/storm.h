@@ -722,6 +722,7 @@ void SInterlockedSubNonAtomic(__int64 *valuePtr, const __int64 &delta);
 class SCritSect {
  private:
   unsigned char m_opaqueData[0x18];
+  SCritSect(const SCritSect &);
 
  public:
   SCritSect();
@@ -731,7 +732,6 @@ class SCritSect {
   int  TryEnter();
 
  private:
-  SCritSect(const SCritSect &);
   SCritSect &operator=(const SCritSect &);
 };
 
@@ -754,6 +754,7 @@ class CDebugSCritSect : private SCritSect {
 class CSRWLock {
  private:
   unsigned char m_opaqueData[0x0C];
+  CSRWLock(const CSRWLock &);
 
  public:
   CSRWLock();
@@ -763,7 +764,6 @@ class CSRWLock {
   int  TryEnter(int forwriting);
 
  private:
-  CSRWLock(const CSRWLock &);
   CSRWLock &operator=(const CSRWLock &);
 };
 
@@ -1201,6 +1201,38 @@ extern "C" BOOL APIENTRY SRgnIsRectInRegionf(HSRGN handle, const RECTF *rect);
 extern "C" BOOL APIENTRY SRgnIsRectInRegioni(HSRGN handle, const RECT *rect);
 extern "C" void APIENTRY SRgnOffsetf(HSRGN handle, float xoffset, float yoffset);
 extern "C" void APIENTRY SRgnOffseti(HSRGN handle, int xoffset, int yoffset);
+
+class CSRgn {
+ private:
+  HSRGN m_handle;
+
+  void CopyConstructor(const CSRgn &copy);
+
+ public:
+  CSRgn();
+  CSRgn(const CSRgn &copy);
+  ~CSRgn();
+  CSRgn &operator=(const CSRgn &copy);
+  void AddParamf(const RECTF *rect, void *param);
+  void AddParami(const RECT *rect, void *param);
+  void AddRectf(const RECTF *rect, void *param);
+  void AddRecti(const RECT *rect, void *param);
+  void Clear();
+  void CombineRectf(const RECTF *rect, void *param, int combinemode);
+  void CombineRecti(const RECT *rect, void *param, int combinemode);
+  void GetBoundingRectf(RECTF *rect);
+  void GetBoundingRecti(RECT *rect);
+  void GetRectsf(DWORD *numrects, RECTF *buffer);
+  void GetRectsi(DWORD *numrects, RECT *buffer);
+  void GetRectParamsf(const RECTF *rect, DWORD *numparams, void **buffer);
+  void GetRectParamsi(const RECT *rect, DWORD *numparams, void **buffer);
+  int IsPointInRegionf(float x, float y);
+  int IsPointInRegioni(int x, int y);
+  int IsRectInRegionf(const RECTF *rect);
+  int IsRectInRegioni(const RECT *rect);
+  void Offsetf(float xoffset, float yoffset);
+  void Offseti(int xoffset, int yoffset);
+};
 
 // --------------------------------
 // Storm core functions

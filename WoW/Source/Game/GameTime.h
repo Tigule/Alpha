@@ -9,6 +9,10 @@
 DECLARE_DERIVED_HANDLE(HGAMETIMECALLBACK, HOBJECT);
 
 NODEDECL(GAMETIMECBSTRUCT), public CHandleObject {
+  GAMETIMECBSTRUCT() : userData(0), callback(0) {
+  }
+  GAMETIMECBSTRUCT(const GAMETIMECBSTRUCT &);
+
   void *userData;
   void(__stdcall *callback)(const WowTime &, void *);
 };

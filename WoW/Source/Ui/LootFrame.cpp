@@ -146,7 +146,7 @@ int CGLootInfo::GetLootItem(unsigned int slot) {
     }
     --slot;
   }
-  FATALASSERT(slot < 16);
+  FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
   return m_loot[slot].itemID;
 }
 
@@ -160,17 +160,24 @@ int CGLootInfo::GetLootQuantity(unsigned int slot) {
     }
     --slot;
   }
-  FATALASSERT(slot < 16);
+  FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
   return m_loot[slot].quantity;
 }
 
 int CGLootInfo::GetLootQuality(unsigned int slot) {
-  int itemID = GetLootItem(slot);
-  if (!itemID) {
+  if (!m_object) {
     return 0;
   }
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, m_object, 0, 0);
-  return stats && stats->m_flags ? stats->m_overallQualityID : -1;
+  if (m_coins) {
+    if (!slot) {
+      return 0;
+    }
+    --slot;
+  }
+  FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
+  const unsigned __int64 noGuid = 0;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, noGuid, 0, 0);
+  return stats && stats->m_inventoryType ? stats->m_overallQualityID : -1;
 }
 
 int CGLootInfo::GetLootCoin(unsigned int slot) {
@@ -210,7 +217,7 @@ const char *CGLootInfo::GetLootSlotTexture(unsigned int slot) {
     --slot;
   }
 
-  FATALASSERT(slot < 16);
+  FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
   if (!m_loot[slot].itemID) {
     return 0;
   }
@@ -253,7 +260,7 @@ const char *CGLootInfo::GetLootSlotText(unsigned int slot) {
     --slot;
   }
 
-  FATALASSERT(slot < 16);
+  FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
   if (!m_loot[slot].itemID) {
     return 0;
   }
@@ -262,7 +269,17 @@ const char *CGLootInfo::GetLootSlotText(unsigned int slot) {
 }
 
 const char *CGLootInfo::GetLootSlotLink(unsigned int slot, char *link, unsigned int size) {
-  int itemID = GetLootItem(slot);
+  if (!m_object) {
+    return 0;
+  }
+  if (m_coins) {
+    if (!slot) {
+      return 0;
+    }
+    --slot;
+  }
+  FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
+  int itemID = m_loot[slot].itemID;
   if (!itemID) {
     return 0;
   }
@@ -308,7 +325,7 @@ int CGLootInfo::LootSlot(unsigned int slot, int force) {
     --slot;
   }
 
-  FATALASSERT(slot < 16);
+  FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
   if (m_loot[slot].itemID) {
     const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
     FATALASSERT(stats);
@@ -317,7 +334,7 @@ int CGLootInfo::LootSlot(unsigned int slot, int force) {
       return 1;
     }
     SndInterfacePlayItemSound(ITEMSOUND_PICKUP, stats->m_displayInfoID);
-    player->AutoStoreLootItem(static_cast<unsigned char>(m_loot[slot].slot));
+    player->AutoStoreLootItem(m_loot[slot].slot);
   }
   return 1;
 }

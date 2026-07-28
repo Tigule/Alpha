@@ -44,6 +44,10 @@ class CSimpleDoodadGeoset {
 
 struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
  public:
+  CSimpleDoodad() {
+  }
+  CSimpleDoodad(const CSimpleDoodad &);
+
   static void Initialize();
   static void Destroy();
   static void ClearCache();
@@ -53,6 +57,13 @@ struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
   static void PrepareUpdate();
   static void AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef);
   static void RenderScene();
+
+  static CSimpleDoodad *Get(unsigned int id);
+  unsigned int          GetId();
+  void                  GetBounds(NTempest::CAaSphere &bounds) const;
+  void                  GetExtents(NTempest::CAaBox &extents) const;
+  int                   TestBounds(const NTempest::CAaSphere &bounds) const;
+  int                   TestExtents(const NTempest::CAaBox &extents) const;
 
   ~CSimpleDoodad() {
     for (unsigned int index = 0; index < nTextures; ++index) {

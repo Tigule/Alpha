@@ -122,6 +122,7 @@ static int MIDISetHandler(const char* command, const char* arguments) {
 void AreaListInitialize() {
   LoadAreaTable();
   s_currentContinent = 0;
+  ConsoleCommandRegister("midiset", MIDISetHandler, DEBUG, 0);
 }
 
 void AreaListShutdown() {

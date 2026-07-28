@@ -3,6 +3,26 @@
 
 class SpellCast {
  public:
+  SpellCast() {
+    caster = 0;
+    spellID = 0;
+    castTime = 0;
+    targets = 0;
+    castEndTime = 0;
+    unitTarget = 0;
+    itemTarget = 0;
+    ammoItem = 0;
+    spellLevel = 0;
+    spellIndex = 0;
+    reflector = 0;
+    overrideRank = -1;
+    flags = 0;
+    selectedTarget = 0;
+  }
+
+  ~SpellCast() {
+  }
+
   void BuildFullZoneUpdate(CDataStore *msg);
   void UnpackFullZoneUpdate(CDataStore *msg);
 

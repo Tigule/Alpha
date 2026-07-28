@@ -83,17 +83,19 @@ struct CTextureItem {
   CTextureItem(int p_fromColor = 0) : texture(0), fromColor(p_fromColor), timeStamp(0) {
   }
 
-  ~CTextureItem() {
-    if (texture) {
-      HandleClose(texture);
-    }
-  }
+  ~CTextureItem();
 
   HTEXTURE             texture;
   int                  fromColor;
   unsigned long        timeStamp;
   LINKDECLEX(CTextureItem, link);
 };
+
+CTextureItem::~CTextureItem() {
+  if (texture) {
+    HandleClose(texture);
+  }
+}
 
 struct CTextureHash : public TSHashObject<CTextureHash, HASHKEY_TEXTUREFILE>, public CTextureItem {
   CTextureHash();

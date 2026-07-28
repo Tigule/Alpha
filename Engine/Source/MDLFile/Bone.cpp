@@ -9,6 +9,11 @@
 namespace MDL {
 const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
+int ReadBone(Parser &, MDLDATA &, CMDLStatus *);
+int WriteBones(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+int WriteBinBones(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+int ReadBinBone(CMsgBuffer &, unsigned int, MDLDATA &, CMDLStatus *);
+}
 
 static void IAddBoneErrors(TSet &errors) {
   AddObjectErrors(errors);
@@ -34,7 +39,7 @@ static void IReadGeosetId(Parser &parse, unsigned int *geosetId) {
       : parse.ExpectInt(token, tokenText, &value);
 }
 
-int ReadBone(
+int MDL::ReadBone(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -88,22 +93,22 @@ static void IWriteBoneSection(
     TSGrowableArray<char> &buffer
 ) {
   WriteObjectHeader(data, section, 0x10C, needObjectIds, buffer);
-  WriteLine(buffer, "\t%s ", TokenText(0x150));
+  MDL::WriteLine(buffer, "\t%s ", MDL::TokenText(0x150));
   if (section.geosetId == static_cast<unsigned int>(-1)) {
-    WriteLine(buffer, "%s,\n", TokenText(0x175));
+    MDL::WriteLine(buffer, "%s,\n", MDL::TokenText(0x175));
   } else {
-    WriteLine(buffer, "%d,\n", section.geosetId);
+    MDL::WriteLine(buffer, "%d,\n", section.geosetId);
   }
-  WriteLine(buffer, "\t%s ", TokenText(0x151));
+  MDL::WriteLine(buffer, "\t%s ", MDL::TokenText(0x151));
   if (section.geosetAnimId == static_cast<unsigned int>(-1)) {
-    WriteLine(buffer, "%s,\n", TokenText(0x179));
+    MDL::WriteLine(buffer, "%s,\n", MDL::TokenText(0x179));
   } else {
-    WriteLine(buffer, "%d,\n", section.geosetAnimId);
+    MDL::WriteLine(buffer, "%d,\n", section.geosetAnimId);
   }
   WriteObjectTrailer(section, buffer);
 }
 
-int WriteBones(
+int MDL::WriteBones(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
@@ -136,7 +141,7 @@ static void IWriteBinBoneSection(
   buffer.AddUint(section.geosetAnimId);
 }
 
-int WriteBinBones(
+int MDL::WriteBinBones(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *status
@@ -158,7 +163,7 @@ int WriteBinBones(
   return 1;
 }
 
-int ReadBinBone(
+int MDL::ReadBinBone(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -196,6 +201,5 @@ int ReadBinBone(
     );
   }
   return 1;
-}
 
 }

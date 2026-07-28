@@ -4,8 +4,8 @@
 #include "Console/ConsoleVar.h"
 #include "DB/DBClient/AutoCode/AreaMIDIAmbiencesRec.h"
 
-static AreaMIDIAmbiencesRec *s_ambienceRecNormal;
-static AreaMIDIAmbiencesRec *s_ambienceRecUnderwater;
+static const AreaMIDIAmbiencesRec *s_ambienceRecNormal;
+static const AreaMIDIAmbiencesRec *s_ambienceRecUnderwater;
 static bool                  s_paused;
 static float                 s_volume = 1.0f;
 
@@ -17,10 +17,10 @@ static bool AmbienceVolumeHandler(CVar *cvar, const char *oldValue, const char *
   CVar *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
   CVar *enableAmbience = CVar::Lookup("EnableAmbience");
   bool  enabled = true;
-  if (!masterSoundEffects || !masterSoundEffects->m_intValue) {
+  if (!masterSoundEffects || !masterSoundEffects->GetInt()) {
     enabled = false;
   }
-  if (!enableAmbience || !enableAmbience->m_intValue) {
+  if (!enableAmbience || !enableAmbience->GetInt()) {
     enabled = false;
   }
   if (s_volume == 0.0f) {
@@ -34,7 +34,7 @@ static bool AmbienceVolumeHandler(CVar *cvar, const char *oldValue, const char *
 static bool EnableAmbienceHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
   unsigned int enabled = SStrToInt(newValue);
   CVar        *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
-  if (masterSoundEffects && !masterSoundEffects->m_intValue) {
+  if (masterSoundEffects && !masterSoundEffects->GetInt()) {
     enabled = 0;
   }
 
@@ -62,9 +62,9 @@ void SoundInterfaceShutdownWorldMIDI() {
 static void StartAmbience() {
   Sound::MIDI_Stop();
 
-  AreaMIDIAmbiencesRec *ambienceRec = g_underWater ? s_ambienceRecUnderwater : s_ambienceRecNormal;
-  CVar                 *enableAmbience = CVar::Lookup("EnableAmbience");
-  if (ambienceRec && enableAmbience && enableAmbience->m_intValue) {
+  const AreaMIDIAmbiencesRec *ambienceRec = g_underWater ? s_ambienceRecUnderwater : s_ambienceRecNormal;
+  CVar                       *enableAmbience = CVar::Lookup("EnableAmbience");
+  if (ambienceRec && enableAmbience && enableAmbience->GetInt()) {
     const char *sequence = g_currentAmbience == AMB_DAY ? ambienceRec->m_DaySequence : ambienceRec->m_NightSequence;
     Sound::MIDI_Play(sequence, ambienceRec->m_DLSFile);
     Sound::MIDI_SetVolume(s_volume);
@@ -72,8 +72,8 @@ static void StartAmbience() {
 }
 
 void SndInterfaceSetMIDIArea(int normal, int underwater) {
-  AreaMIDIAmbiencesRec *normalRec = g_areaMIDIAmbiencesDB.GetRecord(normal);
-  AreaMIDIAmbiencesRec *underwaterRec = g_areaMIDIAmbiencesDB.GetRecord(underwater);
+  const AreaMIDIAmbiencesRec *normalRec = g_areaMIDIAmbiencesDB.GetRecord(normal);
+  const AreaMIDIAmbiencesRec *underwaterRec = g_areaMIDIAmbiencesDB.GetRecord(underwater);
 
   if (g_currentAmbience == AMB_DAY) {
     if (normalRec == s_ambienceRecNormal) {

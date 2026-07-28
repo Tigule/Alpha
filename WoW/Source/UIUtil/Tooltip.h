@@ -12,16 +12,12 @@ class SpellRec;
 class SpellItemEnchantmentRec;
 
 enum TOOLTIP_DETAIL {
-  TOOLTIP_DETAIL_NONE = 0,
-  TOOLTIP_DETAIL_BASIC = 1,
-  TOOLTIP_DETAIL_EXTENDED = 2
+  TOOLTIP_DETAIL_GENERIC = 0,
+  TOOLTIP_DETAIL_NORMAL = 1,
+  TOOLTIP_DETAIL_VERBOSE = 2
 };
 
 struct TooltipExtendedItemInfo {
-  TooltipExtendedItemInfo() {
-    memset(this, 0, sizeof(*this));
-  }
-
   int            enchantment[5];
   unsigned int   enchantmentExpiration[5];
   unsigned int   cooldownTime;

@@ -12,9 +12,8 @@
 #include <stpl.h>
 
 struct PetitionSignerInfo {
-  unsigned __int64 signer;
+  unsigned __int64 guid;
   int              choice;
-  const char      *name;
 };
 
 class CGPetitionInfo {
@@ -85,7 +84,7 @@ void CGPetitionInfo::LeaveWorld() {
 void CGPetitionInfo::ClearSignatures() {
   if (m_pendingNames) {
     for (unsigned int i = 0; i < m_numSignatures; ++i) {
-      g_nameDBCache.CancelCallback(m_signatures[i].signer, SignatureNameQueryCallback, 0);
+      g_nameDBCache.CancelCallback(m_signatures[i].guid, SignatureNameQueryCallback, 0);
     }
   }
   m_numSignatures = 0;
@@ -111,7 +110,7 @@ void CGPetitionInfo::SetSignatures(unsigned char count, unsigned __int64 *signer
   m_signatures.SetCount(count);
   m_numSignatures = count;
   for (unsigned int i = 0; i < count; ++i) {
-    m_signatures[i].signer = signers[i];
+    m_signatures[i].guid = signers[i];
     m_signatures[i].choice = choices[i];
     if (!g_nameDBCache.GetRecord(signers[i], signers[i], SignatureNameQueryCallback, 0)) {
       ++m_pendingNames;
@@ -131,11 +130,13 @@ void CGPetitionInfo::DecrementPendingName() {
 }
 
 void CGPetitionInfo::SetPetitionStats(int id) {
-  const unsigned __int64 noGuid = 0;
-  m_petition = g_petitionCache.GetRecord(id, noGuid, 0, 0);
-  if (m_petition && !m_pendingNames) {
-    FrameScript_SignalEvent(373);
-    ConsoleWrite("Petition shown", DEFAULT_COLOR);
+  if (m_petitionID == id) {
+    const unsigned __int64 noGuid = 0;
+    m_petition = g_petitionCache.GetRecord(id, noGuid, 0, 0);
+    if (m_petition && !m_pendingNames) {
+      FrameScript_SignalEvent(373);
+      ConsoleWrite("Petition shown", DEFAULT_COLOR);
+    }
   }
 }
 
@@ -179,7 +180,7 @@ static int Script_GetPetitionNameInfo(lua_State *L) {
     return luaL_error(L, "Usage: GetPetitionNameInfo(index)");
   }
   const PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const NameCache    *name = signer ? g_nameDBCache.GetRecord(signer->signer, signer->signer, 0, 0) : 0;
+  const NameCache    *name = signer ? g_nameDBCache.GetRecord(signer->guid, signer->guid, 0, 0) : 0;
   lua_pushstring(L, name ? name->m_name : 0);
   return 1;
 }
@@ -198,7 +199,7 @@ static int Script_CanSignPetition(lua_State *L) {
     canSign = 0;
   }
   for (unsigned int i = 0; canSign && i < CGPetitionInfo::GetNumSignatures(); ++i) {
-    if (CGPetitionInfo::GetSignature(i)->signer == ClntObjMgrGetActivePlayer()) {
+    if (CGPetitionInfo::GetSignature(i)->guid == ClntObjMgrGetActivePlayer()) {
       canSign = 0;
     }
   }

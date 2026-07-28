@@ -1,12 +1,14 @@
 #ifndef WOW_SOURCE_UI_TABARDMODELFRAME_H
 #define WOW_SOURCE_UI_TABARDMODELFRAME_H
 
+#include "Component/Component.h"
 #include "Ui/CharacterModelBase.h"
 
 #include <FrameScript/FrameScript.h>
 
-struct HTEXCOMPONENT__;
 class CGPlayer_C;
+
+#define TABARDVARS_NUMVARS 5
 
 class CGTabardModelFrame : public CGCharacterModelBase {
  public:
@@ -27,12 +29,16 @@ class CGTabardModelFrame : public CGCharacterModelBase {
   }
 
   int GetVariation(unsigned int index) {
-    FATALASSERT(index < 5);
+    FATALASSERT(index < TABARDVARS_NUMVARS);
     return m_variations[index];
   }
 
  protected:
-  virtual ~CGTabardModelFrame();
+  virtual ~CGTabardModelFrame() {
+    if (m_charComponent) {
+      HandleClose(m_charComponent);
+    }
+  }
   virtual int LookupScriptMethod(lua_State *L, const char *name);
   void        UpdateTabard();
 
@@ -43,8 +49,8 @@ class CGTabardModelFrame : public CGCharacterModelBase {
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
  private:
-  int              m_variations[5];
-  HTEXCOMPONENT__ *m_charComponent;
+  int              m_variations[TABARDVARS_NUMVARS];
+  HTEXCOMPONENT m_charComponent;
 };
 
 #endif

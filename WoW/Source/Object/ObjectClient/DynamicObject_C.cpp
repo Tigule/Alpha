@@ -100,24 +100,24 @@ void CGDynamicObject_C::PostInit(const CClientObjCreate &init) {
   unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
   if (m_dynamicObj->m_type == 2 && m_dynamicObj->m_caster == activePlayer) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
-    if (player && player->GetFarSightFocusGUID() == GetGUID()) {
+    if (player && player->GetFarsightFocus() == GetGUID()) {
       player->SetFarSightFocus(this);
     }
   }
 }
 
 void CGDynamicObject_C::ObjectVisKitProc() {
-  SpellRec *spellRec = g_spellDB.GetRecord(m_dynamicObj->m_spellID);
+  const SpellRec *spellRec = g_spellDB.GetRecord(m_dynamicObj->m_spellID);
   if (!spellRec) {
     return;
   }
 
-  SpellVisualRec *visualRec = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
+  const SpellVisualRec *visualRec = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
   if (!visualRec || !visualRec->m_hasAreaEffect) {
     return;
   }
 
-  SpellVisualKitRec *kitRec = g_spellVisualKitDB.GetRecord(visualRec->m_areaKit);
+  const SpellVisualKitRec *kitRec = g_spellVisualKitDB.GetRecord(visualRec->m_areaKit);
   if (!kitRec) {
     return;
   }
@@ -174,13 +174,13 @@ unsigned int CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
 }
 
 const SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() const {
-  SpellRec *spellRec = g_spellDB.GetRecord(m_dynamicObj->m_spellID);
+  const SpellRec *spellRec = g_spellDB.GetRecord(m_dynamicObj->m_spellID);
   if (!spellRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", m_dynamicObj->m_spellID);
     return 0;
   }
 
-  SpellVisualRec *visualRec = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
+  const SpellVisualRec *visualRec = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
   if (!visualRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d|%d", spellRec->m_spellVisualID, m_dynamicObj->m_spellID);
     return 0;

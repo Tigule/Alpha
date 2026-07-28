@@ -271,9 +271,9 @@ class CGxDeviceOpenGl : public CGxDevice {
       unsigned int texelStrideInBytes,
       const void  *texels
   );
-  virtual void ITexMarkAsUpdated(CGxTex *texId, unsigned int tmu);
-  void         ITexSetFlags(CGxTex *texId);
   virtual void ITexMarkAsUpdated(CGxTex *texId);
+  void         ITexMarkAsUpdated(CGxTex *texId, unsigned int tmu);
+  void         ITexSetFlags(CGxTex *texId);
 
   HWND                              m_hwnd;
   int                               m_ownhwnd;

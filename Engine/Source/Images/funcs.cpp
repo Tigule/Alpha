@@ -119,8 +119,8 @@ void FullShrink(
 
   for (unsigned int y = 0; y < destHeight; ++y) {
     for (unsigned int x = 0; x < destWidth; ++x) {
-      C4LargePixel   weighted = {0, 0, 0, 0};
-      C4LargePixel   unweighted = {0, 0, 0, 0};
+      C4LargePixel   weighted(0, 0, 0, 0);
+      C4LargePixel   unweighted(0, 0, 0, 0);
       const C4Pixel *currSource = sourcePixel;
 
       for (unsigned int sourceY = 0; sourceY < yScale; ++sourceY) {

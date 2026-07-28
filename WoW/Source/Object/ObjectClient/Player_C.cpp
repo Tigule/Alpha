@@ -6,6 +6,7 @@
 #include "Console/ConsoleCommand.h"
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleVar.h"
+#include "Base/CDataAllocator.h"
 #include "Base/CDataStore.h"
 #include "DB/DBClient/AutoCode/AreaTriggerRec.h"
 #include "DB/DBClient/AutoCode/AreaTableRec.h"
@@ -43,10 +44,12 @@
 #include "Ui/ChatFrame.h"
 #include "Ui/ClassTrainerFrame.h"
 #include "Ui/GameUI.h"
+#include "Ui/GuildRegistrar.h"
 #include "Ui/ItemTextFrame.h"
 #include "Ui/PaperDollInfoFrame.h"
 #include "Ui/PetInfo.h"
 #include "Ui/PartyFrame.h"
+#include "Ui/QuestFrame.h"
 #include "Ui/MinimapFrame.h"
 #include "Ui/LootFrame.h"
 #include "Ui/ReputationInfo.h"
@@ -138,14 +141,6 @@ NODEDECL(DEFERREDSPELLMISS) {
     reason = missReason;
     spellID = missedSpellID;
   }
-};
-
-struct PetitionVendorItem {
-  unsigned int m_muid;
-  unsigned int m_itemID;
-  unsigned int m_itemDisplayID;
-  int          m_price;
-  int          m_flags;
 };
 
 struct VendorItem {
@@ -256,6 +251,8 @@ static GAME_ERROR_TYPE s_taxiErrors[12] = {static_cast<GAME_ERROR_TYPE>(297), st
 static TSHashTable<ITEMEXPIRATION, CHashKeyGUID>                s_pendingItemExpirations;
 static LISTDECL(DEFERREDDAMAGE, s_deferredDamage);
 static LISTDECL(DEFERREDSPELLMISS, s_deferredSpellMiss);
+static TInstanceAllocator<DEFERREDDAMAGE>                       s_freeDeferedDamage(100);
+static TInstanceAllocator<DEFERREDSPELLMISS>                    s_freeDeferredSpellMiss(100);
 static int                                                      s_pendingCinematicID;
 static const int                                                CHARACTER_POINTS_PER_LEVEL[2] = {10, 1};
 static const int                                                CHARACTER_POINTS_PER_BONUS[2] = {0, 1};
@@ -308,11 +305,6 @@ class CGTabardCreationFrame {
   static void Open(const unsigned __int64 &vendor);
 };
 
-class CGGuildRegistrar {
- public:
-  static void SetRegistrar(unsigned __int64 registrar, const PetitionVendorItem *petition);
-};
-
 class CGPetitionInfo {
  public:
   static void SetPetition(unsigned __int64 petition, int petitionID);
@@ -323,43 +315,6 @@ class CGMerchantInfo {
  public:
   static void SetMerchant(unsigned __int64 merchantGUID, VendorItem *items, int count);
   static void UpdateItemQuantity(unsigned __int64 vendor, unsigned long muid, int newQuantity);
-};
-
-enum QUEST_STATE {
-  QUEST_GREETING = 0,
-  QUEST_DETAIL = 1,
-  QUEST_PROGRESS = 2,
-  QUEST_REWARD = 3,
-  QUEST_STATE_NUM_TYPES = 4
-};
-
-class CGQuestInfo {
- public:
-  static const unsigned __int64 &GetQuestGiver();
-  static int GetLastChosenItem();
-  static void ClearLastChosenItem();
-  static void SetState(unsigned __int64 guid, QUEST_STATE state, const char *text, int quest);
-  static void SetLogDescription(const char *desc);
-  static void AddQuest(int quest, const char *desc, int questLevel, int turnIn);
-  static void AddQuestInProgress(int quest, const char *desc, int questLevel);
-  static void EndQuestList();
-  static void AddReward(
-      const char *title,
-      int        *itemChoice,
-      int        *choiceDisplay,
-      int        *choiceAmount,
-      int         numChoice,
-      int        *itemReward,
-      int        *itemDisplay,
-      int        *itemAmount,
-      int         numReward,
-      int         money,
-      int         autoLaunched
-  );
-  static void
-  AddItemRequest(const char *title, int *items, int *itemAmount, int *itemDisplay, int numItems, int completed, int autoLaunched);
-  static void QuestGiverFinished();
-  static void ConfirmAcceptQuest(int questID, const char *questTitle, const unsigned __int64 &initiatedBy);
 };
 
 void CurrencyBreakdown(int money, int *coins);
@@ -2104,7 +2059,7 @@ int CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
     static_cast<CGUnit_C *>(object)->SetEmoteQueue(emotes);
   }
 
-  CGQuestInfo::SetState(questGiverGuid, QUEST_DETAIL, questText, questID);
+  CGQuestInfo::SetState(questGiverGuid, QUEST_OFFER, questText, questID);
   CGQuestInfo::SetLogDescription(logDescription);
   CGQuestInfo::AddReward(
       questTitle, chooseReward, chooseRewardDispID, chooseRewardQty, chooseRewardCount, rewardItem, rewardItemDispID, rewardItemQty, rewardItemCount,
@@ -2148,7 +2103,7 @@ int CGPlayer_C::OnQuestGiverRequestItems(CDataStore *msg) {
   msg->Get(hasfaction);
   msg->Get(maskmatch);
 
-  CGQuestInfo::SetState(questGiverGuid, QUEST_PROGRESS, questText, questID);
+  CGQuestInfo::SetState(questGiverGuid, QUEST_ACCEPTED, questText, questID);
   CGQuestInfo::AddItemRequest(questTitle, items, itemAmounts, itemDispID, itemCount, hasitems && hasfaction && maskmatch, autoLaunched);
 
   CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
@@ -2339,7 +2294,7 @@ void QuestFailedCallback(int id, const unsigned __int64 &, void *, bool granted)
 
   if (s_questFailedReason == 4 || s_questFailedReason == 48) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(126), quest->m_logTitle);
-    CGGameUI::DisplayError(GAME_ERROR_NONE);
+    CGGameUI::DisplayError(GERR_NONE);
   } else if (s_questFailedReason == 16) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(127), quest->m_logTitle);
   } else {
@@ -2358,7 +2313,7 @@ int CGPlayer_C::OnQuestGiverQuestFailed(CDataStore *msg) {
   if (quest) {
     if (s_questFailedReason == 4 || s_questFailedReason == 48) {
       CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(126), quest->m_logTitle);
-      CGGameUI::DisplayError(GAME_ERROR_NONE);
+      CGGameUI::DisplayError(GERR_NONE);
     } else if (s_questFailedReason == 16) {
       CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(127), quest->m_logTitle);
     } else {
@@ -3025,13 +2980,13 @@ void CGPlayer_C::AcceptResurrectRequest(int accept) {
 }
 
 const char *CGPlayer_C::GetModelFileName() const {
-  CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_unit->displayID);
+  const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_unit->displayID);
   if (!displayInfo) {
     SysMsgPrintf(SYSMSG_WARNING, 16, "INVALIDPLAYERDISPLAYID|%d|%d|%d", m_unit->displayID, m_unit->race, m_unit->sex);
     return "NoName";
   }
 
-  CreatureModelDataRec *modelData = g_creatureModelDataDB.GetRecord(displayInfo->m_modelID);
+  const CreatureModelDataRec *modelData = g_creatureModelDataDB.GetRecord(displayInfo->m_modelID);
   if (!modelData) {
     SysMsgPrintf(SYSMSG_WARNING, 16, "INVALIDPLAYERMODELRECORD|%d|%d|%d", displayInfo->m_modelID, m_unit->race, m_unit->sex);
     return "NoName";
@@ -3513,6 +3468,20 @@ unsigned char CGPlayer_C::FindSlotIndex(unsigned __int64 obj) {
   unsigned char slot = 0;
   while (slot < m_inventory.NumSlots()) {
     if (m_inventory.GetItem(slot) == obj) {
+      return slot;
+    }
+    ++slot;
+  }
+  return 0xFF;
+}
+
+unsigned char CGPlayer_C::FindItemSlot(unsigned __int64 containerGUID, CGItem_C *item) {
+  CGObject_C *container = ClntObjMgrObjectPtr(containerGUID, __FILE__, __LINE__);
+  FATALASSERT(container->GetBag());
+
+  unsigned char slot = 0;
+  while (slot < container->GetBag()->NumSlots()) {
+    if (container->GetBag()->GetItem(slot) == item->GetGUID()) {
       return slot;
     }
     ++slot;
@@ -4441,11 +4410,10 @@ int Player_C_AppFocusMovementHandler(int focus) {
     unsigned __int64 guid = ClntObjMgrGetActivePlayer();
     CGPlayer_C      *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
     if (player) {
-      CMovementStatus status;
-      player->m_move.GetMoveStatus(&status);
-      unsigned int moveFlags = status.moveFlags;
+      unsigned int moveFlags = player->m_move.m_moveFlags;
       if ((moveFlags & 0x01000000) ||
-          ((player->GetType() & TYPE_PLAYER) && !status.transport && ((moveFlags & 2) || !(moveFlags & 0x00C00004)) && !(moveFlags & 1)))
+          ((player->GetType() & TYPE_PLAYER) && !player->m_move.m_transportGUID &&
+           ((moveFlags & 2) || !(moveFlags & 0x00C00004)) && !(moveFlags & 1)))
       {
         player->OnMoveStopLocal(eventTime);
         player->OnStrafeStopLocal(eventTime);
@@ -4787,7 +4755,7 @@ UNITAFFILIATION CGPlayer_C::GetGUIDAffiliation(unsigned __int64 unit) const {
 }
 
 int CGPlayer_C::GetSpellRank(int spellID) const {
-  SpellRec *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
     return 0;
   }
@@ -5062,10 +5030,10 @@ void CGPlayer_C::ToggleSheathe(bool ignoreAnim) {
 
   if (ignoreAnim || !SheatheAnimPlaying()) {
     unsigned char weaponMode = m_unit->weaponMode;
-    if (weaponMode == WEAPONMODE_MELEE || weaponMode == WEAPONMODE_RANGED) {
-      SetWeaponMode(WEAPONMODE_SHEATHED);
+    if (weaponMode == WEAPONMODE_SHEATHEDMODE || weaponMode == WEAPONMODE_RANGEDMODE) {
+      SetWeaponMode(WEAPONMODE_NORMALMODE);
     } else {
-      SetWeaponMode(WEAPONMODE_MELEE);
+      SetWeaponMode(WEAPONMODE_SHEATHEDMODE);
       if (m_flags & 0x400) {
         SetCombatMode(0);
       }
@@ -5322,7 +5290,7 @@ void CGPlayer_C::AttachObjComponent(unsigned __int64 item, unsigned int slot, bo
   }
 
   unsigned int showHidden = 0;
-  if ((slot == 17 && m_unit->weaponMode != WEAPONMODE_RANGED) || (slot == 15 && (m_unit->flags & 0x200000))) {
+  if ((slot == 17 && m_unit->weaponMode != WEAPONMODE_RANGEDMODE) || (slot == 15 && (m_unit->flags & 0x200000))) {
     showHidden = 1;
   }
 
@@ -5548,7 +5516,7 @@ void CGPlayer_C::SetCombatMode(int state) {
     FATALASSERT(spell);
     if (spell->m_attributes & 2) {
       Spell_C_CancelSpell(1, 1, SPELL_FAILED_ERROR);
-      SetWeaponMode(WEAPONMODE_SHEATHED);
+      SetWeaponMode(WEAPONMODE_NORMALMODE);
     } else if (spell->m_interruptFlags & 8) {
       Spell_C_CancelSpell(1, 1, SPELL_FAILED_ERROR);
     }
@@ -5569,8 +5537,8 @@ void CGPlayer_C::SetCombatMode(int state) {
     }
   }
 
-  int hasLastWeaponMode = m_lastWeaponModeSent != -1 && m_lastWeaponModeSent != WEAPONMODE_SHEATHED;
-  if (state && (m_unit->weaponMode == WEAPONMODE_RANGED || m_unit->weaponMode == WEAPONMODE_MELEE || hasLastWeaponMode)) {
+  int hasLastWeaponMode = m_lastWeaponModeSent != -1 && m_lastWeaponModeSent != WEAPONMODE_NORMALMODE;
+  if (state && (m_unit->weaponMode == WEAPONMODE_RANGEDMODE || m_unit->weaponMode == WEAPONMODE_SHEATHEDMODE || hasLastWeaponMode)) {
     ToggleSheathe(1);
   }
 
@@ -5682,7 +5650,7 @@ void CGPlayer_C::ShowTaxiNodes(CDataStore *msg) {
   } else {
     for (unsigned int index = 0; index < 64; ++index) {
       if (known & (static_cast<__int64>(1) << index)) {
-        TaxiNodesRec *node = g_taxiNodesDB.GetRecord(index + 1);
+        const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(index + 1);
         if (node) {
           ConsolePrintf("[%02d]: %s", node->m_ID, node->m_Name_lang[CURRENT_LANGUAGE]);
         }
@@ -6028,6 +5996,26 @@ bool CGPlayer_C::IsGiftWrapping() {
   return s_giftWrapItem != 0;
 }
 
+void CGPlayer_C::GiftWrap(CGItem_C *item) {
+  CGItem_C *wrapper = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(s_giftWrapItem, __FILE__, __LINE__));
+  if (wrapper) {
+    unsigned char wrapperContainerSlot = FindSlotIndex(wrapper->m_item->m_containedIn);
+    unsigned char wrapperSlot = FindItemSlot(wrapper->m_item->m_containedIn, wrapper);
+    unsigned char itemContainerSlot = FindSlotIndex(item->m_item->m_containedIn);
+    unsigned char itemSlot = FindItemSlot(item->m_item->m_containedIn, item);
+
+    CDataStore msg;
+    msg.Put(static_cast<unsigned int>(CMSG_WRAP_ITEM));
+    msg.Put(wrapperContainerSlot);
+    msg.Put(wrapperSlot);
+    msg.Put(itemContainerSlot);
+    msg.Put(itemSlot);
+    msg.Finalize();
+    ClientServices_Send(&msg);
+    CancelGiftWrap();
+  }
+}
+
 void CGPlayer_C::SheatheWeapon(bool sheathe) {
   if (!m_inventory.GetItem(15) && !m_inventory.GetItem(16)) {
     return;
@@ -6058,7 +6046,7 @@ void CGPlayer_C::SetFarSightFocus(CGObject_C *obj) {
 }
 
 void CGPlayer_C::ToggleFarSight() {
-  unsigned __int64 focusGUID = GetFarSightFocusGUID();
+  unsigned __int64 focusGUID = GetFarsightFocus();
   CGObject_C      *focus = ClntObjMgrObjectPtr(focusGUID, __FILE__, __LINE__);
 
   if (!focus || CGWorldFrame::GetActiveCamera()->GetTarget() == focus->GetGUID()) {
@@ -6095,7 +6083,7 @@ CGUnit_C *CGPlayer_C::GetPossessedUnit() {
     return 0;
   }
 
-  unsigned __int64 focusGUID = GetFarSightFocusGUID();
+  unsigned __int64 focusGUID = GetFarsightFocus();
   CGObject_C      *focus = ClntObjMgrObjectPtr(focusGUID, __FILE__, __LINE__);
   if (!focus || !(focus->GetType() & TYPE_UNIT)) {
     return 0;
@@ -6299,13 +6287,15 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec *rec, const unsigned __int64 
 }
 
 void CGPlayer_C::AddDeferredDamage(int normal, unsigned int flags, unsigned int damage, unsigned __int64 victim) {
-  DEFERREDDAMAGE *deferred = s_deferredDamage.NewNode(LIST_HEAD, 0, 0);
+  DEFERREDDAMAGE *deferred = s_freeDeferedDamage.Get(0);
   deferred->Set(normal, flags, damage, victim);
+  s_deferredDamage.LinkNode(deferred, LIST_HEAD, 0);
 }
 
 void CGPlayer_C::AddDeferredSpellMiss(unsigned __int64 victim, MISS_REASON reason, int spellID) {
-  DEFERREDSPELLMISS *deferred = s_deferredSpellMiss.NewNode(LIST_HEAD, 0, 0);
+  DEFERREDSPELLMISS *deferred = s_freeDeferredSpellMiss.Get(0);
   deferred->Set(victim, reason, spellID);
+  s_deferredSpellMiss.LinkNode(deferred, LIST_HEAD, 0);
 }
 
 void CGPlayer_C::ProcessDeferredDamage() {
@@ -6324,8 +6314,7 @@ void CGPlayer_C::ProcessDeferredDamage() {
         }
       }
       s_deferredDamage.UnlinkNode(deferred);
-      deferred->~DEFERREDDAMAGE();
-      SMemFree(deferred, 0, 0, 0);
+      s_freeDeferedDamage.Put(deferred);
     }
     deferred = next;
   }
@@ -6340,8 +6329,7 @@ void CGPlayer_C::ProcessDeferredSpellMiss() {
       unit->AddWorldText(deferred->reason);
       UnitCombatLogSpellMissed(deferred->reason, deferred->spellID, ClntObjMgrGetActivePlayer(), deferred->victim);
       s_deferredSpellMiss.UnlinkNode(deferred);
-      deferred->~DEFERREDSPELLMISS();
-      SMemFree(deferred, 0, 0, 0);
+      s_freeDeferredSpellMiss.Put(deferred);
     }
     deferred = next;
   }
@@ -6618,7 +6606,7 @@ void CGPlayer_C::UpdateObjComponentVisuals(const CGItem_C *itemPtr, const ItemEn
     CGCharacterInfo::UpdateItem(itemPtr->GetGUID());
   }
 
-  ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(itemPtr->GetDisplayID());
+  const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(itemPtr->GetDisplayID());
   if (!displayInfo) {
     return;
   }
@@ -6638,7 +6626,7 @@ void CGPlayer_C::UpdateObjComponentVisuals(const CGItem_C *itemPtr, const ItemEn
     return;
   }
 
-  ItemVisualsRec *visual = g_itemVisualsDB.GetRecord(displayInfo->m_itemVisual);
+  const ItemVisualsRec *visual = g_itemVisualsDB.GetRecord(displayInfo->m_itemVisual);
   if (visual) {
     return;
   }
@@ -6648,7 +6636,7 @@ void CGPlayer_C::UpdateObjComponentVisuals(const CGItem_C *itemPtr, const ItemEn
       continue;
     }
 
-    SpellItemEnchantmentRec *enchantment = g_spellItemEnchantmentDB.GetRecord(enchantments[i].id);
+    const SpellItemEnchantmentRec *enchantment = g_spellItemEnchantmentDB.GetRecord(enchantments[i].id);
     if (enchantment && enchantment->m_itemVisual) {
       visual = g_itemVisualsDB.GetRecord(enchantment->m_itemVisual);
       if (visual) {
@@ -6708,7 +6696,7 @@ void CGPlayer_C::SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec
         continue;
       }
 
-      ItemVisualEffectsRec *effect = g_itemVisualEffectsDB.GetRecord(rec->m_Slot[visualIndex]);
+      const ItemVisualEffectsRec *effect = g_itemVisualEffectsDB.GetRecord(rec->m_Slot[visualIndex]);
       if (!effect) {
         continue;
       }
@@ -6731,7 +6719,7 @@ void CGPlayer_C::ItemReceived(const ItemStats *stats) const {
   }
 
   for (unsigned int spellIndex = 0; spellIndex < 5; ++spellIndex) {
-    SpellRec *spell = g_spellDB.GetRecord(stats->m_spellID[spellIndex]);
+    const SpellRec *spell = g_spellDB.GetRecord(stats->m_spellID[spellIndex]);
     if (!spell || stats->m_spellTrigger[spellIndex]) {
       continue;
     }

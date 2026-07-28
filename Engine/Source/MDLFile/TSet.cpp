@@ -4,20 +4,20 @@
 #include <storm.h>
 
 void TSet::Add(unsigned int token, int needed, int allowDuplicates) {
-  FATALASSERT(m_count != 64);
-  m_set[m_count].token = token;
-  m_set[m_count].needed = needed;
-  m_set[m_count].dupsOk = allowDuplicates;
-  m_set[m_count++].seen = 0;
+  FATALASSERT(count != 64);
+  set[count].token = token;
+  set[count].needed = needed;
+  set[count].dupsOk = allowDuplicates;
+  set[count++].seen = 0;
 }
 
 int TSet::Check(unsigned int token) {
-  for (int i = 0; i < m_count; ++i) {
-    if (m_set[i].token == token) {
-      if (m_set[i].seen && !m_set[i].dupsOk) {
+  for (int i = 0; i < count; ++i) {
+    if (set[i].token == token) {
+      if (set[i].seen && !set[i].dupsOk) {
         return 0;
       }
-      m_set[i].seen = 1;
+      set[i].seen = 1;
       break;
     }
   }
@@ -25,9 +25,9 @@ int TSet::Check(unsigned int token) {
 }
 
 int TSet::Found(unsigned int token) {
-  for (int i = 0; i < m_count; ++i) {
-    if (m_set[i].token == token) {
-      return m_set[i].seen;
+  for (int i = 0; i < count; ++i) {
+    if (set[i].token == token) {
+      return set[i].seen;
     }
   }
   SErrPrepareAppFatal(__FILE__, __LINE__);
@@ -36,9 +36,9 @@ int TSet::Found(unsigned int token) {
 }
 
 int TSet::NotFound(unsigned int token) {
-  for (int i = 0; i < m_count; ++i) {
-    if (m_set[i].token == token) {
-      return !m_set[i].seen;
+  for (int i = 0; i < count; ++i) {
+    if (set[i].token == token) {
+      return !set[i].seen;
     }
   }
   SErrPrepareAppFatal(__FILE__, __LINE__);
@@ -48,9 +48,9 @@ int TSet::NotFound(unsigned int token) {
 
 void TSet::Complete(CMDLStatus *status) {
   FATALASSERT(status);
-  for (int i = 0; i < m_count; ++i) {
-    if (m_set[i].needed && !m_set[i].seen) {
-      status->FatalNotFound(m_set[i].token, -1);
+  for (int i = 0; i < count; ++i) {
+    if (set[i].needed && !set[i].seen) {
+      status->FatalNotFound(set[i].token, -1);
     }
   }
 }

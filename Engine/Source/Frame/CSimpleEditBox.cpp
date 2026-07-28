@@ -1504,7 +1504,7 @@ void CSimpleEditBox::SetFont(const char *fontName, float fontHeight, unsigned in
     m_candidatesFrame->m_attrib.m_font = fontName;
     m_candidatesFrame->m_attrib.m_fontHeight = fontHeight;
     m_candidatesFrame->m_attrib.m_fontFlags = fontFlags;
-    m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT;
+    m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT_UPDATE;
   }
 
   UpdateSizes(m_rect);
@@ -1536,7 +1536,7 @@ void CSimpleEditBox::CreateCandidatesFrame() {
   m_candidatesFrame->m_attrib.m_font = fontName;
   m_candidatesFrame->m_attrib.m_fontHeight = fontHeight;
   m_candidatesFrame->m_attrib.m_fontFlags = fontFlags;
-  m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT;
+  m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT_UPDATE;
   m_candidatesFrame->SetWidth(fontHeight * 10.0f);
   m_candidatesFrame->SetPoint(
       FRAMEPOINT_BOTTOMLEFT,

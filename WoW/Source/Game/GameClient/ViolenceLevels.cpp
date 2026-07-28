@@ -16,7 +16,7 @@ void ViolenceLevelsInitialize() {
 }
 
 int ViolenceGetLevel() {
-  int level = s_violenceLevel->m_intValue;
+  int level = s_violenceLevel->GetInt();
   int maxLevel = s_maxViolenceLevels[CURRENT_LANGUAGE];
   if (level >= maxLevel) {
     level = maxLevel;

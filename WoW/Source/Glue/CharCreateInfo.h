@@ -12,6 +12,9 @@ class CSimpleModel;
 extern const char *g_glueBgObjNames[2];
 
 struct CustomizationSelections {
+  CustomizationSelections() {
+  }
+
   uint classID;
   uint outfit;
   uint skinColor;

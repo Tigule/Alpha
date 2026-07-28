@@ -13,10 +13,14 @@
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/ActionBarFrame.h"
 #include "Ui/ClassTrainerFrame.h"
+#include "Ui/ContainerFrame.h"
 #include "Ui/GameUI.h"
 #include "Ui/LootFrame.h"
+#include "Ui/MerchantFrame.h"
 #include "Ui/QuestLog.h"
+#include "Ui/QuestFrame.h"
 #include "Ui/SpellBookFrame.h"
+#include "Ui/TradeFrame.h"
 
 #include <Base/Coordinate.h>
 #include <Frame/CSimpleRender.h>
@@ -96,50 +100,6 @@ class CGCraftInfo {
   static TSGrowableArray<CraftInfo *> m_skills;
 };
 
-struct VendorItem {
-  unsigned int m_muid;
-  unsigned int m_itemType;
-  unsigned int m_itemDisplayID;
-  int          m_quantity;
-  int          m_price;
-  int          m_durability;
-  int          m_stackCount;
-};
-
-class CGMerchantInfo {
- public:
-  static unsigned __int64 GetMerchant();
-  static const VendorItem *GetItem(int index) {
-    return index >= 0 && index < m_itemCount ? &m_items[index] : 0;
-  }
-
- protected:
-  static unsigned __int64 m_merchant;
-  static VendorItem       m_items[128];
-  static int              m_itemCount;
-};
-
-class CGTradeInfo {
- public:
-  static void GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot);
-  static unsigned __int64 GetTradePartner();
-  static int             GetTargetTradeItem(int index) {
-    return index >= 0 && index < 8 ? m_targetItems[index] : 0;
-  }
-  static int GetTargetTradeItemEnachantment(int index) {
-    return index >= 0 && index < 8 ? m_targetItemEnchantment[index] : 0;
-  }
-  static unsigned __int64 GetTargetTradeItemCreator(int index) {
-    return index >= 0 && index < 8 ? m_targetItemCreator[index] : 0;
-  }
-
- protected:
-  static unsigned __int64 m_playerItems[8];
-  static int              m_targetItems[8];
-  static int              m_targetItemEnchantment[8];
-  static unsigned __int64 m_targetItemCreator[8];
-};
-
 int Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot);
 
 unsigned __int64 Script_GetGUIDFromName(const char *name);
@@ -158,17 +118,6 @@ int Spell_C_GetItemCooldown(
     unsigned long *startTime,
     unsigned int *enable
 );
-
-class CGQuestInfo {
- public:
-  static int GetQuestItemID(const char *type, unsigned int index);
-  static const unsigned __int64 &GetQuestGiver();
-};
-
-class CGContainerInfo {
- public:
-  static unsigned __int64 GetContainer(int index);
-};
 
 int CGTooltip_SetPadding(lua_State *L);
 int CGTooltip_IsOwned(lua_State *L);
@@ -234,11 +183,11 @@ static int s_itemsWaiting;
 
 static void FrameScriptGetSpellString(TOOLTIP_DETAIL detail, const char* stringLabel, int points, char* positive, unsigned int positiveSize, char* negative, unsigned int negativeSize) {
   char token[64];
-  if (detail == TOOLTIP_DETAIL_NONE) {
+  if (detail == TOOLTIP_DETAIL_GENERIC) {
     SStrPrintf(token, sizeof(token), "%s_GEN", stringLabel);
-  } else if (detail == TOOLTIP_DETAIL_BASIC) {
+  } else if (detail == TOOLTIP_DETAIL_NORMAL) {
     SStrPrintf(token, sizeof(token), "%s", stringLabel);
-  } else if (detail == TOOLTIP_DETAIL_EXTENDED) {
+  } else if (detail == TOOLTIP_DETAIL_VERBOSE) {
     SStrPrintf(token, sizeof(token), "%s_VERBOSE", stringLabel);
   }
 
@@ -263,11 +212,11 @@ static void FrameScriptGetSpellString(TOOLTIP_DETAIL detail, const char* stringL
 
 static void FrameScriptGetEnchantString(TOOLTIP_DETAIL detail, const char* stringLabel, char* buf, unsigned int bufSize) {
   char token[64];
-  if (detail == TOOLTIP_DETAIL_NONE) {
+  if (detail == TOOLTIP_DETAIL_GENERIC) {
     SStrPrintf(token, sizeof(token), "%s_GEN", stringLabel);
-  } else if (detail == TOOLTIP_DETAIL_BASIC) {
+  } else if (detail == TOOLTIP_DETAIL_NORMAL) {
     SStrPrintf(token, sizeof(token), "%s", stringLabel);
-  } else if (detail == TOOLTIP_DETAIL_EXTENDED) {
+  } else if (detail == TOOLTIP_DETAIL_VERBOSE) {
     SStrPrintf(token, sizeof(token), "%s_VERBOSE", stringLabel);
   }
   const char *text =
@@ -610,7 +559,7 @@ void CGTooltip::SetBuff(int spellID, unsigned char flags) {
     }
 
     char buf[128];
-    GetSpellEffectString(buf, sizeof(buf), spell, effectIndex, 0, 0, TOOLTIP_DETAIL_NONE);
+    GetSpellEffectString(buf, sizeof(buf), spell, effectIndex, 0, 0, TOOLTIP_DETAIL_GENERIC);
     if (*buf) {
       const NTempest::CImVector &color =
           flags & (1 << (3 - effectIndex)) ? normalColor : inactiveColor;
@@ -1258,7 +1207,7 @@ int CGTooltip_SetAction(lua_State *L) {
       return 1;
     }
 
-    TooltipExtendedItemInfo info;
+    TooltipExtendedItemInfo info = {0};
     info.cooldownTime = startTime + duration - OsGetAsyncTimeMs();
     info.creator = item->GetCreator();
     if (tooltip->SetItem(
@@ -1386,7 +1335,7 @@ int CGTooltip_SetInventoryItem(lua_State *L) {
     unsigned __int64 unitGUID = unit->GetGUID();
     int hasCooldown = 0;
     if (startTime && duration) {
-      TooltipExtendedItemInfo info;
+      TooltipExtendedItemInfo info = {0};
       info.cooldownTime = startTime + duration - OsGetAsyncTimeMs();
       info.creator = item->GetCreator();
       hasCooldown = tooltip->SetItem(
@@ -1674,7 +1623,7 @@ int CGTooltip_SetTradePlayerItem(lua_State *L) {
   if (!item) {
     return 0;
   }
-  TooltipExtendedItemInfo info;
+  TooltipExtendedItemInfo info = {0};
   int                     proposedEnchantment = 0;
   int                     proposedEnchantmentSlot = 0;
   info.creator = item->GetCreator();
@@ -1701,7 +1650,7 @@ int CGTooltip_SetTradeTargetItem(lua_State *L) {
   if (targetItem <= 0) {
     return 0;
   }
-  TooltipExtendedItemInfo info;
+  TooltipExtendedItemInfo info = {0};
   info.enchantment[0] = CGTradeInfo::GetTargetTradeItemEnachantment(index);
   info.creator = CGTradeInfo::GetTargetTradeItemCreator(index);
   int proposedEnchantment = 0;
@@ -1763,7 +1712,7 @@ int CGTooltip_SetBagItem(lua_State *L) {
 
     int result;
     if (startTime && duration) {
-      TooltipExtendedItemInfo info;
+      TooltipExtendedItemInfo info = {0};
       info.cooldownTime = startTime + duration - OsGetAsyncTimeMs();
       info.creator = item->GetCreator();
       result = tooltip->SetItem(

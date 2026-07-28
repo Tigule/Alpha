@@ -8,7 +8,7 @@
 #include "Tempest/crandom.h"
 
 static int           s_flags;
-static ZoneMusicRec *s_currentMusic;
+static const ZoneMusicRec *s_currentMusic;
 static Sound        *s_sound;
 static int           s_elapsed;
 static int           s_nextPlay;
@@ -86,7 +86,7 @@ void ShutdownZoneMusic() {
 }
 
 void SndInterfaceRegisterNewZone(unsigned int musicID) {
-  ZoneMusicRec *previousMusic = s_currentMusic;
+  const ZoneMusicRec *previousMusic = s_currentMusic;
   s_currentMusic = g_zoneMusicDB.GetRecord(musicID);
 
   if (previousMusic != s_currentMusic && s_currentMusic && s_sound) {

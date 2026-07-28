@@ -21,10 +21,10 @@ typedef struct SProcessCompletionInfo {
 
 namespace S_Thread {
   struct SThreadTrack {
-    DWORD  suspended;
-    DWORD  active;
+    int    suspended;
+    int    live;
     DWORD  threadId;
-    HANDLE handle;
+    void  *threadH;
     char   name[16];
   };
 
@@ -109,7 +109,7 @@ DWORD WINAPI S_Thread::s_SLaunchThread(void *lpThreadParameter) {
   threadVal = proc(userParam);
   s_threadCrit.Enter();
   for (index = 0; index < STHREAD_MAX_TRACKED; index++) {
-    if (s_threads[index].active && s_threads[index].threadId == threadId) {
+    if (s_threads[index].live && s_threads[index].threadId == threadId) {
       memcpy(&s_threads[index], &s_threads[index + 1], (STHREAD_MAX_TRACKED - index - 1) * sizeof(s_threads[0]));
       s_numthreads--;
     }
@@ -121,7 +121,10 @@ DWORD WINAPI S_Thread::s_SLaunchThread(void *lpThreadParameter) {
 
 void *
 SCreateThread(DWORD dwStackSize, STHREADPROC lpStartAddress, void *lpParameter, DWORD dwCreationFlags, unsigned int *lpThreadId, char *threadName) {
-  DWORD              buf[2];
+  struct {
+    DWORD cdThreadId;
+    void *cdThreadH;
+  }                  buf;
   DWORD              bufsize;
   HANDLE             hThread;
   SThreadLaunchInfo *launch;
@@ -133,17 +136,17 @@ SCreateThread(DWORD dwStackSize, STHREADPROC lpStartAddress, void *lpParameter, 
   S_Thread::s_threadCrit.Enter();
   if (!S_Thread::s_numthreads) {
     S_Thread::s_threads[S_Thread::s_numthreads].threadId = GetCurrentThreadId();
-    S_Thread::s_threads[S_Thread::s_numthreads].handle = NULL;
-    S_Thread::s_threads[S_Thread::s_numthreads].active = 1;
+    S_Thread::s_threads[S_Thread::s_numthreads].threadH = NULL;
+    S_Thread::s_threads[S_Thread::s_numthreads].live = 1;
     S_Thread::s_threads[S_Thread::s_numthreads].suspended = 0;
     SStrCopy(S_Thread::s_threads[S_Thread::s_numthreads].name, "main", sizeof(S_Thread::s_threads[S_Thread::s_numthreads].name));
     S_Thread::s_numthreads++;
 
     bufsize = sizeof(buf);
-    if (StormGetOption(8, buf, &bufsize)) {
-      S_Thread::s_threads[S_Thread::s_numthreads].threadId = buf[0];
-      S_Thread::s_threads[S_Thread::s_numthreads].handle = (HANDLE)buf[1];
-      S_Thread::s_threads[S_Thread::s_numthreads].active = 1;
+    if (StormGetOption(8, &buf, &bufsize)) {
+      S_Thread::s_threads[S_Thread::s_numthreads].threadId = buf.cdThreadId;
+      S_Thread::s_threads[S_Thread::s_numthreads].threadH = buf.cdThreadH;
+      S_Thread::s_threads[S_Thread::s_numthreads].live = 1;
       S_Thread::s_threads[S_Thread::s_numthreads].suspended = 0;
       SStrCopy(S_Thread::s_threads[S_Thread::s_numthreads].name, "CdThreadProc", sizeof(S_Thread::s_threads[S_Thread::s_numthreads].name));
       S_Thread::s_numthreads++;
@@ -164,8 +167,8 @@ SCreateThread(DWORD dwStackSize, STHREADPROC lpStartAddress, void *lpParameter, 
     SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "s_numthreads < s_maxthreads", FALSE, 1);
   }
   S_Thread::s_threads[S_Thread::s_numthreads].threadId = launch->threadId;
-  S_Thread::s_threads[S_Thread::s_numthreads].handle = launch->handle;
-  S_Thread::s_threads[S_Thread::s_numthreads].active = 1;
+  S_Thread::s_threads[S_Thread::s_numthreads].threadH = launch->handle;
+  S_Thread::s_threads[S_Thread::s_numthreads].live = 1;
   S_Thread::s_threads[S_Thread::s_numthreads].suspended = (dwCreationFlags >> 2) & 1;
   if (threadName) {
     SStrCopy(S_Thread::s_threads[S_Thread::s_numthreads].name, threadName, sizeof(S_Thread::s_threads[S_Thread::s_numthreads].name));
