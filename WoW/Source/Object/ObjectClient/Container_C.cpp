@@ -5,11 +5,13 @@
 
 void CGContainer_C::SetStorage(unsigned long *storage) {
   CGItem_C::SetStorage(storage);
-  CGContainer::SetStorage(storage + 36);
+  CGContainer::SetStorage(storage + CGItem::TotalFields());
 }
 
 CGContainer_C::CGContainer_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGItem_C(storage, eventTime, init), CGContainer(storage + 36), m_bag(GetGUID(), &m_cont->m_numSlots, m_cont->m_slots, 0) {
+    : CGItem_C(storage, eventTime, init),
+      CGContainer(storage + CGItem::TotalFields()),
+      m_bag(GetGUID(), &m_cont->m_numSlots, m_cont->m_slots, 0) {
 }
 
 CGContainer_C::~CGContainer_C() {
@@ -17,13 +19,6 @@ CGContainer_C::~CGContainer_C() {
 
 void CGContainer_C::Disable(int shutdown) {
   CGItem_C::Disable(shutdown);
-
-  for (unsigned int i = 0; i < m_bag.NumSlots(); ++i) {
-    unsigned __int64 guid = m_bag.GetItem(i);
-    if (guid) {
-      ClntObjMgrObjectInRange(guid);
-    }
-  }
 }
 
 void CGContainer_C::Reenable() {
@@ -32,7 +27,7 @@ void CGContainer_C::Reenable() {
   for (unsigned int i = 0; i < m_bag.NumSlots(); ++i) {
     unsigned __int64 guid = m_bag.GetItem(i);
     if (guid) {
-      ClntObjMgrHideObject(guid);
+      ClntObjMgrObjectInRange(guid);
     }
   }
 }
@@ -76,9 +71,9 @@ unsigned int CGContainer_C::OffsetOf(OBJECT_TYPE_ID type) {
     case ID_OBJECT:
       return 0;
     case ID_ITEM:
-      return 24;
+      return CGObject::TotalFields() * sizeof(unsigned long);
     case ID_CONTAINER:
-      return 144;
+      return CGItem::TotalFields() * sizeof(unsigned long);
     default:
       FATALASSERT(0);
       return -1;

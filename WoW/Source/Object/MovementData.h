@@ -160,7 +160,9 @@ class CMovementData {
   unsigned int GetMoveFlags() const {
     return m_moveFlags;
   }
-  unsigned __int64 GetGUID() const;
+  unsigned __int64 GetGUID() const {
+    return m_guid;
+  }
   int              IsInMotion() const;
   int              IsMovingOrTurning() const;
   int              IsMovingAndTurning() const;
@@ -196,7 +198,9 @@ class CMovementData {
   int              IsPitchingDown() const;
   int              IsMovingStrafingOrSwimming() const;
   int              IsMovingStrafingFallingOrSwimming() const;
-  int              IsSplineMover() const;
+  int              IsSplineMover() const {
+    return (m_moveFlags & 0x04000000) != 0;
+  }
   int              IgnoresCollision() const;
   int              IsHalted() const;
   int              WasNudged() const;

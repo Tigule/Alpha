@@ -7,7 +7,9 @@
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
 #include "Game/GameClient/GuildClient.h"
 #include "Net/NetClient/NetClient.h"
+#include "Object/ObjectClient/AnimCompiles.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Ui/WorldFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Base/CDataAllocator.h>
@@ -37,11 +39,13 @@ static int DrownAnimCallback(void *param) {
 
 void CGCorpse_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
-  CGCorpse::SetStorage(storage + 6);
+  CGCorpse::SetStorage(storage + CGObject::TotalFields());
 }
 
 CGCorpse_C::CGCorpse_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGCorpse(storage + 6), m_animData(0) {
+    : CGObject_C(storage, eventTime, init),
+      CGCorpse(storage + CGObject::TotalFields()),
+      m_animData(0) {
   m_corpse->m_position = init->move.status.worldPosition;
   m_corpse->m_facing = init->move.status.worldFacing;
   InitComponents();
@@ -82,15 +86,16 @@ void CGCorpse_C::PostInit(const CClientObjCreate &init) {
   if (IsUnderWater()) {
     m_animData = s_freeAnimData.Get(0);
     m_animData->guid = GetGUID();
-    ModelSetSeqFinishedHandler(model, 132, DrownAnimCallback, m_animData);
-    ObjectModelSetSequence(model, 132, 0, 0);
+    ModelSetSeqFinishedHandler(model, ANIM_DROWNED, DrownAnimCallback, m_animData);
+    ObjectModelSetSequence(model, ANIM_DROWNED, 0, 0);
   } else {
-    ObjectModelSetSequence(model, 1, 0, 0);
+    ObjectModelSetSequence(model, ANIM_DEATH, 0, 0);
     ModelForceCurrentSequenceTime(model, INT_MAX, 0);
   }
 }
 
 void CGCorpse_C::Disable(int shutdown) {
+  CGWorldFrame::RegisterObjectFadeoutModel(this, m_texComponent, m_alpha);
   RemoveWorldObject();
   CGObject_C::Disable(shutdown);
 }
@@ -107,7 +112,7 @@ int CGCorpse_C::SetBlock(unsigned int i, unsigned long data) {
   }
 
   i -= OffsetOf(ID_CORPSE);
-  FATALASSERT(i < sizeof(*m_corpse) / sizeof(unsigned long));
+  FATALASSERT(i < (CGCorpse::GetDataSize() / sizeof(DWORD)));
   reinterpret_cast<unsigned long *>(m_corpse)[i] = data;
   return 1;
 }
@@ -121,8 +126,11 @@ unsigned int CGCorpse_C::OffsetOf(OBJECT_TYPE_ID type) {
   if (type == ID_OBJECT) {
     return 0;
   }
-  FATALASSERT(type == ID_CORPSE);
-  return 24;
+  if (type == ID_CORPSE) {
+    return CGObject::TotalFields() * sizeof(unsigned long);
+  }
+  FATALASSERT(0);
+  return -1;
 }
 
 const char *CGCorpse_C::GetModelFileName() const {
@@ -165,15 +173,15 @@ void CGCorpse_C::CommitTexture(int force) {
 
 void CGCorpse_C::InitPreferredGeosets() {
   memset(m_preferredGeosets, 0, sizeof(m_preferredGeosets));
-  m_preferredGeosets[CGS_HAIR] = CharCustomizationGetHairGeoset(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_hairStyleID);
+  m_preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_hairStyleID);
 
-  BEARDSTYLEDATA beardStyleData = {1, 1, 1};
+  BEARDSTYLEDATA beardStyleData;
   int            hasFacialInfo = CharCustomizationGetBeardStyle(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, &beardStyleData);
-  m_preferredGeosets[CGS_EARS] = 2;
+  m_preferredGeosets[CHARGEOSET_EAR] = 2;
   if (hasFacialInfo) {
-    m_preferredGeosets[CGS_FACIAL_BEARD] = beardStyleData.beardGeoset;
-    m_preferredGeosets[CGS_FACIAL_SIDEBURN] = beardStyleData.sideBurnGeoset;
-    m_preferredGeosets[CGS_FACIAL_MOUSTACHE] = beardStyleData.moustacheGeoset;
+    m_preferredGeosets[CHARGEOSET_BEARD] = beardStyleData.beardGeoset;
+    m_preferredGeosets[CHARGEOSET_SIDEBURN] = beardStyleData.sideBurnGeoset;
+    m_preferredGeosets[CHARGEOSET_MOUSTACHE] = beardStyleData.moustacheGeoset;
   }
 }
 
@@ -195,9 +203,9 @@ void CGCorpse_C::InitComponents() {
     );
   }
 
-  unsigned int textureLayerHolds[4];
+  unsigned int textureLayerHolds[NUM_TEXLAYERS];
   CharCustomizationGetTextureLayerHolds(
-      m_corpse->m_raceID, m_corpse->m_sex, textureLayerHolds, 4
+      m_corpse->m_raceID, m_corpse->m_sex, textureLayerHolds, NUM_TEXLAYERS
   );
 
   m_texComponent =
@@ -218,7 +226,7 @@ void CGCorpse_C::InitComponents() {
       m_corpse->m_hairColorID
   );
 
-  BEARDSTYLEDATA facialData = {1, 1, 1};
+  BEARDSTYLEDATA facialData;
   int hasFacialData = CharCustomizationGetBeardStyle(
       m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, &facialData
   );
@@ -251,13 +259,16 @@ void CGCorpse_C::AddComponent(int displayID, unsigned int inventoryType, int slo
     return;
   }
 
-  const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
   if (m_texComponent) {
     if ((1 << slot) & 0x403F8) {
       CStatus status;
-      TexComponentAdd(&status, m_corpse->m_sex, m_texComponent, displayInfo, inventoryType, 1);
+      TexComponentAdd(
+          &status, m_corpse->m_sex, m_texComponent,
+          g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, 1
+      );
     }
 
+    const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
     if (displayInfo && (displayInfo->m_flags & 1) && slot == 18 && inventoryType == 19 &&
         m_corpse->m_guildID) {
       int eStyle;
@@ -275,8 +286,8 @@ void CGCorpse_C::AddComponent(int displayID, unsigned int inventoryType, int slo
     }
 
     CharCustomizationAddItemGeosets(
-        m_geosetHandle, displayInfo, inventoryType, m_texComponent, m_corpse->m_raceID,
-        commit == 0
+        m_geosetHandle, g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, m_texComponent,
+        m_corpse->m_raceID, commit == 0
     );
   }
 
@@ -287,13 +298,14 @@ void CGCorpse_C::AddComponent(int displayID, unsigned int inventoryType, int slo
 
   if (!slot) {
     HeadGeosetHideCharGeosets(
-        m_geosetHandle, displayInfo, m_corpse->m_raceID, m_preferredGeosets, 15
+        m_geosetHandle, g_itemDisplayInfoDB.GetRecord(displayID), m_corpse->m_raceID,
+        m_preferredGeosets, 15
     );
   }
 
   ObjComponentAdd(
-      m_corpse->m_raceID, m_corpse->m_sex, 1, GetObjectModel(), displayInfo, inventoryType, 0, 0,
-      0, 0, slot
+      m_corpse->m_raceID, m_corpse->m_sex, 1, GetObjectModel(),
+      g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, 0, 0, 0, 0, slot
   );
 }
 
@@ -331,6 +343,6 @@ bool CGCorpse_C::IsUnderWater() const {
 void CGCorpse_C::OnDeathAnimEnd() {
   HMODEL model = GetObjectModel();
   if (model) {
-    ObjectModelSetSequence(model, 132, 0, 0);
+    ObjectModelSetSequence(model, ANIM_DROWNED, 0, 0);
   }
 }

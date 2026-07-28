@@ -6,8 +6,10 @@ class CGUnit_C;
 
 extern unsigned int g_specialSpellIDs[43];
 
+void LoadUnitDefs();
+
 enum MISS_REASON {
-  MISS_REASON_NONE = 0,
+  MISS_NONE = 0,
   MISS_PHYSICAL = 1,
   MISS_RESIST = 2,
   MISS_IMMUNE = 3,
@@ -45,7 +47,7 @@ struct MISSILESTRUCT {
   unsigned int       missileEffect;
   unsigned int       missileVictimEffect;
   unsigned int       missilePathType;
-  unsigned int       hits;
+  bool               hits;
   MISS_REASON        reason;
   int                sound;
 };

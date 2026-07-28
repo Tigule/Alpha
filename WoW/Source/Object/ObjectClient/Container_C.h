@@ -13,7 +13,9 @@ class CGContainer {
  public:
   static unsigned int GetDataSize();
   static unsigned int GetBaseOffset();
-  static unsigned int TotalFields();
+  static __forceinline unsigned int TotalFields() {
+    return 78;
+  }
   static unsigned int GetUpdateMaskBytes();
   static unsigned int GetUpdateMaskBlocks();
 

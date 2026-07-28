@@ -336,16 +336,23 @@ static void IProcessEvent(const InterpInfo& animInfo, CAnimEventObj* currEvent) 
     return;
   }
 
-  FATALASSERT(currEvent->animObjId < animInfo.unique->status.Count());
-  CAnimEventObjStatus *status =
-      static_cast<CAnimEventObjStatus *>(animInfo.unique->status[currEvent->animObjId]);
+  CAnimEventObjStatus *status = &animInfo.unique->eventStatus[currEvent->splitIndex];
   CKeyTrackStatus previous = status->event;
-  if (!currEvent->events.SetAnimTime(status->base, &status->event, animInfo)) {
+  unsigned char sequence = status->base.currSeq;
+  if (!currEvent->events.NumKeysThisSeqSafe(sequence)) {
     return;
   }
+  currEvent->events.SetAnimTime(status->base, &status->event, animInfo);
 
-  if (previous.currKey != status->event.currKey ||
-      previous.timepastkey > status->event.timepastkey) {
+  if (currEvent->events.JustPastKey(
+          animInfo.unique->seq[sequence].scaledElapsedTime,
+          animInfo.shared->seq[sequence],
+          animInfo.unique->seq[sequence].elapsed,
+          sequence,
+          status->base.flags & 0x10,
+          previous,
+          status->event
+      )) {
     NTempest::C3Vector position = status->position;
     WorldMatrixTransform(&position);
     ActivityBegin(ACTIVITY_ANIMEVENTS);
@@ -961,8 +968,12 @@ static void AnimateAllMaterialLayers(AnimInfo* animInfo, unsigned int* tex) {
 
 static void ISetEventSequenceUnchanged(CAnim* container) {
   if (!(container->flags & 4)) {
-    for (unsigned int i = 0; i < container->eventStatus.Count(); ++i) {
-      container->eventStatus[i].base.flags &= ~0x10;
+    unsigned int count = container->eventStatus.Count();
+    CAnimEventObjStatus *status = container->eventStatus.Ptr();
+    while (count) {
+      status->base.flags &= ~0x10;
+      ++status;
+      --count;
     }
     container->flags |= 4;
   }
@@ -1005,36 +1016,23 @@ static void ISetSequenceUnchanged(CAnim* container, CAnimData* animptr) {
 }
 
 void AnimProcessEvents(HANIM anim, const TSFixedArray<NTempest::C3Vector> &positions) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
+  CAnim *container = reinterpret_cast<CAnim *>(anim);
+  ASSERT(container);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  ASSERT(shared->flags & 1);
-  ASSERT(!(shared->flags & 4));
+  CAnimData *animptr = reinterpret_cast<CAnimData *>(container->hdata);
+  ASSERT(animptr);
+  ASSERT(animptr->flags & 0x01);
+  ASSERT((animptr->flags & 0x04) == 0);
 
-  InterpInfo interpInfo(unique, shared, positions);
-  for (unsigned int i = 0; i < shared->eventObjs.Count(); ++i) {
-    CAnimEventObj       &eventObject = shared->eventObjs[i];
-    CAnimEventObjStatus &status = unique->eventStatus[i];
-    if (!unique->appEvent.callback || (unique->flags & 8) || !eventObject.events.TotalKeys()) {
-      continue;
-    }
-
-    if (eventObject.animObjId < positions.Count()) {
-      status.position = positions[eventObject.animObjId];
-    }
-    if (eventObject.events.SetAnimTime(status.base, &status.event, interpInfo)) {
-      unique->appEvent.callback(eventObject.name, status.position, unique->appEvent.param);
-    }
+  InterpInfo interpInfo(container, animptr, positions);
+  CAnimEventObj *eventObject = animptr->eventObjs.Ptr();
+  unsigned int count = animptr->eventObjs.Count();
+  while (count) {
+    IProcessEvent(interpInfo, eventObject);
+    ++eventObject;
+    --count;
   }
-
-  if (!(unique->flags & 4)) {
-    for (unsigned int i = 0; i < unique->eventStatus.Count(); ++i) {
-      unique->eventStatus[i].base.flags &= ~0x10;
-    }
-    unique->flags |= 4;
-  }
+  ISetEventSequenceUnchanged(container);
 }
 
 void AnimAnimateCameras(HANIM anim, const TSFixedArray<HCAMERA> &cameras) {
@@ -1143,8 +1141,4 @@ void AnimSetBoneProjectCallback(ANIMBONEPROJECTCALLBACK callback, float distance
 void AnimGetBoneProjectCallback(ANIMBONEPROJECTCALLBACK &callback, float &distance) {
   callback = s_AnimBoneProjectCallback;
   distance = s_animBoneProjectDistance;
-}
-
-InterpInfo::InterpInfo(CAnim *container, CAnimData *animptr, const TSFixedArray<NTempest::C3Vector> &positions)
-    : unique(container), shared(animptr), positions(positions) {
 }

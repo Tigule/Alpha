@@ -291,6 +291,8 @@ struct MDLCOLLISION {
 };
 
 struct MDLSEQUENCESSECTION {
+  MDLSEQUENCESSECTION();
+
   CMdlString<80>    name;
   NTempest::CiRange time;
   float             movespeed;

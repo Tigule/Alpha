@@ -1,6 +1,7 @@
 #include "Object_C.h"
 
 #include "AnimCompiles.h"
+#include "Container_C.h"
 #include "Corpse_C.h"
 #include "DynamicObject_C.h"
 #include "GameObject_C.h"
@@ -308,9 +309,6 @@ int CGObject_C::InitModelFileName(char *modelFileName, unsigned int size) {
   return modelFileName[0] != 0;
 }
 
-void CGObject_C::PostMovementUpdate() {
-}
-
 void CGObject_C::SetStorage(unsigned long *storage) {
   m_data = storage;
   m_obj = reinterpret_cast<CGObjectData *>(storage);
@@ -429,37 +427,35 @@ void CGObject_C::RemoveWorldObject() {
 }
 
 int CGObject_C::SetBlock(unsigned int i, unsigned long data) {
-  unsigned int blocks;
-
   switch (GetType()) {
     case HIER_TYPE_OBJECT:
-      blocks = 6;
+      FATALASSERT(i < CGObject::TotalFields());
       break;
     case HIER_TYPE_ITEM:
-    case HIER_TYPE_CORPSE:
-      blocks = 36;
+      FATALASSERT(i < CGItem::TotalFields());
       break;
     case HIER_TYPE_CONTAINER:
-      blocks = 78;
+      FATALASSERT(i < CGContainer::TotalFields());
       break;
     case HIER_TYPE_UNIT:
-      blocks = 184;
+      FATALASSERT(i < CGUnit::TotalFields());
       break;
     case HIER_TYPE_PLAYER:
-      blocks = 634;
+      FATALASSERT(i < CGPlayer::TotalFields());
       break;
     case HIER_TYPE_GAMEOBJECT:
-      blocks = 20;
+      FATALASSERT(i < CGGameObject::TotalFields());
       break;
     case HIER_TYPE_DYNAMICOBJECT:
-      blocks = 16;
+      FATALASSERT(i < CGDynamicObject::TotalFields());
+      break;
+    case HIER_TYPE_CORPSE:
+      FATALASSERT(i < CGCorpse::TotalFields());
       break;
     default:
-      FATALASSERT(0);
-      return 0;
+      break;
   }
 
-  FATALASSERT(i < blocks);
   m_data[i] = data;
   return 1;
 }
@@ -521,14 +517,14 @@ void CGObject_C::ReportNoAnimation(const char *modelName) {
 
 ANIMENUMERATION Object_C_GetAnimIndex(const char* animName) {
   if (!animName || !*animName) {
-    return static_cast<ANIMENUMERATION>(-1);
+    return INVALID_ANIMATION;
   }
   for (unsigned int i = 0; i < FIRST_ITEMANIMATION + NUM_ITEMANIMATIONS; ++i) {
     if (!SStrCmp(animName, g_animationNames[i], 0x7FFFFFFF)) {
       return static_cast<ANIMENUMERATION>(i);
     }
   }
-  return static_cast<ANIMENUMERATION>(-1);
+  return INVALID_ANIMATION;
 }
 
 void CGObject_C::HideHighlightType(HIGHLIGHTTYPE type) {
@@ -538,18 +534,6 @@ void CGObject_C::HideHighlightType(HIGHLIGHTTYPE type) {
   if (!m_highlightTypes) {
     ModelSetEmissiveColor(m_model, NTempest::CImVector(0ul), 1);
   }
-}
-
-CGBag_C *CGObject_C::GetBag() {
-  return 0;
-}
-
-float CGObject_C::GetScale() const {
-  return m_obj->m_scale;
-}
-
-NTempest::C3Vector CGObject_C::GetGroundNormal() const {
-  return NTempest::C3Vector(0.0f, 0.0f, 1.0f);
 }
 
 void CGObject_C::ShowHighlightType(HIGHLIGHTTYPE type) {
@@ -563,22 +547,6 @@ void CGObject_C::ShowHighlightType(HIGHLIGHTTYPE type) {
   );
 }
 
-int CGObject_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
-  FATALASSERT(outPtr);
-  outPtr->Set(0xFFFFFFFF);
-  return 1;
-}
-
-void CGObject_C::RenderTargetSelection() const {
-}
-
-int CGObject_C::UpdateTexComponentLoadStatus() {
-  return 0;
-}
-
-void CGObject_C::PreRender(int currentTime, float elapsed) {
-}
-
 void CGObject_C::SetAnimated(int animated) {
   if (animated) {
     m_flags |= 1;
@@ -587,57 +555,10 @@ void CGObject_C::SetAnimated(int animated) {
   }
 }
 
-void CGObject_C::PostAnimate(CGWorldFrame *worldFrame) {
-}
-
-void CGObject_C::ObjectPostAnimate(float renderFacing, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
-}
-
-void CGObject_C::ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
-}
-
-void CGObject_C::OnSpecialMountAnim() {
-}
-
-int CGObject_C::IsSolidSelectable() const {
-  return 1;
-}
-
-int CGObject_C::IsSolidCollidable() const {
-  return 1;
-}
-
-int CGObject_C::CanHighlight() const {
-  return 0;
-}
-
-int CGObject_C::CanBeTargetted() const {
-  return 0;
-}
-
-int CGObject_C::FloatingTooltip() const {
-  return 0;
-}
-
-void CGObject_C::OnLeftClick() {
-}
-
 void CGObject_C::OnRightClick() {
 }
 
-NTempest::C34Matrix CGObject_C::GetMatrix() const {
-  return NTempest::C34Matrix();
-}
-
-int CGObject_C::ShouldFadeIn() const {
-  return 1;
-}
-
 const char *CGObject_C::GetObjectName() const {
-  return 0;
-}
-
-int CGObject_C::GetPageTextID(void(*)(int, const unsigned __int64 &, void *, bool)) const {
   return 0;
 }
 
@@ -682,12 +603,13 @@ void CGObject_C::SetObjectModel(HMODEL__ *model) {
 int CGObject_C::AddAttachment(HMODEL__ *parent, unsigned int parentIndex, HMODEL__ *child, float scale) {
   FATALASSERT(m_model);
 
-  if (ModelAddLink(parent, parentIndex, child, scale)) {
-    m_flags &= ~0x40;
-    return 1;
+  int result = ModelAddLink(parent, parentIndex, child, scale);
+  if (!result) {
+    return result;
   }
 
-  return 0;
+  m_flags &= ~0x40;
+  return 1;
 }
 
 void CGObject_C::Initialize() {
@@ -762,12 +684,8 @@ void CGObject_C::PreAnimate(CGWorldFrame *worldFrame) {
       }
       float amount = static_cast<float>(m_startAlpha) + static_cast<float>(elapsed) / static_cast<float>(m_fadeDuration) *
                                                             (static_cast<float>(m_endAlpha) - static_cast<float>(m_startAlpha));
-      if (amount < 0.0f) {
-        amount = 0.0f;
-      } else if (amount > 255.0f) {
-        amount = 255.0f;
-      }
-      alpha = static_cast<unsigned char>(NTempest::CMath::fuint_n(amount));
+      amount = NTempest::CMath::clamp_(amount * (1.0f / 255.0f), 0.0f, 1.0f);
+      alpha = NTempest::CMath::ftol_0_256_(amount * 255.0f);
     }
   }
 
@@ -807,9 +725,6 @@ void CGObject_C::Animate(const NTempest::C34Matrix &camRelativeMatrix) {
   ModelAnimate(m_model, camRelativeMatrix, GetScale() * m_renderScale, cameraPosition, cameraVector);
 }
 
-void CGObject_C::UpdateRenderFacing() {
-}
-
 int CGObject_C::IsObjectModelLoaded() const {
   return m_flags & 0x20;
 }
@@ -838,10 +753,6 @@ void CGObject_C::SetCircleRenderStates() const {
   GxRsSet(GxRs_DepthWrite, 0);
   GxRsSet(GxRs_Texture0, TextureGetGxTex(s_selectionTexture, 1, 0));
   GxRsSet(GxRs_Texture1, s_fadeTex);
-}
-
-float CGObject_C::GetRenderFacing() const {
-  return GetFacing();
 }
 
 int CGObject_C::UpdateModelLoadStatus() {

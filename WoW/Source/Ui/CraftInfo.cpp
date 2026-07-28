@@ -17,11 +17,12 @@
 #include <stdlib.h>
 
 enum CRAFT_LEVEL_CATEGORY {
-  CRAFT_LEVEL_NONE = 0,
-  CRAFT_LEVEL_OPTIMAL = 1,
-  CRAFT_LEVEL_MEDIUM = 2,
-  CRAFT_LEVEL_EASY = 3,
-  CRAFT_LEVEL_TRIVIAL = 4
+  CRAFT_NONE = 0,
+  CRAFT_OPTIMAL = 1,
+  CRAFT_MEDIUM = 2,
+  CRAFT_EASY = 3,
+  CRAFT_TRIVIAL = 4,
+  NUM_CRAFT_CATEGORIES = 5
 };
 
 struct CraftInfo {
@@ -292,7 +293,7 @@ void CGCraftInfo::RefreshList() {
     const SkillLineAbilityRec *ability = player->LookupAbility(info->spellID);
     int                        skillLine = ability ? ability->m_skillLine : 0;
     info->skillLine = skillLine;
-    info->category = CRAFT_LEVEL_NONE;
+    info->category = CRAFT_NONE;
     if (ability && ability->m_trivialSkillLineRankHigh) {
       int high = ability->m_trivialSkillLineRankHigh;
       int low = ability->m_trivialSkillLineRankLow;
@@ -301,7 +302,7 @@ void CGCraftInfo::RefreshList() {
       }
       int medium = (low + high) / 2;
       int rank = player->GetSkillRank(skillLine);
-      info->category = rank < low ? CRAFT_LEVEL_OPTIMAL : rank < medium ? CRAFT_LEVEL_MEDIUM : rank < high ? CRAFT_LEVEL_EASY : CRAFT_LEVEL_TRIVIAL;
+      info->category = rank < low ? CRAFT_OPTIMAL : rank < medium ? CRAFT_MEDIUM : rank < high ? CRAFT_EASY : CRAFT_TRIVIAL;
     }
     unsigned int lineIndex;
     for (lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {

@@ -456,6 +456,48 @@ int CWorld::QueryObjectLiquid(unsigned long hWorldObject, unsigned int &liquid, 
   return 1;
 }
 
+int CWorld::QueryGroundType(unsigned long hWorldObject, unsigned int &groundType) {
+  CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
+  FATALASSERT(entity);
+  FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
+
+  if (entity->flagInside) {
+    CMapObjDef      *mapObjDef;
+    CMapObj         *mapObj;
+    CMapObjDefGroup *mapObjDefGroup;
+    CMapObjGroup    *mapObjGroup;
+    if (!entity->GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+      return 0;
+    }
+
+    NTempest::C3Vector low(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
+    NTempest::C3Vector high(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
+    NTempest::C3Segment segment(high * mapObjDef->invMat, low * mapObjDef->invMat);
+    CWTriData           triData;
+    float               hitT = 1.0f;
+    if (!mapObjGroup->GetTris(triData, segment, hitT, mapObjDef, 8)) {
+      return 0;
+    }
+
+    const CWTriData::Batch &batch = triData.GetBatch(0);
+    const SMOPoly          *poly = mapObjGroup->GetPoly(batch.triIndices[0]);
+    groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
+    return 1;
+  }
+
+  NTempest::C3Vector high(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
+  NTempest::C3Vector low(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
+  float     hitT = 1.0f;
+  SMOPoly  *poly = 0;
+  CMapObj  *mapObj = 0;
+  if (CMap::VectorIntersectMapObjs(&high, &low, 0, 8, 0x2000, &hitT, &poly, &mapObj) && poly) {
+    groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
+    return 1;
+  }
+
+  return CMap::QueryGroundType(entity->pos, groundType);
+}
+
 bool CWorld::QueryMountAllowed(unsigned long hWorldObject, bool &allowed) {
   CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
   FATALASSERT(entity);

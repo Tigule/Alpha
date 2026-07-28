@@ -71,10 +71,10 @@ enum MDLTRACKTYPE {
 #endif
 
 enum KEYTYPE {
-  KEY_DONT_INTERP = 0,
-  KEY_LINEAR = 1,
-  KEY_HERMITE = 2,
-  KEY_BEZIER = 3
+  KEYTYPE_NOINTERP = 0,
+  KEYTYPE_LINEAR = 1,
+  KEYTYPE_HERMITE = 2,
+  KEYTYPE_BEZIER = 3
 };
 
 enum OBJECTTYPE {
@@ -320,13 +320,13 @@ class CKeyFrameTrackBase {
   }
 
   unsigned int NumKeysThisSeqSafe(unsigned int sequence) const {
+    if (!TotalKeys()) {
+      return 0;
+    }
     if (SequenceNeverChanges()) {
       return TotalKeys();
     }
-    if (sequence >= m_indices.Count()) {
-      return 0;
-    }
-    return m_indices[sequence].count;
+    return NumKeysThisSeq(sequence);
   }
 
   int SequenceChanges() const {
@@ -421,7 +421,7 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
   friend void AnimateAllMaterialLayers(AnimInfo *, unsigned int *);
 
  public:
-  CKeyFrameTrack() : m_trackType(KEY_LINEAR) {
+  CKeyFrameTrack() : m_trackType(KEYTYPE_LINEAR) {
   }
 
   void SetTrackType(KEYTYPE trackType) {
@@ -432,12 +432,12 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
 
   void SetNumKeys(unsigned int numKeys) {
     switch (m_trackType) {
-      case KEY_DONT_INTERP:
-      case KEY_LINEAR:
+      case KEYTYPE_NOINTERP:
+      case KEYTYPE_LINEAR:
         CKeyFrameTrackBase::SetNumKeys(numKeys, sizeof(CLinearKeyFrame<T>));
         break;
-      case KEY_HERMITE:
-      case KEY_BEZIER:
+      case KEYTYPE_HERMITE:
+      case KEYTYPE_BEZIER:
         CKeyFrameTrackBase::SetNumKeys(numKeys, sizeof(CSplineKeyFrame<T>));
         break;
     }
@@ -801,7 +801,9 @@ struct CAnimData : public CHandleObject {
 };
 
 struct InterpInfo {
-  InterpInfo(CAnim *container, CAnimData *animptr, const TSFixedArray<NTempest::C3Vector> &positions);
+  InterpInfo(CAnim *container, CAnimData *animptr, const TSFixedArray<NTempest::C3Vector> &positions)
+      : unique(container), shared(animptr), positions(positions) {
+  }
 
   CAnim                                  *unique;
   CAnimData                              *shared;

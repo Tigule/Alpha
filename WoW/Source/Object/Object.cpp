@@ -1,14 +1,13 @@
 #include "Object.h"
 
 #include "Base/CDataStore.h"
+#include "Base/UnrealConstants.h"
 #include "Os/OsTime.h"
 
 #include <windows.h>
 
 #include <float.h>
 #include <math.h>
-
-static const float TWO_PI = 6.28318530717958647692f;
 
 void CClientMoveUpdate::Skip(CDataStore *packet) {
   void *unused;
@@ -124,7 +123,7 @@ CDataStore &operator>>(CDataStore &packet, CClientMoveUpdate &update) {
   return packet;
 }
 
-unsigned char IsAngleWithinRange(float a, float b, float fieldofView) {
+bool IsAngleWithinRange(float a, float b, float fieldofView) {
   fieldofView = static_cast<float>(fabs(fieldofView));
   while (a < 0.0f) {
     a += TWO_PI;
@@ -146,14 +145,15 @@ unsigned char IsAngleWithinRange(float a, float b, float fieldofView) {
 }
 
 float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination) {
-  NTempest::C3Vector diff = destination - position;
+  float diffX = destination.x - position.x;
+  float diffY = destination.y - position.y;
 
-  if (fabs(diff.x) >= 2.3841858e-7f) {
-    if (fabs(diff.y) >= 2.3841858e-7f) {
-      return static_cast<float>(atan2(diff.y, diff.x));
+  if (fabs(diffX) >= 2.3841858e-7f) {
+    if (fabs(diffY) >= 2.3841858e-7f) {
+      return static_cast<float>(atan2(diffY, diffX));
     }
-    return destination.x >= position.x ? 0.0f : 3.1415927f;
+    return destination.x >= position.x ? 0.0f : PI;
   }
 
-  return diff.y >= 0.0f ? 1.5707964f : 4.7123890f;
+  return diffY >= 0.0f ? 0.5f * PI : 1.5f * PI;
 }

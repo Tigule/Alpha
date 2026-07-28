@@ -36,17 +36,19 @@ void MovementUpdateProxMap(void *obj) {
 void MovementFixOutOfBoundsUnit(unsigned __int64 guid) {
   if (guid == ClntObjMgrGetActivePlayer()) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-    if (unit && (unit->m_animFlags & 0x2000)) {
+    if (unit && unit->IsDeathFlagSet()) {
       CGGameUI::UpdateActivePlayer();
     }
   }
 }
 
 void MovementAddTransport(CGGameObject_C *transport) {
+  FATALASSERT(!s_transports.IsLinked(transport));
   s_transports.LinkNode(transport, LIST_TAIL, 0);
 }
 
 void MovementRemoveTransport(CGGameObject_C *transport) {
+  FATALASSERT(s_transports.IsLinked(transport));
   s_transports.UnlinkNode(transport);
 }
 

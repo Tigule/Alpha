@@ -21,11 +21,14 @@ void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &p
 
 void CGDynamicObject_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
-  CGDynamicObject::SetStorage(storage + 6);
+  CGDynamicObject::SetStorage(storage + CGObject::TotalFields());
 }
 
 CGDynamicObject_C::CGDynamicObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGDynamicObject(storage + 6), m_blizzardObject(0), m_sound(0) {
+    : CGObject_C(storage, eventTime, init),
+      CGDynamicObject(storage + CGObject::TotalFields()),
+      m_blizzardObject(0),
+      m_sound(0) {
   m_dynamicScale = 1.0f;
   m_dynamicObj->m_position = init->move.status.worldPosition;
   m_dynamicObj->m_facing = init->move.status.worldFacing;
@@ -170,7 +173,7 @@ unsigned int CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
     return 0;
   }
   FATALASSERT(type == ID_DYNAMICOBJECT);
-  return 24;
+  return CGObject::TotalFields() * sizeof(unsigned long);
 }
 
 const SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() const {
@@ -220,5 +223,9 @@ void CGDynamicObject_C::HandleAnimEvent(const char *eventName, const NTempest::C
 }
 
 void CGDynamicObject_C::AnimFinished() {
-  ObjectModelSetSequence(GetObjectModel(), m_haveHoldSequence ? 1 : 0, 0, 0);
+  if (m_haveHoldSequence) {
+    ObjectModelSetSequence(GetObjectModel(), 1, 0, 0);
+  } else {
+    ObjectModelSetSequence(GetObjectModel(), 0, 0, 0);
+  }
 }

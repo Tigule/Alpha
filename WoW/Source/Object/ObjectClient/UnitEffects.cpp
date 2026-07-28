@@ -7,6 +7,7 @@
 #include "Console/ConsoleVar.h"
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"
+#include "DB/DBClient/AutoCode/SpellEffectCameraShakesRec.h"
 #include "DB/DBClient/AutoCode/SpellVisualRec.h"
 #include "DB/DBClient/AutoCode/SpellVisualKitRec.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
@@ -132,14 +133,18 @@ void PreloadModelsByKit(int record, CStatus *status) {
 
 static void SpellAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
   unsigned int event = *reinterpret_cast<const unsigned int *>(eventName);
-  if (event == 0x4B485324) {
-    SpellCameraShakeCallback(eventName + 4, position);
-  } else if (event == 0x444E5324 || event == 0x58444E53) {
-    SpellSoundEffectCallback(eventName + 4, position);
-  } else {
-    SysMsgPrintf(
-        SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|SpellAnimEventCallback|SpellAnimEventCallback", eventName
-    );
+  switch (event) {
+    case 0x444E5324:  // $SND
+    case 0x58444E53:  // SNDX
+      break;
+    case 0x4B485324:  // $SHK
+      SpellCameraShakeCallback(eventName + 4, position);
+      break;
+    default:
+      SysMsgPrintf(
+          SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|SpellAnimEventCallback|SpellAnimEventCallback", eventName
+      );
+      break;
   }
 }
 
@@ -192,6 +197,9 @@ class ONESHOTSTANDALONEEFFECTNODE : public NODEBASE {
 };
 
 NODEDECL(MISSILENODE) {
+  static const float HEIGHT_SCAN_RANGE;
+  static const float MIN_HEIGHT;
+
   MISSILENODE()
       : model(0),
         caster(0),
@@ -202,7 +210,7 @@ NODEDECL(MISSILENODE) {
         victimEffect(0),
         pathType(0),
         miss(0),
-        missReason(MISS_REASON_NONE),
+        missReason(MISS_NONE),
         flags(0),
         sound(0) {
   }
@@ -222,13 +230,22 @@ NODEDECL(MISSILENODE) {
   unsigned int       spellID;
   unsigned int       victimEffect;
   unsigned int       pathType;
-  unsigned int       miss;
+  bool               miss;
   MISS_REASON        missReason;
   int                flags;
   Sound             *sound;
 };
 
+const float MISSILENODE::HEIGHT_SCAN_RANGE = 5.0f;
+const float MISSILENODE::MIN_HEIGHT = 0.3f;
+
 struct UNITONESHOTEFFECTDESC : public TSHashObject<UNITONESHOTEFFECTDESC, CHashKeyGUID> {
+  UNITONESHOTEFFECTDESC() {
+  }
+  UNITONESHOTEFFECTDESC(const UNITONESHOTEFFECTDESC &);
+  ~UNITONESHOTEFFECTDESC() {
+  }
+
   LISTDECLEX(ONESHOTEFFECTNODE, node, m_effects);
 };
 
@@ -243,25 +260,24 @@ static unsigned int                                     s_purgeTimer;
 static int                                              s_purgeTime;
 
 static const GEOCOMPONENTLINKS g_attachmentPoints[12] = {
-    static_cast<GEOCOMPONENTLINKS>(19), static_cast<GEOCOMPONENTLINKS>(20), static_cast<GEOCOMPONENTLINKS>(21), static_cast<GEOCOMPONENTLINKS>(22),
-    static_cast<GEOCOMPONENTLINKS>(-1), static_cast<GEOCOMPONENTLINKS>(17), static_cast<GEOCOMPONENTLINKS>(34), static_cast<GEOCOMPONENTLINKS>(23),
-    static_cast<GEOCOMPONENTLINKS>(24), static_cast<GEOCOMPONENTLINKS>(25), static_cast<GEOCOMPONENTLINKS>(16), static_cast<GEOCOMPONENTLINKS>(15)
+    ATTACH_UNITEFFECT_BASE, ATTACH_UNITEFFECT_HEAD, ATTACH_UNITEFFECT_SPELLLEFTHAND, ATTACH_UNITEFFECT_SPELLRIGHTHAND,
+    ATTACH_NONE, ATTACH_BREATH, ATTACH_TORSOSPELL, ATTACH_UNITEFFECT_SPECIAL1,
+    ATTACH_UNITEFFECT_SPECIAL2, ATTACH_UNITEFFECT_SPECIAL3, ATTACH_TORSOBLOODBACK, ATTACH_TORSOBLOODFRONT
 };
 
 static void SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
   ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
   unsigned int       event = *reinterpret_cast<const unsigned int *>(eventName);
 
-  CGObject_C *object = node ? ClntObjMgrObjectPtr(node->objectGUID, __FILE__, __LINE__) : 0;
-  CGUnit_C   *unit = object && (object->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
-
   switch (event) {
     case 0x50504324:  // $CPP
     case 0x48414324:  // $ACH
     case 0x53534324:  // $CSS
-      if (unit) {
-        NTempest::C3Vector eventPosition = position;
-        unit->HandleCombatAnimEvent(eventName, event, eventPosition);
+      if (node) {
+        CGObject_C *object = ClntObjMgrObjectPtr(node->objectGUID, __FILE__, __LINE__);
+        if (object && (object->GetType() & TYPE_UNIT)) {
+          static_cast<CGUnit_C *>(object)->HandleCombatAnimEvent(eventName, event, position);
+        }
       }
       break;
     case 0x48544424:  // $DTH
@@ -272,8 +288,11 @@ static void SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3
     case 0x444E5324:    // $SND
     case 0x58444E53: {  // SNDX
       NTempest::C3Vector soundPos = position;
-      if (object) {
-        soundPos += object->GetPosition();
+      if (node && node->objectGUID) {
+        CGObject_C *object = ClntObjMgrObjectPtr(node->objectGUID, __FILE__, __LINE__);
+        if (object) {
+          soundPos += object->GetPosition();
+        }
       }
       SpellSoundEffectCallback(eventName + 4, soundPos);
       break;
@@ -282,8 +301,11 @@ static void SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3
       SpellCameraShakeCallback(eventName + 4, position);
       break;
     case 0x54494824:  // $HIT
-      if (unit) {
-        unit->SpellEventHit();
+      if (node) {
+        CGObject_C *object = ClntObjMgrObjectPtr(node->objectGUID, __FILE__, __LINE__);
+        if (object && (object->GetType() & TYPE_UNIT)) {
+          static_cast<CGUnit_C *>(object)->SpellEventHit();
+        }
       }
       break;
     default:
@@ -371,14 +393,17 @@ static void RenderModel(HMODEL__* model, const NTempest::C3Vector& position, con
 
   NTempest::C3Vector cameraPos = camera->Position();
   NTempest::C3Vector cameraVector = camera->Up();
+  NTempest::C3Vector relativePosition = position - cameraPos;
+  NTempest::C3Vector rotationAxis(0.0f, 0.0f, 1.0f);
   NTempest::C34Matrix basis(
       orientation.a0, orientation.a1, orientation.a2,
       orientation.b0, orientation.b1, orientation.b2,
       orientation.c0, orientation.c1, orientation.c2,
-      position.x, position.y, position.z
+      orientation.d0, orientation.d1, orientation.d2
   );
 
-  if (ModelTestSphere(model, basis, scale, 0)) {
+  if (ModelTestSphere(
+          model, relativePosition, 0.0f, rotationAxis, scale, 0)) {
     ModelAnimate(model, basis, scale, cameraPos, cameraVector);
     ModelProcessEvents(model, basis);
     ModelAddToScene(model, 0);
@@ -448,7 +473,7 @@ static bool MoveMissile(MISSILENODE *node) {
         if (reason == MISS_BLOCKED && (!unit->GetVirtualItem(1, 1) || !unit->GetVirtualItemDisplayID(1))) {
           reason = MISS_DEFLECTED;
         }
-        if (reason != MISS_REASON_NONE) {
+        if (reason != MISS_NONE) {
           UnitCombatLogSpellMissed(reason, node->spellID, node->caster, unit->GetGUID());
           CGGameUI::ShowSpellMissFeedback(unit->GetGUID(), reason);
         }
@@ -482,9 +507,9 @@ static bool MoveMissile(MISSILENODE *node) {
   node->position = node->startPosition + (node->endPosition - node->startPosition) * ratio;
 
   NTempest::C3Vector endPos = node->position;
-  endPos.z -= 5.0f;
+  endPos.z -= MISSILENODE::HEIGHT_SCAN_RANGE;
   NTempest::C3Vector scanStart = node->position;
-  scanStart.z += 5.0f;
+  scanStart.z += MISSILENODE::HEIGHT_SCAN_RANGE;
   NTempest::C3Segment seg(scanStart, endPos);
   NTempest::C4Plane   facet;
   float               segT;
@@ -493,8 +518,8 @@ static bool MoveMissile(MISSILENODE *node) {
     if (node->pathType == 1) {
       node->position.z = ground;
       node->normal = facet.n;
-    } else if (node->position.z - ground < 0.3f) {
-      node->position.z = ground + 0.3f;
+    } else if (node->position.z - ground < MISSILENODE::MIN_HEIGHT) {
+      node->position.z = ground + MISSILENODE::MIN_HEIGHT;
     }
   } else {
     node->normal.Set(0.0f, 0.0f, 1.0f);
@@ -512,7 +537,7 @@ static bool MoveMissile(MISSILENODE *node) {
 }
 
 static void AddUnitDeathHold(CGUnit_C *unitPtr) {
-  if (unitPtr) {
+  if (unitPtr && unitPtr->IsA(TYPE_UNIT)) {
     unitPtr->DDADDLOG(unitPtr->GetGUID(), "UnitEffectOneShot", __FILE__, __LINE__);
   }
 }
@@ -538,9 +563,25 @@ static void RenderMissiles(CGCamera *camera) {
     MISSILENODE *nodenext_node = s_missiles.RawNext(node);
     node->CheckModelLoadStatus();
     if (MoveMissile(node)) {
-      NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
-      ModelAnimate(node->model, node->position, node->facing.z, axis, 1.0f, camera->Position(), camera->Forward());
-      ModelAddToScene(node->model, 6);
+      NTempest::C44Matrix orientation;
+      if (!node->pathType) {
+        orientation.Translate(node->position - camera->Position());
+        NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
+        orientation.Rotate(node->facing.z, axis, false);
+        axis.Set(0.0f, 1.0f, 0.0f);
+        orientation.Rotate(node->facing.x, axis, false);
+      } else if (node->pathType == 1) {
+        NTempest::C34Matrix standing;
+        ModelGetStandingMatrix(
+            node->model,
+            node->position - camera->Position(),
+            node->normal,
+            node->facing.z,
+            1.0f,
+            &standing);
+        orientation = NTempest::C44Matrix(standing);
+      }
+      RenderModel(node->model, node->position, orientation, camera, 1.0f);
     }
     node = nodenext_node;
   }
@@ -569,9 +610,8 @@ void NODEBASE::SetDeathHoldTimer(unsigned int duration) {
 
 void ONESHOTEFFECTNODE::CheckModelLoadStatus() {
   if (NODEBASE::CheckModelLoadStatus() && ModelAnimHasObjectId(model, 0)) {
-    CGObject_C *object = ClntObjMgrObjectPtr(objectGUID, __FILE__, __LINE__);
-    if (object && (object->GetType() & TYPE_UNIT)) {
-      AddUnitDeathHold(static_cast<CGUnit_C *>(object));
+    if (objectGUID) {
+      AddUnitDeathHold(static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(objectGUID, __FILE__, __LINE__)));
     }
   }
 }
@@ -579,10 +619,7 @@ void ONESHOTEFFECTNODE::CheckModelLoadStatus() {
 void ONESHOTSTANDALONEEFFECTNODE::CheckModelLoadStatus() {
   if (NODEBASE::CheckModelLoadStatus() && ModelAnimHasObjectId(model, 0)) {
     for (unsigned int index = objects.Count(); index; --index) {
-      CGObject_C *object = ClntObjMgrObjectPtr(objects[index - 1], __FILE__, __LINE__);
-      if (object && (object->GetType() & TYPE_UNIT)) {
-        AddUnitDeathHold(static_cast<CGUnit_C *>(object));
-      }
+      AddUnitDeathHold(static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(objects[index - 1], __FILE__, __LINE__)));
     }
   }
 }
@@ -690,6 +727,7 @@ void MISSILENODE::CheckModelLoadStatus() {
 
 void UnitEffectsInitialize() {
   s_showEffectsStandalone = CVar::Register("showEffectsStandalone", 0, 0, "1", 0, 5, false, 0);
+  LoadUnitDefs();
 }
 
 void UnitEffectsShutdown() {
@@ -805,13 +843,20 @@ int UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber) {
 
 void SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position) {
   if (eventName && *eventName) {
-    SpellVisualsPlayCameraShakeID(SStrToInt(eventName), position);
+    const SpellEffectCameraShakesRec *shakes =
+        g_spellEffectCameraShakesDB.GetRecord(SStrToInt(eventName));
+    if (shakes) {
+      for (unsigned int i = 0; i < 3; ++i) {
+        CGWorldFrame::GetActiveCamera()->AddShake(
+            shakes->m_CameraShake[i], position);
+      }
+    }
   }
 }
 
 void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position) {
   if (eventName && *eventName) {
-    SndInterfacePlaySound(SStrToInt(eventName), position, -1, 1.0f);
+    SndInterfacePlaySound(SStrToUnsigned(eventName), position, -1, 1.0f);
   }
 }
 
@@ -848,7 +893,7 @@ void UnitEffectOneShot(
 
   GEOCOMPONENTLINKS linkPoint = g_attachmentPoints[attachPoint];
   if (!ModelHasLinkPoint(objectModel, linkPoint) && attachPoint == UNITEFFECT_ATTACHCHEST) {
-    linkPoint = static_cast<GEOCOMPONENTLINKS>(15);
+    linkPoint = ATTACH_TORSOBLOODFRONT;
   }
   if (!ModelHasLinkPoint(objectModel, linkPoint)) {
     HandleClose(objectModel);
@@ -899,18 +944,18 @@ void UnitEffectOneShot(
 
 GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach) {
   FATALASSERT(attach >= 0);
-  FATALASSERT(static_cast<unsigned int>(attach) < sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0]));
+  FATALASSERT(attach < sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0]));
   return g_attachmentPoints[attach];
 }
 
 HMODEL UnitEffectCreateAuraModel(unsigned int effectID) {
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
-  if (effectRec) {
-    return InitializeModel(effectRec->m_fileName, 0, 0);
+  if (!effectRec) {
+    SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTIDNOTFOUND|%d", effectID);
+    return 0;
   }
 
-  SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTIDNOTFOUND|%d", effectID);
-  return 0;
+  return InitializeModel(effectRec->m_fileName, SpellAnimEventCallback, 0);
 }
 
 void UnitEffectOneShot(
@@ -1030,9 +1075,9 @@ void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset) {
   node->pathType = desc.missilePathType;
   if (node->pathType == 1) {
     NTempest::C3Vector scanStart = node->startPosition;
-    scanStart.z += 5.0f;
+    scanStart.z += MISSILENODE::HEIGHT_SCAN_RANGE;
     NTempest::C3Vector scanEnd = node->startPosition;
-    scanEnd.z -= 25.0f;
+    scanEnd.z -= MISSILENODE::HEIGHT_SCAN_RANGE * 5.0f;
     NTempest::C3Segment seg(scanStart, scanEnd);
     NTempest::C4Plane   facet;
     float               segT;

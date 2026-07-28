@@ -3,6 +3,8 @@
 #include "../Object.h"
 
 #include <Tempest/c3vector.h>
+#include <Tempest/c34matrix.h>
+#include <Tempest/cimvector.h>
 
 class CGBag_C;
 class CGWorldFrame;
@@ -35,7 +37,8 @@ class CGObject_C : public CGObject {
   void         SetStorage(unsigned long *storage);
   void         SetTypeID(OBJECT_TYPE_ID typeID);
   void         PostInit(const CClientObjCreate &init);
-  void         PostMovementUpdate();
+  void PostMovementUpdate() {
+  }
   int          IsPostInited() const;
 
   static void Initialize();
@@ -45,7 +48,9 @@ class CGObject_C : public CGObject {
   virtual void               Disable(int shutdown);
   virtual void               Reenable();
   virtual void               PostReenable();
-  virtual CGBag_C           *GetBag();
+  virtual CGBag_C *GetBag() {
+    return 0;
+  }
   virtual NTempest::C3Vector GetPosition() const {
     return NTempest::C3Vector();
   }
@@ -57,8 +62,12 @@ class CGObject_C : public CGObject {
   virtual float GetFacing() const {
     return 0.0f;
   }
-  virtual float              GetScale() const;
-  virtual NTempest::C3Vector GetGroundNormal() const;
+  virtual float GetScale() const {
+    return m_obj->m_scale;
+  }
+  virtual NTempest::C3Vector GetGroundNormal() const {
+    return NTempest::C3Vector(0.0f, 0.0f, 1.0f);
+  }
   void                       SetAnimated(int animated);
   virtual HMODEL__          *GetCharacterModel(int *mounted) const;
   HMODEL__                  *GetObjectModel() const {
@@ -103,7 +112,11 @@ class CGObject_C : public CGObject {
 
  private:
   void        ReportMissingAnimObj(const char *message, unsigned int objectID, const char *modelName) const;
-  virtual int GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
+  virtual int GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
+    FATALASSERT(outPtr);
+    outPtr->Set(0xFFFFFFFF);
+    return 1;
+  }
 
  public:
   float GetRenderScale() const {
@@ -112,45 +125,75 @@ class CGObject_C : public CGObject {
   void SetRenderScale(float scale) {
     m_renderScale = scale;
   }
-  virtual void  RenderTargetSelection() const;
+  virtual void RenderTargetSelection() const {
+  }
   virtual int   UpdateModelLoadStatus();
   virtual int   UpdateAttachmentLoadStatus();
-  virtual int   UpdateTexComponentLoadStatus();
-  virtual void  PreRender(int currentTime, float elapsed);
+  virtual int UpdateTexComponentLoadStatus() {
+    return 0;
+  }
+  virtual void PreRender(int currentTime, float elapsed) {
+  }
   virtual void  PreAnimate(CGWorldFrame *worldFrame);
-  virtual void  PostAnimate(CGWorldFrame *worldFrame);
+  virtual void PostAnimate(CGWorldFrame *worldFrame) {
+  }
   virtual void  GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
   void          Animate();
   void          Animate(const NTempest::C34Matrix &camRelativeMatrix);
   virtual int   ShouldRender(unsigned long worldStatus);
-  virtual void  ObjectPostAnimate(float renderFacing, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
-  virtual void  ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
-  virtual void  UpdateRenderFacing();
-  virtual float GetRenderFacing() const;
-  virtual void  OnSpecialMountAnim();
+  virtual void ObjectPostAnimate(float renderFacing, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
+  }
+  virtual void ObjectPostAnimate(
+      const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg
+  ) {
+  }
+  virtual void UpdateRenderFacing() {
+  }
+  virtual float GetRenderFacing() const {
+    return GetFacing();
+  }
+  virtual void OnSpecialMountAnim() {
+  }
   virtual void  UpdatePlayerName() {
   }
-  virtual int                 IsSolidSelectable() const;
-  virtual int                 IsSolidCollidable() const;
-  virtual int                 CanHighlight() const;
-  virtual int                 CanBeTargetted() const;
-  virtual int                 FloatingTooltip() const;
-  virtual void                OnLeftClick();
+  virtual int IsSolidSelectable() const {
+    return 1;
+  }
+  virtual int IsSolidCollidable() const {
+    return 1;
+  }
+  virtual int CanHighlight() const {
+    return 0;
+  }
+  virtual int CanBeTargetted() const {
+    return 0;
+  }
+  virtual int FloatingTooltip() const {
+    return 0;
+  }
+  virtual void OnLeftClick() {
+  }
   virtual void                OnRightClick();
-  virtual NTempest::C34Matrix GetMatrix() const;
+  virtual NTempest::C34Matrix GetMatrix() const {
+    return NTempest::C34Matrix();
+  }
   void                        SetCircleRenderStates() const;
 
   void HideHighlightType(HIGHLIGHTTYPE type);
   void ShowHighlightType(HIGHLIGHTTYPE type);
 
  protected:
-  virtual int ShouldFadeIn() const;
+  virtual int ShouldFadeIn() const {
+    return 1;
+  }
   void        ObjectSetNotRendering();
 
  public:
   virtual const char *GetObjectName() const;
   void                ReportMissingEventObject(unsigned int objectID, const char *modelName) const;
-  virtual int         GetPageTextID(void(*func)(int, const unsigned __int64 &, void *, bool)) const;
+  virtual int GetPageTextID(void(*)(int, const unsigned __int64 &, void *, bool)) const {
+    return 0;
+  }
   void                DoFade(unsigned char alpha, unsigned int fadeTimeMs);
   unsigned char       GetAlpha() const {
     return m_alpha;

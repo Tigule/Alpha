@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "Magic/MagicClient/Spell_C.h"
 #include "TabardCreationFrame.h"
 #include <Os/OsTime.h>
 #include "ActionBarFrame.h"
@@ -229,10 +230,6 @@ class CGPetitionInfo {
  public:
   static void EnterWorld();
   static void LeaveWorld();
-};
-
-enum SPELL_FAILED_REASON {
-  SPELL_FAILED_ERROR = 14
 };
 
 void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
@@ -5004,7 +5001,7 @@ int CGGameUI::OnSpriteLeftClick(unsigned __int64 object, float x, float y) {
   }
   objectPtr->OnLeftClick();
 
-  if ((objectPtr->GetType() & TYPE_PLAYER) && m_lockedTarget && m_currentObjectTrack) {
+  if ((objectPtr->GetType() & TYPE_PLAYER) && m_cursorItem && m_cursorItemContainer) {
     Trade_C_InitiateTrade(object, 1);
   }
   return 1;
@@ -5029,21 +5026,17 @@ int CGGameUI::OnSpriteRightClick(unsigned __int64 object, float x, float y) {
 
 void CGGameUI::OnTargetContextAction() {
   CGObject_C *object = ClntObjMgrObjectPtr(m_lockedTarget, __FILE__, __LINE__);
-  if (!object || !(object->GetType() & TYPE_UNIT)) {
+  if (!object) {
     return;
   }
 
-  CGUnit_C *unit = static_cast<CGUnit_C *>(object);
-  if (unit->GetUnitData()->charm != ClntObjMgrGetActivePlayer()) {
-    return;
-  }
+  CGWorldFrame *worldFramePtr = CGWorldFrame::GetActive();
+  FATALASSERT(worldFramePtr);
 
-  NTempest::C2Vector      position(0.0f);
-  const unsigned __int64 &guid = *reinterpret_cast<const unsigned __int64 *>(&position);
-  const CreatureStats_C  *stats = g_creatureDBCache.GetRecord(unit->GetEntryID(), guid, 0, 0);
-  if (stats) {
-    FrameScript_SignalEvent(271, "%s", stats->m_name[2]);
-  }
+  NTempest::C3Vector worldPosition = object->GetPosition();
+  worldPosition.z += object->GetScale() * object->GetObjectHeight() * 0.5f;
+  NTempest::C2Vector screenPosition = worldFramePtr->GetScreenCoordinates(worldPosition);
+  OnSpriteRightClick(m_lockedTarget, screenPosition.x, screenPosition.y);
 }
 
 void CGGameUI::HandleObjectTrackChange(unsigned __int64 object, unsigned __int64 oldGUID, float x, float y) {
@@ -5094,7 +5087,7 @@ void CGGameUI::HandleObjectTrackChange(unsigned __int64 object, unsigned __int64
 
     case HIER_TYPE_GAMEOBJECT:
       m_gameTooltip->SetOwner(
-          m_UISimpleParent, static_cast<TOOLTIP_ANCHORPOINT>(trackedObject->CanHighlight() ? TOOLTIP_ANCHOR_CURSOR : TOOLTIP_ANCHOR_FIXED), 0.0f
+          m_UISimpleParent, static_cast<TOOLTIP_ANCHORPOINT>(trackedObject->FloatingTooltip() ? TOOLTIP_ANCHOR_CURSOR : TOOLTIP_ANCHOR_FIXED), 0.0f
       );
       m_gameTooltip->SetObject(object);
       SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTNEUTRALUNIT");
@@ -5238,10 +5231,10 @@ void CGGameUI::UpdateInteractTarget() {
 struct ClosestObjectMatchData {
   OBJECT_TYPE type;
   const char *match;
-  CGObject_C *origin;
+  CGUnit_C   *source;
   CGObject_C *object;
-  int         matchLength;
-  float       distanceSq;
+  int         best_match;
+  float       best_distance;
 };
 
 void CGGameUI::CloseInteraction() {
@@ -5282,7 +5275,7 @@ void CGGameUI::CloseInteraction() {
 
 void CGGameUI::Target(const unsigned __int64 &target, int usingNearest) {
   if (!usingNearest) {
-    s_nearestIndex = 0;
+    s_nearestListTime = 0;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -5425,36 +5418,36 @@ static int ClosestObjectMatchProc(unsigned __int64 guid, void *param) {
     ++candidate;
   }
   int matchLength = static_cast<int>(match - data->match);
-  if (matchLength < data->matchLength) {
+  if (matchLength < data->best_match) {
     return 1;
   }
 
-  NTempest::C3Vector origin = data->origin->GetPosition();
   NTempest::C3Vector position = object->GetPosition();
-  float              distanceSq = (origin - position).SquaredMag();
-  if (matchLength <= data->matchLength && distanceSq >= data->distanceSq) {
+  NTempest::C3Vector sourcePosition = data->source->GetPosition();
+  float              distanceSq = (sourcePosition - position).SquaredMag();
+  if (matchLength <= data->best_match && distanceSq >= data->best_distance) {
     return 1;
   }
 
   data->object = object;
-  data->matchLength = matchLength;
-  data->distanceSq = distanceSq;
+  data->best_match = matchLength;
+  data->best_distance = distanceSq;
   return 1;
 }
 
 unsigned __int64 CGGameUI::ClosestObjectMatch(const char *match, OBJECT_TYPE type) {
-  CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
-  if (!player) {
+  CGUnit_C *source = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!source) {
     return 0;
   }
 
   ClosestObjectMatchData data;
   data.type = type;
   data.match = match;
-  data.origin = player;
+  data.source = source;
   data.object = 0;
-  data.matchLength = 1;
-  data.distanceSq = FLT_MAX;
+  data.best_match = 1;
+  data.best_distance = FLT_MAX;
   ClntObjMgrEnumVisibleObjects(ClosestObjectMatchProc, &data);
   return data.object ? data.object->GetGUID() : 0;
 }
@@ -5463,12 +5456,19 @@ void CGGameUI::AssistByName(const char *name) {
   unsigned __int64 target = name && *name ? ClosestObjectMatch(name, TYPE_UNIT) : m_lockedTarget;
   CGUnit_C        *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
   if (unit) {
-    unsigned __int64 newTarget = unit->GetUnitData()->target;
+    unsigned __int64 newTarget;
+    if (unit->GetType() & TYPE_PLAYER) {
+      newTarget = static_cast<CGPlayer_C *>(unit)->GetLocalTarget();
+    } else {
+      newTarget = unit->GetUnitData()->target;
+    }
     if (newTarget) {
       Target(newTarget, 0);
-      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      if (player && m_currentObjectTrack) {
-        player->SetCombatMode(1);
+      if (s_assistAttackCVar->GetInt()) {
+        CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+        if (player) {
+          player->SetCombatMode(1);
+        }
       }
     }
   } else if (name && *name) {
@@ -5484,7 +5484,7 @@ void CGGameUI::FollowByName(const char *name) {
   CGUnit_C        *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!unit) {
     DisplayError(static_cast<GAME_ERROR_TYPE>(name && *name ? 268 : 168));
-  } else if (player && (unit->GetType() & TYPE_UNIT) && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
+  } else if (player && (unit->GetType() & TYPE_PLAYER) && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
     player->SaveTrackingTarget(target, TRACKTYPE_FOLLOW, false);
   } else {
     DisplayError(static_cast<GAME_ERROR_TYPE>(269));
@@ -5551,20 +5551,35 @@ void CGGameUI::TargetNearestEnemy(int reverse) {
     }
   }
 
+  if (!s_nearestList.Count()) {
+    return;
+  }
+
+  s_sameTargetTime = OsGetAsyncTimeMs();
   unsigned int start = s_nearestIndex;
-  do {
-    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_nearestList[s_nearestIndex].guid, __FILE__, __LINE__));
+  unsigned int index = start;
+  for (;;) {
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_nearestList[index].guid, __FILE__, __LINE__));
     if (unit && unit->GetUnitData()->health > 0) {
-      s_sameTargetTime = OsGetAsyncTimeMs();
-      Target(s_nearestList[s_nearestIndex].guid, 1);
+      s_nearestIndex = index;
+      Target(s_nearestList[index].guid, 1);
       return;
     }
-    if (++s_nearestIndex >= s_nearestList.Count()) {
-      s_nearestIndex = 0;
-    }
-  } while (s_nearestIndex != start);
 
-  s_nearestList.SetCount(0);
+    if (++index >= s_nearestList.Count()) {
+      index = 0;
+      if (s_nearestListTime + 3000 <= OsGetAsyncTimeMs()) {
+        s_nearestListTime = 0;
+        TargetNearestEnemy(0);
+        return;
+      }
+    }
+
+    if (index == start) {
+      s_nearestList.SetCount(0);
+      return;
+    }
+  }
 }
 
 void CGGameUI::ScaleUI(float scale, int force) {
@@ -5863,7 +5878,7 @@ void CGGameUI::DropCursorPetAction() {
 
 void CGGameUI::ShowCombatFeedback(const ATTACKROUNDINFO *info) {
   FATALASSERT(info);
-  FATALASSERT(static_cast<unsigned int>(info->newVictimState) < sizeof(s_combatEvent) / sizeof(s_combatEvent[0]));
+  FATALASSERT(info->newVictimState < (sizeof(s_combatEvent) / sizeof(s_combatEvent[0])));
 
   const char *flagText = "";
   if (info->flags & 0x10000) {
@@ -5943,7 +5958,7 @@ void CGGameUI::ShowCombatFeedback(const MIRRORTIMERDAMAGE &log) {
   int    numnames;
   char **names = Script_GetNamesFromGUID(log.victim, numnames);
   for (int index = 0; index < numnames; ++index) {
-    FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], "WOUND", "", log.amount, 0);
+    FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], s_combatEvent[1], "", log.amount, 0);
   }
 }
 

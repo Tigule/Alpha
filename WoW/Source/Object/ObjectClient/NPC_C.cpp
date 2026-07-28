@@ -46,7 +46,7 @@ void NPC_C_Destroy() {
 
 void NPC_C_OfferItem(unsigned __int64 npc, unsigned __int64 itemGUID) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_NPC_OFFER_ITEM));
+  msg.Put(CMSG_NPC_OFFER_ITEM);
   msg.Put(npc);
   msg.Put(itemGUID);
   msg.Finalize();

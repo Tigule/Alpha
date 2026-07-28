@@ -18,6 +18,12 @@
 
 #include <math.h>
 
+enum WEAPONSWINGTYPES {
+  SWING_NORMAL,
+  SWING_CRITICAL,
+  NUM_SWINGTYPES
+};
+
 struct VERTEX {
   NTempest::C3Vector  v;
   NTempest::CImVector c;
@@ -310,8 +316,7 @@ void WTOBJECT::Render(const NTempest::C44Matrix &basis) {
 }
 
 void WTOBJECT::FadeVerts() {
-  for (SWING *swing = m_swings.Head(); swing;) {
-    SWING *next = m_swings.Next(swing);
+  ITERATELIST(SWING, m_swings, swing) {
     FATALASSERT(m_fadeOutRate < 0);
 
     int visible = 0;
@@ -329,7 +334,6 @@ void WTOBJECT::FadeVerts() {
       swing->Recycle();
       s_freeSwings.Put(swing);
     }
-    swing = next;
   }
 }
 
@@ -411,25 +415,22 @@ void WeaponTrailClose(int trail) {
 }
 
 void WeaponTrailSetColor(int trail, NTempest::CImVector color) {
-  if (trail) {
-    reinterpret_cast<WTOBJECT *>(trail)->SetColor(color);
-  }
+  FATALASSERT(trail);
+  reinterpret_cast<WTOBJECT *>(trail)->SetColor(color);
 }
 
 void WeaponTrailSetFadeOutRate(int trail, int fadeOutRate) {
-  if (trail) {
-    reinterpret_cast<WTOBJECT *>(trail)->SetFadeOutRate(fadeOutRate);
-  }
+  FATALASSERT(trail);
+  reinterpret_cast<WTOBJECT *>(trail)->SetFadeOutRate(fadeOutRate);
 }
 
 void WeaponTrailDisableDrawing(int trail) {
-  if (trail) {
-    reinterpret_cast<WTOBJECT *>(trail)->DisableDrawing();
-  }
+  FATALASSERT(trail);
+  reinterpret_cast<WTOBJECT *>(trail)->DisableDrawing();
 }
 
 void WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, unsigned int duration) {
-  if (trail && duration) {
+  if (duration && trail) {
     reinterpret_cast<WTOBJECT *>(trail)->SetDrawTrail(color, fadeOutRate, duration);
   }
 }

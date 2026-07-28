@@ -52,7 +52,9 @@ class CGGameObject {
 
   static unsigned int GetDataSize();
   static unsigned int GetBaseOffset();
-  static unsigned int TotalFields();
+  static __forceinline unsigned int TotalFields() {
+    return 20;
+  }
   static unsigned int GetUpdateMaskBytes();
   static unsigned int GetUpdateMaskBlocks();
 
@@ -89,7 +91,7 @@ class CGGameObject {
     SetStorage(storage);
   }
 
-  ~CGGameObject() {
+  __forceinline ~CGGameObject() {
   }
 
   CGGameObjectData *m_gameObj;
@@ -104,7 +106,8 @@ class CGGameObject_C_TypeBase {
 
   CGGameObject_C *m_owner;
 
-  virtual ~CGGameObject_C_TypeBase();
+  virtual __forceinline ~CGGameObject_C_TypeBase() {
+  }
   virtual bool               CanHighlight() const;
   virtual bool               CanChangeCursor() const;
   virtual bool               CanUse() const;

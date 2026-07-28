@@ -368,10 +368,10 @@ static int Script_UnitReaction(lua_State *L) {
     luaL_error(L, "Usage: UnitReaction(\"unit\", \"otherUnit\")");
   }
 
-  unit = GetScriptUnit(L, 1);
-  otherUnit = GetScriptUnit(L, 2);
+  unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  otherUnit = Script_GetUnitFromName(lua_tostring(L, 2));
   if (unit && otherUnit) {
-    lua_pushnumber(L, otherUnit->UnitReaction(unit) + 1);
+    lua_pushnumber(L, unit->UnitReaction(otherUnit) + 1);
   } else {
     lua_pushnil(L);
   }

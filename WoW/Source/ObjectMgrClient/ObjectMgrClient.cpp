@@ -554,12 +554,32 @@ static void PostInitObject(CDataStore *msg) {
 }
 
 static void CreateMessage(OBJECT_TYPE_ID id) {
-  static const char *messages[8] = {
-      "Creating object", "Creating item",        "Creating container",      "Creating unit",
-      "Creating player", "Creating game object", "Creating dynamic object", "Creating corpse",
-  };
-  FATALASSERT(id < ID_AIGROUP);
-  SysMsgAdd(messages[id], SYSMSG_INFO, 0x20);
+  switch (id) {
+    case ID_OBJECT:
+      SysMsgAdd("Creating object", SYSMSG_INFO, 0x20);
+      break;
+    case ID_ITEM:
+      SysMsgAdd("Creating item", SYSMSG_INFO, 0x20);
+      break;
+    case ID_CONTAINER:
+      SysMsgAdd("Creating container", SYSMSG_INFO, 0x20);
+      break;
+    case ID_UNIT:
+      SysMsgAdd("Creating unit", SYSMSG_INFO, 0x20);
+      break;
+    case ID_PLAYER:
+      SysMsgAdd("Creating player", SYSMSG_INFO, 0x20);
+      break;
+    case ID_GAMEOBJECT:
+      SysMsgAdd("Creating game object", SYSMSG_INFO, 0x20);
+      break;
+    case ID_DYNAMICOBJECT:
+      SysMsgAdd("Creating dynamic object", SYSMSG_INFO, 0x20);
+      break;
+    case ID_CORPSE:
+      SysMsgAdd("Creating corpse", SYSMSG_INFO, 0x20);
+      break;
+  }
 }
 
 static C_OBJECTHASH *GetUpdateObject(unsigned __int64 guid) {
@@ -589,52 +609,66 @@ static C_OBJECTHASH *GetUpdateObject(unsigned __int64 guid) {
 static void SetupObjectStorage(OBJECT_TYPE_ID type, unsigned int memHandle) {
   unsigned char *storage = static_cast<unsigned char *>(ObjectPtr(memHandle));
 
-  static const unsigned int offsets[8] = {
-      48, 92, 120, 2528, 6240, 156, 68, 124,
+  static const unsigned int objectSizes[8] = {
+      sizeof(CGObject_C),
+      sizeof(CGItem_C),
+      sizeof(CGContainer_C),
+      sizeof(CGUnit_C),
+      sizeof(CGPlayer_C),
+      sizeof(CGGameObject_C),
+      sizeof(CGDynamicObject_C),
+      sizeof(CGCorpse_C),
   };
-  static const unsigned int sizes[8] = {
-      24, 144, 312, 736, 2536, 80, 64, 144,
+  static const unsigned int totalFields[8] = {
+      CGObject::TotalFields(),
+      CGItem::TotalFields(),
+      CGContainer::TotalFields(),
+      CGUnit::TotalFields(),
+      CGPlayer::TotalFields(),
+      CGGameObject::TotalFields(),
+      CGDynamicObject::TotalFields(),
+      CGCorpse::TotalFields(),
   };
 
   unsigned long *data;
   switch (type) {
     case ID_OBJECT:
-      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_OBJECT]);
+      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_OBJECT]);
       static_cast<CGObject_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_ITEM:
-      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_ITEM]);
+      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_ITEM]);
       static_cast<CGItem_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_CONTAINER:
-      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_CONTAINER]);
+      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_CONTAINER]);
       static_cast<CGContainer_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_UNIT:
-      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_UNIT]);
+      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_UNIT]);
       static_cast<CGUnit_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_PLAYER:
-      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_PLAYER]);
+      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_PLAYER]);
       static_cast<CGPlayer_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_GAMEOBJECT:
-      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_GAMEOBJECT]);
+      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_GAMEOBJECT]);
       static_cast<CGGameObject_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_DYNAMICOBJECT:
-      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_DYNAMICOBJECT]);
+      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_DYNAMICOBJECT]);
       static_cast<CGDynamicObject_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     case ID_CORPSE:
-      data = reinterpret_cast<unsigned long *>(storage + offsets[ID_CORPSE]);
+      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_CORPSE]);
       static_cast<CGCorpse_C *>(static_cast<void *>(storage))->SetStorage(data);
       break;
     default:
       FATALASSERT(0);
       return;
   }
-  memset(storage + offsets[type], 0, sizes[type]);
+  memset(storage + objectSizes[type], 0, totalFields[type] * sizeof(unsigned long));
 }
 
 static C_OBJECTHASH *AllocNewObj() {
@@ -928,7 +962,7 @@ static int ObjectUpdateHandler(void *, NETMESSAGE, unsigned long eventTime, CDat
         break;
       case 2:
         if (!CreateObject(eventTime, msg)) {
-          SysMsgAdd("OBJECTCREATIONFAILURE", SYSMSG_INFO, 0x20);
+          SysMsgAdd("OBJECTCREATIONFAILURE", SYSMSG_FATAL, 0x20);
           FATALASSERT(0);
           success = 0;
         }
@@ -1137,7 +1171,7 @@ void ClntObjMgrInitialize() {
   for (unsigned int i = 0; i < 64; ++i) {
     C_OBJECTHASH *hash = AllocNewObj();
     ASSERT(hash);
-    s_curMgr->m_freeObjects.LinkNode(hash, LIST_LINK_BEFORE, 0);
+    s_curMgr->m_freeObjects.LinkNode(hash, LIST_TAIL, 0);
   }
 
   s_curMgr->m_net->SetMessageHandler(SMSG_UPDATE_OBJECT, ObjectUpdateHandler, 0);
@@ -1171,7 +1205,7 @@ void ClntObjMgrSetObjMirrorHandler(
     ActivityBegin(ACTIVITY_OBJMGR);
     CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
     FATALASSERT(object);
-    FATALASSERT(GetOffsetSectionId(object->GetType(), offset) < ID_AIGROUP);
+    FATALASSERT(GetOffsetSectionId(object->GetType(), offset) < NUM_CLIENT_OBJECT_TYPES);
     AssignMirrorHandler(&foundObj->mirrorHandlers[offset >> 2], offset, bytes, handler, param, priority);
     ActivityEnd(ACTIVITY_OBJMGR);
   }
@@ -1227,7 +1261,7 @@ void ClntObjMgrUnsetObjMirrorHandler(
     ActivityBegin(ACTIVITY_OBJMGR);
     CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
     FATALASSERT(object);
-    FATALASSERT(GetOffsetSectionId(object->GetType(), offset) < ID_AIGROUP);
+    FATALASSERT(GetOffsetSectionId(object->GetType(), offset) < NUM_CLIENT_OBJECT_TYPES);
     UnassignMirrorHandler(&foundObj->mirrorHandlers[offset >> 2], handler, param);
     ActivityEnd(ACTIVITY_OBJMGR);
   }
@@ -1243,7 +1277,7 @@ void ClntObjMgrSetTypeMirrorHandler(
 ) {
   ActivityBegin(ACTIVITY_OBJMGR);
   OBJECT_TYPE_ID section = GetSectionId(hierType);
-  FATALASSERT(section < ID_AIGROUP);
+  FATALASSERT(section < NUM_CLIENT_OBJECT_TYPES);
   AssignMirrorHandler(&s_mirrorHandlers[section][offset >> 2], offset, bytes, handler, param, priority);
   ActivityEnd(ACTIVITY_OBJMGR);
 }
@@ -1255,7 +1289,7 @@ void ClntObjMgrUnsetTypeMirrorHandler(
 ) {
   ActivityBegin(ACTIVITY_OBJMGR);
   OBJECT_TYPE_ID section = GetSectionId(hierType);
-  FATALASSERT(section < ID_AIGROUP);
+  FATALASSERT(section < NUM_CLIENT_OBJECT_TYPES);
   UnassignMirrorHandler(&s_mirrorHandlers[section][offset >> 2], handler, 0);
   ActivityEnd(ACTIVITY_OBJMGR);
 }

@@ -41,7 +41,7 @@ CGItem_C *CGBag_C::FindItemOfType(int entryID, unsigned int flags) const {
 }
 
 CGItem_C *CGBag_C::FindItemOfType(int entryID, unsigned __int64 &bagGUID, unsigned int &slot, unsigned int flags) const {
-  return const_cast<CGBag_C *>(this)->FindItem(FindItemIDCallback, &entryID, bagGUID, slot, flags);
+  return FindItem(FindItemIDCallback, &entryID, bagGUID, slot, flags);
 }
 
 int CGBag_C::GetItemTypeCount(int entryID, unsigned int flags) const {
@@ -83,23 +83,42 @@ CGItem_C *CGBag_C::FindItem(
     unsigned int     &slot,
     unsigned int      flags
 ) const {
+  FATALASSERT(func);
+
+  if (IsInventory() && !(flags & 7)) {
+    flags |= 7;
+  }
+
   for (slot = 0; slot < NumSlots(); ++slot) {
-    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(GetItem(slot), __FILE__, __LINE__));
-    if (!item) {
+    if (IsInventory() &&
+        !((slot <= 18 && (flags & 1)) ||
+          (slot >= 19 && slot <= 22 && (flags & 2)) ||
+          (slot >= 23 && slot <= 38 && (flags & 4)) ||
+          (slot >= 39 && slot <= 62 && (flags & 8)))) {
       continue;
     }
+
+    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(GetItem(slot), __FILE__, __LINE__));
+    if (!item || item->IsDisabled()) {
+      continue;
+    }
+
     if (func(item, param)) {
       bagGUID = GetGUID();
       return item;
     }
+
     CGBag_C *bag = item->GetBag();
-    if (bag && flags) {
+    if (bag && !(flags & 0x10)) {
       CGItem_C *found = bag->FindItem(func, param, bagGUID, slot, flags);
       if (found) {
         return found;
       }
     }
   }
+
+  bagGUID = 0;
+  slot = 0;
   return 0;
 }
 

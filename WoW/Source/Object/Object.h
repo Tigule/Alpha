@@ -35,6 +35,11 @@ struct CMoveSpline {
 };
 
 struct CClientMoveUpdate {
+  CClientMoveUpdate() : timeFallen(0) {
+  }
+
+  CClientMoveUpdate(const CClientMoveUpdate &);
+
   static void Skip(CDataStore *packet);
 
   CMovementStatus status;
@@ -48,6 +53,7 @@ struct CClientMoveUpdate {
 
 CDataStore &operator<<(CDataStore &packet, const CClientMoveUpdate &update);
 CDataStore &operator>>(CDataStore &packet, CClientMoveUpdate &update);
+bool IsAngleWithinRange(float a, float b, float fieldofView);
 float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
 
 struct CClientObjCreate {
@@ -92,8 +98,11 @@ enum OBJECT_TYPE_ID {
   ID_GAMEOBJECT = 5,
   ID_DYNAMICOBJECT = 6,
   ID_CORPSE = 7,
+  NUM_CLIENT_OBJECT_TYPES = 8,
+
   ID_AIGROUP = 8,
-  ID_AREATRIGGER = 9
+  ID_AREATRIGGER = 9,
+  NUM_OBJECT_TYPES = 10
 };
 
 enum OBJECT_TYPE {
@@ -145,11 +154,15 @@ class CGObject {
  public:
   static unsigned int GetDataSize();
   static unsigned int GetBaseOffset();
-  static unsigned int TotalFields();
+  static __forceinline unsigned int TotalFields() {
+    return 6;
+  }
   static unsigned int GetUpdateMaskBytes();
   static unsigned int GetUpdateMaskBlocks();
 
-  unsigned char IsA(OBJECT_TYPE_ID type) const;
+  unsigned char IsA(OBJECT_TYPE_ID type) const {
+    return (static_cast<unsigned int>(GetType()) >> type) & 1;
+  }
   unsigned char IsA(OBJECT_TYPE type) const {
     return (GetType() & type) != 0;
   }

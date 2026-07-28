@@ -212,7 +212,10 @@ class CDataStore {
 
   virtual int  IsRead() const;
   virtual void Reset();
-  virtual void Finalize();
+  virtual void Finalize() {
+    ASSERT(!IsFinal());
+    m_read = 0;
+  }
 
   void Seek(unsigned int pos) {
     ASSERT(IsFinal());

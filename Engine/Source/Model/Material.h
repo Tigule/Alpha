@@ -45,13 +45,13 @@ struct CTexLayer {
   EGxVertexBufferFormat vertexFormat;
   union {
     struct {
-      unsigned int lighting : 1;
-      unsigned int fog : 1;
-      unsigned int depthTest : 1;
-      unsigned int depthWrite : 1;
-      unsigned int culling : 1;
+      unsigned long lighting : 1;
+      unsigned long fog : 1;
+      unsigned long depthTest : 1;
+      unsigned long depthWrite : 1;
+      unsigned long culling : 1;
     } disable;
-    unsigned int disables;
+    unsigned long disables;
   };
   EGxBlend       blendMode;
   CTmuPassUnique tmuPass[2];
@@ -59,6 +59,9 @@ struct CTexLayer {
 };
 
 struct CTexLayerShared {
+  CTexLayerShared() : blendMode(GxBlend_Opaque) {
+  }
+
   EGxBlend       blendMode;
   CTmuPassShared tmuPass[2];
 };

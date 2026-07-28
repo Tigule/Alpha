@@ -17,9 +17,9 @@
 
 enum TEXTURETYPE {
   TEXTURE_BACKGROUND = 0,
-  TEXTURE_PROGRESS = 1,
-  TEXTURE_BORDER = 2,
-  TEXTURETYPES = 3
+  TEXTURE_STATUSBAR = 1,
+  TEXTURE_PROGRESSBARFRAME = 2,
+  TEXTURETYPE_NUMTEXTURETYPES = 3
 };
 
 struct TEXTUREINFO {
@@ -32,20 +32,20 @@ struct TEXTUREINFO {
   EGxBlend      blend;
 };
 
-static const TEXTUREINFO s_textureInfo[TEXTURETYPES] = {
+static const TEXTUREINFO s_textureInfo[TEXTURETYPE_NUMTEXTURETYPES] = {
     {                      "Interface\\Glues\\loading", 0, 0.5f,   0.5f,   1.0f,   1.0f, GxBlend_Alpha},
     {  "Interface\\Glues\\LoadingBar\\Loading-BarFill", 1, 0.5f, 0.075f, 0.525f, 0.025f, GxBlend_Alpha},
     {"Interface\\Glues\\LoadingBar\\Loading-BarBorder", 0, 0.5f, 0.075f,   0.6f,  0.05f, GxBlend_Alpha}
 };
 
 static const unsigned short s_indices[4] = {0, 1, 2, 3};
-static unsigned int         s_textureFormat[TEXTURETYPES];
+static unsigned int         s_textureFormat[TEXTURETYPE_NUMTEXTURETYPES];
 static int                  s_worldLoaded;
 static int                  s_xmlTotal;
 static HOBJECT              s_loadingScreenLayer;
 static float                s_progress;
-static MipBits             *s_mipBits[TEXTURETYPES];
-static CGxTex              *s_textureHandles[TEXTURETYPES];
+static MipBits             *s_mipBits[TEXTURETYPE_NUMTEXTURETYPES];
+static CGxTex              *s_textureHandles[TEXTURETYPE_NUMTEXTURETYPES];
 static int                  s_xmlLoaded;
 static bool                 s_loadingScreenEnabled;
 
@@ -156,7 +156,7 @@ static void LoadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
   GxRsSet(GxRs_Fog, 0);
   GxVertexShaderSelect(GxVS_PassThru);
 
-  for (unsigned int image = 0; image < TEXTURETYPES; ++image) {
+  for (unsigned int image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
     if (s_textureHandles[image]) {
       const TEXTUREINFO &info = s_textureInfo[image];
       GxRsSet(GxRs_Blend, info.blend);
@@ -248,7 +248,7 @@ void EnableLoadingScreen() {
 
   DisableLoadingScreen();
 
-  for (unsigned int image = 0; image < TEXTURETYPES; ++image) {
+  for (unsigned int image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
     LoadImage(static_cast<TEXTURETYPE>(image));
   }
 
@@ -274,7 +274,7 @@ void DisableLoadingScreen() {
   }
 
   HandleClose(s_loadingScreenLayer);
-  for (index = 0; index < TEXTURETYPES; ++index) {
+  for (index = 0; index < TEXTURETYPE_NUMTEXTURETYPES; ++index) {
     if (s_textureHandles[index]) {
       GxTexDestroy(s_textureHandles[index]);
     }

@@ -21,17 +21,10 @@ static TSFixedArray<CAMERAFILENAMES>            s_cameraFileNames;
 static TSGrowableArray<CHARACTERRACEVARIATIONS> s_raceTextureFileNames;
 static const unsigned int                       NUM_UNDERWEARHIDESECTIONS = 2;
 static const unsigned int                       s_defaultGeosets[NUM_CHARGEOSETS] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0};
+unsigned int                                    g_defaultGeosetIDOffsets[NUM_CHARGEOSETS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0};
 static const unsigned int                       s_baseGeosets[NUM_CHARGEOSETS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-static const struct {
-  int geosetGroup[4];
-} s_inventoryGeosetGroups[INDEX_NUMSLOTS] = {{{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{2, 4, -1, -1}},
-                                             {{2, 4, 7, 6}},     {{-1, -1, -1, -1}}, {{5, 3, 7, 8}},     {{1, -1, -1, -1}},  {{-1, -1, -1, -1}},
-                                             {{0, -1, -1, -1}},  {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}},
-                                             {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{6, -1, -1, -1}},
-                                             {{2, 4, 7, -1}},    {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}},
-                                             {{-1, -1, -1, -1}}, {{-1, -1, -1, -1}}};
-static CHARACTER_GEOSET_SECTIONS s_clothingGeosetRanges[9] = {CGS_GLOVES, CGS_BOOTS, CGS_SLEEVES, CGS_PANTS,     CGS_CHEST,
-                                                              CGS_TABARD, CGS_ROBE,  CGS_CLOAK,   CGS_SECTION_14};
+static CHARACTER_GEOSET_SECTIONS s_clothingGeosetRanges[9] = {CHARGEOSET_GLOVE, CHARGEOSET_BOOT, CHARGEOSET_SLEEVES, CHARGEOSET_PANTS,     CHARGEOSET_DOUBLET,
+                                                              CHARGEOSET_PANTDOUBLET, CHARGEOSET_TABARD,  CHARGEOSET_ROBE,   CHARGEOSET_LOINCLOTH};
 
 static const unsigned int s_itemGeosetPriorities[INDEX_NUMSLOTS][9] = {
     {0, 0,  0, 0,  0,  0, 0, 0, 0},
@@ -126,29 +119,54 @@ static const unsigned int s_inventoryAndGeosetDisables[INDEX_NUMSLOTS][9] = {
 static unsigned int s_geosetGroupDisables[9] = {0, 0, 0, 0, 0, 0, 0, 2, 0};
 
 struct HOLDINFO {
-  int                   geosetGroup;
+  CHARACTER_ITEM_GEOSETS geosetGroup;
   TEXCOMPONENT_SECTIONS holdSection;
 };
 
 struct INVHOLDINFO {
+  INVHOLDINFO(
+      CHARACTER_ITEM_GEOSETS geoset0,
+      TEXCOMPONENT_SECTIONS section0,
+      CHARACTER_ITEM_GEOSETS geoset1,
+      TEXCOMPONENT_SECTIONS section1
+  ) {
+    holdInfo[0].geosetGroup = geoset0;
+    holdInfo[0].holdSection = section0;
+    holdInfo[1].geosetGroup = geoset1;
+    holdInfo[1].holdSection = section1;
+  }
+
   HOLDINFO holdInfo[2];
 };
 
 static const INVHOLDINFO s_itemTypeTextureHolds[INDEX_NUMSLOTS] = {
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{4, TCS_LEGUPPER}, {-1, TCS_INVALIDSECTION}}},        {{{6, TCS_LEGUPPER}, {4, TCS_LEGUPPER}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{6, TCS_LEGUPPER}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}, {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}},
-    {{{-1, TCS_INVALIDSECTION}, {-1, TCS_INVALIDSECTION}}}
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(CHARITEMGEOSETS_DOUBLET, TCS_LEGUPPER, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(CHARITEMGEOSETS_TABARD, TCS_LEGUPPER, CHARITEMGEOSETS_DOUBLET, TCS_LEGUPPER),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(CHARITEMGEOSETS_TABARD, TCS_LEGUPPER, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
+    INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION)
 };
 
 class CharGeosetInfo {
@@ -191,8 +209,8 @@ class CharGeosetInfo {
 
     unsigned int i;
     for (i = 0; i < 4; ++i) {
-      int group = s_inventoryGeosetGroups[itemInventoryType].geosetGroup[i];
-      if (group == -1) {
+      CHARACTER_ITEM_GEOSETS group = g_geosetGroupsPerItem[itemInventoryType].geosetGroup[i];
+      if (group == INVALID_CHARITEMGEOSET) {
         continue;
       }
 
@@ -582,7 +600,7 @@ void CCharGeoset::RemoveItemGeoset(
 
 void CCharGeoset::EnableHairGeosets(unsigned int race, unsigned int sex, unsigned int hairStyleID) {
   int geoset = CharCustomizationGetHairGeoset(race, sex, hairStyleID);
-  ShowGeosetSection(CGS_HAIR, abs(geoset), 1);
+  ShowGeosetSection(CHARGEOSET_HAIR, abs(geoset), 1);
   if (geoset < 0) {
     m_flags |= HASSCALP;
   } else {
@@ -1200,19 +1218,19 @@ void CharCustomizationInitBaseCharacter(
     return;
   }
 
-  geoset->ShowGeosetSection(CGS_FACIAL_BEARD, beardGeoset, 1);
-  geoset->ShowGeosetSection(CGS_FACIAL_SIDEBURN, sideBurnGeoset, 1);
-  geoset->ShowGeosetSection(CGS_FACIAL_MOUSTACHE, moustacheGeoset, 1);
-  geoset->ShowGeosetSection(CGS_EARS, earGeoset, 1);
-  geoset->ShowGeosetSection(CGS_GLOVES, s_baseGeosets[CGS_GLOVES], 1);
-  geoset->ShowGeosetSection(CGS_BOOTS, s_baseGeosets[CGS_BOOTS], 1);
-  geoset->ShowGeosetSection(CGS_SLEEVES, s_baseGeosets[CGS_SLEEVES], 1);
-  geoset->ShowGeosetSection(CGS_PANTS, s_baseGeosets[CGS_PANTS], 1);
-  geoset->ShowGeosetSection(CGS_CHEST, s_baseGeosets[CGS_CHEST], 1);
-  geoset->ShowGeosetSection(CGS_TABARD, s_baseGeosets[CGS_TABARD], 1);
-  geoset->ShowGeosetSection(CGS_ROBE, s_baseGeosets[CGS_ROBE], 1);
-  geoset->ShowGeosetSection(CGS_CLOAK, s_baseGeosets[CGS_CLOAK], 1);
-  geoset->ShowGeosetSection(CGS_SECTION_14, s_baseGeosets[CGS_SECTION_14], 1);
+  geoset->ShowGeosetSection(CHARGEOSET_BEARD, beardGeoset, 1);
+  geoset->ShowGeosetSection(CHARGEOSET_SIDEBURN, sideBurnGeoset, 1);
+  geoset->ShowGeosetSection(CHARGEOSET_MOUSTACHE, moustacheGeoset, 1);
+  geoset->ShowGeosetSection(CHARGEOSET_EAR, earGeoset, 1);
+  geoset->ShowGeosetSection(CHARGEOSET_GLOVE, s_baseGeosets[CHARGEOSET_GLOVE], 1);
+  geoset->ShowGeosetSection(CHARGEOSET_BOOT, s_baseGeosets[CHARGEOSET_BOOT], 1);
+  geoset->ShowGeosetSection(CHARGEOSET_SLEEVES, s_baseGeosets[CHARGEOSET_SLEEVES], 1);
+  geoset->ShowGeosetSection(CHARGEOSET_PANTS, s_baseGeosets[CHARGEOSET_PANTS], 1);
+  geoset->ShowGeosetSection(CHARGEOSET_DOUBLET, s_baseGeosets[CHARGEOSET_DOUBLET], 1);
+  geoset->ShowGeosetSection(CHARGEOSET_PANTDOUBLET, s_baseGeosets[CHARGEOSET_PANTDOUBLET], 1);
+  geoset->ShowGeosetSection(CHARGEOSET_TABARD, s_baseGeosets[CHARGEOSET_TABARD], 1);
+  geoset->ShowGeosetSection(CHARGEOSET_ROBE, s_baseGeosets[CHARGEOSET_ROBE], 1);
+  geoset->ShowGeosetSection(CHARGEOSET_LOINCLOTH, s_baseGeosets[CHARGEOSET_LOINCLOTH], 1);
   geoset->ClearGeosets();
 }
 

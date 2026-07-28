@@ -21,14 +21,14 @@ struct SPLATDATA {
   TSGrowableArray<unsigned short> indices;
   int                             startTime;
   NTempest::C3Vector              position;
-  unsigned int                    skip;
+  bool                            skip;
   NTempest::CImVector             color;
   CHUNKDATA                      *chunk;
   LINKDECLEX(SPLATDATA, orderLink);
   LINKDECLEX(SPLATDATA, normalLink);
 
   bool Update(float progress, bool &nuke);
-  unsigned int Culled();
+  bool Culled() const;
 };
 
 struct LISTBASE {
@@ -45,18 +45,18 @@ struct LISTBASE {
   void                 Add(const NTempest::C3Vector &position, const NTempest::CAaBox &box, const NTempest::C44Matrix &matrix);
   void                 SetTexture(const char *n);
   CHUNKDATA           *FindChunk(int id);
-  virtual unsigned char MakeSpace() = 0;
+  virtual bool MakeSpace() = 0;
 };
 
 struct TIMEDTEXTURE : public LISTBASE {
   TIMEDTEXTURE() : LISTBASE(128, 0) {
   }
-  unsigned char MakeSpace();
+  bool MakeSpace();
 };
 
 struct PERSISTENTTEXTURE : public LISTBASE {
   PERSISTENTTEXTURE();
-  unsigned char MakeSpace();
+  bool MakeSpace();
 };
 
 NODEDECL(CHUNKDATA) {

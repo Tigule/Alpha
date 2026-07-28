@@ -21,6 +21,8 @@
 #include "Ui/SpellBookFrame.h"
 #include "Ui/WorldFrame.h"
 #include "WorldClient/World.h"
+
+#include <stddef.h>
 #include "WorldCommon/WorldMath.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Os/W32/OsSound.h"
@@ -225,9 +227,6 @@ static int OnUpdateState(unsigned __int64 guid, unsigned int offset, unsigned in
 CGGameObject_C_TypeBase::CGGameObject_C_TypeBase(CGGameObject_C *owner)
     : m_owner(owner), m_interactDistance(MAX_LOOT_DISTANCE) {
   FATALASSERT(m_owner);
-}
-
-CGGameObject_C_TypeBase::~CGGameObject_C_TypeBase() {
 }
 
 bool CGGameObject_C_TypeBase::CanHighlight() const {
@@ -441,7 +440,7 @@ int CGGameObject_C::IsPointInside(const NTempest::C3Vector &point) const {
 
 void CGGameObject_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
-  CGGameObject::SetStorage(storage + 6);
+  CGGameObject::SetStorage(storage + CGObject::TotalFields());
 }
 
 void CGGameObject_C::PostInit(const CClientObjCreate &init) {
@@ -515,7 +514,12 @@ void CGGameObject_C::SetData(const void *data, unsigned int bytes) {
 }
 
 CGGameObject_C::CGGameObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGGameObject(storage + 6), m_baseObj(0), m_stats(0), m_serverTimeOffset(init->move.timeFallen - eventTime), m_isSolid(0) {
+    : CGObject_C(storage, eventTime, init),
+      CGGameObject(storage + CGObject::TotalFields()),
+      m_baseObj(0),
+      m_stats(0),
+      m_serverTimeOffset(init->move.timeFallen - eventTime),
+      m_isSolid(0) {
   ClntObjMgrHideObject(GetGUID());
   m_gameObj->m_position = init->move.status.worldPosition;
   m_gameObj->m_facing = init->move.status.worldFacing;
@@ -822,12 +826,12 @@ unsigned int CGGameObject_C::CreateWorldObject(unsigned __int64 guid) {
 
 void CGGameObject_C::SetMirrorHandlers() {
   ClntObjMgrSetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_GAMEOBJECT) + 24, 4, OnUpdateState, 0, HANDLER_PRIORITY_NORMAL);
+      GetGUID(), OffsetOf(ID_GAMEOBJECT) + offsetof(CGGameObjectData, m_state), 4, OnUpdateState, 0, HANDLER_PRIORITY_NORMAL);
 }
 
 void CGGameObject_C::UnsetMirrorHandlers() {
   ClntObjMgrUnsetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_GAMEOBJECT) + 24, OnUpdateState, 0);
+      GetGUID(), OffsetOf(ID_GAMEOBJECT) + offsetof(CGGameObjectData, m_state), OnUpdateState, 0);
 }
 
 unsigned int CGGameObject_C::OffsetOf(OBJECT_TYPE_ID type) {
@@ -835,7 +839,7 @@ unsigned int CGGameObject_C::OffsetOf(OBJECT_TYPE_ID type) {
     return 0;
   }
   FATALASSERT(type == ID_GAMEOBJECT);
-  return 24;
+  return CGObject::TotalFields() * sizeof(unsigned long);
 }
 
 void CGGameObject_C::PostPostInit() {
@@ -979,9 +983,8 @@ void CGGameObject_C_TypeAnimated::PostInit() {
   UpdateState(state, state);
 }
 
-void CGGameObject_C_TypeAnimated::Disable(int shutdown) {
+void CGGameObject_C_TypeAnimated::Disable(int) {
   CloseLoopingSound();
-  CGGameObject_C_TypeBase::Disable(shutdown);
 }
 
 void CGGameObject_C_TypeAnimated::ModelJustLoaded() {
@@ -1209,6 +1212,11 @@ float CGGameObject_C_Type_MapObjTransport::GetFacing() const {
 void CGGameObject_C_Type_MapObjTransport::AddPassenger(CMovementData *passenger) {
   FATALASSERT(passenger);
   m_passengers.LinkNode(passenger, LIST_TAIL, 0);
+  CMovement::LogWrite(
+      "0x%016I64X: Attaching to transport (0x%016I64X) at "
+      "position(%g,%g).  Synced time is (0x%08X)",
+      passenger->m_guid, m_owner->GetGUID(), m_position.x, m_position.y,
+      m_position.z, OsGetAsyncTimeMs() + m_owner->m_serverTimeOffset);
 }
 
 int CGGameObject_C_Type_MapObjTransport::IsPointInside(const NTempest::C3Vector &point) const {
@@ -1416,6 +1424,7 @@ int CGGameObject_C_Type_Transport::IsPointInside(const NTempest::C3Vector &point
 }
 
 void CGGameObject_C_Type_Transport::Reenable() {
+  MovementAddTransport(m_owner);
 }
 
 void CGGameObject_C_Type_Transport::Disable(int) {

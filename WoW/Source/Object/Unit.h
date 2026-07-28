@@ -32,6 +32,8 @@ enum UNITSTANDSTATE {
   UNIT_NUMCHAIRSTATES = 3
 };
 
+extern bool g_standStateAllowsSheathing[12];
+
 enum INVENTORY_SLOTS {
   INVSLOT_HEAD = 0,
   INVSLOT_FIRST = 0,

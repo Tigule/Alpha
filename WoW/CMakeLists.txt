@@ -351,8 +351,12 @@ if(MSVC_VERSION EQUAL 1200)
         Source/Game/GameClient/WeaponTrails.cpp
         Source/Game/GameClient/ViolenceLevels.cpp
         Source/Object/ObjectClient/Item_C.cpp
+        Source/Object/ObjectClient/Movement_C.cpp
         Source/Object/ObjectClient/NPC_C.cpp
         Source/Object/ObjectClient/Object_C.cpp
+        Source/Object/ObjectClient/PlayerSound_C.cpp
+        Source/Object/ObjectClient/UnitCombat_C.cpp
+        Source/Object/ObjectClient/UnitSound_C.cpp
         Source/UIUtil/SmartScreenRects.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-"
     )
@@ -645,7 +649,7 @@ if(MSVC_VERSION EQUAL 1200)
     )
     set_source_files_properties(
         Source/Object/ObjectClient/Player_C.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob1"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-"
     )
     set_source_files_properties(
         Source/Object/ObjectClient/Unit_C.cpp

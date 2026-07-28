@@ -57,6 +57,18 @@ struct DamageData {
   void Clear();
 };
 
+inline void DamageData::Clear() {
+  totalDamage = 0;
+  memset(damageFloat, 0, sizeof(damageFloat));
+  memset(damage, 0, sizeof(damage));
+  memset(absorbed, 0, sizeof(absorbed));
+  memset(minDamage, 0, sizeof(minDamage));
+  memset(maxDamage, 0, sizeof(maxDamage));
+  for (unsigned int i = 0; i < 5; ++i) {
+    damageType[i] = -1;
+  }
+}
+
 struct LOGBASE {
   LOGBASE() {
   }
@@ -120,7 +132,7 @@ struct ATTACKROUNDINFO : public DAMAGELOGBASE {
 
 struct SPELLLOG : public DAMAGELOGBASE {
   SPELLLOG(const SPELLLOG &);
-  SPELLLOG(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID);
+  SPELLLOG(unsigned __int64 attacker, unsigned __int64 victim, int spellID);
   SPELLLOG(unsigned __int64 attacker, unsigned int spellID);
   SPELLLOG(
       unsigned __int64 attacker,
@@ -213,7 +225,7 @@ struct MIRRORTIMERDAMAGE : public LOGBASE {
   }
 
   MIRRORTIMERDAMAGE(const MIRRORTIMERDAMAGE &);
-  MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, unsigned __int64 victim, unsigned int amount);
+  MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, unsigned __int64 victim, int amount);
 
   int              damage;
   unsigned __int64 victim;
@@ -275,7 +287,27 @@ inline DAMAGELOGBASE::DAMAGELOGBASE(unsigned __int64 attacker, unsigned __int64 
   dmg.Clear();
 }
 
-inline SPELLLOG::SPELLLOG(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID)
+inline ATTACKROUNDINFO::ATTACKROUNDINFO()
+    : DAMAGELOGBASE(0, 0) {
+  armorReduction = 0;
+  newVictimState = VS_NONE;
+  victimRoundDuration = 0;
+  dodgeRollFloat = 0.0f;
+  dodgeRollNeededFloat = 0.0f;
+  parryRollFloat = 0.0f;
+  parryRollNeededFloat = 0.0f;
+  stunRollFloat = 0.0f;
+  stunRollNeededFloat = 0.0f;
+  delayTime = 0;
+  spellDamageAdded = 0;
+  spellAddedDamage = 0;
+  sinceLastSwing = 0;
+  dualWieldHitRollFloat = 0.0f;
+  dualWieldHitRollNeededFloat = 0.0f;
+  procSpell = 0;
+}
+
+inline SPELLLOG::SPELLLOG(unsigned __int64 attacker, unsigned __int64 victim, int spellID)
     : DAMAGELOGBASE(attacker, victim),
       auraEffectID(0),
       spellID(spellID),
@@ -291,7 +323,7 @@ inline ENVIRONMENTALDAMAGE::ENVIRONMENTALDAMAGE(unsigned __int64 victim, int sch
     : victim(victim), school(school), amount(amount) {
 }
 
-inline MIRRORTIMERDAMAGE::MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, unsigned __int64 victim, unsigned int amount)
+inline MIRRORTIMERDAMAGE::MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, unsigned __int64 victim, int amount)
     : damage(damage), victim(victim), amount(amount) {
 }
 

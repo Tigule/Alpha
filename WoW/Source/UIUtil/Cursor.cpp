@@ -298,7 +298,14 @@ void CGCursor::SetArt(const char *art) {
     HandleClose(m_model);
   }
 
-  CModelCreate createData = {2, s_animationNames, NUM_CURSOR_ANIMS, 0, 0, 0, 0};
+  CModelCreate createData;
+  createData.boneNames = 0;
+  createData.numBones = 0;
+  createData.cameraNames = 0;
+  createData.numCameras = 0;
+  createData.sequenceNames = s_animationNames;
+  createData.numSequences = NUM_CURSOR_ANIMS;
+  createData.flags = 2;
   CStatus      status;
   m_model = ModelCreate(art, &createData, &status);
   SysMsgAdd(status, 4);

@@ -7,6 +7,7 @@
 class CSplineParticleEmitter;
 class CGGameObject_C_Type_MapObjTransport;
 class CGUnit_C;
+class CMovement;
 
 class C24Matrix {
  public:
@@ -128,6 +129,7 @@ namespace NTempest {
    private:
     friend class ::CGGameObject_C_Type_MapObjTransport;
     friend class ::CGUnit_C;
+    friend class ::CMovement;
     friend class C3Spline_Bezier3;
     friend class C3Spline_CatmullRom;
 

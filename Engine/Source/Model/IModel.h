@@ -10,6 +10,9 @@ struct HTEXTURE__;
 typedef HTEXTURE__ *HTEXTURE;
 
 struct CModelCreate {
+  CModelCreate() {
+  }
+
   unsigned int flags;
   const char **sequenceNames;
   unsigned int numSequences;

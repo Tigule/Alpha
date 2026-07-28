@@ -5,6 +5,7 @@
 #include "Tempest/c33matrix.h"
 #include "Tempest/c34matrix.h"
 #include "Tempest/cmath.h"
+#include "Console/ConsoleClient.h"
 #include "ObjectAlloc/ObjectAllocTemplate.h"
 #include "Os/OsTime.h"
 #include "Net/NetClient/NetClient.h"
@@ -13,6 +14,8 @@
 #include <stdio.h>
 #include <float.h>
 #include <math.h>
+
+using NTempest::CMath;
 
 void WVLog(unsigned int logMask, unsigned int priority, const char *fmt, char *arglist);
 void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime);
@@ -27,7 +30,15 @@ int CMovementData::IsLocalPlayer() {
 }
 
 CMovementData::~CMovementData() {
-  RemoveSpline();
+  if (MovementGetGlobals() &&
+      static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover == this)
+  {
+    static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover = 0;
+    FATALASSERT(!m_spline);
+    FATALASSERT(!IsSplineMover());
+  } else {
+    RemoveSpline();
+  }
 }
 
 int CMovement::MoversOnList() {
@@ -48,7 +59,11 @@ void CMovement::MoveUnit(unsigned long timeNow, unsigned long lastUpdate, void *
     OnMoveUpdate(m_guid, timeNow);
 
     if (m_moveFlags & 0x40FF) {
-      if (_isnan(m_position.x) || _isnan(m_position.y) || _isnan(m_position.z)) {
+      double positionComponent = m_position.x;
+      if (_isnan(positionComponent) ||
+          (positionComponent = m_position.y, _isnan(positionComponent)) ||
+          (positionComponent = m_position.z, _isnan(positionComponent))) {
+        ConsolePrintf("Mover at invalid position");
         MovementFixOutOfBoundsUnit(m_guid);
       } else {
         MovementUpdateProxMap(obj);
@@ -63,30 +78,110 @@ void CMovement::MoveUnits(unsigned long timeNow, unsigned long lastUpdate) {
     return;
   }
 
-  MovementLockMoversList(1);
+  int entriesOnList = globals->movers.Head() != 0;
+  if (entriesOnList) {
+    FallLogWrite("___IDLE EVENT: timeNow(0x%X)\n", timeNow);
+  }
 
   CMovementData *baseMover = globals->movers.Head();
   while (reinterpret_cast<long>(baseMover) > 0) {
     CMovementData *baseMoverNext = globals->movers.RawNext(baseMover);
     CMovement     *mover = static_cast<CMovement *>(baseMover);
-    FATALASSERT(mover != globals->m_localMover);
+    FATALASSERT(mover != ((CMovementGlobals *)MovementGetGlobals())->m_localMover);
 
     void *obj = MovementTryLock(mover->m_guid);
     if (obj) {
-      mover->MoveUnit(timeNow, lastUpdate, obj);
+      mover->m_moveFlags &= ~0x00800000;
+
+      unsigned long moveStartTime = mover->m_moveStartTime;
+      if (int(timeNow - moveStartTime) < 0) {
+        timeNow = moveStartTime;
+      }
+
+      unsigned int moveTime = timeNow - moveStartTime;
+      if (int(timeNow - moveStartTime) < 0) {
+        NTempest::C3Vector intPositionZ = mover->GetPosition(mover->m_position);
+        NTempest::C3Vector intPositionY = mover->GetPosition(mover->m_position);
+        NTempest::C3Vector intPositionX = mover->GetPosition(mover->m_position);
+        float              facing = mover->GetFacing(mover->m_facing);
+        NTempest::C3Vector positionZ = mover->GetPosition(mover->m_position);
+        NTempest::C3Vector positionY = mover->GetPosition(mover->m_position);
+        NTempest::C3Vector positionX = mover->GetPosition(mover->m_position);
+        int                intFacing = static_cast<int>(mover->GetFacing(mover->m_facing));
+        SErrDisplayErrorFmt(
+            0x85100000,
+            __FILE__,
+            __LINE__,
+            0,
+            1,
+            "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+            "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+            "int(timeNow - moveStartTime) >= 0",
+            mover->m_guid,
+            positionX.x,
+            positionY.y,
+            positionZ.z,
+            facing,
+            static_cast<int>(intPositionX.x),
+            static_cast<int>(intPositionY.y),
+            static_cast<int>(intPositionZ.z),
+            intFacing
+        );
+      }
+
+      unsigned int elapsed = timeNow - lastUpdate;
+      FallLogWrite(
+          "0x%016I64X: last update(0x%08X) fall start time(0x%08X) current time(0x%08X) elapsed time(%u ms)\n",
+          mover->m_guid,
+          lastUpdate,
+          mover->m_fallStartTime,
+          timeNow,
+          elapsed
+      );
+
+      if (mover->m_moveFlags & 0x40FF) {
+        mover->ApplyMovement(lastUpdate + 1, mover->FallTime(), moveTime, elapsed);
+        mover->m_moveFlags |= 0x00800000;
+        OnMoveUpdate(mover->m_guid, timeNow);
+      } else {
+        LogWrite(
+            "(%I64X) (%u) ERROR!!! Somehow we are in the mover list with a speed and turn rate both of zero\n",
+            mover->m_guid,
+            timeNow
+        );
+      }
 
       if (!(mover->m_moveFlags & 0x40FF)) {
         globals->movers.UnlinkNode(mover);
         --globals->numMovers;
+        MovementUnlock(obj);
+        baseMover = baseMoverNext;
+        continue;
+      } else {
+        double positionComponent = mover->m_position.x;
+        if (_isnan(positionComponent) ||
+            (positionComponent = mover->m_position.y, _isnan(positionComponent)) ||
+            (positionComponent = mover->m_position.z, _isnan(positionComponent))) {
+          ConsolePrintf("Mover at invalid position");
+          MovementFixOutOfBoundsUnit(mover->m_guid);
+          MovementUnlock(obj);
+          baseMover = baseMoverNext;
+          continue;
+        } else {
+          MovementUpdateProxMap(obj);
+          MovementUnlock(obj);
+          baseMover = baseMoverNext;
+          continue;
+        }
       }
-
-      MovementUnlock(obj);
     }
 
     baseMover = baseMoverNext;
   }
 
-  MovementUnlockMoversList(1);
+  if (entriesOnList) {
+    FallLogWrite("___END IDLE EVENT\n");
+  }
 }
 
 int CMovement::UpdatePlayerMovement(unsigned long timeNow) {
@@ -132,6 +227,7 @@ int CMovement::UpdatePlayerMovement(unsigned long timeNow) {
         break;
       case PMOVE_FALL:
         StartFalling(event->timeStamp);
+        OnCollideFalling(m_guid, event->timeStamp);
         break;
       case PMOVE_JUMP:
         if (Jump(event->timeStamp)) {
@@ -179,15 +275,14 @@ int CMovement::UpdatePlayerMovement(unsigned long timeNow) {
         ProcessLocalMoveEvent(MSG_MOVE_SET_PITCH);
         break;
       case PMOVE_MOVE_START_SWIM:
-        StartSwim(event->timeStamp);
+        StartSwimLocal(event->timeStamp);
         ProcessLocalMoveEvent(MSG_MOVE_START_SWIM);
         break;
       case PMOVE_MOVE_STOP_SWIM:
-        StopSwim(event->timeStamp);
+        StopSwimLocal(event->timeStamp);
         ProcessLocalMoveEvent(MSG_MOVE_STOP_SWIM);
         break;
       default:
-        FATALASSERT(0);
         break;
     }
 
@@ -200,6 +295,43 @@ int CMovement::UpdatePlayerMovement(unsigned long timeNow) {
 void CMovement::MoveLocalPlayer(unsigned long timeNow, unsigned long lastUpdate) {
   unsigned int elapsedMS = timeNow - lastUpdate;
   unsigned int timeUsed = 0;
+
+  LogWrite(
+      "0x%016I64X: current time(0x%08X) last update(0x%08X) time elapsed(%u)\n",
+      m_guid,
+      timeNow,
+      lastUpdate,
+      elapsedMS
+  );
+  if (!elapsedMS) {
+    NTempest::C3Vector intPositionZ = GetPosition(m_position);
+    NTempest::C3Vector intPositionY = GetPosition(m_position);
+    NTempest::C3Vector intPositionX = GetPosition(m_position);
+    float              facing = GetFacing(m_facing);
+    NTempest::C3Vector positionZ = GetPosition(m_position);
+    NTempest::C3Vector positionY = GetPosition(m_position);
+    NTempest::C3Vector positionX = GetPosition(m_position);
+    int                intFacing = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "elapsedMS > 0",
+        m_guid,
+        positionX.x,
+        positionY.y,
+        positionZ.z,
+        facing,
+        static_cast<int>(intPositionX.x),
+        static_cast<int>(intPositionY.y),
+        static_cast<int>(intPositionZ.z),
+        intFacing
+    );
+  }
 
   m_moveFlags &= ~0x00800000;
 
@@ -214,7 +346,25 @@ void CMovement::MoveLocalPlayer(unsigned long timeNow, unsigned long lastUpdate)
       if (untilEvent < timeToUse) {
         timeToUse = untilEvent;
       }
+      LogWrite(
+          "0x%016I64X: first event time(0x%08X), time to consume(%u)\n",
+          m_guid,
+          event->timeStamp,
+          timeToUse
+      );
+    } else {
+      LogWrite("0x%016I64X: no events, consuming(%u)\n", m_guid, timeToUse);
     }
+
+    LogWrite(
+        "0x%016I64X: update time(0x%08X) last update(0x%08X) move start(0x%08X) fall start (0x%08X) time used(%u)\n",
+        m_guid,
+        updateTime,
+        lastUpdate,
+        m_moveStartTime,
+        m_fallStartTime,
+        timeUsed
+    );
 
     if ((m_moveFlags & 0x40FF) && timeToUse) {
       unsigned int timeFallen = m_moveFlags & 0x4000 ? updateTime - m_fallStartTime : 0;
@@ -223,6 +373,7 @@ void CMovement::MoveLocalPlayer(unsigned long timeNow, unsigned long lastUpdate)
     }
 
     if (!UpdatePlayerMovement(updateTime + 1)) {
+      LogWrite("0x%016I64X: No more movement and player not in motion\n", m_guid);
       globals->m_localMover = 0;
       break;
     }
@@ -236,34 +387,40 @@ void CMovement::MoveLocalPlayer(unsigned long timeNow, unsigned long lastUpdate)
 int MovementIdleMoveUnits(const void *packetData, void *param) {
   MovementLockMoversList(1);
 
-  unsigned long     timeNow = OsGetAsyncTimeMs();
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
-  unsigned long     lastUpdate = globals->m_lastUpdateTime;
-  int               timeDiff = static_cast<int>(timeNow - lastUpdate);
+  unsigned long timeNow = OsGetAsyncTimeMs();
+  unsigned long lastUpdate = static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime;
+  int           timeDiff = static_cast<int>(timeNow - lastUpdate);
 
   MovementMoveTransports(timeNow, static_cast<float>(timeDiff) * 0.001f);
 
-  if (globals->m_localMover || CMovement::MoversOnList()) {
+  if (static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover || CMovement::MoversOnList()) {
     FATALASSERT(timeDiff >= 0);
 
-    while (timeDiff > 0) {
-      lastUpdate = globals->m_lastUpdateTime;
+    if (timeDiff) {
+      do {
+        lastUpdate = static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime;
 
-      if (timeDiff <= 1000) {
-        globals->m_lastUpdateTime = timeNow;
-        timeDiff = 0;
-        CMovement::MoveUnits(timeNow, lastUpdate);
-      } else {
-        globals->m_lastUpdateTime = lastUpdate + 1000;
-        timeDiff -= 1000;
-      }
+        if (timeDiff > 1000) {
+          static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime = lastUpdate + 1000;
+          timeDiff -= 1000;
+        } else {
+          static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime = timeNow;
+          timeDiff = 0;
+          CMovement::MoveUnits(timeNow, lastUpdate);
+        }
 
-      if (globals->m_localMover) {
-        globals->m_localMover->MoveLocalPlayer(globals->m_lastUpdateTime, lastUpdate);
-      }
+        if (static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover) {
+          static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover->MoveLocalPlayer(
+              static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime,
+              lastUpdate
+          );
+        }
+      } while (timeDiff > 0);
     }
   } else {
-    globals->m_lastUpdateTime = timeNow;
+    MovementUnlockMoversList(1);
+    static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime = timeNow;
+    return 1;
   }
 
   MovementUnlockMoversList(1);
@@ -355,23 +512,202 @@ void CMovement::GetDiagonalDirection2d(NTempest::C2Vector *direction) const {
 }
 
 void CMovement::PlotLinearPosition(const NTempest::C3Vector &direction, float secsElapsed, NTempest::C3Vector *totalMove) {
-  *totalMove = direction * (GetCurrentSpeed() * secsElapsed);
+  NTempest::C3Vector elapsedMove = direction * secsElapsed;
+  *totalMove = elapsedMove * GetCurrentSpeed();
+  LogWrite(
+      "0x%016I64X: Want to move (%g,%g,%g) straight for %g secs\n",
+      m_guid,
+      totalMove->x,
+      totalMove->y,
+      totalMove->z,
+      secsElapsed
+  );
+}
+
+void CMovement::PlotNormalLinearPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 3)) {
+    NTempest::C3Vector intPositionZ = GetPosition(m_position);
+    NTempest::C3Vector intPositionY = GetPosition(m_position);
+    NTempest::C3Vector intPositionX = GetPosition(m_position);
+    float              facing = GetFacing(m_facing);
+    NTempest::C3Vector positionZ = GetPosition(m_position);
+    NTempest::C3Vector positionY = GetPosition(m_position);
+    NTempest::C3Vector positionX = GetPosition(m_position);
+    int                intFacing = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsMoving()",
+        m_guid,
+        positionX.x,
+        positionY.y,
+        positionZ.z,
+        facing,
+        static_cast<int>(intPositionX.x),
+        static_cast<int>(intPositionY.y),
+        static_cast<int>(intPositionZ.z),
+        intFacing
+    );
+  }
+
+  NTempest::C3Vector direction;
+  GetMovingDirection(&direction);
+  PlotLinearPosition(direction, secsElapsed, totalMove);
+}
+
+void CMovement::PlotStrafeLinearPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 0xC)) {
+    NTempest::C3Vector intPositionZ = GetPosition(m_position);
+    NTempest::C3Vector intPositionY = GetPosition(m_position);
+    NTempest::C3Vector intPositionX = GetPosition(m_position);
+    float              facing = GetFacing(m_facing);
+    NTempest::C3Vector positionZ = GetPosition(m_position);
+    NTempest::C3Vector positionY = GetPosition(m_position);
+    NTempest::C3Vector positionX = GetPosition(m_position);
+    int                intFacing = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsStrafing()",
+        m_guid,
+        positionX.x,
+        positionY.y,
+        positionZ.z,
+        facing,
+        static_cast<int>(intPositionX.x),
+        static_cast<int>(intPositionY.y),
+        static_cast<int>(intPositionZ.z),
+        intFacing
+    );
+  }
+
+  NTempest::C3Vector direction;
+  GetStrafingDirection(&direction);
+  PlotLinearPosition(direction, secsElapsed, totalMove);
+}
+
+void CMovement::PlotDiagonalLinearPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 3)) {
+    NTempest::C3Vector intPositionZ = GetPosition(m_position);
+    NTempest::C3Vector intPositionY = GetPosition(m_position);
+    NTempest::C3Vector intPositionX = GetPosition(m_position);
+    float              facing = GetFacing(m_facing);
+    NTempest::C3Vector positionZ = GetPosition(m_position);
+    NTempest::C3Vector positionY = GetPosition(m_position);
+    NTempest::C3Vector positionX = GetPosition(m_position);
+    int                intFacing = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsMoving()",
+        m_guid,
+        positionX.x,
+        positionY.y,
+        positionZ.z,
+        facing,
+        static_cast<int>(intPositionX.x),
+        static_cast<int>(intPositionY.y),
+        static_cast<int>(intPositionZ.z),
+        intFacing
+    );
+  }
+  if (!(m_moveFlags & 0xC)) {
+    NTempest::C3Vector intPositionZ = GetPosition(m_position);
+    NTempest::C3Vector intPositionY = GetPosition(m_position);
+    NTempest::C3Vector intPositionX = GetPosition(m_position);
+    float              facing = GetFacing(m_facing);
+    NTempest::C3Vector positionZ = GetPosition(m_position);
+    NTempest::C3Vector positionY = GetPosition(m_position);
+    NTempest::C3Vector positionX = GetPosition(m_position);
+    int                intFacing = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsStrafing()",
+        m_guid,
+        positionX.x,
+        positionY.y,
+        positionZ.z,
+        facing,
+        static_cast<int>(intPositionX.x),
+        static_cast<int>(intPositionY.y),
+        static_cast<int>(intPositionZ.z),
+        intFacing
+    );
+  }
+
+  NTempest::C3Vector direction;
+  GetDiagonalDirection(&direction);
+  PlotLinearPosition(direction, secsElapsed, totalMove);
 }
 
 void CMovement::PlotUnitRotation(float elapsedSec) {
-  m_facing = static_cast<float>(fmod(GetCurrentTurnRate() * elapsedSec + m_anchorFacing, 6.2831855));
-  if (m_facing < 0.0f) {
-    m_facing += 6.2831855f;
+  if (!(m_moveFlags & 0x30)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsTurning()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
   }
+
+  float facing = GetCurrentTurnRate();
+  facing = static_cast<float>(fmod(facing * elapsedSec + m_anchorFacing, 6.2831855));
+  if (facing < 0.0f) {
+    facing += 6.2831855f;
+  }
+  LogWrite("0x%016I64X: Turning for %g secs, from (%g) to (%g)\n", m_guid, elapsedSec, m_facing, facing);
+  m_facing = facing;
 }
 
 void CMovement::PlotUnitPitch(float elapsedSec) {
-  m_pitch = GetCurrentPitchRate() * elapsedSec + m_anchorPitch;
-  if (m_pitch < -1.5707964f) {
-    m_pitch = -1.5707964f;
-  } else if (m_pitch > 1.5707964f) {
-    m_pitch = 1.5707964f;
+  if (!(m_moveFlags & 0xC0)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsPitching()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
   }
+
+  float pitch = GetCurrentPitchRate() * elapsedSec + m_anchorPitch;
+  if (pitch < -1.5707964f) {
+    pitch = -1.5707964f;
+  } else if (pitch > 1.5707964f) {
+    pitch = 1.5707964f;
+  }
+  LogWrite("0x%016I64X: Pitching for %g secs, from (%g) to (%g)\n", m_guid, elapsedSec, m_pitch, pitch);
+  m_pitch = pitch;
 }
 
 void CMovement::PlotSpiralPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
@@ -379,15 +715,16 @@ void CMovement::PlotSpiralPosition(const NTempest::C2Vector &direction2d, float 
   float turnRate = GetCurrentTurnRate();
   float pitchRate = GetCurrentPitchRate();
   float turnRadius = currentSpeed / turnRate;
-  float pitchRadius = currentSpeed / pitchRate;
+  float inversePitchRate = 1.0f / pitchRate;
+  float pitchRadius = inversePitchRate * currentSpeed;
   float pitchChange = pitchRate * secsElapsed;
   float overflowTime = 0.0f;
 
   if (m_anchorPitch + pitchChange > 1.5707964f) {
-    overflowTime = (m_anchorPitch + pitchChange - 1.5707964f) / pitchRate;
+    overflowTime = (m_anchorPitch + pitchChange - 1.5707964f) * inversePitchRate;
     pitchChange = 1.5707964f - m_anchorPitch;
   } else if (m_anchorPitch + pitchChange < -1.5707964f) {
-    overflowTime = (m_anchorPitch + pitchChange + 1.5707964f) / pitchRate;
+    overflowTime = (m_anchorPitch + pitchChange + 1.5707964f) * inversePitchRate;
     pitchChange = -1.5707964f - m_anchorPitch;
   }
 
@@ -410,15 +747,16 @@ void CMovement::PlotSpiralPosition(const NTempest::C2Vector &direction2d, float 
 void CMovement::PlotVertCircularPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
   float currentSpeed = GetCurrentSpeed();
   float pitchRate = GetCurrentPitchRate();
-  float pitchRadius = currentSpeed / pitchRate;
+  float inversePitchRate = 1.0f / pitchRate;
+  float pitchRadius = inversePitchRate * currentSpeed;
   float pitchAngle = pitchRate * secsElapsed;
   float overflowTime = 0.0f;
 
   if (m_anchorPitch + pitchAngle > 1.5707964f) {
-    overflowTime = (m_anchorPitch + pitchAngle - 1.5707964f) / pitchRate;
+    overflowTime = (m_anchorPitch + pitchAngle - 1.5707964f) * inversePitchRate;
     pitchAngle = 1.5707964f - m_anchorPitch;
   } else if (m_anchorPitch + pitchAngle < -1.5707964f) {
-    overflowTime = (m_anchorPitch + pitchAngle + 1.5707964f) / pitchRate;
+    overflowTime = (m_anchorPitch + pitchAngle + 1.5707964f) * inversePitchRate;
     pitchAngle = -1.5707964f - m_anchorPitch;
   }
 
@@ -432,6 +770,14 @@ void CMovement::PlotVertCircularPosition(const NTempest::C2Vector &direction2d, 
     float overflow = overflowTime * currentSpeed;
     totalMove->z += overflowTime > 0.0f ? overflow : -overflow;
   }
+  LogWrite(
+      "0x%016I64X: Want to move (%g,%g,%g) arcing for %g secs\n",
+      m_guid,
+      totalMove->x,
+      totalMove->y,
+      totalMove->z,
+      secsElapsed
+  );
 }
 
 void CMovement::PlotHorzCircularPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
@@ -444,91 +790,437 @@ void CMovement::PlotHorzCircularPosition(const NTempest::C2Vector &direction2d, 
 
   totalMove->x = (turnX * direction2d.x - turnY * direction2d.y) * m_cosAnchorPitch;
   totalMove->y = (turnY * direction2d.x + turnX * direction2d.y) * m_cosAnchorPitch;
-  totalMove->z = currentSpeed * m_sinAnchorPitch * secsElapsed;
+  float totalZ = currentSpeed * m_sinAnchorPitch * secsElapsed;
+  totalMove->z = totalZ;
+  LogWrite(
+      "0x%016I64X: Want to move (%g,%g,%g) arcing for %g secs\n",
+      m_guid,
+      totalMove->x,
+      totalMove->y,
+      totalZ,
+      secsElapsed
+  );
+}
+
+void CMovement::PlotNormalCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 0x30)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsTurning()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+  if (!(m_moveFlags & 3)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsMoving()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+
+  NTempest::C2Vector direction;
+  GetMovingDirection2d(&direction);
+  PlotHorzCircularPosition(direction, secsElapsed, totalMove);
+}
+
+void CMovement::PlotStrafeCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 0x30)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsTurning()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+  if (!(m_moveFlags & 0xC)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsStrafing()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+
+  NTempest::C2Vector direction;
+  GetStrafingDirection2d(&direction);
+  PlotHorzCircularPosition(direction, secsElapsed, totalMove);
+}
+
+void CMovement::PlotDiagonalCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 0x30)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsTurning()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+  if (!(m_moveFlags & 3)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsMoving()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+  if (!(m_moveFlags & 0xC)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsStrafing()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+
+  NTempest::C2Vector direction;
+  GetDiagonalDirection2d(&direction);
+  PlotHorzCircularPosition(direction, secsElapsed, totalMove);
+}
+
+void CMovement::PlotNormalPitchingCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 3)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsMoving()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+  if (!(m_moveFlags & 0xC0)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsPitching()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+
+  NTempest::C2Vector direction;
+  GetMovingDirection2d(&direction);
+  PlotVertCircularPosition(direction, secsElapsed, totalMove);
+}
+
+void CMovement::PlotDiagonalPitchingCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 3)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsMoving()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+  if (!(m_moveFlags & 0xC0)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsPitching()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+
+  NTempest::C2Vector direction;
+  GetDiagonalDirection2d(&direction);
+  PlotVertCircularPosition(direction, secsElapsed, totalMove);
+}
+
+void CMovement::PlotNormalSpiralPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 3)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsMoving()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+  if (!(m_moveFlags & 0xC0)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsPitching()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+
+  NTempest::C2Vector direction;
+  GetMovingDirection2d(&direction);
+  PlotSpiralPosition(direction, secsElapsed, totalMove);
+}
+
+void CMovement::PlotDiagonalSpiralPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
+  if (!(m_moveFlags & 3)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsMoving()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+  if (!(m_moveFlags & 0xC0)) {
+    NTempest::C3Vector iz = GetPosition(m_position), iy = GetPosition(m_position), ix = GetPosition(m_position);
+    float f = GetFacing(m_facing);
+    NTempest::C3Vector pz = GetPosition(m_position), py = GetPosition(m_position), px = GetPosition(m_position);
+    int fi = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000, __FILE__, __LINE__, 0, 1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsPitching()", m_guid, px.x, py.y, pz.z, f,
+        static_cast<int>(ix.x), static_cast<int>(iy.y), static_cast<int>(iz.z), fi
+    );
+  }
+
+  NTempest::C2Vector direction;
+  GetDiagonalDirection2d(&direction);
+  PlotSpiralPosition(direction, secsElapsed, totalMove);
 }
 
 int CMovement::PlotUnitMovement(unsigned int moveTime, NTempest::C3Vector *move) {
-  FATALASSERT(move);
+  if (!move) {
+    if (this) {
+      NTempest::C3Vector intPositionZ = GetPosition(m_position);
+      NTempest::C3Vector intPositionY = GetPosition(m_position);
+      NTempest::C3Vector intPositionX = GetPosition(m_position);
+      float              facing = GetFacing(m_facing);
+      NTempest::C3Vector positionZ = GetPosition(m_position);
+      NTempest::C3Vector positionY = GetPosition(m_position);
+      NTempest::C3Vector positionX = GetPosition(m_position);
+      int                intFacing = static_cast<int>(GetFacing(m_facing));
+      SErrDisplayErrorFmt(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          0,
+          1,
+          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+          "move",
+          m_guid,
+          positionX.x,
+          positionY.y,
+          positionZ.z,
+          facing,
+          static_cast<int>(intPositionX.x),
+          static_cast<int>(intPositionY.y),
+          static_cast<int>(intPositionZ.z),
+          intFacing
+      );
+    } else {
+      SErrDisplayError(0x85100000, __FILE__, __LINE__, "move", 0, 1);
+    }
+  }
   if (!moveTime) {
     return 0;
   }
+
+  enum {
+    IS_MOVING = 1,
+    IS_TURNING = 2,
+    IS_STRAFING = 4,
+    IS_PITCHING = 8
+  };
 
   float        secsElapsed = static_cast<float>(moveTime) * 0.001f;
   unsigned int actionFlags = 0;
   if (m_moveFlags & 0x30) {
     PlotUnitRotation(secsElapsed);
     if (!(m_moveFlags & 0x4000)) {
-      actionFlags |= 2;
+      actionFlags |= IS_TURNING;
     }
   }
   if (m_moveFlags & 0xC0) {
     PlotUnitPitch(secsElapsed);
-    actionFlags |= 8;
+    actionFlags |= IS_PITCHING;
   }
   if (m_moveFlags & 3) {
-    actionFlags |= 1;
+    actionFlags |= IS_MOVING;
   }
   if (m_moveFlags & 0xC) {
-    actionFlags |= 4;
+    actionFlags |= IS_STRAFING;
   }
 
-  NTempest::C3Vector direction;
-  NTempest::C2Vector direction2d;
+  LogWrite("0x%016I64X: Plotting move for %u ms\n", m_guid, moveTime);
+
+  int result;
   switch (actionFlags) {
-    case 1:
-      GetMovingDirection(&direction);
-      PlotLinearPosition(direction, secsElapsed, move);
-      return 1;
-    case 3:
-      GetMovingDirection2d(&direction2d);
-      PlotHorzCircularPosition(direction2d, secsElapsed, move);
-      return 1;
-    case 4:
-    case 12:
-      GetStrafingDirection(&direction);
-      PlotLinearPosition(direction, secsElapsed, move);
-      return 1;
-    case 5:
-      GetDiagonalDirection(&direction);
-      PlotLinearPosition(direction, secsElapsed, move);
-      return 1;
-    case 6:
-    case 14:
-      GetStrafingDirection2d(&direction2d);
-      PlotHorzCircularPosition(direction2d, secsElapsed, move);
-      return 1;
-    case 7:
-      GetDiagonalDirection2d(&direction2d);
-      PlotHorzCircularPosition(direction2d, secsElapsed, move);
-      return 1;
-    case 9:
-      GetMovingDirection2d(&direction2d);
-      PlotVertCircularPosition(direction2d, secsElapsed, move);
-      return 1;
-    case 11:
-      GetMovingDirection2d(&direction2d);
-      PlotSpiralPosition(direction2d, secsElapsed, move);
-      return 1;
-    case 13:
-      GetDiagonalDirection2d(&direction2d);
-      PlotVertCircularPosition(direction2d, secsElapsed, move);
-      return 1;
-    case 15:
-      GetDiagonalDirection2d(&direction2d);
-      PlotSpiralPosition(direction2d, secsElapsed, move);
-      return 1;
-    case 2:
-    case 8:
-    case 10:
-      return 0;
+    case IS_TURNING:
+    case IS_PITCHING:
+    case IS_TURNING | IS_PITCHING:
+      result = 0;
+      break;
+    case IS_MOVING:
+      PlotNormalLinearPosition(secsElapsed, move);
+      result = 1;
+      break;
+    case IS_STRAFING:
+    case IS_STRAFING | IS_PITCHING:
+      PlotStrafeLinearPosition(secsElapsed, move);
+      result = 1;
+      break;
+    case IS_MOVING | IS_STRAFING:
+      PlotDiagonalLinearPosition(secsElapsed, move);
+      result = 1;
+      break;
+    case IS_MOVING | IS_TURNING:
+      PlotNormalCircularPosition(secsElapsed, move);
+      result = 1;
+      break;
+    case IS_TURNING | IS_STRAFING:
+    case IS_TURNING | IS_STRAFING | IS_PITCHING:
+      PlotStrafeCircularPosition(secsElapsed, move);
+      result = 1;
+      break;
+    case IS_MOVING | IS_TURNING | IS_STRAFING:
+      PlotDiagonalCircularPosition(secsElapsed, move);
+      result = 1;
+      break;
+    case IS_MOVING | IS_PITCHING:
+      PlotNormalPitchingCircularPosition(secsElapsed, move);
+      result = 1;
+      break;
+    case IS_MOVING | IS_STRAFING | IS_PITCHING:
+      PlotDiagonalPitchingCircularPosition(secsElapsed, move);
+      result = 1;
+      break;
+    case IS_MOVING | IS_TURNING | IS_PITCHING:
+      PlotNormalSpiralPosition(secsElapsed, move);
+      result = 1;
+      break;
+    case IS_MOVING | IS_TURNING | IS_STRAFING | IS_PITCHING:
+      PlotDiagonalSpiralPosition(secsElapsed, move);
     default:
-      return 1;
+      result = 1;
+      break;
   }
+  return result;
 }
 
 int CMovement::PlotUnitSplineMovement(unsigned long eventTime, NTempest::C3Vector *move) {
-  FATALASSERT(move);
-  FATALASSERT(m_moveFlags & 0x04000000);
+  if (!move) {
+    if (this) {
+      NTempest::C3Vector intPositionZ = GetPosition(m_position);
+      NTempest::C3Vector intPositionY = GetPosition(m_position);
+      NTempest::C3Vector intPositionX = GetPosition(m_position);
+      float              facing = GetFacing(m_facing);
+      NTempest::C3Vector positionZ = GetPosition(m_position);
+      NTempest::C3Vector positionY = GetPosition(m_position);
+      NTempest::C3Vector positionX = GetPosition(m_position);
+      int                intFacing = static_cast<int>(GetFacing(m_facing));
+      SErrDisplayErrorFmt(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          0,
+          1,
+          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+          "move",
+          m_guid,
+          positionX.x,
+          positionY.y,
+          positionZ.z,
+          facing,
+          static_cast<int>(intPositionX.x),
+          static_cast<int>(intPositionY.y),
+          static_cast<int>(intPositionZ.z),
+          intFacing
+      );
+    } else {
+      SErrDisplayError(0x85100000, __FILE__, __LINE__, "move", 0, 1);
+    }
+  }
+  if (!IsSplineMover()) {
+    SErrDisplayErrorFmt(
+        0x85100000,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsSplineMover()",
+        m_guid,
+        GetPosition(m_position).x,
+        GetPosition(m_position).y,
+        GetPosition(m_position).z,
+        GetFacing(m_facing),
+        static_cast<int>(GetPosition(m_position).x),
+        static_cast<int>(GetPosition(m_position).y),
+        static_cast<int>(GetPosition(m_position).z),
+        static_cast<int>(GetFacing(m_facing))
+    );
+  }
   if (!(m_moveFlags & 3)) {
     return 0;
   }
@@ -574,16 +1266,15 @@ int CMovement::PlotUnitSplineMovement(unsigned long eventTime, NTempest::C3Vecto
       m_spline->spline.Frame(futureTime, futureMatrix, NTempest::C3Spline::EVAL_ARCLENGTH);
 
       NTempest::C2Vector currentFacing(m_direction.x, m_direction.y);
-      NTempest::C2Vector futureFacing(futureMatrix.d0 - m_position.x, futureMatrix.d1 - m_position.y);
+      NTempest::C3Vector position = GetPosition(m_position);
+      NTempest::C2Vector futureFacing(futureMatrix.d0 - position.x, futureMatrix.d1 - position.y);
       float              magnitude = currentFacing.Mag();
       if (NTempest::CMath::fabs_(magnitude) >= 0.00000023841858f) {
-        currentFacing.x /= magnitude;
-        currentFacing.y /= magnitude;
+        currentFacing /= magnitude;
       }
       magnitude = futureFacing.Mag();
       if (NTempest::CMath::fabs_(magnitude) >= 0.00000023841858f) {
-        futureFacing.x /= magnitude;
-        futureFacing.y /= magnitude;
+        futureFacing /= magnitude;
       }
 
       float roll = futureFacing.x * currentFacing.x + futureFacing.y * currentFacing.y;
@@ -729,15 +1420,12 @@ CMovementData::CMovementData(const NTempest::C3Vector &position, float facing, c
       m_anchorPosition(position),
       m_anchorFacing(facing),
       m_anchorPitch(0.0f),
-      m_moveStartTime(0),
       m_direction(0.0f),
       m_direction2d(0.0f),
       m_cosAnchorPitch(1.0f),
       m_sinAnchorPitch(0.0f),
       m_reDirection(0.0f),
       m_lastReDirectionSent(0.0f),
-      m_fallStartTime(0),
-      m_fallStartElevation(0.0f),
       m_currentSpeed(0.0f),
       m_walkSpeed(0.0f),
       m_runSpeed(0.0f),
@@ -747,8 +1435,7 @@ CMovementData::CMovementData(const NTempest::C3Vector &position, float facing, c
       m_collisionBoxHeight(2.0277777f),
       m_stepUpHeight(1.0f),
       m_jumpVelocity(0.0f),
-      m_spline(0),
-      m_waterSurfaceElev(0.0f) {
+      m_spline(0) {
   CalcDirection();
 }
 
@@ -899,9 +1586,7 @@ void CMovement::OnMoveStartLocal(unsigned long eventTime, int forward) {
 }
 
 void CMovement::OnMoveStart(unsigned long eventTime, int forward) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
-  FATALASSERT(globals);
-  if (StartMove(globals->m_lastUpdateTime, forward)) {
+  if (StartMove(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime, forward)) {
     AddToMoversList();
   }
 }
@@ -1007,11 +1692,7 @@ void CMovement::OnMoveStopLocal(unsigned long eventTime) {
 
 int CMovement::OnMoveStop(unsigned long eventTime) {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
-  FATALASSERT(globals);
-  if (!StopMove(globals->m_lastUpdateTime)) {
-    return 0;
-  }
-  if (m_moveFlags & 0xC) {
+  if (!StopMove(globals->m_lastUpdateTime) || (m_moveFlags & 0xC)) {
     return 0;
   }
   if (!(m_moveFlags & 0x40FF)) {
@@ -1068,9 +1749,7 @@ void CMovement::OnSetRunModeLocal(unsigned long eventTime, int run) {
 }
 
 void CMovement::OnSetRunMode(unsigned long eventTime, int run) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
-  FATALASSERT(globals);
-  SetRunMode(globals->m_lastUpdateTime, run);
+  SetRunMode(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime, run);
 }
 
 void CMovement::SetRunMode(unsigned long eventTime, int run) {
@@ -1081,6 +1760,12 @@ void CMovement::SetRunMode(unsigned long eventTime, int run) {
     m_moveFlags |= 0x100;
   }
   m_moveFlags |= 0x08000000;
+  LogWrite(
+      "0x%016I64X: Switching to %s mode (0x%08X)\n",
+      m_guid,
+      (m_moveFlags & 0x100) ? "walk" : "run",
+      m_moveStartTime
+  );
 }
 
 void DisconnectLocalMover(CMovement *mover) {
@@ -1105,22 +1790,77 @@ void CMovement::GetMoveStatus(CMovementStatus *status) const {
   }
 }
 
-void CMovement::UpdateCurrentSpeed() {
-  if (!(m_moveFlags & 0xF)) {
-    m_currentSpeed = 0.0f;
-  } else {
-    m_currentSpeed = m_moveFlags & 0x02000000 ? m_swimSpeed : m_runSpeed;
-    if ((m_moveFlags & 0x2000010E) && m_currentSpeed >= m_walkSpeed) {
-      m_currentSpeed = m_walkSpeed;
-    }
+void CMovement::GetUpdateInfo(CClientMoveUpdate *init) const {
+  GetMoveStatus(&init->status);
+  init->timeFallen = FallTime();
+  init->walkSpeed = m_walkSpeed;
+  init->runSpeed = m_runSpeed;
+  init->swimSpeed = m_swimSpeed;
+  init->turnRate = m_turnRate;
+
+  if (m_spline && !(m_spline->flags & 4)) {
+    init->spline = *m_spline;
   }
 
-  m_moveFlags &= ~0x28000000;
+  LogWrite("0x%016I64X: Send move (0x%X) ", m_guid, m_moveStartTime);
+  switch (m_moveFlags & 3) {
+    case 0:
+      LogWrite("standing at ");
+      break;
+    case 1:
+      LogWrite("moving forward from ");
+      break;
+    case 2:
+      LogWrite("moving backward from ");
+      break;
+  }
+  LogWrite("(%g,%g), ", m_anchorPosition.x, m_anchorPosition.y);
+  switch (m_moveFlags & 0x30) {
+    case 0:
+      LogWrite("facing ");
+      break;
+    case 0x10:
+      LogWrite("turning left from ");
+      break;
+    case 0x20:
+      LogWrite("turning right from ");
+      break;
+  }
+  LogWrite("(%g)\n", m_anchorFacing);
+}
+
+void CMovement::UpdateCurrentSpeed() {
+  unsigned int moveFlags = m_moveFlags;
+  if (!(moveFlags & 0x4000) || (moveFlags & 0x20000000)) {
+    if (!(moveFlags & 0xF)) {
+      m_currentSpeed = 0.0f;
+      LogWrite("0x%016I64X: Updating current speed to zero\n", m_guid);
+    } else if (!m_spline || (m_spline->flags & 4)) {
+      float speed = m_runSpeed;
+      unsigned int slowFlags = 0x20000102;
+      if (moveFlags & 0x02000000) {
+        speed = m_swimSpeed;
+        slowFlags = 0x2000010E;
+      }
+      if ((moveFlags & slowFlags) && speed >= m_walkSpeed) {
+        speed = m_walkSpeed;
+      }
+      m_currentSpeed = speed;
+      m_moveFlags = moveFlags & ~0x20000000U;
+      LogWrite("0x%016I64X: Updating current speed to (%g)\n", m_guid, m_currentSpeed);
+    } else {
+      float speed = m_spline->spline.cachedLength;
+      speed /= static_cast<__int64>(m_spline->time);
+      m_currentSpeed = speed * 1000.0f;
+      LogWrite("0x%016I64X: Updating spline mover's current speed to (%g)\n", m_guid, m_currentSpeed);
+    }
+  }
 }
 
 float CMovement::GetCurrentSpeed() {
   if (m_moveFlags & 0x08000000) {
     UpdateCurrentSpeed();
+    m_moveFlags &= ~0x08000000;
   }
   return m_currentSpeed;
 }
@@ -1170,15 +1910,33 @@ void CMovement::SetIdleUpdates() {
 }
 
 void CMovement::SetServerInitData(float const runSpeed, float const walkSpeed, float const swimSpeed, float const turnRate) {
-  FATALASSERT(NTempest::CMath::fnotequal_(runSpeed, 0));
-  FATALASSERT(NTempest::CMath::fnotequal_(walkSpeed, 0));
-  FATALASSERT(NTempest::CMath::fnotequal_(swimSpeed, 0));
-  FATALASSERT(NTempest::CMath::fnotequal_(turnRate, 0));
+  FATALASSERT(CMath::fnotequal_(runSpeed,0));
+  FATALASSERT(CMath::fnotequal_(walkSpeed,0));
+  FATALASSERT(CMath::fnotequal_(swimSpeed,0));
+  FATALASSERT(CMath::fnotequal_(turnRate,0));
 
   m_runSpeed = runSpeed;
   m_walkSpeed = walkSpeed;
   m_swimSpeed = swimSpeed;
   m_turnRate = turnRate;
+}
+
+int CMovement::SetCollisionBox(const NTempest::CAaBox &box, float scale) {
+  float boxDepth = box.t.x - box.b.x;
+  float boxHeight = box.t.z - box.b.z;
+  if (NTempest::CMath::fabs_(scale) < 0.00000095367432f || NTempest::CMath::fabs_(boxDepth) < 0.00000095367432f ||
+      NTempest::CMath::fabs_(boxHeight) < 0.00000095367432f)
+  {
+    return 0;
+  }
+
+  m_stepUpHeight = scale;
+  m_collisionBoxHalfDepth = boxDepth * scale * 0.5f;
+  m_collisionBoxHeight = boxHeight * scale;
+  if (1.849399f * m_collisionBoxHalfDepth > scale) {
+    m_collisionBoxHalfDepth = scale * 0.54071623f;
+  }
+  return 1;
 }
 
 void CMovementData::CalcDirection() {
@@ -1236,7 +1994,7 @@ void CMovement::UpdateStatusInternal(unsigned long eventTime, const CMovementSta
       m_guid, eventTime, m_position.x, m_position.y, m_position.z, update.transRelPosition.x, update.transRelPosition.y, update.transRelPosition.z
   );
 
-  m_moveFlags = (m_moveFlags & 0x0500E400) | (update.moveFlags & 0xFAFF0BFF) | 0x08000000;
+  m_moveFlags = (m_moveFlags & 0x0500E400) ^ (update.moveFlags & 0xFAFF0BFF) | 0x08000000;
   m_position = update.worldPosition;
   m_anchorPosition = update.worldPosition;
   m_facing = update.worldFacing;
@@ -1246,7 +2004,35 @@ void CMovement::UpdateStatusInternal(unsigned long eventTime, const CMovementSta
   CalcDirection();
 
   if (m_moveFlags & 0xFF) {
-    FATALASSERT(m_moveFlags & 0x200);
+    if (!(m_moveFlags & 0x200)) {
+      NTempest::C3Vector intPositionZ = GetPosition(m_position);
+      NTempest::C3Vector intPositionY = GetPosition(m_position);
+      NTempest::C3Vector intPositionX = GetPosition(m_position);
+      float              facing = GetFacing(m_facing);
+      NTempest::C3Vector positionZ = GetPosition(m_position);
+      NTempest::C3Vector positionY = GetPosition(m_position);
+      NTempest::C3Vector positionX = GetPosition(m_position);
+      int                intFacing = static_cast<int>(GetFacing(m_facing));
+      SErrDisplayErrorFmt(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          0,
+          1,
+          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+          "m_moveFlags & MOVEFLAG_TIME_VALID",
+          m_guid,
+          positionX.x,
+          positionY.y,
+          positionZ.z,
+          facing,
+          static_cast<int>(intPositionX.x),
+          static_cast<int>(intPositionY.y),
+          static_cast<int>(intPositionZ.z),
+          intFacing
+      );
+    }
     CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
     m_moveStartTime = globals->m_lastUpdateTime;
     FallLogWrite("0x%016I64X: setting move start time (0x%08X)\n", m_guid, m_moveStartTime);
@@ -1287,29 +2073,115 @@ void CMovement::OnSpline(
   m_spline->time = duration;
   m_spline->spline.SetPoints(points, count);
   FATALASSERT(m_spline->time > 0);
-  m_spline->spline.SetSplineMode(
-      (m_spline->flags & 0x200) ? NTempest::C3Spline_CatmullRom::MODE_CATMULLROM : NTempest::C3Spline_CatmullRom::MODE_LINEAR
-  );
+  if (m_spline->flags & 0x200) {
+    m_spline->spline.SetSplineMode(NTempest::C3Spline_CatmullRom::MODE_CATMULLROM);
+  } else {
+    m_spline->spline.SetSplineMode(NTempest::C3Spline_CatmullRom::MODE_LINEAR);
+  }
   StopFalling();
   OnSetRunMode(eventTime, (flags >> 8) & 1);
   OnMoveStart(eventTime, 1);
-  UnitUpdateMovementAnim(m_guid);
+  UnitUpdateMovementAnim(GetGUID());
 }
 
 void CMovement::OnSplineDoneFace(const NTempest::C3Vector &spot) {
-  FATALASSERT(m_spline && !(m_spline->flags & 4));
+  if (!m_spline || (m_spline->flags & 4)) {
+    NTempest::C3Vector intPositionZ = GetPosition(m_position);
+    NTempest::C3Vector intPositionY = GetPosition(m_position);
+    NTempest::C3Vector intPositionX = GetPosition(m_position);
+    float              facing = GetFacing(m_facing);
+    NTempest::C3Vector positionZ = GetPosition(m_position);
+    NTempest::C3Vector positionY = GetPosition(m_position);
+    NTempest::C3Vector positionX = GetPosition(m_position);
+    int                intFacing = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsSpline()",
+        m_guid,
+        positionX.x,
+        positionY.y,
+        positionZ.z,
+        facing,
+        static_cast<int>(intPositionX.x),
+        static_cast<int>(intPositionY.y),
+        static_cast<int>(intPositionZ.z),
+        intFacing
+    );
+  }
   m_spline->flags |= 0x10000;
   m_spline->face.spot = spot;
 }
 
 void CMovement::OnSplineDoneFace(const unsigned __int64 &guid) {
-  FATALASSERT(m_spline && !(m_spline->flags & 4));
+  if (!m_spline || (m_spline->flags & 4)) {
+    NTempest::C3Vector intPositionZ = GetPosition(m_position);
+    NTempest::C3Vector intPositionY = GetPosition(m_position);
+    NTempest::C3Vector intPositionX = GetPosition(m_position);
+    float              facing = GetFacing(m_facing);
+    NTempest::C3Vector positionZ = GetPosition(m_position);
+    NTempest::C3Vector positionY = GetPosition(m_position);
+    NTempest::C3Vector positionX = GetPosition(m_position);
+    int                intFacing = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsSpline()",
+        m_guid,
+        positionX.x,
+        positionY.y,
+        positionZ.z,
+        facing,
+        static_cast<int>(intPositionX.x),
+        static_cast<int>(intPositionY.y),
+        static_cast<int>(intPositionZ.z),
+        intFacing
+    );
+  }
   m_spline->flags |= 0x20000;
   m_spline->face.guid = guid;
 }
 
 void CMovement::OnSplineDoneFace(float facing) {
-  FATALASSERT(m_spline && !(m_spline->flags & 4));
+  if (!m_spline || (m_spline->flags & 4)) {
+    NTempest::C3Vector intPositionZ = GetPosition(m_position);
+    NTempest::C3Vector intPositionY = GetPosition(m_position);
+    NTempest::C3Vector intPositionX = GetPosition(m_position);
+    float              currentFacing = GetFacing(m_facing);
+    NTempest::C3Vector positionZ = GetPosition(m_position);
+    NTempest::C3Vector positionY = GetPosition(m_position);
+    NTempest::C3Vector positionX = GetPosition(m_position);
+    int                intFacing = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        0x85100000,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsSpline()",
+        m_guid,
+        positionX.x,
+        positionY.y,
+        positionZ.z,
+        currentFacing,
+        static_cast<int>(intPositionX.x),
+        static_cast<int>(intPositionY.y),
+        static_cast<int>(intPositionZ.z),
+        intFacing
+    );
+  }
   m_spline->flags |= 0x40000;
   m_spline->face.facing = facing;
 }
@@ -1324,20 +2196,19 @@ void CMovementData::RemoveSpline() {
 }
 
 void CMovement::SetUpdateInfo(unsigned long eventTime, const CClientMoveUpdate &init, int localPlayer) {
-  FATALASSERT(NTempest::CMath::fnotequal_(init.runSpeed, 0));
-  FATALASSERT(NTempest::CMath::fnotequal_(init.walkSpeed, 0));
-  FATALASSERT(NTempest::CMath::fnotequal_(init.swimSpeed, 0));
-  FATALASSERT(NTempest::CMath::fnotequal_(init.turnRate, 0));
+  FATALASSERT(CMath::fnotequal_(init.runSpeed,0));
+  FATALASSERT(CMath::fnotequal_(init.walkSpeed,0));
+  FATALASSERT(CMath::fnotequal_(init.swimSpeed,0));
+  FATALASSERT(CMath::fnotequal_(init.turnRate,0));
 
   m_walkSpeed = init.walkSpeed;
   m_runSpeed = init.runSpeed;
   m_swimSpeed = init.swimSpeed;
   m_turnRate = init.turnRate;
 
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
-  m_moveStartTime = globals->m_lastUpdateTime;
+  m_moveStartTime = static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime;
   FallLogWrite("0x%016I64X: setting move start time (0x%08X)\n", m_guid, m_moveStartTime);
-  m_fallStartTime = globals->m_lastUpdateTime - init.timeFallen;
+  m_fallStartTime = static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime - init.timeFallen;
 
   if (init.status.moveFlags & 0x04000000) {
     AddSpline();
@@ -1346,24 +2217,58 @@ void CMovement::SetUpdateInfo(unsigned long eventTime, const CClientMoveUpdate &
     RemoveSpline();
   }
 
-  m_moveFlags |= globals->ignoreObstacles ? 0x08000000 : 0x08004000;
+  m_moveFlags |= static_cast<CMovementGlobals *>(MovementGetGlobals())->ignoreObstacles ? 0x08000000 : 0x08004000;
   if (localPlayer) {
-    UpdateStatusLocal(globals->m_lastUpdateTime, init.status);
+    UpdateStatusLocal(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime, init.status);
   } else {
-    UpdateStatus(globals->m_lastUpdateTime, init.status);
+    UpdateStatus(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime, init.status);
   }
 
   m_moveFlags |= 0x200;
   m_fallStartElevation = CalcFallStartElevation(init.timeFallen);
   if (m_moveFlags & 0x8000) {
-    OnCollideFalling(m_guid, globals->m_lastUpdateTime);
+    OnCollideFalling(m_guid, static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime);
   }
 
-  LogWrite(
+  LogUpdateInfo(init);
+}
+
+void CMovement::LogUpdateInfo(const CClientMoveUpdate &init) {
+  FallLogWrite(
       "0x%016I64X: ___INIT EVENT: time(0x%X) timeFallen(%u) "
       "pos(%g,%g,%g)\n",
-      m_guid, globals->m_lastUpdateTime, init.timeFallen, init.status.worldPosition.x, init.status.worldPosition.y, init.status.worldPosition.z
+      m_guid,
+      static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime,
+      init.timeFallen,
+      init.status.worldPosition.x,
+      init.status.worldPosition.y,
+      init.status.worldPosition.z
   );
+  LogWrite("0x%016I64X: Receive move (0x%X) ", m_guid, m_moveStartTime);
+  switch (m_moveFlags & 3) {
+    case 0:
+      LogWrite("standing at ");
+      break;
+    case 1:
+      LogWrite("moving forward from ");
+      break;
+    case 2:
+      LogWrite("moving backward from ");
+      break;
+  }
+  LogWrite("(%g,%g), ", m_anchorPosition.x, m_anchorPosition.y);
+  switch (m_moveFlags & 0x30) {
+    case 0:
+      LogWrite("facing ");
+      break;
+    case 0x10:
+      LogWrite("turning left from ");
+      break;
+    case 0x20:
+      LogWrite("turning right from ");
+      break;
+  }
+  LogWrite("(%g)\n", m_anchorFacing);
 }
 
 void CMovement::StartFallLogging() {
@@ -1500,12 +2405,51 @@ void CMovement::StopLogging() {
 }
 
 int CMovement::OnRunSpeedChange(unsigned long eventTime, float speed) {
-  FATALASSERT(NTempest::CMath::fnotequal_(speed, 0.0f));
+  if (!CMath::fnotequal_(speed,0)) {
+    if (this) {
+      NTempest::C3Vector intPositionZ = GetPosition(m_position);
+      NTempest::C3Vector intPositionY = GetPosition(m_position);
+      NTempest::C3Vector intPositionX = GetPosition(m_position);
+      float              facing = GetFacing(m_facing);
+      NTempest::C3Vector positionZ = GetPosition(m_position);
+      NTempest::C3Vector positionY = GetPosition(m_position);
+      NTempest::C3Vector positionX = GetPosition(m_position);
+      int                intFacing = static_cast<int>(GetFacing(m_facing));
+      SErrDisplayErrorFmt(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          0,
+          1,
+          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+          "CMath::fnotequal_(speed,0)",
+          m_guid,
+          positionX.x,
+          positionY.y,
+          positionZ.z,
+          facing,
+          static_cast<int>(intPositionX.x),
+          static_cast<int>(intPositionY.y),
+          static_cast<int>(intPositionZ.z),
+          intFacing
+      );
+    } else {
+      SErrDisplayError(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          "CMath::fnotequal_(speed,0)",
+          0,
+          1
+      );
+    }
+  }
   if (NTempest::CMath::fequal_(m_runSpeed, speed)) {
     return 0;
   }
   LogWrite(
-      "0x%016I64X: Changing run speed from (%g) to (%g) (0x%X)\n", m_guid, static_cast<double>(m_runSpeed), static_cast<double>(speed),
+      "0x%016I64X: Changing run speed from (%g) to (%g) (0x%X)\n", m_guid, m_runSpeed, speed,
       m_moveStartTime
   );
   m_runSpeed = speed;
@@ -1515,12 +2459,51 @@ int CMovement::OnRunSpeedChange(unsigned long eventTime, float speed) {
 }
 
 int CMovement::OnWalkSpeedChange(unsigned long eventTime, float speed) {
-  FATALASSERT(NTempest::CMath::fnotequal_(speed, 0.0f));
+  if (!CMath::fnotequal_(speed,0)) {
+    if (this) {
+      NTempest::C3Vector intPositionZ = GetPosition(m_position);
+      NTempest::C3Vector intPositionY = GetPosition(m_position);
+      NTempest::C3Vector intPositionX = GetPosition(m_position);
+      float              facing = GetFacing(m_facing);
+      NTempest::C3Vector positionZ = GetPosition(m_position);
+      NTempest::C3Vector positionY = GetPosition(m_position);
+      NTempest::C3Vector positionX = GetPosition(m_position);
+      int                intFacing = static_cast<int>(GetFacing(m_facing));
+      SErrDisplayErrorFmt(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          0,
+          1,
+          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+          "CMath::fnotequal_(speed,0)",
+          m_guid,
+          positionX.x,
+          positionY.y,
+          positionZ.z,
+          facing,
+          static_cast<int>(intPositionX.x),
+          static_cast<int>(intPositionY.y),
+          static_cast<int>(intPositionZ.z),
+          intFacing
+      );
+    } else {
+      SErrDisplayError(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          "CMath::fnotequal_(speed,0)",
+          0,
+          1
+      );
+    }
+  }
   if (NTempest::CMath::fequal_(m_walkSpeed, speed)) {
     return 0;
   }
   LogWrite(
-      "0x%016I64X: Changing walk speed from (%g) to (%g) (0x%X)\n", m_guid, static_cast<double>(m_walkSpeed), static_cast<double>(speed),
+      "0x%016I64X: Changing walk speed from (%g) to (%g) (0x%X)\n", m_guid, m_walkSpeed, speed,
       m_moveStartTime
   );
   m_walkSpeed = speed;
@@ -1530,12 +2513,51 @@ int CMovement::OnWalkSpeedChange(unsigned long eventTime, float speed) {
 }
 
 int CMovement::OnSwimSpeedChange(unsigned long eventTime, float speed) {
-  FATALASSERT(NTempest::CMath::fnotequal_(speed, 0.0f));
+  if (!CMath::fnotequal_(speed,0)) {
+    if (this) {
+      NTempest::C3Vector intPositionZ = GetPosition(m_position);
+      NTempest::C3Vector intPositionY = GetPosition(m_position);
+      NTempest::C3Vector intPositionX = GetPosition(m_position);
+      float              facing = GetFacing(m_facing);
+      NTempest::C3Vector positionZ = GetPosition(m_position);
+      NTempest::C3Vector positionY = GetPosition(m_position);
+      NTempest::C3Vector positionX = GetPosition(m_position);
+      int                intFacing = static_cast<int>(GetFacing(m_facing));
+      SErrDisplayErrorFmt(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          0,
+          1,
+          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+          "CMath::fnotequal_(speed,0)",
+          m_guid,
+          positionX.x,
+          positionY.y,
+          positionZ.z,
+          facing,
+          static_cast<int>(intPositionX.x),
+          static_cast<int>(intPositionY.y),
+          static_cast<int>(intPositionZ.z),
+          intFacing
+      );
+    } else {
+      SErrDisplayError(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          "CMath::fnotequal_(speed,0)",
+          0,
+          1
+      );
+    }
+  }
   if (NTempest::CMath::fequal_(m_swimSpeed, speed)) {
     return 0;
   }
   LogWrite(
-      "0x%016I64X: Changing swim speed from (%g) to (%g) (0x%X)\n", m_guid, static_cast<double>(m_swimSpeed), static_cast<double>(speed),
+      "0x%016I64X: Changing swim speed from (%g) to (%g) (0x%X)\n", m_guid, m_swimSpeed, speed,
       m_moveStartTime
   );
   m_swimSpeed = speed;
@@ -1545,12 +2567,51 @@ int CMovement::OnSwimSpeedChange(unsigned long eventTime, float speed) {
 }
 
 int CMovement::OnTurnRateChange(unsigned long eventTime, float rate) {
-  FATALASSERT(NTempest::CMath::fnotequal_(rate, 0.0f));
+  if (!CMath::fnotequal_(rate,0)) {
+    if (this) {
+      NTempest::C3Vector intPositionZ = GetPosition(m_position);
+      NTempest::C3Vector intPositionY = GetPosition(m_position);
+      NTempest::C3Vector intPositionX = GetPosition(m_position);
+      float              facing = GetFacing(m_facing);
+      NTempest::C3Vector positionZ = GetPosition(m_position);
+      NTempest::C3Vector positionY = GetPosition(m_position);
+      NTempest::C3Vector positionX = GetPosition(m_position);
+      int                intFacing = static_cast<int>(GetFacing(m_facing));
+      SErrDisplayErrorFmt(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          0,
+          1,
+          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+          "CMath::fnotequal_(rate,0)",
+          m_guid,
+          positionX.x,
+          positionY.y,
+          positionZ.z,
+          facing,
+          static_cast<int>(intPositionX.x),
+          static_cast<int>(intPositionY.y),
+          static_cast<int>(intPositionZ.z),
+          intFacing
+      );
+    } else {
+      SErrDisplayError(
+          0x85100000,
+          __FILE__,
+          __LINE__,
+          "CMath::fnotequal_(rate,0)",
+          0,
+          1
+      );
+    }
+  }
   if (NTempest::CMath::fequal_(m_turnRate, rate)) {
     return 0;
   }
   LogWrite(
-      "0x%016I64X: Changing turn rate from (%g) to (%g) (0x%X)\n", m_guid, static_cast<double>(m_turnRate), static_cast<double>(rate), m_moveStartTime
+      "0x%016I64X: Changing turn rate from (%g) to (%g) (0x%X)\n", m_guid, m_turnRate, rate, m_moveStartTime
   );
   m_turnRate = rate;
   UpdateAnchors(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime);
@@ -1648,10 +2709,7 @@ void CMovement::OnStrafeStart(unsigned long eventTime, int left) {
 
 int CMovement::OnStrafeStop(unsigned long eventTime) {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
-  if (!StopStrafe(globals->m_lastUpdateTime)) {
-    return 0;
-  }
-  if (m_moveFlags & 3) {
+  if (!StopStrafe(globals->m_lastUpdateTime) || (m_moveFlags & 3)) {
     return 0;
   }
   if (!(m_moveFlags & 0x40FF)) {
@@ -1745,6 +2803,28 @@ void CMovement::CollisionStateChanged() {
     OnEnableGravity(globals->m_lastUpdateTime);
     AddToMoversList();
   }
+}
+
+void CMovement::CollisionStateChangedLocal(unsigned long eventTime) {
+  if ((m_moveFlags & 0x800) || (m_spline && !(m_spline->flags & 4) && (m_spline->flags & 0x200))) {
+    OnDisableGravity(eventTime);
+    if (!(m_moveFlags & 0xF)) {
+      CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+      globals->m_localMover = 0;
+    }
+  } else {
+    OnEnableGravity(eventTime);
+    CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+    globals->m_localMover = this;
+  }
+}
+
+void CMovement::ToggleCollision(unsigned long eventTime) {
+  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  UpdateAnchors(globals->m_lastUpdateTime);
+  m_moveFlags ^= 0x800;
+  globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CollisionStateChangedLocal(globals->m_lastUpdateTime);
 }
 
 void CMovement::EnableCollision(unsigned long eventTime, int enable) {
@@ -1843,7 +2923,7 @@ void CMovement::RestoreMoveState(const CMoveState &state) {
   m_position = state.position;
   m_facing = state.facing;
   m_pitch = state.pitch;
-  m_moveFlags = state.moveFlags | 0x08000000;
+  m_moveFlags = state.moveFlags;
   m_anchorPosition = state.anchorPosition;
   m_anchorFacing = state.anchorFacing;
   m_anchorPitch = state.anchorPitch;
@@ -1856,29 +2936,31 @@ void CMovement::RestoreMoveState(const CMoveState &state) {
   m_fallStartTime = state.fallStartTime;
   m_fallStartElevation = state.fallStartElevation;
   m_jumpVelocity = state.jumpVelocity;
+  m_moveFlags |= 0x08000000;
+  FallLogWrite("0x%016I64X: restoring move state (0x%08X)\n", m_guid, m_moveStartTime);
 }
 
 int CMovement::GetMoveEventMsgId(unsigned int oldMoveFlags, int wasJumping) {
   unsigned int changed = oldMoveFlags ^ m_moveFlags;
   if (changed & 3) {
     if (m_moveFlags & 1) {
-      return 181;
+      return MSG_MOVE_START_FORWARD;
     }
-    return m_moveFlags & 2 ? 182 : 183;
+    return m_moveFlags & 2 ? MSG_MOVE_START_BACKWARD : MSG_MOVE_STOP;
   }
   if (changed & 0xC) {
     if (m_moveFlags & 4) {
-      return 184;
+      return MSG_MOVE_START_STRAFE_LEFT;
     }
-    return m_moveFlags & 8 ? 185 : 186;
+    return m_moveFlags & 8 ? MSG_MOVE_START_STRAFE_RIGHT : MSG_MOVE_STOP_STRAFE;
   }
   if (m_jumpVelocity == 0.0f || wasJumping) {
     if (changed & 0x02000000) {
-      return m_moveFlags & 0x02000000 ? 203 : 204;
+      return m_moveFlags & 0x02000000 ? MSG_MOVE_START_SWIM : MSG_MOVE_STOP_SWIM;
     }
-    return 183;
+    return MSG_MOVE_STOP;
   }
-  return 187;
+  return MSG_MOVE_JUMP;
 }
 
 void CMovement::OnSwimStartLocal(unsigned long eventTime) {

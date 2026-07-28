@@ -26,6 +26,7 @@ void CGPlayer_C::SetRealActivePlayer(unsigned __int64 guid) {
 }
 
 unsigned __int64 CGPlayer_C::GetRealActivePlayer() {
+  FATALASSERT(!GetActive() || s_realActivePlayer);
   return s_realActivePlayer;
 }
 
@@ -68,8 +69,8 @@ int OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataSt
     }
 
     case MSG_GM_BIND_OTHER: {
-      unsigned int success;
-      msg->Get(*reinterpret_cast<unsigned char *>(&success));
+      unsigned char success;
+      msg->Get(success);
       if (success) {
         ConsolePrintf("Player bound to current location");
       } else {
@@ -79,8 +80,8 @@ int OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataSt
     }
 
     case MSG_GM_SUMMON: {
-      unsigned int success;
-      msg->Get(*reinterpret_cast<unsigned char *>(&success));
+      unsigned char success;
+      msg->Get(success);
       if (success) {
         ConsolePrintf("Server is summoning now");
       } else {

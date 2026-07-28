@@ -8,9 +8,30 @@
 #include <stpl.h>
 #include <storm.h>
 
+MDLSEQUENCESSECTION::MDLSEQUENCESSECTION()
+    : time(0),
+      movespeed(0.0f),
+      flags(0),
+      bounds(),
+      frequency(0.0f),
+      replay(0),
+      blendTime(150) {
+  name[0] = 0;
+  bounds.radius = 0.0f;
+}
+
 namespace MDL {
 const char *TokenText(unsigned int token);
 void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
+int ReadSequences(Parser &parse, MDLDATA &data, CMDLStatus *status);
+int WriteSequences(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *status);
+int ReadGlobalSequences(Parser &parse, MDLDATA &data, CMDLStatus *status);
+int WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *status);
+int ReadBinGlobalSequences(CMsgBuffer &buffer, unsigned int length, MDLDATA &data, CMDLStatus *status);
+int WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status);
+int ReadBinSequences(CMsgBuffer &buffer, unsigned int length, MDLDATA &data, CMDLStatus *status);
+int WriteBinSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status);
+}
 
 static void IAnimAddErrors(TSet &errors) {
   errors.Add(0x160, 1, 0);
@@ -135,7 +156,7 @@ static void IReadAnim(
   errors.Complete(status);
 }
 
-int ReadSequences(
+int MDL::ReadSequences(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *status
@@ -171,7 +192,7 @@ static void IWriteSequenceFlags(
     const MDLSEQUENCESSECTION &sequence
 ) {
   if (sequence.flags & 1) {
-    WriteLine(buffer, "\t\t%s,\n", TokenText(0x17A));
+    MDL::WriteLine(buffer, "\t\t%s,\n", MDL::TokenText(0x17A));
   }
 }
 
@@ -179,16 +200,16 @@ static void IWriteSequence(
     const MDLSEQUENCESSECTION &sequence,
     TSGrowableArray<char> &buffer
 ) {
-  WriteLine(
+  MDL::WriteLine(
       buffer,
       "\t%s \"%s\" {\n",
-      TokenText(0x122),
+      MDL::TokenText(0x122),
       static_cast<const char *>(sequence.name)
   );
-  WriteLine(
+  MDL::WriteLine(
       buffer,
       "\t\t%s { %u, %u },\n",
-      TokenText(0x160),
+      MDL::TokenText(0x160),
       sequence.time.l,
       sequence.time.h
   );
@@ -196,43 +217,43 @@ static void IWriteSequence(
   WriteOptionalFloat(0x174, "\t\t", sequence.movespeed, buffer);
   WriteOptionalFloat(0x14E, "\t\t", sequence.frequency, buffer);
   if (sequence.replay.l && sequence.replay.h) {
-    WriteLine(
+    MDL::WriteLine(
         buffer,
         "\t\t%s { %u, %u },\n",
-        TokenText(0x1AB),
+        MDL::TokenText(0x1AB),
         sequence.replay.l,
         sequence.replay.h
     );
   }
   if (sequence.blendTime) {
-    WriteLine(
+    MDL::WriteLine(
         buffer,
         "\t\t%s %u,\n",
-        TokenText(0x130),
+        MDL::TokenText(0x130),
         sequence.blendTime
     );
   }
   WriteBounds(sequence.bounds, "\t\t", buffer);
-  WriteLine(buffer, "\t}\n");
+  MDL::WriteLine(buffer, "\t}\n");
 }
 
-int WriteSequences(
+int MDL::WriteSequences(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
     CMDLStatus *
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]
       && data.sequences.Count()) {
-    WriteLine(
+    MDL::WriteLine(
         buffer,
         "%s %d {\n",
-        TokenText(0x105),
+        MDL::TokenText(0x105),
         data.sequences.Count()
     );
     for (unsigned int i = 0; i < data.sequences.Count(); ++i) {
       IWriteSequence(data.sequences.Ptr()[i], buffer);
     }
-    WriteLine(buffer, "}\n");
+    MDL::WriteLine(buffer, "}\n");
   }
   return 1;
 }
@@ -279,7 +300,7 @@ static unsigned int IReadGlobalSeqs(
   return actual;
 }
 
-int ReadGlobalSequences(
+int MDL::ReadGlobalSequences(
     Parser &parse,
     MDLDATA &data,
     CMDLStatus *
@@ -303,18 +324,18 @@ int ReadGlobalSequences(
   return !parse.FoundError();
 }
 
-int WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+int MDL::WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (!static_cast<const char *>(data.model.animationFile)[0] && data.globalSeqs.Count()) {
-    WriteLine(buffer, "%s %d {\n", TokenText(0x106), data.globalSeqs.Count());
+    MDL::WriteLine(buffer, "%s %d {\n", MDL::TokenText(0x106), data.globalSeqs.Count());
     for (unsigned int i = 0; i < data.globalSeqs.Count(); ++i) {
-      WriteLine(buffer, "\t%s %u,\n", TokenText(0x143), data.globalSeqs[i].length);
+      MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x143), data.globalSeqs[i].length);
     }
-    WriteLine(buffer, "}\n");
+    MDL::WriteLine(buffer, "}\n");
   }
   return 1;
 }
 
-int ReadBinGlobalSequences(
+int MDL::ReadBinGlobalSequences(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -333,7 +354,7 @@ int ReadBinGlobalSequences(
   return 1;
 }
 
-int WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+int MDL::WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
   if (!static_cast<const char *>(data.model.animationFile)[0] && data.globalSeqs.Count()) {
     buffer.AddDword('SBLG');
     buffer.AddUint(4 * data.globalSeqs.Count());
@@ -344,7 +365,7 @@ int WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus 
   return 1;
 }
 
-int ReadBinSequences(
+int MDL::ReadBinSequences(
     CMsgBuffer &buffer,
     unsigned int length,
     MDLDATA &data,
@@ -379,7 +400,7 @@ int ReadBinSequences(
   return 1;
 }
 
-int WriteBinSequences(
+int MDL::WriteBinSequences(
     const MDLDATA &data,
     CMsgBuffer &buffer,
     CMDLStatus *
@@ -406,6 +427,4 @@ int WriteBinSequences(
     }
   }
   return 1;
-}
-
 }

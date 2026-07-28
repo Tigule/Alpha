@@ -281,7 +281,7 @@ void CHARINFO::UpdateCharacterInfo(const char *modelName, HMODEL backgroundModel
 void CHARINFO::ChangeSkinTexture() {
   unsigned int              preferredGeosets[NUM_CHARGEOSETS];
   CStatus                   status;
-  BEARDSTYLEDATA            facialData = {1, 1, 1};
+  BEARDSTYLEDATA            facialData;
   int                       hasFacialInfo;
   HCHARGEOSET               geosetHandle;
   const ItemDisplayInfoRec *displayInfoRec;
@@ -325,11 +325,11 @@ void CHARINFO::ChangeSkinTexture() {
 
   memset(preferredGeosets, 0, sizeof(preferredGeosets));
   if (hasFacialInfo) {
-    preferredGeosets[CGS_HAIR] = CharCustomizationGetHairGeoset(m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID);
-    preferredGeosets[CGS_FACIAL_BEARD] = facialData.beardGeoset;
-    preferredGeosets[CGS_FACIAL_SIDEBURN] = facialData.sideBurnGeoset;
-    preferredGeosets[CGS_FACIAL_MOUSTACHE] = facialData.moustacheGeoset;
-    preferredGeosets[CGS_EARS] = 2;
+    preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID);
+    preferredGeosets[CHARGEOSET_BEARD] = facialData.beardGeoset;
+    preferredGeosets[CHARGEOSET_SIDEBURN] = facialData.sideBurnGeoset;
+    preferredGeosets[CHARGEOSET_MOUSTACHE] = facialData.moustacheGeoset;
+    preferredGeosets[CHARGEOSET_EAR] = 2;
   }
 
   for (i = 0; i < 20; ++i) {
@@ -391,22 +391,26 @@ static void ResetFingersSeq(HMODEL model, unsigned int startFinger, unsigned int
 }
 
 static void SetHandState(HMODEL model, int invType, unsigned int startFinger, unsigned int lastFinger) {
-  if (invType == INDEX_SHIELD_TYPE) {
-    ResetFingersSeq(model, startFinger, lastFinger);
-  } else {
+  if (invType != INDEX_SHIELD_TYPE) {
     SetFingersSeq(model, 15, startFinger, lastFinger);
+  } else {
+    ResetFingersSeq(model, startFinger, lastFinger);
   }
 }
 
 void SetHandsState(HMODEL model, int itemSlot, int itemInventoryType) {
-  if (!itemSlot) {
+  if (!model) {
     return;
   }
-  if (itemInventoryType == INDEX_RANGED_TYPE) {
-    SetHandState(model, itemInventoryType, 8, 12);
-  } else if (itemInventoryType > INDEX_RANGED_TYPE && itemInventoryType <= INDEX_2HWEAPON_TYPE) {
+  if (itemSlot != INDEX_RANGED_TYPE) {
+    if (itemSlot <= INDEX_RANGED_TYPE ||
+        itemSlot > INDEX_2HWEAPON_TYPE) {
+      return;
+    }
     SetHandState(model, itemInventoryType, 13, 17);
+    return;
   }
+  SetHandState(model, itemInventoryType, 8, 12);
 }
 
 void CCharSelectInfo::UpdateCharacterInfo() {

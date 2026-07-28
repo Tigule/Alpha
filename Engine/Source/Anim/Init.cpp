@@ -191,16 +191,16 @@ static KEYTYPE GetTrackType(unsigned int mdlTrackType, MDLTRACKTYPE forceType) {
 
   switch (mdlTrackType) {
     case TRACK_NO_INTERP:
-      return KEY_DONT_INTERP;
+      return KEYTYPE_NOINTERP;
     case TRACK_LINEAR:
-      return KEY_LINEAR;
+      return KEYTYPE_LINEAR;
     case TRACK_HERMITE:
-      return KEY_HERMITE;
+      return KEYTYPE_HERMITE;
     case TRACK_BEZIER:
-      return KEY_BEZIER;
+      return KEYTYPE_BEZIER;
   }
 
-  return KEY_DONT_INTERP;
+  return KEYTYPE_NOINTERP;
 }
 
 void AddKeyFrames(
@@ -220,7 +220,7 @@ void AddKeyFrames(
   interp->SetNumKeys(numKeys);
   int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
   for (unsigned int i = 0; i < numKeys; ++i) {
-    if (interp->GetTrackType() < KEY_HERMITE) {
+    if (interp->GetTrackType() < KEYTYPE_HERMITE) {
       interp->AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
     } else {
       interp->AddKey(
@@ -251,7 +251,7 @@ void AddKeyFrames(
   interp->SetNumKeys(numKeys);
   int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
   for (unsigned int i = 0; i < numKeys; ++i) {
-    if (interp->GetTrackType() < KEY_HERMITE) {
+    if (interp->GetTrackType() < KEYTYPE_HERMITE) {
       interp->AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
     } else {
       interp->AddKey(
@@ -285,7 +285,7 @@ void AnimObjectSetVisibilityTrack(
   interp.SetNumKeys(numKeys);
   int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
   for (unsigned int i = 0; i < numKeys; ++i) {
-    if (interp.GetTrackType() < KEY_HERMITE) {
+    if (interp.GetTrackType() < KEYTYPE_HERMITE) {
       interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
     } else {
       interp.AddKey(
@@ -332,7 +332,7 @@ void AnimObjectSetRotation(
   int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
 
   for (unsigned int i = 0; i < numKeys; ++i) {
-    if (interp.GetTrackType() < KEY_HERMITE) {
+    if (interp.GetTrackType() < KEYTYPE_HERMITE) {
       interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
     } else {
       interp.AddKey(
@@ -370,7 +370,7 @@ void AnimObjectSetScaling(
     interp.SetNumKeys(numKeys);                                                                                                          \
     int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;                             \
     for (unsigned int i = 0; i < numKeys; ++i) {                                                                                        \
-      if (interp.GetTrackType() < KEY_HERMITE) {                                                                                         \
+      if (interp.GetTrackType() < KEYTYPE_HERMITE) {                                                                                         \
         interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);                                                   \
       } else {                                                                                                                           \
         interp.AddKey(                                                                                                                    \
@@ -472,7 +472,7 @@ void AnimObjectSetRibbonSlot(
   }
 
   objptr->slot.SetGlobalSequenceId(keyTrack.globalSeqId);
-  objptr->slot.SetTrackType(KEY_DONT_INTERP);
+  objptr->slot.SetTrackType(KEYTYPE_NOINTERP);
   objptr->slot.SetNumKeys(numKeys);
   int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
   for (unsigned int i = 0; i < numKeys; ++i) {
@@ -701,7 +701,7 @@ unsigned char *AnimObjectSetRibbonSlot(unsigned char *data, unsigned int fileByt
   unsigned int numKeys = *reinterpret_cast<unsigned int *>(data + 4);
   ASSERT(numKeys);
   objptr->slot.m_globalSeqId = *reinterpret_cast<unsigned int *>(data + 12);
-  objptr->slot.SetTrackType(KEY_DONT_INTERP);
+  objptr->slot.SetTrackType(KEYTYPE_NOINTERP);
   data += 16;
   int timeAdjustment = objptr->slot.m_globalSeqId == static_cast<unsigned int>(-1) ? 0 : *reinterpret_cast<int *>(data);
   objptr->slot.SetNumKeys(numKeys, 2 * sizeof(unsigned int));
@@ -848,7 +848,7 @@ void AnimAddMaterialLayer(CAnimData* shared, const MDLTEXLAYER& layerData, unsig
   unsigned int numKeys = layerData.flipKeys.keys.Count();
   if (numKeys && layerData.coordId) {
     layer.flip.SetGlobalSequenceId(layerData.flipKeys.globalSeqId);
-    layer.flip.SetTrackType(KEY_DONT_INTERP);
+    layer.flip.SetTrackType(KEYTYPE_NOINTERP);
     layer.flip.SetNumKeys(numKeys);
     int timeAdjustment = layerData.flipKeys.globalSeqId == static_cast<unsigned int>(-1) ? 0 : layerData.flipKeys.keys[0].time;
     for (unsigned int i = 0; i < numKeys; ++i) {
@@ -896,7 +896,7 @@ void AnimAddMaterialLayers(unsigned char *fileData, unsigned int fileBytes, CAni
           unsigned int numKeys = *reinterpret_cast<unsigned int *>(data + 4);
           ASSERT(numKeys);
           layer.flip.m_globalSeqId = *reinterpret_cast<unsigned int *>(data + 12);
-          layer.flip.SetTrackType(KEY_DONT_INTERP);
+          layer.flip.SetTrackType(KEYTYPE_NOINTERP);
           data += 16;
           int timeAdjustment = layer.flip.m_globalSeqId == static_cast<unsigned int>(-1) ? 0 : *reinterpret_cast<int *>(data);
           layer.flip.SetNumKeys(numKeys, sizeof(int) + sizeof(unsigned int));
@@ -1025,7 +1025,7 @@ void AnimAddCamera(CAnimData* shared, const MDLCAMERASECTION& cameraData, MDLTRA
     camera.roll.SetNumKeys(numKeys);
     int timeAdjustment = rollTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : rollTrack.keys[0].time;
     for (unsigned int i = 0; i < numKeys; ++i) {
-      if (camera.roll.GetTrackType() < KEY_HERMITE) {
+      if (camera.roll.GetTrackType() < KEYTYPE_HERMITE) {
         camera.roll.AddKey(rollTrack.keys[i].time - timeAdjustment, rollTrack.keys[i].value);
       } else {
         camera.roll.AddKey(
@@ -1240,7 +1240,7 @@ void AnimAddTextureAnim(
       transform.rotation.SetNumKeys(numKeys);
       int timeAdjustment = rotation.globalSeqId == static_cast<unsigned int>(-1) ? 0 : rotation.keys[0].time;
       for (unsigned int key = 0; key < numKeys; ++key) {
-        if (transform.rotation.GetTrackType() < KEY_HERMITE) {
+        if (transform.rotation.GetTrackType() < KEYTYPE_HERMITE) {
           transform.rotation.AddKey(rotation.keys[key].time - timeAdjustment, rotation.keys[key].value);
         } else {
           transform.rotation.AddKey(

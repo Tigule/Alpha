@@ -69,7 +69,9 @@ class CGPlayer {
  public:
   static unsigned int GetDataSize();
   static unsigned int GetBaseOffset();
-  static unsigned int TotalFields();
+  static __forceinline unsigned int TotalFields() {
+    return 634;
+  }
   static unsigned int GetUpdateMaskBytes();
   static unsigned int GetUpdateMaskBlocks();
 
@@ -229,7 +231,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual unsigned int DetermineWoundSequence() const;
 
  public:
-  virtual const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
+  virtual const VirtualItemInfo *GetVirtualItem(unsigned int slot, bool ignoreDisarmFlag) const;
   virtual int GetVirtualItemDisplayID(unsigned int slot) const;
   virtual int ShouldRenderUnitName(unsigned int mode) const;
   virtual void CommitTexture(int force);
@@ -250,6 +252,12 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual void SetEmoteState(unsigned int emoteID);
   virtual UNITAFFILIATION GetGUIDAffiliation(unsigned __int64 unit) const;
   virtual int GetSpellRank(int spellID) const;
+  unsigned int GetDisplayRace() const {
+    return CGUnit_C::GetDisplayRace();
+  }
+  unsigned int GetDisplaySex() const {
+    return CGUnit_C::GetDisplaySex();
+  }
   virtual bool GetDefenseSkillRank(int &base, int &modifier) const;
   virtual bool GetAttackSkillRank(int hand, int &base, int &modifier) const;
   virtual void OnLevelChange();
@@ -426,8 +434,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void                                  CheckKillerFeedback();
   void                                  OnUnitDeath(unsigned __int64 guid);
   void                                  OnObjectDestruct(unsigned __int64 guid);
-  void                                  OnItemDelete(unsigned __int64 item);
   static void                           OnItemDelete(unsigned __int64 item, unsigned __int64 listener);
+  void                                  OnItemDelete(unsigned __int64 item);
   void                                  PlayerFlagsChanged(unsigned char oldFlags);
   static void SaveBindPoint(CDataStore *msg);
   void                                  HandleMountResult(unsigned int result);

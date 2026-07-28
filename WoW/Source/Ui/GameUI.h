@@ -522,6 +522,7 @@ class CGGameUI {
   friend class CGCursor;
   friend class CGSpellBook;
   friend class CGActionBar;
+  friend class CGPlayer_C;
   friend class CGMinimapFrame;
   friend int Script_PickupPetAction(lua_State *L);
   friend int Script_TogglePetAutocast(lua_State *L);

@@ -70,6 +70,19 @@ struct COMBATMESSAGEPRONOUNS {
   char victimName[48];
 };
 
+struct ENCHANTMENTLOGDESC {
+  ENCHANTMENTLOGDESC() : valid(false) {
+  }
+
+  ENCHANTMENTLOGDESC(const ENCHANTMENTLOGDESC &other)
+      : valid(other.valid),
+        log(other.log) {
+  }
+
+  bool           valid;
+  ENCHANTMENTLOG log;
+};
+
 enum COMBATMESSAGETYPE {
   COMBATMESSAGETYPE_NORMALHIT = 0,
   COMBATMESSAGETYPE_NORMALMISS = 1,
@@ -79,7 +92,7 @@ enum COMBATMESSAGETYPE {
   COMBATMESSAGETYPE_NORMALEVADE = 5,
   COMBATMESSAGETYPE_NORMALIMMUNE = 6,
   NUM_COMBATMESSAGETYPES = 7,
-  COMBATMESSAGETYPE_UNKNOWN = 255
+  COMBATMESSAGETYPE_UNKNOWN = -1
 };
 
 void UnitCombatLogEnableFileLog(int enable);
@@ -91,6 +104,7 @@ static HSLOG        s_generalLogHandle;
 static unsigned int s_flags;
 static const CGPlayer_C *s_activePlayer;
 static TSGrowableArray<char> s_charArray;
+static TSGrowableArray<ENCHANTMENTLOGDESC> s_logDesc;
 static unsigned int s_logStartTime;
 static unsigned int s_lastLogTime;
 static COMBATLOGDESC s_unitCombatData[AFFILIATION_NUMAFFILIATIONS] = {
@@ -221,8 +235,8 @@ void COMBATLOGDESC::LogVictim(const ATTACKROUNDINFO &info) {
 }
 
 static SLASH_COMMAND_ID s_affiliationLogType[AFFILIATION_NUMAFFILIATIONS] = {
-    static_cast<SLASH_COMMAND_ID>(26), static_cast<SLASH_COMMAND_ID>(27), static_cast<SLASH_COMMAND_ID>(27), static_cast<SLASH_COMMAND_ID>(25),
-    static_cast<SLASH_COMMAND_ID>(27)
+    SLASH_CMD_COMBAT_LOG_SELF, SLASH_CMD_COMBAT_LOG_PARTY, SLASH_CMD_COMBAT_LOG_PARTY, SLASH_CMD_COMBAT_LOG_ENEMY,
+    SLASH_CMD_COMBAT_LOG_PARTY
 };
 
 static float GetLogDistance(UNITAFFILIATION aff, bool suppressUnaffiliated) {
@@ -356,11 +370,15 @@ void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, uns
 static void ItemEnchantmentCacheCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
 
 static void LogEnchantmentRequest(const ENCHANTMENTLOG& log) {
-  ENCHANTMENTLOG *copy = NEW(ENCHANTMENTLOG)(log);
-  if (g_itemDBCache.GetRecord(log.itemID, log.attacker, ItemEnchantmentCacheCallback, copy)) {
-    UnitCombatLogEnchantment(*copy);
-    DEL(copy);
+  unsigned int index = 0;
+  while (index < s_logDesc.Count() && s_logDesc[index].valid) {
+    ++index;
   }
+
+  ENCHANTMENTLOGDESC *desc =
+      index == s_logDesc.Count() ? s_logDesc.New() : &s_logDesc[index];
+  desc->valid = true;
+  desc->log = log;
 }
 
 static void CloseDebugLogHandle() {
@@ -385,7 +403,7 @@ static void __cdecl GeneralLogPrintf(SLASH_COMMAND_ID type, const char *format, 
 
 static void ReportError(const char *string) {
   if (string && *string) {
-    GeneralLogPrintf(static_cast<SLASH_COMMAND_ID>(28), "Warning, string %s not found in stringfile.", string);
+    GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_ERROR, "Warning, string %s not found in stringfile.", string);
   }
 }
 
@@ -397,7 +415,7 @@ static void UnitCombatLogSpellTeach(const SpellRec* rec, unsigned __int64 caster
     return;
   }
   GeneralLogPrintf(
-      static_cast<SLASH_COMMAND_ID>(26), "%s teaches %s to %s.",
+      SLASH_CMD_COMBAT_LOG_SELF, "%s teaches %s to %s.",
       static_cast<CGUnit_C *>(casterObject)->GetUnitName(),
       rec->m_name_lang[CURRENT_LANGUAGE],
       static_cast<CGUnit_C *>(targetObject)->GetUnitName()
@@ -411,7 +429,7 @@ static void HandleTerseVictimLogging(unsigned __int64 attacker, unsigned __int64
   if (attackerObject && victimObject && spell &&
       (attackerObject->GetType() & TYPE_UNIT) && (victimObject->GetType() & TYPE_UNIT)) {
     GeneralLogPrintf(
-        static_cast<SLASH_COMMAND_ID>(27), "%s's %s affects %s.",
+        SLASH_CMD_COMBAT_LOG_PARTY, "%s's %s affects %s.",
         static_cast<CGUnit_C *>(attackerObject)->GetUnitName(),
         spell->m_name_lang[CURRENT_LANGUAGE],
         static_cast<CGUnit_C *>(victimObject)->GetUnitName()
@@ -426,7 +444,7 @@ static void HandleGeneralHealLogging(const DamageData& dmg, unsigned int spellID
   if (attackerObject && victimObject && spell &&
       (attackerObject->GetType() & TYPE_UNIT) && (victimObject->GetType() & TYPE_UNIT)) {
     GeneralLogPrintf(
-        static_cast<SLASH_COMMAND_ID>(26), "%s's %s heals %s for %d.",
+        SLASH_CMD_COMBAT_LOG_SELF, "%s's %s heals %s for %d.",
         static_cast<CGUnit_C *>(attackerObject)->GetUnitName(),
         spell->m_name_lang[CURRENT_LANGUAGE],
         static_cast<CGUnit_C *>(victimObject)->GetUnitName(),
@@ -795,32 +813,47 @@ static void LogResults() {
   s_charArray.Add(1, &terminator);
 }
 
-static void UnitCombatLogEnchantmentRemoved(const ENCHANTMENTLOG& log, unsigned char isCallback) {
+static void UnitCombatLogEnchantmentRemoved(const ENCHANTMENTLOG& log, bool isCallback) {
   ENCHANTMENTLOG copy(log);
   copy.flags |= 1;
-  if (isCallback || g_itemDBCache.GetRecord(copy.itemID, copy.attacker, 0, 0)) {
+  unsigned __int64 noGuid = 0;
+  if (isCallback || g_itemDBCache.GetRecord(copy.itemID, noGuid, ItemEnchantmentCacheCallback, 0)) {
     UnitCombatLogEnchantment(copy);
   } else {
     LogEnchantmentRequest(copy);
   }
 }
 
-static void UnitCombatLogEnchantmentAdded(const ENCHANTMENTLOG& log, unsigned char isCallback) {
+static void UnitCombatLogEnchantmentAdded(const ENCHANTMENTLOG& log, bool isCallback) {
   ENCHANTMENTLOG copy(log);
   copy.flags &= ~1;
-  if (isCallback || g_itemDBCache.GetRecord(copy.itemID, copy.attacker, 0, 0)) {
+  unsigned __int64 noGuid = 0;
+  if (isCallback || g_itemDBCache.GetRecord(copy.itemID, noGuid, ItemEnchantmentCacheCallback, 0)) {
     UnitCombatLogEnchantment(copy);
   } else {
     LogEnchantmentRequest(copy);
   }
 }
 
-static void ItemEnchantmentCacheCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
-  ENCHANTMENTLOG *log = static_cast<ENCHANTMENTLOG *>(arg);
-  if (granted && log) {
-    UnitCombatLogEnchantment(*log);
+static void ItemEnchantmentCacheCallback(int id, const unsigned __int64 &, void *, bool) {
+  unsigned __int64 noGuid = 0;
+  if (!g_itemDBCache.GetRecord(id, noGuid, 0, 0)) {
+    return;
   }
-  DEL(log);
+
+  for (unsigned int index = s_logDesc.Count(); index;) {
+    ENCHANTMENTLOGDESC &desc = s_logDesc[--index];
+    if (!desc.valid || desc.log.itemID != id) {
+      continue;
+    }
+
+    if (desc.log.flags & 1) {
+      UnitCombatLogEnchantmentRemoved(desc.log, true);
+    } else {
+      UnitCombatLogEnchantmentAdded(desc.log, true);
+    }
+    desc.valid = false;
+  }
 }
 
 static void ClearUnitDataStructs() {
@@ -899,9 +932,9 @@ void UnitCombatLogCastGo(unsigned int spellID, unsigned __int64 casterUnit, unsi
   const char *casterName = static_cast<CGUnit_C *>(caster)->GetUnitName();
   const char *spellName = rec->m_name_lang[CURRENT_LANGUAGE];
   if (victim && (victim->GetType() & TYPE_UNIT)) {
-    GeneralLogPrintf(static_cast<SLASH_COMMAND_ID>(26), "%s casts %s on %s.", casterName, spellName, static_cast<CGUnit_C *>(victim)->GetUnitName());
+    GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_SELF, "%s casts %s on %s.", casterName, spellName, static_cast<CGUnit_C *>(victim)->GetUnitName());
   } else {
-    GeneralLogPrintf(static_cast<SLASH_COMMAND_ID>(26), "%s casts %s.", casterName, spellName);
+    GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_SELF, "%s casts %s.", casterName, spellName);
   }
 }
 
@@ -1279,7 +1312,7 @@ void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message) 
   } else {
     SStrPrintf(output, sizeof(output), format, casterName, spellName, message);
   }
-  GeneralLogPrintf(static_cast<SLASH_COMMAND_ID>(28), output);
+  GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_ERROR, output);
   if (s_flags & 2) {
     ConsoleWrite(output, DEFAULT_COLOR);
     WriteMessage(output);
@@ -1384,7 +1417,7 @@ void UnitCombatLogEnchantment(const ENCHANTMENTLOG &log) {
 
 void UnitCombatLogString(const char* buffer) {
   if (buffer && *buffer) {
-    GeneralLogPrintf(static_cast<SLASH_COMMAND_ID>(25), "%s", buffer);
+    GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_ENEMY, "%s", buffer);
   }
 }
 
@@ -1400,9 +1433,9 @@ void UnitCombatLogFactionChanged(int faction, int delta) {
     if (delta <= 0) {
       delta = -delta;
     }
-    GeneralLogPrintf(static_cast<SLASH_COMMAND_ID>(26), format, rec->m_name_lang[CURRENT_LANGUAGE], delta);
+    GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_SELF, format, rec->m_name_lang[CURRENT_LANGUAGE], delta);
   } else {
-    GeneralLogPrintf(static_cast<SLASH_COMMAND_ID>(29), "Error, cannot find string <%s>", token);
+    GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_MISC_INFO, "Error, cannot find string <%s>", token);
   }
 }
 
@@ -1424,11 +1457,11 @@ void UnitCombatLogPartyKill(const PARTYKILLLOG &log) {
 
   const char *format = FrameScript_GetText("PARTYKILLOTHER", -1, GENDER_NOT_APPLICABLE);
   if (!format) {
-    GeneralLogPrintf(static_cast<SLASH_COMMAND_ID>(29), "Error, cannot find string <%s>", "PARTYKILLOTHER");
+    GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_MISC_INFO, "Error, cannot find string <%s>", "PARTYKILLOTHER");
     return;
   }
   GeneralLogPrintf(
-      static_cast<SLASH_COMMAND_ID>(27), format, static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName(), static_cast<CGUnit_C *>(objPtr)->GetUnitName()
+      SLASH_CMD_COMBAT_LOG_PARTY, format, static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName(), static_cast<CGUnit_C *>(objPtr)->GetUnitName()
   );
 }
 
@@ -1436,7 +1469,7 @@ void UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp) {
   CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(victim, __FILE__, __LINE__));
   if (victimPtr && (victimPtr->GetUnitData()->flags & 8)) {
     GeneralLogPrintf(
-        static_cast<SLASH_COMMAND_ID>(26), FrameScript_GetText("COMBATLOG_XPGAIN_FIRSTPERSON", -1, GENDER_NOT_APPLICABLE), victimPtr->GetUnitName(),
+        SLASH_CMD_COMBAT_LOG_SELF, FrameScript_GetText("COMBATLOG_XPGAIN_FIRSTPERSON", -1, GENDER_NOT_APPLICABLE), victimPtr->GetUnitName(),
         xp
     );
   }

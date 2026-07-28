@@ -360,6 +360,9 @@ if(MSVC_VERSION EQUAL 1200)
         Source/Tempest/cmemblock.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy-")
     set_source_files_properties(
+        Source/Tempest/c3spline.cpp
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
+    set_source_files_properties(
         Source/Tempest/c3vector.cpp
         Source/Tempest/cimvector.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX-")

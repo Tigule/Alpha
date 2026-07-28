@@ -26,9 +26,13 @@ struct CGCorpseData {
 
 class CGCorpse {
  public:
-  static unsigned int GetDataSize();
+  static __forceinline unsigned int GetDataSize() {
+    return sizeof(CGCorpseData);
+  }
   static unsigned int GetBaseOffset();
-  static unsigned int TotalFields();
+  static __forceinline unsigned int TotalFields() {
+    return 36;
+  }
   static unsigned int GetUpdateMaskBytes();
   static unsigned int GetUpdateMaskBlocks();
 
@@ -57,7 +61,7 @@ class CGCorpse {
     SetStorage(storage);
   }
 
-  ~CGCorpse() {
+  __forceinline ~CGCorpse() {
   }
 
   CGCorpseData *m_corpse;

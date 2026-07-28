@@ -189,9 +189,6 @@ LISTBASE::~LISTBASE() {
   if (m_texture) {
     HandleClose(m_texture);
   }
-  while (CHUNKDATA *chunk = m_chunks.Head()) {
-    s_freeChunks.Put(chunk);
-  }
 }
 
 PERSISTENTTEXTURE::PERSISTENTTEXTURE() : LISTBASE(512, 1) {
@@ -218,9 +215,9 @@ CHUNKDATA *LISTBASE::FindChunk(int id) {
   return chunk;
 }
 
-unsigned char PERSISTENTTEXTURE::MakeSpace() {
+bool PERSISTENTTEXTURE::MakeSpace() {
   if (m_currentCount >= m_maxCount) {
-    SPLATDATA *splat = m_splatOrder.Tail();
+    SPLATDATA *splat = m_splatOrder.Head();
     if (splat) {
       splat->chunk->RecycleSplat(splat);
     }
@@ -228,7 +225,7 @@ unsigned char PERSISTENTTEXTURE::MakeSpace() {
   return 1;
 }
 
-unsigned char TIMEDTEXTURE::MakeSpace() {
+bool TIMEDTEXTURE::MakeSpace() {
   return m_currentCount < m_maxCount;
 }
 
@@ -348,9 +345,7 @@ void CHUNKDATA::RecycleSplat(SPLATDATA *splat) {
   }
   splat->data.SetCount(0);
   splat->indices.SetCount(0);
-  m_splats.UnlinkNode(splat);
-  s_currentList->m_splatOrder.UnlinkNode(splat);
-  --m_numSplats;
+  splat->orderLink.Unlink();
   splat->chunk = 0;
   s_freeList.LinkNode(splat, LIST_TAIL, 0);
 }
@@ -369,7 +364,7 @@ void LISTBASE::Add(const NTempest::C3Vector &position, const NTempest::CAaBox &b
     return;
   }
   for (int i = data.GetNumBatches(); i;) {
-    CWTriData::Batch &batch = const_cast<CWTriData::Batch &>(data.GetBatch(--i));
+    const CWTriData::Batch &batch = data.GetBatch(--i);
     if (!MakeSpace()) {
       break;
     }
@@ -421,8 +416,8 @@ void LISTBASE::Render() {
 }
 
 void UnitFootprintInitialize() {
-  s_renderSplatsCVar = CVar::Register("showfootprints", "toggles rendering of unit footprint splats", 0, "1", 0, DEFAULT, false, 0);
-  s_renderParticlesCVar = CVar::Register("showfootprintparticles", "toggles rendering of footprint particles", 0, "1", 0, DEFAULT, false, 0);
+  s_renderSplatsCVar = CVar::Register("showfootprints", "toggles rendering of unit footprint splats", 1, "1", 0, GRAPHICS, false, 0);
+  s_renderParticlesCVar = CVar::Register("showfootprintparticles", "toggles rendering of footprint particles", 1, "1", 0, GRAPHICS, false, 0);
   InitializeTextureTable();
   InitializeBloodSplatTable();
 }
@@ -459,7 +454,7 @@ void UnitFootprintNewBloodSplat(const UnitBloodRec *rec, unsigned int unitSize, 
   float               facing = NTempest::CRandom::real_(s_rndSeed) * 6.2831855f;
   float               sizeVariance = NTempest::CRandom::real_(s_rndSeed) * 0.2f + 1.0f;
   NTempest::C2Vector  size(s_splatSizes[unitSize].x * sizeVariance, s_splatSizes[unitSize].y * sizeVariance);
-  unsigned int        texture = NTempest::CRandom::uint32_(s_rndSeed) % 5;
+  unsigned int        texture = NTempest::CMath::mulhwu_(5, NTempest::CRandom::uint32_(s_rndSeed));
   TIMEDTEXTURE       &list = s_bloodSplatTextureTable[texture][rec->m_ID];
   NTempest::C44Matrix basis = MakeBasis(OsGetAsyncTimeMs() & 1, facing, size);
   NTempest::CAaBox    box = MakeCAaBox(size, position);
@@ -503,13 +498,14 @@ void UnitFootprintRenderSplats(const NTempest::C3Vector &cameraPos) {
   s_currentCamera = cameraPos;
   s_currentWorld = NTempest::C44Matrix();
   s_currentWorld.Translate(-cameraPos);
+  GxVertexShaderSelect(GxVS_PassThru);
   GxRsPush();
   GxRsSet(GxRs_Texture1, ProjectTex2dGetFade());
   GxRsSet(GxRs_Blend, GxBlend_Alpha);
   GxRsSet(GxRs_DepthWrite, 0);
   GxRsSet(GxRs_Culling, 0);
   GxRsSet(GxRs_PolygonOffset, 0.0625f);
-  GxVertexShaderSelect(GxVS_PassThru);
+  GxXformPush(GxXform_World);
   for (int i = s_footStepTextureTable.Count(); i;) {
     s_footStepTextureTable[--i].Render();
   }
@@ -518,5 +514,6 @@ void UnitFootprintRenderSplats(const NTempest::C3Vector &cameraPos) {
       s_bloodSplatTextureTable[j][--i].Render();
     }
   }
+  GxXformPop(GxXform_World);
   GxRsPop();
 }

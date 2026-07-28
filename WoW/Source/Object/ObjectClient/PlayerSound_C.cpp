@@ -15,28 +15,24 @@ int CheckUnitSoundTimer(UNITSOUNDTYPE soundType);
 
 static unsigned int s_playerSoundChances[16] = {35, 100, 30, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 
-int CheckPlayerPlaySound(UNITSOUNDTYPE soundType) {
+static int CheckPlayerPlaySound(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   unsigned int random = NTempest::CRandom::uint32_(g_rndSeed);
-  unsigned int value = static_cast<unsigned int>((static_cast<unsigned __int64>(101) * random) >> 32);
+  unsigned int value = NTempest::CMath::mulhwu_(random, 101);
   return s_playerSoundChances[soundType] >= value;
 }
 
 void CGPlayer_C::PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const {
-  if (soundType == 8 || (!alwaysPlay && !CheckPlayerPlaySound(soundType))) {
-    return;
+  if (soundType != UNITSOUNDTYPE_FOOTFALL &&
+      (alwaysPlay || CheckPlayerPlaySound(soundType)) &&
+      CheckUnitSoundTimer(soundType)) {
+    int soundID = GetSoundID(GetSoundData(), soundType);
+    if (soundID) {
+      NTempest::C3Vector position = GetPosition();
+      position.z += 2.0f;
+      SndInterfacePlaySound(soundID, position, -1, 1.0f);
+    }
   }
-  if (!CheckUnitSoundTimer(soundType)) {
-    return;
-  }
-  int soundID = GetSoundID(m_soundData, soundType);
-  if (!soundID) {
-    return;
-  }
-  NTempest::C3Vector position;
-  GetPosition(position);
-  position.z += 2.0f;
-  SndInterfacePlaySound(soundID, position, -1, 1.0f);
 }
 
 void CGPlayer_C::PlayFoleySound() const {
@@ -51,7 +47,7 @@ void CGPlayer_C::PlayFoleySound() const {
 }
 
 void CGPlayer_C::HandleSpellEventSound() {
-  if (m_currentTorsoAnimState == 46 || !m_castingSpell) {
+  if (m_currentTorsoAnimState == ANIM_STATE_EMOTE || !m_castingSpell) {
     return;
   }
 
@@ -92,13 +88,6 @@ unsigned int CGPlayer_C::GetImpactType() const {
     return 2;
   }
   return (material->m_flags & 4) >> 2;
-}
-
-const VirtualItemInfo *CGPlayer_C::GetDefendingItem() const {
-  const CGBag_C *inventory = GetBag();
-  CGItem_C *item =
-      static_cast<CGItem_C *>(ClntObjMgrObjectPtr(inventory->GetItem(4), __FILE__, __LINE__));
-  return item ? &item->m_itemInfo : CGUnit_C::GetDefendingItem();
 }
 
 void PlayerInitializeSounds() {

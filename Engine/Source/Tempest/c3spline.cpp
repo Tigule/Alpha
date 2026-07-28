@@ -1,5 +1,6 @@
 #include "c3spline.h"
 
+#include "Tempest/c2vector.h"
 #include "Tempest/c34matrix.h"
 #include "Tempest/c44matrix.h"
 #include "Tempest/cmath.h"
@@ -282,7 +283,6 @@ namespace NTempest {
 
   void C3Spline_Bezier3::IValidateCache() const {
     unsigned int segmentCount = points.Count() / 3;
-    const_cast<TSGrowableArray<float> &>(cachedSegLength).SetCount(segmentCount);
     for (unsigned int i = 0; i < segmentCount; ++i) {
       cachedSegLength[i] = SegLength(i);
     }
@@ -296,16 +296,21 @@ namespace NTempest {
     C3Spline::ISetPoints(pts, pointCount);
   }
 
-  static C44Matrix s_catmullRomCoeffs(-0.5f, 1.5f, -1.5f, 0.5f, 1.0f, -2.5f, 2.0f, -0.5f, -0.5f, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+  static C44Matrix s_catmullRomCoeffs(
+      -0.5f, 1.0f, -0.5f, 0.0f,
+      1.5f, -2.5f, 0.0f, 1.0f,
+      -1.5f, 2.0f, 0.5f, 0.0f,
+      0.5f, -0.5f, 0.0f, 0.0f
+  );
   static C24Matrix s_catmullRomDer2Coeffs(
-      -3.0f, 3.0f,
-      6.0f, -5.0f,
-      -3.0f, 0.0f,
-      0.0f, 0.0f
+      -3.0f, 2.0f,
+      9.0f, -5.0f,
+      -9.0f, 4.0f,
+      3.0f, -1.0f
   );
 
   void C3Spline_CatmullRom::Evaluate(unsigned int segment, float t, C3Vector &pos) const {
-    if (splineMode == MODE_CATMULLROM) {
+    if (splineMode != MODE_LINEAR) {
       C3Spline::Evaluate(segment, t, s_catmullRomCoeffs, pos);
     } else {
       const C3Vector &start = points[segment + 1];
@@ -317,7 +322,12 @@ namespace NTempest {
   }
 
   void C3Spline_CatmullRom::EvaluateDer1(unsigned int segment, float t, C3Vector &der) const {
-    static C34Matrix s_catmullRomDer1Coeffs(-1.5f, 3.0f, -1.5f, 3.0f, -5.0f, 2.0f, -1.5f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f);
+    static C34Matrix s_catmullRomDer1Coeffs(
+        -1.5f, 2.0f, -0.5f,
+        4.5f, -5.0f, 0.0f,
+        -4.5f, 4.0f, 0.5f,
+        1.5f, -1.0f, 0.0f
+    );
     C3Spline::EvaluateDer1(segment, t, s_catmullRomDer1Coeffs, der);
   }
 
@@ -336,10 +346,10 @@ namespace NTempest {
       C3Vector &centerOfCurvature
   ) const {
     static C34Matrix s_catmullRomDer1Coeffs(
-        -1.5f, 3.0f, -1.5f,
-        3.0f, -5.0f, 2.0f,
-        -1.5f, 0.0f, 0.5f,
-        0.0f, 0.0f, 0.0f
+        -1.5f, 2.0f, -0.5f,
+        4.5f, -5.0f, 0.0f,
+        -4.5f, 4.0f, 0.5f,
+        1.5f, -1.0f, 0.0f
     );
     unsigned int segment;
     ArclengthSegT(t, segment, t);
@@ -370,7 +380,6 @@ namespace NTempest {
 
   void C3Spline_CatmullRom::IValidateCache() const {
     unsigned int segmentCount = points.Count() - 3;
-    const_cast<TSGrowableArray<float> &>(cachedSegLength).SetCount(segmentCount);
     for (unsigned int i = 0; i < segmentCount; ++i) {
       cachedSegLength[i] = SegLength(i);
     }
@@ -418,7 +427,7 @@ namespace NTempest {
       linearFacing *= 1.0f / magnitude;
     }
 
-    if (splineMode == MODE_CATMULLROM) {
+    if (splineMode != MODE_LINEAR) {
       C3Vector newFacing;
       EvaluateDer1(segment, segmentT, newFacing);
       magnitude = newFacing.Mag();
@@ -443,10 +452,10 @@ namespace NTempest {
     frame.b0 = -frame.a1;
     frame.b1 = frame.a0;
     frame.b2 = 0.0f;
-    magnitude = CMath::sqrt_(frame.b0 * frame.b0 + frame.b1 * frame.b1);
+    C2Vector &binormal = *reinterpret_cast<C2Vector *>(&frame.b0);
+    magnitude = binormal.Mag();
     if (CMath::fabs_(magnitude) >= 0.00000023841858f) {
-      frame.b0 /= magnitude;
-      frame.b1 /= magnitude;
+      binormal /= magnitude;
     }
 
     frame.c0 = -frame.b1 * frame.a2;

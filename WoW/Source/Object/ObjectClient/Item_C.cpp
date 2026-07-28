@@ -1,9 +1,13 @@
 #include "Item_C.h"
 
 #include "Object/ObjectClient/Player_C.h"
+#include "Magic/MagicClient/Spell_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/GameUI.h"
 #include "Ui/ItemTextFrame.h"
+#include "Ui/LootFrame.h"
+#include "Ui/QuestLog.h"
+#include "Ui/TradeFrame.h"
 #include "Net/NetClient/NetClient.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
@@ -20,10 +24,13 @@
 #include <Os/OsTime.h>
 #include <stpl.h>
 #include <Tempest/cimvector.h>
+#include <stddef.h>
 
 extern const int *const g_ITEMTYPEARRAY;
 
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
+void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
+const unsigned __int64 &Spell_C_GetCurrentCaster();
 void ClntObjMgrHideObject(unsigned __int64 guid);
 void ClntObjMgrShowObject(unsigned __int64 guid);
 
@@ -36,6 +43,16 @@ class CGContainerInfo {
 class CGActionBar {
  public:
   static void UpdateItem(int entryID);
+};
+
+class CGCraftInfo {
+ public:
+  static void RefreshList();
+};
+
+class CGTradeSkillInfo {
+ public:
+  static void RefreshList(int resetFilters);
 };
 
 static int OnUpdateEnchantments(
@@ -86,26 +103,56 @@ void CGItem_C::InstallObjMirrorHandlers() {
       GetGUID(), offset, 8, OnUpdateOwner, 0, HANDLER_PRIORITY_NORMAL
   );
   ClntObjMgrSetObjMirrorHandler(
-      GetGUID(), offset + 24, 4, OnUpdateStackCount, 0, HANDLER_PRIORITY_NORMAL
+      GetGUID(), offset + offsetof(CGItemData, m_stackCount), 4, OnUpdateStackCount, 0, HANDLER_PRIORITY_NORMAL
   );
   ClntObjMgrSetObjMirrorHandler(
-      GetGUID(), offset + 56, 60, OnUpdateEnchantments, 0, HANDLER_PRIORITY_NORMAL
+      GetGUID(), offset + offsetof(CGItemData, m_enchantment), sizeof(m_item->m_enchantment), OnUpdateEnchantments, 0, HANDLER_PRIORITY_NORMAL
   );
 }
 
 void CGItem_C::InstallItemIDMirrorHandler() {
   ClntObjMgrSetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_OBJECT) + 12, 4, OnUpdateItemID, 0, HANDLER_PRIORITY_NORMAL
+      GetGUID(), OffsetOf(ID_OBJECT) + offsetof(CGObjectData, m_entryID), sizeof(m_obj->m_entryID), OnUpdateItemID, 0, HANDLER_PRIORITY_NORMAL
   );
 }
 
 void CGItem_C::UninstallItemIDMirrorHandler() {
   ClntObjMgrUnsetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_OBJECT) + 12, OnUpdateItemID, 0
+      GetGUID(), OffsetOf(ID_OBJECT) + offsetof(CGObjectData, m_entryID), OnUpdateItemID, 0
   );
 }
 
 struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
+  INVENTORYART() : textureName(0) {
+  }
+
+  INVENTORYART(const INVENTORYART &other) : textureName(0) {
+    SetArt(other.textureName);
+  }
+
+  const INVENTORYART &operator=(const INVENTORYART &other) {
+    SetArt(other.textureName);
+    return *this;
+  }
+
+  ~INVENTORYART() {
+    Clear();
+  }
+
+  void Clear() {
+    if (textureName) {
+      SMemFree(textureName, __FILE__, __LINE__, 0);
+    }
+    textureName = 0;
+  }
+
+  void SetArt(const char *art) {
+    if (art && *art) {
+      Clear();
+      textureName = SStrDupA(art, __FILE__, __LINE__);
+    }
+  }
+
   char *textureName;
 };
 
@@ -144,7 +191,7 @@ static int OnUpdateItemID(unsigned __int64 guid, unsigned int offset, unsigned i
 
 static void AddInventoryArtHash(unsigned int displayID, const char *fileName) {
   INVENTORYART *entry = s_inventoryTextures.New(displayID, s_nullInventoryArtKey, 0, 0);
-  entry->textureName = SStrDupA(fileName, __FILE__, __LINE__);
+  entry->SetArt(fileName);
 }
 
 static const char *GetInventoryArtHash(unsigned int displayID) {
@@ -154,11 +201,15 @@ static const char *GetInventoryArtHash(unsigned int displayID) {
 
 void CGItem_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
-  CGItem::SetStorage(storage + 6);
+  CGItem::SetStorage(storage + CGObject::TotalFields());
 }
 
 CGItem_C::CGItem_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGItem(storage + 6), m_flags(0), m_expirationTime(0), m_soundsRec(0) {
+    : CGObject_C(storage, eventTime, init),
+      CGItem(storage + CGObject::TotalFields()),
+      m_flags(0),
+      m_expirationTime(0),
+      m_soundsRec(0) {
   if (m_item->m_owner) {
     ClntObjMgrHideObject(GetGUID());
   } else {
@@ -222,6 +273,14 @@ void CGItem_C::PostInitWithStats() {
 }
 
 void CGItem_C::Disable(int shutdown) {
+  if (CGLootInfo::GetObject() == GetGUID()) {
+    CGGameUI::CloseLoot(1, 0);
+  }
+
+  if (Spell_C_GetCurrentCaster() == GetGUID()) {
+    Spell_C_CancelSpell(1, 0, SPELL_FAILED_ERROR);
+  }
+
   UninstallItemIDMirrorHandler();
   RemoveWorldObject();
 
@@ -241,7 +300,11 @@ void CGItem_C::Disable(int shutdown) {
   bool updateUI = !shutdown && m_item->m_owner == ClntObjMgrGetActivePlayer();
   CGObject_C::Disable(shutdown);
   if (updateUI) {
+    CGTradeSkillInfo::RefreshList(0);
+    CGCraftInfo::RefreshList();
     CGActionBar::UpdateItem(GetEntryID());
+    CGTradeInfo::RemovePlayerItem(GetGUID());
+    CGQuestLog::Update(0);
   }
 }
 
@@ -519,7 +582,7 @@ unsigned int CGItem_C::OffsetOf(OBJECT_TYPE_ID type) {
     return 0;
   }
   FATALASSERT(type == ID_ITEM);
-  return 24;
+  return CGObject::TotalFields() * sizeof(unsigned long);
 }
 
 int CGItem_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {

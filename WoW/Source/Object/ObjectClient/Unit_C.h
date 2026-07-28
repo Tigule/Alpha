@@ -36,6 +36,7 @@ void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime);
 int MoveHeartBeatHandler(const void *packetData, void *param);
 int OnUnitCombatEvent(void *param, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
 int Player_C_AppFocusMovementHandler(int focus);
+int OnUpdateInventoryComponent(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param);
 
 enum UNITEFFECTSPECIALS {
   SPECIALEFFECT_NONE = -1,
@@ -85,6 +86,77 @@ enum UNITEFFECTSPECIALS {
   NUM_UNITEFFECTSPECIALS = 43
 };
 
+enum ANIM_STATE {
+  INVALID_ANIM_STATE = -1,
+  ANIM_STATE_NONE = 0,
+  ANIM_STATE_DEAD = 1,
+  ANIM_STATE_SPELL = 2,
+  ANIM_STATE_IDLE = 3,
+  ANIM_STATE_STOP = 4,
+  ANIM_STATE_WALK = 5,
+  ANIM_STATE_RUN = 6,
+  ANIM_STATE_WALK_BACKWARDS = 7,
+  ANIM_STATE_STRAFE_WALK_LEFT = 8,
+  ANIM_STATE_STRAFE_WALK_RIGHT = 9,
+  ANIM_STATE_STRAFE_RUN_LEFT = 10,
+  ANIM_STATE_STRAFE_RUN_RIGHT = 11,
+  ANIM_STATE_DIAG_WALK_LEFT = 12,
+  ANIM_STATE_DIAG_WALK_RIGHT = 13,
+  ANIM_STATE_DIAG_RUN_LEFT = 14,
+  ANIM_STATE_DIAG_RUN_RIGHT = 15,
+  ANIM_STATE_DIAG_BACKWARDS_LEFT = 16,
+  ANIM_STATE_DIAG_BACKWARDS_RIGHT = 17,
+  ANIM_STATE_TURNING_LEFT = 18,
+  ANIM_STATE_TURNING_RIGHT = 19,
+  ANIM_STATE_SWIM_IDLE = 20,
+  ANIM_STATE_SWIM = 21,
+  ANIM_STATE_SWIM_STRAFE_LEFT = 22,
+  ANIM_STATE_SWIM_STRAFE_RIGHT = 23,
+  ANIM_STATE_SWIM_BACKWARDS = 24,
+  ANIM_STATE_KNEEL = 25,
+  ANIM_STATE_RISE = 26,
+  ANIM_STATE_WOUND = 27,
+  ANIM_STATE_CRITICALWOUND = 28,
+  ANIM_STATE_STUN = 29,
+  ANIM_STATE_ATTACK_HIT = 30,
+  ANIM_STATE_ATTACK_READY = 31,
+  ANIM_STATE_ATTACK_MISS = 32,
+  ANIM_STATE_ATTACKOFF_HIT = 33,
+  ANIM_STATE_ATTACKOFF_MISS = 34,
+  ANIM_STATE_PARRY = 35,
+  ANIM_STATE_DODGE = 36,
+  ANIM_STATE_SPELLPRECAST = 37,
+  ANIM_STATE_SPELLCAST = 38,
+  ANIM_STATE_NPC_OBSOLETE = 39,
+  ANIM_STATE_BLOCK = 40,
+  ANIM_STATE_JUMPING = 41,
+  ANIM_STATE_JUMP_LANDING = 42,
+  ANIM_STATE_FALLING = 43,
+  ANIM_STATE_LOOTBEGIN = 44,
+  ANIM_STATE_LOOTEND = 45,
+  ANIM_STATE_EMOTE = 46,
+  ANIM_STATE_SPELLIMPACT = 47,
+  ANIM_STATE_MOUNTED = 48,
+  ANIM_STATE_SPECIALMOUNTANIM = 49,
+  ANIM_STATE_SITDOWN = 50,
+  ANIM_STATE_SITTING = 51,
+  ANIM_STATE_SITUP = 52,
+  ANIM_STATE_SLEEPDOWN = 53,
+  ANIM_STATE_SLEEPING = 54,
+  ANIM_STATE_SLEEPUP = 55,
+  ANIM_STATE_SITCHAIRLOW = 56,
+  ANIM_STATE_SITCHAIRMEDIUM = 57,
+  ANIM_STATE_SITCHAIRHIGH = 58,
+  ANIM_STATE_KNEELDOWN = 59,
+  ANIM_STATE_KNEELING = 60,
+  ANIM_STATE_KNEELUP = 61,
+  ANIM_STATE_CHANNELSPELL = 62,
+  ANIM_STATE_SPELLAURA = 63,
+  NUM_ANIMSTATES = 64,
+  ANIM_STATE_FIRST_STRAFE = ANIM_STATE_STRAFE_WALK_LEFT,
+  ANIM_STATE_LAST_STRAFE = ANIM_STATE_DIAG_BACKWARDS_RIGHT
+};
+
 enum WORLDTEXTMISSTYPE {
   WORLDTEXTMISS_EVADED = 0,
   WORLDTEXTMISS_DODGED = 1,
@@ -123,6 +195,43 @@ enum UNITEFFECTATTACHPPOINT {
 };
 
 enum GEOCOMPONENTLINKS {
+  ATTACH_NONE = -1,
+  ATTACH_SHIELD = 0,
+  ATTACH_HANDR = 1,
+  ATTACH_HANDL = 2,
+  ATTACH_ELBOWR = 3,
+  ATTACH_ELBOWL = 4,
+  ATTACH_SHOULDERR = 5,
+  ATTACH_SHOULDERL = 6,
+  ATTACH_KNEER = 7,
+  ATTACH_KNEEL = 8,
+  ATTACH_HIPR = 9,
+  ATTACH_HIPL = 10,
+  ATTACH_HELM = 11,
+  ATTACH_BACK = 12,
+  ATTACH_SHOULDERFLAPR = 13,
+  ATTACH_SHOULDERFLAPL = 14,
+  ATTACH_TORSOBLOODFRONT = 15,
+  ATTACH_TORSOBLOODBACK = 16,
+  ATTACH_BREATH = 17,
+  ATTACH_PLAYERNAME = 18,
+  ATTACH_UNITEFFECT_BASE = 19,
+  ATTACH_UNITEFFECT_HEAD = 20,
+  ATTACH_UNITEFFECT_SPELLLEFTHAND = 21,
+  ATTACH_UNITEFFECT_SPELLRIGHTHAND = 22,
+  ATTACH_UNITEFFECT_SPECIAL1 = 23,
+  ATTACH_UNITEFFECT_SPECIAL2 = 24,
+  ATTACH_UNITEFFECT_SPECIAL3 = 25,
+  ATTACH_SHEATH_MAINHAND = 26,
+  ATTACH_SHEATH_OFFHAND = 27,
+  ATTACH_SHEATH_SHIELD = 28,
+  ATTACH_PLAYERNAMEMOUNTED = 29,
+  ATTACH_LARGEWEAPONLEFT = 30,
+  ATTACH_LARGEWEAPONRIGHT = 31,
+  ATTACH_HIPWEAPONLEFT = 32,
+  ATTACH_HIPWEAPONRIGHT = 33,
+  ATTACH_TORSOSPELL = 34,
+  ATTACH_HANDARROW = 35,
   NUM_ATTACH_SLOTS = 36
 };
 
@@ -168,6 +277,15 @@ enum COMBATHAND {
   NUMHANDS = 2
 };
 
+enum VIRTUAL_MONSTER_SLOT {
+  VIRTUAL_MONSTER_SLOT_MAINHAND = 0,
+  VIRTUAL_MONSTER_SLOT_OFFHAND = 1,
+  VIRTUAL_MONSTER_SLOT_RANGED = 2,
+  NUM_VIRTUAL_MONSTER_SLOTS = 3
+};
+
+extern const VIRTUAL_MONSTER_SLOT g_monsterHands[NUMHANDS];
+
 enum WEAPONSWING_SOUNDTYPES {
   WEAPONSWING_UNUSED = -1,
   WEAPONSWING_LIGHT = 0,
@@ -195,8 +313,8 @@ struct HTEXCOMPONENT__;
 typedef HTEXCOMPONENT__ *HTEXCOMPONENT;
 struct ACTIVEAURAINFO;
 struct ANIMENDDATA {
-  unsigned __int64 guid;
-  ANIMENUMERATION  anim;
+  unsigned __int64 unit;
+  ANIMENUMERATION  animID;
 };
 NODEDECL(IMPACTEFFECTDESC) {
   unsigned __int64   victim;
@@ -204,6 +322,9 @@ NODEDECL(IMPACTEFFECTDESC) {
   const SpellVisualKitRec *impactKit;
   int                spellID;
 
+  IMPACTEFFECTDESC() : victim(0), impactKit(0), spellID(0) {
+  }
+  IMPACTEFFECTDESC(const IMPACTEFFECTDESC &);
   ~IMPACTEFFECTDESC();
   void Set(unsigned __int64 a, unsigned __int64 v, const SpellVisualKitRec *i, int s);
 };
@@ -221,6 +342,9 @@ enum NPCSOUNDS {
 struct QUESTGIVEREMOTENODE {
   unsigned int delay;
   unsigned int emoteID;
+
+  QUESTGIVEREMOTENODE() {
+  }
 };
 struct LightningObject;
 struct FishingLineObject;
@@ -229,6 +353,10 @@ struct DEBUGHITROLLINFO {
   ATTACKROUNDINFO attackInfo;
   unsigned int    attackFlags;
   float           range;
+
+  DEBUGHITROLLINFO() : attackFlags(0), range(0.0f) {
+  }
+  DEBUGHITROLLINFO(const DEBUGHITROLLINFO &);
 };
 
 enum PUREMOUNTFADEMODE {
@@ -237,7 +365,7 @@ enum PUREMOUNTFADEMODE {
 };
 
 NODEDECL(SPELLEFFECTDESC) {
-  SpellVisualKitRec  *kitPtr;
+  const SpellVisualKitRec *kitPtr;
   NTempest::CImVector color;
   float               scale;
   unsigned int        startTime;
@@ -248,7 +376,7 @@ NODEDECL(SPELLEFFECTDESC) {
   float               period;
   int                 standAnim;
   int                 walkAnim;
-  unsigned int        isOneShot;
+  bool                isOneShot;
   LightningObject    *lightningObjs[3];
 
   SPELLEFFECTDESC();
@@ -265,9 +393,10 @@ enum SPELLPROC_ACTION {
 };
 
 enum EMOTESPECPROCS {
-  EMOTESPECPROC_0 = 0,
-  EMOTESPECPROC_1 = 1,
-  EMOTESPECPROC_2 = 2
+  EMOTESPECPROC_NONE = 0,
+  EMOTESPECPROC_STANDSTATEHANDLER = 1,
+  EMOTESPECPROC_EMOTESTATEHANDLER = 2,
+  EMOTESPECPROC_NUMSPECPROCS = 3
 };
 
 struct ATTACHMENTMODELINFO {
@@ -275,6 +404,11 @@ struct ATTACHMENTMODELINFO {
   int    attachmentPoint;
   int    currentLink;
 
+  ATTACHMENTMODELINFO() : model(0), attachmentPoint(0), currentLink(-1) {
+  }
+  ~ATTACHMENTMODELINFO() {
+    FATALASSERT(!model);
+  }
   void ClearAttachmentFromModel(HMODEL charModel, HMODEL paperDollModel);
 };
 
@@ -287,8 +421,16 @@ struct ACTIVEATTACHMENTINFO {
   const ItemVisualsRec     *enchantmentVisual;
   ATTACHMENTMODELINFO modelInfo[2];
 
-  ACTIVEATTACHMENTINFO();
-  ~ACTIVEATTACHMENTINFO();
+  __forceinline ACTIVEATTACHMENTINFO()
+      : inventoryType(0),
+        flags(0),
+        invSlot(-1),
+        sheathAttachmentSlot(-1),
+        displayInfo(0),
+        enchantmentVisual(0) {
+  }
+  __forceinline ~ACTIVEATTACHMENTINFO() {
+  }
   void Clear();
   void ClearAttachmentFromModel(HMODEL charModel, HMODEL paperDollModel);
   void Hide(CGUnit_C *unitPtr, HMODEL charModel, HMODEL paperDollModel, bool hide);
@@ -330,17 +472,16 @@ enum WEAPONMODE {
 };
 
 enum SHEATHEREASONS {
-  SHEATHEREASON_0 = 0,
-  SHEATHEREASON_1 = 1,
-  SHEATHEREASON_2 = 2,
-  SHEATHEREASON_3 = 3,
-  SHEATHEREASON_4 = 4,
-  SHEATHEREASON_5 = 5,
-  SHEATHEREASON_6 = 6,
-  SHEATHEREASON_7 = 7,
-  SHEATHEREASON_PRECAST = 7,
-  SHEATHEREASON_8 = 8,
-  SHEATHEREASON_NUMREASONS = 9
+  SHEATHE_PLAYEREXPLICIT = 0,
+  SHEATHE_SPELLS = 1,
+  SHEATHE_STANDSTATE = 2,
+  SHEATHE_BASEANIM = 3,
+  SHEATHE_TORSOANIM = 4,
+  SHEATHE_RANGED = 5,
+  SHEATHE_TALKEMOTE = 6,
+  SHEATHE_PRECAST = 7,
+  SHEATHE_CHANNELLING = 8,
+  SHEATHE_NUMREASONS = 9
 };
 
 enum UNIT_REACTION {
@@ -371,13 +512,13 @@ struct AuraVisual {
   unsigned int GetSpellID() const {
     return spellID;
   }
-  unsigned int HasArt() const {
+  bool HasArt() const {
     return flags & 1;
   }
-  unsigned int IsWorldModel() const {
+  bool IsWorldModel() const {
     return flags & 2;
   }
-  unsigned int GetEffect() const {
+  unsigned int GetEffect() {
     return effectID;
   }
   void SetEffect(unsigned int effect) {
@@ -395,12 +536,15 @@ struct AuraVisual {
   void Clear();
   void SetModel(HMODEL model);
   void SetWorldObject(unsigned long object);
-  void SetPermanent(unsigned int permanent) {
+  void SetPermanent(bool permanent) {
     if (permanent) {
       flags |= 4;
     } else {
       flags &= ~4;
     }
+  }
+  HMODEL Model() const {
+    return theModel;
   }
   HMODEL GetModel();
 
@@ -415,8 +559,14 @@ struct AuraVisual {
 };
 
 NODEDECL(ACTIVEAURAINFO) {
-  int                slot;
+  int                auraSlot;
   const SpellVisualKitRec *stateKitRec;
+
+  ACTIVEAURAINFO() {
+  }
+  ACTIVEAURAINFO(const ACTIVEAURAINFO &);
+  ~ACTIVEAURAINFO() {
+  }
 };
 
 struct CGUnitData {
@@ -493,7 +643,9 @@ class CGUnit {
  public:
   static unsigned int GetDataSize();
   static unsigned int GetBaseOffset();
-  static unsigned int TotalFields();
+  static __forceinline unsigned int TotalFields() {
+    return 184;
+  }
   static unsigned int GetUpdateMaskBytes();
   static unsigned int GetUpdateMaskBlocks();
   virtual UNITAFFILIATION GetGUIDAffiliation(unsigned __int64 unit) const;
@@ -508,7 +660,9 @@ class CGUnit {
   int GetMaxPower(POWER_TYPE powerType) const;
   float GetPowerPercent(POWER_TYPE powerType) const;
   POWER_TYPE GetDisplayPower() const;
-  int GetMaxHealth() const;
+  __forceinline int GetMaxHealth() const {
+    return m_unit->maxHealth;
+  }
   unsigned int GetMoney() const;
   int GetLevel() const;
   unsigned int GetMinDamage() const;
@@ -624,7 +778,9 @@ class CGUnit {
   unsigned char IsImmuneNPC() const;
   unsigned char IsLooting() const;
   unsigned char IsInCombat() const;
-  unsigned char IsMounted() const;
+  unsigned char IsMounted() const {
+    return (m_unit->flags >> 13) & 1;
+  }
   unsigned char IsPureMountActive() const;
   unsigned char IsPureMountMounted() const;
   unsigned char IsFeignDeath() const;
@@ -653,7 +809,9 @@ class CGUnit {
   unsigned int GetPetNumber() const;
   unsigned int GetPetNameTimestamp() const;
   unsigned char *GetData(unsigned int offset);
-  void SetStorage(unsigned long *storage);
+  void SetStorage(unsigned long *storage) {
+    m_unit = reinterpret_cast<CGUnitData *>(storage);
+  }
   unsigned int GetAttackRoundTime(COMBATHAND hand) const;
   WEAPONMODE GetWeaponMode() const;
   unsigned char IsUsingRangedWeapon() const;
@@ -682,8 +840,12 @@ class CGUnit {
 };
 
 class CGUnit_C : public CGObject_C, public CGUnit {
+  friend int OnUpdateInventoryComponent(
+      unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param
+  );
   friend class CGInputControl;
   friend class CGObject_C;
+  friend class CGPlayer_C;
   friend struct ACTIVEATTACHMENTINFO;
   friend int UnitHealthUpdateHandler(
       unsigned __int64 unit,
@@ -752,7 +914,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
 
  public:
   virtual void                   OnFlagChanged(unsigned int oldFlags);
-  virtual const VirtualItemInfo *GetVirtualItem(unsigned int slot, unsigned char ignoreDisarmFlag) const;
+  virtual const VirtualItemInfo *GetVirtualItem(unsigned int slot, bool ignoreDisarmFlag) const;
   virtual int                    GetVirtualItemDisplayID(unsigned int slot) const;
   virtual int                    ShouldRenderUnitName(unsigned int mode) const;
   virtual void                   CommitTexture(int force);
@@ -869,7 +1031,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void                       RequestTalkEmote(TALKANIMATION talkAnim);
   virtual UNITAFFILIATION    GetGUIDAffiliation(unsigned __int64 unit) const;
 
-  const CGUnitData *GetUnitData() const {
+  __forceinline const CGUnitData *GetUnitData() const {
     return m_unit;
   }
 
@@ -950,7 +1112,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
       float speed, unsigned int ammoDisplayID, int inventoryType,
       const SpellVisualRec *rec, bool hits, MISS_REASON reason,
       unsigned int spellID, bool wasProc);
-  int                GetCastingSpell() {
+  int                GetCastingSpell() const {
     return m_castingSpell;
   }
   void               HandlePrecastStart(bool precast);
@@ -1236,13 +1398,13 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void         SetLocalTarget(unsigned __int64 target);
   bool         BaseAnimLocksHead() const;
   bool         TorsoAnimLocksHead() const;
-  unsigned int GetCurrentBaseAnimState() {
+  unsigned int GetCurrentBaseAnimState() const {
     return m_currentBaseAnimState;
   }
-  unsigned int GetCurrentTorsoAnimState() {
+  unsigned int GetCurrentTorsoAnimState() const {
     return m_currentTorsoAnimState;
   }
-  unsigned int GetCurrentBaseAnim() {
+  unsigned int GetCurrentBaseAnim() const {
     return m_currentBaseAnim;
   }
   int          IsInStandSitTransition();
@@ -1255,7 +1417,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual int  CanBeTargetted() const;
   virtual void OnLeftClick();
   virtual void OnRightClick();
-  int          GetSpellLevel(int spellID) {
+  int          GetSpellLevel(int spellID) const {
     return GetSpellRank(spellID) / 5;
   }
   bool                            IsSpellKnown(int spellID) const;
@@ -1399,7 +1561,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void             WeaponModeChanged();
   void             VirtualComponentChanged(int slot, int oldValue);
   void             AttachVirtualComponent(unsigned int slot, bool deferApply);
-  void             DetachVirtualComponent(int slot, bool defer, bool removeRecord);
+  void             DetachVirtualComponent(int vslot, bool defer, bool removeRecord);
 
  protected:
   void             RemoveObjectComponentByInvSlot(int invSlot, bool deferDeleteFromModel, bool removeRecord);
@@ -1453,7 +1615,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   float                    GetBoundingRadius() const;
   void                     OnRestoreHealth();
   bool                     DoNotLogDeath() const;
-  unsigned __int64         IsAttacking() const;
+  unsigned __int64         IsAttacking() const {
+    return m_combat.IsAttacking();
+  }
   unsigned __int64         IsAttackingNow() const;
   void                     ClearAttackSent();
   bool                     CanAttackNow(const CGUnit_C *unit) const;
@@ -1479,9 +1643,14 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void                     ClearDebugFlags();
   void                     SetUnitBadFacing();
   int                      IsBadFacing();
-  int                      IsDeathFlagSet() const;
+  int                      IsDeathFlagSet() const {
+    return (m_animFlags & 0x2000) != 0;
+  }
   void                     RemoveForceDisplayFacingFlag();
-  unsigned int             GetReadySequence() const;
+  unsigned int             GetReadySequence() const {
+    FATALASSERT(m_readySequence != 0xffffffff);
+    return m_readySequence;
+  }
   unsigned int             GetRangedReadySequence() const;
   void                     UpdateReadyAnim(const ItemStats *stats);
   unsigned int             GetDeathHolds() const;
@@ -1492,7 +1661,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   const unsigned int      *GetPreferredGeosets() const;
   unsigned int             GetNumPreferredGeosets() const;
   int                      GetDisplayHealth() const;
-  bool                     IsTexComponentLoaded() const;
+  int                      IsTexComponentLoaded() const;
   void                     SetTexComponentLoaded(int loaded);
   bool                     IsBeingStalked() const;
   bool                     GetLootPermission() const;

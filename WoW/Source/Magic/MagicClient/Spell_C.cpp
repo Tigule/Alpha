@@ -1,4 +1,5 @@
 #include "Object/ObjectClient/Item_C.h"
+#include "Spell_C.h"
 #include "Object/ObjectClient/GameObject_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "Object/ItemStats.h"
@@ -7,6 +8,8 @@
 #include "DB/DBClient/AutoCode/SpellCastTimesRec.h"
 #include "DB/DBClient/AutoCode/SpellRangeRec.h"
 #include "DB/DBClient/AutoCode/SpellRadiusRec.h"
+#include "DB/DBClient/AutoCode/SpellFocusObjectRec.h"
+#include "DB/DBClient/AutoCode/SpellShapeshiftFormRec.h"
 #include "DB/DBClient/AutoCode/ItemSubClassRec.h"
 #include "DB/DBClient/AutoCode/GameObjectDisplayInfoRec.h"
 #include "DB/DBClient/AutoCode/SkillLineRec.h"
@@ -37,12 +40,6 @@ extern FrameScript_Method s_SpellScriptFunctions[4];
 #include <math.h>
 #include <malloc.h>
 
-enum SPELL_FAILED_REASON {
-  SPELL_FAILED_ERROR = 14,
-  SPELL_FAILED_INTERRUPTED = 17,
-  SPELL_FAILED_INTERRUPTED_COMBAT = 18
-};
-
 enum CURSORANIMATIONS {
   POINT_CURSOR = 0,
   CAST_CURSOR = 1,
@@ -61,26 +58,6 @@ class CGTradeSkillInfo {
 
 class SpellCast {
  public:
-  SpellCast() {
-    caster = 0;
-    spellID = 0;
-    castTime = 0;
-    targets = 0;
-    castEndTime = 0;
-    unitTarget = 0;
-    itemTarget = 0;
-    ammoItem = 0;
-    spellLevel = 0;
-    spellIndex = 0;
-    reflector = 0;
-    overrideRank = -1;
-    flags = 0;
-    selectedTarget = 0;
-  }
-
-  ~SpellCast() {
-  }
-
   void BuildFullZoneUpdate(CDataStore *msg);
   void UnpackFullZoneUpdate(CDataStore *msg);
 
@@ -510,7 +487,7 @@ static const char* GetStringReason(unsigned char reason) {
   }
 }
 
-static void SpellMissingItemCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+static void SpellMissingItemCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
   unsigned char reason = static_cast<unsigned char>(reinterpret_cast<unsigned long>(arg));
   GAME_ERROR_TYPE error = GERR_SPELL_FAILED_S;
   char message[128];
@@ -546,59 +523,59 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
   const SpellRec       *spell = g_spellDB.GetRecord(spellID);
   int             isPet = 0;
   int             first = 1;
-  GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(39);
+  GAME_ERROR_TYPE error = GERR_SPELL_FAILED_S;
 
   FrameScript_SignalEvent(370);
   if (spell) {
     SndInterfacePlaySpellFizzleSound(spellID, playerPtr);
     switch (reason) {
       case 37:
-        if (spell->m_powerType == 10 || spell->m_powerType == 11) {
-          error = static_cast<GAME_ERROR_TYPE>(42);
-        } else if (spell->m_powerType == 4 || spell->m_powerType == 9) {
-          error = static_cast<GAME_ERROR_TYPE>(41);
+        if (spell->m_category == 10 || spell->m_category == 11) {
+          error = GERR_FOOD_COOLDOWN;
+        } else if (spell->m_category == 4 || spell->m_category == 9) {
+          error = GERR_POTION_COOLDOWN;
         } else {
-          error = static_cast<GAME_ERROR_TYPE>((spell->m_attributes & 0x10) ? 44 : 43);
+          error = (spell->m_attributes & 0x10) ? GERR_ABILITY_COOLDOWN : GERR_SPELL_COOLDOWN;
         }
         break;
       case 21:
-        error = static_cast<GAME_ERROR_TYPE>(40);
+        error = GERR_ITEM_COOLDOWN;
         break;
       case 16:
-        error = static_cast<GAME_ERROR_TYPE>(149);
+        error = GERR_HUNGER_SATIATED;
         break;
       case 73:
-        error = static_cast<GAME_ERROR_TYPE>(154);
+        error = GERR_THIRST_SATIATED;
         break;
       case 75:
-        error = static_cast<GAME_ERROR_TYPE>(190);
+        error = GERR_SPELL_FAILED_TOTEMS;
         break;
       case 56:
-        error = static_cast<GAME_ERROR_TYPE>(191);
+        error = GERR_SPELL_FAILED_REAGENTS;
         break;
       case 12:
-        error = static_cast<GAME_ERROR_TYPE>(192);
+        error = GERR_SPELL_FAILED_EQUIPPED_ITEM;
         break;
       case 13:
-        error = static_cast<GAME_ERROR_TYPE>(193);
+        error = GERR_SPELL_FAILED_EQUIPPED_ITEM_CLASS_S;
         break;
       case 5:
-        error = static_cast<GAME_ERROR_TYPE>(168);
+        error = GERR_GENERIC_NO_TARGET;
         break;
       case 54:
-        error = static_cast<GAME_ERROR_TYPE>(277);
+        error = GERR_SPELL_OUT_OF_RANGE;
         break;
       case 27:
-        error = static_cast<GAME_ERROR_TYPE>(279);
+        error = GERR_NOAMMO_S;
         break;
       case 51:
-        error = static_cast<GAME_ERROR_TYPE>(194);
+        error = GERR_SPELL_FAILED_SHAPESHIFT_FORM_S;
         break;
       case 6:
-        error = static_cast<GAME_ERROR_TYPE>((spell->m_targets & 0x10) ? 287 : 142);
+        error = (spell->m_targets & 0x10) ? GERR_INVALID_ITEM_TARGET : GERR_INVALID_ATTACK_TARGET;
         break;
       case 85:
-        error = static_cast<GAME_ERROR_TYPE>(291);
+        error = GERR_SPELL_FAILED_NOTUNSHEATHED;
         break;
     }
     isPet = spell->m_effect[0] == 57 || (spell->m_effect[0] == 36 && spell->m_effectMiscValue[0] == 5);
@@ -888,10 +865,86 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
     SStrCopy(message, FrameScript_GetText(failureToken, -1, GENDER_NOT_APPLICABLE), sizeof(message));
   }
 
+  const char *replacement = 0;
+  const ItemSubClassRec *subclass = 0;
   shapes[0] = 0;
   processedmessage[0] = 0;
-  if (reason == 13 || reason == 27 || reason == 28 || reason == 29 || reason == 51 || reason == 56 || reason == 57 || reason == 75) {
-    SStrPrintf(processedmessage, sizeof(processedmessage), message, arg1, arg2);
+  switch (reason) {
+    case 13:
+      subclass = FindAnyItemSubclassRec(arg1, arg2);
+      replacement = subclass
+          ? subclass->m_displayName_lang[CURRENT_LANGUAGE]
+          : 0;
+      break;
+    case 27:
+    case 28:
+      subclass = FindAnyItemSubclassRec(11, 1 << arg1);
+      replacement = subclass
+          ? subclass->m_displayName_lang[CURRENT_LANGUAGE]
+          : 0;
+      break;
+    case 29:
+      subclass = FindAnyItemSubclassRec(6, 1 << arg1);
+      replacement = subclass
+          ? subclass->m_displayName_lang[CURRENT_LANGUAGE]
+          : 0;
+      break;
+    case 44:
+      if (spell && spell->m_powerType == -2) {
+        CGGameUI::DisplayError(GERR_OUT_OF_HEALTH);
+      } else if (spell) {
+        CGGameUI::DisplayError(s_gerrEnums[spell->m_powerType]);
+      }
+      UnitCombatLogSpellFail(
+          playerPtr, spellID, CGGameUI::GetLastErrorString());
+      return;
+    case 51: {
+      if (!spell) {
+        return;
+      }
+      for (int i = 0; i < g_spellShapeshiftFormDB.GetNumRecords(); ++i) {
+        const SpellShapeshiftFormRec *form =
+            g_spellShapeshiftFormDB.GetRecordByIndex(i);
+        if ((spell->m_shapeshiftMask & (1 << i)) &&
+            form->m_name_lang[CURRENT_LANGUAGE] &&
+            *form->m_name_lang[CURRENT_LANGUAGE]) {
+          if (shapes[0]) {
+            SStrPack(shapes, ", ", sizeof(shapes));
+          }
+          SStrPack(
+              shapes, form->m_name_lang[CURRENT_LANGUAGE], sizeof(shapes));
+        }
+      }
+      if (!shapes[0]) {
+        return;
+      }
+      replacement = shapes;
+      break;
+    }
+    case 56:
+    case 75: {
+      const unsigned __int64 noGuid = 0;
+      const ItemStats *stats = g_itemDBCache.GetRecord(
+          arg1,
+          noGuid,
+          SpellMissingItemCallback,
+          reinterpret_cast<void *>(static_cast<unsigned long>(reason)));
+      if (!stats) {
+        return;
+      }
+      replacement = stats->m_displayName[0];
+      break;
+    }
+    case 57: {
+      const SpellFocusObjectRec *focus = g_spellFocusObjectDB.GetRecord(arg1);
+      replacement = focus ? focus->m_name_lang[CURRENT_LANGUAGE] : 0;
+      break;
+    }
+  }
+
+  if (replacement) {
+    SStrPrintf(
+        processedmessage, sizeof(processedmessage), message, replacement);
   } else {
     SStrCopy(processedmessage, message, sizeof(processedmessage));
   }
@@ -908,7 +961,7 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
   }
 }
 
-static void SetItemCooldown(int itemID, int spellID, unsigned long startTime, unsigned char needsEvent) {
+static void SetItemCooldown(int itemID, int spellID, unsigned long startTime, bool needsEvent) {
   HASHKEY_NONE key;
   ITEMCOOLDOWNHASHNODE *cooldown = s_itemCooldowns.Ptr(itemID, key);
   if (!cooldown) {
@@ -1160,7 +1213,7 @@ void Spell_C_GetMinMaxRange(int id, float *min, float *max) {
   } else if (range->m_flags & 1) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
-      CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(player->GetUnitData()->target, __FILE__, __LINE__));
+      CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(player->IsAttacking(), __FILE__, __LINE__));
       float     targetReach = target ? target->GetUnitData()->combatReach + target->GetUnitData()->boundingRadius : range->m_rangeMax;
       *max = player->GetUnitData()->combatReach + player->GetUnitData()->boundingRadius + targetReach + 1.3333334f;
       *min = 0.0f;
@@ -1581,7 +1634,7 @@ void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON rea
   }
 }
 
-static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, unsigned char granted) {
+static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
   if (reinterpret_cast<int>(arg) != s_spellCast.spellID) {
     return;
   }
@@ -1626,12 +1679,12 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
     ClientServices_Send(&msg);
   }
 
-  if (spell->m_castUI == 78) {
+  if (spell->m_effect[0] == 78) {
     player->OnAttackIconPressed();
     return false;
   }
 
-  if (spell->m_castUI == 47) {
+  if (spell->m_effect[0] == 47) {
     if (spell->m_effectMiscValue[0]) {
       CGCraftInfo::SetCraftType(SPELL_CAST_UI_INSCRIBING);
       return false;
@@ -2131,7 +2184,7 @@ static int CastResultHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) 
 
 static void SpellStart(unsigned __int64 casterGUID, unsigned __int64 casterUnit, int spellID, CDataStore* msg) {
   unsigned short spellCastFlags;
-  unsigned int castDelay;
+  unsigned long castDelay;
   msg->Get(spellCastFlags);
   UnitEffectPreloadSpellEffects(spellID);
   msg->Get(castDelay);
@@ -2199,7 +2252,7 @@ static void SpellStart(unsigned __int64 casterGUID, unsigned __int64 casterUnit,
 
 static int SpellDelayed(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   unsigned __int64 caster;
-  unsigned int delay;
+  unsigned long delay;
   msg->Get(caster);
   msg->Get(delay);
   CGUnit_C *unit =
@@ -2215,7 +2268,7 @@ static int SpellDelayed(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
 
 static int SpellChannelStart(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   int          spellID;
-  unsigned int time;
+  unsigned long time;
   msg->Get(spellID);
   msg->Get(time);
   if (time > 0) {
@@ -2230,7 +2283,7 @@ static int SpellChannelStart(void*, NETMESSAGE, unsigned long, CDataStore* msg) 
 }
 
 static int SpellChannelUpdate(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned int time;
+  unsigned long time;
   msg->Get(time);
   FrameScript_SignalEvent(0x141, "%d", time);
   return 1;
@@ -2468,7 +2521,7 @@ static int PetSpellFailedHandler(void*, NETMESSAGE, unsigned long, CDataStore* m
 
   if (reason == 37) {
     CGGameUI::DisplayError(
-        static_cast<GAME_ERROR_TYPE>((spell->m_attributes & 0x10) ? 44 : 43));
+        (spell->m_attributes & 0x10) ? GERR_ABILITY_COOLDOWN : GERR_SPELL_COOLDOWN);
   } else if (reason == 44) {
     if (spell->m_powerType == -2) {
       CGGameUI::DisplayError(GERR_OUT_OF_HEALTH);
@@ -2479,7 +2532,7 @@ static int PetSpellFailedHandler(void*, NETMESSAGE, unsigned long, CDataStore* m
     CGGameUI::DisplayError(GERR_SPELL_OUT_OF_RANGE);
   } else {
     CGGameUI::DisplayError(
-        static_cast<GAME_ERROR_TYPE>(39),
+        GERR_SPELL_FAILED_S,
         FrameScript_GetText(GetStringReason(reason), -1, GENDER_NOT_APPLICABLE));
   }
   return 1;
@@ -2570,14 +2623,14 @@ static int CooldownEvent(void*, NETMESSAGE msgID, unsigned long timeReceived, CD
     return 1;
   }
 
-  if (msgID == static_cast<NETMESSAGE>(466)) {
+  if (msgID == SMSG_COOLDOWN_CHEAT) {
     Spell_C_ClearCooldowns(isPet);
   } else {
     Spell_C_CooldownEventTriggered(
         spellID,
         timeReceived,
         isPet,
-        msgID == static_cast<NETMESSAGE>(463));
+        msgID == SMSG_CLEAR_COOLDOWN);
   }
   return 1;
 }

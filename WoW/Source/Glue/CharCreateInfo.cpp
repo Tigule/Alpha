@@ -522,9 +522,9 @@ void CHARCREATEINFO::ChangeFacialHairTexture(uint race, uint sex) {
 void CHARCREATEINFO::ChangeFacialHairGeosets(uint sex, uint beardGeoset, uint sideburnGeoset, uint moustacheGeoset) {
   FATALASSERT(sex < 2);
   FATALASSERT(geosetHandle[sex]);
-  CharCustomizationShowGeoset(geosetHandle[sex], CGS_FACIAL_BEARD, beardGeoset);
-  CharCustomizationShowGeoset(geosetHandle[sex], CGS_FACIAL_SIDEBURN, sideburnGeoset);
-  CharCustomizationShowGeoset(geosetHandle[sex], CGS_FACIAL_MOUSTACHE, moustacheGeoset);
+  CharCustomizationShowGeoset(geosetHandle[sex], CHARGEOSET_BEARD, beardGeoset);
+  CharCustomizationShowGeoset(geosetHandle[sex], CHARGEOSET_SIDEBURN, sideburnGeoset);
+  CharCustomizationShowGeoset(geosetHandle[sex], CHARGEOSET_MOUSTACHE, moustacheGeoset);
 }
 
 void CHARCREATEINFO::ChangeScalpHairTexture(uint race, uint sex) {
@@ -595,7 +595,7 @@ void CCharCreateInfo::ChangeFacialHairGeosets(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
-    BEARDSTYLEDATA facialData = {1, 1, 1};
+    BEARDSTYLEDATA facialData;
     CharCustomizationGetBeardStyle(race, sex, m_charInfo.selections[sex].facialStyle, &facialData);
     m_charInfo.ChangeFacialHairGeosets(sex, facialData.beardGeoset, facialData.sideBurnGeoset, facialData.moustacheGeoset);
   }
@@ -621,7 +621,7 @@ void CCharCreateInfo::UpdateGeosets(uint sex) {
   FATALASSERT(sex < UNITSEX_LAST);
   uint race = GetSelectedRaceID();
   if (race) {
-    BEARDSTYLEDATA facialData = {1, 1, 1};
+    BEARDSTYLEDATA facialData;
     CharCustomizationGetBeardStyle(race, sex, m_charInfo.selections[sex].facialStyle, &facialData);
     m_charInfo.UpdateGeosets(facialData.beardGeoset, facialData.sideBurnGeoset, facialData.moustacheGeoset, sex);
   }

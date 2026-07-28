@@ -62,11 +62,6 @@ void CDataStore::Reset() {
   m_read = static_cast<unsigned int>(-1);
 }
 
-void CDataStore::Finalize() {
-  ASSERT(!IsFinal());
-  m_read = 0;
-}
-
 void CStatus::Display() const {
 }
 

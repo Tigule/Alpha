@@ -403,11 +403,12 @@ void CGInputControl::UpdatePlayer(unsigned long now) {
   }
 
   const CGUnitData *unit = player->GetUnitData();
-  bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charm &&
+  bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charmedBy &&
                                                                      ((unit->flags & 2) || !(unit->flags & 0xC00004)) && !(unit->flags & 1));
   bool              canMove = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() &&
                               !(player->m_move.m_moveFlags & 0x2400);
-  bool              canTurn = !(unit->flags & 0x40000);
+  bool              canTurn = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() &&
+                              !(unit->flags & 0x40000);
 
   if (canMove) {
     MovePlayer(now, player);
@@ -647,7 +648,7 @@ int CGInputControl::CameraCanTurnPlayer() const {
   }
 
   const CGUnitData *unit = player->GetUnitData();
-  bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charm &&
+  bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charmedBy &&
                                                                      ((unit->flags & 2) || !(unit->flags & 0xC00004)) && !(unit->flags & 1));
   if (unit->health <= 0 || !canIssueMovement || (unit->flags & 0x40000) || player->IsInStandSitTransition() || unit->standState) {
     return 0;

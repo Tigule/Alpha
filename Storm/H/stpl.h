@@ -337,7 +337,8 @@ class TSFixedArray : public TSBaseArray<T> {
 template <class T>
 class TSGrowableArray : public TSFixedArray<T> {
  public:
-  TSGrowableArray() : m_chunk(0) {
+  TSGrowableArray() {
+    m_chunk = 0;
   }
 
   TSGrowableArray(const TSGrowableArray<T> &source) : TSFixedArray<T>(source), m_chunk(source.m_chunk) {

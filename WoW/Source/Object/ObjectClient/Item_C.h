@@ -80,7 +80,9 @@ class CGItem {
  public:
   static unsigned int GetDataSize();
   static unsigned int GetBaseOffset();
-  static unsigned int TotalFields();
+  static __forceinline unsigned int TotalFields() {
+    return 36;
+  }
   static unsigned int GetUpdateMaskBytes();
   static unsigned int GetUpdateMaskBlocks();
 
@@ -202,7 +204,9 @@ class CGItem_C : public CGObject_C, public CGItem {
   }
 
   const VirtualItemInfo *GetVirtualInfo();
-  int IsLocked();
+  int IsLocked() {
+    return m_flags & 1;
+  }
 
   void Unlock() {
     m_flags &= ~1U;

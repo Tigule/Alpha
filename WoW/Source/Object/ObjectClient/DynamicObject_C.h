@@ -30,7 +30,9 @@ class CGDynamicObject {
  public:
   static unsigned int GetDataSize();
   static unsigned int GetBaseOffset();
-  static unsigned int TotalFields();
+  static __forceinline unsigned int TotalFields() {
+    return 16;
+  }
   static unsigned int GetUpdateMaskBytes();
   static unsigned int GetUpdateMaskBlocks();
 
@@ -52,7 +54,7 @@ class CGDynamicObject {
     SetStorage(storage);
   }
 
-  ~CGDynamicObject() {
+  __forceinline ~CGDynamicObject() {
   }
 
   CGDynamicObjectData *DynamicObject() {

@@ -317,6 +317,10 @@ void AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks) {
   for (index = 0; index < numObjects; ++index) {
     unique->cameraStatus[index].base.flags = 0x10;
   }
+  numObjects = unique->textureStatus.Count();
+  for (index = 0; index < numObjects; ++index) {
+    unique->textureStatus[index].base.flags = 0x10;
+  }
   numObjects = unique->modelStatus.Count();
   for (index = 0; index < numObjects; ++index) {
     unique->modelStatus[index].base.flags = 0x10;

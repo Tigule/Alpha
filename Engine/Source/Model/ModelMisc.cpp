@@ -1950,7 +1950,7 @@ static void IModelSetMaterialDisables(HMATERIAL__** materials, unsigned int numM
     FATALASSERT(uniqueMtl);
 
     for (unsigned int layer = 0; layer < uniqueMtl->layers.Count(); ++layer) {
-      unsigned int &disables = uniqueMtl->layers[layer].disables;
+      unsigned long &disables = uniqueMtl->layers[layer].disables;
       if (setMask & 0x01) disables |= 0x01;
       if (setMask & 0x10) disables |= 0x10;
       if (setMask & 0x20) disables |= 0x02;

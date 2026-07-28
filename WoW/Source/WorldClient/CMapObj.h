@@ -308,8 +308,10 @@ class CMapObjGroup {
   unsigned char GetFogId(unsigned int index) {
     return fogIds[index];
   }
-  SMOPoly *GetPoly(unsigned short index) {
-    return &polyList[index];
+  SMOPoly *GetPoly(unsigned short poly) {
+    ASSERT(poly < polyCount);
+    ASSERT(polyList);
+    return &polyList[poly];
   }
   bool         QueryLightmap(const NTempest::C3Vector &point, unsigned short polyIdx, NTempest::CImVector &color);
   bool         QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color);
@@ -462,8 +464,10 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   NTempest::CImVector GetAmbientColor() {
     return ambColor;
   }
-  const SMOMaterial *GetMaterial(unsigned int index) {
-    return &materialList[index];
+  const SMOMaterial *GetMaterial(unsigned int mtlId) {
+    ASSERT(mtlId < materialCount);
+    ASSERT(materialList != 0);
+    return &materialList[mtlId];
   }
   bool IsLoaded() {
     return bLoaded;
