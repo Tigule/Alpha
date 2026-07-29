@@ -51,6 +51,16 @@ LF_VFUNCOFF = 0x140C
 
 CV_PROP_FORWARD_REF = 0x0080
 
+# CodeView symbol records used for function locals. VC6 emits the *_ST
+# variants, whose names are length-prefixed; the non-ST variants use
+# null-terminated names.
+S_REGISTER_ST = 0x1001
+S_BPREL32_ST = 0x1006
+S_REGREL32_ST = 0x100C
+S_REGISTER = 0x1106
+S_BPREL32 = 0x110B
+S_REGREL32 = 0x1111
+
 MAP_BASE = re.compile(r"Preferred load address is\s+([0-9A-Fa-f]+)", re.I)
 MAP_SECTION = re.compile(
     r"^\s*(?P<segment>[0-9A-Fa-f]{4}):(?P<offset>[0-9A-Fa-f]{8})\s+"
@@ -93,6 +103,7 @@ class Procedure:
     segment: int
     offset: int
     length: int
+    locals: tuple[str, ...] = ()
 
 
 @dataclass
@@ -360,6 +371,9 @@ class Pdb2:
 
     def _parse_procedures(self) -> list[Procedure]:
         procedures: dict[tuple[str, str, int, int], Procedure] = {}
+        procedure_locals: dict[tuple[str, str, int, int], list[str]] = (
+            collections.defaultdict(list)
+        )
         for module_obj, stream_index, symbol_size in self._modules():
             if (
                 stream_index < 0
@@ -370,7 +384,11 @@ class Pdb2:
             symbols = self.streams[stream_index][:symbol_size]
             obj = module_obj
             position = 0
+            active_procedure: tuple[str, str, int, int] | None = None
+            procedure_end = -1
             while position + 4 <= len(symbols):
+                if active_procedure is not None and position >= procedure_end:
+                    active_procedure = None
                 record_size, record_type = struct.unpack_from(
                     "<HH", symbols, position
                 )
@@ -390,6 +408,7 @@ class Pdb2:
                         obj = normalize_object(raw.decode("latin1", "replace"))
                 elif record_type in (0x100A, 0x100B, 0x110F, 0x1110):
                     if len(payload) >= 36:
+                        procedure_end = struct.unpack_from("<I", payload, 4)[0]
                         length = struct.unpack_from("<I", payload, 12)[0]
                         type_index = struct.unpack_from("<I", payload, 24)[0]
                         offset, segment = struct.unpack_from("<IH", payload, 28)
@@ -405,9 +424,59 @@ class Pdb2:
                         procedure = Procedure(
                             name, obj, type_index, segment, offset, length
                         )
-                        procedures[(obj, name, segment, offset)] = procedure
+                        active_procedure = (obj, name, segment, offset)
+                        procedures[active_procedure] = procedure
+                elif active_procedure is not None:
+                    local_name = self._local_name(record_type, payload)
+                    if local_name:
+                        procedure_locals[active_procedure].append(local_name)
                 position = record_end
-        return list(procedures.values())
+        return [
+            Procedure(
+                procedure.name,
+                procedure.obj,
+                procedure.type_index,
+                procedure.segment,
+                procedure.offset,
+                procedure.length,
+                tuple(sorted(procedure_locals[key])),
+            )
+            for key, procedure in procedures.items()
+        ]
+
+    @staticmethod
+    def _local_name(record_type: int, payload: bytes) -> str | None:
+        if record_type == S_BPREL32_ST:
+            if len(payload) < 9:
+                return None
+            # Positive EBP offsets are parameters; negative offsets are locals.
+            if struct.unpack_from("<i", payload, 0)[0] >= 0:
+                return None
+            name, _ = pascal_string(payload, 8)
+            return name
+        if record_type == S_BPREL32:
+            if len(payload) < 9 or struct.unpack_from("<i", payload, 0)[0] >= 0:
+                return None
+            return payload[8:].split(b"\0", 1)[0].decode("latin1", "replace")
+        if record_type == S_REGISTER_ST:
+            if len(payload) < 7:
+                return None
+            name, _ = pascal_string(payload, 6)
+            return name
+        if record_type == S_REGISTER:
+            if len(payload) < 7:
+                return None
+            return payload[6:].split(b"\0", 1)[0].decode("latin1", "replace")
+        if record_type == S_REGREL32_ST:
+            if len(payload) < 11:
+                return None
+            name, _ = pascal_string(payload, 10)
+            return name
+        if record_type == S_REGREL32:
+            if len(payload) < 11:
+                return None
+            return payload[10:].split(b"\0", 1)[0].decode("latin1", "replace")
+        return None
 
 
 class TypeTable:
@@ -766,6 +835,20 @@ def compact(value: Any, limit: int = 300) -> str:
     return text if len(text) <= limit else text[:limit - 3] + "..."
 
 
+def describe_locals(groups: Sequence[tuple[str, ...]]) -> str:
+    count = sum(len(names) for names in groups)
+    noun = "local" if count == 1 else "locals"
+    formatted_groups = [list(names) for names in groups]
+    if len(formatted_groups) == 1:
+        text = f"{count} {noun}: {formatted_groups[0]}"
+    else:
+        text = (
+            f"{count} {noun} across {len(groups)} overloads: "
+            f"{formatted_groups}"
+        )
+    return text if len(text) <= 1000 else text[:997] + "..."
+
+
 def compare_pdbs(reference: Pdb2, actual: Pdb2) -> tuple[Comparison, Comparison]:
     reference_groups: dict[tuple[str, str], list[Procedure]] = collections.defaultdict(list)
     actual_groups: dict[tuple[str, str], list[Procedure]] = collections.defaultdict(list)
@@ -809,6 +892,21 @@ def compare_pdbs(reference: Pdb2, actual: Pdb2) -> tuple[Comparison, Comparison]
             )
             for item in found
         )
+        expected_local_sets = sorted(
+            (
+                compact(reference.types.canonical(item.type_index), 1000),
+                item.locals,
+            )
+            for item in expected
+        )
+        actual_local_sets = sorted(
+            (
+                compact(actual.types.canonical(item.type_index), 1000),
+                item.locals,
+            )
+            for item in found
+        )
+        matched = True
         if expected_signatures != actual_signatures:
             signature_result.differences.append(
                 Difference(
@@ -819,7 +917,19 @@ def compare_pdbs(reference: Pdb2, actual: Pdb2) -> tuple[Comparison, Comparison]
                     key[0],
                 )
             )
-        else:
+            matched = False
+        if expected_local_sets != actual_local_sets:
+            signature_result.differences.append(
+                Difference(
+                    "locals",
+                    label,
+                    describe_locals([item.locals for item in expected]),
+                    describe_locals([item.locals for item in found]),
+                    key[0],
+                )
+            )
+            matched = False
+        if matched:
             signature_result.matched += 1
 
     reference_layouts = reference.types.named_layouts()
@@ -1325,7 +1435,17 @@ def print_comparison(comparison: Comparison, max_details: int) -> None:
                 f"{name}={count}" for name, count in sorted(categories.items())
             )
         )
-    for difference in comparison.differences[:max_details]:
+    grouped_differences: dict[str, list[Difference]] = collections.defaultdict(list)
+    for difference in comparison.differences:
+        grouped_differences[difference.category].append(difference)
+    selected_differences: list[Difference] = []
+    if grouped_differences and max_details > 0:
+        category_names = sorted(grouped_differences)
+        per_category, remainder = divmod(max_details, len(category_names))
+        for index, category in enumerate(category_names):
+            limit = per_category + (1 if index < remainder else 0)
+            selected_differences.extend(grouped_differences[category][:limit])
+    for difference in selected_differences:
         location = (
             f" [{difference.compiland}]" if difference.compiland else ""
         )
@@ -1333,7 +1453,7 @@ def print_comparison(comparison: Comparison, max_details: int) -> None:
         if difference.reference or difference.actual:
             print(f"    reference: {difference.reference or '<none>'}")
             print(f"    actual:    {difference.actual or '<none>'}")
-    omitted = comparison.mismatch_count - max_details
+    omitted = comparison.mismatch_count - len(selected_differences)
     if omitted > 0:
         print(f"  ... {omitted} more differences omitted")
     print()
