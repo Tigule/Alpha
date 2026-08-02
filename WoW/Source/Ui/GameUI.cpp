@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "GameUI.h"
 #include "Magic/MagicClient/Spell_C.h"
 #include "TabardCreationFrame.h"
@@ -75,7 +78,9 @@
 #include <UIUtil/InputControl.h>
 #include <storm.h>
 
-extern FrameScript_Method s_GameUIScriptFunctions[126];
+namespace {
+extern FrameScript_Method s_ScriptFunctions[126];
+}
 extern char **Script_GetNamesFromGUID(const unsigned __int64 &guid, int &numnames);
 #include <ctype.h>
 #include <float.h>
@@ -2665,12 +2670,9 @@ static const char                       *s_combatEvent[9] = {
 };
 static const float                       s_distCullValues[3] = {350.0f, 550.0f, 750.0f};
 static const float                       s_smallCullValues[3] = {0.07f, 0.04f, 0.01f};
-static const float                       MAX_INSPECT_DISTANCE = 5.5555553f;
-static const float                       MAX_INSPECT_DISTANCE_SQUARED = MAX_INSPECT_DISTANCE * MAX_INSPECT_DISTANCE;
-static const float                       MAX_TRADE_DISTANCE = 11.111111f;
-static const float                       MAX_TRADE_DISTANCE_SQUARED = MAX_TRADE_DISTANCE * MAX_TRADE_DISTANCE;
-static const float                       MAX_DUEL_DISTANCE = 10.0f;
-static const float                       MAX_DUEL_DISTANCE_SQUARED = MAX_DUEL_DISTANCE * MAX_DUEL_DISTANCE;
+static const float                       MAX_CAMERA_SHIFT = 50.0f;
+static const float                       TARGET_NEAREST_MAX_DISTANCE_SQUARED = 400.0f;
+static const float                       CinematicFadeTime = 0.25f;
 static const char                       *s_screenResolutions[4] = {"800x600", "1024x768", "1280x1024", "1600x1200"};
 
 struct ItemPushInfo {
@@ -3948,7 +3950,7 @@ static int Script_RunScript(lua_State *L) {
 }
 
 static int Script_CheckInteractDistance(lua_State *L) {
-  static const float s_interactDistances[3] = {
+  static float s_interactDistances[3] = {
       MAX_INSPECT_DISTANCE_SQUARED, MAX_TRADE_DISTANCE_SQUARED, MAX_DUEL_DISTANCE_SQUARED
   };
 
@@ -4050,7 +4052,7 @@ static void LoadScriptFunctions() {
   CGTabardModelFrame::RegisterScriptMethods();
 
   for (unsigned int i = 0; i < 126; ++i) {
-    FrameScript_RegisterFunction(s_GameUIScriptFunctions[i].name, s_GameUIScriptFunctions[i].method);
+    FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 
   UIBindingsRegisterScriptFunctions();
@@ -4099,7 +4101,7 @@ static void UnloadScriptFunctions() {
   CGTabardModelFrame::UnregisterScriptMethods();
 
   for (unsigned int i = 0; i < 126; ++i) {
-    FrameScript_UnregisterFunction(s_GameUIScriptFunctions[i].name);
+    FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 
   UIBindingsUnegisterScriptFunctions();
@@ -4271,7 +4273,8 @@ void CGGameUI::ResetCamera() {
   worldFramePtr->SetCameraTarget(player);
 }
 
-FrameScript_Method s_GameUIScriptFunctions[126] = {
+namespace {
+FrameScript_Method s_ScriptFunctions[126] = {
     {          "FrameXML_Debug",           Script_FrameXML_Debug},
     {                "ReloadUI",                 Script_ReloadUI},
     {           "SetLayoutMode",            Script_SetLayoutMode},
@@ -4399,6 +4402,7 @@ FrameScript_Method s_GameUIScriptFunctions[126] = {
     {              "RandomRoll",               Script_RandomRoll},
     {        "OpeningCinematic",         Script_OpeningCinematic}
 };
+}
 
 void CGGameUI::StartCinematic(int cinematicID) {
   memset(&m_cinematic, 0, sizeof(m_cinematic));
@@ -4420,7 +4424,7 @@ void CGGameUI::BeginCinematic() {
     SndInterfacePauseZoneMusic(1);
   }
   HideCursor();
-  EnableFadingScreen(0.25f, BeginCinematicInternal, 0);
+  EnableFadingScreen(CinematicFadeTime, BeginCinematicInternal, 0);
 }
 
 void CGGameUI::BeginCinematicInternal(void *) {
@@ -4469,7 +4473,7 @@ int CGGameUI::StartCinematicCamera() {
   NTempest::C3Vector cameraOrigin(cinematicCamera->m_originX, cinematicCamera->m_originY, cinematicCamera->m_originZ);
   NTempest::C3Vector initialPosition(0.0f);
   if (GetCinematicStartingCameraPosition(cameraModel, cameraOrigin, cameraFacing, initialPosition) &&
-      (camera->Position() - initialPosition).SquaredMag() > 2500.0f) {
+      (camera->Position() - initialPosition).SquaredMag() > MAX_CAMERA_SHIFT * MAX_CAMERA_SHIFT) {
     CWorld::Preload(initialPosition);
   }
 
@@ -4484,12 +4488,12 @@ int CGGameUI::StartCinematicCamera() {
 
   FATALASSERT(!m_cinematic.cameraMusic);
   m_cinematic.cameraMusic = SndInterfacePlayLoopedSound(cinematicCamera->m_soundID, 1);
-  DisableFadingScreen(0.25f, 0, 0);
+  DisableFadingScreen(CinematicFadeTime, 0, 0);
   return 1;
 }
 
 int CGGameUI::NextCinematic(void *) {
-  EnableFadingScreen(0.25f, NextCinematicInternal, 0);
+  EnableFadingScreen(CinematicFadeTime, NextCinematicInternal, 0);
   return 1;
 }
 
@@ -4513,7 +4517,7 @@ void CGGameUI::NextCinematicInternal(void *) {
 
 int CGGameUI::StopCinematic(void *__formal) {
   Sound::KillSound(m_cinematic.sequenceMusic);
-  EnableFadingScreen(0.25f, StopCinematicInternal, 0);
+  EnableFadingScreen(CinematicFadeTime, StopCinematicInternal, 0);
   return 1;
 }
 
@@ -4523,7 +4527,7 @@ void CGGameUI::StopCinematicInternal(void *) {
 
   FrameScript_SignalEvent(354);
   CGObject_C *target = ClntObjMgrObjectPtr(camera->GetTarget(), __FILE__, __LINE__);
-  if (target && (camera->Position() - target->GetPosition()).SquaredMag() > 2500.0f) {
+  if (target && (camera->Position() - target->GetPosition()).SquaredMag() > MAX_CAMERA_SHIFT * MAX_CAMERA_SHIFT) {
     CWorld::Preload(target->GetPosition());
   }
 
@@ -4541,7 +4545,7 @@ void CGGameUI::StopCinematicInternal(void *) {
   msg.Finalize();
   ClientServices_Send(&msg);
   ShowCursor();
-  DisableFadingScreen(0.25f, 0, 0);
+  DisableFadingScreen(CinematicFadeTime, 0, 0);
 }
 
 void CGGameUI::CloseLoot(bool send, bool moving) {
@@ -5493,7 +5497,7 @@ static int TargetUpdateProc(unsigned __int64 guid, void *__formal) {
   }
 
   float distSq = (unit->GetPosition() - player->GetPosition()).SquaredMag();
-  if (distSq <= 400.0f) {
+  if (distSq <= TARGET_NEAREST_MAX_DISTANCE_SQUARED) {
     NearestEnemyData *entry = s_nearestList.New();
     entry->guid = guid;
     entry->distSq = distSq;

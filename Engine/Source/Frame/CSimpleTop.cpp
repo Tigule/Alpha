@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleTop.h"
 
 #include "Base/Activity.h"

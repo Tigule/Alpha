@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "CharacterModelBase.h"
 
 #include "GameUI.h"

@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Object/ObjectClient/NPC_C.h"
 
 #include "Net/NetClient/NetClient.h"
@@ -10,7 +14,9 @@
 
 static int              s_questQueriesPending;
 static int              s_questRewardQueriesPending;
+static unsigned char    s_numQuestsOffered;
 static unsigned __int64 s_npcGUID;
+static int              s_pendingNPCQuest;
 
 static int NPCResponseHandler(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
   unsigned __int64 npcGUID;

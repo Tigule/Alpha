@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleHyperlinkedFrame.h"
 
 #include "Base/Coordinate.h"

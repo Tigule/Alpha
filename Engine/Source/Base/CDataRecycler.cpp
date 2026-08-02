@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "CDataRecycler.h"
 
 CDataRecycler::CDataRecycler(unsigned int nodesPerBlock, long maxNodes) : m_nodeBlockList(0), m_nodeFullList(0), m_nodeEmptyList(0) {

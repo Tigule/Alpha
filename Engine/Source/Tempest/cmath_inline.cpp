@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Tempest/cmath.h"
 
 namespace NTempest {

@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Ui/TabardModelFrame.h"
 #include "Ui/TabardCreationFrame.h"
 

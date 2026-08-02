@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "dxt.h"
 
 DxtColorBlock::Tables DxtColorBlock::tables;

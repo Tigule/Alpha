@@ -1,3 +1,5 @@
+#include <WowConst.h>
+
 #include "CGlueMgr.h"
 
 #include <Base/Status.h>

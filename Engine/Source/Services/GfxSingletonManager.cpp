@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "RibbonEmitter.h"
 #include "IParticleMisc.h"
 #include "ParticleSystem.h"

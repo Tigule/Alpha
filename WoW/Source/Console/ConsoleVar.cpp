@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "ConsoleVar.h"
 #include "ConsoleClient.h"
 

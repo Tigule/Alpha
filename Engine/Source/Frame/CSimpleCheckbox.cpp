@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleCheckbox.h"
 
 #include "Frame/CSimpleRender.h"

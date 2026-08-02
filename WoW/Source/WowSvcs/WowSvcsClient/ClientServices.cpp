@@ -1,3 +1,5 @@
+#include <WowConst.h>
+
 #include <ctype.h>
 #include <new>
 
@@ -20,6 +22,7 @@
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Os/OsTime.h"
+#include "SRP/SRP6.h"
 #include "Os/W32/OSSystem.h"
 #include "Ui/GameUI.h"
 #include "WowServices/WDataStore.h"
@@ -29,15 +32,16 @@ void BotClientSetAccount(const char *accountName, const char *password);
 
 static char                   text[0x100];
 static const char            *s_vendors[4] = {"Unknown", "intel", "AMD", "PPC"};
-static const unsigned __int64 mhzCutoff = 990000000ui64;
+static unsigned __int64       mhzCutoff = 990000000ui64;
 static const char             verstr[0x43] = "WoW [Release Assertions Enabled] Build 3368 (Dec 11 2003 18:01:27)";
 static const char            *s_sexNames[3] = {"Male", "Female", "Neuter"};
-static unsigned int           s_accountNameValid;
+static unsigned char          s_accountNameValid;
 static char                   s_accountName[64];
 static char                   s_redirectServer[64];
 ClientConnection             *g_clientConnection;
 static ClientConnection      *s_currentConnection;
 static CVar                  *s_realmListVar;
+static SRP6_Random            s_srpRandom(OsGetAsyncTimeMs());
 static const char            *s_errorCodeTokens[0x42] = {
     "RESPONSE_SUCCESS",
     "RESPONSE_FAILURE",

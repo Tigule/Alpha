@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Camera.h"
 
 #include "DB/DBClient/AutoCode/CameraShakesRec.h"

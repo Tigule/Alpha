@@ -12,10 +12,6 @@ void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int hol
 void PostMouseUp(EvtContext *context, int button, int x, int y, unsigned int flags, int time);
 void ResetAsyncState();
 
-const float PI = 3.14159265358979323846f;
-const float TWO_PI = PI + PI;
-const float OO_TWO_PI = 1.0f / TWO_PI;
-
 static unsigned int             s_buttonState = 0;
 static unsigned int             s_metaKeyState = 0;
 static unsigned int             s_mouseHoldButton = 0;

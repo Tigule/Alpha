@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Tempest/c3vector.h"
 
 namespace NTempest {

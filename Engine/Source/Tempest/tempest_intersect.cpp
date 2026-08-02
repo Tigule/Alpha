@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Tempest/tempest_intersect.h"
 
 #include "Tempest/c2ivector.h"
@@ -12,7 +14,7 @@
 
 #include <math.h>
 
-NTempest::C2iVector projAxisTable[3] = {
+static NTempest::C2iVector projAxisTable[3] = {
     NTempest::C2iVector(1, 2),
     NTempest::C2iVector(2, 0),
     NTempest::C2iVector(0, 1)

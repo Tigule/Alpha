@@ -1,10 +1,6 @@
 #include "Base.h"
 
-namespace {
-
-  DWORD s_tlsIndex;
-
-}  // namespace
+static DWORD s_tlsIndex;
 
 void PropInitialize() {
   s_tlsIndex = OsTlsAlloc();

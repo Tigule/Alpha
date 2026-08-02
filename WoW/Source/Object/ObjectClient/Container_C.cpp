@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Container_C.h"
 
 #include "ObjectMgrClient/ObjectMgrClient.h"

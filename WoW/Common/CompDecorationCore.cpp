@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include <Component/Component.h>
 #include <Component/CharacterCustomization.h>
 #include <Services/SysMessage.h>
@@ -5,7 +7,6 @@
 
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
 
-#include <Base/Base.h>
 #include <storm.h>
 
 static const char *const s_texComponentBasePath = "Item\\TextureComponents\\";

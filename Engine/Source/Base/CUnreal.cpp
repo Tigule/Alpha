@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include <Base/CUnreal.h>
 #include <Base/CDataStore.h>
 #include <Base/UnrealConstants.h>
@@ -8,7 +10,7 @@
 
 #include <storm.h>
 
-static unsigned int reciprocalLookupTable[1025] = {
+static const unsigned int reciprocalLookupTable[1025] = {
   0x00800000, 0x007FC011, 0x007F8041, 0x007F4091, 0x007F0100, 0x007EC190, 0x007E823E, 0x007E430C,
   0x007E03FA, 0x007DC506, 0x007D8632, 0x007D477D, 0x007D08E7, 0x007CCA70, 0x007C8C17, 0x007C4DDD,
   0x007C0FC2, 0x007BD1C6, 0x007B93E8, 0x007B5628, 0x007B1887, 0x007ADB04, 0x007A9D9F, 0x007A6057,
@@ -140,7 +142,7 @@ static unsigned int reciprocalLookupTable[1025] = {
   0x00000000
 };
 
-static unsigned int sinTable[1025] = {
+static const unsigned int sinTable[1025] = {
   0x00000000, 0x003243F5, 0x006487E2, 0x0096CBC1, 0x00C90F87, 0x00FB532F, 0x012D96B0, 0x015FDA03,
   0x01921D1F, 0x01C45FFE, 0x01F6A296, 0x0228E4E1, 0x025B26D7, 0x028D6870, 0x02BFA9A4, 0x02F1EA6B,
   0x03242ABE, 0x03566A96, 0x0388A9E9, 0x03BAE8B1, 0x03ED26E6, 0x041F647F, 0x0451A176, 0x0483DDC3,
@@ -272,7 +274,7 @@ static unsigned int sinTable[1025] = {
   0x7FFFFFFF
 };
 
-static unsigned int acosTable[1025] = {
+static const unsigned int acosTable[1025] = {
   0x3243F6A8, 0x323BF6A8, 0x3233F6A7, 0x322BF6A6, 0x3223F6A3, 0x321BF69E, 0x3213F696, 0x320BF68B,
   0x3203F67D, 0x31FBF66B, 0x31F3F655, 0x31EBF639, 0x31E3F618, 0x31DBF5F1, 0x31D3F5C3, 0x31CBF58F,
   0x31C3F553, 0x31BBF50F, 0x31B3F4C2, 0x31ABF46C, 0x31A3F40D, 0x319BF3A4, 0x3193F331, 0x318BF2B2,
@@ -404,7 +406,7 @@ static unsigned int acosTable[1025] = {
   0x00100000
 };
 
-static unsigned int acosEdgeTable[138] = {
+static const unsigned int acosEdgeTable[138] = {
   0x7FFFFFFF, 0x7C02E080, 0x77CD2500, 0x73705280, 0x6EE7CB80, 0x6A2DF780, 0x653BEE80, 0x60090280,
   0x5A8A0600, 0x57A99180, 0x54B02C80, 0x519B1C80, 0x4E671F80, 0x4B103E80, 0x47919900, 0x43E50A00,
   0x4002AB00, 0x3DFA2940, 0x3BE00300, 0x39B24AC0, 0x376EB140, 0x35126A80, 0x329A01C0, 0x30012000,

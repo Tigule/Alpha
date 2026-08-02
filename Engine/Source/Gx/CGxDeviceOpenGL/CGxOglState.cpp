@@ -9,7 +9,7 @@
 
 static const float oo255 = 1.0f / 255.0f;
 
-static unsigned int s_glSrcBlend[8] = {GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_SRC_ALPHA, GL_DST_COLOR, GL_DST_COLOR, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA};
+static unsigned int s_glSrcBlend[8] = {GL_ONE, GL_ONE, GL_SRC_ALPHA, GL_SRC_ALPHA, GL_DST_COLOR, GL_DST_COLOR, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA};
 static unsigned int s_glDstBlend[8] = {GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO, GL_SRC_COLOR, GL_ONE, GL_ONE};
 static int          s_texEnv[5] = {GL_REPLACE, GL_MODULATE, GL_DECAL, GL_ADD, -1};
 static unsigned int s_fogStyle[3] = {GL_LINEAR, GL_EXP, GL_EXP2};

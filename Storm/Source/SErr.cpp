@@ -69,12 +69,11 @@ static BOOL                                        s_checkkeyboard;
 static DWORD                                       s_pingcounter;
 static HANDLE                                      s_watchdogevent;
 static HANDLE                                      s_watchdogthread;
-static DWORD                                       s_keysweredown;
+static int                                         s_keysweredown;
 static DWORD                                       s_secondsfrozen;
-static DWORD                                       debugmode;
-static DWORD                                       s_noMiniDumps;
+static int                                         debugmode;
+static int                                         s_noMiniDumps;
 static BOOL                                        checked;
-static DWORD                                       s_debugMemory;
 static EXCEPTION_POINTERS                         *s_exceptionPointers;
 static char                                        buffer[0x100];
 
@@ -190,9 +189,9 @@ static LPCSTR const s_displaystr[] = {
     "The instruction at \"0x%08X\" referenced memory at \"0x%08X\".\nThe memory could not be \"%s\".",
     "read",
     "written",
-    "Missing Debugging DLL",
     "Couldn't locate the \"DbgHelp.dll\" debugging DLL.\n\nSome debugging information will be missing from error log files. Press OK to continue, or "
-    "press Cancel to terminate the program."
+    "press Cancel to terminate the program.",
+    "Missing Debugging DLL"
 };
 
 static LPCSTR GetErrorString(UINT id) {
@@ -284,8 +283,8 @@ static int UndecorateObjectName(const char *source, char *dest, DWORD destchars)
 }
 
 void SErrInitialize() {
-  SRegLoadValue("Internal", "Debug Error Output", 0, &debugmode);
-  SRegLoadValue("Internal", "No Minidumps", 0, &s_noMiniDumps);
+  SRegLoadValue("Internal", "Debug Error Output", 0, (LPDWORD)&debugmode);
+  SRegLoadValue("Internal", "No Minidumps", 0, (LPDWORD)&s_noMiniDumps);
   SErrRegisterThread(GetCurrentThread(), GetCurrentThreadId());
 }
 
@@ -938,10 +937,10 @@ extern "C" void APIENTRY SErrReportNamedResourceLeak(LPCSTR handlename, LPCSTR r
 
   if (!checked) {
     checked = TRUE;
-    SRegLoadValue("Internal", "Debug Memory", 0, &s_debugMemory);
+    SRegLoadValue("Internal", "Debug Memory", 0, (LPDWORD)&debugmode);
   }
 
-  if (!s_debugMemory) {
+  if (!debugmode) {
     return;
   }
 
@@ -951,7 +950,7 @@ extern "C" void APIENTRY SErrReportNamedResourceLeak(LPCSTR handlename, LPCSTR r
     SStrPrintf(errormessage, sizeof(errormessage), "%s", handlename);
   }
 
-  if (!debugmode) {
+  if (!g_opt.serrleaksilentwarning) {
     SErrDisplayError(STORM_ERROR_HANDLE_NEVER_RELEASED, errormessage, -3, NULL, TRUE, 1);
     return;
   }

@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Object/MovementData.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "Ui/WorldFrame.h"

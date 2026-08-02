@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleEditBox.h"
 
 #include "Base/ConvertUTF.h"

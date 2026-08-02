@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "IGxuLight.h"
 
 #include <Base/Activity.h>
@@ -47,7 +49,7 @@ LISTDECL(CGxuLight, CGxuLight::s_lights);
 LISTDECL(CGxuLight, CGxuLight::s_lightsFreeList);
 LISTDECLEX(CGxuLightLink, m_lightLink, CGxuLight::s_linksFreeList);
 static unsigned long                                s_lastLightsHash;
-static CLightList                                   s_dirLightList;
+CLightList                                          s_dirLightList;
 static unsigned int                                 s_updateDirLights;
 static unsigned int                                 s_dirLightSet;
 static unsigned char                                s_forceSettingLights = 1;
@@ -253,8 +255,8 @@ static void IGxuLightUnlock(unsigned long lightId) {
   min = NTempest::C3Vector(light->m_light.m_dir.x - radius, light->m_light.m_dir.y - radius, light->m_light.m_dir.z - radius);
   max = NTempest::C3Vector(light->m_light.m_dir.x + radius, light->m_light.m_dir.y + radius, light->m_light.m_dir.z + radius);
 
-  for (y = static_cast<int>(min.y / s_bucketSize - OneHalfOffset); y <= static_cast<int>(max.y / s_bucketSize - OneHalfOffset); ++y) {
-    for (x = static_cast<int>(min.x / s_bucketSize - OneHalfOffset); x <= static_cast<int>(max.x / s_bucketSize - OneHalfOffset); ++x) {
+  for (y = static_cast<int>(min.y / s_bucketSize - 0.5f); y <= static_cast<int>(max.y / s_bucketSize - 0.5f); ++y) {
+    for (x = static_cast<int>(min.x / s_bucketSize - 0.5f); x <= static_cast<int>(max.x / s_bucketSize - 0.5f); ++x) {
       hashKey = HASHKEY_DWORD((y << 16) | static_cast<unsigned short>(x));
       unsigned int   hash = hashKey.GetDword() % 0x1FFF;
       CLightList    *list = CLightList::s_lightHashTable.Ptr(hash, hashKey);
@@ -303,8 +305,8 @@ static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vecto
 
   ActivityBegin(ACTIVITY_LIGHTING);
 
-  y = static_cast<int>(worldPos.y / s_bucketSize - OneHalfOffset);
-  x = static_cast<int>(worldPos.x / s_bucketSize - OneHalfOffset);
+  y = static_cast<int>(worldPos.y / s_bucketSize - 0.5f);
+  x = static_cast<int>(worldPos.x / s_bucketSize - 0.5f);
   hashKey = HASHKEY_DWORD((y << 16) | static_cast<unsigned short>(x));
   hash = hashKey.GetDword() % 0x1FFF;
   list = CLightList::s_lightHashTable.Ptr(hash, hashKey);

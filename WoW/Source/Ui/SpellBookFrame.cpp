@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "SpellBookFrame.h"
 
 #include <DB/DBClient/AutoCode/LanguagesRec.h>

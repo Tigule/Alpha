@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "GameObject_C.h"
 
 #include "DB/DBClient/AutoCode/LockRec.h"
@@ -44,6 +48,8 @@ class CGameObjectDef {
 
 #define MAX_CHAIR_SLOTS 5
 
+static const char NONAME[7] = "NoName";
+
 inline unsigned int CGGameObject_C_Type_Door::GetStartOpen() const {
   return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 1));
 }
@@ -78,13 +84,6 @@ static const char *s_statusString[11] = {
     "Custom2", "Custom3", 0, 0, 0
 };
 
-static const float MAX_SITCHAIRUSE_DISTANCE = 3.0f;
-static const float MAX_SITCHAIRUSE_DISTANCE_SQUARED =
-    MAX_SITCHAIRUSE_DISTANCE * MAX_SITCHAIRUSE_DISTANCE;
-static const float MAX_LOOT_DISTANCE = 5.0f;
-static const float MAX_BIND_DISTANCE = 10.0f;
-static const float MAX_SHOP_DISTANCE = 5.5555553f;
-static const float MAX_OBJ_INTEREST_RADIUS = 100.0f;
 
 static CGGameObject_C_Type_Null s_nullBaseObj;
 
@@ -536,7 +535,7 @@ const char *CGGameObject_C::GetModelFileNameInternal() const {
   const GameObjectDisplayInfoRec *displayInfo = g_gameObjectDisplayInfoDB.GetRecord(displayID);
   if (!displayInfo) {
     SysMsgPrintf(SYSMSG_FATAL, 2, "NOOBJECTFILENAME|%d|%d|Game", displayID, m_obj->m_entryID);
-    return "NoName";
+    return NONAME;
   }
 
   return displayInfo->m_modelName;

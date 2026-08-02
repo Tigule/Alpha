@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include <windows.h>
 
 char *OsGetLastErrorStr() {

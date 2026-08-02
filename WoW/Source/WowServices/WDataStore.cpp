@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "WDataStore.h"
 
 #include "ObjectAlloc/ObjectAllocTemplate.h"

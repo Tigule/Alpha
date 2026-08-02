@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Item_C.h"
 
 #include "Object/ObjectClient/Player_C.h"
@@ -157,7 +160,7 @@ struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
 };
 
 static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryTextures;
-static HASHKEY_NONE                            s_nullInventoryArtKey;
+static HASHKEY_NONE                            s_nullHashKey;
 
 static int OnUpdateEnchantments(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
   CGItem_C *item = static_cast<CGItem_C *>(
@@ -190,12 +193,12 @@ static int OnUpdateItemID(unsigned __int64 guid, unsigned int offset, unsigned i
 }
 
 static void AddInventoryArtHash(unsigned int displayID, const char *fileName) {
-  INVENTORYART *entry = s_inventoryTextures.New(displayID, s_nullInventoryArtKey, 0, 0);
+  INVENTORYART *entry = s_inventoryTextures.New(displayID, s_nullHashKey, 0, 0);
   entry->SetArt(fileName);
 }
 
 static const char *GetInventoryArtHash(unsigned int displayID) {
-  INVENTORYART *entry = s_inventoryTextures.Ptr(displayID, s_nullInventoryArtKey);
+  INVENTORYART *entry = s_inventoryTextures.Ptr(displayID, s_nullHashKey);
   return entry ? entry->textureName : 0;
 }
 

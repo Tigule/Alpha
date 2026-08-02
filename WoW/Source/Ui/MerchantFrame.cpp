@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "GameUI.h"
 #include "MerchantFrame.h"
 
@@ -19,8 +23,6 @@
 
 void CursorModelSetSequence(CURSORANIMATIONS sequence);
 
-static const float MAX_SHOP_DISTANCE = 5.5555553f;
-static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
 
 unsigned __int64 CGMerchantInfo::m_merchant;
 VendorItem       CGMerchantInfo::m_items[128];

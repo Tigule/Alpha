@@ -4,8 +4,6 @@
 #include <float.h>
 #include <math.h>
 
-static float OneHalfOffset = 0.5f;
-
 namespace NTempest {
 
   class CMath {

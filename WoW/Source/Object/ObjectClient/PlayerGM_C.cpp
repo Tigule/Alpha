@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Object/ObjectClient/Player_C.h"
 
 #include "ObjectMgrClient/ObjectMgrClient.h"
@@ -13,7 +17,7 @@
 
 static unsigned __int64 s_ghostTarget;
 static unsigned int     s_lastGhostUpdate;
-static unsigned int     s_ghostRequestPending;
+static unsigned char    s_ghostRequestPending;
 static unsigned __int64 s_ghostTargetRequested;
 static char             s_ghostNameRequested[256];
 static unsigned __int64 s_realActivePlayer;

@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 struct lua_State;
 static int Script_HasFullControl(lua_State *L);
 

@@ -1,8 +1,6 @@
-#include <Base/UnrealConstants.h>
+#include <Base/Base.h>
 
-float PI = 3.14159265358979323846f;
-float TWO_PI = PI + PI;
-float OO_TWO_PI = 1.0f / TWO_PI;
+#include <Base/UnrealConstants.h>
 
 const unreal u_n2_5 = unreal::fromBits(0xC0200000);
 const unreal u_n2 = unreal::fromInt(-2);

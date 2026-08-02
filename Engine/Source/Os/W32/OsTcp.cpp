@@ -1,4 +1,5 @@
 #include "Os/W32/OsTcp.h"
+#include <Base/Base.h>
 
 #include <stdarg.h>
 

@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "ConvertUTF.h"
 
 typedef unsigned long UCS4;

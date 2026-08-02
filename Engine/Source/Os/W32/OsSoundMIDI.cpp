@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "OsSound.h"
 
 #include "Gx/Gx.h"

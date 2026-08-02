@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleCheckbox.h"
 #include "FrameXML/LoadXML.h"
 

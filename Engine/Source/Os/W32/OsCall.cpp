@@ -49,16 +49,12 @@ NODEDECL(ContextData) {
   char          m_title[0x80];
 };
 
-namespace {
-
-  CInitCritSect                                s_critsect;
-  LISTDECL(ThreadData, s_threadDataList);
-  LISTDECL(ContextData, s_contextDataList);
-  unsigned long                                s_tlsIndex;
-  unsigned long                                s_initCount;
-  int                                          s_enable = 1;
-
-}  // namespace
+static CInitCritSect                                s_critsect;
+static LISTDECL(ThreadData, s_threadDataList);
+static LISTDECL(ContextData, s_contextDataList);
+static unsigned long                                s_tlsIndex;
+static unsigned long                                s_initCount;
+static int                                          s_enable = 1;
 
 void OsCallInitialize(const char *threadName) {
   s_critsect.Enter();

@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldClient/CMapObj.h"
 #include "WorldClient/World.h"
 #include "WorldCommon/WorldMath.h"
@@ -281,7 +284,7 @@ void CMapObj::RenderGroup(
 
 void CMapObj::UpdateMaterials() {
   DNInfo      *dnInfo = DayNightGetInfo();
-  unsigned int amount = static_cast<unsigned int>(dnInfo->sidn * 255.0f - OneHalfOffset);
+  unsigned int amount = static_cast<unsigned int>(dnInfo->sidn * 255.0f - 0.5f);
 
   for (unsigned int lp = 0; lp < materialCount; ++lp) {
     SMOMaterial &material = materialList[lp];

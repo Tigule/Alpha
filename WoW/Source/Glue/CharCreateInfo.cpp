@@ -1,3 +1,5 @@
+#include <WowConst.h>
+
 #include "Glue/CharCreateInfo.h"
 
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
@@ -40,6 +42,9 @@ static TEXCOMPONENT_SECTIONS s_removeSections[8] = {TCS_UPPERARM,   TCS_LOWERARM
                                                     TCS_LOWERTORSO, TCS_LEGUPPER, TCS_LEGLOWER, TCS_FEET};
 
 static uint s_startingLayer[8] = {1, 1, 1, 1, 1, 1, 1, 1};
+static const float s_cameraTargetZ = 0.97222221f;
+static const float s_cameraOrbitRadius = 11.666667f;
+static const float s_cameraOrbitHeight = 8.333333f;
 
 extern const int *const g_ITEMTYPEARRAY;
 void SetHandsState(HMODEL model, int itemSlot, int itemInventoryType);
@@ -79,7 +84,7 @@ static int Script_GetCharacterFacing(lua_State *L);
 static int Script_SetCharacterFacing(lua_State *L);
 static int Script_CreateCharacter(lua_State *L);
 
-static const FrameScript_Method s_ScriptFunctions[20] = {
+static FrameScript_Method s_ScriptFunctions[20] = {
     {        "SetCharCustomizeFrame",         Script_SetCharCustomizeFrame},
     {   "SetCharCustomizeBackground",    Script_SetCharCustomizeBackground},
     {           "ResetCharCustomize",            Script_ResetCharCustomize},
@@ -671,12 +676,12 @@ void CCharCreateInfo::SetSelectedRace(uint index, int updateModel) {
       selection.facialStyle = RandomSelection(CharCustomizationNumBeardStyles(index, sex));
       selection.face = RandomSelection(pcFaceVars);
 
-      m_charInfo.cameraHeight[sex][0] = 8.333333f;
-      m_charInfo.cameraHeight[sex][1] = 8.333333f;
-      m_charInfo.cameraRadius[sex][0] = 11.666667f;
-      m_charInfo.cameraRadius[sex][1] = 11.666667f;
-      m_charInfo.targetHeight[sex][0] = 0.97222221f;
-      m_charInfo.targetHeight[sex][1] = 0.97222221f;
+      m_charInfo.cameraHeight[sex][0] = s_cameraOrbitHeight;
+      m_charInfo.cameraHeight[sex][1] = s_cameraOrbitHeight;
+      m_charInfo.cameraRadius[sex][0] = s_cameraOrbitRadius;
+      m_charInfo.cameraRadius[sex][1] = s_cameraOrbitRadius;
+      m_charInfo.targetHeight[sex][0] = s_cameraTargetZ;
+      m_charInfo.targetHeight[sex][1] = s_cameraTargetZ;
     }
   }
 

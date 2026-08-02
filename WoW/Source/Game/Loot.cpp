@@ -1,7 +1,10 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+
 #include <storm.h>
 
 static int          s_currencyMultiplier[3];
-static unsigned int s_lootInitialized;
+static unsigned char s_lootInitialized;
 
 int CurrencyMultiplier(int denomination) {
   FATALASSERT(s_lootInitialized);

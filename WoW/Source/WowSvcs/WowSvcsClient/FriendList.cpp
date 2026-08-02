@@ -1,7 +1,11 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+
 #include "WowSvcs/WowSvcsClient/FriendList.h"
 
 #include "Console/ConsoleCommand.h"
 #include "Console/ConsoleClient.h"
+#include "Console/ConsoleVar.h"
 #include "DB/DBClient/AutoCode/AreaTableRec.h"
 #include "DB/DBClient/AutoCode/ChrClassesRec.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
@@ -14,7 +18,9 @@
 #include <Base/CDataStore.h>
 #include <FrameScript/FrameScript.h>
 
-extern FrameScript_Method s_FriendListScriptFunctions[19];
+namespace {
+extern FrameScript_Method s_ScriptFunctions[19];
+}
 
 #include <ctype.h>
 #include <lua.h>
@@ -43,6 +49,8 @@ struct WhoListEntry {
 static WhoListEntry s_whoList[50];
 static unsigned int s_numWhos;
 static unsigned int s_totalNumWhos;
+static const char  *s_partyStatusStrings[3] = {"no", "yes", "looking"};
+static CVar        *s_whoChatThreshold;
 static int          s_whoToUI;
 
 enum WHO_SORT_TYPE {
@@ -61,7 +69,6 @@ struct WhoSortType {
   int           reverse;
 };
 
-static WhoSortType s_whoSortCriteria[NUM_WHO_SORT_TYPES];
 
 FriendList::FriendList() : m_friendNamesPending(0), m_selectedFriend(0), m_ignoreNamesPending(0), m_selectedIgnore(0) {
   memset(m_friends, 0, sizeof(m_friends));
@@ -410,7 +417,7 @@ static int Script_GetWhoInfo(lua_State *L) {
   lua_pushstring(L, playerClass ? playerClass->m_name_lang[CURRENT_LANGUAGE] : "");
   const AreaTableRec *area = g_areaTableDB.GetRecord(entry.areaID);
   lua_pushstring(L, area ? area->m_AreaName_lang[CURRENT_LANGUAGE] : "");
-  lua_pushstring(L, entry.partyStatus == 0 ? "" : (entry.partyStatus == 1 ? "LFG" : "FULL"));
+  lua_pushstring(L, s_partyStatusStrings[entry.partyStatus]);
   return 7;
 }
 
@@ -432,13 +439,13 @@ static int Script_SortWho(lua_State *L) {
 
 void FriendList::RegisterScriptFunctions() {
   for (int i = 0; i < 19; ++i) {
-    FrameScript_RegisterFunction(s_FriendListScriptFunctions[i].name, s_FriendListScriptFunctions[i].method);
+    FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void FriendList::UnregisterScriptFunctions() {
   for (int i = 0; i < 19; ++i) {
-    FrameScript_UnregisterFunction(s_FriendListScriptFunctions[i].name);
+    FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }
 
@@ -468,7 +475,8 @@ static int OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStor
   msg->Get(count);
   msg->Get(s_totalNumWhos);
   s_numWhos = min(count, 50U);
-  int toChat = !s_whoToUI && count <= 3;
+  int threshold = s_whoChatThreshold ? s_whoChatThreshold->GetInt() : 3;
+  int toChat = !s_whoToUI && (threshold < 0 || count <= static_cast<unsigned int>(threshold));
 
   for (unsigned int i = 0; i < count; ++i) {
     WhoListEntry entry;
@@ -529,10 +537,6 @@ void FriendList::Initialize() {
   ConsoleCommandRegister("whois", CCommand_Whois, DEBUG, "Ask the server to do an account/real name lookup on a character name");
   ConsoleCommandRegister("rwhois", CCommand_RWhois, DEBUG, "Ask the server to do an reverse lookup on an account's real name");
 
-  for (int i = WHO_SORT_ZONE; i < NUM_WHO_SORT_TYPES; ++i) {
-    s_whoSortCriteria[i].type = static_cast<WHO_SORT_TYPE>(i);
-    s_whoSortCriteria[i].reverse = 0;
-  }
 }
 
 void FriendList::Destroy() {
@@ -921,7 +925,8 @@ char *StripQuotes(char *string) {
   return string + 1;
 }
 
-FrameScript_Method s_FriendListScriptFunctions[19] = {
+namespace {
+FrameScript_Method s_ScriptFunctions[19] = {
     {    "GetNumFriends",     Script_GetNumFriends},
     {    "GetFriendInfo",     Script_GetFriendInfo},
     {"SetSelectedFriend", Script_SetSelectedFriend},
@@ -942,6 +947,7 @@ FrameScript_Method s_FriendListScriptFunctions[19] = {
     {       "SetWhoToUI",        Script_SetWhoToUI},
     {          "SortWho",           Script_SortWho}
 };
+}
 
 void FriendList::SendWho(const char *str) {
   char         words[4][128];

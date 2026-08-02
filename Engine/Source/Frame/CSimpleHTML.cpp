@@ -8,6 +8,8 @@
 
 #include <storm.h>
 
+static CStatus s_nullStatus;
+
 CSimpleHTML::CSimpleHTML(CSimpleFrame *parent) : CSimpleHyperlinkedFrame(parent) {
 }
 
@@ -42,8 +44,6 @@ void CSimpleHTML::LoadXML(const XMLNode *node, CStatus *status) {
 }
 
 bool CSimpleHTML::SetText(const char *text, CStatus *status) {
-  static CStatus s_nullStatus;
-
   if (!status) {
     status = &s_nullStatus;
   }

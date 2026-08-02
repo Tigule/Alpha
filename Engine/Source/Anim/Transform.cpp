@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Anim/AnimInternal.h"
 
 #include "Anim/WorldMatrix.h"

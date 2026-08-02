@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldClient/CMapObj.h"
 #include "WorldClient/World.h"
 #include "WorldCommon/WorldMath.h"
@@ -23,7 +26,6 @@ unsigned int            CMapObjGroup::rDrawSharedLiquidFirst;
 unsigned int            CMapObjGroup::rDrawSharedLiquidToggle;
 
 static float *t[16];
-static const float OOSMOLTILE_SIZE = 1.0f / 4.1666665f;
 
 class BspQuery {
  public:

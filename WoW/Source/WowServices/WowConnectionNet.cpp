@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "WowConnectionNet.h"
 
 #include "Console/ConsoleClient.h"

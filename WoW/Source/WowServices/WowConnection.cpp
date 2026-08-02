@@ -2,6 +2,7 @@
 
 #include "WowConnection.h"
 
+#include "Base/Base.h"
 #include "Base/CDataStore.h"
 #include "Os/OsTime.h"
 #include "WDataStore.h"
@@ -9,10 +10,6 @@
 
 #include <new>
 #include <string.h>
-
-const float PI = 3.14159265358979323846f;
-const float TWO_PI = PI + PI;
-const float OO_TWO_PI = 1.0f / TWO_PI;
 
 static unsigned int s_destroyed;
 bool(*WowConnection::m_verifyAddr)(const NETADDR *);

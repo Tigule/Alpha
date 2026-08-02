@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleFrame.h"
 
 #include "Frame/CBackdropGenerator.h"

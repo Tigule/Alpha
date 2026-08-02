@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/World.h"
 

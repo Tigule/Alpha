@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include <Base/CDataStore.h>
 #include <Base/ConvertUTF.h>
 

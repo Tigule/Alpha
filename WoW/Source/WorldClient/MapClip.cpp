@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldClient/World.h"
 
 static const unsigned long vCnt[4] = {2, 3, 5, 9};

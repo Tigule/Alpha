@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include <Base/Handle.h>
 #include <Event/EvtApi.h>
 #include <Gx/Gx.h>

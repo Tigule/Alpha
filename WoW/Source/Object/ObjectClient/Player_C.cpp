@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Object/ObjectClient/Player_C.h"
 #include "Magic/MagicClient/Spell_C.h"
 
@@ -127,6 +130,12 @@ struct RandomRollInfo {
 
 static const char coinToken[3][16] = {"COPPER", "SILVER", "GOLD"};
 static const char NONAME[7] = "NoName";
+static const unsigned int DEATHBINDSOUNDID = 1141;
+static const int BROADCASTTO = 5;
+static const float AUTOMOVE_WALK_THRESHOLD_DISTANCE = 0.16666667f;
+static const float AUTOMOVE_WALK_THRESHOLD_DISTANCE_SQ = AUTOMOVE_WALK_THRESHOLD_DISTANCE * AUTOMOVE_WALK_THRESHOLD_DISTANCE;
+static const float AUTOMOVE_STOP_THRESHOLD_DISTANCE = 0.16666667f;
+static const float AUTOMOVE_STOP_THRESHOLD_DISTANCE_SQ = AUTOMOVE_STOP_THRESHOLD_DISTANCE * AUTOMOVE_STOP_THRESHOLD_DISTANCE;
 
 struct ITEMEXPIRATION : public TSHashObject<ITEMEXPIRATION, CHashKeyGUID> {
   int timeLeft;
@@ -207,12 +216,11 @@ static GAME_ERROR_TYPE s_tabardErrors[7] = {GERR_GUILDEMBLEM_SUCCESS, GERR_GUILD
 static PetitionVendorItem         petitionList[10];
 static VendorItem                 s_lastVendorList[128];
 static int                        currentAreaTrigger;
-static unsigned int               s_tempCombatModeCooldown;
+static unsigned int               s_tempCombatModeCooldown = 1000;
 static unsigned int               s_attackBreakTimer;
 static int                        s_bindSaved;
 static NTempest::C3Vector         s_bindPosition;
 static unsigned int               s_bindZoneID;
-static const float                MAX_BIND_DISTANCE = 10.0f;
 static TSFixedArray<unsigned int> s_weaponSubclassSpells;
 static unsigned int               s_defenseSkillID;
 static TSGrowableArray<ITEMSWAP>  s_pendingSwaps;
@@ -427,7 +435,7 @@ static LISTDECL(DEFERREDDAMAGE, s_deferredDamage);
 static LISTDECL(DEFERREDSPELLMISS, s_deferredSpellMiss);
 static TInstanceAllocator<DEFERREDDAMAGE>                       s_freeDeferedDamage(100);
 static TInstanceAllocator<DEFERREDSPELLMISS>                    s_freeDeferredSpellMiss(100);
-static int                                                      s_pendingCinematicID;
+static int                                                      s_loginCinematicID;
 static const int                                                CHARACTER_POINTS_PER_LEVEL[2] = {10, 1};
 static const int                                                CHARACTER_POINTS_PER_BONUS[2] = {0, 1};
 static const int                                                LEVELS_PER_CHARACTER_POINT_BONUS[2] = {1, 5};
@@ -599,10 +607,10 @@ static int PlayerCombatModeHandler(const void *data, unsigned __int64 guid, void
 }
 
 int Player_C_ZoneUpdateHandler(const void *eventData, void *arg) {
-  static unsigned int updateCount;
+  static int ticks;
 
-  if (++updateCount >= 10) {
-    updateCount -= 10;
+  if (++ticks >= 10) {
+    ticks -= 10;
     unsigned __int64 guid = ClntObjMgrGetActivePlayer();
     CGPlayer_C      *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
     if (player) {
@@ -627,8 +635,9 @@ int WhoCommandHandler(const char *command, const char *arguments) {
 }
 
 void ShowForceActionFlags(unsigned int *flags) {
+  static const char *flagName[2] = {"Self force flags:", "Victim force flags:"};
   for (unsigned int target = 0; target < 2; ++target) {
-    ConsoleWrite(target ? "Victim force flags:" : "Self force flags:", DEFAULT_COLOR);
+    ConsoleWrite(flagName[target], DEFAULT_COLOR);
     for (unsigned int action = 0; action < 18; ++action) {
       ConsolePrintf("[%d] %s: %s", action, s_actionsArray[action], flags[target] & (1 << action) ? "on" : "off");
     }
@@ -691,7 +700,7 @@ int OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDa
       if (ClientServices_CharacterIsInGame()) {
         CGGameUI::StartCinematic(cinematicID);
       } else {
-        s_pendingCinematicID = cinematicID;
+        s_loginCinematicID = cinematicID;
       }
       return 1;
     }
@@ -3003,9 +3012,9 @@ static int SetLocalPlayerInGame(const void *eventData, void *param) {
   ClientServices_CharacterSetInGame(1);
   AsyncFileReadWaitAll();
 
-  if (s_pendingCinematicID) {
-    CGGameUI::StartCinematic(s_pendingCinematicID);
-    s_pendingCinematicID = 0;
+  if (s_loginCinematicID) {
+    CGGameUI::StartCinematic(s_loginCinematicID);
+    s_loginCinematicID = 0;
   } else {
     DisableLoadingScreen();
   }
@@ -6288,7 +6297,7 @@ void CGPlayer_C::PlayVocalMacro(int category) {
     if (player) {
       UNITAFFILIATION affiliation = player->GetGUIDAffiliation(GetGUID());
       RequestTalkEmote(TALKANIM_SHOUT);
-      if (5 & (1 << affiliation)) {
+      if (BROADCASTTO & (1 << affiliation)) {
         SoundInterfacePlayVocalMacro(this, category);
       }
     }

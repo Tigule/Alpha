@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Object_C.h"
 
 #include "AnimCompiles.h"
@@ -46,6 +49,7 @@ static CGxTex  *s_fadeTex;
 static HTEXTURE s_selectionTexture;
 
 static const float Gx_MaxTexAspect = 8.0f;
+static const char *const ITEM_GROUNDMODEL_DIRPREFIX = "Item\\GroundObjects";
 
 static unsigned int GenerateAnimFlags(unsigned int objectFlags) {
   unsigned int animFlags = 0;
@@ -270,7 +274,7 @@ int CGObject_C::InitModelFileName(char *modelFileName, unsigned int size) {
     case HIER_TYPE_CONTAINER:
       name = static_cast<CGItem_C *>(this)->CGItem_C::GetModelFileName();
       if (name) {
-        SStrPrintf(modelFileName, size, "%s\\%s", "Item\\GroundObjects", name);
+        SStrPrintf(modelFileName, size, "%s\\%s", ITEM_GROUNDMODEL_DIRPREFIX, name);
       }
       return modelFileName[0] != 0;
 
@@ -619,7 +623,7 @@ void CGObject_C::Initialize() {
     GxTexDestroy(s_fadeTex);
   }
 
-  static const unsigned int FADETEX_WIDTH = static_cast<unsigned int>(Gx_MaxTexAspect * 8.0f);
+  static unsigned int FADETEX_WIDTH = static_cast<unsigned int>(Gx_MaxTexAspect * 8.0f);
   static const unsigned int FADETEX_HEIGHT = 8;
   GxTexCreate(
       FADETEX_HEIGHT, FADETEX_WIDTH, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0,

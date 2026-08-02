@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Coordinate.h"
 
 void NDCToDDC(float ndcx, float ndcy, float *ddcx, float *ddcy) {

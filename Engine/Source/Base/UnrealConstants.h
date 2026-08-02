@@ -3,10 +3,6 @@
 
 #include <Base/CUnreal.h>
 
-extern float TWO_PI;
-extern float OO_TWO_PI;
-extern float PI;
-
 extern const unreal u_n2_5;
 extern const unreal u_n2;
 extern const unreal u_n1;

@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "ReputationInfo.h"
 
 #include "DB/DBClient/AutoCode/FactionRec.h"
@@ -232,9 +236,9 @@ static int Script_GetFactionInfo(lua_State *L) {
     lua_pushstring(L, rec->m_name_lang[CURRENT_LANGUAGE]);
     UNIT_REACTION    reaction = CGReputationInfo::GetFactionStandingReaction(faction);
     lua_pushnumber(L, static_cast<double>(reaction + 1));
-    static const int threshold[8] = {-4200, -600, -300, 0, 300, 900, 2100, 3300};
-    int              min = threshold[reaction];
-    int              max = threshold[reaction + 1];
+    static const int s_factionThreshold[8] = {-4200, -600, -300, 0, 300, 900, 2100, 3300};
+    int              min = s_factionThreshold[reaction];
+    int              max = s_factionThreshold[reaction + 1];
     int              standing = CGReputationInfo::GetFactionStanding(faction);
     FATALASSERT(standing >= min && standing <= max);
     lua_pushnumber(L, static_cast<double>(standing - min) / (max - min));

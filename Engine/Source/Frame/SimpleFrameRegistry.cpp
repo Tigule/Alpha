@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/SimpleFrameRegistry.h"
 
 #include "Services/SysMessage.h"

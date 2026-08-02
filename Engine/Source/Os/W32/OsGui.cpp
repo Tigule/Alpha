@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "OsGui.h"
 #include "Input.h"
 #include "Debugging.h"
@@ -51,22 +53,12 @@ static void                         *s_GxDevWindow;
 static TSGrowableArray<COsDialog *>  sDialogs;
 static TSGrowableArray<COsMenuBar *> sMenubars;
 static int                           sMenuHotkeysEnabled = 1;
-static int                           sMasterTooltipsEnabled;
+static int                           sMasterTooltipsEnabled = 1;
 static HWND                          sGlobalTips;
-static unsigned int                  sIdleTimerID;
-
-struct OsGuiCodeTranslation {
-  int winCode;
-  int ctrlType;
-  int osGuiCode;
-};
-
-static const OsGuiCodeTranslation table[18] = {
-    {0, 0, 0},      {1, 0, 0},     {4, 768, 2},  {4, 512, 13},
-    {5, 1, 2},      {6, 1, 2},     {6, 2, 1},    {7, 0, 2},
-    {10, -402, 2},  {10, -3, 1},   {10, -411, 8},{10, -7, 14},
-    {10, -8, 13},   {11, 0, 0},    {13, 4, 2},   {14, 0, 2},
-    {15, -551, 2},  {16, -3, 1}};
+static int                           sIdleTimerID;
+static const char *const             OsGuiPointerProp = "OsGuiPointer";
+static const unsigned int            SelectedState = 3;
+static const unsigned int            lvExtStyle = 0x20;
 
 struct OsGuiCallbackInfo {
   void(*function)(const OsGuiCallbackParams &);
@@ -74,17 +66,17 @@ struct OsGuiCallbackInfo {
 };
 static OsGuiCallbackInfo sCallbacks[2];
 
-static const DWORD ControlStyles[20] = {
-    0x00000080, 0x00000100, 0x0000010E, 0x00810080, 0x00210003,
-    0x00A10001, 0x00010006, 0x00800001, 0x00000001, 0x00810033,
-    0x0000000B, 0x00000007, 0x00000020, 0x00000009, 0x00000000,
-    0x00A1000D, 0x00001100, 0x00000000, 0x00040100, 0x00000000
+static const unsigned int ControlStyles[20] = {
+    0x00010000, 0x00000080, 0x00000100, 0x0000010E, 0x00810080,
+    0x00210003, 0x00A10001, 0x00010006, 0x00800001, 0x00000001,
+    0x00810033, 0x0000000B, 0x00000007, 0x00000020, 0x00000009,
+    0x00000000, 0x00A1000D, 0x00001100, 0x00000000, 0x00040100
 };
-static const DWORD ControlStylesExt[20] = {
+static const unsigned int ControlStylesExt[20] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
-static const int ControlFont[20] = {
-    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+static const unsigned int ControlFont[20] = {
+    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 static const char *ControlClassName[20] = {
     "BUTTON", "BUTTON", "STATIC", "STATIC", "EDIT",
@@ -456,6 +448,19 @@ static void sGetHotkeyText(int keyID, int modID, char* buf, int bufSize) {
 }
 
 static int sNCodeToItemCode(int nCode, int ctrlType) {
+  struct OsGuiCodeTranslation {
+    int winCode;
+    int ctrlType;
+    int osGuiCode;
+  };
+
+  static const OsGuiCodeTranslation table[18] = {
+      {0, 0, 0},      {1, 0, 0},     {4, 768, 2},  {4, 512, 13},
+      {5, 1, 2},      {6, 1, 2},     {6, 2, 1},    {7, 0, 2},
+      {10, -402, 2},  {10, -3, 1},   {10, -411, 8},{10, -7, 14},
+      {10, -8, 13},   {11, 0, 0},    {13, 4, 2},   {14, 0, 2},
+      {15, -551, 2},  {16, -3, 1}};
+
   for (unsigned int i = 0; i < sizeof(table) / sizeof(table[0]); ++i) {
     if (table[i].ctrlType == ctrlType && table[i].winCode == nCode) {
       return table[i].osGuiCode;

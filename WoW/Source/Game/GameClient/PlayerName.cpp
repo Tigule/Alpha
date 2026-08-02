@@ -72,7 +72,7 @@ struct UNITNAMESTRINGS {
 
 static CGxFont                          *s_playerNameFont;
 static LISTDECLEX(PLAYERNAMEDESC, m_link, s_playerNames);
-static int                               s_showNames;
+static int                               s_showNames = 1;
 static CVar                             *s_unitShowMode;
 static CVar                             *s_showTypeCVars[8];
 static unsigned int                      s_showTypeFlags[2] = {-1, -1};

@@ -1,3 +1,6 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+
 #include "SoundInterface.h"
 
 #include "DB/DBClient/AutoCode/ZoneMusicRec.h"
@@ -11,7 +14,7 @@ static int           s_flags;
 static const ZoneMusicRec *s_currentMusic;
 static Sound        *s_sound;
 static int           s_elapsed;
-static int           s_nextPlay;
+static int           s_nextPlay = -1;
 static NTempest::CRndSeed s_rndSeed;
 
 static int GetNextPlayTime() {

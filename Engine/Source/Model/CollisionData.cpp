@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Model/CollisionData.h"
 
 #include "Gx/Gx.h"
@@ -10,8 +12,8 @@
 
 unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
 
-static const unsigned short vertIndices[36] = {4, 6, 0, 0, 6, 2, 4, 0, 5, 5, 0, 1, 0, 2, 1, 1, 2, 3,
-                                               2, 6, 3, 3, 6, 7, 1, 3, 5, 5, 3, 7, 5, 7, 4, 4, 7, 6};
+static unsigned short vertIndices[36] = {4, 6, 0, 0, 6, 2, 4, 0, 5, 5, 0, 1, 0, 2, 1, 1, 2, 3,
+                                         2, 6, 3, 3, 6, 7, 1, 3, 5, 5, 3, 7, 5, 7, 4, 4, 7, 6};
 
 static int TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts) {
   return (triVerts[0].x < bounds.b.x && triVerts[1].x < bounds.b.x && triVerts[2].x < bounds.b.x) ||

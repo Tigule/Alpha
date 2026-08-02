@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "GameUI.h"
 #include "ActionBarFrame.h"
 #include "ContainerFrame.h"

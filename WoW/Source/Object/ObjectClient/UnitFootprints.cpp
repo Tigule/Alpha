@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "UnitFootprintsI.h"
 
 #include "Client.h"

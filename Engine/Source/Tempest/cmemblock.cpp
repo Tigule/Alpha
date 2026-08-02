@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "cmemblock.h"
 
 #include <string.h>

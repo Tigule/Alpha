@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Activity.h"
 
 #include "Os/OsTime.h"

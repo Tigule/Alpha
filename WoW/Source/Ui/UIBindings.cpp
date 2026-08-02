@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "UIBindings.h"
 #include <Os/OsTime.h>
 

@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Services/ParticleSystem2.h"
 
 #include <math.h>

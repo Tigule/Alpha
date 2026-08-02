@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Tempest/c33matrix.h"
 
 #include "Tempest/c2vector.h"

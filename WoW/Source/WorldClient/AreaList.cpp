@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "AreaList.h"
 #include "AreaListHashKey.h"
 #include "World.h"
@@ -13,11 +17,11 @@
 #include <storm.h>
 
 static TSHashTable<AREAHASHOBJECT, AREAHASHKEY> s_areaHash;
-static unsigned int                             s_currentZoneID;
-static unsigned int                             s_currentSubZoneID;
+static unsigned int                             s_currentZoneID = -1;
+static unsigned int                             s_currentSubZoneID = -1;
 static unsigned int                             s_currentContinent = -1;
 static int                                      s_indoors = -1;
-static unsigned int                             s_currentChunkID;
+static unsigned int                             s_currentChunkID = -1;
 
 static AREAHASHOBJECT *GetZone(unsigned int cont, unsigned int zName, unsigned int subZone) {
   AREAHASHKEY key(cont, zName, subZone);

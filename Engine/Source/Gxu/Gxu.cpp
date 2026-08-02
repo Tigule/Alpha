@@ -1,3 +1,4 @@
+#include <Base/Base.h>
 #include <Gx/CGxDevice.h>
 #include <Tempest/caabox.h>
 #include <Tempest/c33matrix.h>
@@ -12,7 +13,8 @@
 #ifdef INFINITY
 #undef INFINITY
 #endif
-static const float PI = 3.14159265358979323846f;
+static NTempest::CImVector image[64];
+static TSFixedArray_<NTempest::C3Vector, 'GxuT', 759> tmpVtx;
 
 static float D3dCeil(float f) {
   return static_cast<float>(ceil(floor(f * 16.0f + 0.5f) * 0.0625f));
@@ -273,8 +275,7 @@ void GxuUpdateSingleColorTexture(
     unsigned int &texelStrideInBytes,
     const void  *&texels
 ) {
-  static NTempest::CImVector image[64];
-  unsigned int               index;
+  unsigned int index;
 
   switch (cmd) {
     case GxTex_Lock:
@@ -365,8 +366,6 @@ int GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vect
   FATALASSERT(pos);
   FATALASSERT(primType == GxPrim_Triangles || primType == GxPrim_TriangleStrip || primType == GxPrim_TriangleFan);
   FATALASSERT(indexCount >= 3);
-
-  static TSFixedArray_<NTempest::C3Vector, 'GxuT', 759> tmpVtx;
 
   NTempest::C34Matrix identity;
   if (!modelToWorldMatrices) {

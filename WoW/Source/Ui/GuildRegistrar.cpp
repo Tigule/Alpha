@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Ui/GameUI.h"
 #include "Ui/GuildRegistrar.h"
 #include "Game/ValidateName.h"

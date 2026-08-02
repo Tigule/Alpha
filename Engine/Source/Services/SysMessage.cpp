@@ -32,7 +32,7 @@ static const char s_categoryMaskLetters[7] = {'G', 'W', 'U', 'A', 'M', 'O', 'S'}
 
 static const char *s_severityStrings[SYSMSG_NUMTYPES] = {"INFO", "WARNING", "ERROR", "FATAL"};
 
-static const struct {
+static struct {
   unsigned char red;
   unsigned char green;
   unsigned char blue;

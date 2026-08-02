@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldClient/World.h"
 
 #include "WorldClient/CMapObj.h"
@@ -40,7 +44,7 @@ static int s_vertexIndex[4][3] = {
     { 9, 18,  1}
 };
 
-static int s_vertexIndexFlat[5] = {9, 17, 1, 18, 0};
+static int s_vertexIndexFlat[5] = {0, 9, 17, 1, 18};
 
 unsigned int                       CMap::uniqueId;
 bool                               CMap::enablePixelShaders;

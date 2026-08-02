@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleSlider.h"
 
 #include <lauxlib.h>

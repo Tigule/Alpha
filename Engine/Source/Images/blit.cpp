@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "blit.h"
 #include "dxt.h"
 

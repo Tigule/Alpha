@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleStatusBar.h"
 
 #include "Tempest/cimvector.h"

@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Object/ObjectClient/Unit_C.h"
 #include "Magic/MagicClient/Spell_C.h"
 #include "Object/ObjectClient/GameObject_C.h"
@@ -160,6 +163,23 @@ NODEDECL(BLOODSPLATNODE) {
   unsigned int       m_triggerTime;
   NTempest::C3Vector m_position;
 };
+
+static const char NONAME[7] = "NoName";
+static unsigned int FADEOUT_TIME = 400;
+static unsigned int FADEIN_TIME = 200;
+static const float MIN_SCALE = 0.75f;
+static const float MAX_SCALE = 2.0f;
+static float IPT2_SCALE = 1.1f;
+static float IPT1_SCALE = 1.1f;
+static float OPT1_SCALE = 0.875f;
+static float OPT2_SCALE = 0.875f;
+static const float MAX_SHORT_RANGE_TELEPORT = 30.0f;
+static const float COS_1 = 0.99984771f;
+static const unsigned int allEmoteFlags = 7;
+static const unsigned int STEALTHFADETIME = 1000;
+static const float UNDERWATER_BUBBLE_THRESHOLD = 5.0f;
+static unsigned int s_lootCooldownTime;
+static const float MOUSE_LOOK_SEND_FACING_DELTA = 0.1f;
 
 int OnPickNextStandHandler(void *param, CGUnit_C *ptr) {
   ptr->OnPickNextStandHandler();
@@ -378,7 +398,7 @@ FREENAMEPLATE::~FREENAMEPLATE() {
   DEL(namePlate);
 }
 
-static int                                              s_drawNameplates = 1;
+static int                                              s_drawNameplates;
 static LISTDECLEX(NAMEPLATEDESC, m_sortLink, s_namePlateList);
 static const float                                      MAX_NAMEPLATE_DIST = 20.0f;
 static const float                                      MAX_NAMEPLATE_DIST_SQ = MAX_NAMEPLATE_DIST * MAX_NAMEPLATE_DIST;
@@ -550,7 +570,8 @@ const VIRTUAL_MONSTER_SLOT g_monsterHands[NUMHANDS] = {
     VIRTUAL_MONSTER_SLOT_MAINHAND,
     VIRTUAL_MONSTER_SLOT_OFFHAND
 };
-static unsigned int s_canHideslots[OBJATTACH_NUM] = {0x00622000, 0, 0, 0xFFFFFFFF, 1};
+static unsigned char s_canHideslots[OBJATTACH_NUM] = {0, 0, 1, 0, 1};
+static int WEAPONTYPE = 0x00622000;
 
 static OBJATTACHMENTPOINTS s_handAttachments[NUMHANDS] = {
     OBJATTACH_MAINHAND,
@@ -564,7 +585,7 @@ struct ForcedAnimationInfo {
   unsigned int    flag;
 };
 
-static const ForcedAnimationInfo s_forcedAnimations[8] = {
+static const ForcedAnimationInfo s_forceAnimDescs[8] = {
     {            "stand",         ANIM_STAND, 0},
     {            "death",         ANIM_DEATH, 0},
     {             "walk",          ANIM_WALK, 0},
@@ -599,7 +620,7 @@ static TInstanceAllocator<ACTIVEATTACHMENTINFO>         s_activeAttachmentFreeLi
 static CVar                                             *s_showBreathCvar;
 static unsigned int                                      s_currentGlobalClickCount;
 static NTempest::CImVector                               s_targetFlashColor;
-static unsigned int                                      s_lastTargetFlashTime;
+static unsigned long                                     s_lastTargetFlashTime;
 static int                                               s_targetPulseDirection;
 
 CGUnit_C::~CGUnit_C() {
@@ -814,24 +835,24 @@ void SpellProcColorHandler(
 static float GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
   float scale = desc->scale;
   if (desc->fadeInTime != desc->startTime && desc->curTime < desc->fadeInTime) {
-    NTempest::C3Vector points[4] = {
-        NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.1f, 1.1f * scale, 0.0f), NTempest::C3Vector(0.2f, 1.1f * scale, 0.0f),
+    NTempest::C3Vector pts[4] = {
+        NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.1f, IPT2_SCALE * scale, 0.0f), NTempest::C3Vector(0.2f, IPT1_SCALE * scale, 0.0f),
         NTempest::C3Vector(1.0f, scale, 0.0f)
     };
     NTempest::C3Spline_Bezier3 spline;
-    spline.SetPoints(points, 4);
+    spline.SetPoints(pts, 4);
     float scalar = desc->CalcScalar();
     scalar = scalar < 0.0f ? 0.0f : (scalar > 1.0f ? 1.0f : scalar);
     NTempest::C3Vector pt;
     spline.Pos(scalar, pt, NTempest::C3Spline::EVAL_ARCLENGTH);
     scale = pt.y;
   } else if (desc->fadeOutTime != desc->endTime && desc->curTime > desc->fadeOutTime) {
-    NTempest::C3Vector points[4] = {
-        NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.25f, 0.875f * scale, 0.0f), NTempest::C3Vector(0.5f, 0.875f * scale, 0.0f),
+    NTempest::C3Vector pts[4] = {
+        NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.25f, OPT1_SCALE * scale, 0.0f), NTempest::C3Vector(0.5f, OPT2_SCALE * scale, 0.0f),
         NTempest::C3Vector(1.0f, scale, 0.0f)
     };
     NTempest::C3Spline_Bezier3 spline;
-    spline.SetPoints(points, 4);
+    spline.SetPoints(pts, 4);
     float scalar = desc->CalcScalar();
     scalar = scalar < 0.0f ? 0.0f : (scalar > 1.0f ? 1.0f : scalar);
     NTempest::C3Vector pt;
@@ -846,11 +867,11 @@ static float GetDesiredRenderScale(SpellEffectList &list) {
   ITERATELIST(SPELLEFFECTDESC, list, desc) {
     currentScale *= GetSpellEffectDescScale(desc);
   }
-  if (currentScale < 0.75f) {
-    currentScale = 0.75f;
+  if (currentScale < MIN_SCALE) {
+    currentScale = MIN_SCALE;
   }
-  if (currentScale > 2.0f) {
-    currentScale = 2.0f;
+  if (currentScale > MAX_SCALE) {
+    currentScale = MAX_SCALE;
   }
   return currentScale;
 }
@@ -869,14 +890,14 @@ void SpellProcScaleHandler(
     unsigned int now = OsGetAsyncTimeMs();
     newDesc->curTime = now;
     newDesc->startTime = now;
-    newDesc->fadeInTime = now + 200;
+    newDesc->fadeInTime = now + FADEIN_TIME;
     newDesc->endTime = 0;
     newDesc->fadeOutTime = 0;
     newDesc->period = 0.0f;
     newDesc->scale = rec->m_characterParam[0];
   } else if (action == SPELLPROCREMOVE) {
     newDesc->fadeOutTime = newDesc->curTime;
-    newDesc->endTime = newDesc->curTime + 400;
+    newDesc->endTime = newDesc->curTime + FADEOUT_TIME;
   } else if (action == SPELLPROCREFRESH) {
     unit->SetRenderScale(GetDesiredRenderScale(list));
   } else if (action == SPELLPROCUPDATE) {
@@ -1297,7 +1318,7 @@ UNITEFFECTSPECIALS CGUnit_C::DetermineBreathEffect(unsigned int *duration) {
         *duration = 2000;
         return SPECIALEFFECT_COLDBREATH;
       }
-    } else if (GetScale() * GetObjectHeight() + 5.0f < surface - pos.z) {
+    } else if (GetScale() * GetObjectHeight() + UNDERWATER_BUBBLE_THRESHOLD < surface - pos.z) {
       *duration = 4000;
       return SPECIALEFFECT_UNDERWATERBUBBLES;
     }
@@ -2177,7 +2198,7 @@ void CGUnit_C::OnTeleportAck(unsigned long eventTime, const CMovementStatus &upd
   OnTeleportLocalNoUpdate(eventTime, GetPosition(), GetFacing());
 
   NTempest::C3Vector delta = m_move.GetPosition() - oldPos;
-  if (delta.SquaredMag() > 900.0f) {
+  if (delta.SquaredMag() > MAX_SHORT_RANGE_TELEPORT * MAX_SHORT_RANGE_TELEPORT) {
     CWorld::Preload(GetPosition());
     CGObject_C::UpdateAllWorldObjects();
   }
@@ -3721,7 +3742,7 @@ void CGUnit_C::UpdateUnitAlpha() {
   if (m_unit->flags & 0x18000) {
     alpha /= 3;
   }
-  DoFade(alpha, 1000);
+  DoFade(alpha, STEALTHFADETIME);
 }
 
 void CGUnit_C::RefreshAttachmentInfo(HMODEL model) {
@@ -4551,13 +4572,13 @@ const char *CGUnit_C::GetModelFileName() const {
   const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_unit->displayID);
   if (!displayInfo) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOCREATUREDISPLAYIDFOUND|%d", m_unit->displayID);
-    return "NoName";
+    return NONAME;
   }
 
   const CreatureModelDataRec *modelData = g_creatureModelDataDB.GetRecord(displayInfo->m_modelID);
   if (!modelData) {
     SysMsgPrintf(SYSMSG_WARNING, 0x10, "INVALIDDISPLAYMODELRECORD|%d|%d", displayInfo->m_modelID, displayInfo->m_ID);
-    return "NoName";
+    return NONAME;
   }
 
   return modelData->m_ModelName;
@@ -4899,7 +4920,7 @@ void CGUnit_C::UpdateSwimmingStatus(unsigned long eventTime, int inWater, float 
 
 void CGUnit_C::SendRedirectionMessage() {
   if (m_move.m_lastReDirectionSent.SquaredMag() < 0.00000023841858f ||
-      NTempest::C3Vector::Dot(m_move.m_reDirection, m_move.m_lastReDirectionSent) <= 0.99984771f)
+      NTempest::C3Vector::Dot(m_move.m_reDirection, m_move.m_lastReDirectionSent) <= COS_1)
   {
     CDataStore msg;
     BuildMovementUpdate(MSG_MOVE_COLLIDE_REDIRECT, &msg);
@@ -5275,7 +5296,7 @@ void CGUnit_C::OnBadAttackFacing(unsigned __int64 victimGUID) {
 
 int GetForcedAnimIndex(const char *token) {
   for (unsigned int i = 0; i < 8; ++i) {
-    if (!SStrCmp(s_forcedAnimations[i].name, token, 0x7FFFFFFF)) {
+    if (!SStrCmp(s_forceAnimDescs[i].name, token, 0x7FFFFFFF)) {
       return i;
     }
   }
@@ -5319,14 +5340,14 @@ void CGUnit_C::SetForcedAnimation(const char *string) {
 
   HMODEL model = m_model;
   FATALASSERT(model);
-  ANIMENUMERATION anim = s_forcedAnimations[animIndex].anim;
+  ANIMENUMERATION anim = s_forceAnimDescs[animIndex].anim;
   if (!ModelGetNumSequenceFidgets(model, anim)) {
     return;
   }
 
   unsigned int &flags = m_animFlags;
   flags |= 1;
-  if (s_forcedAnimations[animIndex].flag) {
+  if (s_forceAnimDescs[animIndex].flag) {
     flags |= 2;
   } else {
     flags &= ~2u;
@@ -5340,14 +5361,14 @@ void CGUnit_C::SetForcedAnimation(const char *string) {
     case 4:
     case 6:
       PlayUnitSound(
-          s_forcedAnimations[animIndex].flag ? UNITSOUNDTYPE_EXERTIONCRITICAL : UNITSOUNDTYPE_EXERTION,
+          s_forceAnimDescs[animIndex].flag ? UNITSOUNDTYPE_EXERTIONCRITICAL : UNITSOUNDTYPE_EXERTION,
           1
       );
       break;
     case 5:
     case 7:
       PlayUnitSound(
-          s_forcedAnimations[animIndex].flag ? UNITSOUNDTYPE_INJURYCRITICAL : UNITSOUNDTYPE_INJURY,
+          s_forceAnimDescs[animIndex].flag ? UNITSOUNDTYPE_INJURYCRITICAL : UNITSOUNDTYPE_INJURY,
           1
       );
       break;
@@ -5567,14 +5588,14 @@ void CGUnit_C::ProcessLocalMoveEvent(NETMESSAGE msgId) {
   if (!(m_move.m_moveFlags & 0xF) && (msgId == MSG_MOVE_STOP || msgId == MSG_MOVE_STOP_STRAFE)) {
     UpdateBaseAnimation(ANIM_STATE_STOP, 0);
   } else if (msgId == MSG_MOVE_SET_FACING) {
-    if (fabs(GetFacing() - m_lastSentFacing) < 0.1f) {
+    if (fabs(GetFacing() - m_lastSentFacing) < MOUSE_LOOK_SEND_FACING_DELTA) {
       return;
     }
   } else if (msgId != MSG_MOVE_SET_PITCH) {
     UpdateBaseAnimation(0);
   }
 
-  if (msgId != MSG_MOVE_SET_PITCH || fabs(m_move.m_pitch - m_lastSentPitch) >= 0.1f) {
+  if (msgId != MSG_MOVE_SET_PITCH || fabs(m_move.m_pitch - m_lastSentPitch) >= MOUSE_LOOK_SEND_FACING_DELTA) {
     SendMovementUpdate(msgId);
   }
 
@@ -6108,7 +6129,7 @@ void CGUnit_C::RenderTargetSelection() const {
 }
 
 int CGUnit_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
-  static const NTempest::CImVector reactionTypeColors[NUM_UNIT_REACTIONS] = {
+  static NTempest::CImVector s_reactionTypeColors[NUM_UNIT_REACTIONS] = {
       NTempest::CImVector(0xFFFF0000),
       NTempest::CImVector(0xFFFF0000),
       NTempest::CImVector(255, 255, 128, 0),
@@ -6117,8 +6138,8 @@ int CGUnit_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
       NTempest::CImVector(255, 0, 255, 0),
       NTempest::CImVector(255, 0, 255, 0)
   };
-  static const NTempest::CImVector playerReactionColor(255, 96, 96, 255);
-  static const NTempest::CImVector partyReactionColor(255, 170, 170, 255);
+  static NTempest::CImVector s_playerReactionColor(255, 96, 96, 255);
+  static NTempest::CImVector s_partyReactionColor(255, 170, 170, 255);
 
   CGUnit_C *currentPlayer =
       static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -6127,13 +6148,13 @@ int CGUnit_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
 
   UNIT_REACTION reaction = UnitReaction(currentPlayer);
   if (!(m_obj->m_type & TYPE_PLAYER) || m_unit->charmedBy || reaction <= UNIT_REACTION_HOSTILE) {
-    *outPtr = (m_flags & 0x200) ? s_targetFlashColor : reactionTypeColors[reaction];
+    *outPtr = (m_flags & 0x200) ? s_targetFlashColor : s_reactionTypeColors[reaction];
   } else if (m_flags & 0x200) {
     *outPtr = s_targetFlashColor;
   } else if (m_obj->m_guid == currentPlayer->GetGUID() || !CGPartyInfo::IsMember(m_obj->m_guid)) {
-    *outPtr = playerReactionColor;
+    *outPtr = s_playerReactionColor;
   } else {
-    *outPtr = partyReactionColor;
+    *outPtr = s_partyReactionColor;
   }
 
   return 1;
@@ -7782,25 +7803,6 @@ int CGUnit_C::EmoteProcType(unsigned int emoteID, EMOTESPECPROCS &proc) const {
   return 1;
 }
 
-static int s_stateTransitions[UNIT_NUMSTANDSTATES][UNIT_NUMSTANDSTATES] = {
-    {0, 1, 1, 1, 1, 1, 1, 1, 1},
-    {1, 0, 0, 1, 1, 1, 1, 0, 1},
-    {1, 0, 0, 0, 1, 1, 1, 0, 1},
-    {1, 1, 0, 0, 1, 1, 1, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, 1, 0, 1, 1, 1, 1, 0, 0}
-};
-
-int CGUnit::StandStateValid(UNITSTANDSTATE newState) const {
-  UNITSTANDSTATE oldState = static_cast<UNITSTANDSTATE>(m_unit->standState);
-  FATALASSERT(oldState < UNIT_NUMSTANDSTATES);
-  FATALASSERT(newState < UNIT_NUMSTANDSTATES);
-  return s_stateTransitions[oldState][newState];
-}
-
 void CGUnit_C::ChangeStandState(unsigned int standState) {
   FATALASSERT(!(standState >= 4 && standState <= 6));
   FATALASSERT(standState < 9);
@@ -9222,7 +9224,7 @@ void CGUnit_C::AddObjectComponentBySlot(
     if (*found ||
         ((*found = CreateAttachmentInfo(invSlot, displayID, inventoryType, forceAlternate, sheathe, sheathedAttachmentPoint, showHidden)) != 0))
     {
-      if ((1u << inventoryType) & s_canHideslots[0]) {
+      if ((1u << inventoryType) & WEAPONTYPE) {
         if (m_weaponTrails[attachmentSlot]) {
           WeaponTrailClose(m_weaponTrails[attachmentSlot]);
         }
@@ -9284,7 +9286,7 @@ void CGUnit_C::ClearWeaponTrailHandles() {
 
 void CGUnit_C::ReinitializeWeaponTrails() {
   ACTIVEATTACHMENTINFO *attachment = m_attachments[OBJATTACH_MAINHAND];
-  if (attachment && !m_weaponTrails[OBJATTACH_MAINHAND] && ((1u << attachment->inventoryType) & s_canHideslots[0])) {
+  if (attachment && !m_weaponTrails[OBJATTACH_MAINHAND] && ((1u << attachment->inventoryType) & WEAPONTYPE)) {
     HMODEL model = attachment->modelInfo[0].model;
     if (model) {
       m_weaponTrails[OBJATTACH_MAINHAND] = WeaponTrailCreate(model);
@@ -9292,7 +9294,7 @@ void CGUnit_C::ReinitializeWeaponTrails() {
   }
 
   attachment = m_attachments[OBJATTACH_OFFHAND];
-  if (attachment && !m_weaponTrails[OBJATTACH_OFFHAND] && ((1u << attachment->inventoryType) & s_canHideslots[0])) {
+  if (attachment && !m_weaponTrails[OBJATTACH_OFFHAND] && ((1u << attachment->inventoryType) & WEAPONTYPE)) {
     HMODEL model = attachment->modelInfo[0].model;
     if (model) {
       m_weaponTrails[OBJATTACH_OFFHAND] = WeaponTrailCreate(model);

@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Tempest/c4quaternion.h"
 
 #include "Tempest/c33matrix.h"

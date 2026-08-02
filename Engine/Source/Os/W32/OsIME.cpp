@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "OsGui.h"
 #include "OsIME.h"
 #include "Input.h"
@@ -12,7 +14,8 @@
 extern "C" BOOL WINAPI ImmAssociateContextEx(HWND, HIMC, DWORD);
 #endif
 
-static HIMC s_IMC;
+struct HIMC__;
+static HIMC__ *s_IMC;
 static int  s_IMEActive;
 
 OS_IME_LANGUAGEMODE OsIMEGetLanguageMode() {
@@ -224,7 +227,7 @@ void OsIMEEnable(int enabled) {
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
   if (enabled) {
     if (++s_IMEActive == 1) {
-      ImmAssociateContext(wnd, s_IMC);
+      ImmAssociateContext(wnd, (HIMC)s_IMC);
     }
   } else if (s_IMEActive && !--s_IMEActive) {
     ImmAssociateContext(wnd, 0);
@@ -232,7 +235,7 @@ void OsIMEEnable(int enabled) {
 }
 
 void OsIMEInitialize() {
-  s_IMC = ImmAssociateContext((HWND)OsGuiGetWindow(0), 0);
+  s_IMC = (HIMC__ *)ImmAssociateContext((HWND)OsGuiGetWindow(0), 0);
 }
 
 void OsIMEDestroy() {

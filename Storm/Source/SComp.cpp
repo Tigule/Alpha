@@ -1,5 +1,6 @@
 #include <storm.h>
 #include <stpl.h>
+#include "W32/ISThread.h"
 
 #include "../Zlib/zlib.h"
 
@@ -105,10 +106,10 @@ static const BYTE s_probability[SCOMP_HINTS][HUFFMAN_SYMBOLS] = {
      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  0,   0,  0,   0}
 };
 
-static BYTE     *s_DecompressBuffer;
-static SCritSect s_decompCrit;
-static DWORD     s_DecompressBufferSize;
-static DWORD     s_DecompressBufferTID;
+static void      *s_DecompressBuffer;
+CCritSect         s_decompCrit;
+static DWORD      s_DecompressBufferSize;
+static DWORD      s_DecompressBufferTID;
 
 NODEDECL(HUFFNODE) {
   int       symbol;
@@ -1175,7 +1176,7 @@ static void *s_AllocDecompressBuffer(unsigned long size, int *global) {
 
   if (!s_DecompressBuffer) {
     s_DecompressBufferSize = size;
-    s_DecompressBuffer = (BYTE *)SMemAlloc(size, __FILE__, __LINE__, 0);
+    s_DecompressBuffer = SMemAlloc(size, __FILE__, __LINE__, 0);
     s_DecompressBufferTID = 0;
   } else if (s_DecompressBufferTID) {
     result = SMemAlloc(size, __FILE__, __LINE__, 0);
@@ -1187,7 +1188,7 @@ static void *s_AllocDecompressBuffer(unsigned long size, int *global) {
   if (s_DecompressBufferSize < size) {
     SMemFree(s_DecompressBuffer, __FILE__, __LINE__, 0);
     s_DecompressBufferSize = size;
-    s_DecompressBuffer = (BYTE *)SMemAlloc(size, __FILE__, __LINE__, 0);
+    s_DecompressBuffer = SMemAlloc(size, __FILE__, __LINE__, 0);
   }
 
   *global = 1;
@@ -1222,7 +1223,7 @@ struct _DECOMPRESSALGORITHM {
   SCOMP_DECOMPRESS_CALLBACK func;
 };
 
-static _COMPRESSALGORITHM s_compressalgorithm[ALGORITHMS] = {
+static const _COMPRESSALGORITHM s_compressalgorithm[ALGORITHMS] = {
     {  SCOMP_IMA_ADPCM_MONO,   ImaAdpcmMonoCompress},
     {SCOMP_IMA_ADPCM_STEREO, ImaAdpcmStereoCompress},
     {         SCOMP_HUFFMAN,        HuffmanCompress},
@@ -1230,12 +1231,12 @@ static _COMPRESSALGORITHM s_compressalgorithm[ALGORITHMS] = {
     {          SCOMP_PKWARE,         PkwareCompress},
 };
 
-static _DECOMPRESSALGORITHM s_decompressalgorithm[ALGORITHMS] = {
-    {          SCOMP_PKWARE,         PkwareDecompress},
-    {            SCOMP_ZLIB,           ZlibDecompress},
-    {         SCOMP_HUFFMAN,        HuffmanDecompress},
-    {SCOMP_IMA_ADPCM_STEREO, ImaAdpcmStereoDecompress},
+static const _DECOMPRESSALGORITHM s_decompressalgorithm[ALGORITHMS] = {
     {  SCOMP_IMA_ADPCM_MONO,   ImaAdpcmMonoDecompress},
+    {SCOMP_IMA_ADPCM_STEREO, ImaAdpcmStereoDecompress},
+    {         SCOMP_HUFFMAN,        HuffmanDecompress},
+    {            SCOMP_ZLIB,           ZlibDecompress},
+    {          SCOMP_PKWARE,         PkwareDecompress},
 };
 
 extern "C" int APIENTRY

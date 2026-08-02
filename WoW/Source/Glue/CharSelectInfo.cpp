@@ -1,3 +1,5 @@
+#include <WowConst.h>
+
 #include "Glue/CharSelectInfo.h"
 
 #include <Base/Status.h>
@@ -45,7 +47,7 @@ static int Script_GetCharacterInfo(lua_State *L);
 static int Script_SelectCharacter(lua_State *L);
 static int Script_DeleteCharacter(lua_State *L);
 
-static const FrameScript_Method s_ScriptFunctions[7] = {
+static FrameScript_Method s_ScriptFunctions[7] = {
     {"SetCharSelectModelFrame", Script_SetCharSelectModelFrame},
     {"SetCharSelectBackground", Script_SetCharSelectBackground},
     { "GetCharacterListUpdate",  Script_GetCharacterListUpdate},

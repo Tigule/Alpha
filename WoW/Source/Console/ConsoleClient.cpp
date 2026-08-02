@@ -1,3 +1,6 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+
 #include "ConsoleClient.h"
 #include "ConsoleDetect.h"
 #include "ConsoleVar.h"
@@ -93,7 +96,7 @@ static char                                         s_fontName[0x104];
 static CONSOLERESIZESTATE                           s_consoleResizeState;
 static HIGHLIGHTSTATE                               s_highlightState;
 static float                                        s_consoleLines = 10.0f;
-static float                                        s_consoleHeight;
+static float                                        s_consoleHeight = s_consoleLines * s_fontHeight;
 static char                                         s_repeatBuffer[0x20];
 static unsigned int                                 s_repeatCount;
 static RECTF                                        s_hRect = {0.0f, 0.0f, 1.0f, 1.0f};

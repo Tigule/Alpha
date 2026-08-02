@@ -21,7 +21,7 @@ static SCritSect                                 s_queueLock;
 static SThread                                   s_asyncReadThread;
 static SEvent                                    s_shutdownEvent(1, 0);
 static SEvent                                    s_queueEvent(0, 0);
-static CAsyncObject                             *s_asyncWaitObject;
+static CAsyncObject volatile                    *s_asyncWaitObject;
 static TSGrowableArray<void(*)(void)> s_handlers;
 
 static unsigned int APIENTRY AsyncFileReadThread(void *param) {

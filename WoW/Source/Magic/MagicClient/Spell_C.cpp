@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Object/ObjectClient/Item_C.h"
 #include "Spell_C.h"
 #include "Object/ObjectClient/GameObject_C.h"
@@ -139,11 +143,11 @@ static int              s_modalSpellID;
 static int              s_savedModalSpellID;
 static unsigned __int64 s_modalItemID;
 static unsigned __int64 s_savedModalItemID;
-static unsigned int     s_playerCast;
+static unsigned char    s_playerCast;
 static char             s_spellTargetString[128];
 static unsigned int     s_spellWorldModel;
 static float            s_spellWorldModelFacing;
-static unsigned int     s_spellWorldModelHousing;
+static unsigned char    s_spellWorldModelHousing;
 static SpellHistory     s_spellHistory[2];
 static unsigned long    s_cleanupTime;
 static TSHashTable<ITEMCOOLDOWNHASHNODE, HASHKEY_NONE> s_itemCooldowns;

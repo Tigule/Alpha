@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Model/ModelInternal.h"
 
 #include "MDLFile/MDLTypes.h"

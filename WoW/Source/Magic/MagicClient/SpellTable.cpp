@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "DB/DBClient/AutoCode/CharBaseInfoRec.h"
 #include "DB/DBClient/AutoCode/ChrClassesRec.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"

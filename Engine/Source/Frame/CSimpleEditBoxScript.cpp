@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleEditBox.h"
 
 #include <lauxlib.h>
@@ -109,9 +111,9 @@ static FrameScript_Method SimpleEditBoxMethods[8] = {
     {        "Insert",         CSimpleEditBox_Insert},
     {       "SetText",        CSimpleEditBox_SetText},
     {       "GetText",        CSimpleEditBox_GetText},
+    {  "SetTextColor",   CSimpleEditBox_SetTextColor},
     {"AddHistoryLine", CSimpleEditBox_AddHistoryLine},
     { "SetTextInsets",  CSimpleEditBox_SetTextInsets},
-    {  "SetTextColor",   CSimpleEditBox_SetTextColor},
     {      "SetFocus",       CSimpleEditBox_SetFocus},
     {    "ClearFocus",     CSimpleEditBox_ClearFocus}
 };

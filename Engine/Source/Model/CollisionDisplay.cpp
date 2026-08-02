@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Model/CollisionData.h"
 
 #include "Services/Texture.h"

@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldClient/CMapObj.h"
 #include "WorldClient/World.h"
 

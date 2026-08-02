@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Profile.h"
 
 #include "Base/Handle.h"
@@ -13,11 +15,12 @@
 #include <stdarg.h>
 #include <string.h>
 
+static const char SECTION_OPEN_CHAR = '[';
+static const char SECTION_CLOSE_CHAR = ']';
+static const char ASSIGNMENT_CHAR = '=';
+
 namespace ProfileInternal {
 
-  static const char SECTION_OPEN_CHAR = '[';
-  static const char SECTION_CLOSE_CHAR = ']';
-  static const char ASSIGNMENT_CHAR = '=';
   static const char COMMENT_BEGIN[] = "//";
   static const char NEWLINE_CHARS[] = "\r\n";
   static char       buf[256];

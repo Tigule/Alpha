@@ -13,16 +13,17 @@
 CGxDevice *g_theGxDevicePtr;
 
 static unsigned long      vtxBufSize[GxVertexBufferFormats_Last] = {0x18, 0x1C, 0x20, 0x24, 0x28, 0x2C, 0x18, 0x10, 0x1C};
+static const unsigned int F = ~0u;
 static const unsigned int s_vtxBufOffset[GxVertexBufferFormats_Last][GxVertexMembers_Last] = {
-    {0,  12, ~0u, ~0u, ~0u, ~0u, ~0u},
-    {0,  12,  24, ~0u, ~0u, ~0u, ~0u},
-    {0,  12, ~0u,  24, ~0u, ~0u, ~0u},
-    {0,  12,  24,  28, ~0u, ~0u, ~0u},
-    {0,  12, ~0u,  24,  32, ~0u, ~0u},
-    {0,  12,  24,  28,  36, ~0u, ~0u},
-    {0, ~0u,  12,  16, ~0u, ~0u, ~0u},
-    {0, ~0u,  12, ~0u, ~0u, ~0u, ~0u},
-    {0, ~0u, ~0u,  12,  20, ~0u, ~0u}
+    {0, 12, F,  F,  F,  F, F},
+    {0, 12, 24, F,  F,  F, F},
+    {0, 12, F,  24, F,  F, F},
+    {0, 12, 24, 28, F,  F, F},
+    {0, 12, F,  24, 32, F, F},
+    {0, 12, 24, 28, 36, F, F},
+    {0, F,  12, 16, F,  F, F},
+    {0, F,  12, F,  F,  F, F},
+    {0, F,  F,  12, 20, F, F}
 };
 static EGxTexFormat gxTexTable[BlitFormats_Last] = {GxTex_Unknown, GxTex_Argb8888, GxTex_Argb4444, GxTex_Argb1555,
                                                     GxTex_Rgb565,  GxTex_Dxt1,     GxTex_Dxt3,     GxTex_Dxt5};
@@ -35,6 +36,7 @@ static const float Gx_MaxTexAspect = 8.0f;
 static TSGrowableArray<unsigned char> s_vertexMem;
 static TSGrowableArray<unsigned char> s_indexMem;
 static TSGrowableArray<unsigned char> s_pixelMem;
+static TSGrowableArray<CGxFormat>     s_formats;
 
 const unsigned int CGxShaderParam::TypeCountTable[3] = {1, 3, 4};
 
@@ -78,8 +80,6 @@ int GxAdapterDesktopMode(CGxMonitorMode &mode) {
 }
 
 const TSGrowableArray<CGxFormat> *GxEnumFormats(EGxApi api) {
-  static TSGrowableArray<CGxFormat> s_formats;
-
   ASSERT(api < GxApis_Last);
 
   s_formats.SetCount(0);

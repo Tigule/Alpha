@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "CInputObserver.h"
 #include "CMouseEvent.h"
 

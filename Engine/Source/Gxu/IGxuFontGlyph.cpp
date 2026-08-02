@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "IGxuFont.h"
 
 #include <freetype/freetype.h>

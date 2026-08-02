@@ -27,6 +27,7 @@ int          CGxDeviceOpenGl::s_convertDataType[8] = {
 
 static TSGrowableArray<unsigned char> scratchTexels;
 static CGxTex                        *tex;
+static NTempest::CiRect               emptyRect;
 
 void CGxDeviceOpenGl::BindTexture(CGxTex *texId, unsigned int tmu) {
   if (tmu == -1) {
@@ -273,8 +274,7 @@ void CGxDeviceOpenGl::ITexMarkAsUpdated(CGxTex *texId, unsigned int tmu) {
 }
 
 void CGxDeviceOpenGl::ITexForceRecreation() {
-  static NTempest::CiRect emptyRect;
-  unsigned int            ndx = m_textures.Count();
+  unsigned int ndx = m_textures.Count();
 
   while (ndx) {
     tex = m_textures[--ndx];

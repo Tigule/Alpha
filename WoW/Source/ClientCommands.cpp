@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Client.h"
 #include <Base/CDataStore.h>
 

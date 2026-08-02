@@ -1,3 +1,6 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+
 #include "Console/ConsoleCommand.h"
 #include "Console/ConsoleClient.h"
 #include "Object/ObjectClient/Player_C.h"

@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "ObjectMgrClient.h"
 
 #include <Base/Activity.h>
@@ -44,7 +48,7 @@ static int s_heapSizes[8] = {
 static const unsigned int s_objMirrorBlocks[8] = {
     6, 36, 78, 184, 634, 20, 16, 36,
 };
-static unsigned int                                       s_heapsAllocated;
+static unsigned char                                      s_heapsAllocated;
 static unsigned int                                       s_objHeapId[7];
 static int                                                s_localPlayerUpdates;
 static LISTDECL(CMirrorHandler, s_mirrorHandlers[8][634]);

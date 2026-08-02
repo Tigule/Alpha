@@ -3,6 +3,7 @@
 #include "Anim/AnimTypes.h"
 #include "Anim/WorldMatrix.h"
 #include "Base/Activity.h"
+#include "Base/Base.h"
 #include "Gx/Gx.h"
 #include "Model/ModelInternal.h"
 #include "Services/ParticleSystem2.h"
@@ -16,9 +17,6 @@ static TSGrowableArray<NTempest::C34Matrix> s_transforms;
 static unsigned int                         s_transInUse;
 static TSGrowableArray<unsigned int>        s_layers;
 static unsigned int                         s_layersInUse;
-const float                                 PI = 3.14159265358979323846f;
-const float                                 TWO_PI = 6.28318530717958647692f;
-const float                                 OO_TWO_PI = 0.15915494309189533577f;
 static TSGrowableArray<unsigned char>       s_layerAlpha;
 
 static void ApplyWorldTransforms(

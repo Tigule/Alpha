@@ -36,8 +36,8 @@ void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor);
 static char           output8[0x1000];
 static unsigned short output16[0x1000];
 
-static const unsigned int NumericJongsung[10] = {1, 1, 0, 1, 0, 0, 1, 1, 1, 0};
-static const unsigned int AlphabeticJongsung[26] = {0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0};
+static const unsigned char NumericJongsung[10] = {1, 1, 0, 1, 0, 0, 1, 1, 1, 0};
+static const unsigned char AlphabeticJongsung[26] = {0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0};
 
 NTempest::C3Vector CSimpleRender::s_normal(0.0f, 0.0f, 1.0f);
 unsigned short     CSimpleRender::s_indices[4] = {0, 1, 2, 3};

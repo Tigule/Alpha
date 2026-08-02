@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "PaperDollInfoFrame.h"
 
 #include "Object/ObjectClient/Unit_C.h"

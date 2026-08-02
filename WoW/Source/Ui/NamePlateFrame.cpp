@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Ui/NamePlateFrame.h"
 
 #include "Object/ObjectClient/Unit_C.h"
@@ -9,6 +13,13 @@
 #include <Frame/CSimpleRender.h>
 #include <FrameScript/FrameScript.h>
 #include <storm.h>
+
+static const float XOFFSET = 0.008f;
+static const float YOFFSET = 0.008f;
+static NTempest::CImVector s_playerColor(0xFF0000FF);
+static NTempest::CImVector s_friendlyColor(0xFF00FF00);
+static NTempest::CImVector s_neutralColor(0xFFFFFF00);
+static NTempest::CImVector s_hostileColor(0xFFFF0000);
 
 CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame *parent) : CSimpleButton(parent), m_unit(0), m_highlight(0), m_nameFrame(0), m_healthBar(0) {
   CBackdropGenerator *backdrop = NEW(CBackdropGenerator);
@@ -57,13 +68,13 @@ void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
 
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player && unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
-    m_healthBar->SetStatusBarColor(NTempest::CImVector(0xFFFF0000));
+    m_healthBar->SetStatusBarColor(s_hostileColor);
   } else if (unit->GetType() & TYPE_PLAYER) {
-    m_healthBar->SetStatusBarColor(NTempest::CImVector(0xFF0000FF));
+    m_healthBar->SetStatusBarColor(s_playerColor);
   } else if (player && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
-    m_healthBar->SetStatusBarColor(NTempest::CImVector(0xFF00FF00));
+    m_healthBar->SetStatusBarColor(s_friendlyColor);
   } else {
-    m_healthBar->SetStatusBarColor(NTempest::CImVector(0xFFFFFF00));
+    m_healthBar->SetStatusBarColor(s_neutralColor);
   }
 
   float width = m_nameFrame->GetWidth();

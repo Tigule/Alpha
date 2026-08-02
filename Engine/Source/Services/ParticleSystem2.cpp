@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "ParticleSystem2.h"
 
 #include "Base/Activity.h"

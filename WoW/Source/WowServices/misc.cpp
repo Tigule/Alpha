@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include <math.h>
 
 float LinearSmooth(float from, float to, float progress) {

@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Os/OsTime.h"
 
 #include <windows.h>

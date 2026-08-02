@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "TabardCreationFrame.h"
 
 #include "GameUI.h"
@@ -7,8 +11,6 @@
 
 #include <lua.h>
 
-static const float MAX_SHOP_DISTANCE = 5.5555553f;
-static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
 
 unsigned __int64 CGTabardCreationFrame::m_vendor;
 

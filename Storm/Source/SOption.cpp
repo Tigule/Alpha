@@ -5,9 +5,7 @@ static DWORD s_freecount;
 
 void StormOptCdThread(DWORD *threadId, void **hThread);
 
-STORMOPTIONS g_opt = {
-    0, 0, 0x10000, 0, 0, 0, 0, 0,
-};
+STORMOPTIONS g_opt;
 
 void IncrementAllocCount() {
   ++s_alloccount;

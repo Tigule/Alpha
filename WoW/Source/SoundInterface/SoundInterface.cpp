@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "SoundInterface.h"
 
 #include "Client.h"
@@ -75,9 +78,9 @@ static HASHKEY_NONE                                s_nullHashKey;
 static TSHashTable<FOOTSTEPSNDCACHE, HASHKEY_NONE> s_footstepHash;
 static unsigned int                                s_footstepRequest;
 static unsigned int                                s_footstepAccept;
-static float                                       MaximumFoostepDistance = 20.0f;
+static const float                                 MaximumFoostepDistance = 20.0f;
 static VOCALUISOUND                                s_vocalUISounds[66];
-static VOCALUISOUNDS                               s_lastPlayedVocalUISound;
+static VOCALUISOUNDS                               s_lastPlayedVocalUISound = static_cast<VOCALUISOUNDS>(66);
 static VOCALUISOUNDTYPE                            s_currentVocalUISoundType;
 static unsigned int                                s_vocalUISoundPlayCount;
 

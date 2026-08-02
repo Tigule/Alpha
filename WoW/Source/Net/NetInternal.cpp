@@ -1,3 +1,6 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+
 #include "NetInternal.h"
 
 #include "Os/OsTime.h"

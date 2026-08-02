@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include <windows.h>
 #include <shellapi.h>
 #include <float.h>
@@ -33,6 +35,8 @@ enum {
 
 static const unsigned char s_vendorGenuineIntel[12] = {'G', 'e', 'n', 'u', 'i', 'n', 'e', 'I', 'n', 't', 'e', 'l'};
 static const unsigned char s_vendorAuthenticAMD[12] = {'A', 'u', 't', 'h', 'e', 'n', 't', 'i', 'c', 'A', 'M', 'D'};
+static const unsigned char s_vendorCentaurHalls[12] = {'C', 'e', 'n', 't', 'a', 'u', 'r', 'H', 'a', 'u', 'l', 's'};
+static const unsigned char s_vendorCyrixInstead[12] = {'C', 'y', 'r', 'i', 'x', 'I', 'n', 's', 't', 'e', 'a', 'd'};
 
 static const char s_xtoi[256] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -54,8 +58,8 @@ static const char *s_osNames[OsType_Last] = {"Unknown", "Win95",   "Win95OSR2", 
 static unsigned long s_processorFeatures;
 static int           s_processorVendor;
 
-static int   s_sleepInBackground = 1;
-static DWORD s_backgroundSleepMs;
+int   s_sleepInBackground = 1;
+DWORD s_backgroundSleepMs;
 
 static int __cdecl IOsGetProcessorFeatures(unsigned char *const vendor, unsigned long *featuresStd, unsigned long *featuresExt) {
   int result = 1;

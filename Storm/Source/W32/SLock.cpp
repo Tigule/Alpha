@@ -14,6 +14,8 @@ namespace SRWLock {
     long      m_readerEvent;
   };
 
+  typedef SURWLOCK BFRWLOCK;
+
   void IInitialize();
   void IDestroy();
   void IOsRWLockIncRef();
@@ -706,6 +708,8 @@ template DWORD CDebugLock<CDebugSRWLock>::IDeleteEntry(CDebugLockData *lock, DWO
 template void CDebugLock<CDebugSRWLock>::IEnterEntry(DWORD e);
 
 SCritSect::SCritSect() {
+  static DWORD _ASSERTSAMESIZE_SCritSect_CRITICAL_SECTION[sizeof(SCritSect) == sizeof(CRITICAL_SECTION)];
+
   InitializeCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
 }
 
@@ -714,6 +718,8 @@ SCritSect::~SCritSect() {
 }
 
 CDebugSCritSect::CDebugSCritSect() {
+  static DWORD _ASSERTSAMESIZE_m_debugData_CDebugLockData[sizeof(m_debugData) == sizeof(CDebugLockData)];
+
   CDebugLock<CDebugSCritSect>::Construct((CDebugLockData *)m_debugData);
 }
 
@@ -814,6 +820,9 @@ void SInitCritSect::Leave() {
 }
 
 CSRWLock::CSRWLock() {
+  static DWORD _ASSERTSAMESIZE_CSRWLock_BFRWLOCK[sizeof(CSRWLock) == sizeof(SRWLock::BFRWLOCK)];
+  static DWORD _ASSERTSAMESIZE_CSRWLock_SURWLOCK[sizeof(CSRWLock) == sizeof(SRWLock::SURWLOCK)];
+
   SRWLock::IOsRWLockIncRef();
   SRWLock::SURWLockInitialize((SRWLock::SURWLOCK *)m_opaqueData);
 }
@@ -836,6 +845,8 @@ int CSRWLock::TryEnter(int forwriting) {
 }
 
 CDebugSRWLock::CDebugSRWLock() {
+  static DWORD _ASSERTSAMESIZE_m_debugData_CDebugLockData[sizeof(m_debugData) == sizeof(CDebugLockData)];
+
   CDebugLock<CDebugSRWLock>::Construct((CDebugLockData *)m_debugData);
 }
 
@@ -923,6 +934,8 @@ void SSyncObject::Copy(const SSyncObject &rhs) {
 }
 
 SSyncObject::SSyncObject() {
+  static DWORD _ASSERTSAMESIZE_SSyncObject_HANDLE[sizeof(SSyncObject) == sizeof(HANDLE)];
+
   *(HANDLE *)m_opaqueData = NULL;
 }
 

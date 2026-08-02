@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleScrollFrame.h"
 
 #include <lauxlib.h>

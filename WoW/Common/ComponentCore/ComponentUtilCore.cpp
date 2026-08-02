@@ -1,3 +1,6 @@
+#include <Base/Base.h>
+
+
 #include <Component/Component.h>
 
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"

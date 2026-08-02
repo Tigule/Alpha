@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "PartyFrame.h"
 
 #include "Object/ObjectClient/Player_C.h"

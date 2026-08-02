@@ -1,3 +1,5 @@
+#include <WowConst.h>
+
 #include "NetClient.h"
 
 #include <ctype.h>

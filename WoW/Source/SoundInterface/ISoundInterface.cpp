@@ -1,3 +1,5 @@
+#include <WowConst.h>
+
 #include "ISoundInterface.h"
 
 #include "Client.h"

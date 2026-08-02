@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include <Base/Handle.h>
 #include <Base/Status.h>
 #include <Frame/CSimpleFrame.h>

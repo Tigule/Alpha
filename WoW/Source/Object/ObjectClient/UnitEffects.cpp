@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Unit_C.h"
 #include "IUnitEffects.h"
 

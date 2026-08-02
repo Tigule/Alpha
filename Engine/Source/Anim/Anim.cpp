@@ -1,4 +1,5 @@
 #include "Anim/Transform.h"
+#include "Base/Base.h"
 
 struct CameraInfo : public InterpInfo {
   CameraInfo(
@@ -26,10 +27,6 @@ struct CameraInfo : public InterpInfo {
 #include "Tempest/c3segment.h"
 #include "Tempest/cmath.h"
 #include "Tempest/c4quaternion.h"
-
-const float PI = 3.14159265358979323846f;
-const float TWO_PI = 6.28318530717958647692f;
-const float OO_TWO_PI = 0.15915494309189533577f;
 
 float                   s_animBoneProjectDistance;
 ANIMBONEPROJECTCALLBACK s_AnimBoneProjectCallback;

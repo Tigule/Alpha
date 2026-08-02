@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "SoundInterface/SoundInterface.h"
 #include "SoundInterface/ISoundInterface.h"
 
@@ -58,11 +62,14 @@ struct LIQUIDINFO {
 
 static LIQUIDINFO s_liquidInfo[4];
 static int        s_flags;
-static float      s_volume = 1.0f;
-static int        s_paused;
+static float      s_volume;
+static int        s_paused = -1;
 static int        s_elapsed;
 static CVar      *s_cvar;
-static const float PANNING_DIST_SQUARED = 81.0f;
+static float      FADEINTIME = 5.0f;
+static float      FADEOUTTIME = 5.0f;
+static float      PANNING_DIST = 9.0f;
+static float      PANNING_DIST_SQUARED = PANNING_DIST * PANNING_DIST;
 
 void LIQUIDINFO::StopSound(int immediate) {
   if (m_sound) {

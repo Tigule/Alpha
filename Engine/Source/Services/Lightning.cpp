@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Services/Lightning.h"
 
 #include "Gx/Gx.h"
@@ -8,6 +10,11 @@
 #include <math.h>
 
 static NTempest::CRndSeed sRandSeed;
+static TSFixedArray_<NTempest::C3Vector, 'Ligh', 74> sPoints;
+static NTempest::C44Matrix identity;
+static NTempest::C44Matrix worldToView;
+static NTempest::C44Matrix particleToView;
+static NTempest::C3Vector zup;
 
 CLightning::CLightning() : mAvgSegLen(-2.0f), mWidth(1.0f), mRebuildPoints(1), mAccTime(0.0f), mTexture(0) {
 }
@@ -64,7 +71,6 @@ void CLightning::Update(float elapsed) {
     mRebuildPoints = 0;
   }
 
-  static TSFixedArray_<NTempest::C3Vector, 'Ligh', 74> sPoints;
   BuildStroke(sPoints);
 
   unsigned int end = mPoints.Count() - 1;
@@ -89,11 +95,7 @@ void CLightning::Render(unsigned int boltId, const NTempest::C3Vector &cameraPos
     mRebuildPoints = 1;
   }
 
-  static NTempest::C44Matrix identity;
-  static NTempest::C44Matrix view;
-  static NTempest::C44Matrix viewRelative;
-
-  GxXformView(view);
+  GxXformView(worldToView);
   GxXformSetView(identity);
   GxXformPush(GxXform_World);
   GxXformIdentity(GxXform_World);
@@ -101,16 +103,16 @@ void CLightning::Render(unsigned int boltId, const NTempest::C3Vector &cameraPos
 
   NTempest::C44Matrix translate;
   translate.Translate(-cameraPos);
-  viewRelative = translate * view;
+  particleToView = translate * worldToView;
 
   unsigned int numPoints = mPoints.Count();
   mPos[0] *= 0.0f;
   mPos[1] *= 0.0f;
 
-  NTempest::C3Vector p = mPoints[0] * viewRelative;
+  NTempest::C3Vector p = mPoints[0] * particleToView;
   unsigned int       end = 2 * numPoints - 2;
   for (unsigned int i = 2; i < end; i += 2) {
-    NTempest::C3Vector q = mPoints[i / 2] * viewRelative;
+    NTempest::C3Vector q = mPoints[i / 2] * particleToView;
     NTempest::C3Vector d = q - p;
     NTempest::C3Vector perp(-d.y, d.x, 0.0f);
     float              mag = perp.Mag();
@@ -126,9 +128,9 @@ void CLightning::Render(unsigned int boltId, const NTempest::C3Vector &cameraPos
     p = q;
   }
 
-  mPos[1] = mPoints[0] * viewRelative;
+  mPos[1] = mPoints[0] * particleToView;
   mPos[0] = mPos[1];
-  mPos[2 * numPoints - 1] = mPoints[numPoints - 1] * viewRelative;
+  mPos[2 * numPoints - 1] = mPoints[numPoints - 1] * particleToView;
   mPos[2 * numPoints - 2] = mPos[2 * numPoints - 1];
 
   NTempest::C3Vector texTranslate(-mAccTime / (mDuration == 0.0f ? 1.0f : mDuration), 0.0f, 0.0f);
@@ -148,7 +150,7 @@ void CLightning::Render(unsigned int boltId, const NTempest::C3Vector &cameraPos
   GxPrimDrawElements(GxPrim_TriangleStrip, mIndices.Count(), &mIndices[0]);
   GxPrimUnlockVertexPtrs();
   GxRsPop();
-  GxXformSetView(view);
+  GxXformSetView(worldToView);
   GxXformPop(GxXform_World);
   GxXformPop(GxXform_Tex0);
 }

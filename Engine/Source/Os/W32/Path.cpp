@@ -1,12 +1,12 @@
+#include <Base/Base.h>
+
 #include <storm.h>
 #include <windows.h>
 
-struct OsModule {
+static struct {
   unsigned long m_id;
   HINSTANCE     m_handle;
-};
-
-static OsModule s_modules[8];
+} s_modules[8];
 static const char *s_invalidFileNames[22] = {
     "nul",  "con",  "prn",  "aux",  "com1", "com2", "com3", "com4", "com5", "com6", "com7",
     "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"

@@ -1,3 +1,5 @@
+#include <WowConst.h>
+
 #include "Client.h"
 
 #include <Base/Handle.h>
@@ -38,11 +40,11 @@ static const TEXTUREINFO s_textureInfo[TEXTURETYPE_NUMTEXTURETYPES] = {
     {"Interface\\Glues\\LoadingBar\\Loading-BarBorder", 0, 0.5f, 0.075f,   0.6f,  0.05f, GxBlend_Alpha}
 };
 
-static const unsigned short s_indices[4] = {0, 1, 2, 3};
-static unsigned int         s_textureFormat[TEXTURETYPE_NUMTEXTURETYPES];
+static const unsigned short indices[4] = {0, 1, 2, 3};
+static EGxTexFormat         s_textureFormat[TEXTURETYPE_NUMTEXTURETYPES];
 static int                  s_worldLoaded;
 static int                  s_xmlTotal;
-static HOBJECT              s_loadingScreenLayer;
+static HLAYER__            *s_loadingScreenLayer;
 static float                s_progress;
 static MipBits             *s_mipBits[TEXTURETYPE_NUMTEXTURETYPES];
 static CGxTex              *s_textureHandles[TEXTURETYPE_NUMTEXTURETYPES];
@@ -146,8 +148,8 @@ static void UnregisterHandlers() {
 }
 
 static void LoadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
-  static const NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
-  static const NTempest::C2Vector texCoord[4] = {
+  static NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
+  static NTempest::C2Vector texCoord[4] = {
       NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(1.0f, 0.0f)
   };
 
@@ -185,7 +187,7 @@ static void LoadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
       position[3].z = 0.0f;
       GxPrimLockVertexPtrs(4, position, sizeof(NTempest::C3Vector), &normal, 0, 0, 0, 0, 0, texCoord, sizeof(NTempest::C2Vector), 0, 0);
       GxRsSet(GxRs_Texture0, s_textureHandles[image]);
-      GxPrimDrawElements(GxPrim_TriangleStrip, 4, s_indices);
+      GxPrimDrawElements(GxPrim_TriangleStrip, 4, indices);
       GxPrimUnlockVertexPtrs();
     }
   }
@@ -214,7 +216,7 @@ static void TextureCallback(
       break;
 
     case GxTex_Latch:
-      texelStrideInBytes = CalcRowStride(GxGetBlitFormat(static_cast<EGxTexFormat>(s_textureFormat[image])), w);
+      texelStrideInBytes = CalcRowStride(GxGetBlitFormat(s_textureFormat[image]), w);
       texels = mipBits->mip[mipLevel];
       break;
 
@@ -231,12 +233,20 @@ static void LoadImage(TEXTURETYPE image) {
   unsigned int height;
   int          isOpaque;
 
-  s_mipBits[image] = TextureLoadImage(s_textureInfo[image].name, &width, &height, &s_textureFormat[image], &isOpaque, 0, 0);
+  s_mipBits[image] = TextureLoadImage(
+      s_textureInfo[image].name,
+      &width,
+      &height,
+      reinterpret_cast<unsigned int *>(&s_textureFormat[image]),
+      &isOpaque,
+      0,
+      0
+  );
 
   if (s_mipBits[image]) {
     CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
     GxTexCreate(
-        width, height, static_cast<EGxTexFormat>(s_textureFormat[image]), flags, reinterpret_cast<void *>(static_cast<unsigned int>(image)),
+        width, height, s_textureFormat[image], flags, reinterpret_cast<void *>(static_cast<unsigned int>(image)),
         TextureCallback, s_textureHandles[image]
     );
     ASSERT(s_textureHandles[image]);
@@ -256,7 +266,7 @@ void EnableLoadingScreen() {
   rect.bottom = 0.0f;
   rect.right = 1.0f;
   rect.top = 1.0f;
-  ScrnLayerCreate(&rect, 9.0f, 6, 0, LoadingScreenPaint, reinterpret_cast<HLAYER__ **>(&s_loadingScreenLayer));
+  ScrnLayerCreate(&rect, 9.0f, 6, 0, LoadingScreenPaint, &s_loadingScreenLayer);
   RegisterHandlers();
   InitializeProgressBar();
   s_loadingScreenEnabled = true;
@@ -273,7 +283,7 @@ void DisableLoadingScreen() {
     return;
   }
 
-  HandleClose(s_loadingScreenLayer);
+  HandleClose((HOBJECT)s_loadingScreenLayer);
   for (index = 0; index < TEXTURETYPE_NUMTEXTURETYPES; ++index) {
     if (s_textureHandles[index]) {
       GxTexDestroy(s_textureHandles[index]);

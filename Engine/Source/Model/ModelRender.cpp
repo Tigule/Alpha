@@ -2,6 +2,7 @@
 #include "CollisionData.h"
 
 #include "Base/Activity.h"
+#include "Base/Base.h"
 #include "Anim/WorldMatrix.h"
 #include "Services/ParticleSystem2.h"
 #include "Services/RibbonEmitter.h"
@@ -215,13 +216,11 @@ struct CTransparentObject {
   };
 };
 
-static unsigned short                                     vertIndices[36] = {0,  1,  2,  2,  1,  3,  4,  5,  6,  6,  5,  7,  8,  9,  10, 10, 9,  11,
-                                                                             12, 13, 14, 14, 13, 15, 16, 17, 18, 18, 17, 19, 20, 21, 22, 22, 21, 23};
+static unsigned short                                     vertIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1,  16, 16, 1,  4,  2,  8,  5,  5,  8,  11,
+                                                                             7,  19, 10, 10, 19, 22, 3,  9,  15, 15, 9,  21, 17, 23, 14, 14, 23, 20};
 static TSGrowableArray<COpaqueLayer>                      s_opLayerPool;
 static TSGrowableArray<CTransparentObject>                s_trLayerPool;
 static NTempest::C4Vector                                 s_frustumPlanes[6];
-static const float                                        TWO_PI = 6.28318530717958647692f;
-static const float                                        OO_TWO_PI = 0.15915494309189533577f;
 static TSGrowableArray<NTempest::C34Matrix>               s_matrixPool;
 static unsigned int                                       s_nextMatrix;
 static unsigned int                                       s_lastFrame;
@@ -235,7 +234,6 @@ static MODELPROJECT2DCALLBACK                             s_Project2dCallback;
 static NTempest::C3Vector                                 s_sceneCameraPos;
 static NTempest::C3Vector                                 s_sceneCameraDir;
 static float                                              s_sceneSharpness = -1.0f;
-static const float                                        PI = 3.14159265358979323846f;
 static NTempest::CPriorityQ<COpaqueLayer *, COpaqueLayer> s_opaqueScene;
 static unsigned short                                     s_currAnimFrame;
 static NTempest::CPriorityQ<CTransparentObject *, CTransparentObject> s_transparentScene;

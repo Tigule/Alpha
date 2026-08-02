@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "ConsoleDetect.h"
 
 #include <Os/W32/OsGui.h>
@@ -18,10 +20,6 @@ struct _PCI_DEVTABLE {
 };
 
 #include "ConsoleDetectPciData.inc"
-
-static const float PI = 3.14159265358979323846f;
-static const float TWO_PI = PI + PI;
-static const float OO_TWO_PI = 1.0f / TWO_PI;
 
 WowClientDB<VideoHardwareRec> g_videoHardwareDB;
 

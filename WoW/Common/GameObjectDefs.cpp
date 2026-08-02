@@ -1,3 +1,5 @@
+#include <WowConst.h>
+
 #include <storm.h>
 
 class CGameObjectDef {

@@ -32,7 +32,7 @@ typedef BREAKCMD *BREAKCMDPTR;
 static LISTDECL(BREAKCMD, s_breakcmdlist);
 static CCritSect                              s_critsect;
 static LONG                                   s_dispatchesinprogress;
-static int                                    s_modified = 1;
+static int                                    s_modified;
 static TYPEHASHENTRYPTR                      *s_typehashtable;
 static DWORD                                  s_typehashtablesize;
 static DWORD                                  s_typehashtableused;

@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldClient/World.h"
 
 #include "WorldClient/CMapObj.h"
@@ -31,9 +35,9 @@ void CMap::SnapBaseObjToSubChunk(CMapBaseObj *baseObj, NTempest::C3Vector &pos, 
   CWorldMath::TransformAABox(mat, tAaBox, aaBox);
   tVec = pos + aaBox.b;
 
-  int x = static_cast<int>((tVec.x + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK - OneHalfOffset);
+  int x = static_cast<int>((tVec.x + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK - 0.5f);
   pos.x -= tVec.x - x * (150.0f / 36.0f);
-  pos.y -= tVec.y - static_cast<int>((tVec.y + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK - OneHalfOffset) * (150.0f / 36.0f);
+  pos.y -= tVec.y - static_cast<int>((tVec.y + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK - 0.5f) * (150.0f / 36.0f);
 }
 
 void CMap::Update() {

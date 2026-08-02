@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Services/ParticleSystem.h"
 
 #include "Anim/WorldMatrix.h"
@@ -5,7 +7,7 @@
 #include "Tempest/cmath.h"
 #include "Tempest/crandom.h"
 
-static NTempest::CRndSeed s_particleRandomSeed;
+static NTempest::CRndSeed s_randSeed;
 
 void CParticle::Copy(const CParticle &rhs) {
   m_timeToLive = rhs.m_timeToLive;
@@ -87,7 +89,7 @@ void CParticleEmitter::SyncAllocation() {
 }
 
 void CParticleEmitter::CreateParticle(CParticle &p, float elapsedTime, const NTempest::C3Vector &cameraWorldPos) {
-  p.m_elapsed = NTempest::CRandom::real_(s_particleRandomSeed) * elapsedTime;
+  p.m_elapsed = NTempest::CRandom::real_(s_randSeed) * elapsedTime;
   if (p.m_elapsed >= m_particleLifeSpan) {
     p.m_elapsed = 0.0f;
   }
@@ -95,8 +97,8 @@ void CParticleEmitter::CreateParticle(CParticle &p, float elapsedTime, const NTe
   p.m_position = 0.0f;
   WorldMatrixTransform(&p.m_position);
 
-  float theta = (NTempest::CRandom::real_(s_particleRandomSeed) * 2.0f - 1.0f) * m_latitude;
-  float longitude = (NTempest::CRandom::real_(s_particleRandomSeed) * 2.0f - 1.0f) * m_longitude;
+  float theta = (NTempest::CRandom::real_(s_randSeed) * 2.0f - 1.0f) * m_latitude;
+  float longitude = (NTempest::CRandom::real_(s_randSeed) * 2.0f - 1.0f) * m_longitude;
   p.m_velocity.x = NTempest::CMath::sin_(theta) * m_velocity;
   p.m_velocity.z = NTempest::CMath::cos_(theta) * m_velocity;
   p.m_velocity.y = NTempest::CMath::sin_(longitude) * p.m_velocity.x;

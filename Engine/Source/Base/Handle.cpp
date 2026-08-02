@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Handle.h"
 
 void HandleClose(HOBJECT handle) {

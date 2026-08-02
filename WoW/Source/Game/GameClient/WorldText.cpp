@@ -14,6 +14,8 @@
 
 #include <math.h>
 
+static const float PI = 3.14159265358979323846f;
+
 static LISTDECLEX(WORLDTEXTSTRING, link, s_textList);
 static WORLDTEXTCREATEPARAMS                  s_worldTextParams[NUM_WORLDTEXTTYPES];
 static HTEXTFONT                              s_worldTextFontHandles[NUM_WORLDTEXTTYPES];

@@ -4,6 +4,9 @@
 
 #include <math.h>
 
+static const float MIN_EDGE_LIFE_SPAN = 0.25f;
+static const float NORMAL_SCALE = 1.0f;
+
 static void DuplicateTextureArray(const TSGrowableArray<HTEXTURE> &src, TSGrowableArray<HTEXTURE> *dst) {
   unsigned int numTextures = src.Count();
   dst->SetCount(numTextures);
@@ -187,8 +190,8 @@ void CRibbonEmitter::Initialize(
   ASSERT(textures.Count() == replaces.Count());
 
   edgesPerSec = static_cast<float>(ceil(edgesPerSec));
-  if (edgeLifeSpanInSec < 0.25f) {
-    edgeLifeSpanInSec = 0.25f;
+  if (edgeLifeSpanInSec < MIN_EDGE_LIFE_SPAN) {
+    edgeLifeSpanInSec = MIN_EDGE_LIFE_SPAN;
   }
 
   numEdges = static_cast<unsigned int>(ceil(edgesPerSec * edgeLifeSpanInSec) + 2.0);

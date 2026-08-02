@@ -54,8 +54,8 @@ bool s_useOldFindFile;
 typedef TSHashTable<FILEMAP, HASHKEY_STRI> FileMapTable;
 
 static FileMapTable                             s_fileMap;
-static unsigned int                             s_exitReadThread;
-static unsigned int                             s_readThreadInitialized;
+static unsigned char                            s_exitReadThread;
+static unsigned char                            s_readThreadInitialized;
 static SEvent                                   s_readQueueEvent(FALSE, FALSE);
 static SCritSect                                s_readQueueLock;
 static SThread                                  s_readThread;

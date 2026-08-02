@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleMessageFrame.h"
 
 #include <lauxlib.h>

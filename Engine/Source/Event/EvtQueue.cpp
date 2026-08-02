@@ -5,10 +5,6 @@
 
 #include <string.h>
 
-const float PI = 3.14159265358979323846f;
-const float TWO_PI = PI + PI;
-const float OO_TWO_PI = 1.0f / TWO_PI;
-
 static TExtraInstanceRecycler<EvtMessage> s_messageRecycler(0x40, 0x40, 0x100);
 
 EvtMessage *MessageAlloc(unsigned long bytes) {

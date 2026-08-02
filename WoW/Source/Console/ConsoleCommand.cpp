@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "ConsoleClient.h"
 
 #include <Os/W32/OsFile.h>

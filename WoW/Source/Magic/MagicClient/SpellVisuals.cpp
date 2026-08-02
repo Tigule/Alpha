@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "DB/DBClient/AutoCode/SpellAuraNamesRec.h"
 #include "DayNight.h"
 #include "DB/DBClient/AutoCode/SpellEffectCameraShakesRec.h"

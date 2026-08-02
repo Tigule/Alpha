@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "IModel.h"
 #include "ModelInternal.h"
 
@@ -11,10 +13,6 @@
 
 #include <malloc.h>
 #include <string.h>
-
-const float PI = 3.14159265358979323846f;
-const float TWO_PI = PI + PI;
-const float OO_TWO_PI = 1.0f / TWO_PI;
 
 void ExecuteQueuedActions(CModel *model);
 HMODEL ModelDuplicate(HMODEL sourceModel, unsigned int flags);

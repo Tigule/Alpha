@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Object/ObjectClient/Bag_C.h"
 
 #include "Object/ObjectClient/Item_C.h"
@@ -12,6 +16,8 @@ struct FindItemClassData {
   int classID;
   int subclassMask;
 };
+
+static const unsigned int inventoryFlags = 7;
 
 static int GetItemTypeCountCallback(const CGItem_C *item, void *param) {
   GetItemTypeCountData *data = static_cast<GetItemTypeCountData *>(param);
@@ -90,8 +96,8 @@ CGItem_C *CGBag_C::FindItem(
 
   unsigned int index;
 
-  if (IsInventory() && !(flags & 7)) {
-    flags |= 7;
+  if (IsInventory() && !(flags & inventoryFlags)) {
+    flags |= inventoryFlags;
   }
 
   for (index = 0; index < NumSlots(); ++index) {

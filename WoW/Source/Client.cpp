@@ -1,5 +1,8 @@
-#include <Event/EvtApi.h>
 #include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
+#include <Event/EvtApi.h>
 #include <Base/CDataStore.h>
 #include <Base/CmdLine.h>
 #include <Base/Status.h>
@@ -150,7 +153,6 @@ CVar              *g_realmNameVar;
 CVar              *g_realmAddressVar;
 HEVENTCONTEXT      g_clientEventContext;
 
-const char *const WOW_ERROR_LOG_TITLE = "World of WarCraft: Assertions Enabled Build (build 3368)";
 
 static const ARGLIST s_wowArgList[17] = {
     {SCMD_TYPE_BOOL, 15,     "640x480", 0},
@@ -172,7 +174,7 @@ static const ARGLIST s_wowArgList[17] = {
     {SCMD_TYPE_BOOL, 35, "keepsession", 0}
 };
 
-static const char *const s_archiveNames[8] = {"Data\\model.MPQ",     "Data\\texture.MPQ", "Data\\sound.MPQ",  "Data\\misc.MPQ",
+static const char *s_archiveNames[8] = {"Data\\model.MPQ",     "Data\\texture.MPQ", "Data\\sound.MPQ",  "Data\\misc.MPQ",
                                               "Data\\interface.MPQ", "Data\\fonts.MPQ",   "Data\\speech.MPQ", "Data\\dbc.MPQ"};
 
 static SArchive          *s_archive[8];
@@ -189,7 +191,7 @@ static CVar              *s_gammaCvar;
 static CVar              *s_profanityFilterCvar;
 static unsigned int       s_cacheUpdateTimerHandle;
 static int                clientGameInitialized;
-static unsigned int       s_newZoneID;
+static unsigned char      s_newZoneID;
 static NTempest::C3Vector s_newPosition;
 static float              s_newFacing;
 static const char        *s_newMapname;
@@ -440,7 +442,7 @@ static int LoadNewWorld(const void *eventData, void *param) {
 static int NewWorldHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
   ASSERT(msgID == SMSG_NEW_WORLD);
 
-  msg->Get(reinterpret_cast<unsigned char &>(s_newZoneID));
+  msg->Get(s_newZoneID);
   msg->Get(s_newPosition.x);
   msg->Get(s_newPosition.y);
   msg->Get(s_newPosition.z);
@@ -1433,7 +1435,7 @@ int APIENTRY WinMain(HINSTANCE, HINSTANCE, char *, int) {
     SRegSaveValue("Wow\\Client", "SendErrorLogs", 0, sendErrorLogs);
   }
 
-  SErrSetLogTitleString(WOW_ERROR_LOG_TITLE);
+  SErrSetLogTitleString("World of WarCraft: Assertions Enabled Build (build 3368)");
   SErrSetLogCallback(WowLogHeader);
 
   if (sendErrorLogs) {

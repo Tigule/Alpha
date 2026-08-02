@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "IUnitEffects.h"
 
 #include "DB/DBClient/AutoCode/SpellVisualEffectNameRec.h"

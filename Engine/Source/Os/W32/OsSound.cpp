@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "OsSound.h"
 
 #include "Base/CDataAllocator.h"
@@ -103,7 +105,6 @@ extern "C" signed char __stdcall    FSOUND_Stream_Stop(FSOUND_STREAM *stream);
 extern "C" void __stdcall           FSOUND_Update();
 
 static int         logFlags;
-static const float PI = 3.14159265358979323846f;
 static int         s_maxCategorySounds[SOUNDCATEGORIES_NUMCATEGORIES] = {0x7FFFFFFF, 1, 2};
 static const char *s_outputSystemName[13] = {
     "No Sound", "Windows Mulimedia", "Direct Sound",      "A3D",      "Open Sound System",      "Enlightment Sound Daemon", "Alsa", "ASIO",
@@ -135,8 +136,6 @@ static LISTDECLEX(Sound, panningLink, s_soundListPanning);
 static LISTDECLEX(Sound, cutoffLink, s_soundListCutoff);
 static LISTDECLEX(Sound, stopLink, s_soundListStop);
 static TInstanceAllocator<Sound> s_soundListFree(40);
-static const float               TWO_PI = PI + PI;
-static const float               OO_TWO_PI = 1.0f / TWO_PI;
 static SCritSect                 s_soundSystemLock;
 static bool                      s_globalPause;
 static float                     s_soundVolume = 1.0f;

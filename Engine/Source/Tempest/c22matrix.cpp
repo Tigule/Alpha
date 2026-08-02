@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Tempest/c22matrix.h"
 
 namespace NTempest {

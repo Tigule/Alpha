@@ -2,6 +2,8 @@
 #include <Tempest/c34matrix.h>
 
 static unsigned int               s_vertexCount;
+static __int64                    s_himask = 0xFFFFFFFF00000000i64;
+static __int64                    s_lomask = 0x00000000FFFFFFFFi64;
 static const NTempest::C3Vector  *s_pos;
 static unsigned int               s_posStride;
 static const NTempest::C3Vector  *s_normal;
@@ -18,8 +20,9 @@ static unsigned int               s_indexCount;
 static const NTempest::C3Vector  s_genericNormal(0.0f, 1.0f, 0.0f);
 static const NTempest::C2Vector  s_genericTexCoord(0.0f, 0.0f);
 static const NTempest::CImVector s_genericColor(0xFFFFFFFF);
+static NTempest::CImVector       diffuse;
 
-static const enum _D3DPRIMITIVETYPE s_primitiveConversion[GxPrims_Last] = {
+static enum _D3DPRIMITIVETYPE s_primitiveConversion[GxPrims_Last] = {
     static_cast<enum _D3DPRIMITIVETYPE>(1), static_cast<enum _D3DPRIMITIVETYPE>(2), static_cast<enum _D3DPRIMITIVETYPE>(3),
     static_cast<enum _D3DPRIMITIVETYPE>(4), static_cast<enum _D3DPRIMITIVETYPE>(5), static_cast<enum _D3DPRIMITIVETYPE>(6)
 };
@@ -27,7 +30,7 @@ static const enum _D3DPRIMITIVETYPE s_primitiveConversion[GxPrims_Last] = {
 #define MinD3dBufVertices 0x100
 #define MinD3dBufIndices  0x300
 
-static const unsigned long s_vtxBufFmtConversion[GxVertexBufferFormats_Last] = {
+static unsigned long s_vtxBufFmtConversion[GxVertexBufferFormats_Last] = {
     D3DFVF_XYZ | D3DFVF_NORMAL,
     D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE,
     D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1,
@@ -685,8 +688,7 @@ void CGxDeviceD3d::IPrimProcessVertexPtrs() {
     s_tex[1] = &s_genericTexCoord;
   }
 
-  static NTempest::CImVector diffuse;
-  int                        lighting;
+  int lighting;
   RsGet(GxRs_Lighting, lighting);
   RsGet(GxRs_MatDiffuse, diffuse);
 

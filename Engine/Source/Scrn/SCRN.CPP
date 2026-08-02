@@ -1,7 +1,6 @@
+#include <Base/Base.h>
+
 #include "Scrn.h"
-const float PI = 3.14159265358979323846f;
-const float TWO_PI = PI + PI;
-const float OO_TWO_PI = 1.0f / TWO_PI;
 
 static int consoleInitialized;
 

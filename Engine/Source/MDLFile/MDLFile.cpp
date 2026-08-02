@@ -44,7 +44,7 @@ void __cdecl CMdlScanner::mdlerror(char *format, ...) {
 }
 
 static CNullStatus s_nullStatus;
-static unsigned int s_defaultWriteFormat;
+static unsigned int s_defaultWriteFormat = 1;
 
 static int TextToModelData(const void* buffer, MDLDATA& data, CMDLStatus* status) {
   CMdlScanner scanner(status, static_cast<const char *>(buffer), 255);

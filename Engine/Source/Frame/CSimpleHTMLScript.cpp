@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleHTML.h"
 
 #include <lauxlib.h>

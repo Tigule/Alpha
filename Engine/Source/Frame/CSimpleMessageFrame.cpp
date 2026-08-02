@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleMessageFrame.h"
 
 #include "FrameXML/LoadXML.h"
@@ -5,7 +7,7 @@
 
 #include <math.h>
 
-static float DEFAULT_FADE_DURATION = 3.0f;
+static const float DEFAULT_FADE_DURATION = 3.0f;
 
 CSimpleMessageFrame::CSimpleMessageFrame(CSimpleFrame *parent) : CSimpleFrame(parent) {
   m_rows = 0;

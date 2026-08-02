@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleCommand.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"

@@ -276,7 +276,7 @@ namespace Storm {
     IDirectSound *s_directsound = 0;
     void         *s_cdthread = 0;
     void         *s_explodebuffer = 0;
-    BYTE         *s_soundreadbuffer = 0;
+    void         *s_soundreadbuffer = 0;
     void         *s_cdevent = 0;
     int           s_cdshutdown = 0;
     REQUEST      *s_cdrequest = 0;
@@ -412,7 +412,7 @@ struct _AUTHCOMPANYINFO {
   DWORD       authresult;
 };
 
-static _AUTHCOMPANYINFO s_authcompany[1] = {
+static const _AUTHCOMPANYINFO s_authcompany[1] = {
     {"BLIZZARDKEY", SFILE_AUTH_AUTHENTICBLIZZARD}
 };
 
@@ -1636,7 +1636,7 @@ static DWORD WINAPI CdThreadProc(void *__formal) {
       lastarchivelocation = nextreq->location;
       lastReadTime = currtime;
 
-      BYTE *buffer = nextreq->stream ? Storm::SFile::s_soundreadbuffer : (BYTE *)nextreq->buffer;
+      BYTE *buffer = nextreq->stream ? (BYTE *)Storm::SFile::s_soundreadbuffer : (BYTE *)nextreq->buffer;
       if (buffer) {
         if (file->handle == INVALID_HANDLE_VALUE) {
           nextreq->bytesread = InternalReadUnaligned(file, nextreq->location, buffer, nextreq->bytestoread);

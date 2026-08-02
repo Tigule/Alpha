@@ -3,6 +3,15 @@
 #include "Tempest/c3vector.h"
 #include "Tempest/cimvector.h"
 
+static const float MD_OCEAN_RAW_SCALE = -21.0f;
+static const float MD_OCEAN_DEPTH_SCALE = MD_OCEAN_RAW_SCALE * (-1.0f / 36.0f);
+static const float MD_MAX_DEPTH = MD_OCEAN_DEPTH_SCALE * -255.0f;
+static const float SMOLTILE_SIZE = 4.1666665f;
+static const float OOSMOLTILE_SIZE = 1.0f / SMOLTILE_SIZE;
+static const float WMOMM_IPP = 18.0f;
+static const float WMOMM_INCHES_PER_PIXEL = WMOMM_IPP * (1.0f / 36.0f);
+static const float WMOMM_QUAD_SIZE = WMOMM_INCHES_PER_PIXEL * 256.0f;
+
 struct SMOFog {
   enum EFlags {
     F_IEBLEND = 1

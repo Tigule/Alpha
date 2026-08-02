@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "DynamicObject_C.h"
 
 #include "DB/DBClient/AutoCode/SpellRec.h"
@@ -18,6 +22,8 @@ BlizzardObject *SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float 
 void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
 void SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
 void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
+
+static const char NONAME[7] = "NoName";
 
 void CGDynamicObject_C::SetStorage(unsigned long *storage) {
   CGObject_C::SetStorage(storage);
@@ -207,7 +213,7 @@ const char *CGDynamicObject_C::GetModelFileName() const {
   }
 
   SysMsgPrintf(SYSMSG_FATAL, 2, "NOOBJECTFILENAME|%d|Dynamic", m_dynamicObj->m_spellID);
-  return "NoName";
+  return NONAME;
 }
 
 void CGDynamicObject_C::HandleAnimEvent(const char *eventName, const NTempest::C3Vector &position) {

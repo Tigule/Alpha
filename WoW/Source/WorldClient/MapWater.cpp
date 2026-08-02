@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
 
@@ -39,9 +42,6 @@ static unsigned int               s_lodSubdivs[5] = {0, 1, 3, 7, 15};
 static TSGrowableArray<LODArrays> s_lodArrays;
 static NTempest::CImVector       *pixels;
 static const float                kDeepDarken = 0.75f;
-static const float                MD_OCEAN_RAW_SCALE = -21.0f;
-static const float                MD_OCEAN_DEPTH_SCALE = MD_OCEAN_RAW_SCALE * (-1.0f / 36.0f);
-static const float                MD_MAX_DEPTH = MD_OCEAN_DEPTH_SCALE * -255.0f;
 static const float                MD_RIVER_DEPTH_SCALE = 1.0f / 9.0f;
 static const float                Gx_MinTexAspect = 0.125f;
 static float                      s_oceanDepthCoordTable[256];

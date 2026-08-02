@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include <Base/CDataStore.h>
 
 #include "Object/GameObjectStats.h"

@@ -43,8 +43,6 @@ const NTempest::C2Vector DNClouds::m_bumpFadeTable[] = {NTempest::C2Vector(0.166
                                                   NTempest::C2Vector(0.89583331f, 1.0f), NTempest::C2Vector(0.9236111f, 0.0f),
                                                   NTempest::C2Vector(0.8888889f, 0.0f),  NTempest::C2Vector(0.91666669f, 1.0f)};
 
-static const float PI = 3.1415927f;
-
 static NTempest::C2Vector s_sidnTable[4] = {
     NTempest::C2Vector(0.25f, 1.0f), NTempest::C2Vector(0.29166667f, 0.0f), NTempest::C2Vector(0.85416669f, 0.0f),
     NTempest::C2Vector(0.89583331f, 1.0f)

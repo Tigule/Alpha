@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "GameUI.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "Object/ObjectClient/Player_C.h"
@@ -18,8 +22,6 @@ bool Spell_C_CanTargetItems();
 bool Spell_C_HandleSpriteClick(CGObject_C *object);
 void Spell_C_StopTargeting();
 
-static const float MAX_SHOP_DISTANCE = 5.5555553f;
-static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
 
 class CGBankInfo {
  public:

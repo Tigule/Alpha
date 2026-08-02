@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include <Console/ConsoleClient.h>
 #include <Console/ConsoleCommand.h>
 #include <ObjectAlloc/ObjectAllocTemplate.h>

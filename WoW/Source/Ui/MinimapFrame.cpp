@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "MinimapFrame.h"
 #include <Os/OsTime.h>
 
@@ -69,6 +72,9 @@ static float const ICON_SIZE = 0.0125f;
 static float const BLIP_SIZE = 0.00625f;
 static float const ICON_HALF = ICON_SIZE * 0.5f;
 static float const BLIP_HALF = BLIP_SIZE * 0.5f;
+static float ONETHIRD = 0.33333334f;
+static float const POI_ARROW_RADIUS = 0.048f;
+static float const MINIMAPSIDELENGTH = 0.108f;
 
 static int                   s_tooltipDisplay;
 static int                   s_tooltipDisplayDistant = -1;
@@ -121,7 +127,7 @@ NTempest::C2Vector CGMinimapFrame::WorldPosToMinimapFrameCoords(
     float                    y,
     float                    layoutScale
 ) {
-  const float halfSize = 0.108f * layoutScale * 0.5f;
+  const float halfSize = MINIMAPSIDELENGTH * layoutScale * 0.5f;
   const float ooRadius = 1.0f / radius;
   return NTempest::C2Vector(halfSize - halfSize * (y - centerPoint.y) * ooRadius, halfSize + halfSize * (x - centerPoint.x) * ooRadius);
 }
@@ -418,7 +424,7 @@ void QUADDATA::GenerateVertTexInfo(
   texCoords[2] = NTempest::C2Vector(normalized.l, normalized.t);
   texCoords[3] = NTempest::C2Vector(normalized.r, normalized.t);
 
-  const float minimapSize = 0.108f * layoutScale;
+  const float minimapSize = MINIMAPSIDELENGTH * layoutScale;
   const float left = minx * minimapSize;
   const float right = maxx * minimapSize;
   const float top = minimapSize - miny * minimapSize;
@@ -795,12 +801,12 @@ void CGMinimapFrame::Render() {
         ooSize *
                 (s_minimapTexParams.worldRotation.a0 * offset.x + s_minimapTexParams.worldRotation.b0 * offset.y +
                  s_minimapTexParams.worldRotation.c0 * offset.z) *
-                (1.0f / 3.0f) +
+                ONETHIRD +
             0.5f,
         ooSize *
                 (s_minimapTexParams.worldRotation.a1 * offset.x + s_minimapTexParams.worldRotation.b1 * offset.y +
                  s_minimapTexParams.worldRotation.c1 * offset.z) *
-                (1.0f / 3.0f) +
+                ONETHIRD +
             0.5f
     );
     RenderInside(s_minimapTexParams.size, texOffset);
@@ -876,7 +882,7 @@ void CGMinimapFrame::Render() {
       --arrowCount;
       const float   rotation = s_POIDirectionData[arrowCount].rotation;
       CSimpleModel *arrow = m_rotatingArrowFrame[arrowCount];
-      arrow->SetPosition(NTempest::C3Vector(sin(rotation) * 0.048f * -0.95f + 0.048f, cos(rotation) * 0.048f * 0.95f + 0.048f, 0.0f));
+      arrow->SetPosition(NTempest::C3Vector(sin(rotation) * POI_ARROW_RADIUS * -0.95f + POI_ARROW_RADIUS, cos(rotation) * POI_ARROW_RADIUS * 0.95f + POI_ARROW_RADIUS, 0.0f));
       arrow->SetFacing(rotation);
       arrow->SetScale(0.4f);
     }
@@ -898,7 +904,7 @@ void CGMinimapFrame::Render() {
     if (s_partyDirectionData[partyPosition].showArrow) {
       const float   rotation = s_partyDirectionData[partyPosition].rotation;
       CSimpleModel *arrow = m_rotatingPartyFrame[partyPosition];
-      arrow->SetPosition(NTempest::C3Vector(sin(rotation) * 0.048f * -0.95f + 0.048f, cos(rotation) * 0.048f * 0.95f + 0.048f, 0.0f));
+      arrow->SetPosition(NTempest::C3Vector(sin(rotation) * POI_ARROW_RADIUS * -0.95f + POI_ARROW_RADIUS, cos(rotation) * POI_ARROW_RADIUS * 0.95f + POI_ARROW_RADIUS, 0.0f));
       arrow->SetFacing(rotation);
       arrow->SetScale(0.13f);
     }

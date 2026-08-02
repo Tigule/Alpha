@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "OsClipboard.h"
 #include "Debugging.h"
 #include "Input.h"

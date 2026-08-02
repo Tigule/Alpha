@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Services/Camera.h"
 #include "Base/Color.h"
 #include "Tempest/c33matrix.h"

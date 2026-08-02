@@ -28,7 +28,7 @@ typedef struct _PROCESSING {
 
 typedef LIST(CMDDEF) CMDDEF_LIST;
 
-static const char *s_errorstr[] = {"Invalid argument: %s", "The syntax of the command is incorrect.", "Unable to open response file: %s"};
+static const char *const s_errorstr[] = {"Invalid argument: %s", "The syntax of the command is incorrect.", "Unable to open response file: %s"};
 static BOOL        s_addedoptional;
 static CMDDEF_LIST s_arglist;
 static CMDDEF_LIST s_flaglist;

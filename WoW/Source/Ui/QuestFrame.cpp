@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "GameUI.h"
 #include "QuestFrame.h"
 
@@ -22,8 +26,6 @@
 
 #include <string.h>
 
-static const float MAX_SHOP_DISTANCE = 5.5555553f;
-static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
 
 bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
 

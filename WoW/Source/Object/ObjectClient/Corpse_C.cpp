@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Corpse_C.h"
 
 #include "Component/CharacterCustomization.h"
@@ -27,6 +30,7 @@ struct CORPSEANIMDATA {
 void ClntObjMgrShowObject(unsigned __int64 guid);
 
 static TInstanceAllocator<CORPSEANIMDATA> s_freeAnimData(20);
+static const char NONAME[7] = "NoName";
 
 static int DrownAnimCallback(void *param) {
   CORPSEANIMDATA *animData = static_cast<CORPSEANIMDATA *>(param);
@@ -137,13 +141,13 @@ const char *CGCorpse_C::GetModelFileName() const {
   const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_corpse->m_displayID);
   if (!displayInfo) {
     SysMsgPrintf(SYSMSG_WARNING, 16, "INVALIDPLAYERDISPLAYID|%d|%d|%d", m_corpse->m_displayID, m_corpse->m_raceID, m_corpse->m_sex);
-    return "NoName";
+    return NONAME;
   }
 
   const CreatureModelDataRec *modelData = g_creatureModelDataDB.GetRecord(displayInfo->m_modelID);
   if (!modelData) {
     SysMsgPrintf(SYSMSG_WARNING, 16, "INVALIDPLAYERMODELRECORD|%d|%d|%d", displayInfo->m_modelID, m_corpse->m_raceID, m_corpse->m_sex);
-    return "NoName";
+    return NONAME;
   }
 
   return modelData->m_ModelName;

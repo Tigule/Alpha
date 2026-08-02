@@ -10,6 +10,8 @@ unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes
 
 HTEXTURE LoadModelTexture(const char *texturePath, unsigned int modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
 
+static NTempest::CImVector s_uglyPink(0xFFFF00FFul);
+
 static void GetTextureFlags(const MDLTEXTURESECTION &texdata, CGxTexFlags *flags) {
   if (texdata.flags & 0x1) {
     flags->m_wrapU = 1;
@@ -21,8 +23,6 @@ static void GetTextureFlags(const MDLTEXTURESECTION &texdata, CGxTexFlags *flags
 
 static void
 ProcessTextures(const MDLTEXTURESECTION *texdata, unsigned int numTextures, unsigned int flags, CStatus *status, CModelTexture *textures) {
-  static NTempest::CImVector s_uglyPink(0xFFFF00FFul);
-
   for (unsigned int textureIndex = 0; textureIndex < numTextures; ++textureIndex) {
     textures[textureIndex].replaceableId = texdata[textureIndex].replaceableId;
 
@@ -154,7 +154,7 @@ static void ProcessLayerAlpha(const TSGrowableArray<MDLMATERIALSECTION> &section
   }
 }
 
-static const EGxPrim s_mdlToGxPrim[10] = {GxPrim_Points,        GxPrim_Lines,       GxPrims_Last, GxPrim_LineStrip, GxPrim_Triangles,
+static EGxPrim s_mdlToGxPrim[10] = {GxPrim_Points,        GxPrim_Lines,       GxPrims_Last, GxPrim_LineStrip, GxPrim_Triangles,
                                           GxPrim_TriangleStrip, GxPrim_TriangleFan, GxPrims_Last, GxPrims_Last,     GxPrims_Last};
 
 static EGxPrim GetPrimitiveType(unsigned char type) {
@@ -164,7 +164,7 @@ static EGxPrim GetPrimitiveType(unsigned char type) {
   return gxPrim;
 }
 
-static const int s_multiPrimType[10] = {1, 0, 0, 0, 1, 0, 0, 0, 0, 0};
+static int s_multiPrimType[10] = {1, 1, 0, 0, 1, 0, 0, 1, 0, 0};
 
 static unsigned int CountNumPrimLists(const unsigned char *primTypes, unsigned int numPrimTypes) {
   unsigned int  numPrimLists = 0;

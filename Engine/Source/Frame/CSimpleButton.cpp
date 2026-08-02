@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleButton.h"
 
 #include "Event/CMouseEvent.h"

@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "Object/ObjectClient/Unit_C.h"
 
 #include <math.h>
@@ -5,7 +8,6 @@
 #include <Base/CDataStore.h>
 #include <Os/OsTime.h>
 #include <Services/SysMessage.h>
-#include <WowConst.h>
 
 #include "Console/ConsoleVar.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"

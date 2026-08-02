@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "CDataAllocator.h"
 
 #include <string.h>

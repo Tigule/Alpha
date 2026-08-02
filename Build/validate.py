@@ -61,6 +61,13 @@ S_REGISTER = 0x1106
 S_BPREL32 = 0x110B
 S_REGREL32 = 0x1111
 
+# CodeView symbol records used for file-static and external data. As with the
+# local records above, VC6 emits both length-prefixed and null-terminated forms.
+S_LDATA32_ST = 0x1007
+S_GDATA32_ST = 0x1008
+S_LDATA32 = 0x110C
+S_GDATA32 = 0x110D
+
 MAP_BASE = re.compile(r"Preferred load address is\s+([0-9A-Fa-f]+)", re.I)
 MAP_SECTION = re.compile(
     r"^\s*(?P<segment>[0-9A-Fa-f]{4}):(?P<offset>[0-9A-Fa-f]{8})\s+"
@@ -104,6 +111,16 @@ class Procedure:
     offset: int
     length: int
     locals: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class DataSymbol:
+    name: str
+    obj: str
+    type_index: int
+    segment: int
+    offset: int
+    storage: str
 
 
 @dataclass
@@ -317,6 +334,7 @@ class Pdb2:
             raise ValidationError(f"{path} has no TPI/DBI streams")
         self.types = TypeTable(self.streams[2])
         self.procedures = self._parse_procedures()
+        self.data_symbols = self._parse_data_symbols()
 
     def _parse_streams(self) -> list[bytes]:
         page_size, _, _, root_size, _ = struct.unpack_from(
@@ -443,6 +461,64 @@ class Pdb2:
             )
             for key, procedure in procedures.items()
         ]
+
+    def _parse_data_symbols(self) -> list[DataSymbol]:
+        result: list[DataSymbol] = []
+        for module_obj, stream_index, symbol_size in self._modules():
+            if (
+                stream_index < 0
+                or stream_index >= len(self.streams)
+                or symbol_size <= 0
+            ):
+                continue
+            symbols = self.streams[stream_index][:symbol_size]
+            obj = module_obj
+            position = 0
+            while position + 4 <= len(symbols):
+                record_size, record_type = struct.unpack_from(
+                    "<HH", symbols, position
+                )
+                record_end = position + 2 + record_size
+                if record_size < 2 or record_end > len(symbols):
+                    break
+                payload = symbols[position + 4:record_end]
+                if record_type in (0x0009, 0x1101) and len(payload) >= 5:
+                    raw = payload[4:]
+                    if record_type == 0x0009 and raw:
+                        raw = raw[1:1 + raw[0]]
+                    else:
+                        raw = raw.split(b"\0", 1)[0]
+                    if raw:
+                        obj = normalize_object(raw.decode("latin1", "replace"))
+                elif record_type in (
+                    S_LDATA32_ST,
+                    S_GDATA32_ST,
+                    S_LDATA32,
+                    S_GDATA32,
+                ) and len(payload) >= 11:
+                    type_index, offset, segment = struct.unpack_from(
+                        "<IIH", payload, 0
+                    )
+                    if record_type in (S_LDATA32_ST, S_GDATA32_ST):
+                        name, _ = pascal_string(payload, 10)
+                    else:
+                        name = payload[10:].split(b"\0", 1)[0].decode(
+                            "latin1", "replace"
+                        )
+                    result.append(
+                        DataSymbol(
+                            name,
+                            obj,
+                            type_index,
+                            segment,
+                            offset,
+                            "static"
+                            if record_type in (S_LDATA32_ST, S_LDATA32)
+                            else "external",
+                        )
+                    )
+                position = record_end
+        return result
 
     @staticmethod
     def _local_name(record_type: int, payload: bytes) -> str | None:
@@ -957,6 +1033,686 @@ def compare_pdbs(reference: Pdb2, actual: Pdb2) -> tuple[Comparison, Comparison]
     return signature_result, type_result
 
 
+def data_type_size(types: TypeTable, type_index: int) -> int | None:
+    if type_index < TYPE_INDEX_BEGIN:
+        if type_index & 0xF00 == 0x400:
+            return 4
+        base = type_index & 0xFF
+        if base in (0x00, 0x03):
+            return 0
+        if base in (0x10, 0x20, 0x30, 0x68, 0x69, 0x70):
+            return 1
+        if base in (0x11, 0x21, 0x31, 0x71, 0x72, 0x73):
+            return 2
+        if base in (0x08, 0x12, 0x22, 0x32, 0x40, 0x74, 0x75):
+            return 4
+        if base in (0x13, 0x23, 0x33, 0x41, 0x50, 0x76, 0x77):
+            return 8
+        if base == 0x42:
+            return 10
+        if base in (0x43, 0x51):
+            return 16
+        if base == 0x52:
+            return 20
+        if base == 0x53:
+            return 32
+        return None
+    record = types.records.get(type_index)
+    if record is None:
+        return None
+    try:
+        if record.leaf == LF_MODIFIER:
+            return data_type_size(types, struct.unpack_from("<I", record.payload)[0])
+        if record.leaf == LF_POINTER:
+            return 4
+        if record.leaf == LF_ARRAY:
+            size, _ = numeric_leaf(record.payload, 8)
+            return size if isinstance(size, int) else None
+        if record.leaf in (LF_CLASS, LF_STRUCTURE, LF_UNION):
+            _, _, _, _, size = types._named_header(type_index)
+            return size if isinstance(size, int) else None
+        if record.leaf == LF_ENUM:
+            underlying = struct.unpack_from("<I", record.payload, 4)[0]
+            return data_type_size(types, underlying)
+    except (struct.error, ValidationError):
+        return None
+    return None
+
+
+def is_source_data_symbol(symbol: DataSymbol) -> bool:
+    # VC6 emits its pooled literals and guard temporaries as $S... / ?$S...
+    # records. They are compiler implementation details, not declared globals.
+    return bool(symbol.name) and not symbol.name.startswith(("$", "?"))
+
+
+def named_type_index(types: TypeTable, kind: str, name: str) -> int | None:
+    cache = getattr(types, "_global_named_type_indices", None)
+    if cache is None:
+        candidates: dict[tuple[str, str], tuple[int, int]] = {}
+        for index, record in types.records.items():
+            if record.leaf not in (LF_CLASS, LF_STRUCTURE, LF_UNION, LF_ENUM):
+                continue
+            try:
+                item_kind, item_name, count, properties, _ = types._named_header(index)
+            except (struct.error, ValidationError):
+                continue
+            if properties & CV_PROP_FORWARD_REF:
+                continue
+            key = (item_kind, item_name)
+            if key not in candidates or count > candidates[key][0]:
+                candidates[key] = (count, index)
+        cache = {key: value[1] for key, value in candidates.items()}
+        setattr(types, "_global_named_type_indices", cache)
+    return cache.get((kind, name))
+
+
+def canonical_type_size(types: TypeTable, value: Any) -> int | None:
+    if not isinstance(value, tuple) or not value:
+        return None
+    if value[0] == "primitive":
+        try:
+            return data_type_size(types, int(value[1], 16))
+        except (TypeError, ValueError):
+            return None
+    if value[0] == "modifier":
+        return canonical_type_size(types, value[2])
+    if value[0] == "pointer":
+        return 4
+    if value[0] == "array":
+        return value[1] if isinstance(value[1], int) else None
+    if value[0] == "named":
+        index = named_type_index(types, value[1], value[2])
+        return data_type_size(types, index) if index is not None else None
+    if value[0] == "bitfield":
+        return canonical_type_size(types, value[3])
+    return None
+
+
+def canonical_pointer_offsets(
+    types: TypeTable,
+    value: Any,
+    base: int = 0,
+    active: frozenset[tuple[str, str]] = frozenset(),
+) -> set[int]:
+    if not isinstance(value, tuple) or not value:
+        return set()
+    if value[0] == "pointer":
+        return {base}
+    if value[0] == "modifier":
+        return canonical_pointer_offsets(types, value[2], base, active)
+    if value[0] == "array":
+        total = value[1]
+        element = value[3]
+        element_size = canonical_type_size(types, element)
+        if not isinstance(total, int) or not element_size:
+            return set()
+        result: set[int] = set()
+        for offset in range(0, total, element_size):
+            result.update(
+                canonical_pointer_offsets(types, element, base + offset, active)
+            )
+        return result
+    if value[0] != "named":
+        return set()
+    key = (value[1], value[2])
+    if key in active:
+        return set()
+    index = named_type_index(types, value[1], value[2])
+    if index is None or value[1] == "enum":
+        return set()
+    try:
+        layout = types.layout(index)
+    except (KeyError, struct.error, ValidationError):
+        return set()
+    result: set[int] = set()
+    next_active = active | {key}
+    for member in layout[4]:
+        if member[0] == "member" and isinstance(member[2], int):
+            result.update(
+                canonical_pointer_offsets(
+                    types, member[4], base + member[2], next_active
+                )
+            )
+        elif member[0] == "base" and isinstance(member[1], int):
+            result.update(
+                canonical_pointer_offsets(
+                    types, member[3], base + member[1], next_active
+                )
+            )
+        elif member[0] == "vfunctab":
+            result.add(base)
+    return result
+
+
+def data_pointer_offsets(
+    types: TypeTable,
+    type_index: int,
+    base: int = 0,
+    active: frozenset[int] = frozenset(),
+) -> set[int]:
+    if type_index < TYPE_INDEX_BEGIN:
+        return {base} if type_index & 0xF00 == 0x400 else set()
+    if type_index in active:
+        return set()
+    record = types.records.get(type_index)
+    if record is None:
+        return set()
+    data = record.payload
+    next_active = active | {type_index}
+    try:
+        if record.leaf == LF_MODIFIER:
+            underlying = struct.unpack_from("<I", data)[0]
+            return data_pointer_offsets(types, underlying, base, next_active)
+        if record.leaf == LF_POINTER:
+            return {base}
+        if record.leaf == LF_ARRAY:
+            element = struct.unpack_from("<I", data)[0]
+            total, _ = numeric_leaf(data, 8)
+            element_size = data_type_size(types, element)
+            resolved_element = resolve_forward_data_type(
+                types, element, total if isinstance(total, int) else None
+            )
+            if resolved_element is not None:
+                element_size = data_type_size(types, resolved_element)
+            if not isinstance(total, int) or not element_size:
+                return set()
+            result: set[int] = set()
+            for offset in range(0, total, element_size):
+                result.update(
+                    data_pointer_offsets(
+                        types,
+                        resolved_element if resolved_element is not None else element,
+                        base + offset,
+                        next_active,
+                    )
+                )
+            return result
+        if record.leaf not in (LF_CLASS, LF_STRUCTURE, LF_UNION):
+            return set()
+        _, name, _, properties, _ = types._named_header(type_index)
+        if properties & CV_PROP_FORWARD_REF:
+            kind = {
+                LF_CLASS: "class",
+                LF_STRUCTURE: "struct",
+                LF_UNION: "union",
+            }[record.leaf]
+            definition = named_type_index(types, kind, name)
+            if definition is None or definition == type_index:
+                return set()
+            return data_pointer_offsets(types, definition, base, next_active)
+        field_index = struct.unpack_from("<I", data, 4)[0]
+        return data_field_pointer_offsets(
+            types, field_index, base, next_active
+        )
+    except (struct.error, ValidationError):
+        return set()
+
+
+def resolve_forward_data_type(
+    types: TypeTable,
+    type_index: int,
+    total_size: int | None = None,
+) -> int | None:
+    cache = getattr(types, "_forward_data_type_cache", None)
+    if cache is None:
+        cache = {}
+        setattr(types, "_forward_data_type_cache", cache)
+    cache_key = (type_index, total_size)
+    if cache_key in cache:
+        return cache[cache_key]
+    record = types.records.get(type_index)
+    if record is None:
+        return None
+    if record.leaf == LF_MODIFIER:
+        try:
+            type_index = struct.unpack_from("<I", record.payload)[0]
+            record = types.records.get(type_index)
+        except struct.error:
+            return None
+    if record is None or record.leaf not in (LF_CLASS, LF_STRUCTURE, LF_UNION):
+        return None
+    try:
+        kind, name, _, properties, _ = types._named_header(type_index)
+    except (struct.error, ValidationError):
+        return None
+    if not properties & CV_PROP_FORWARD_REF:
+        return type_index
+    candidates = []
+    for index, candidate in types.records.items():
+        if candidate.leaf != record.leaf:
+            continue
+        try:
+            candidate_kind, candidate_name, count, candidate_properties, size = (
+                types._named_header(index)
+            )
+        except (struct.error, ValidationError):
+            continue
+        if (
+            candidate_kind == kind
+            and candidate_name == name
+            and not candidate_properties & CV_PROP_FORWARD_REF
+            and isinstance(size, int)
+            and size > 0
+            and (total_size is None or total_size % size == 0)
+        ):
+            candidates.append((count, size, index))
+    if len(candidates) == 1:
+        result = candidates[0][2]
+        cache[cache_key] = result
+        return result
+    cache[cache_key] = None
+    return None
+
+
+def data_field_pointer_offsets(
+    types: TypeTable,
+    type_index: int,
+    base: int,
+    active: frozenset[int],
+) -> set[int]:
+    if type_index in active:
+        return set()
+    record = types.records.get(type_index)
+    if record is None or record.leaf != LF_FIELDLIST:
+        return set()
+    data = record.payload
+    position = 0
+    result: set[int] = set()
+    next_active = active | {type_index}
+    while position < len(data):
+        if data[position] >= 0xF0:
+            position += max(1, data[position] & 0x0F)
+            continue
+        if position + 2 > len(data):
+            break
+        leaf = struct.unpack_from("<H", data, position)[0]
+        position += 2
+        try:
+            if leaf == LF_MEMBER:
+                member_type = struct.unpack_from("<I", data, position + 2)[0]
+                offset, name_at = numeric_leaf(data, position + 6)
+                _, position = pascal_string(data, name_at)
+                if isinstance(offset, int):
+                    result.update(
+                        data_pointer_offsets(
+                            types, member_type, base + offset, next_active
+                        )
+                    )
+            elif leaf == LF_STMEMBER:
+                _, position = pascal_string(data, position + 6)
+            elif leaf == LF_BCLASS:
+                base_type = struct.unpack_from("<I", data, position + 2)[0]
+                offset, position = numeric_leaf(data, position + 6)
+                if isinstance(offset, int):
+                    result.update(
+                        data_pointer_offsets(
+                            types, base_type, base + offset, next_active
+                        )
+                    )
+            elif leaf in (LF_VBCLASS, LF_IVBCLASS):
+                _, position = numeric_leaf(data, position + 10)
+                _, position = numeric_leaf(data, position)
+            elif leaf == LF_ENUMERATE:
+                _, name_at = numeric_leaf(data, position + 2)
+                _, position = pascal_string(data, name_at)
+            elif leaf == LF_METHOD:
+                _, position = pascal_string(data, position + 6)
+            elif leaf == LF_ONEMETHOD:
+                attrs = struct.unpack_from("<H", data, position)[0]
+                position += 6
+                if ((attrs >> 2) & 7) in (4, 6):
+                    position += 4
+                _, position = pascal_string(data, position)
+            elif leaf == LF_INDEX:
+                continuation = struct.unpack_from("<I", data, position + 2)[0]
+                position += 6
+                result.update(
+                    data_field_pointer_offsets(
+                        types, continuation, base, next_active
+                    )
+                )
+            elif leaf == LF_NESTTYPE:
+                _, position = pascal_string(data, position + 6)
+            elif leaf == LF_VFUNCTAB:
+                position += 6
+                result.add(base)
+            elif leaf == LF_VFUNCOFF:
+                position += 8
+            else:
+                break
+        except (struct.error, ValidationError):
+            break
+    return result
+
+
+class DataAddressResolver:
+    def __init__(self, pdb: Pdb2, image: PeImage):
+        self.image = image
+        self.data: dict[int, list[DataSymbol]] = collections.defaultdict(list)
+        self.procedures: dict[int, list[Procedure]] = collections.defaultdict(list)
+        for symbol in pdb.data_symbols:
+            address = image.va_for_segment_offset(symbol.segment, symbol.offset)
+            if address is not None:
+                self.data[address].append(symbol)
+        for procedure in pdb.procedures:
+            address = image.va_for_segment_offset(
+                procedure.segment, procedure.offset
+            )
+            if address is not None:
+                self.procedures[address].append(procedure)
+
+    def _string_at(self, address: int) -> str | None:
+        data = self.image.read_va(address, 512)
+        if data is None or b"\0" not in data:
+            return None
+        value = data.split(b"\0", 1)[0]
+        if any(byte not in b"\t\r\n" and not 0x20 <= byte < 0x7F for byte in value):
+            return None
+        return "string:" + value.decode("latin1", "replace")
+
+    def target(self, address: int) -> str:
+        symbols = [
+            item for item in self.data.get(address, ()) if is_source_data_symbol(item)
+        ]
+        if symbols:
+            labels = {
+                item.name
+                if item.storage == "external"
+                else f"{item.obj}:{item.name}"
+                for item in symbols
+            }
+            return "data:" + "|".join(sorted(labels))
+        procedures = self.procedures.get(address, ())
+        if procedures:
+            labels = {
+                f"{item.obj}:{procedure_identity(item.name)}"
+                for item in procedures
+            }
+            return "function:" + "|".join(sorted(labels))
+        string = self._string_at(address)
+        if string is not None:
+            return string
+        # Without relocation records there is no sound way to identify every
+        # private linker-generated target. Preserve pointer-vs-value structure
+        # while ignoring the unrelated linked address in this narrow case.
+        return "image-address"
+
+
+def canonical_data_initializer(
+    data: bytes,
+    image: PeImage,
+    resolver: DataAddressResolver,
+    pointer_offsets: set[int],
+) -> tuple[str, ...]:
+    result: list[str] = []
+    position = 0
+    while position < len(data):
+        if position in pointer_offsets and position + 4 <= len(data):
+            value = struct.unpack_from("<I", data, position)[0]
+            if image.contains_va(value):
+                result.append(f"@{position:#x}={resolver.target(value)}")
+                position += 4
+                continue
+        result.append(f"{data[position]:02x}")
+        position += 1
+    return tuple(result)
+
+
+def global_fingerprint(
+    pdb: Pdb2,
+    image: PeImage,
+    resolver: DataAddressResolver,
+    symbol: DataSymbol,
+) -> tuple[Any, ...]:
+    size = data_type_size(pdb.types, symbol.type_index)
+    data = (
+        image.read_segment_offset(symbol.segment, symbol.offset, size)
+        if size is not None and 0 < size <= 0x100000
+        else None
+    )
+    initializer = (
+        canonical_data_initializer(
+            data,
+            image,
+            resolver,
+            data_pointer_offsets(pdb.types, symbol.type_index),
+        )
+        if data is not None
+        else None
+    )
+    return (
+        symbol.storage,
+        pdb.types.canonical(symbol.type_index),
+        size,
+        initializer,
+    )
+
+
+def compare_globals(
+    reference: Pdb2,
+    actual: Pdb2,
+    reference_image: PeImage,
+    actual_image: PeImage,
+) -> Comparison:
+    expected = [item for item in reference.data_symbols if is_source_data_symbol(item)]
+    found = [item for item in actual.data_symbols if is_source_data_symbol(item)]
+    result = Comparison("Static/global variables", len(expected), len(found))
+    expected_groups: dict[tuple[str, str], list[DataSymbol]] = collections.defaultdict(list)
+    actual_groups: dict[tuple[str, str], list[DataSymbol]] = collections.defaultdict(list)
+    for symbol in expected:
+        expected_groups[(symbol.obj, symbol.name)].append(symbol)
+    for symbol in found:
+        actual_groups[(symbol.obj, symbol.name)].append(symbol)
+
+    reference_resolver = DataAddressResolver(reference, reference_image)
+    actual_resolver = DataAddressResolver(actual, actual_image)
+    missing_keys = {
+        key for key in expected_groups if key not in actual_groups
+    }
+    extra_keys = {
+        key for key in actual_groups if key not in expected_groups
+    }
+    missing_by_fingerprint: dict[tuple[str, tuple[Any, ...]], list[tuple[str, str]]] = (
+        collections.defaultdict(list)
+    )
+    extra_by_fingerprint: dict[tuple[str, tuple[Any, ...]], list[tuple[str, str]]] = (
+        collections.defaultdict(list)
+    )
+    for key in missing_keys:
+        symbols = expected_groups[key]
+        if len(symbols) == 1:
+            fingerprint = global_fingerprint(
+                reference, reference_image, reference_resolver, symbols[0]
+            )
+            initializer = fingerprint[3]
+            if initializer is not None and any(
+                value not in ("00", "@0x0=image-address")
+                for value in initializer
+            ):
+                missing_by_fingerprint[(key[0], fingerprint)].append(key)
+    for key in extra_keys:
+        symbols = actual_groups[key]
+        if len(symbols) == 1:
+            fingerprint = global_fingerprint(
+                actual, actual_image, actual_resolver, symbols[0]
+            )
+            initializer = fingerprint[3]
+            if initializer is not None and any(
+                value not in ("00", "@0x0=image-address")
+                for value in initializer
+            ):
+                extra_by_fingerprint[(key[0], fingerprint)].append(key)
+    renamed: dict[tuple[str, str], tuple[str, str]] = {}
+    for fingerprint_key, missing in missing_by_fingerprint.items():
+        extras = extra_by_fingerprint.get(fingerprint_key, ())
+        if len(missing) == 1 and len(extras) == 1:
+            renamed[missing[0]] = extras[0]
+    renamed_extras = set(renamed.values())
+    for key in sorted(set(expected_groups) | set(actual_groups)):
+        reference_symbols = sorted(
+            expected_groups.get(key, ()), key=lambda item: (item.segment, item.offset)
+        )
+        actual_symbols = sorted(
+            actual_groups.get(key, ()), key=lambda item: (item.segment, item.offset)
+        )
+        label = f"{key[0]}:{key[1]}"
+        if key in renamed:
+            actual_key = renamed[key]
+            result.differences.append(
+                Difference(
+                    "name",
+                    label,
+                    key[1],
+                    actual_key[1],
+                    key[0],
+                )
+            )
+            continue
+        if key in renamed_extras:
+            continue
+        if not actual_symbols:
+            result.differences.append(Difference("missing", label, compiland=key[0]))
+            continue
+        if not reference_symbols:
+            result.differences.append(Difference("extra", label, compiland=key[0]))
+            continue
+        if len(reference_symbols) != len(actual_symbols):
+            result.differences.append(
+                Difference(
+                    "count",
+                    label,
+                    str(len(reference_symbols)),
+                    str(len(actual_symbols)),
+                    key[0],
+                )
+            )
+            continue
+        matched = True
+        for expected_symbol, actual_symbol in zip(
+            reference_symbols, actual_symbols
+        ):
+            expected_fingerprint = global_fingerprint(
+                reference, reference_image, reference_resolver, expected_symbol
+            )
+            actual_fingerprint = global_fingerprint(
+                actual, actual_image, actual_resolver, actual_symbol
+            )
+            if expected_fingerprint[0] != actual_fingerprint[0]:
+                result.differences.append(
+                    Difference(
+                        "storage",
+                        label,
+                        str(expected_fingerprint[0]),
+                        str(actual_fingerprint[0]),
+                        key[0],
+                    )
+                )
+                matched = False
+            if expected_fingerprint[1] != actual_fingerprint[1]:
+                result.differences.append(
+                    Difference(
+                        "type",
+                        label,
+                        compact(expected_fingerprint[1]),
+                        compact(actual_fingerprint[1]),
+                        key[0],
+                    )
+                )
+                matched = False
+            elif expected_fingerprint[2] != actual_fingerprint[2]:
+                result.differences.append(
+                    Difference(
+                        "size",
+                        label,
+                        str(expected_fingerprint[2]),
+                        str(actual_fingerprint[2]),
+                        key[0],
+                    )
+                )
+                matched = False
+            elif expected_fingerprint[3] != actual_fingerprint[3]:
+                result.differences.append(
+                    Difference(
+                        "initializer",
+                        label,
+                        compact(expected_fingerprint[3]),
+                        compact(actual_fingerprint[3]),
+                        key[0],
+                    )
+                )
+                matched = False
+        if matched:
+            result.matched += len(reference_symbols)
+    return result
+
+
+def compare_global_initializers(
+    reference: Pdb2,
+    actual: Pdb2,
+) -> Comparison:
+    # VC6 emits file-scope dynamic initializers as $E<line> procedures. Their
+    # target data begins as zero in the PE, so a data-byte comparison cannot
+    # distinguish a correct expression from an omitted initializer. Presence,
+    # compiland, generated name, and signature belong to the global audit; the
+    # normal bytecode pass checks the initializer expression itself.
+    expected = [item for item in reference.procedures if item.name.startswith("$E")]
+    found = [item for item in actual.procedures if item.name.startswith("$E")]
+    expected_groups: dict[tuple[str, str], list[Procedure]] = collections.defaultdict(list)
+    actual_groups: dict[tuple[str, str], list[Procedure]] = collections.defaultdict(list)
+    for procedure in expected:
+        expected_groups[(procedure.obj, procedure.name)].append(procedure)
+    for procedure in found:
+        actual_groups[(procedure.obj, procedure.name)].append(procedure)
+    result = Comparison(
+        "Global dynamic initializers", len(expected), len(found)
+    )
+    for key in sorted(set(expected_groups) | set(actual_groups)):
+        expected_items = expected_groups.get(key, ())
+        actual_items = actual_groups.get(key, ())
+        label = f"{key[0]}:{key[1]}"
+        if not actual_items:
+            result.differences.append(
+                Difference("missing", label, compiland=key[0])
+            )
+            continue
+        if not expected_items:
+            result.differences.append(
+                Difference("extra", label, compiland=key[0])
+            )
+            continue
+        expected_signatures = sorted(
+            compact(reference.types.canonical(item.type_index), 1000)
+            for item in expected_items
+        )
+        actual_signatures = sorted(
+            compact(actual.types.canonical(item.type_index), 1000)
+            for item in actual_items
+        )
+        if expected_signatures != actual_signatures:
+            result.differences.append(
+                Difference(
+                    "signature",
+                    label,
+                    compact(expected_signatures),
+                    compact(actual_signatures),
+                    key[0],
+                )
+            )
+        elif len(expected_items) != len(actual_items):
+            result.differences.append(
+                Difference(
+                    "count",
+                    label,
+                    str(len(expected_items)),
+                    str(len(actual_items)),
+                    key[0],
+                )
+            )
+        else:
+            result.matched += len(expected_items)
+    return result
+
+
 class LinkerMap:
     def __init__(self, path: Path):
         self.path = path
@@ -1085,6 +1841,34 @@ class PeImage:
             if section.virtual_address <= rva < section.virtual_address + size:
                 return section
         return None
+
+    def va_for_segment_offset(self, segment: int, offset: int) -> int | None:
+        if segment <= 0 or segment > len(self.sections):
+            return None
+        section = self.sections[segment - 1]
+        if offset < 0 or offset >= max(section.virtual_size, section.raw_size):
+            return None
+        return self.image_base + section.virtual_address + offset
+
+    def read_segment_offset(
+        self, segment: int, offset: int, size: int
+    ) -> bytes | None:
+        if segment <= 0 or segment > len(self.sections) or offset < 0:
+            return None
+        section = self.sections[segment - 1]
+        if size < 0 or offset + size > section.virtual_size:
+            return None
+        available = max(0, min(size, section.raw_size - offset))
+        raw_start = section.raw_offset + offset
+        return self.data[raw_start:raw_start + available] + bytes(size - available)
+
+    def read_va(self, address: int, size: int) -> bytes | None:
+        section = self.section_for_va(address)
+        if section is None:
+            return None
+        offset = address - self.image_base - section.virtual_address
+        segment = self.sections.index(section) + 1
+        return self.read_segment_offset(segment, offset, size)
 
     def _source_file_addresses(self) -> set[int]:
         result: set[int] = set()
@@ -1493,12 +2277,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--dumpbin", type=Path)
     parser.add_argument("--skip-types", action="store_true")
+    parser.add_argument("--skip-globals", action="store_true")
     parser.add_argument("--skip-bytecode", action="store_true")
     parser.add_argument("--max-details", type=int, default=50)
     parser.add_argument("--json", type=Path, dest="json_path")
     parser.add_argument(
         "--fail-on",
-        choices=("never", "types", "bytecode", "any"),
+        choices=("never", "types", "globals", "bytecode", "any"),
         default="never",
         help="control the exit status; reporting is always performed",
     )
@@ -1508,10 +2293,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.skip_types and args.skip_bytecode:
-        parser.error("both validation passes were disabled")
+    if args.skip_types and args.skip_globals and args.skip_bytecode:
+        parser.error("all validation passes were disabled")
     required = []
-    if not args.skip_types:
+    if not args.skip_types or not args.skip_globals:
         required.extend((args.reference_pdb, args.actual_pdb))
     if not args.skip_bytecode:
         required.extend(
@@ -1522,23 +2307,45 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.actual_map,
             )
         )
+    elif not args.skip_globals:
+        required.extend((args.reference_exe, args.actual_exe))
     for path in required:
         if not path.is_file():
             parser.error(f"required file does not exist: {path}")
 
     comparisons: list[Comparison] = []
     type_difference = False
+    global_difference = False
     bytecode_difference = False
     try:
-        if not args.skip_types:
+        reference_pdb = None
+        actual_pdb = None
+        if not args.skip_types or not args.skip_globals:
             reference_pdb = Pdb2(args.reference_pdb)
             actual_pdb = Pdb2(args.actual_pdb)
+        if not args.skip_types:
+            assert reference_pdb is not None and actual_pdb is not None
             signature_result, layout_result = compare_pdbs(
                 reference_pdb, actual_pdb
             )
             comparisons.extend((signature_result, layout_result))
             type_difference = bool(
                 signature_result.differences or layout_result.differences
+            )
+        if not args.skip_globals:
+            assert reference_pdb is not None and actual_pdb is not None
+            global_result = compare_globals(
+                reference_pdb,
+                actual_pdb,
+                PeImage(args.reference_exe),
+                PeImage(args.actual_exe),
+            )
+            initializer_result = compare_global_initializers(
+                reference_pdb, actual_pdb
+            )
+            comparisons.extend((global_result, initializer_result))
+            global_difference = bool(
+                global_result.differences or initializer_result.differences
             )
         if not args.skip_bytecode:
             reference_map = LinkerMap(args.reference_map)
@@ -1574,8 +2381,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         print_comparison(comparison, max(0, args.max_details))
 
     should_fail = (
-        args.fail_on == "any" and (type_difference or bytecode_difference)
+        args.fail_on == "any"
+        and (type_difference or global_difference or bytecode_difference)
         or args.fail_on == "types" and type_difference
+        or args.fail_on == "globals" and global_difference
         or args.fail_on == "bytecode" and bytecode_difference
     )
     return 1 if should_fail else 0

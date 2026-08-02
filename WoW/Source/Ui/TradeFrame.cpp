@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include <string.h>
 
 #include "GameUI.h"
@@ -29,8 +33,6 @@ void Trade_C_AddMoney(unsigned int money);
 void Trade_C_RemoveMoney(unsigned int money);
 void TradeItemStatsCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
 
-static const float MAX_TRADE_DISTANCE = 11.111111f;
-static const float MAX_TRADE_DISTANCE_SQUARED = MAX_TRADE_DISTANCE * MAX_TRADE_DISTANCE;
 
 unsigned __int64 CGTradeInfo::m_tradingPlayer;
 int              CGTradeInfo::m_playerAccepted;

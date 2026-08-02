@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Scrn.h"
 
 #include <Base/Activity.h>
@@ -16,9 +18,6 @@
 static unsigned int memBytesComm;
 static unsigned int memBytesAlloc;
 static int loggedFull;
-const float PI = 3.14159265358979323846f;
-const float TWO_PI = PI + PI;
-const float OO_TWO_PI = 1.0f / TWO_PI;
 
 #pragma pack(push, 4)
 struct SimplePerfHdr {
@@ -52,7 +51,7 @@ void __fastcall IPerfRemoteQueueLogString(const char *prompt);
 void __fastcall IPerfResetTimePeaks();
 
 static int s_enabled;
-static const struct {
+static struct {
   float (__fastcall *func)(ACTIVITY);
   const char *title;
 } s_activityModes[3] = {
@@ -72,7 +71,7 @@ static int s_avgPerfIndex;
 static float s_perfFontHeight;
 static CGxStringBatch *s_stringBatch;
 
-static char *s_perfPrompts[20] = {
+char *s_perfPrompts[20] = {
   "Events",
   "Event Idle",
   "Event Paint",

@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "ObjectMgrClient/ObjectMgrClient.h"
 
 #include "Object/ObjectClient/GameObject_C.h"

@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "MDLFile/MDLTypes.h"
 #include "Anim/AnimInternal.h"
 

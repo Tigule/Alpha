@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "TextBlock.h"
 
 #include <Base/Coordinate.h>

@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Base/MsgBuffer.h"
 
 #include <storm.h>

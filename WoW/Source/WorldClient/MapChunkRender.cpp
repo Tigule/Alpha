@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldClient/World.h"
 
 #include "Base/Base.h"
@@ -96,7 +99,7 @@ static int          s_neighborShft[4] = {0, 8, 16, 24};
 static unsigned int s_realPrimCnt[4] = {4, 16, 64, 256};
 
 static const float OO_COORD_TO_SHADOW = 0.24f;
-static const float DETAIL_VARY = 0.96f;
+static const float DETAIL_VARY = 2.0833333f;
 
 const float        CMapChunk::TERRAIN_SPEC_EXP = 20.0f;
 NTempest::C4Vector CMapChunk::psLayerMask[4] = {

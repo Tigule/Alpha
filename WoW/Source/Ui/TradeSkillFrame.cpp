@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/AutoCode/ItemSubClassRec.h"
 #include "DB/DBClient/AutoCode/SkillLineAbilityRec.h"

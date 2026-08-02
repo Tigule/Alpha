@@ -15,9 +15,11 @@ const _D3DCUBEMAP_FACES CGxDeviceD3d::s_d3dCubeMapFaces[6] = {D3DCUBEMAP_FACE_PO
 EGxTexFormat CGxDeviceD3d::s_GxTexFmtToUse[GxTexFormats_Last] = {GxTex_Unknown, GxTex_Argb8888, GxTex_Argb4444, GxTex_Argb1555,
                                                                  GxTex_Rgb565,  GxTex_Dxt1,     GxTex_Dxt3,     GxTex_Dxt5};
 
+static NTempest::CiRect emptyRect;
+static NTempest::CiRect lockRect;
+
 void CGxDeviceD3d::ITexForceRecreation(int freeTextures) {
-  static NTempest::CiRect emptyRect;
-  unsigned int            i = m_textures.Count();
+  unsigned int i = m_textures.Count();
 
   while (i) {
     CGxTex *texture = m_textures[--i];
@@ -129,7 +131,6 @@ void CGxDeviceD3d::ITexUpload(CGxTex *texId, unsigned int w, unsigned int h, uns
         break;
       }
 
-      static NTempest::CiRect lockRect;
       lockRect = texId->m_updateRect;
       lockRect.l >>= startLevel;
       lockRect.t >>= startLevel;

@@ -1,3 +1,6 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+
 #include "Glue/GlueScriptEvents.h"
 
 #include <FrameScript/FrameScript.h>
@@ -35,7 +38,7 @@ static int Script_GetRealmInfo(lua_State *L);
 static int Script_ChangeRealm(lua_State *L);
 static int Script_EnterWorld(lua_State *__formal);
 
-static const FrameScript_Method s_ScriptFunctions[17] = {
+static FrameScript_Method s_ScriptFunctions[17] = {
     {        "GetBuildInfo",         Script_GetBuildInfo},
     {    "SetCurrentScreen",     Script_SetCurrentScreen},
     {            "QuitGame",             Script_QuitGame},

@@ -1,3 +1,6 @@
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "WorldFrame.h"
 #include <Os/OsTime.h>
 
@@ -130,7 +133,11 @@ enum SPELLSHADOWSTYLE {
   SPELL_NONE = 3
 };
 
-static SPELLSHADOWSTYLE                          s_spellShadowStyle;
+static SPELLSHADOWSTYLE                          s_spellShadowStyle = SPELL_NONE;
+static const unsigned long                       AUTO_SIT_IDLE_TIME = 300000;
+static const unsigned long                       PLAYER_MOVE_TUTORIAL_TIME = 90000;
+static const unsigned long                       CAMERA_MOVE_TUTORIAL_TIME = 120000;
+static const unsigned long                       AUTO_LOGOUT_IDLE_TIME = 1800000;
 static NTempest::C3Vector                        s_spellShadowPos;
 static float                                     s_spellShadowSize;
 static HTEXTURE                                  s_spellShadowTexture[2];
@@ -1300,8 +1307,8 @@ void CGWorldFrame::OnWorldUpdate() {
   NTempest::C3Vector  cameraPos;
 
   unsigned int idleTime = OsGetAsyncTimeMs() - m_top->m_eventTime;
-  if (static_cast<int>(idleTime - 300000) >= 0) {
-    if (static_cast<int>(idleTime - 1800000) < 0) {
+  if (static_cast<int>(idleTime - AUTO_SIT_IDLE_TIME) >= 0) {
+    if (static_cast<int>(idleTime - AUTO_LOGOUT_IDLE_TIME) < 0) {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(CGPlayer_C::GetActive(), __FILE__, __LINE__));
       if (player && !player->GetUnitData()->standState) {
         player->ChangeStandState(1);
@@ -1314,10 +1321,10 @@ void CGWorldFrame::OnWorldUpdate() {
 
   CGInputControl *inputControl = CGInputControl::GetActive();
   FATALASSERT(inputControl);
-  if (!inputControl->HasPlayerMoved() && static_cast<int>(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - 90000) >= 0) {
+  if (!inputControl->HasPlayerMoved() && static_cast<int>(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - PLAYER_MOVE_TUTORIAL_TIME) >= 0) {
     CGTutorial::TriggerTutorial(TUTORIAL_MOVEMENT);
   }
-  if (!inputControl->HasCameraMoved() && static_cast<int>(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - 120000) >= 0) {
+  if (!inputControl->HasCameraMoved() && static_cast<int>(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - CAMERA_MOVE_TUTORIAL_TIME) >= 0) {
     CGTutorial::TriggerTutorial(TUTORIAL_CAMERA);
   }
 

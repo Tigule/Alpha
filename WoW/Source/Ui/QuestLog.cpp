@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <WowConst.h>
+#include <MapDefs.h>
+
 #include "QuestLog.h"
 
 #include "Object/ObjectClient/Unit_C.h"

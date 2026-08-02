@@ -2,6 +2,7 @@
 #define _WIN32_WINNT 0x0500
 #endif
 
+#include <Base/Base.h>
 #include "Input.h"
 #include "Os/OsTime.h"
 
