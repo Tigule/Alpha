@@ -37,8 +37,7 @@ struct QUADDATA {
   NTempest::C2iVector m_areaNum;
   unsigned int        groupNum;
 
-  QUADDATA() : rLink(0), sortz(0.0f), m_texture(0), m_flags(0), m_areaNum(-1), groupNum(0) {
-  }
+  QUADDATA();
 
   void            Render(unsigned int quad, const NTempest::CImVector &color) const;
   NTempest::CRect NormalizeToQuad(unsigned int quad, NTempest::CRect clippedRect);

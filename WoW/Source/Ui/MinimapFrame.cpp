@@ -75,9 +75,23 @@ static int                   s_tooltipDisplayDistant = -1;
 static int                   s_tooltipDisplayParty = -1;
 static int                   s_initialized;
 static QUADDATA              s_quadData[1024];
-static const NTempest::CRect s_mapBoxExtents[4] = {
-    NTempest::CRect(0.0f, 0.0f, 0.5f, 0.5f), NTempest::CRect(0.5f, 0.0f, 1.0f, 0.5f), NTempest::CRect(0.5f, 0.5f, 1.0f, 1.0f),
-    NTempest::CRect(0.0f, 0.5f, 0.5f, 1.0f)
+struct QUADINFO {
+  NTempest::C2Vector m_UL;
+  NTempest::C2Vector m_LR;
+  NTempest::C2Vector m_conversion;
+
+  QUADINFO(
+      const NTempest::C2Vector &upperLeft,
+      const NTempest::C2Vector &lowerRight,
+      const NTempest::C2Vector &conversion
+  ) : m_UL(upperLeft), m_LR(lowerRight), m_conversion(conversion) {
+  }
+};
+static const QUADINFO s_mapBoxExtents[4] = {
+    QUADINFO(NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(0.5f, 0.5f), NTempest::C2Vector(0.0f, 0.0f)),
+    QUADINFO(NTempest::C2Vector(0.5f, 0.0f), NTempest::C2Vector(1.0f, 0.5f), NTempest::C2Vector(1.0f, 0.0f)),
+    QUADINFO(NTempest::C2Vector(0.5f, 0.5f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f)),
+    QUADINFO(NTempest::C2Vector(0.0f, 0.5f), NTempest::C2Vector(0.5f, 1.0f), NTempest::C2Vector(0.0f, 1.0f))
 };
 static HTEXTURE                          s_iconTexture;
 static HTEXTURE                          s_blipTexture;
@@ -95,10 +109,7 @@ static NTempest::C3Vector                s_blipVertices[4] = {
 };
 static TSGrowableArray<OBJINFO>          s_miniMapObjects[5];
 static PARTYMEMBERINFO                   s_partyDirectionData[5];
-static NTempest::C2Vector                tex[4] = {
-    NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(1.0f, 0.0f), NTempest::C2Vector(0.0f, 0.0f)
-};
-static unsigned short idx[4] = {0, 1, 2, 3};
+static unsigned short idx[4] = {0, 1, 3, 2};
 
 NTempest::C2Vector CGMinimapFrame::m_pingPosition;
 MinimapTexParams   CGMinimapFrame::s_minimapTexParams;
@@ -173,11 +184,15 @@ int CGMinimapFrame::ObjectEnumProc(unsigned __int64 object, void *param) {
   return 1;
 }
 
+QUADDATA::QUADDATA() : m_texture(0) {
+}
+
 NTempest::CRect QUADDATA::NormalizeToQuad(unsigned int quad, NTempest::CRect clippedRect) {
   FATALASSERT(quad < 1024);
-  const NTempest::CRect &box = s_mapBoxExtents[quad];
+  const QUADINFO &box = s_mapBoxExtents[quad];
   return NTempest::CRect(
-      2.0f * (clippedRect.t - box.l), 2.0f * (clippedRect.l - box.t), 2.0f * (clippedRect.b - box.l), 2.0f * (clippedRect.r - box.t)
+      2.0f * (clippedRect.t - box.m_UL.y), 2.0f * (clippedRect.l - box.m_UL.x),
+      2.0f * (clippedRect.b - box.m_UL.y), 2.0f * (clippedRect.r - box.m_UL.x)
   );
 }
 
@@ -189,10 +204,13 @@ void QUADDATA::UpdateData(unsigned int quad, const NTempest::C2Vector centerPoin
   }
 
   NTempest::CRect maskBox(centerPoint.y - radius, centerPoint.x - radius, centerPoint.y + radius, centerPoint.x + radius);
-  NTempest::CRect clippedRect = NTempest::CRect::Intersection(s_mapBoxExtents[quad], maskBox);
+  const QUADINFO &box = s_mapBoxExtents[quad];
+  NTempest::CRect clippedRect;
+  clippedRect.t = box.m_UL.y > maskBox.t ? box.m_UL.y : maskBox.t;
+  clippedRect.l = box.m_UL.x > maskBox.l ? box.m_UL.x : maskBox.l;
+  clippedRect.b = box.m_LR.y < maskBox.b ? box.m_LR.y : maskBox.b;
+  clippedRect.r = box.m_LR.x < maskBox.r ? box.m_LR.x : maskBox.r;
   if (clippedRect.NotEmpty()) {
-    aaBox.b = NTempest::C3Vector(clippedRect.l, clippedRect.t, 0.0f);
-    aaBox.t = NTempest::C3Vector(clippedRect.r, clippedRect.b, 0.0f);
     GenerateVertTexInfo(clippedRect, quad, centerPoint, radius, maskBox, layoutScale);
     m_flags |= 1;
   }
@@ -256,9 +274,11 @@ int CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
     for (count = 0; count < s_miniMapObjects[type].Count(); ++count) {
       framecoords.x = baseRect.l + s_miniMapObjects[type][count].position.x;
       framecoords.y = baseRect.t + s_miniMapObjects[type][count].position.y;
-      float half = BLIP_HALF * s_miniMapTypeInfo[type].scale;
-
-      if (framecoords.x - half <= evt.x && framecoords.x + half >= evt.x && framecoords.y - half <= evt.y && framecoords.y + half >= evt.y) {
+      if (framecoords.x - BLIP_HALF * s_miniMapTypeInfo[type].scale <= evt.x &&
+          framecoords.x + BLIP_HALF * s_miniMapTypeInfo[type].scale >= evt.x &&
+          framecoords.y - BLIP_HALF * s_miniMapTypeInfo[type].scale <= evt.y &&
+          framecoords.y + BLIP_HALF * s_miniMapTypeInfo[type].scale >= evt.y)
+      {
         const char *string = 0;
         CGObject_C *object = ClntObjMgrObjectPtr(s_miniMapObjects[type][count].object, __FILE__, __LINE__);
         if (object) {
@@ -435,9 +455,9 @@ void CGMinimapFrame::RenderObjectBlips(const DNInfo *dnInfo) {
 
     for (unsigned int index = 0; index < s_miniMapObjects[type].Count(); ++index) {
       const NTempest::C2Vector &position = s_miniMapObjects[type][index].position;
-      NTempest::C3Vector        vertices[4];
+      NTempest::C3Vector        verts[4];
       for (unsigned int vertex = 0; vertex < 4; ++vertex) {
-        vertices[vertex] = NTempest::C3Vector(
+        verts[vertex] = NTempest::C3Vector(
             position.x + s_blipVertices[vertex].x * s_miniMapTypeInfo[type].scale,
             position.y + s_blipVertices[vertex].y * s_miniMapTypeInfo[type].scale,
             s_blipVertices[vertex].z * s_miniMapTypeInfo[type].scale
@@ -445,7 +465,7 @@ void CGMinimapFrame::RenderObjectBlips(const DNInfo *dnInfo) {
       }
 
       GxPrimLockVertexPtrs(
-          4, vertices, sizeof(NTempest::C3Vector), &normal, 0, &white, 0, 0, 0, s_iconCoords[type], sizeof(NTempest::C2Vector), 0, 0
+          4, verts, sizeof(NTempest::C3Vector), &normal, 0, &white, 0, 0, 0, s_iconCoords[type], sizeof(NTempest::C2Vector), 0, 0
       );
       GxPrimDrawElements(GxPrim_TriangleStrip, 4, iconVertIndices);
       GxPrimUnlockVertexPtrs();
@@ -479,18 +499,16 @@ void CGMinimapFrame::RenderInsideSortQuads(QUADDATA *&rHead) {
 }
 
 void CGMinimapFrame::RenderInsideQuad(QUADDATA *q) {
-  NTempest::C3Vector  geo[4];
-  NTempest::C3Vector  t;
+  NTempest::C3Vector t(q->aaBox.b.x, q->aaBox.b.y, q->sortz);
+  NTempest::C3Vector geo[4] = {
+      t, NTempest::C3Vector(q->aaBox.t.x, q->aaBox.b.y, q->sortz), NTempest::C3Vector(q->aaBox.t.x, q->aaBox.t.y, q->sortz),
+      NTempest::C3Vector(q->aaBox.b.x, q->aaBox.t.y, q->sortz)
+  };
+  static NTempest::C2Vector tex[4] = {
+      NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(1.0f, 0.0f),
+      NTempest::C2Vector(0.0f, 0.0f)
+  };
   NTempest::CImVector WHITE(0xFFFFFFFF);
-
-  t = NTempest::C3Vector(q->aaBox.b.x, q->aaBox.b.y, q->sortz);
-  geo[0] = t;
-  t = NTempest::C3Vector(q->aaBox.t.x, q->aaBox.b.y, q->sortz);
-  geo[1] = t;
-  t = NTempest::C3Vector(q->aaBox.t.x, q->aaBox.t.y, q->sortz);
-  geo[2] = t;
-  t = NTempest::C3Vector(q->aaBox.b.x, q->aaBox.t.y, q->sortz);
-  geo[3] = t;
 
   CGxTex *texture = TextureGetGxTex(q->m_texture, 0, 0);
   if (!texture) {
@@ -529,8 +547,10 @@ void CGMinimapFrame::RenderInsideTexture() {
   GxXformPush(GxXform_World);
   GxXformIdentity(GxXform_World);
   GxXformMult(GxXform_World, s_minimapTexParams.worldRotation);
-  NTempest::C3Vector translation(-s_minimapTexParams.localCenter.x, -s_minimapTexParams.localCenter.y, -s_minimapTexParams.localCenter.z);
-  GxXformTranslate(GxXform_World, translation);
+  GxXformTranslate(
+      GxXform_World,
+      NTempest::C3Vector(-s_minimapTexParams.localCenter.x, -s_minimapTexParams.localCenter.y, -s_minimapTexParams.localCenter.z)
+  );
 
   s_minimapTexParams.asyncTexWait = 0;
   RenderInsideSortQuads(rHead);
@@ -561,7 +581,8 @@ void CGMinimapFrame::RenderInside(float minimapSize, const NTempest::C2Vector &l
   GxXformTranslate(GxXform_Tex0, NTempest::C3Vector(0.0f, 1.0f, 0.0f));
   GxXformScale(GxXform_Tex0, NTempest::C3Vector(1.0f, -1.0f, 1.0f));
   GxXformTranslate(GxXform_Tex0, NTempest::C3Vector(localOffset.x, localOffset.y, 0.0f));
-  const float texScale = (1.0f / 3.0f) / orthoSize;
+  const float ooOrthoSize = 1.0f / orthoSize;
+  const float texScale = ooOrthoSize * (1.0f / 3.0f);
   GxXformScale(GxXform_Tex0, NTempest::C3Vector(texScale, texScale, texScale));
 
   GxRsSet(GxRs_TexGen1, GxTexGen_View);
@@ -571,7 +592,7 @@ void CGMinimapFrame::RenderInside(float minimapSize, const NTempest::C2Vector &l
   GxXformTranslate(GxXform_Tex1, NTempest::C3Vector(0.0f, 1.0f, 0.0f));
   GxXformScale(GxXform_Tex1, NTempest::C3Vector(1.0f, -1.0f, 1.0f));
   GxXformTranslate(GxXform_Tex1, NTempest::C3Vector(0.5f, 0.5f, 0.0f));
-  const float maskScale = 0.5f / orthoSize;
+  const float maskScale = ooOrthoSize * 0.5f;
   GxXformScale(GxXform_Tex1, NTempest::C3Vector(maskScale, maskScale, maskScale));
 
   GxXformPush(GxXform_World);
@@ -582,7 +603,7 @@ void CGMinimapFrame::RenderInside(float minimapSize, const NTempest::C2Vector &l
       NTempest::C3Vector(1.0f, -1.0f, 0.0f)
   };
   static NTempest::CImVector  white(0xFFFFFFFF);
-  static const unsigned short vertIndices[4] = {0, 1, 2, 3};
+  static const unsigned short vertIndices[4] = {0, 1, 3, 2};
   GxPrimLockVertexPtrs(4, geo, sizeof(NTempest::C3Vector), 0, 0, &white, 0, 0, 0, 0, 0, 0, 0);
   GxPrimDrawElements(GxPrim_TriangleStrip, 4, vertIndices);
   GxPrimUnlockVertexPtrs();
@@ -606,12 +627,11 @@ void CGMinimapFrame::MinimapTextureCallback(
 ) {
   if (cmd == GxTex_Latch) {
     NTempest::CAaBox    vp;
-    NTempest::CImVector saveClearColor;
 
     GxXformViewport(vp.b.x, vp.t.x, vp.b.y, vp.t.y, vp.b.z, vp.t.z);
     GxDevSetRenderTarget(GxBuffers_Color, s_minimapTexParams.texture, 0);
     GxXformSetViewport(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
-    saveClearColor = GxSceneClearColor();
+    NTempest::CImVector saveClearColor = GxSceneClearColor();
     GxSceneSetClearColor(NTempest::CImVector(0xFF000000));
     GxSceneClear(1);
     GxSceneSetClearColor(saveClearColor);
@@ -653,16 +673,15 @@ void CGMinimapFrame::Initialize(int continentID) {
   s_initialized = 1;
   MinimapInitialize(continentID);
 
-  CStatus     status;
-  CGxTexFlags textureFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1);
+  CStatus status;
 
-  s_minimapMaskTexture = TextureCreate("Textures\\MinimapMask", textureFlags, &status, 0);
+  s_minimapMaskTexture = TextureCreate("Textures\\MinimapMask", CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
   FATALASSERT(s_minimapMaskTexture);
 
-  s_iconTexture = TextureCreate("Interface\\Minimap\\POIIcons", textureFlags, &status, 0);
+  s_iconTexture = TextureCreate("Interface\\Minimap\\POIIcons", CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
   FATALASSERT(s_iconTexture);
 
-  s_blipTexture = TextureCreate("Interface\\Minimap\\ObjectIcons", textureFlags, &status, 0);
+  s_blipTexture = TextureCreate("Interface\\Minimap\\ObjectIcons", CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
   FATALASSERT(s_blipTexture);
 
   s_minimapTexParams.size = 10.0f;
@@ -676,8 +695,9 @@ void CGMinimapFrame::Initialize(int continentID) {
     FATALASSERT(!("CGMinimapFrame::Initialize(): can't get render target for minimap"));
   }
 
-  CGxTexFlags renderTargetFlags(GxTex_Linear, 0, 0, 0, 0, 1, 1);
-  GxTexCreate(256, 256, format, renderTargetFlags, 0, MinimapTextureCallback, s_minimapTexParams.texture);
+  GxTexCreate(
+      256, 256, format, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 1, 1), 0, MinimapTextureCallback, s_minimapTexParams.texture
+  );
 
   for (unsigned int icon = 0; icon < 16; ++icon) {
     float left = static_cast<float>(32 * (icon & 3));
@@ -693,7 +713,7 @@ void CGMinimapFrame::Initialize(int continentID) {
 }
 
 void CGMinimapFrame::Render() {
-  if (!s_minimapMaskTexture || !(m_flags & 1) || !s_initialized) {
+  if (!s_minimapMaskTexture || !(CLayoutFrame::m_flags & 1) || !s_initialized) {
     return;
   }
 
@@ -719,8 +739,8 @@ void CGMinimapFrame::Render() {
   GxXformView(saved_view);
   GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
 
-  const NTempest::C2Vector screenPoint(viewRect.l, viewRect.t);
-  CameraSetupScreenProjection(viewRect, screenPoint, 0.0f);
+  const NTempest::C2Vector position(viewRect.l, viewRect.t);
+  CameraSetupScreenProjection(viewRect, position, 0.0f);
   DDCToNDC(viewRect.l, viewRect.t, &viewRect.l, &viewRect.t);
   DDCToNDC(viewRect.r, viewRect.b, &viewRect.r, &viewRect.b);
   GxXformSetViewport(viewRect.l, viewRect.r, viewRect.t, viewRect.b, 0.0f, 1.0f);
@@ -806,13 +826,13 @@ void CGMinimapFrame::Render() {
   NTempest::CImVector          white(0xFFFFFFFF);
   const float                  worldRadius = MinimapGetWorldRadius();
   static const unsigned short iconVertIndices[4] = {0, 1, 2, 3};
-  for (unsigned int iconIndex = 0; iconIndex < s_POIInfo.Count(); ++iconIndex) {
-    POIINFO &info = s_POIInfo[iconIndex];
+  for (unsigned int POICoord = 0; POICoord < s_POIInfo.Count(); ++POICoord) {
+    POIINFO &info = s_POIInfo[POICoord];
     if (info.icon > 15) {
       continue;
     }
 
-    const AreaPOIRec *rec = poi[iconIndex];
+    const AreaPOIRec *rec = poi[POICoord];
     NTempest::C2Vector position =
         WorldPosToMinimapFrameCoords(currentPos, worldRadius, rec->m_x, rec->m_y, GetLayoutScale());
     for (unsigned int vertex = 0; vertex < 4; ++vertex) {
@@ -1011,23 +1031,22 @@ void CGMinimapFrame::PostLoadXML(const XMLNode *node, CStatus *status) {
 }
 
 void CGMinimapFrame::SetPingPosition(const unsigned __int64 &sender, const NTempest::C2Vector &pos) {
-  char               name[32];
+  char               name[32] = "player";
   NTempest::C2Vector diff;
   CGPlayer_C        *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  FATALASSERT(player);
+  if (!player) {
+    return;
+  }
 
   m_pingPosition = pos;
-  SStrCopy(name, "player", sizeof(name));
-  for (unsigned int index = 0; index < 4; ++index) {
+  for (int index = 0; index < 4; ++index) {
     if (sender == CGGameUI::GetPartyMember(index)) {
       SStrPrintf(name, sizeof(name), "party%d", index + 1);
       break;
     }
   }
 
-  NTempest::C3Vector playerPosition = player->GetPosition();
-  diff.x = pos.x - playerPosition.x;
-  diff.y = pos.y - playerPosition.y;
+  diff = pos - static_cast<NTempest::C2Vector>(player->GetPosition());
   float scale = 1.0f / (MinimapGetViewRadius() * 2.0f);
   FrameScript_SignalEvent(337, "%s%f%f", name, -diff.y * scale, diff.x * scale);
 }
@@ -1114,11 +1133,9 @@ static int CGMinimapFrame_PingLocation(lua_State *L) {
 static int CGMinimapFrame_GetPingPosition(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    NTempest::C3Vector playerPosition = player->GetPosition();
-    NTempest::C2Vector diff(CGMinimapFrame::GetPingPosition().x - playerPosition.x, CGMinimapFrame::GetPingPosition().y - playerPosition.y);
-    float              scale = 1.0f / (MinimapGetViewRadius() * 2.0f);
-    lua_pushnumber(L, -diff.y * scale);
-    lua_pushnumber(L, diff.x * scale);
+    NTempest::C2Vector diff = CGMinimapFrame::GetPingPosition() - static_cast<NTempest::C2Vector>(player->GetPosition());
+    lua_pushnumber(L, -diff.y / (MinimapGetViewRadius() * 2.0f));
+    lua_pushnumber(L, diff.x / (MinimapGetViewRadius() * 2.0f));
   } else {
     lua_pushnumber(L, 0.0);
     lua_pushnumber(L, 0.0);

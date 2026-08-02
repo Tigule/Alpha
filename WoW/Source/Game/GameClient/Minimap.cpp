@@ -64,9 +64,6 @@ static TSHashTable<MINIMAPMD5NAME, HASHKEY_STRI> s_md5NameHash;
 static const char                               *FILENAME_TEMPLATE = "%s_%03d_%02d_%02d.blp";
 static const char                               *s_mapObjTemplate = "%s\\%s";
 static char                                      s_mapObjDir[260];
-static const NTempest::C2iVector                 s_areaCoordOffsets[4] = {
-    NTempest::C2iVector(0, 0), NTempest::C2iVector(1, 0), NTempest::C2iVector(0, 1), NTempest::C2iVector(1, 1)
-};
 
 static void UpdatePointsOfInterest() {
   unsigned int       numPOI;
@@ -214,6 +211,11 @@ static void BuildPathName(const NTempest::C2iVector &location, char *buffer, uns
 }
 
 static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int continentChanged, QUADDATA *quads) {
+  static const struct {
+    unsigned int xIncrement;
+    unsigned int yIncrement;
+  } s_areaCoordOffsets[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+
   unsigned int i;
   for (i = 0; i < 4; ++i) {
     quads[i].m_flags &= ~2u;
@@ -221,7 +223,9 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
 
   if (!continentChanged) {
     for (i = 0; i < 4; ++i) {
-      NTempest::C2iVector currentArea(upperLeftArea.x + s_areaCoordOffsets[i].x, upperLeftArea.y + s_areaCoordOffsets[i].y);
+      NTempest::C2iVector currentArea(
+          upperLeftArea.x + s_areaCoordOffsets[i].xIncrement, upperLeftArea.y + s_areaCoordOffsets[i].yIncrement
+      );
       for (unsigned int n = 0; n < 4; ++n) {
         if (quads[n].m_areaNum.x == currentArea.x && quads[n].m_areaNum.y == currentArea.y) {
           if (n != i) {
@@ -233,7 +237,6 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
             quads[n].m_texture = 0;
           }
           quads[i].m_flags |= 2;
-          break;
         }
       }
     }
@@ -243,7 +246,9 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
     if (!(quads[i].m_flags & 2)) {
       char                fileName[260];
       CStatus             status;
-      NTempest::C2iVector currentArea(upperLeftArea.x + s_areaCoordOffsets[i].x, upperLeftArea.y + s_areaCoordOffsets[i].y);
+      NTempest::C2iVector currentArea(
+          upperLeftArea.x + s_areaCoordOffsets[i].xIncrement, upperLeftArea.y + s_areaCoordOffsets[i].yIncrement
+      );
       BuildPathName(currentArea, fileName, sizeof(fileName));
       if (!fileName[0]) {
         continue;
@@ -266,7 +271,7 @@ static void SetupQuad(
   CStatus status;
 
   quadData.m_flags |= 2;
-  SStrPrintf(fileName, sizeof(fileName), FILENAME_TEMPLATE, wmoName, groupNum, wmmQuad.quad.x, wmmQuad.quad.y);
+  SStrPrintf(fileName, sizeof(fileName), FILENAME_TEMPLATE, wmoName, wmmQuad.groupNum, wmmQuad.quad.x, wmmQuad.quad.y);
   MINIMAPMD5NAME *name = s_md5NameHash.Ptr(fileName);
   if (name) {
     SStrPrintf(fileName, sizeof(fileName), s_mapObjTemplate, MINIMAP_MD5_DIR, name->filename);
@@ -346,7 +351,7 @@ void LoadMD5Names() {
   const char *readCursor;
 
   SStrPrintf(md5file, sizeof(md5file), "%s\\md5translate.txt", MINIMAP_MD5_DIR);
-  if (!SFileLoadFile(md5file, &buffer, 0, 1, 0)) {
+  if (!SFile::LoadFile(md5file, &buffer, 0, 1, 0)) {
     return;
   }
 
@@ -371,7 +376,7 @@ void LoadMD5Names() {
     }
   } while (line[0] && *readCursor);
 
-  SFileUnloadFile(buffer);
+  SFile::Unload(buffer);
 }
 
 int MinimapInitialize(int continentID) {
@@ -444,7 +449,7 @@ void MinimapShutdown() {
   s_md5NameHash.Clear();
 }
 
-static int MinimapUpdatePosition(
+static int __fastcall MinimapUpdatePosition(
     unsigned int continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads
 ) {
   FATALASSERT(radius);
@@ -494,10 +499,22 @@ static int MinimapUpdatePosition(
   s_flags &= ~1u;
 
   NTempest::C3Vector upperLeftCoordinate = AreaToCoordinate(upperLeftArea);
-  centerPoint->x = (upperLeftCoordinate.y - pos.y) / 533.33331f;
-  centerPoint->y = (upperLeftCoordinate.x - pos.x) / 533.33331f;
+  const float        boxHeight = 1066.6666f;
+  const float        boxWidth = 1066.6666f;
+  NTempest::CRect    boxBoundary(
+      upperLeftCoordinate.x, upperLeftCoordinate.y, upperLeftCoordinate.x - boxHeight, upperLeftCoordinate.y - boxWidth
+  );
+  FATALASSERT((pos.x - 0.013888889f) < boxBoundary.t);
+  FATALASSERT((pos.x + 0.013888889f) > boxBoundary.b);
+  FATALASSERT((pos.y - 0.013888889f) < boxBoundary.l);
+  FATALASSERT((pos.y + 0.013888889f) > boxBoundary.r);
+
+  NTempest::C2Vector center;
+  center.x = (boxBoundary.l - pos.y) / boxHeight;
+  center.y = (boxBoundary.t - pos.x) / boxWidth;
   FATALASSERT(s_currentZoom < 6);
-  *radius = s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f * 33.333332f / 533.33331f;
+  *radius = (s_chunksPerSizeAtZoom[s_currentZoom] >> 1) * 33.333332f / boxHeight;
+  *centerPoint = center;
   return 1;
 }
 
@@ -566,8 +583,6 @@ int MinimapUpdate(
   NTempest::C3Vector localPos = pos * s_mapObjInvMtx;
   if (!mmtp.updateTexture) {
     mmtp.localOffset = localPos - mmtp.localCenter;
-    s_flags &= ~1u;
-    return needsWork != 0;
   }
 
   mmtp.size = s_minimapZoomSize[s_currentInsideZoom];
@@ -581,7 +596,7 @@ int MinimapUpdate(
       NTempest::C3Vector(0.0f)
   );
   s_queryCenterBox.t = NTempest::C3Vector(
-      s_queryCenterBox.b.x + mmtp.size, s_queryCenterBox.b.y + mmtp.size, s_queryCenterBox.b.z + mmtp.size
+      s_queryCenterBox.b.x + mmtp.size, s_queryCenterBox.b.y + mmtp.size, s_queryCenterBox.b.z + halfSize
   );
   s_queryCenter = (s_queryCenterBox.b + s_queryCenterBox.t) * 0.5f;
   mmtp.localCenter = s_queryCenter * s_mapObjInvMtx;
@@ -603,7 +618,6 @@ int MinimapUpdate(
     quads[quad].m_flags &= ~2u;
   }
 
-  mmtp.updateTexture = 1;
   s_flags &= ~1u;
   return needsWork != 0;
 }
@@ -704,7 +718,8 @@ void MinimapGetPartyMembers(PARTYMEMBERINFO *array) {
 
     if (index == 4) {
       CGUnit_C *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      guid = activePlayer->GetGUID();
+      const CGUnitData *unitData = activePlayer->GetUnitData();
+      guid = unitData->charm ? unitData->charm : unitData->summon;
     } else {
       guid = CGPartyInfo::GetMember(index);
     }
