@@ -1282,9 +1282,9 @@ void CGxString::InternalRender() {
   ASSERT(m_currentFace);
 
   for (unsigned int line = 0; line < m_textBlock.m_lines.Count(); ++line) {
-    for (unsigned int texture = 0; texture < m_textBlock.m_lines[line]->m_texturePages.Count(); ++texture) {
-      m_textBlock.m_lines[line]->m_texturePages[texture]->InternalRenderTexture(
-          texture, m_currentFace, m_flags & 0x1, m_shadowColor, m_shadowOffset, m_fontColor
+    for (unsigned int i = 0; i < m_textBlock.m_lines[line]->m_texturePages.Count(); ++i) {
+      m_textBlock.m_lines[line]->m_texturePages[i]->InternalRenderTexture(
+          i, m_currentFace, m_flags & 0x1, m_shadowColor, m_shadowOffset, m_fontColor
       );
     }
   }
@@ -1318,33 +1318,33 @@ void CGxString::Render(const NTempest::C44Matrix &xform) {
 }
 
 void CGxString::Render() {
-  float               minX;
-  float               maxX;
-  float               minY;
-  float               maxY;
-  float               minZ;
-  float               maxZ;
+  float               minx;
+  float               maxx;
+  float               miny;
+  float               maxy;
+  float               minz;
+  float               maxz;
   NTempest::C44Matrix oldProjection;
   NTempest::C44Matrix oldView;
-  NTempest::C44Matrix projection;
+  NTempest::C44Matrix proj;
   NTempest::C44Matrix view;
-  float               pixelWidth;
-  float               pixelHeight;
+  float               pixWidth;
+  float               pixHeight;
 
   if (!m_textBlock.m_lines.Count()) {
     return;
   }
 
   CheckEvictedTextures();
-  GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
+  GxXformViewport(minx, maxx, miny, maxy, minz, maxz);
   GxXformProjection(oldProjection);
   GxXformView(oldView);
 
-  pixelWidth = static_cast<float>(GetScreenPixelWidth());
-  pixelHeight = static_cast<float>(GetScreenPixelHeight());
-  BuildProjection(&projection, minX, maxX, minY, maxY, pixelWidth, pixelHeight);
-  GxXformSetProjection(projection);
-  BuildView(&view, maxX - minX, maxY - minY);
+  pixWidth = static_cast<float>(GetScreenPixelWidth());
+  pixHeight = static_cast<float>(GetScreenPixelHeight());
+  BuildProjection(&proj, minx, maxx, miny, maxy, pixWidth, pixHeight);
+  GxXformSetProjection(proj);
+  BuildView(&view, maxx - minx, maxy - miny);
   GxXformSetView(view);
   InternalRender();
 
@@ -1465,15 +1465,15 @@ void CGxString::InitializeViewportOffsets() {
   float              blockWidth = static_cast<float>(g_widthPixels) * m_blockWidth;
   float              blockHeight = static_cast<float>(g_heightPixels) * m_blockHeight;
   NTempest::C2Vector position(static_cast<float>(g_widthPixels) * m_position.x, static_cast<float>(g_heightPixels) * m_position.y);
-  float              minX;
-  float              maxX;
-  float              minY;
-  float              maxY;
-  float              minZ;
-  float              maxZ;
+  float              minx;
+  float              maxx;
+  float              miny;
+  float              maxy;
+  float              minz;
+  float              maxz;
 
   m_stringHeight = tHeight;
-  GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
+  GxXformViewport(minx, maxx, miny, maxy, minz, maxz);
 
   if (m_horzJust == GxHJ_Right) {
     position.x += blockWidth;
@@ -1490,8 +1490,8 @@ void CGxString::InitializeViewportOffsets() {
     position.y += tHeight;
   }
 
-  m_viewportOffset.x = position.x / (maxX - minX);
-  m_viewportOffset.y = position.y / (maxY - minY);
+  m_viewportOffset.x = position.x / (maxx - minx);
+  m_viewportOffset.y = position.y / (maxy - miny);
 }
 
 void CGxString::TexturePageEvicted(unsigned int pageNumber) {
@@ -1551,8 +1551,7 @@ void CGxString::BuildView(NTempest::C44Matrix *viewPtr, float width, float heigh
     translateY = height * m_viewportOffset.y;
   }
 
-  NTempest::C3Vector move(static_cast<float>(floor(translateX)), static_cast<float>(floor(translateY)), 0.0f);
-  view.Translate(move);
+  view.Translate(NTempest::C3Vector(static_cast<float>(floor(translateX)), static_cast<float>(floor(translateY)), 0.0f));
   *viewPtr = view;
 }
 
@@ -1612,16 +1611,11 @@ void CGxFont::RegisterEvictNotice(unsigned int pageNumber) {
 }
 
 int CGxFont::CheckStringGlyphs(const char *string) {
-  while (*string++) {
-    int code = static_cast<signed char>(*string);
-
-    if (code == '\n') {
-      continue;
-    }
-
-    if (!m_activeCharacters.Ptr(code, s_nullHashKey)) {
+  while (*string) {
+    if (*string != '\n' && !m_activeCharacters.Ptr(static_cast<signed char>(*string), s_nullHashKey)) {
       return 0;
     }
+    ++string;
   }
 
   return 1;
@@ -1893,13 +1887,13 @@ float CGxFont::ComputeStep(unsigned int currentCode, unsigned int nextCode) {
   FT_Face theFace = FontFaceGetFace(m_faceHandle);
   ASSERT(theFace);
 
-  unsigned int currentGlyph = FT_Get_Char_Index(theFace, currentCode);
-  unsigned int nextGlyph = FT_Get_Char_Index(theFace, nextCode);
+  unsigned int currentGlyph;
   FT_Vector    vector;
 
+  currentGlyph = FT_Get_Char_Index(theFace, currentCode);
   vector.x = 0;
   if (FT_HAS_KERNING(theFace)) {
-    FT_Get_Kerning(theFace, currentGlyph, nextGlyph, ft_kerning_unscaled, &vector);
+    FT_Get_Kerning(theFace, currentGlyph, FT_Get_Char_Index(theFace, nextCode), ft_kerning_unscaled, &vector);
     vector.x = min(vector.x, 0);
   }
 
@@ -1925,7 +1919,8 @@ float CGxFont::ComputeStepFixedWidth(unsigned int currentCode, unsigned int next
   }
 
   GLYPHBITMAPDATA *currentGlyph = m_glyphBitmapData.Ptr(currentCode, s_nullHashKey);
-  GLYPHBITMAPDATA *nextGlyph = m_glyphBitmapData.Ptr(nextCode, s_nullHashKey);
+  GLYPHBITMAPDATA *nextGlyph;
+  nextGlyph = m_glyphBitmapData.Ptr(nextCode, s_nullHashKey);
 
   if (currentGlyph && nextGlyph) {
     unsigned int currentAdvance = static_cast<unsigned int>(currentGlyph->m_glyphAdvance * m_pixelsPerUnit);
@@ -2176,8 +2171,10 @@ void TEXTURECACHE::Initialize(CGxFont *face, unsigned int thePage, unsigned int 
 void TEXTURECACHE::CreateTexture(int filter) {
   ASSERT(!m_texture);
 
-  CGxTexFlags flags(filter ? GxTex_Linear : GxTex_Nearest, 0, 0, 0, 0, 0, 1);
-  int         success = GxTexCreate(GxTex_2d, 256, 256, 0, GxTex_Argb4444, GxTex_Argb8888, flags, this, TextureCallback, m_texture);
+  int success = GxTexCreate(
+      GxTex_2d, 256, 256, 0, GxTex_Argb4444, GxTex_Argb8888, CGxTexFlags(filter ? GxTex_Linear : GxTex_Nearest, 0, 0, 0, 0, 0, 1), this,
+      TextureCallback, m_texture
+  );
   ASSERT(success);
 }
 
@@ -2546,7 +2543,8 @@ int CGxString::SetGradient(int startCharacter, int length, const TSGrowableArray
 
   index = startIndex;
   if (length > 0) {
-    int gradient = static_cast<int>(static_cast<float>(alpha) / length);
+    int gradient;
+    gradient = static_cast<int>(static_cast<float>(alpha) / length);
 
     while (1) {
       array[index++]->a = alpha;
@@ -2587,6 +2585,8 @@ void InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numByte
   float        width = 0.0f;
   float        lastWidth = 0.0f;
   float        maxWidth = 0.0f;
+  unsigned int advance;
+  unsigned int wide;
   unsigned int prevCode = 0;
 
   FATALASSERT(face);
@@ -2600,8 +2600,6 @@ void InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numByte
   }
 
   while (*text && numBytes) {
-    unsigned int advance;
-    unsigned int wide;
     QUOTEDCODE   quoted = GxuDetermineQuotedCode(text, advance, 0, flags, wide, numBytes);
 
     text += advance;
@@ -2672,16 +2670,16 @@ unsigned int InternalGetMaxCharsWithinWidth(
     float        *widthArrayGuard
 ) {
   unsigned int numChars = 0;
-  int          billboarded;
   float        pixelWidth;
   float        pixelHeight;
   unsigned int pixWidth;
   float        pixelScale;
   float        width = 0.0f;
   float        lastWidth = 0.0f;
+  unsigned int advance;
+  unsigned int wide;
   unsigned int prevCode = 0;
   const char  *originalText;
-  float       *widthIndex = widthArray;
 
   FATALASSERT(face);
 
@@ -2689,23 +2687,20 @@ unsigned int InternalGetMaxCharsWithinWidth(
 
   FATALASSERT(extent);
 
-  billboarded = flags & 0x80;
-  if (!billboarded && (height == 0.0f || (flags & 0x4))) {
+  if (!(flags & 0x80) && (height == 0.0f || (flags & 0x4))) {
     height = GxuFontGetOneToOneHeight(face);
   }
 
   pixelWidth = face->m_pixelSize * static_cast<float>(g_widthPixels) * maxWidth;
-  pixelHeight = ScreenToPixelHeight(billboarded, height);
+  pixelHeight = ScreenToPixelHeight(flags & 0x80, height);
   if (pixelHeight < 1.0f) {
     pixelHeight = 1.0f;
   }
   pixWidth = static_cast<unsigned int>(pixelWidth / pixelHeight + 1.0f);
-  pixelScale = ScreenToPixelHeight(billboarded, height) / face->m_pixelSize;
+  pixelScale = ScreenToPixelHeight(flags & 0x80, height) / face->m_pixelSize;
   originalText = text;
 
   while (*text && lineBytes) {
-    unsigned int advance;
-    unsigned int wide;
     QUOTEDCODE   quoted = GxuDetermineQuotedCode(text, advance, 0, flags, wide, lineBytes);
 
     text += advance;
@@ -2751,22 +2746,22 @@ unsigned int InternalGetMaxCharsWithinWidth(
         ++numChars;
         lastWidth = charWidth;
 
-        if (widthIndex) {
+        if (widthArray) {
           float currentWidth;
 
-          ASSERT(widthIndex < widthArrayGuard);
+          ASSERT(widthArray < widthArrayGuard);
           currentWidth = width * pixelScale;
-          if (!billboarded) {
+          if (!(flags & 0x80)) {
             currentWidth /= g_widthPixels;
           }
-          *widthIndex++ = currentWidth;
+          *widthArray++ = currentWidth;
         }
       }
     }
   }
 
   *extent = (lastWidth + width) * pixelScale;
-  if (!billboarded) {
+  if (!(flags & 0x80)) {
     *extent /= g_widthPixels;
   }
 

@@ -23,6 +23,7 @@ struct CameraInfo : public InterpInfo {
 #include "Services/ParticleSystem2.h"
 #include "Services/RibbonEmitter.h"
 #include "Tempest/c33matrix.h"
+#include "Tempest/c3segment.h"
 #include "Tempest/cmath.h"
 #include "Tempest/c4quaternion.h"
 
@@ -314,20 +315,20 @@ void CKeyFrameTrack<C3Color, C3Color>::Interpolate(
 
 static void PlaceEventObject(const AnimInfo& animInfo, CAnimEventObj* currobj) {
   FATALASSERT(currobj->animObjId < animInfo.unique->status.Count());
-  CAnimEventObjStatus *status =
-      static_cast<CAnimEventObjStatus *>(animInfo.unique->status[currobj->animObjId]);
+  CAnimEventObjStatus *eventStatus;
+  eventStatus = static_cast<CAnimEventObjStatus *>(animInfo.unique->status[currobj->animObjId]);
   FATALASSERT(currobj->splitIndex < animInfo.positions.Count());
 
-  status->position = animInfo.positions[currobj->splitIndex];
-  WorldMatrixTransform(&status->position);
+  eventStatus->position = animInfo.positions[currobj->splitIndex];
+  WorldMatrixTransform(&eventStatus->position);
 
   NTempest::C34Matrix basis(
       animInfo.basisX.x, animInfo.basisX.y, animInfo.basisX.z,
       animInfo.basisY.x, animInfo.basisY.y, animInfo.basisY.z,
       animInfo.basisZ.x, animInfo.basisZ.y, animInfo.basisZ.z,
       animInfo.basisPosition.x, animInfo.basisPosition.y, animInfo.basisPosition.z);
-  NTempest::C34Matrix inverse = basis.AffineInverse();
-  status->position *= inverse;
+  NTempest::C34Matrix invBasis = basis.AffineInverse(animInfo.basisScale);
+  eventStatus->position *= invBasis;
 }
 
 static void IProcessEvent(const InterpInfo& animInfo, CAnimEventObj* currEvent) {
@@ -336,24 +337,24 @@ static void IProcessEvent(const InterpInfo& animInfo, CAnimEventObj* currEvent) 
     return;
   }
 
-  CAnimEventObjStatus *status = &animInfo.unique->eventStatus[currEvent->splitIndex];
-  CKeyTrackStatus previous = status->event;
-  unsigned char sequence = status->base.currSeq;
+  CAnimEventObjStatus *eventStatus = &animInfo.unique->eventStatus[currEvent->splitIndex];
+  CKeyTrackStatus prevStatus = eventStatus->event;
+  unsigned char sequence = eventStatus->base.currSeq;
   if (!currEvent->events.NumKeysThisSeqSafe(sequence)) {
     return;
   }
-  currEvent->events.SetAnimTime(status->base, &status->event, animInfo);
+  currEvent->events.SetAnimTime(eventStatus->base, &eventStatus->event, animInfo);
 
   if (currEvent->events.JustPastKey(
           animInfo.unique->seq[sequence].scaledElapsedTime,
           animInfo.shared->seq[sequence],
           animInfo.unique->seq[sequence].elapsed,
           sequence,
-          status->base.flags & 0x10,
-          previous,
-          status->event
+          eventStatus->base.flags & 0x10,
+          prevStatus,
+          eventStatus->event
       )) {
-    NTempest::C3Vector position = status->position;
+    NTempest::C3Vector position = eventStatus->position;
     WorldMatrixTransform(&position);
     ActivityBegin(ACTIVITY_ANIMEVENTS);
     animInfo.unique->appEvent.callback(
@@ -363,43 +364,57 @@ static void IProcessEvent(const InterpInfo& animInfo, CAnimEventObj* currEvent) 
 }
 
 static void PlaceModelObject(const AnimInfo& animInfo, CAnimModelObj* modelObj) {
-  CAnimModelObjStatus *status =
-      static_cast<CAnimModelObjStatus *>(animInfo.unique->status[modelObj->animObjId]);
-  status->visible = AnimFloat(modelObj->visibility, status->base, status->visibility, animInfo, 1.0f);
+  modelObj->visibility.InterpolateRetained(
+      animInfo,
+      static_cast<CAnimModelObjStatus *>(animInfo.unique->status[modelObj->animObjId])->base,
+      &static_cast<CAnimModelObjStatus *>(animInfo.unique->status[modelObj->animObjId])->visibility,
+      1.0f,
+      &static_cast<CAnimModelObjStatus *>(animInfo.unique->status[modelObj->animObjId])->visible
+  );
   FATALASSERT(modelObj->splitIndex < animInfo.data.numAttached);
   WorldMatrixGet(animInfo.data.attached + modelObj->splitIndex);
 }
 
 static void SetLightColor(const AnimInfo& animInfo, CAnimLightObj* currobj, CAnimLightObjStatus* lightStatus, CGxLight* light) {
-  if (currobj->color.TotalKeys()) {
-    C3Color color = AnimColor(currobj->color, lightStatus->base, lightStatus->color, animInfo);
-    light->m_dirColor.r = NTempest::CMath::ftol_0_256_(min(max(color.r, 0.0f), 1.0f) * 255.0f);
-    light->m_dirColor.g = NTempest::CMath::ftol_0_256_(min(max(color.g, 0.0f), 1.0f) * 255.0f);
-    light->m_dirColor.b = NTempest::CMath::ftol_0_256_(min(max(color.b, 0.0f), 1.0f) * 255.0f);
+  C3Color colorKey;
+  if (currobj->color.InterpolateRetained(animInfo, lightStatus->base, &lightStatus->color, C3Color(), &colorKey)) {
+    light->m_dirColor.r = NTempest::CMath::ftol_0_256_(min(max(colorKey.r, 0.0f), 1.0f) * 255.0f);
+    light->m_dirColor.g = NTempest::CMath::ftol_0_256_(min(max(colorKey.g, 0.0f), 1.0f) * 255.0f);
+    light->m_dirColor.b = NTempest::CMath::ftol_0_256_(min(max(colorKey.b, 0.0f), 1.0f) * 255.0f);
   }
-  if (currobj->ambColor.TotalKeys()) {
-    C3Color color = AnimColor(currobj->ambColor, lightStatus->base, lightStatus->ambColor, animInfo);
-    light->m_ambColor.r = NTempest::CMath::ftol_0_256_(min(max(color.r, 0.0f), 1.0f) * 255.0f);
-    light->m_ambColor.g = NTempest::CMath::ftol_0_256_(min(max(color.g, 0.0f), 1.0f) * 255.0f);
-    light->m_ambColor.b = NTempest::CMath::ftol_0_256_(min(max(color.b, 0.0f), 1.0f) * 255.0f);
+  if (currobj->ambColor.InterpolateRetained(animInfo, lightStatus->base, &lightStatus->ambColor, C3Color(), &colorKey)) {
+    light->m_ambColor.r = NTempest::CMath::ftol_0_256_(min(max(colorKey.r, 0.0f), 1.0f) * 255.0f);
+    light->m_ambColor.g = NTempest::CMath::ftol_0_256_(min(max(colorKey.g, 0.0f), 1.0f) * 255.0f);
+    light->m_ambColor.b = NTempest::CMath::ftol_0_256_(min(max(colorKey.b, 0.0f), 1.0f) * 255.0f);
   }
 }
 
 static void SetLightIntensity(const AnimInfo& animInfo, CAnimLightObj* currobj, CAnimLightObjStatus* lightStatus, CGxLight* light) {
   if (currobj->intensity.TotalKeys()) {
-    light->m_dirIntensity = max(
-        AnimFloat(currobj->intensity, lightStatus->base, lightStatus->intensity, animInfo, 0.0f), 0.0f
+    currobj->intensity.InterpolateRetained(
+        animInfo, lightStatus->base, &lightStatus->intensity, 0.0f, &light->m_dirIntensity
     );
   }
+  if (light->m_dirIntensity < 0.0f) {
+    light->m_dirIntensity = 0.0f;
+  }
   if (currobj->ambIntensity.TotalKeys()) {
-    light->m_ambIntensity = max(
-        AnimFloat(currobj->ambIntensity, lightStatus->base, lightStatus->ambIntensity, animInfo, 0.0f), 0.0f
+    currobj->ambIntensity.InterpolateRetained(
+        animInfo, lightStatus->base, &lightStatus->ambIntensity, 0.0f, &light->m_ambIntensity
     );
+  }
+  if (light->m_ambIntensity < 0.0f) {
+    light->m_ambIntensity = 0.0f;
   }
 }
 
 static void SetLightDirection(CGxLight* light) {
-  light->m_dir = NTempest::C3Vector(0.0f, 0.0f, -1.0f);
+  if (light->m_isOmni) {
+    return;
+  }
+  light->m_dir.x = 0.0f;
+  light->m_dir.y = 0.0f;
+  light->m_dir.z = -1.0f;
   WorldMatrixPush();
   WorldMatrixRemove(1);
   WorldMatrixTransform(&light->m_dir);
@@ -407,151 +422,175 @@ static void SetLightDirection(CGxLight* light) {
 }
 
 static void SetLightValues(const AnimInfo& animInfo, CAnimLightObj* currobj, const NTempest::C3Vector& currPos) {
-  ASSERT(animInfo.data.lights);
-  ASSERT(currobj->splitIndex < animInfo.data.lights->Count());
-  unsigned long lightID = (*animInfo.data.lights)[currobj->splitIndex];
-  if (!lightID) {
-    return;
-  }
-  CAnimLightObjStatus *status =
-      static_cast<CAnimLightObjStatus *>(animInfo.unique->status[currobj->animObjId]);
-  CGxLight *light = GxuLightLock(lightID);
-  ASSERT(light);
-  light->m_enabled = AnimFloat(currobj->visibility, status->base, status->visibility, animInfo, 1.0f) > 0.0f;
-  if (light->m_enabled) {
-    SetLightColor(animInfo, currobj, status, light);
-    SetLightIntensity(animInfo, currobj, status, light);
-    if (light->m_isOmni) {
-      light->m_dir = currPos;
-      WorldMatrixTransform(&light->m_dir);
-      light->m_dir += animInfo.cameraWorldPos;
-    } else {
-      SetLightDirection(light);
+  FATALASSERT(currobj);
+  FATALASSERT(currobj->type == OBJ_TYPE_LIGHT);
+  FATALASSERT(currobj->splitIndex < animInfo.data.lights->Count());
+  unsigned long gxuLightId = (*animInfo.data.lights)[currobj->splitIndex];
+  if (gxuLightId) {
+    CAnimLightObjStatus *lightStatus =
+        static_cast<CAnimLightObjStatus *>(animInfo.unique->status[currobj->animObjId]);
+    CGxLight *light = GxuLightLock(gxuLightId);
+    FATALASSERT(light);
+    float isVisible = 1.0f;
+    if (!currobj->visibility.TotalKeys()) {
+      light->m_enabled = 1;
+    } else if (currobj->visibility.InterpolateRetained(
+            animInfo, lightStatus->base, &lightStatus->visibility, 1.0f, &isVisible
+        )) {
+      light->m_enabled = isVisible > 0.0f;
     }
+    if (light->m_enabled) {
+      SetLightColor(animInfo, currobj, lightStatus, light);
+      SetLightIntensity(animInfo, currobj, lightStatus, light);
+      SetLightDirection(light);
+      if (light->m_isOmni) {
+        light->m_dir = currPos;
+        WorldMatrixTransform(&light->m_dir);
+        light->m_dir += animInfo.cameraWorldPos;
+      }
+    }
+    GxuLightUnlock(gxuLightId);
   }
-  GxuLightUnlock(lightID);
 }
 
 static void SetParticleVariation2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->variation.TotalKeys()) {
+  float variation = 0.0f;
+  if (currobj->variation.InterpolateRetained(animInfo, status->base, &status->variation, 0.0f, &variation)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetVelocityVariation(
-        AnimFloat(currobj->variation, status->base, status->variation, animInfo, 0.0f)
+        variation
     );
   }
 }
 
 static void SetParticleSpeed2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->particleSpeed.TotalKeys()) {
+  float speed = 0.0f;
+  if (currobj->particleSpeed.InterpolateRetained(animInfo, status->base, &status->speed, 0.0f, &speed)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetVelocity(
-        AnimFloat(currobj->particleSpeed, status->base, status->speed, animInfo, 0.0f)
+        speed
     );
   }
 }
 
 static void SetParticleEmissionRate2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->emissionRate.TotalKeys()) {
-    (*animInfo.data.emitters2)[currobj->splitIndex]->SetEmissionRate(
-        AnimFloat(currobj->emissionRate, status->base, status->emissionRate, animInfo, 0.0f)
-    );
+  float rate = 0.0f;
+  if (currobj->emissionRate.InterpolateRetained(animInfo, status->base, &status->emissionRate, 0.0f, &rate)) {
+    if (rate > 0.0f && (*animInfo.data.emitters2)[currobj->splitIndex]->EmissionRate() == 0.0f && currobj->squirts) {
+      (*animInfo.data.emitters2)[currobj->splitIndex]->Squirt();
+    }
+    (*animInfo.data.emitters2)[currobj->splitIndex]->SetEmissionRate(rate);
   }
 }
 
 static void SetParticleGravity2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->gravity.TotalKeys()) {
+  float accel = 0.0f;
+  if (currobj->gravity.InterpolateRetained(animInfo, status->base, &status->gravity, 0.0f, &accel)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetAcceleration(
-        AnimFloat(currobj->gravity, status->base, status->gravity, animInfo, 0.0f)
+        accel
     );
   }
 }
 
 static void SetEmitterLatitude2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->latitude.TotalKeys()) {
+  float latitude = 0.0f;
+  if (currobj->latitude.InterpolateRetained(animInfo, status->base, &status->latitude, 0.0f, &latitude)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetLatitude(
-        AnimFloat(currobj->latitude, status->base, status->latitude, animInfo, 0.0f)
+        latitude
     );
   }
 }
 
 static void SetEmitterLongitude2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->longitude.TotalKeys()) {
+  float longitude = 0.0f;
+  if (currobj->longitude.InterpolateRetained(animInfo, status->base, &status->longitude, 0.0f, &longitude)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetLongitude(
-        AnimFloat(currobj->longitude, status->base, status->longitude, animInfo, 0.0f)
+        longitude
     );
   }
 }
 
 static void SetEmitterWidth2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->width.TotalKeys()) {
+  float width = 0.0f;
+  if (currobj->width.InterpolateRetained(animInfo, status->base, &status->width, 0.0f, &width)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetWidth(
-        AnimFloat(currobj->width, status->base, status->width, animInfo, 0.0f)
+        width
     );
   }
 }
 
 static void SetEmitterLength2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->length.TotalKeys()) {
+  float length = 0.0f;
+  if (currobj->length.InterpolateRetained(animInfo, status->base, &status->length, 0.0f, &length)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetHeight(
-        AnimFloat(currobj->length, status->base, status->length, animInfo, 0.0f)
+        length
     );
   }
 }
 
 static void SetEmitterZsource2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->zsource.TotalKeys()) {
+  float zsource = 0.0f;
+  if (currobj->zsource.InterpolateRetained(animInfo, status->base, &status->zsource, 0.0f, &zsource)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetZsource(
-        AnimFloat(currobj->zsource, status->base, status->zsource, animInfo, 0.0f)
+        zsource
     );
   }
 }
 
 static void SetEmitterLifeSpan2(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj, CAnimEmitter2ObjStatus* status) {
-  if (currobj->lifeSpan.TotalKeys()) {
+  float lifeSpan = 0.1f;
+  if (currobj->lifeSpan.InterpolateRetained(animInfo, status->base, &status->lifeSpan, 1.0f, &lifeSpan)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetLifeSpan(
-        AnimFloat(currobj->lifeSpan, status->base, status->lifeSpan, animInfo, 0.1f)
+        lifeSpan
     );
   }
 }
 
 static void SetRibbonHeight(const AnimInfo& animInfo, CAnimRibbonObj* currobj, CAnimRibbonObjStatus* status) {
-  CRibbonEmitter *emitter = (*animInfo.data.ribbons)[currobj->splitIndex];
-  float value;
-  if (currobj->heightAbove.InterpolateRetained(animInfo, status->base, &status->heightAbove, 0.0f, &value)) {
-    emitter->SetAbove(value);
+  float heightAbove = 0.0f;
+  float heightBelow = 0.0f;
+  int newAbove = currobj->heightAbove.InterpolateRetained(
+      animInfo, status->base, &status->heightAbove, 0.0f, &heightAbove
+  );
+  int newBelow = currobj->heightBelow.InterpolateRetained(
+      animInfo, status->base, &status->heightBelow, 0.0f, &heightBelow
+  );
+  if (newAbove) {
+    (*animInfo.data.ribbons)[currobj->splitIndex]->SetAbove(heightAbove);
   }
-  if (currobj->heightBelow.InterpolateRetained(animInfo, status->base, &status->heightBelow, 0.0f, &value)) {
-    emitter->SetBelow(value);
+  if (newBelow) {
+    (*animInfo.data.ribbons)[currobj->splitIndex]->SetBelow(heightBelow);
   }
 }
 
 static void SetRibbonTexSlot(const AnimInfo& animInfo, CAnimRibbonObj* currobj, CAnimRibbonObjStatus* status) {
-  unsigned int slot;
+  unsigned int slot = 0;
   if (currobj->slot.InterpolateRetained(animInfo, status->base, &status->slot, 0, &slot)) {
     (*animInfo.data.ribbons)[currobj->splitIndex]->SetTexSlot(slot);
   }
 }
 
 static void SetRibbonColor(const AnimInfo& animInfo, CAnimRibbonObj* currobj, CAnimRibbonObjStatus* status) {
-  C3Color fallback;
   C3Color color;
-  if (currobj->color.InterpolateRetained(animInfo, status->base, &status->color, fallback, &color)) {
+  if (currobj->color.InterpolateRetained(animInfo, status->base, &status->color, C3Color(), &color)) {
     (*animInfo.data.ribbons)[currobj->splitIndex]->SetColor(color.r, color.g, color.b);
   }
 }
 
 static void SetRibbonAlpha(const AnimInfo& animInfo, CAnimRibbonObj* currobj, CAnimRibbonObjStatus* status) {
-  float alpha;
-  if (currobj->alpha.InterpolateRetained(animInfo, status->base, &status->alpha, 1.0f, &alpha)) {
+  float alpha = 0.0f;
+  if (currobj->alpha.InterpolateRetained(animInfo, status->base, &status->alpha, 0.0f, &alpha)) {
     (*animInfo.data.ribbons)[currobj->splitIndex]->SetAlpha(alpha);
   }
 }
 
 static void SetEmitter2Values(const AnimInfo& animInfo, CAnimEmitter2Obj* currobj) {
-  ASSERT(animInfo.data.emitters2);
-  ASSERT(currobj->splitIndex < animInfo.data.emitters2->Count());
-  CAnimEmitter2ObjStatus *status =
-      static_cast<CAnimEmitter2ObjStatus *>(animInfo.unique->status[currobj->animObjId]);
-  CParticleEmitter2 *emitter = (*animInfo.data.emitters2)[currobj->splitIndex];
-  emitter->SetEnabled(AnimFloat(currobj->visibility, status->base, status->visibility, animInfo, 1.0f) != 0.0f, 0);
+  FATALASSERT(currobj);
+  FATALASSERT(currobj->type == OBJ_TYPE_EMITTER2);
+  FATALASSERT(currobj->splitIndex < animInfo.data.emitters2->Count());
+  CAnimEmitter2ObjStatus *status = &animInfo.unique->emitter2Status[currobj->splitIndex];
+  float isVisible = 1.0f;
+  if (currobj->visibility.InterpolateRetained(animInfo, status->base, &status->visibility, 1.0f, &isVisible)) {
+    (*animInfo.data.emitters2)[currobj->splitIndex]->SetEnabled(isVisible > 0.0f && !currobj->squirts, 1);
+  }
   SetParticleVariation2(animInfo, currobj, status);
   SetParticleSpeed2(animInfo, currobj, status);
   SetParticleEmissionRate2(animInfo, currobj, status);
@@ -562,10 +601,6 @@ static void SetEmitter2Values(const AnimInfo& animInfo, CAnimEmitter2Obj* currob
   SetEmitterLength2(animInfo, currobj, status);
   SetEmitterZsource2(animInfo, currobj, status);
   SetEmitterLifeSpan2(animInfo, currobj, status);
-  NTempest::C34Matrix matrix;
-  WorldMatrixGet(&matrix);
-  matrix.Rotate(PI * 0.5f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
-  emitter->Update(status->elapsedTime, matrix, animInfo.cameraWorldPos);
 }
 
 static void SetRibbonValues(const AnimInfo& animInfo, CAnimRibbonObj* currobj) {
@@ -573,134 +608,78 @@ static void SetRibbonValues(const AnimInfo& animInfo, CAnimRibbonObj* currobj) {
   FATALASSERT(currobj->type == OBJ_TYPE_RIBBON);
   FATALASSERT(currobj->splitIndex < animInfo.data.ribbons->Count());
 
-  CAnimRibbonObjStatus *status = &animInfo.unique->ribbonStatus[currobj->splitIndex];
-  CRibbonEmitter *emitter = (*animInfo.data.ribbons)[currobj->splitIndex];
-  float visible;
-  if (currobj->visibility.InterpolateRetained(animInfo, status->base, &status->visibility, 1.0f, &visible)) {
-    emitter->SetEnabled(visible > 0.0f);
+  CAnimRibbonObjStatus &status = animInfo.unique->ribbonStatus[currobj->splitIndex];
+  float isVisible = 1.0f;
+  if (currobj->visibility.InterpolateRetained(
+          animInfo,
+          status.base,
+          &status.visibility,
+          1.0f,
+          &isVisible
+      )) {
+    (*animInfo.data.ribbons)[currobj->splitIndex]->SetEnabled(isVisible > 0.0f);
   }
-  SetRibbonHeight(animInfo, currobj, status);
-  SetRibbonTexSlot(animInfo, currobj, status);
-  SetRibbonColor(animInfo, currobj, status);
-  SetRibbonAlpha(animInfo, currobj, status);
+  SetRibbonHeight(animInfo, currobj, &status);
+  SetRibbonTexSlot(animInfo, currobj, &status);
+  SetRibbonColor(animInfo, currobj, &status);
+  SetRibbonAlpha(animInfo, currobj, &status);
 
   NTempest::C34Matrix current;
   WorldMatrixGet(&current);
-  NTempest::C44Matrix orient(
-      current.a0, current.a1, current.a2, 0.0f,
-      current.b0, current.b1, current.b2, 0.0f,
-      current.c0, current.c1, current.c2, 0.0f,
-      current.d0, current.d1, current.d2, 1.0f
+  (*animInfo.data.ribbons)[currobj->splitIndex]->SetPos(
+      NTempest::C44Matrix(current), animInfo.cameraWorldPos
   );
-  emitter->SetPos(orient, animInfo.cameraWorldPos);
 }
 
 static void PlaceObject(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos) {
-  CAnimObjStatus *status = animInfo.unique->status[currobj->animObjId];
+  ASSERT(currobj);
 
-  if (currobj->type == 1 || currobj->type == 3 || currobj->type == 6) {
-    WorldMatrixTranslate(NTempest::C3Vector(-currPos.x, -currPos.y, -currPos.z));
-  }
-
-  if (currobj->type == 3) {
-    ASSERT(currobj->splitIndex < animInfo.data.numBones);
-    WorldMatrixGet(animInfo.data.boneMtx + currobj->splitIndex);
-  } else if (currobj->type == 2) {
-    CAnimModelObj       *model = static_cast<CAnimModelObj *>(currobj);
-    CAnimModelObjStatus *modelStatus = static_cast<CAnimModelObjStatus *>(status);
-    modelStatus->visible = AnimFloat(model->visibility, status->base, modelStatus->visibility, animInfo, 1.0f);
-    if (currobj->splitIndex < animInfo.data.numAttached) {
-      WorldMatrixGet(animInfo.data.attached + currobj->splitIndex);
+  switch (currobj->type) {
+    case OBJ_TYPE_HELPER:
+      return;
+    case OBJ_TYPE_LIGHT:
+      WorldMatrixTranslate(-currPos);
+      ASSERT(currobj->type == OBJ_TYPE_LIGHT);
+      SetLightValues(animInfo, static_cast<CAnimLightObj *>(currobj), currPos);
+      break;
+    case OBJ_TYPE_MODEL:
+      ASSERT(currobj->type == OBJ_TYPE_MODEL);
+      PlaceModelObject(animInfo, static_cast<CAnimModelObj *>(currobj));
+      break;
+    case OBJ_TYPE_EMITTER2: {
+      NTempest::C34Matrix currentWorldMatrix;
+      ASSERT(currobj->type == OBJ_TYPE_EMITTER2);
+      SetEmitter2Values(animInfo, static_cast<CAnimEmitter2Obj *>(currobj));
+      ASSERT(currobj->splitIndex < animInfo.data.emitters2->Count());
+      WorldMatrixGet(&currentWorldMatrix);
+      currentWorldMatrix.Rotate(PI * 0.5f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
+      (*animInfo.data.emitters2)[currobj->splitIndex]->Update(
+          animInfo.unique->emitter2Status[currobj->splitIndex].elapsedTime,
+          currentWorldMatrix,
+          animInfo.cameraWorldPos
+      );
+      break;
     }
-  } else if (currobj->type == 4 && animInfo.data.emitters2 && currobj->splitIndex < animInfo.data.emitters2->Count()) {
-    CAnimEmitter2Obj       *emitterObject = static_cast<CAnimEmitter2Obj *>(currobj);
-    CAnimEmitter2ObjStatus *emitterStatus = static_cast<CAnimEmitter2ObjStatus *>(status);
-    CParticleEmitter2      *emitter = (*animInfo.data.emitters2)[currobj->splitIndex];
-    emitter->SetEnabled(AnimFloat(emitterObject->visibility, status->base, emitterStatus->visibility, animInfo, 1.0f) != 0.0f, 0);
-    if (emitterObject->particleSpeed.TotalKeys()) {
-      emitter->SetVelocity(AnimFloat(emitterObject->particleSpeed, status->base, emitterStatus->speed, animInfo, 0.0f));
-    }
-    if (emitterObject->emissionRate.TotalKeys()) {
-      emitter->SetEmissionRate(AnimFloat(emitterObject->emissionRate, status->base, emitterStatus->emissionRate, animInfo, 0.0f));
-    }
-    if (emitterObject->gravity.TotalKeys()) {
-      emitter->SetAcceleration(AnimFloat(emitterObject->gravity, status->base, emitterStatus->gravity, animInfo, 0.0f));
-    }
-    if (emitterObject->variation.TotalKeys()) {
-      emitter->SetVelocityVariation(AnimFloat(emitterObject->variation, status->base, emitterStatus->variation, animInfo, 0.0f));
-    }
-    if (emitterObject->latitude.TotalKeys()) {
-      emitter->SetLatitude(AnimFloat(emitterObject->latitude, status->base, emitterStatus->latitude, animInfo, 0.0f));
-    }
-    if (emitterObject->longitude.TotalKeys()) {
-      emitter->SetLongitude(AnimFloat(emitterObject->longitude, status->base, emitterStatus->longitude, animInfo, 0.0f));
-    }
-    if (emitterObject->length.TotalKeys()) {
-      emitter->SetHeight(AnimFloat(emitterObject->length, status->base, emitterStatus->length, animInfo, 0.0f));
-    }
-    if (emitterObject->width.TotalKeys()) {
-      emitter->SetWidth(AnimFloat(emitterObject->width, status->base, emitterStatus->width, animInfo, 0.0f));
-    }
-    if (emitterObject->zsource.TotalKeys()) {
-      emitter->SetZsource(AnimFloat(emitterObject->zsource, status->base, emitterStatus->zsource, animInfo, 0.0f));
-    }
-    if (emitterObject->lifeSpan.TotalKeys()) {
-      emitter->SetLifeSpan(AnimFloat(emitterObject->lifeSpan, status->base, emitterStatus->lifeSpan, animInfo, 0.1f));
-    }
-    NTempest::C34Matrix emitterMatrix;
-    WorldMatrixGet(&emitterMatrix);
-    emitterMatrix.Rotate(PI * 0.5f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
-    emitter->Update(emitterStatus->elapsedTime, emitterMatrix, animInfo.cameraWorldPos);
-  } else if (currobj->type == 1 && animInfo.data.lights && currobj->splitIndex < animInfo.data.lights->Count()) {
-    CAnimLightObj       *lightObject = static_cast<CAnimLightObj *>(currobj);
-    CAnimLightObjStatus *lightStatus = reinterpret_cast<CAnimLightObjStatus *>(status);
-    unsigned long        lightId = (*animInfo.data.lights)[currobj->splitIndex];
-    if (lightId) {
-      CGxLight *light = GxuLightLock(lightId);
-      ASSERT(light);
-      float visible = AnimFloat(lightObject->visibility, status->base, lightStatus->visibility, animInfo, 1.0f);
-      light->m_enabled = visible > 0.0f;
-      if (light->m_enabled) {
-        if (lightObject->color.TotalKeys()) {
-          C3Color dir = AnimColor(lightObject->color, status->base, lightStatus->color, animInfo);
-          light->m_dirColor.r = NTempest::CMath::ftol_0_256_(min(max(dir.r, 0.0f), 1.0f) * 255.0f);
-          light->m_dirColor.g = NTempest::CMath::ftol_0_256_(min(max(dir.g, 0.0f), 1.0f) * 255.0f);
-          light->m_dirColor.b = NTempest::CMath::ftol_0_256_(min(max(dir.b, 0.0f), 1.0f) * 255.0f);
-        }
-        if (lightObject->ambColor.TotalKeys()) {
-          C3Color amb = AnimColor(lightObject->ambColor, status->base, lightStatus->ambColor, animInfo);
-          light->m_ambColor.r = NTempest::CMath::ftol_0_256_(min(max(amb.r, 0.0f), 1.0f) * 255.0f);
-          light->m_ambColor.g = NTempest::CMath::ftol_0_256_(min(max(amb.g, 0.0f), 1.0f) * 255.0f);
-          light->m_ambColor.b = NTempest::CMath::ftol_0_256_(min(max(amb.b, 0.0f), 1.0f) * 255.0f);
-        }
-        if (lightObject->intensity.TotalKeys()) {
-          light->m_dirIntensity = AnimFloat(lightObject->intensity, status->base, lightStatus->intensity, animInfo, 0.0f);
-          if (light->m_dirIntensity < 0.0f) {
-            light->m_dirIntensity = 0.0f;
-          }
-        }
-        if (lightObject->ambIntensity.TotalKeys()) {
-          light->m_ambIntensity = AnimFloat(lightObject->ambIntensity, status->base, lightStatus->ambIntensity, animInfo, 0.0f);
-          if (light->m_ambIntensity < 0.0f) {
-            light->m_ambIntensity = 0.0f;
-          }
-        }
-        if (!light->m_isOmni) {
-          light->m_dir = NTempest::C3Vector(0.0f, 0.0f, -1.0f);
-          WorldMatrixPush();
-          WorldMatrixRemove(1);
-          WorldMatrixTransform(&light->m_dir);
-          WorldMatrixPop();
-        } else {
-          light->m_dir = currPos;
-          WorldMatrixTransform(&light->m_dir);
-          light->m_dir.x += animInfo.cameraWorldPos.x;
-          light->m_dir.y += animInfo.cameraWorldPos.y;
-          light->m_dir.z += animInfo.cameraWorldPos.z;
-        }
-      }
-      GxuLightUnlock(lightId);
-    }
+    case OBJ_TYPE_RIBBON:
+      ASSERT(currobj->type == OBJ_TYPE_RIBBON);
+      SetRibbonValues(animInfo, static_cast<CAnimRibbonObj *>(currobj));
+      ASSERT(currobj->splitIndex < animInfo.data.ribbons->Count());
+      (*animInfo.data.ribbons)[currobj->splitIndex]->Update(
+          animInfo.unique->ribbonStatus[currobj->splitIndex].elapsedTime,
+          0
+      );
+      break;
+    case OBJ_TYPE_EVENT:
+      WorldMatrixTranslate(-currPos);
+      ASSERT(currobj->type == OBJ_TYPE_EVENT);
+      PlaceEventObject(animInfo, static_cast<CAnimEventObj *>(currobj));
+      break;
+    default:
+      WorldMatrixTranslate(-currPos);
+      ASSERT(currobj->type == OBJ_TYPE_BONE);
+      ASSERT(currobj->splitIndex < animInfo.data.numBones);
+      WorldMatrixGet(animInfo.data.boneMtx + currobj->splitIndex);
+      break;
   }
 }
 
@@ -768,6 +747,23 @@ TransformObjectView(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest:
   }
 
   TranslateView(animInfo, currobj, currPos, parentPos);
+  if ((currobj->flags & 0x40) && s_AnimBoneProjectCallback) {
+    NTempest::C3Vector trans(0.0f);
+    WorldMatrixGetRow(3, &trans);
+    trans += animInfo.cameraWorldPos;
+
+    NTempest::C3Segment seg(trans, trans);
+    seg.start.z -= s_animBoneProjectDistance;
+    seg.end.z += s_animBoneProjectDistance;
+
+    float z;
+    if (s_AnimBoneProjectCallback(seg, z)) {
+      trans.x -= animInfo.cameraWorldPos.x;
+      trans.y -= animInfo.cameraWorldPos.y;
+      trans.z = z - animInfo.cameraWorldPos.z;
+      WorldMatrixSetRow(3, trans);
+    }
+  }
   if (!ApplyLookAt(animInfo, currobj, currPos)) {
     switch (currobj->flags & 0x38) {
       case 8:
@@ -799,20 +795,17 @@ static void PrepareObjectHierarchyViews(const AnimInfo &animInfo, CAnimObj *curr
   ASSERT(animInfo.shared);
   ASSERT(currobj);
 
-  if (currobj->type == 3) {
-    CAnimBoneObj *bone = static_cast<CAnimBoneObj *>(currobj);
-    if (bone->geosetId != 0xFF && !(animInfo.unique->geosetStatus[bone->geosetId].base.flags & 1)) {
-      return;
-    }
+  if (currobj->type == 3 && !static_cast<CAnimBoneObj *>(currobj)->IsVisible(*animInfo.unique)) {
+    return;
   }
 
   WorldMatrixPush();
-  NTempest::C3Vector currPosition = animInfo.positions[currobj->animObjId];
-  TransformObjectView(animInfo, currobj, currPosition, parentPos);
+  NTempest::C3Vector currPos = animInfo.positions[currobj->animObjId];
+  TransformObjectView(animInfo, currobj, currPos, parentPos);
   for (unsigned int i = 0; i < currobj->childarray.Count(); ++i) {
-    PrepareObjectHierarchyViews(animInfo, currobj->childarray[i], currPosition);
+    PrepareObjectHierarchyViews(animInfo, currobj->childarray[i], currPos);
   }
-  PlaceObject(animInfo, currobj, currPosition);
+  PlaceObject(animInfo, currobj, currPos);
   WorldMatrixPop();
 }
 
@@ -852,16 +845,24 @@ static void AnimateTextureMap(const AnimInfo &animInfo, CAnimTransform *texAnim,
 }
 
 static void AnimateCamera(const InterpInfo& animInfo, CAnimCameraObj* object, CAnimCameraObjStatus* status, HCAMERA__* camera) {
-  status->visible = AnimFloat(object->visibility, status->base, status->visibility, animInfo, 1.0f);
-  NTempest::C3Vector position =
-      AnimVector(object->translation, status->base, status->translation, animInfo, object->pivot);
+  ASSERT(object);
+  ASSERT(status);
+  object->visibility.InterpolateRetained(animInfo, status->base, &status->visibility, 1.0f, &status->visible);
+  if (!status->visible) {
+    return;
+  }
+  NTempest::C3Vector position(0.0f);
+  object->translation.InterpolateVolatile(animInfo, status->base, &status->translation, position, &position);
   position += object->pivot;
-  NTempest::C3Vector target =
-      AnimVector(object->targetTranslation, status->base, status->targetTranslation, animInfo, object->targetPivot);
-  target += object->targetPivot;
-  float roll = AnimFloat(object->roll, status->base, status->roll, animInfo, 0.0f);
+  WorldMatrixTransform(&position);
   DataMgrSetCoord(camera, 7, position, 0);
-  DataMgrSetCoord(camera, 8, target, 0);
+  position = NTempest::C3Vector(0.0f);
+  object->targetTranslation.InterpolateVolatile(animInfo, status->base, &status->targetTranslation, position, &position);
+  position += object->targetPivot;
+  WorldMatrixTransform(&position);
+  DataMgrSetCoord(camera, 8, position, 0);
+  float roll = 0.0f;
+  object->roll.InterpolateVolatile(animInfo, status->base, &status->roll, roll, &roll);
   DataMgrSetFloat(camera, 5, roll);
 }
 
@@ -869,14 +870,15 @@ static void AnimateAllCameras(CameraInfo* animInfo) {
   FATALASSERT(animInfo);
   FATALASSERT(animInfo->unique);
   FATALASSERT(animInfo->shared);
-  unsigned int count = min(animInfo->cameras.Count(), animInfo->shared->cameraObjs.Count());
-  for (unsigned int i = 0; i < count; ++i) {
+  CAnimCameraObjStatus *status = animInfo->unique->cameraStatus.Ptr();
+  while (status != animInfo->unique->cameraStatus.Ptr() + min(animInfo->cameras.Count(), animInfo->shared->cameraObjs.Count())) {
     AnimateCamera(
         *animInfo,
-        &animInfo->shared->cameraObjs[i],
-        &animInfo->unique->cameraStatus[i],
-        animInfo->cameras[i]
+        &animInfo->shared->cameraObjs[status - animInfo->unique->cameraStatus.Ptr()],
+        status,
+        animInfo->cameras[status - animInfo->unique->cameraStatus.Ptr()]
     );
+    ++status;
   }
 }
 
@@ -885,12 +887,16 @@ static void AnimateAllTextureMaps(AnimInfo* animInfo) {
   ASSERT(animInfo->unique);
   ASSERT(animInfo->shared);
 
-  for (unsigned int i = 0; i < animInfo->shared->tex.Count(); ++i) {
-    ASSERT(i < animInfo->data.numTexBones);
-    CAnimTransform      &tex = animInfo->shared->tex[i];
-    CAnimObjStatus      &status = animInfo->unique->textureStatus[i];
-    NTempest::C34Matrix &matrix = animInfo->data.textureMtx[i];
-    AnimateTextureMap(*animInfo, &tex, &status, &matrix);
+  CAnimObjStatus *status = animInfo->unique->textureStatus.Ptr();
+  while (status != animInfo->unique->textureStatus.Ptr() + animInfo->shared->tex.Count()) {
+    ASSERT(static_cast<unsigned int>(status - animInfo->unique->textureStatus.Ptr()) < animInfo->data.numTexBones);
+    AnimateTextureMap(
+        *animInfo,
+        &animInfo->shared->tex[status - animInfo->unique->textureStatus.Ptr()],
+        status,
+        &animInfo->data.textureMtx[status - animInfo->unique->textureStatus.Ptr()]
+    );
+    ++status;
   }
 }
 
@@ -899,15 +905,15 @@ static void AnimateAllGeosets(AnimInfo* animInfo) {
   ASSERT(animInfo->unique);
   ASSERT(animInfo->shared);
 
-  for (unsigned int i = 0; i < animInfo->shared->geo.Count(); ++i) {
-    CAnimGeoset          &geo = animInfo->shared->geo[i];
-    CAnimGeosetObjStatus &status = animInfo->unique->geosetStatus[i];
-    CGeosetColor         &color = animInfo->data.geosetColor[geo.sgGeosetId];
+  CAnimGeoset *geo = animInfo->shared->geo.Ptr();
+  while (geo != animInfo->shared->geo.Ptr() + animInfo->shared->geo.Count()) {
+    CAnimGeosetObjStatus &status = animInfo->unique->geosetStatus[geo - animInfo->shared->geo.Ptr()];
     unsigned int          wasVisible = status.base.flags & 1;
-    CalcGeosetColor(*animInfo, &geo, &status, &color);
+    CalcGeosetColor(*animInfo, geo, &status, &animInfo->data.geosetColor[geo->sgGeosetId]);
     if (wasVisible != (status.base.flags & 1)) {
       animInfo->unique->flags &= ~2u;
     }
+    ++geo;
   }
 }
 
@@ -917,52 +923,29 @@ static void AnimateAllMaterialLayers(AnimInfo* animInfo, unsigned int* tex) {
   ASSERT(animInfo->shared);
 
   tex += animInfo->shared->layers.Count();
-  for (unsigned int i = 0; i < animInfo->shared->layers.Count(); ++i) {
+  CAnimMaterialLayer *layer = animInfo->shared->layers.Ptr();
+  CAnimLayerStatus   *layerStatus = animInfo->unique->layerStatus.Ptr();
+  float               alpha;
+  unsigned int        numLayers = animInfo->shared->layers.Count();
+  while (numLayers) {
     --tex;
-    CAnimMaterialLayer &layer = animInfo->shared->layers[i];
-    CAnimLayerStatus   &status = animInfo->unique->layerStatus[i];
-    if (layer.visibility.TotalKeys()) {
-      float        alpha = 0.0f;
-      unsigned int keys = layer.visibility.SetAnimTime(status.base, &status.visibility, *animInfo);
-      int          updateAlpha = 1;
-      if (keys > 1) {
-        const CAnimSequence &sequence = animInfo->shared->seq[status.base.currSeq];
-        layer.visibility.Interpolate(status.visibility, sequence.time.h - sequence.time.l, &alpha);
-      } else {
-        if (status.base.flags & 0x10) {
-          if (keys) {
-            alpha = reinterpret_cast<const CLinearKeyFrame<float> *>(
-                        layer.visibility.GetKeyFrame(status.visibility.currKey)
-            )->transform;
-          } else {
-            alpha = 1.0f;
-          }
-        } else {
-          updateAlpha = 0;
-        }
-      }
-      if (updateAlpha) {
-        animInfo->data.layerAlpha[layer.layerId] =
-            NTempest::CMath::ftol_0_256_(min(max(alpha, 0.0f), 1.0f) * 255.0f);
-      }
+    alpha = 0.0f;
+    if (layer->visibility.InterpolateRetained(
+            *animInfo,
+            layerStatus->base,
+            &layerStatus->visibility,
+            1.0f,
+            &alpha
+        )) {
+      animInfo->data.layerAlpha[layer->layerId] =
+          NTempest::CMath::ftol_0_256_(min(max(alpha, 0.0f), 1.0f) * 255.0f);
     }
 
     *tex = static_cast<unsigned int>(-1);
-    if (layer.flip.TotalKeys()) {
-      unsigned int keys = layer.flip.SetAnimTime(status.base, &status.flipIndex, *animInfo);
-      if (keys > 1) {
-        const CAnimSequence &sequence = animInfo->shared->seq[status.base.currSeq];
-        layer.flip.Interpolate(status.flipIndex, sequence.time.h - sequence.time.l, tex);
-      } else if (status.base.flags & 0x10) {
-        if (keys) {
-          *tex = reinterpret_cast<const CLinearKeyFrame<unsigned int> *>(
-                     layer.flip.GetKeyFrame(status.flipIndex.currKey)
-          )->transform;
-        } else {
-          *tex = 0;
-        }
-      }
-    }
+    layer->flip.InterpolateRetained(*animInfo, layerStatus->base, &layerStatus->flipIndex, 0, tex);
+    ++layer;
+    ++layerStatus;
+    --numLayers;
   }
 }
 
@@ -1036,33 +1019,19 @@ void AnimProcessEvents(HANIM anim, const TSFixedArray<NTempest::C3Vector> &posit
 }
 
 void AnimAnimateCameras(HANIM anim, const TSFixedArray<HCAMERA> &cameras) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
-
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  ASSERT(shared->flags & 1);
-  ASSERT(!(shared->flags & 4));
+  ASSERT(anim);
+  ASSERT(reinterpret_cast<CAnim *>(anim)->hdata);
+  ASSERT(reinterpret_cast<CAnimData *>(reinterpret_cast<CAnim *>(anim)->hdata)->flags & 1);
+  ASSERT(!(reinterpret_cast<CAnimData *>(reinterpret_cast<CAnim *>(anim)->hdata)->flags & 4));
 
   TSFixedArray<NTempest::C3Vector> positions;
-  InterpInfo                       interpInfo(unique, shared, positions);
-  unsigned int                     count = min(cameras.Count(), shared->cameraObjs.Count());
-  for (unsigned int i = 0; i < count; ++i) {
-    CAnimCameraObj       &cameraObject = shared->cameraObjs[i];
-    CAnimCameraObjStatus &status = unique->cameraStatus[i];
-    status.visible = AnimFloat(cameraObject.visibility, status.base, status.visibility, interpInfo, 1.0f);
-
-    NTempest::C3Vector position = AnimVector(cameraObject.translation, status.base, status.translation, interpInfo, cameraObject.pivot);
-    position += cameraObject.pivot;
-    NTempest::C3Vector target =
-        AnimVector(cameraObject.targetTranslation, status.base, status.targetTranslation, interpInfo, cameraObject.targetPivot);
-    target += cameraObject.targetPivot;
-    float roll = AnimFloat(cameraObject.roll, status.base, status.roll, interpInfo, 0.0f);
-    DataMgrSetCoord(cameras[i], 7, position, 0);
-    DataMgrSetCoord(cameras[i], 8, target, 0);
-    DataMgrSetFloat(cameras[i], 5, roll);
-    status.base.flags &= ~0x10;
-  }
+  CameraInfo cameraInfo(
+      reinterpret_cast<CAnim *>(anim),
+      reinterpret_cast<CAnimData *>(reinterpret_cast<CAnim *>(anim)->hdata),
+      positions,
+      cameras
+  );
+  AnimateAllCameras(&cameraInfo);
 }
 
 void IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnimationData &data) {
@@ -1088,37 +1057,7 @@ void IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnimationData &d
     PrepareObjectHierarchyViews(animInfo, shared->headarray[i], origin);
   }
 
-  if (unique->flags & 3) {
-    return;
-  }
-
-  int setAllObjects = 1;
-  for (i = 0; i < unique->status.Count(); ++i) {
-    CAnimObj *object = shared->obj[i];
-    if (object->type == 3) {
-      CAnimBoneObj *bone = static_cast<CAnimBoneObj *>(object);
-      if (bone->geosetId != 0xFF && !(unique->geosetStatus[bone->geosetId].base.flags & 1)) {
-        setAllObjects = 0;
-        continue;
-      }
-    }
-    if (object->type != 6) {
-      unique->status[i]->base.flags &= ~0x10;
-    }
-  }
-  for (i = 0; i < unique->cameraStatus.Count(); ++i) {
-    unique->cameraStatus[i].base.flags &= ~0x10;
-  }
-  for (i = 0; i < unique->textureStatus.Count(); ++i) {
-    unique->textureStatus[i].base.flags &= ~0x10;
-  }
-  for (i = 0; i < unique->geosetStatus.Count(); ++i) {
-    unique->geosetStatus[i].base.flags &= ~0x10;
-  }
-  if (setAllObjects)
-    unique->flags |= 1;
-  else
-    unique->flags |= 2;
+  ISetSequenceUnchanged(unique, shared);
 }
 
 void AnimAnimateModel(HANIM anim, const CAnimationData &data) {
@@ -1138,7 +1077,7 @@ void AnimSetBoneProjectCallback(ANIMBONEPROJECTCALLBACK callback, float distance
   s_animBoneProjectDistance = distance;
 }
 
-void AnimGetBoneProjectCallback(ANIMBONEPROJECTCALLBACK &callback, float &distance) {
+void AnimGetBoneProjectCallback(ANIMBONEPROJECTCALLBACK &callback, float &dist) {
   callback = s_AnimBoneProjectCallback;
-  distance = s_animBoneProjectDistance;
+  dist = s_animBoneProjectDistance;
 }

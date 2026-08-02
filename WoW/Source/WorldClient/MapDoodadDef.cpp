@@ -85,13 +85,13 @@ void CMapStaticEntity::CreateCacheLight(CMapLight *light) {
     return;
   }
 
+  float dirIntensity;
   NTempest::C3Vector lightDir(pos.x - light->gxLight.m_dir.x, pos.y - light->gxLight.m_dir.y, pos.z + 1.1666666f - light->gxLight.m_dir.z);
   float              lightDist = lightDir.Mag();
   if (lightDist >= light->attenEnd) {
     return;
   }
 
-  float dirIntensity;
   if (lightDist < light->attenStart) {
     dirIntensity = 1.0f;
   } else {

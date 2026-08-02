@@ -51,13 +51,13 @@ int WriteHelpers(
     CMDLStatus *
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]) {
-    int writeObjectId = data.helpers.Count() != data.objects.Count();
+    int needObjIds = data.helpers.Count() != data.objects.Count();
     for (unsigned int i = 0; i < data.helpers.Count(); ++i) {
       WriteObjectHeader(
           data,
           data.helpers.Ptr()[i],
           0x10F,
-          writeObjectId,
+          needObjIds,
           buffer
       );
       WriteObjectTrailer(data.helpers.Ptr()[i], buffer);
@@ -68,21 +68,21 @@ int WriteHelpers(
 
 int WriteBinHelpers(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *status
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]
       && data.helpers.Count()) {
-    buffer.AddDword('PLEH');
+    buf.AddDword('PLEH');
     unsigned int totalSize = 4;
     unsigned int i;
     for (i = 0; i < data.helpers.Count(); ++i) {
       totalSize += GetBinGenObjectSize(data.helpers.Ptr()[i]);
     }
-    buffer.AddUint(totalSize);
-    buffer.AddUint(data.helpers.Count());
+    buf.AddUint(totalSize);
+    buf.AddUint(data.helpers.Count());
     for (i = 0; i < data.helpers.Count(); ++i) {
-      WriteBinGenObject(data.helpers.Ptr()[i], buffer, status);
+      WriteBinGenObject(data.helpers.Ptr()[i], buf, status);
     }
   }
   return 1;

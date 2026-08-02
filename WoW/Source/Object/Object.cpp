@@ -145,12 +145,12 @@ bool IsAngleWithinRange(float a, float b, float fieldofView) {
 }
 
 float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination) {
-  float diffX = destination.x - position.x;
+  float diff = destination.x - position.x;
   float diffY = destination.y - position.y;
 
-  if (fabs(diffX) >= 2.3841858e-7f) {
+  if (fabs(diff) >= 2.3841858e-7f) {
     if (fabs(diffY) >= 2.3841858e-7f) {
-      return static_cast<float>(atan2(diffY, diffX));
+      return static_cast<float>(atan2(diffY, diff));
     }
     return destination.x >= position.x ? 0.0f : PI;
   }

@@ -55,8 +55,8 @@ void CMapObj::ClearCache(int force) {
 }
 
 CMapObj *CMapObj::Create(const char *fileName) {
-  unsigned int hashval = SStrHashHT(fileName);
-  CMapObj     *mapObj = mapObjHash.Ptr(hashval, nullHashKey);
+  unsigned int mapObjId = SStrHashHT(fileName);
+  CMapObj     *mapObj = mapObjHash.Ptr(mapObjId, nullHashKey);
   if (mapObj) {
     ++mapObj->refCount;
     return mapObj;
@@ -68,7 +68,7 @@ CMapObj *CMapObj::Create(const char *fileName) {
     FATALERROR(("CMapObj::Create(): mapObj->Read(\"%s\") failed", fileName));
   }
 
-  mapObjHash.Insert(mapObj, hashval, nullHashKey);
+  mapObjHash.Insert(mapObj, mapObjId, nullHashKey);
   mapObj->refCount = 1;
   return mapObj;
 }
@@ -591,8 +591,7 @@ bool CMapObj::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector 
   unsigned short   hitPoly = 0;
   CMapObjGroup    *hitGroup = 0;
   unsigned int     grouplp;
-  float            hitT;
-  float            thisT = 1.0f;
+  float            hitT = 1.0f;
 
   for (grouplp = 0; grouplp < groupCount; ++grouplp) {
     gbox = groupInfoList[grouplp].aaBox;
@@ -606,9 +605,9 @@ bool CMapObj::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector 
     }
 
     triData.Clear();
-    hitT = thisT;
-    if (group->GetTris(triData, seg, hitT, 0, 8)) {
-      thisT = hitT;
+    float thisT = hitT;
+    if (group->GetTris(triData, seg, thisT, 0, 8)) {
+      hitT = thisT;
       FATALASSERT(triData.GetNumBatches());
       hitPoly = triData.GetBatch(0).triIndices[0];
       hitGroup = group;
@@ -621,13 +620,13 @@ bool CMapObj::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector 
 
   hitGroup->QueryLightmap(
       NTempest::C3Vector(
-          seg.start.x + (seg.end.x - seg.start.x) * thisT, seg.start.y + (seg.end.y - seg.start.y) * thisT,
-          seg.start.z + (seg.end.z - seg.start.z) * thisT
+          seg.start.x + (seg.end.x - seg.start.x) * hitT, seg.start.y + (seg.end.y - seg.start.y) * hitT,
+          seg.start.z + (seg.end.z - seg.start.z) * hitT
       ),
       hitPoly, color
   );
   if (t) {
-    *t = thisT;
+    *t = hitT;
   }
   return true;
 }

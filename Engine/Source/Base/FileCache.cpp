@@ -156,6 +156,9 @@ int BaseFileLoad(const char* fileName, void** fileBuffer, unsigned long* fileSiz
   FATALASSERT(fileName);
   FATALASSERT(fileBuffer);
 
+  const void   *tempBuffer;
+  unsigned long tempSize;
+
   *fileBuffer = 0;
   if (fileSize) {
     *fileSize = 0;
@@ -167,8 +170,8 @@ int BaseFileLoad(const char* fileName, void** fileBuffer, unsigned long* fileSiz
   if (s_uncachableFiles.Ptr(fileName)) {
     success = SFile::LoadFile(fileName, fileBuffer, fileSize, 1, 0);
   } else {
-    const void *tempBuffer = 0;
-    unsigned long tempSize = 0;
+    tempBuffer = 0;
+    tempSize = 0;
     if (IBaseFileLoad(fileName, &tempBuffer, &tempSize)) {
       *fileBuffer = SMemAlloc(tempSize + 1, __FILE__, __LINE__, 0);
       memcpy(*fileBuffer, tempBuffer, tempSize + 1);

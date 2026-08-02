@@ -99,7 +99,6 @@ static int DetermineFileName(const char *curDir, char *buffer, unsigned int size
 int SysMsgAdd(const char *msg, SYSMSG_TYPE severity, unsigned int categoryMask) {
   char          string[512];
   char          maskString[32] = "";
-  unsigned long dummy;
 
   FATALASSERT(msg);
 
@@ -110,7 +109,7 @@ int SysMsgAdd(const char *msg, SYSMSG_TYPE severity, unsigned int categoryMask) 
     SStrPrintf(string, sizeof(string), "%s|%s|%s\r\n", maskString, s_severityStrings[severity], msg);
 
     if (s_osFile) {
-      OsWriteFile(s_osFile, string, SStrLen(string), &dummy);
+      OsWriteFile(s_osFile, string, SStrLen(string), reinterpret_cast<unsigned long *>(&categoryMask));
     }
 
     if (s_callback) {

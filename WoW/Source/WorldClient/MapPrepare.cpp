@@ -42,41 +42,40 @@ void CMap::PrepareAreas() {
 
 void CMap::PrepareMapObjDefs() {
   ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
-    CMapObj    *mapObj = mapObjDef->mapObj;
-    FATALASSERT(mapObj);
+    FATALASSERT(mapObjDef->mapObj);
 
     if (CWorld::objectAoi.b <= mapObjDef->aaBox.t && CWorld::objectAoi.t >= mapObjDef->aaBox.b) {
-      while (!mapObj->bLoaded) {
-        mapObj->WaitLoad();
+      while (!mapObjDef->mapObj->bLoaded) {
+        mapObjDef->mapObj->WaitLoad();
       }
       if (!(mapObjDef->flags & CMapBaseObj::Flag_Loaded)) {
-        PrepareMapObjDef(mapObjDef, mapObj);
+        PrepareMapObjDef(mapObjDef, mapObjDef->mapObj);
       }
     }
 
     ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
       CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
       FATALASSERT(mapObjDefGroup);
-      CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 1);
+      CMapObjGroup *mapObjGroup = mapObjDef->mapObj->GetGroup(mapObjDefGroup->groupNum, 1);
       FATALASSERT(mapObjGroup);
 
       if (CWorld::objectAoi.b <= mapObjDefGroup->aaBox.t && CWorld::objectAoi.t >= mapObjDefGroup->aaBox.b) {
         mapObjGroup->flushTime = 30.0f;
         if (!mapObjGroup->bLoaded) {
           if (!mapObjGroup->asyncObject) {
-            mapObj->ReadGroup(mapObjDefGroup->groupNum);
+            mapObjDef->mapObj->ReadGroup(mapObjDefGroup->groupNum);
           }
           if (CWorld::groupAoi.b <= mapObjDefGroup->aaBox.t && CWorld::groupAoi.t >= mapObjDefGroup->aaBox.b) {
-            mapObj->WaitLoadGroup(mapObjDefGroup->groupNum);
+            mapObjDef->mapObj->WaitLoadGroup(mapObjDefGroup->groupNum);
           }
         }
 
         if (mapObjGroup->bLoaded) {
           if (!(mapObjDefGroup->flags & CMapBaseObj::Flag_HasLights)) {
-            CreateMapObjDefLights(mapObj, mapObjGroup, mapObjDef, mapObjDefGroup);
+            CreateMapObjDefLights(mapObjDef->mapObj, mapObjGroup, mapObjDef, mapObjDefGroup);
           }
           if (!(mapObjDefGroup->flags & CMapBaseObj::Flag_HasDoodadRefs)) {
-            CreateMapObjDefGroupDoodads(mapObj, mapObjGroup, mapObjDef, mapObjDefGroup);
+            CreateMapObjDefGroupDoodads(mapObjDef->mapObj, mapObjGroup, mapObjDef, mapObjDefGroup);
           }
         }
       }
@@ -125,16 +124,16 @@ void CMap::QueryLightmap(CMapDoodadDef *doodadDef) {
 void CMap::UpdateMapObjDefGroupDoodads(
     CMapObj         *mapObj,
     CMapObjGroup    *mapObjGroup,
-    CMapObjDef      *mapObjDef,
-    CMapObjDefGroup *mapObjDefGroup
-) {
-  FATALASSERT(mapObj);
+      CMapObjDef      *mapObjDef,
+      CMapObjDefGroup *mapObjDefGroup
+  ) {
+    int bFini = 1;
+    FATALASSERT(mapObj);
   FATALASSERT(mapObjGroup);
   FATALASSERT(mapObjDef);
   FATALASSERT(mapObjDefGroup);
 
-  int              bFini = 1;
-  unsigned int     count = 0;
+    unsigned int     count = 0;
   CMapBaseObjLink *doodadDefLink = mapObjDefGroup->doodadDefLinkList.Head();
 
   while (reinterpret_cast<long>(doodadDefLink) > 0) {

@@ -41,7 +41,9 @@ class CGCorpse {
     m_corpse = reinterpret_cast<CGCorpseData *>(storage);
   }
 
-  unsigned __int64 GetOwner() const;
+  unsigned __int64 GetOwner() const {
+    return m_corpse->m_owner;
+  }
   unsigned int GetDisplayID() const;
   unsigned int GetItemDisplayID(unsigned int index) const;
   unsigned int GetItemInventoryType(unsigned int index) const;

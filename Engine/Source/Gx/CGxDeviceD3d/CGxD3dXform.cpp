@@ -66,14 +66,13 @@ void CGxDeviceD3d::XformSetView(const NTempest::C44Matrix &matrix) {
 
 void CGxDeviceD3d::IXformSetWorld() {
   CGxMatrixStack &world = m_xforms[GxXform_World];
-  unsigned int    identity = world.m_flags[world.m_level] & CGxMatrixStack::F_Identity;
 
-  if (!isIdent || !identity) {
+  if (!isIdent || !(world.m_flags[world.m_level] & CGxMatrixStack::F_Identity)) {
     D3DXMATRIX matWorld = *reinterpret_cast<D3DXMATRIX *>(&world.m_mtx[world.m_level]);
     m_d3dDevice->SetTransform(D3DTS_WORLD, &matWorld);
   }
 
-  isIdent = identity;
+  isIdent = world.m_flags[world.m_level] & CGxMatrixStack::F_Identity;
   world.m_dirty = 0;
 }
 

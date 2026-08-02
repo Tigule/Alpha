@@ -145,6 +145,7 @@ struct CGeosetShared {
         geosetId(0),
         flags(0) {
   }
+
   TSFixedArray_<NTempest::C3Vector, 'IMod', 276>  position;
   TSFixedArray_<unsigned char, 'IMod', 277>       boneWeights;
   TSFixedArray_<NTempest::C3Vector, 'IMod', 278>  normal;
@@ -165,7 +166,9 @@ struct CGeosetShared {
 };
 
 struct CGeoset {
-  CGeoset() : weightedBones(GetInvalidMatrixId()), flags(0) {
+  CGeoset() {
+    flags = 0;
+    weightedBones = GetInvalidMatrixId();
   }
 
   unsigned int weightedBones;

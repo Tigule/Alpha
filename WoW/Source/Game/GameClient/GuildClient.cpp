@@ -12,8 +12,7 @@ bool GuildGetGuildTabard(
     int &bColor,
     int &background
 ) {
-  unsigned __int64    guid = 0;
-  const GuildStats_C *guild = g_guildInfoCache.GetRecord(guildID, guid, callback, 0);
+  const GuildStats_C *guild = g_guildInfoCache.GetRecord(guildID, 0, callback, 0);
 
   eStyle = -1;
   eColor = -1;

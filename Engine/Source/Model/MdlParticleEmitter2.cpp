@@ -304,8 +304,7 @@ static unsigned char *CreateParticleMaterial(
 
   const unsigned int       textureIndex = *reinterpret_cast<unsigned int *>(emitterData);
   const MDLTEXTURESECTION &texture = textures[textureIndex];
-  CGxTexFlags              textureFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  HTEXTURE                 hTexture = LoadModelTexture(texture.image, modelCreateFlags, textureFlags, status);
+  HTEXTURE hTexture = LoadModelTexture(texture.image, modelCreateFlags, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), status);
   emitterData += 4;
 
   if (emitterFlags & 0x00008000) {
@@ -333,8 +332,7 @@ static void CreateParticleMaterial(
 
   SetMaterialBlendMode(emitterData.blendMode, &newMat);
   const MDLTEXTURESECTION &texture = textures[emitterData.textureId];
-  CGxTexFlags textureFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  HTEXTURE hTexture = LoadModelTexture(texture.image, flags, textureFlags, status);
+  HTEXTURE hTexture = LoadModelTexture(texture.image, flags, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), status);
   if (emitterData.flags & 0x00008000) {
     newMat.enableLighting = 0;
   }
@@ -582,9 +580,8 @@ int MdlReadLoadEmitters2(const MDLDATA& data, CModelComplex* modelptr, CModelSha
   shared->emitter2Order.SetCount(numEmitters);
 
   for (unsigned int i = 0; i < numEmitters; ++i) {
-    const MDLPARTICLEEMITTER2 &emitterData = data.particleEmitters2[i];
-    shared->emitter2Order[i] = emitterData.objectId;
-    modelptr->m_emitters2[i] = CreateEmitter(emitterData, data.textures, flags, status);
+    shared->emitter2Order[i] = data.particleEmitters2[i].objectId;
+    modelptr->m_emitters2[i] = CreateEmitter(data.particleEmitters2[i], data.textures, flags, status);
   }
   return 1;
 }

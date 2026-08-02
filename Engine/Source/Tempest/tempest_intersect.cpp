@@ -325,27 +325,27 @@ namespace NTempest {
     C3Vector edge1 = verts[1] - verts[0];
     C3Vector edge2 = verts[2] - verts[0];
     C3Vector pvec = C3Vector::Cross(ray.dir, edge2);
-    float determinant = C3Vector::Dot(edge1, pvec);
-    if (determinant < 0.000001f) {
+    float det = C3Vector::Dot(edge1, pvec);
+    if (det < 0.000001f) {
       return false;
     }
 
     C3Vector tvec = ray.origin - verts[0];
     float u = C3Vector::Dot(tvec, pvec);
-    if (u < 0.0f || u > determinant) {
+    if (u < 0.0f || u > det) {
       return false;
     }
 
     C3Vector qvec = C3Vector::Cross(tvec, edge1);
     float v = C3Vector::Dot(ray.dir, qvec);
-    if (v < 0.0f || u + v > determinant) {
+    if (v < 0.0f || u + v > det) {
       return false;
     }
     if (!t && !bary) {
       return true;
     }
 
-    float inverseDeterminant = 1.0f / determinant;
+    float inverseDeterminant = 1.0f / det;
     if (t) {
       *t = C3Vector::Dot(edge2, qvec) * inverseDeterminant;
     }

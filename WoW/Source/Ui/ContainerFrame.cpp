@@ -63,12 +63,11 @@ static int InvUpdateHandler(unsigned __int64, unsigned int, unsigned int, const 
 
 void CGContainerInfo::EnterWorld() {
   unsigned __int64 player = ClntObjMgrGetActivePlayer();
-  unsigned int     playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  ClntObjMgrSetObjMirrorHandler(player, playerOffset + 152, 32, InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + 152, 32, InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   for (unsigned int offset = 184; offset <= 304; offset += 8) {
-    ClntObjMgrSetObjMirrorHandler(player, playerOffset + offset, 8, UpdateInvContents, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offset, 8, UpdateInvContents, 0, HANDLER_PRIORITY_NORMAL);
   }
-  ClntObjMgrSetObjMirrorHandler(player, playerOffset + 504, 48, InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + 504, 48, InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   memset(m_containers, 0, sizeof(m_containers));
   UpdateContainers();
 }
@@ -199,8 +198,7 @@ static int Script_GetContainerItemInfo(lua_State *L) {
   }
   int              index = static_cast<int>(lua_tonumber(L, 1));
   unsigned int     slot = static_cast<unsigned int>(lua_tonumber(L, 2)) - 1;
-  unsigned __int64 guid = CGContainerInfo::GetContainer(index);
-  CGObject_C      *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  CGObject_C      *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
   CGBag_C         *bag = object ? object->GetBag() : 0;
   if (!index) {
     slot += 23;
@@ -220,8 +218,7 @@ static int Script_GetContainerItemInfo(lua_State *L) {
   } else {
     lua_pushnumber(L, 1.0);
   }
-  unsigned __int64 noGuid = 0;
-  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0);
+  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
   lua_pushnumber(L, stats && stats->m_inventoryType ? static_cast<double>(stats->m_overallQualityID) : -2.0);
   return 4;
 }
@@ -232,8 +229,7 @@ static int Script_GetContainerItemLink(lua_State *L) {
   }
   int              index = static_cast<int>(lua_tonumber(L, 1));
   unsigned int     slot = static_cast<unsigned int>(lua_tonumber(L, 2)) - 1;
-  unsigned __int64 guid = CGContainerInfo::GetContainer(index);
-  CGObject_C      *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  CGObject_C      *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
   CGBag_C         *bag = object ? object->GetBag() : 0;
   if (!index) {
     slot += 23;
@@ -242,8 +238,7 @@ static int Script_GetContainerItemLink(lua_State *L) {
   if (!item) {
     return 0;
   }
-  unsigned __int64 noGuid = 0;
-  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0);
+  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
   if (!stats) {
     return 0;
   }
@@ -259,8 +254,7 @@ static int Script_GetContainerItemCooldown(lua_State *L) {
   }
   int              index = static_cast<int>(lua_tonumber(L, 1));
   unsigned int     slot = static_cast<unsigned int>(lua_tonumber(L, 2)) - 1;
-  unsigned __int64 guid = CGContainerInfo::GetContainer(index);
-  CGObject_C      *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  CGObject_C      *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
   CGBag_C         *bag = object ? object->GetBag() : 0;
   if (!index) {
     slot += 23;
@@ -497,8 +491,7 @@ static int Script_GetBagName(lua_State *L) {
     return 1;
   }
   CGItem_C        *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__));
-  unsigned __int64 noGuid = 0;
-  const ItemStats *stats = item ? g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0) : 0;
+  const ItemStats *stats = item ? g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0) : 0;
   if (stats) {
     lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
   } else {

@@ -230,12 +230,14 @@ void CGCharacterInfo::OrderSkillLines() {
   m_specialOffset = 0;
   m_racialOffset = 0;
   m_secondaryOffset = 0;
-  unsigned int numProfs = OrderProficiencies(numClassSkills + 2);
-  unsigned int profSpan = numProfs ? numProfs + 1 : 0;
+  unsigned int numProfs = OrderProficiencies(numClassSkills + 1);
+  if (numProfs) {
+    ++numProfs;
+  }
   m_skillInfoList[0].isProf = 0;
   m_skillInfoList[0].skillID = 0;
   unsigned int skillCount = 1;
-  unsigned int output = profSpan + 1;
+  unsigned int output = numProfs + 1;
   for (i = 0; i < count; ++i) {
     const SkillLineRec *rec = skillInfo[i];
     if (!m_specialOffset && rec->m_skillType == 1) {
@@ -261,7 +263,7 @@ void CGCharacterInfo::OrderSkillLines() {
       ++skillCount;
       ++output;
     }
-    unsigned int index = skillCount + (rec->m_skillType ? profSpan : 0);
+    unsigned int index = skillCount + (rec->m_skillType ? numProfs : 0);
     m_skillInfoList[index].isProf = 0;
     m_skillInfoList[index].skillID = rec->m_ID;
     ++skillCount;
@@ -276,7 +278,7 @@ void CGCharacterInfo::OrderSkillLines() {
   if (!m_specialOffset) {
     m_specialOffset = skillCount;
   }
-  m_numSkills = profSpan + skillCount;
+  m_numSkills = numProfs + skillCount;
 }
 
 static const CharBaseInfoRec *GetCharBaseInfo(int raceID, int classID) {
@@ -499,8 +501,7 @@ static int Script_GetInventoryItemQuality(lua_State *L) {
     lua_pushnil(L);
     return 1;
   }
-  unsigned __int64 noGuid = 0;
-  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0);
+  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
   lua_pushnumber(L, stats && stats->m_inventoryType ? static_cast<double>(stats->m_overallQualityID) : -1.0);
   return 1;
 }
@@ -519,13 +520,12 @@ static int Script_GetInventoryItemCooldown(lua_State *L) {
   CGItem_C     *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
   unsigned int  duration = 0;
   unsigned long startTime = 0;
-  unsigned int  enable = 0;
   if (item) {
-    Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, &enable);
+    Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, 0);
   }
   lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
   lua_pushnumber(L, static_cast<double>(duration) * 0.001);
-  lua_pushnumber(L, static_cast<double>(enable));
+  lua_pushnumber(L, 1.0);
   return 3;
 }
 
@@ -541,8 +541,7 @@ static int Script_GetInventoryItemLink(lua_State *L) {
   CGPlayer_C      *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
   CGBag_C         *bag = player ? player->GetBag() : 0;
   CGItem_C        *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
-  unsigned __int64 noGuid = 0;
-  const ItemStats *stats = item ? g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0) : 0;
+  const ItemStats *stats = item ? g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0) : 0;
   if (!stats) {
     return 0;
   }
@@ -638,10 +637,15 @@ static int Script_GetSkillByIndex(lua_State *L) {
 }
 
 static int Script_PutItemInBag(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: PutItemInBag(slot)");
+  int slot;
+  if (!GetSlotFromLua(L, slot, 1) || slot < 19) {
+    return luaL_error(L, "Invalid bag slot in PutItemInBag");
   }
-  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::PutItemInBag(static_cast<int>(lua_tonumber(L, 1)) - 1)));
+  if (CGCharacterInfo::PutItemInBag(slot)) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -651,10 +655,11 @@ static int Script_PutItemInBackpack(lua_State *L) {
 }
 
 static int Script_PickupBagFromSlot(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: PickupBagFromSlot(slot)");
+  int slot;
+  if (!GetSlotFromLua(L, slot, 1) || slot < 19) {
+    return luaL_error(L, "Invalid bag slot in PickupBagFromSlot");
   }
-  CGCharacterInfo::PickupBag(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  CGCharacterInfo::PickupBag(slot);
   return 0;
 }
 
@@ -707,7 +712,7 @@ static int Script_SetInventoryPortaitTexture(lua_State *L) {
   return 0;
 }
 
-void GuildNameCallback(int, const unsigned __int64 &, void *, bool granted) {
+void GuildNameCallback(int guildID, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(183, "%s", "player");
   }
@@ -720,10 +725,9 @@ static int Script_GetGuildInfo(lua_State *L) {
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   CGPlayer_C *player =
       unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
-  unsigned __int64 guid = unit ? unit->GetGUID() : 0;
   const GuildStats_C *guild =
       player && player->GetGuildID()
-          ? g_guildInfoCache.GetRecord(player->GetGuildID(), guid, GuildNameCallback, 0)
+          ? g_guildInfoCache.GetRecord(player->GetGuildID(), player->GetGUID(), GuildNameCallback, 0)
           : 0;
   if (guild) {
     lua_pushstring(L, guild->m_guildName);

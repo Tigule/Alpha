@@ -124,7 +124,6 @@ void CWorld::Initialize() {
   idMat = NTempest::C44Matrix();
   shadowModGxTex = 0;
 
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
   GxTexCreate(
       GxTex_2d,
       8,
@@ -132,7 +131,7 @@ void CWorld::Initialize() {
       0,
       GxTex_Argb4444,
       GxTex_Argb8888,
-      flags,
+      CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
       shadowModColor,
       UpdateShadowGxTex,
       shadowModGxTex
@@ -205,8 +204,7 @@ void CWorld::UnloadMap() {
 }
 
 void CWorld::Preload(const NTempest::C3Vector &position) {
-  NTempest::C3Vector areaPosition = position;
-  PrepareAreaOfInterest(areaPosition, areaPosition);
+  PrepareAreaOfInterest(position, position);
   CMap::Preload();
 }
 
@@ -347,7 +345,7 @@ int CWorld::QueryObjectInside(unsigned long hWorldObject) {
 }
 
 int CWorld::QueryLiquidSounds(
-    unsigned long       hWorldObject,
+    unsigned long       hwObject,
     float               radius,
     int                *lbool,
     NTempest::C3Vector *ldelta
@@ -356,7 +354,7 @@ int CWorld::QueryLiquidSounds(
   FATALASSERT(ldelta);
   FATALASSERT(radius > 0.0f && radius < 16.0f);
 
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hwObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
 
@@ -470,12 +468,12 @@ int CWorld::QueryGroundType(unsigned long hWorldObject, unsigned int &groundType
       return 0;
     }
 
-    NTempest::C3Vector low(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
-    NTempest::C3Vector high(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
-    NTempest::C3Segment segment(high * mapObjDef->invMat, low * mapObjDef->invMat);
+    NTempest::C3Vector p1(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
+    NTempest::C3Vector p0(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
+    NTempest::C3Segment seg(p0 * mapObjDef->invMat, p1 * mapObjDef->invMat);
     CWTriData           triData;
-    float               hitT = 1.0f;
-    if (!mapObjGroup->GetTris(triData, segment, hitT, mapObjDef, 8)) {
+    float               t = 1.0f;
+    if (!mapObjGroup->GetTris(triData, seg, t, mapObjDef, 8)) {
       return 0;
     }
 
@@ -485,12 +483,12 @@ int CWorld::QueryGroundType(unsigned long hWorldObject, unsigned int &groundType
     return 1;
   }
 
-  NTempest::C3Vector high(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
-  NTempest::C3Vector low(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
-  float     hitT = 1.0f;
+  NTempest::C3Vector p0(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
+  NTempest::C3Vector p1(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
+  float     t = 1.0f;
   SMOPoly  *poly = 0;
   CMapObj  *mapObj = 0;
-  if (CMap::VectorIntersectMapObjs(&high, &low, 0, 8, 0x2000, &hitT, &poly, &mapObj) && poly) {
+  if (CMap::VectorIntersectMapObjs(&p0, &p1, 0, 8, 0x2000, &t, &poly, &mapObj) && poly) {
     groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
     return 1;
   }
@@ -581,10 +579,10 @@ void CWorld::ObjectGetExtents(unsigned int id, NTempest::CAaBox &extents) {
   }
 }
 
-void CWorld::ObjectEnableCollision(unsigned int id, int enable) {
+void CWorld::ObjectEnableCollision(unsigned int id, int bEnable) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
   ASSERT(baseObj);
-  if (enable) {
+  if (bEnable) {
     baseObj->flags &= ~CMapBaseObj::Flag_NoCollision;
   } else {
     baseObj->flags |= CMapBaseObj::Flag_NoCollision;
@@ -661,8 +659,8 @@ unsigned long CWorld::AddDoodad(const char *fileName, HMODEL__ *hModel, const NT
   doodad->flagCollidable = (objFlags & 1) != 0;
   doodad->flagCastShadow = (objFlags & 2) == 0;
   doodad->flagAlwaysAnimate = (objFlags & 4) != 0;
+  doodad->refCount = 1;
   doodad->modelName = fileName;
-  doodad->flags = CMapBaseObj::Flag_LightUpdate;
   doodad->mat = mat;
   doodad->scale = NTempest::CMath::sqrt_(mat.a0 * mat.a0 + mat.a1 * mat.a1 + mat.a2 * mat.a2);
   doodad->pos = NTempest::C3Vector(mat.d0, mat.d1, mat.d2);

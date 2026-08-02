@@ -57,8 +57,8 @@ void CGPlayer_C::HandleSpellEventSound() {
     return;
   }
 
-  SpellVisualRec visualData;
-  const SpellVisualRec *visual = GetAppropriateSpellVisual(spell, visualData);
+  SpellVisualRec visRecData;
+  const SpellVisualRec *visual = GetAppropriateSpellVisual(spell, visRecData);
   if (!visual) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d", spell->m_spellVisualID);
     return;

@@ -198,8 +198,7 @@ static void SetColor(COLOR_T colorType, NTempest::CImVector color) {
 }
 
 static void GenerateNodeString(CONSOLELINE *node) {
-  NTempest::C3Vector position(0.0f);
-  CGxFont           *font = TextBlockGetFontPtr(s_textFont);
+  CGxFont *font = TextBlockGetFontPtr(s_textFont);
 
   if (!font || !node || !node->buffer || !node->buffer[0]) {
     return;
@@ -210,7 +209,7 @@ static void GenerateNodeString(CONSOLELINE *node) {
   }
 
   GxuFontCreateString(
-      font, node->buffer, s_fontHeight, position, 1.0f, s_fontHeight, 0.0f, node->fontPointer, GxVJ_Middle, GxHJ_Left, s_baseTextFlags,
+      font, node->buffer, s_fontHeight, NTempest::C3Vector(0.0f), 1.0f, s_fontHeight, 0.0f, node->fontPointer, GxVJ_Middle, GxHJ_Left, s_baseTextFlags,
       s_colorArray[node->colorType], s_charSpacing
   );
 }

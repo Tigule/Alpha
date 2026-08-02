@@ -62,16 +62,16 @@ void SkillLineTable::Initialize() {
   m_abilities.SetCount(numClasses * (g_chrRacesDB.GetMaxID() + 1));
 
   for (int i = 0; i < g_charBaseInfoDB.GetNumRecords(); ++i) {
-    const CharBaseInfoRec *baseInfo = g_charBaseInfoDB.GetRecordByIndex(i);
+    const CharBaseInfoRec *rec = g_charBaseInfoDB.GetRecordByIndex(i);
 
-    if (g_chrRacesDB.GetRecord(baseInfo->m_raceID)) {
-      TSFixedArray<const SkillLineAbilityRec *> &abilities = m_abilities[baseInfo->m_raceID * numClasses + baseInfo->m_classID];
+    if (g_chrRacesDB.GetRecord(rec->m_raceID)) {
+      TSFixedArray<const SkillLineAbilityRec *> &abilities = m_abilities[rec->m_raceID * numClasses + rec->m_classID];
 
       abilities.SetCount(g_spellDB.GetMaxID() + 1);
       memset(abilities.Ptr(), 0, abilities.Count() * sizeof(SkillLineAbilityRec *));
 
       for (int j = 0; j < g_skillLineAbilityDB.GetNumRecords(); ++j) {
-        AddAbility(baseInfo->m_raceID, baseInfo->m_classID, abilities, g_skillLineAbilityDB.GetRecordByIndex(j));
+        AddAbility(rec->m_raceID, rec->m_classID, abilities, g_skillLineAbilityDB.GetRecordByIndex(j));
       }
     }
   }

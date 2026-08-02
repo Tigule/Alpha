@@ -169,10 +169,9 @@ void CCharSelectInfo::EnumerateCharactersCallback(CHARACTER_INFO &info, void *__
 
 void CCharSelectInfo::GuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted) {
   if (guildID && granted) {
-    unsigned __int64 guildGuid = 0;
-    unsigned int     index;
+    unsigned int index;
 
-    ASSERT(g_guildInfoCache.GetRecord(guildID, guildGuid, 0, 0));
+    ASSERT(g_guildInfoCache.GetRecord(guildID, guid, 0, 0));
 
     for (index = 0; index < s_charList.Count(); ++index) {
       if (s_charList[index].m_characterInfo.guildID == guildID) {
@@ -230,23 +229,7 @@ void CHARINFO::UpdateCharacterInfo(const char *modelName, HMODEL backgroundModel
   m_petModel = 0;
   m_characterComponent = 0;
 
-  CModelCreate createData;
-  CStatus      status;
-
-  createData.flags = 0x10286E;
-  createData.sequenceNames = g_animationNames;
-  createData.numSequences = NUM_OBJECTANIMATIONS;
-  createData.boneNames = 0;
-  createData.numBones = 0;
-  createData.cameraNames = 0;
-  createData.numCameras = 0;
-
-  m_characterModel = ModelCreate(modelName, &createData, &status);
-  SysMsgAdd(status, 4);
-
-  if (!m_characterModel) {
-    return;
-  }
+  m_characterModel = ObjectModelCreate(modelName, HIER_TYPE_PLAYER, 0x100800);
 
   ModelSetSequence(m_characterModel, ANIM_STAND, 4);
 
@@ -257,12 +240,7 @@ void CHARINFO::UpdateCharacterInfo(const char *modelName, HMODEL backgroundModel
     }
   }
 
-  if (modelData) {
-    CStatus petStatus;
-
-    m_petModel = ModelCreate(modelData->m_ModelName, &createData, &petStatus);
-    SysMsgAdd(petStatus, 4);
-  }
+  m_petModel = modelData ? ObjectModelCreate(modelData->m_ModelName, HIER_TYPE_UNIT, 0x100800) : 0;
 
   if (backgroundModel) {
     if (ModelAddLink(backgroundModel, 0, m_characterModel, 1.0f)) {

@@ -10,8 +10,7 @@ namespace NTempest {
   static const unsigned long next[3] = {1, 2, 0};
 
   void C4Quaternion::FromRotationMatrix(const C33Matrix &rotation) {
-    C33Matrix transposed = rotation;
-    FromRotationMatrixInv(transposed.Transpose());
+    FromRotationMatrixInv(C33Matrix(rotation).Transpose());
   }
 
   void C4Quaternion::FromRotationMatrixInv(const C33Matrix &rotation) {
@@ -28,20 +27,20 @@ namespace NTempest {
       return;
     }
 
-    long k = rotation.b1 > rotation.a0;
-    if (rotation.c2 > matrix[4 * k]) {
-      k = 2;
+    long i = rotation.b1 > rotation.a0;
+    if (rotation.c2 > matrix[4 * i]) {
+      i = 2;
     }
 
-    long   i = next[k];
     long   j = next[i];
-    float  root = CMath::sqrt_(matrix[4 * k] - matrix[4 * i] - matrix[4 * j] + 1.0f);
-    float *q[3] = {&x, &y, &z};
-    *q[k] = 0.5f * root;
+    long   k = next[j];
+    float  root = CMath::sqrt_(matrix[4 * i] - matrix[4 * j] - matrix[4 * k] + 1.0f);
+    float *q_[3] = {&x, &y, &z};
+    *q_[i] = 0.5f * root;
     root = 0.5f / root;
-    w = (matrix[3 * j + i] - matrix[3 * i + j]) * root;
-    *q[i] = (matrix[3 * k + i] + matrix[3 * i + k]) * root;
-    *q[j] = (matrix[3 * k + j] + matrix[3 * j + k]) * root;
+    w = (matrix[3 * k + j] - matrix[3 * j + k]) * root;
+    *q_[j] = (matrix[3 * i + j] + matrix[3 * j + i]) * root;
+    *q_[k] = (matrix[3 * i + k] + matrix[3 * k + i]) * root;
   }
 
   void C4Quaternion::FromAngleAxis(
@@ -61,10 +60,10 @@ namespace NTempest {
       float &angle,
       C3Vector &axis
   ) const {
-    float lengthSquared = x * x + y * y + z * z;
-    if (lengthSquared > 0.0f) {
+    float len2 = x * x + y * y + z * z;
+    if (len2 > 0.0f) {
       angle = 2.0f * static_cast<float>(acos(w));
-      float inverseLength = 1.0f / CMath::sqrt_(lengthSquared);
+      float inverseLength = 1.0f / CMath::sqrt_(len2);
       axis.x = x * inverseLength;
       axis.y = y * inverseLength;
       axis.z = z * inverseLength;
@@ -82,44 +81,44 @@ namespace NTempest {
       ASSERT(!"C4Quaternion::Inverse(): cannot invert an invalid (zero-norm) quaternion.");
       return C4Quaternion();
     }
-    float inverseNorm = 1.0f / norm;
+    norm = 1.0f / norm;
     return C4Quaternion(
-        w * inverseNorm,
-        -x * inverseNorm,
-        -y * inverseNorm,
-        -z * inverseNorm
+        w * norm,
+        -x * norm,
+        -y * norm,
+        -z * norm
     );
   }
 
   C4Quaternion C4Quaternion::Exp() const {
     float angle = CMath::sqrt_(x * x + y * y + z * z);
-    float sine = CMath::sin_(angle);
-    float coefficient =
-        CMath::fabs_(sine) < 0.00000047683716f
+    float s = CMath::sin_(angle);
+    float coeff =
+        CMath::fabs_(s) < 0.00000047683716f
         ? 1.0f
-        : sine / angle;
+        : s / angle;
     return C4Quaternion(
         CMath::cos_(angle),
-        coefficient * x,
-        coefficient * y,
-        coefficient * z
+        coeff * x,
+        coeff * y,
+        coeff * z
     );
   }
 
   C4Quaternion C4Quaternion::Log() const {
-    float coefficient = 1.0f;
+    float coeff = 1.0f;
     if (CMath::fabs_(w) < 1.0f) {
       float angle = static_cast<float>(acos(w));
       float sine = CMath::sin_(angle);
       if (CMath::fabs_(sine) >= 0.00000047683716f) {
-        coefficient = angle / sine;
+        coeff = angle / sine;
       }
     }
     return C4Quaternion(
         0.0f,
-        coefficient * x,
-        coefficient * y,
-        coefficient * z
+        coeff * x,
+        coeff * y,
+        coeff * z
     );
   }
 
@@ -224,14 +223,14 @@ namespace NTempest {
     C4Quaternion qm;
     C4Quaternion qp;
     if (time0 <= time1) {
-      C4Quaternion previous = q0;
-      if (previous.x * q1.x + previous.y * q1.y
-          + previous.z * q1.z + previous.w * q1.w < 0.0f) {
-        previous = C4Quaternion(
-            -previous.w, -previous.x, -previous.y, -previous.z
+      C4Quaternion prev = q0;
+      if (prev.x * q1.x + prev.y * q1.y
+          + prev.z * q1.z + prev.w * q1.w < 0.0f) {
+        prev = C4Quaternion(
+            -prev.w, -prev.x, -prev.y, -prev.z
         );
       }
-      qm = (previous.Conjugate() * q1).Log();
+      qm = (prev.Conjugate() * q1).Log();
     }
     if (time1 <= time2) {
       C4Quaternion next = q2;

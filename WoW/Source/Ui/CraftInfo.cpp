@@ -106,7 +106,7 @@ TSGrowableArray<CraftSkillLineInfo *> CGCraftInfo::m_skillLines;
 static const char *s_craftButtonTokens[4] = {"USE", "TRAIN", "DISGUISE", "ENSCRIBE"};
 static const char  s_skillCategoryStrings[5][32] = {"none", "optimal", "medium", "easy", "trivial"};
 
-static void CraftReagentItemCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void CraftReagentItemCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     CGCraftInfo::RefreshList();
   }
@@ -524,8 +524,9 @@ static int Script_GetCraftReagentInfo(lua_State *L) {
   }
   if (spell && slot < 8) {
     int                itemID = spell->m_reagent[slot];
-    unsigned __int64   guid = static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64;
-    const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, guid, CraftReagentItemCallback, 0);
+    const ItemStats_C *stats = g_itemDBCache.GetRecord(
+        itemID, static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64, CraftReagentItemCallback, 0
+    );
     if (stats) {
       lua_pushstring(L, stats->m_displayName[0]);
       char        buffer[260];
@@ -562,10 +563,11 @@ static int Script_GetCraftSpellFocus(lua_State *L) {
       lua_pushstring(L, focus->m_name_lang[CURRENT_LANGUAGE]);
       ++count;
     }
-    unsigned __int64 guid = static_cast<unsigned __int64>(spell->m_ID) | 0xB000000000000000ui64;
     for (unsigned int i = 0; i < 2; ++i) {
       if (spell->m_totem[i]) {
-        const ItemStats_C *stats = g_itemDBCache.GetRecord(spell->m_totem[i], guid, CraftReagentItemCallback, 0);
+        const ItemStats_C *stats = g_itemDBCache.GetRecord(
+            spell->m_totem[i], static_cast<unsigned __int64>(spell->m_ID) | 0xB000000000000000ui64, CraftReagentItemCallback, 0
+        );
         if (stats) {
           lua_pushstring(L, stats->m_displayName[0]);
           ++count;

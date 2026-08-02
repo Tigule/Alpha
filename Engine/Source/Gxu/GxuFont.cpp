@@ -460,15 +460,15 @@ unsigned int GxuFontWrapText(
     float         charSpacing,
     unsigned int  flags
 ) {
+  const char  *currentText = text;
   unsigned int unusedNumBytes;
   float        unusedExtents;
   unsigned int advance;
   const char  *nextText;
   unsigned int wide;
   const char  *originalText;
-  const char  *currentText;
   const char  *textEnd;
-  unsigned int lines = 0;
+  unsigned int lines;
 
   ASSERT(font);
   ASSERT(outputListElements);
@@ -482,7 +482,7 @@ unsigned int GxuFontWrapText(
   }
 
   originalText = text;
-  currentText = text;
+  lines = 0;
   textEnd = text + lineBytes;
 
   while (currentText < textEnd) {

@@ -67,10 +67,10 @@ void CGxDeviceD3d::ScenePresent(unsigned int mask) {
     IDirect3DSurface9 *backBuffer;
     if (m_d3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backBuffer) >= 0) {
       _D3DSURFACE_DESC desc;
-      _D3DLOCKED_RECT  lockedRect;
+      _D3DLOCKED_RECT  r;
 
       backBuffer->GetDesc(&desc);
-      if (backBuffer->LockRect(&lockedRect, 0, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK) >= 0) {
+      if (backBuffer->LockRect(&r, 0, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK) >= 0) {
         backBuffer->UnlockRect();
       }
       backBuffer->Release();

@@ -227,17 +227,16 @@ int ReadMaterials(
     MDLDATA &data,
     CMDLStatus *status
 ) {
-  unsigned int token;
-  const char *tokenText;
-  UTokenData tokenData;
-  long expected = parse.GetOptionalInt(&token, &tokenText, &tokenData);
-  if (expected > 0) {
-    data.materials.ReserveSpace(expected);
-  }
-  parse.Expect('{', token, tokenText);
-  token = parse.Token(&tokenText, 0);
+  unsigned int savedtoken;
+  const char *tokentext;
   long actual = 0;
-  while (token == 0x16C) {
+  long count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
+  if (count > 0) {
+    data.materials.ReserveSpace(count);
+  }
+  parse.Expect('{', savedtoken, tokentext);
+  savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken == 0x16C) {
     IReadMaterial(
         parse,
         data.materials.New(),
@@ -245,11 +244,11 @@ int ReadMaterials(
         data.version
     );
     ++actual;
-    token = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
-  if (expected >= 0 && actual != expected) {
-    parse.WarningCount("materials", expected, actual);
+  parse.Expect('}', savedtoken, tokentext);
+  if (count >= 0 && actual != count) {
+    parse.WarningCount("materials", count, actual);
   }
   return !parse.FoundError();
 }
@@ -372,15 +371,16 @@ int WriteMaterials(
     TSGrowableArray<char> &buffer,
     CMDLStatus *
 ) {
-  if (data.materials.Count()) {
+  unsigned int numMaterials = data.materials.Count();
+  if (numMaterials) {
     WriteLine(
         buffer,
         "%s %d {\n",
         TokenText(0x109),
-        data.materials.Count()
+        numMaterials
     );
-    for (unsigned int i = 0; i < data.materials.Count(); ++i) {
-      IWriteMaterial(data.materials.Ptr()[i], buffer);
+    for (unsigned int i = 0; i < numMaterials; ++i) {
+      IWriteMaterial(data.materials[i], buffer);
     }
     WriteLine(buffer, "}\n");
   }
@@ -451,21 +451,21 @@ static int ReadBinMaterial(
 }
 
 int ReadBinMaterials(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
 ) {
-  unsigned int numMaterials = buffer.GetUint();
-  buffer.GetUint();
   unsigned int bytesRead = 8;
+  unsigned int numMaterials = buf.GetUint();
+  buf.GetUint();
   data.materials.SetCount(0);
   data.materials.ReserveSpace(numMaterials);
   while (bytesRead < length) {
     MDLMATERIALSECTION *material = data.materials.New();
-    unsigned int sectionLength = buffer.GetUint();
+    unsigned int sectionLength = buf.GetUint();
     if (!ReadBinMaterial(
-        buffer,
+        buf,
         sectionLength,
         material,
         status,
@@ -530,34 +530,38 @@ static void AddLayers(
 
 int WriteBinMaterials(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *
 ) {
-  if (data.materials.Count()) {
-    buffer.AddDword('SLTM');
-    unsigned int size = 8;
-    unsigned int i;
-    for (i = 0; i < data.materials.Count(); ++i) {
-      size += GetMaterialSize(data.materials.Ptr()[i]);
+  unsigned int numLayers;
+  unsigned int numMaterials = data.materials.Count();
+  unsigned int animatedLayers;
+  unsigned int i;
+  unsigned int size;
+  if (numMaterials) {
+    buf.AddDword('SLTM');
+    size = 8;
+    for (i = 0; i < numMaterials; ++i) {
+      size += GetMaterialSize(data.materials[i]);
     }
-    buffer.AddUint(size);
-    buffer.AddUint(data.materials.Count());
-    unsigned int animatedLayers = 0;
-    for (i = 0; i < data.materials.Count(); ++i) {
-      const MDLMATERIALSECTION &material = data.materials.Ptr()[i];
-      for (unsigned int j = 0; j < material.texLayers.Count(); ++j) {
-        const MDLTEXLAYER &layer = material.texLayers.Ptr()[j];
-        if (layer.alphaKeys.keys.Count() || layer.flipKeys.keys.Count()) {
+    buf.AddUint(size);
+    buf.AddUint(numMaterials);
+    animatedLayers = 0;
+    for (i = 0; i < numMaterials; ++i) {
+      numLayers = data.materials[i].texLayers.Count();
+      for (unsigned int j = 0; j < numLayers; ++j) {
+        if (data.materials[i].texLayers[j].alphaKeys.keys.Count() ||
+            data.materials[i].texLayers[j].flipKeys.keys.Count())
+        {
           ++animatedLayers;
         }
       }
     }
-    buffer.AddUint(animatedLayers);
-    for (i = 0; i < data.materials.Count(); ++i) {
-      const MDLMATERIALSECTION &material = data.materials.Ptr()[i];
-      buffer.AddUint(GetMaterialSize(material));
-      buffer.AddInt(material.priorityPlane);
-      AddLayers(buffer, material);
+    buf.AddUint(animatedLayers);
+    for (i = 0; i < numMaterials; ++i) {
+      buf.AddUint(GetMaterialSize(data.materials[i]));
+      buf.AddInt(data.materials[i].priorityPlane);
+      AddLayers(buf, data.materials[i]);
     }
   }
   return 1;

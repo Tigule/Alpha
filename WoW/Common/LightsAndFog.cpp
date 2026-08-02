@@ -102,55 +102,54 @@ void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTe
   }
 
   TSFixedArray<LightMarker> &markers = lightdata->m_highlightMarker[band];
-  for (unsigned int i = 0; i < markers.Count(); ++i) {
-    unsigned int next = (i + 1) % markers.Count();
-    int          t1 = markers[i].time;
+  for (unsigned int n = 0; n < markers.Count(); ++n) {
+    unsigned int next = (n + 1) % markers.Count();
+    int          x1 = markers[n].time;
     int          t2 = markers[next].time;
-    int          sample = time;
 
-    if (t2 > t1) {
-      if (sample < t1 || sample > t2) {
+    if (t2 > x1) {
+      if (time < x1 || time > t2) {
         continue;
       }
     } else {
-      if (sample > t2 && sample < t1) {
+      if (time > t2 && time < x1) {
         continue;
       }
       t2 += 2880;
-      if (sample < t1) {
-        sample += 2880;
+      if (time < x1) {
+        time += 2880;
       }
     }
 
-    int width = t2 - t1;
-    int position = sample - t1;
+    int w = t2 - x1;
+    int i = time - x1;
     if (oband >= 18) {
       if (distance) {
         float d1;
         float d2;
         switch (oband) {
           case 18:
-            d1 = lightdata->m_fogData[i].m_fogEnd;
+            d1 = lightdata->m_fogData[n].m_fogEnd;
             d2 = lightdata->m_fogData[next].m_fogEnd;
             break;
           case 19:
-            d1 = lightdata->m_fogData[i].m_fogStartScaler;
+            d1 = lightdata->m_fogData[n].m_fogStartScaler;
             d2 = lightdata->m_fogData[next].m_fogStartScaler;
             break;
           case 20:
-            d1 = lightdata->m_skyData[i].m_skyData[0];
+            d1 = lightdata->m_skyData[n].m_skyData[0];
             d2 = lightdata->m_skyData[next].m_skyData[0];
             break;
           case 21:
-            d1 = lightdata->m_skyData[i].m_skyData[1];
+            d1 = lightdata->m_skyData[n].m_skyData[1];
             d2 = lightdata->m_skyData[next].m_skyData[1];
             break;
           case 22:
-            d1 = lightdata->m_skyData[i].m_skyData[2];
+            d1 = lightdata->m_skyData[n].m_skyData[2];
             d2 = lightdata->m_skyData[next].m_skyData[2];
             break;
           case 23:
-            d1 = lightdata->m_skyData[i].m_skyData[3];
+            d1 = lightdata->m_skyData[n].m_skyData[3];
             d2 = lightdata->m_skyData[next].m_skyData[3];
             break;
           default:
@@ -158,14 +157,15 @@ void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTe
             d2 = 0.0f;
             break;
         }
-        *distance = d1 + (d2 - d1) * position / width;
+        *distance = d1 + (d2 - d1) * i / w;
       }
     } else {
-      NTempest::CImVector &c1 = markers[i].color;
-      NTempest::CImVector &c2 = markers[next].color;
-      color->r = static_cast<unsigned char>(c1.r + position * (c2.r - c1.r) / width);
-      color->g = static_cast<unsigned char>(c1.g + position * (c2.g - c1.g) / width);
-      color->b = static_cast<unsigned char>(c1.b + position * (c2.b - c1.b) / width);
+      int col1 = markers[n].color.r;
+      color->r = static_cast<unsigned char>(col1 + i * (markers[next].color.r - col1) / w);
+      col1 = markers[n].color.g;
+      color->g = static_cast<unsigned char>(col1 + i * (markers[next].color.g - col1) / w);
+      col1 = markers[n].color.b;
+      color->b = static_cast<unsigned char>(col1 + i * (markers[next].color.b - col1) / w);
       color->a = 255;
     }
     break;

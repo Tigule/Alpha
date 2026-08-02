@@ -239,28 +239,28 @@ namespace NTempest {
   }
 
   C44Matrix C44Matrix::AffineInverse() const {
-    C44Matrix result(a0, b0, c0, 0.0f, a1, b1, c1, 0.0f, a2, b2, c2, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-    result.Translate(C3Vector(-d0, -d1, -d2));
-    return result;
+    C44Matrix matrix(a0, b0, c0, 0.0f, a1, b1, c1, 0.0f, a2, b2, c2, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    matrix.Translate(C3Vector(-d0, -d1, -d2));
+    return matrix;
   }
 
   C44Matrix C44Matrix::AffineInverse(float scale) const {
     if (CMath::fequal4_(scale, 1.0f)) {
       return AffineInverse();
     }
-    C44Matrix result(
+    C44Matrix matrix(
         a0, b0, c0, 0.0f,
         a1, b1, c1, 0.0f,
         a2, b2, c2, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f
     );
-    result.Scale(1.0f / (scale * scale));
-    result.Translate(C3Vector(-d0, -d1, -d2));
-    return result;
+    matrix.Scale(1.0f / (scale * scale));
+    matrix.Translate(C3Vector(-d0, -d1, -d2));
+    return matrix;
   }
 
   C44Matrix C44Matrix::AffineInverse(const C3Vector &scale) const {
-    C3Vector inverseScale(
+    C3Vector s(
         1.0f / scale.x,
         1.0f / scale.y,
         1.0f / scale.z
@@ -270,12 +270,12 @@ namespace NTempest {
         b0, b1, b2,
         c0, c1, c2
     );
-    rotationScale.Scale(inverseScale);
+    rotationScale.Scale(s);
     rotationScale = rotationScale.Transpose();
-    C44Matrix result(rotationScale);
-    result.Scale(inverseScale);
-    result.Translate(C3Vector(-d0, -d1, -d2));
-    return result;
+    C44Matrix matrix(rotationScale);
+    matrix.Scale(s);
+    matrix.Translate(C3Vector(-d0, -d1, -d2));
+    return matrix;
   }
 
   C44Matrix C44Matrix::Rotation(float angle, const C3Vector &axis, bool unit) {

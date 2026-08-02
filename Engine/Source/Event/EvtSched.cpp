@@ -167,9 +167,8 @@ static unsigned int InitializeSchedulerThread() {
 
 void DestroySchedulerThread(unsigned int hThread) {
   TSGrowableArray<EvtContext *> contextArray;
-  EvtThread                    *thread;
-  EvtContextQueue              *queue;
   EvtContext                   *context;
+  EvtThread                    *thread;
   unsigned int                  index;
 
   SInterlockedIncrement(&s_threadListContention);
@@ -180,9 +179,8 @@ void DestroySchedulerThread(unsigned int hThread) {
     s_threadSlots[hThread] = 0;
     s_threadSlotCritsects[hThread].Leave();
 
-    queue = &thread->m_contextQueue;
-    contextArray.ReserveSpace(queue->Count());
-    while ((context = queue->Dequeue()) != 0) {
+    contextArray.ReserveSpace(thread->m_contextQueue.Count());
+    while ((context = thread->m_contextQueue.Dequeue()) != 0) {
       contextArray.Add(1, &context);
     }
     s_threadList.DeleteNode(thread);
@@ -498,7 +496,6 @@ void IEvtSchedulerProcess() {
 
 void IEvtSchedulerInitialize(unsigned int threadCount, int netServer) {
   unsigned int threadSlotCount = 1;
-  unsigned int remaining;
   SThread     *thread;
   char         threadname[16];
 
@@ -524,11 +521,11 @@ void IEvtSchedulerInitialize(unsigned int threadCount, int netServer) {
   s_shutdownEvent.Reset();
 
   s_mainThread = InitializeSchedulerThread();
-  remaining = threadCount - 1;
-  while (remaining) {
+  --threadCount;
+  while (threadCount) {
     thread = NEW(SThread);
     s_schedulerThreads.Add(1, &thread);
-    SStrPrintf(threadname, sizeof(threadname), "EvtSched#%d", remaining);
+    SStrPrintf(threadname, sizeof(threadname), "EvtSched#%d", threadCount);
     if (!SThread::Create(SchedulerThreadProc, 0, **s_schedulerThreads.Top(), threadname)) {
       thread = *s_schedulerThreads.Top();
       if (thread) {
@@ -536,7 +533,7 @@ void IEvtSchedulerInitialize(unsigned int threadCount, int netServer) {
       }
       s_schedulerThreads.SetCount(s_schedulerThreads.Count() - 1);
     }
-    --remaining;
+    --threadCount;
   }
 }
 
@@ -670,7 +667,6 @@ void EventProcessOnce() {
   EvtContext *context;
   DWORD       nextDelay = INFINITE;
   DWORD       currTime;
-  DWORD       idleTime;
   DWORD       wait;
   LONG        signedDelay;
   int         currentPriority;
@@ -741,11 +737,10 @@ void EventProcessOnce() {
     nextDelay = 0;
   } else {
     nextDelay = IEvtTimerGetNextTime(context, currTime);
-    idleTime = context->SchedGetIdleTime();
-    if (idleTime != context->SchedGetInitialIdleTime()) {
-      nextDelay = idleTime;
+    if (context->SchedGetIdleTime() != context->SchedGetInitialIdleTime()) {
+      nextDelay = context->SchedGetIdleTime();
     }
-    signedDelay = static_cast<LONG>(idleTime + context->SchedGetLastIdle() - currTime);
+    signedDelay = static_cast<LONG>(context->SchedGetIdleTime() + context->SchedGetLastIdle() - currTime);
     if (nextDelay >= static_cast<DWORD>(signedDelay < 0 ? 0 : signedDelay)) {
       nextDelay = signedDelay < 0 ? 0 : signedDelay;
     }

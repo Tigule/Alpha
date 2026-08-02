@@ -126,8 +126,7 @@ void CGDynamicObject_C::ObjectVisKitProc() {
   }
 
   if (kitRec->m_characterProcedure == 9) {
-    NTempest::C3Vector position = GetPosition();
-    m_blizzardObject = SpellVisualsBlizzardCreate(position, m_dynamicObj->m_radius, m_dynamicObj->m_spellID, kitRec);
+    m_blizzardObject = SpellVisualsBlizzardCreate(GetPosition(), m_dynamicObj->m_radius, m_dynamicObj->m_spellID, kitRec);
   }
 
   if (kitRec->m_soundID) {

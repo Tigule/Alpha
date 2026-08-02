@@ -318,9 +318,10 @@ void WORLDTEXTSTRING::CalculateNewPosition(
   UpdatePosition(worldPosition, elapsed, textPos);
   CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
   ASSERT(worldFrame);
-  NTempest::C3Vector point(textPos.x, textPos.y, textPos.z);
-  NTempest::C2Vector screen = worldFrame->GetScreenCoordinates(point, matrix, 1, worldPositionSpecified);
-  textPos = NTempest::C4Vector(screen.x, screen.y, 0.0f, 1.0f);
+  textPos = worldFrame->GetScreenCoordinates(
+      NTempest::C3Vector(textPos.x, textPos.y, textPos.z), matrix, 1, worldPositionSpecified
+  );
+  textPos.w = 1.0f;
 }
 
 void WORLDTEXTSTRING::Update(float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *basePosition) {
@@ -372,32 +373,32 @@ void WORLDTEXTSTRING::Update(float elapsed, const NTempest::C44Matrix &matrix, c
 
 void WORLDTEXTSTRING::CalculateTextHeight(unsigned int elapsed) {
   unsigned int time = elapsed < params.totalTime ? elapsed : params.totalTime;
-  float height;
+  float heightScale;
 
   if (params.flags & 0x10) {
     float progress = static_cast<float>(time) / static_cast<float>(params.totalTime);
-    height = params.endFontHeight;
+    heightScale = params.endFontHeight;
     for (unsigned int i = 0; i < 3; ++i) {
       ASSERT(s_critHeights[i].startProgress <= s_critHeights[i].endProgress);
       if (progress >= s_critHeights[i].startProgress && progress < s_critHeights[i].endProgress) {
         float range = (progress - s_critHeights[i].startProgress)
                     / (s_critHeights[i].endProgress - s_critHeights[i].startProgress);
-        height = (range * (s_critHeights[i].endScale - s_critHeights[i].startScale)
+        heightScale = (range * (s_critHeights[i].endScale - s_critHeights[i].startScale)
                 + s_critHeights[i].startScale) * params.endFontHeight;
         break;
       }
     }
   } else if (!(params.flags & 1) && time < params.enlargeTime) {
-    height = static_cast<float>(time) / static_cast<float>(params.enlargeTime)
+    heightScale = static_cast<float>(time) / static_cast<float>(params.enlargeTime)
            * (params.endFontHeight - params.startFontHeight) + params.startFontHeight;
   } else if (!(params.flags & 1) && time >= params.shrinkTime && time < totalTime) {
-    height = static_cast<float>(totalTime - time) / static_cast<float>(totalTime - params.shrinkTime)
+    heightScale = static_cast<float>(totalTime - time) / static_cast<float>(totalTime - params.shrinkTime)
            * (params.endFontHeight - params.startFontHeight) + params.startFontHeight;
   } else {
-    height = params.endFontHeight;
+    heightScale = params.endFontHeight;
   }
 
-  UpdateStringHeight(height > 0.001f ? height : 0.001f);
+  UpdateStringHeight(heightScale > 0.001f ? heightScale : 0.001f);
 }
 
 void WORLDTEXTSTRING::RecreateString() {
@@ -412,9 +413,8 @@ void WORLDTEXTSTRING::RecreateString() {
     float stringHeight = DDCToNDCHeight(savedStringHeight);
     GxuFontGetTextExtent(font, savedStringText, SStrLen(savedStringText), stringHeight, &textWidth, 0.0f, 0);
     textHeight = GxuFontGetWrappedTextHeight(font, savedStringText, stringHeight, textWidth, 0.0f, 0);
-    NTempest::C3Vector position(0.0f);
     GxuFontCreateString(
-        font, savedStringText, stringHeight, position, textWidth, textHeight, 0.0f, string,
+        font, savedStringText, stringHeight, NTempest::C3Vector(0.0f), textWidth, textHeight, 0.0f, string,
         GxVJ_Bottom, GxHJ_Left, 0, params.fontColor, 0.0f
     );
     if (string && (params.shadowOffset.x != 0.0f || params.shadowOffset.y != 0.0f)) {

@@ -341,11 +341,7 @@ static void SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3
       break;
     case 0x444E5324:    // $SND
     case 0x58444E53: {  // SNDX
-      NTempest::C3Vector soundPos = position;
-      if (node) {
-        soundPos += node->position;
-      }
-      SpellSoundEffectCallback(eventName + 4, soundPos);
+      SpellSoundEffectCallback(eventName + 4, position);
       break;
     }
     case 0x54494824:  // $HIT
@@ -419,9 +415,9 @@ SPELL_VISUAL_ATTACHMENT GetMissileTargetLocation(unsigned __int64 caster, unsign
   }
   CGObject_C     *casterObject = caster ? ClntObjMgrObjectPtr(caster, __FILE__, __LINE__) : 0;
   CGUnit_C       *casterUnit = casterObject && (casterObject->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(casterObject) : 0;
-  SpellVisualRec  filled;
+  SpellVisualRec  visRecData;
   const SpellVisualRec *visual =
-      casterUnit ? casterUnit->GetAppropriateSpellVisual(spellRec, filled) : g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
+      casterUnit ? casterUnit->GetAppropriateSpellVisual(spellRec, visRecData) : g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
   return visual
              ? static_cast<SPELL_VISUAL_ATTACHMENT>(visual->m_missileDestinationAttachment)
              : SPELL_VISUAL_ATTACH_CHEST;
@@ -530,8 +526,8 @@ static bool MoveMissile(MISSILENODE *node) {
   node->facing.z = CalculateFacingTo(node->startPosition, node->endPosition);
   node->facing.x = -atan2(node->endPosition.z - node->startPosition.z, distance);
   if (node->sound) {
-    NTempest::C3Vector velocity = node->endPosition - node->position;
-    node->sound->SetPosition(node->position, &velocity);
+    NTempest::C3Vector vel = node->endPosition - node->position;
+    node->sound->SetPosition(node->position, &vel);
   }
   return 1;
 }
@@ -559,27 +555,25 @@ static void RenderMissiles(CGCamera *camera) {
     return;
   }
   MISSILENODE *node = s_missiles.Head();
-  while (node) {
+  while (reinterpret_cast<long>(node) > 0) {
     MISSILENODE *nodenext_node = s_missiles.RawNext(node);
     node->CheckModelLoadStatus();
     if (MoveMissile(node)) {
       NTempest::C44Matrix orientation;
       if (!node->pathType) {
         orientation.Translate(node->position - camera->Position());
-        NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
-        orientation.Rotate(node->facing.z, axis, false);
-        axis.Set(0.0f, 1.0f, 0.0f);
-        orientation.Rotate(node->facing.x, axis, false);
+        orientation.Rotate(node->facing.z, NTempest::C3Vector(0.0f, 0.0f, 1.0f), false);
+        orientation.Rotate(node->facing.x, NTempest::C3Vector(0.0f, 1.0f, 0.0f), false);
       } else if (node->pathType == 1) {
-        NTempest::C34Matrix standing;
+        NTempest::C34Matrix ori34;
         ModelGetStandingMatrix(
             node->model,
             node->position - camera->Position(),
             node->normal,
             node->facing.z,
             1.0f,
-            &standing);
-        orientation = NTempest::C44Matrix(standing);
+            &ori34);
+        orientation = NTempest::C44Matrix(ori34);
       }
       RenderModel(node->model, node->position, orientation, camera, 1.0f);
     }
@@ -787,7 +781,7 @@ static int PurgeTimerHandler(const void *timerData, void *userData) {
   int                          next = 0x7FFFFFFF;
   int                          found = 0;
   ONESHOTSTANDALONEEFFECTNODE *node = s_standAloneEffects.Head();
-  while (node) {
+  while (reinterpret_cast<long>(node) > 0) {
     ONESHOTSTANDALONEEFFECTNODE *nextNode = s_standAloneEffects.RawNext(node);
     if (node->expireTime > current) {
       if (next >= node->expireTime) {
@@ -809,9 +803,8 @@ static int PurgeTimerHandler(const void *timerData, void *userData) {
 
 void UnitEffectClear(CGObject_C* object) {
   if (object) {
-    unsigned __int64 guid = object->GetGUID();
-    CHashKeyGUID key(guid);
-    UNITONESHOTEFFECTDESC *desc = s_oneShotEffects.Ptr(static_cast<unsigned int>(guid), key);
+    CHashKeyGUID key(object->GetGUID());
+    UNITONESHOTEFFECTDESC *desc = s_oneShotEffects.Ptr(static_cast<unsigned int>(object->GetGUID()), key);
     if (desc) {
       s_oneShotEffects.Delete(desc);
     }
@@ -823,9 +816,8 @@ void UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
     return;
   }
 
-  unsigned __int64       guid = object->GetGUID();
-  CHashKeyGUID           key(guid);
-  UNITONESHOTEFFECTDESC *effectDesc = s_oneShotEffects.Ptr(static_cast<unsigned int>(guid), key);
+  CHashKeyGUID           key(object->GetGUID());
+  UNITONESHOTEFFECTDESC *effectDesc = s_oneShotEffects.Ptr(static_cast<unsigned int>(object->GetGUID()), key);
   if (!effectDesc) {
     return;
   }
@@ -874,11 +866,10 @@ void UnitEffectOneShot(
 
   FATALASSERT(static_cast<unsigned int>(attachPoint) < sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0]));
 
-  unsigned __int64       guid = object->GetGUID();
-  CHashKeyGUID           key(guid);
-  UNITONESHOTEFFECTDESC *unitEffectDesc = s_oneShotEffects.Ptr(static_cast<unsigned int>(guid), key);
+  CHashKeyGUID           key(object->GetGUID());
+  UNITONESHOTEFFECTDESC *unitEffectDesc = s_oneShotEffects.Ptr(static_cast<unsigned int>(object->GetGUID()), key);
   if (!unitEffectDesc) {
-    unitEffectDesc = s_oneShotEffects.New(static_cast<unsigned int>(guid), key, 0, 0);
+    unitEffectDesc = s_oneShotEffects.New(static_cast<unsigned int>(object->GetGUID()), key, 0, 0);
   }
 
   HMODEL objectModel;
@@ -923,7 +914,7 @@ void UnitEffectOneShot(
     newEffectNode->model = model;
     newEffectNode->objectModel = heldObjectModel;
     newEffectNode->objectModelAttachmentPoint = linkPoint;
-    newEffectNode->objectGUID = guid;
+    newEffectNode->objectGUID = object->GetGUID();
     if (!(effect->m_VisualEffectNameFlags & 4)) {
       ModelSetSeqFinishedHandler(model, 0, OneShotEndHandler, newEffectNode);
       HandleClose(objectModel);

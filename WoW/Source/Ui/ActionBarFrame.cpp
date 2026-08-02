@@ -232,19 +232,22 @@ int CGActionBar::IsToggledAction(int id) {
     return 0;
   }
 
-  const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
-  if (!spell || !spell->m_activeIconID) {
-    return 0;
-  }
-
-  const CGUnitData    *unitData = player->GetUnitData();
-  const unsigned char *auraFlags = unitData->auraFlags;
-  for (unsigned int aura = 0; aura < 40; ++aura) {
-    if (unitData->auras[aura] == spell->m_ID && ((auraFlags[aura / 2] >> (4 * (aura % 2))) & 1)) {
-      return 1;
+  int active = 0;
+  if (m_slotActions[id] > 0) {
+    const SpellRec *spell = g_spellDB.GetRecord(m_slotActions[id]);
+    if (spell && spell->m_activeIconID) {
+      const CGUnitData    *unitData = player->GetUnitData();
+      const unsigned char *auraFlags = unitData->auraFlags;
+      int aura;
+      for (aura = 0; aura < 40; ++aura) {
+        if (unitData->auras[aura] == spell->m_ID && ((auraFlags[aura / 2] >> (4 * (aura % 2))) & 1)) {
+          active = 1;
+          break;
+        }
+      }
     }
   }
-  return 0;
+  return active;
 }
 
 void CGActionBar::ShowGrid() {
@@ -282,11 +285,9 @@ void CGActionBar::UpdateItem(int entryID) {
     return;
   }
 
-  int count = player->GetBag()->GetItemTypeCount(entryID, 0);
-
   for (int id = 0; id < NUM_ACTION_BUTTONS; ++id) {
-    if (GetItem(id) == entryID) {
-      if (count > 0) {
+    if (m_slotActions[id] < 0 && -m_slotActions[id] == entryID) {
+      if (player->GetBag()->GetItemTypeCount(entryID, 0) > 0) {
         SlotChanged(id);
       } else {
         RemoveAction(id);
@@ -316,6 +317,8 @@ void CGActionBar::SetAction(int id, int action) {
     CGBag_C    *inventory = player ? player->GetBag() : 0;
     if (inventory && inventory->FindItemOfType(-action, 0)) {
       m_slotActions[id] = action;
+      SlotChanged(id);
+      return;
     }
   }
 

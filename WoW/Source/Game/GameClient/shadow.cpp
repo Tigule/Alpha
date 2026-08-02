@@ -155,11 +155,11 @@ void ProjectTex2d(const NTempest::CAaBox &box, NTempest::CImVector color, const 
     return;
   }
 
-  NTempest::C44Matrix texmat0;
-  NTempest::C44Matrix texmat1;
-  ProjectTex2dMakeMatrices(texmat0, texmat1, box, basis, fadeOffset, 0);
-  GxXformPush(GxXform_Tex0, texmat0);
-  GxXformPush(GxXform_Tex1, texmat1);
+  NTempest::C44Matrix texmtx0;
+  NTempest::C44Matrix texmtx1;
+  ProjectTex2dMakeMatrices(texmtx0, texmtx1, box, basis, fadeOffset, 0);
+  GxXformPush(GxXform_Tex0, texmtx0);
+  GxXformPush(GxXform_Tex1, texmtx1);
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsPush();
   GxRsSet(GxRs_Texture1, s_fadeTex);

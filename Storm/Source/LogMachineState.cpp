@@ -1065,7 +1065,7 @@ static DWORD WINAPI MiniDumpThreadProc(void *param) {
   sgDbgHelpDll.Unload();
   return 0;
 }
-int LogMiniDump(void *logfile, EXCEPTION_POINTERS *exceptionPointers, UINT userStringCount, char **const userStrings) {
+int LogMiniDump(void *logfile, EXCEPTION_POINTERS *exceptionPointers, UINT userStringCount, char **userStrings) {
   MiniDumpParam miniDumpParam;
   DWORD         threadid;
 

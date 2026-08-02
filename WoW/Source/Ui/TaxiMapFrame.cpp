@@ -64,7 +64,7 @@ void CGTaxiMap::SetupMap(
     CloseMap();
   }
 
-  __int64 allNodes = destNodes | knownNodes;
+  destNodes |= knownNodes;
   CGGameUI::SetInteractTarget(unit, 0.0f);
   m_unit = unit;
   m_startNode = node;
@@ -80,7 +80,7 @@ void CGTaxiMap::SetupMap(
   m_nodes.SetCount(64);
   for (unsigned int nodeID = 1; nodeID <= 64; ++nodeID) {
     const TaxiNodesRec *taxiNode = g_taxiNodesDB.GetRecord(nodeID);
-    if (taxiNode && taxiNode->m_ContinentID == currentNode->m_ContinentID && (allNodes & (static_cast<__int64>(1) << (taxiNode->m_ID - 1))) &&
+    if (taxiNode && taxiNode->m_ContinentID == currentNode->m_ContinentID && (destNodes & (static_cast<__int64>(1) << (taxiNode->m_ID - 1))) &&
         taxiNode->m_X <= visibleArea.r && taxiNode->m_X >= visibleArea.l && taxiNode->m_Y <= visibleArea.b && taxiNode->m_Y >= visibleArea.t)
     {
       TaxiNode &out = m_nodes[count++];
@@ -168,8 +168,12 @@ static int Script_SetTaxiMap(lua_State *L) {
 
 static int Script_SetTaxiRoute(lua_State *L) {
   CSimpleModel *model = static_cast<CSimpleModel *>(SimpleFrameRegistryGetEntry("TaxiRouteMap", 0));
-  if (model && !model->GetModel()) {
-    HMODEL route = TaxiGetRouteModel(model->GetWidth(), model->GetHeight());
+  NTempest::CRect rect;
+  if (model && !model->GetModel() && model->GetRect(&rect)) {
+    HMODEL route = TaxiGetRouteModel(
+        (rect.r - rect.l) / model->GetLayoutScale(),
+        (rect.b - rect.t) / model->GetLayoutScale()
+    );
     model->SetModel(route);
     if (route) {
       HandleClose(route);
@@ -240,11 +244,11 @@ static int Script_CloseTaxiMap(lua_State *L) {
 }
 
 static int Script_GetTextureCoordinates(lua_State *L) {
-  NTempest::CRect rect = TaxiMapGetRect();
-  lua_pushnumber(L, rect.l);
-  lua_pushnumber(L, rect.r);
-  lua_pushnumber(L, rect.t);
-  lua_pushnumber(L, rect.b);
+  NTempest::CRect textureRect = TaxiMapGetRect();
+  lua_pushnumber(L, textureRect.l);
+  lua_pushnumber(L, textureRect.r);
+  lua_pushnumber(L, textureRect.t);
+  lua_pushnumber(L, textureRect.b);
   return 4;
 }
 

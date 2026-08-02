@@ -99,17 +99,17 @@ static void ClearRegion(RGN *rgnptr) {
 }
 
 static void CombineRectangles(TSGrowableArray<RECTF> *combinedarray) {
-  DWORD outer;
+  DWORD loop0;
 
-  for (outer = 1; outer < combinedarray->NumElements(); ++outer) {
-    DWORD inner;
+  for (loop0 = 1; loop0 < combinedarray->NumElements(); ++loop0) {
+    DWORD loop1;
 
-    for (inner = 0; inner < outer; ++inner) {
+    for (loop1 = 0; loop1 < loop0; ++loop1) {
       RECTF *current;
       RECTF *previous;
 
-      current = &(*combinedarray)[outer];
-      previous = &(*combinedarray)[inner];
+      current = &(*combinedarray)[loop0];
+      previous = &(*combinedarray)[loop1];
 
       if (current->left == previous->left && current->right == previous->right &&
           (current->bottom == previous->top || previous->bottom == current->top))
@@ -130,7 +130,7 @@ static void CombineRectangles(TSGrowableArray<RECTF> *combinedarray) {
 
         if (current->bottom < previous->top && previous->bottom < current->top) {
           RECTF newrect[5];
-          DWORD loop0;
+          DWORD loop2;
 
           newrect[0].left = current->left;
           newrect[0].bottom = current->bottom;
@@ -157,14 +157,14 @@ static void CombineRectangles(TSGrowableArray<RECTF> *combinedarray) {
           newrect[4].right = max(current->right, previous->right);
           newrect[4].top = min(current->top, previous->top);
 
-          for (loop0 = 0; loop0 < 5; ++loop0) {
-            if (!IsNullRect(&newrect[loop0])) {
-              AddCombinedRect(combinedarray, &newrect[loop0]);
+          for (loop2 = 0; loop2 < 5; ++loop2) {
+            if (!IsNullRect(&newrect[loop2])) {
+              AddCombinedRect(combinedarray, &newrect[loop2]);
             }
           }
 
-          DeleteCombinedRect(combinedarray, outer);
-          DeleteCombinedRect(combinedarray, inner);
+          DeleteCombinedRect(combinedarray, loop0);
+          DeleteCombinedRect(combinedarray, loop1);
           break;
         }
       }
@@ -560,8 +560,6 @@ extern "C" void APIENTRY SRgnDestroy() {
 }
 
 extern "C" void APIENTRY SRgnDuplicate(HSRGN orighandle, HSRGN *handle, DWORD reserved) {
-  HLOCKEDRGN origlockedhandle;
-  HLOCKEDRGN lockedhandle;
   RGN       *original;
   RGN       *copy;
 
@@ -571,15 +569,15 @@ extern "C" void APIENTRY SRgnDuplicate(HSRGN orighandle, HSRGN *handle, DWORD re
   FATALASSERT(orighandle);
   FATALASSERT(!reserved);
 
-  original = s_rgntable.Lock(orighandle, &origlockedhandle, 0);
+  original = s_rgntable.Lock(orighandle, reinterpret_cast<HLOCKEDRGN *>(&orighandle), 0);
   if (!original) {
     return;
   }
 
-  copy = s_rgntable.NewLock(handle, &lockedhandle);
+  copy = s_rgntable.NewLock(handle, reinterpret_cast<HLOCKEDRGN *>(&handle));
   *copy = *original;
-  s_rgntable.Unlock(lockedhandle);
-  s_rgntable.Unlock(origlockedhandle);
+  s_rgntable.Unlock(reinterpret_cast<HLOCKEDRGN>(handle));
+  s_rgntable.Unlock(reinterpret_cast<HLOCKEDRGN>(orighandle));
 }
 
 extern "C" void APIENTRY SRgnGetBoundingRectf(HSRGN handle, RECTF *rect) {
@@ -771,7 +769,7 @@ extern "C" BOOL APIENTRY SRgnIsPointInRegioni(HSRGN handle, int x, int y) {
 extern "C" BOOL APIENTRY SRgnIsRectInRegionf(HSRGN handle, const RECTF *rect) {
   HLOCKEDRGN    lockedhandle;
   RGN          *rgnptr;
-  SRGNSOURCEPTR sourcearray;
+  SRGNSOURCEPTR source;
   DWORD         count;
   DWORD         loop;
   BOOL          result;
@@ -779,23 +777,21 @@ extern "C" BOOL APIENTRY SRgnIsRectInRegionf(HSRGN handle, const RECTF *rect) {
   FATALASSERT(handle);
   FATALASSERT(rect);
 
-  result = FALSE;
-
   rgnptr = s_rgntable.Lock(handle, &lockedhandle, 0);
   if (rgnptr) {
-    sourcearray = rgnptr->source.Ptr();
+    result = FALSE;
+    source = rgnptr->source.Ptr();
     count = rgnptr->source.NumElements();
     for (loop = 0; loop < count; ++loop) {
-      SRGNSOURCEPTR source = &sourcearray[loop];
-
-      if (!(source->flags & SRGN_SOURCE_PARAMONLY) && CheckForIntersection(rect, &source->rect)) {
+      if (!(source[loop].flags & SRGN_SOURCE_PARAMONLY) && CheckForIntersection(rect, &source[loop].rect)) {
         result = TRUE;
         break;
       }
     }
     s_rgntable.Unlock(lockedhandle);
+    return result;
   }
-  return result;
+  return FALSE;
 }
 
 extern "C" BOOL APIENTRY SRgnIsRectInRegioni(HSRGN handle, const RECT *rect) {

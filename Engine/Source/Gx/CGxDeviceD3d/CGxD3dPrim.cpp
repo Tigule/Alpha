@@ -183,13 +183,13 @@ void CGxVertexBuffer_D3d::Discard() {
 }
 
 void CGxVertexBuffer_D3d::Lock(void *&mem, unsigned int numVertices, unsigned int base) {
-  unsigned int  lockBase = 0;
   unsigned long lockFlags;
 
   ASSERT(numVertices <= m_count);
 
   if (base == CGxBuf::BASE_NONE) {
     if (m_discard) {
+      base = 0;
       m_base = 0;
       m_next = 0;
       m_discard = 0;
@@ -198,16 +198,15 @@ void CGxVertexBuffer_D3d::Lock(void *&mem, unsigned int numVertices, unsigned in
     } else {
       ASSERT(m_next + numVertices <= m_count);
       m_base = m_next;
-      lockBase = m_base;
+      base = m_base;
       m_next += numVertices;
       lockFlags = D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK;
     }
   } else {
-    lockBase = base;
     lockFlags = D3DLOCK_NOSYSLOCK;
   }
 
-  if (m_d3dvb->Lock(lockBase * GxVertexSize(m_vbFormat), numVertices * GxVertexSize(m_vbFormat), &mem, lockFlags) < 0) {
+  if (m_d3dvb->Lock(base * GxVertexSize(m_vbFormat), numVertices * GxVertexSize(m_vbFormat), &mem, lockFlags) < 0) {
     ASSERT(0);
   }
 }
@@ -353,15 +352,14 @@ void CGxDeviceD3d::BufLock(CGxBuf *b) {
   void         *vmember[GxVertexMembers_Last];
   CGxBufCommand cmd;
   void         *imem = 0;
-  void         *vmem = 0;
 
   cmd.vertex.op = GxBufOp_Nop;
   cmd.index.op = GxBufOp_Nop;
 
   if (buf->m_vertexStatus != CGxBuf::S_VALID) {
-    buf->LockVB(vmem);
+    buf->LockVB(vmember[0]);
     for (unsigned int member = 0; member < GxVertexMembers_Last; ++member) {
-      vmember[member] = static_cast<unsigned char *>(vmem) + GxVertexMemberOffset(buf->m_vbFormat, static_cast<EGxVertexMember>(member));
+      vmember[member] = static_cast<unsigned char *>(vmember[0]) + GxVertexMemberOffset(buf->m_vbFormat, static_cast<EGxVertexMember>(member));
       cmd.vertex.mem[member] = &vmember[member];
       cmd.vertex.stride[member] = GxVertexSize(buf->m_vbFormat);
     }

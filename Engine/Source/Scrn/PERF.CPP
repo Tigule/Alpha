@@ -435,10 +435,10 @@ int __stdcall ChatEventProc(HNETCONN__* conn, const NETCONNADDR* conAddr, NETNOT
 }
 
 int __fastcall IPerfRemoteLoggingIni() {
-  SSyncObject *waitObjects[2] = {s_ProfStartupEvent, s_ProfShutdownEvent};
+  SSyncObject *waitObjectPtrs[2] = {s_ProfStartupEvent, s_ProfShutdownEvent};
   s_ProfStartupEvent->Reset();
   if (!OsNetGetHostAddrs(s_hostNameList, 0x17EB, IPerfHostAddrProc, 0) ||
-      WaitMultiplePtr(2, waitObjects, 0, INFINITE) != 0) {
+      WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
     return 0;
   }
 
@@ -447,7 +447,7 @@ int __fastcall IPerfRemoteLoggingIni() {
   unsigned char connByte = 0x8E;
   s_ProfStartupEvent->Reset();
   OsTcpConnect(address, port, ChatEventProc, 0, &connByte, 1);
-  if (WaitMultiplePtr(2, waitObjects, 0, INFINITE) != 0) {
+  if (WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
     return 0;
   }
 
@@ -463,18 +463,18 @@ int __fastcall IPerfRemoteLoggingIni() {
     unsigned char message;
     unsigned short len;
     char strings[256];
-  } message;
+  } msg;
   unsigned int usernameLength = SStrLen(username);
   unsigned int computerLength = SStrLen(computer);
-  message.signature = 0xAB;
-  message.message = 0;
-  SStrCopy(message.strings, username, 0x7FFFFFFF);
-  SStrCopy(message.strings + usernameLength + 1, computer, 0x7FFFFFFF);
+  msg.signature = 0xAB;
+  msg.message = 0;
+  SStrCopy(msg.strings, username, 0x7FFFFFFF);
+  SStrCopy(msg.strings + usernameLength + 1, computer, 0x7FFFFFFF);
   unsigned int messageBytes = usernameLength + computerLength + 6;
-  message.len = static_cast<unsigned short>(messageBytes);
+  msg.len = static_cast<unsigned short>(messageBytes);
   s_ProfLock.Enter(0);
   if (s_ProfConn) {
-    OsTcpConnSend(s_ProfConn, &message, messageBytes);
+    OsTcpConnSend(s_ProfConn, &msg, messageBytes);
   }
   s_ProfLock.Leave(0);
   IPerfRemoteQueuePerfLabels();
@@ -531,9 +531,9 @@ void __fastcall IPerfRemoteSendQueued() {
 
 unsigned int __stdcall IPerfRemoteLoggingThread(void*) {
   if (IPerfRemoteLoggingIni()) {
-    SSyncObject *waitObjects[2] = {s_ProfShutdownEvent, s_ProfRequestEnqueuedEvent};
+    SSyncObject *waitObjectPtrs[2] = {s_ProfShutdownEvent, s_ProfRequestEnqueuedEvent};
     unsigned long waitResult;
-    while ((waitResult = WaitMultiplePtr(2, waitObjects, 0, INFINITE)) != 0) {
+    while ((waitResult = WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE)) != 0) {
       if (waitResult != 1) {
         break;
       }

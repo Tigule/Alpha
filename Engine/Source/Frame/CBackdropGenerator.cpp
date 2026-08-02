@@ -35,8 +35,8 @@ CBackdropGenerator::CBackdropGenerator()
 }
 
 void CBackdropGenerator::LoadXML(const XMLNode *node, CStatus *status) {
-  const char *background = node->GetAttributeByName("bgFile");
-  const char *border = node->GetAttributeByName("edgeFile");
+  const char *bgFile = node->GetAttributeByName("bgFile");
+  const char *edgeFile = node->GetAttributeByName("edgeFile");
   const char *tileString = node->GetAttributeByName("tile");
   int         tile = 0;
 
@@ -44,35 +44,35 @@ void CBackdropGenerator::LoadXML(const XMLNode *node, CStatus *status) {
     tile = StringToBOOL(tileString);
   }
 
-  m_background = background;
+  m_background = bgFile;
   m_pieces = THEWORKS;
   m_tileBackground = tile;
-  m_border = border;
+  m_border = edgeFile;
 
   for (const XMLNode *child = node->GetChild(); child; child = child->GetSibling()) {
     if (!SStrCmpI(child->GetName(), "TileSize", 0x7FFFFFFF)) {
-      float size;
+      float val;
 
-      if (LoadXML_Value(child, size, status)) {
-        m_backgroundSize = size;
+      if (LoadXML_Value(child, val, status)) {
+        m_backgroundSize = val;
       }
     } else if (!SStrCmpI(child->GetName(), "EdgeSize", 0x7FFFFFFF)) {
-      float size;
+      float val;
 
-      if (LoadXML_Value(child, size, status)) {
-        m_cornerSize = size;
+      if (LoadXML_Value(child, val, status)) {
+        m_cornerSize = val;
       }
     } else if (!SStrCmpI(child->GetName(), "BackgroundInsets", 0x7FFFFFFF)) {
-      float left;
-      float right;
-      float top;
-      float bottom;
+      float l;
+      float r;
+      float t;
+      float b;
 
-      if (LoadXML_Insets(child, left, right, top, bottom, status)) {
-        m_leftInset = left;
-        m_rightInset = right;
-        m_topInset = top;
-        m_bottomInset = bottom;
+      if (LoadXML_Insets(child, l, r, t, b, status)) {
+        m_leftInset = l;
+        m_rightInset = r;
+        m_topInset = t;
+        m_bottomInset = b;
       }
     } else {
       status->Add(STATUS_WARNING, "Unknown child node in %s element: %s", node->GetName(), child->GetName());

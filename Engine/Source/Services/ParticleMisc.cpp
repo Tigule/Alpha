@@ -110,8 +110,8 @@ void CParticleKey::SetScales(float start, float end) {
 }
 
 void CParticleKey::Segment(float &startTime, float &endTime) {
-  startTime = m_normStartTime;
-  endTime = m_normEndTime;
+  startTime = m_startTime;
+  endTime = m_endTime;
 }
 
 void CParticleKey::Repeat(float &repeat) {

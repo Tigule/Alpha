@@ -45,7 +45,7 @@ static VALIDATE_NAME_RESULT
 ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, unsigned int &nameLength, CHARSET &charset) {
   unsigned short uniName[0x400];
   regmatch_t     match;
-  unsigned int   usedGrave;
+  unsigned int   usedGrave = 0;
 
   if (!name) {
     return NAME_TOO_SHORT;
@@ -61,8 +61,6 @@ ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, un
 
   nameLength = SStrLen(uniName);
   charset = CHARSET_UNKNOWN;
-  usedGrave = 0;
-
   for (unsigned short *ch = uniName; *ch; ++ch) {
     if (IsAlpha(locale, *ch)) {
       CHARSET current = GetCharSet(*ch);

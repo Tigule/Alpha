@@ -170,8 +170,7 @@ void CGUnit_C::PlayImpactSound(unsigned __int64 attacker, int criticalHit, COMBA
     return;
   }
 
-  NTempest::C3Vector position = GetPosition();
-  SndInterfacePlayHitSound(attackerPtr->GetAttackingWeapon(hand), GetImpactType(), criticalHit, position);
+  SndInterfacePlayHitSound(attackerPtr->GetAttackingWeapon(hand), GetImpactType(), criticalHit, GetPosition());
 }
 
 void CGUnit_C::PlayCustomAttackSound(int sound, const NTempest::C3Vector &position) {

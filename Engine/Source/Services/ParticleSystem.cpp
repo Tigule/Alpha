@@ -73,15 +73,15 @@ CParticleEmitter &CParticleEmitter::operator=(const CParticleEmitter &rhs) {
 
 void CParticleEmitter::SyncAllocation() {
   unsigned int count = static_cast<unsigned int>(m_particleLifeSpan * m_particleEmissionRate * 1.15f);
-  unsigned int oldCount = m_particles.Count();
-  if (oldCount >= count) {
+  unsigned int u = m_particles.Count();
+  if (u >= count) {
     return;
   }
 
   m_particles.SetCount(count);
   m_alive.SetCount(count);
   m_dead.SetCount(count);
-  for (unsigned int u = oldCount; u < count; ++u) {
+  for (; u < count; ++u) {
     m_dead.Push(u);
   }
 }
@@ -192,15 +192,16 @@ void CParticleEmitter::Update(float elapsedTime, const NTempest::C3Vector &camer
     particle.m_timeToLive -= elapsedTime;
     if (particle.m_timeToLive <= 0.0f) {
       DestroyParticle(particle);
-      unsigned int deadParticle = m_alive[index];
-      m_dead.Push(deadParticle);
+      m_dead.Push(m_alive[index]);
       m_alive.Remove(index);
       --index;
     } else {
       MoveParticle(particle, elapsedTime);
       if (ModelAdvanceTime(particle.m_hmodel)) {
-        NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
-        ModelAnimate(particle.m_hmodel, particle.m_position, 0.0f, axis, particle.m_scale, cameraWorldPos, cameraVector);
+        ModelAnimate(
+            particle.m_hmodel, particle.m_position, 0.0f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), particle.m_scale,
+            cameraWorldPos, cameraVector
+        );
       }
     }
   }

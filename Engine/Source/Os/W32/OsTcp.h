@@ -163,13 +163,14 @@ namespace OsNet {
     NETSELSOCK(unsigned int sock) : m_sock(sock) {
     }
 
+   private:
+    virtual void Selected(TCPNET *net, SELECTSET selectSet) = 0;
+
+   public:
     virtual int  IsClosed() const;
     virtual void AddToSelectSets(NETSELECTSETS *selectSets) = 0;
 
     unsigned int m_sock;
-
-   private:
-    virtual void Selected(TCPNET *net, SELECTSET selectSet) = 0;
 
     friend class NETSELECTSETS;
   };

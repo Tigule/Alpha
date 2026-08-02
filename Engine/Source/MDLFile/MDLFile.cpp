@@ -19,6 +19,8 @@ namespace MDL {
 }  // namespace MDL
 
 int ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
+char *OsGetLastErrorStr();
+void OsFreeLastErrorStr(char *msgBuf);
 
 class CMdlScanner : public mdl_scan {
  public:
@@ -117,10 +119,10 @@ static int IWriteFile(const char* path, const char* mode, const void* data, unsi
 }
 
 static void FileReadError(const char *path, CMDLStatus *status) {
-  char errorText[256];
+  char lpMsgBuf[256];
 
-  SErrGetErrorStr(SErrGetLastError(), errorText, sizeof(errorText));
-  status->Add(STATUS_FATAL, "%s: %s\n", path, errorText);
+  SErrGetErrorStr(SErrGetLastError(), lpMsgBuf, sizeof(lpMsgBuf));
+  status->Add(STATUS_FATAL, "%s: %s\n", path, lpMsgBuf);
 }
 
 static unsigned int PickAlternateFilename(char* path, unsigned int type) {
@@ -140,9 +142,9 @@ static unsigned int PickAlternateFilename(char* path, unsigned int type) {
 }
 
 static void FileWriteError(const char* path, CMDLStatus* status) {
-  char errorText[256];
-  SErrGetErrorStr(SErrGetLastError(), errorText, sizeof(errorText));
+  char *errorText = OsGetLastErrorStr();
   status->Add(STATUS_FATAL, "%s: %s\n", path, errorText);
+  OsFreeLastErrorStr(errorText);
 }
 
 static unsigned int DiscoverFileType(const char* path) {
@@ -208,43 +210,43 @@ int MDLFileWrite(const char* path, const MDLDATA& mdldata, CStatus* status) {
 }
 
 static void *LoadMdlData(char *path, unsigned long *bytes) {
-  SFile *file;
+  SFile *fileHandle;
 
-  if (!SFile::Open(path, &file)) {
+  if (!SFile::Open(path, &fileHandle)) {
     return 0;
   }
 
-  int success = SFile::GetActualFileName(file, path, 260);
+  int success = SFile::GetActualFileName(fileHandle, path, 260);
   ASSERT(success);
 
-  unsigned int fileBytes = SFile::GetFileSize(file, 0);
+  unsigned int fileBytes = SFile::GetFileSize(fileHandle, 0);
   void        *fileData = SMemAlloc(fileBytes + 1, __FILE__, __LINE__, 0x8);
 
-  if (!SFile::Read(file, fileData, fileBytes, bytes, 0, 0)) {
+  if (!SFile::Read(fileHandle, fileData, fileBytes, bytes, 0, 0)) {
     SMemFree(fileData, __FILE__, __LINE__, 0);
     return 0;
   }
 
-  SFile::Close(file);
+  SFile::Close(fileHandle);
   return fileData;
 }
 
 static void *LoadMdlData(const char *path, unsigned long *bytes) {
-  SFile *file;
+  SFile *fileHandle;
 
-  if (!SFile::Open(path, &file)) {
+  if (!SFile::Open(path, &fileHandle)) {
     return 0;
   }
 
-  unsigned int fileBytes = SFile::GetFileSize(file, 0);
+  unsigned int fileBytes = SFile::GetFileSize(fileHandle, 0);
   void        *fileData = SMemAlloc(fileBytes + 1, __FILE__, __LINE__, 0x8);
 
-  if (!SFile::Read(file, fileData, fileBytes, bytes, 0, 0)) {
+  if (!SFile::Read(fileHandle, fileData, fileBytes, bytes, 0, 0)) {
     SMemFree(fileData, __FILE__, __LINE__, 0);
     return 0;
   }
 
-  SFile::Close(file);
+  SFile::Close(fileHandle);
   return fileData;
 }
 
@@ -268,12 +270,12 @@ static int ReadMdlFile(char* path, MDLDATA* mdldata, CMDLStatus* status) {
 
   int result;
   if (type == 1) {
-    CMsgBuffer buffer(0);
-    buffer.SetData(static_cast<unsigned char *>(fileData), size, 0);
-    result = BinToModelData(buffer, size, *mdldata, status);
-    if (buffer.Bytes()) {
+    CMsgBuffer buf(0);
+    buf.SetData(static_cast<unsigned char *>(fileData), size, 0);
+    result = BinToModelData(buf, size, *mdldata, status);
+    if (buf.Bytes()) {
       result = 0;
-      buffer.GetData(buffer.Bytes());
+      buf.GetData(buf.Bytes());
     }
   } else {
     static_cast<char *>(fileData)[size] = 0;
@@ -290,9 +292,8 @@ int MDLFileRead(const char* path, MDLDATA* mdldata, CStatus* status) {
     status = &s_nullStatus;
   }
 
-  char actualPath[260];
-  SStrCopy(actualPath, path, sizeof(actualPath));
-  if (ReadMdlFile(actualPath, mdldata, static_cast<CMDLStatus *>(status))) {
+  SStrCopy(mdldata->header.sourceFilename, path, 0x7FFFFFFF);
+  if (ReadMdlFile(mdldata->header.sourceFilename, mdldata, static_cast<CMDLStatus *>(status))) {
     return 1;
   }
   status->Prepend(status->GetHighestSeverity(), "%s:\n", path);

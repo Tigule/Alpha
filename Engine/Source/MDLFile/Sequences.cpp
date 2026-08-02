@@ -27,10 +27,10 @@ int ReadSequences(Parser &parse, MDLDATA &data, CMDLStatus *status);
 int WriteSequences(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *status);
 int ReadGlobalSequences(Parser &parse, MDLDATA &data, CMDLStatus *status);
 int WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *status);
-int ReadBinGlobalSequences(CMsgBuffer &buffer, unsigned int length, MDLDATA &data, CMDLStatus *status);
-int WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status);
-int ReadBinSequences(CMsgBuffer &buffer, unsigned int length, MDLDATA &data, CMDLStatus *status);
-int WriteBinSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status);
+int ReadBinGlobalSequences(CMsgBuffer &buf, unsigned int length, MDLDATA &data, CMDLStatus *status);
+int WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status);
+int ReadBinSequences(CMsgBuffer &buf, unsigned int length, MDLDATA &data, CMDLStatus *status);
+int WriteBinSequences(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status);
 }
 
 static void IAnimAddErrors(TSet &errors) {
@@ -66,11 +66,11 @@ static void ISkipGeosetBounds(Parser &parse, CMDLStatus *status) {
   TSet errors;
   parse.Expect('{');
   IGeosetBoundsAddErrors(errors);
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     if (token == 0x170) {
       IReadVertex(parse, &bounds.extent.b);
@@ -79,12 +79,12 @@ static void ISkipGeosetBounds(Parser &parse, CMDLStatus *status) {
     } else if (token == 0x134) {
       bounds.radius = parse.ExpectFloat();
     } else {
-      parse.FatalUnexpected(tokenText);
+      parse.FatalUnexpected(tokentext);
     }
     parse.Expect(',');
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   errors.Complete(status);
 }
 
@@ -104,16 +104,16 @@ static void IReadAnim(
 ) {
   TSet errors;
   IAnimAddErrors(errors);
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     switch (token) {
       case 0x10A:
         ISkipGeosetBounds(parse, status);
-        token = parse.Token(&tokenText, 0);
+        token = parse.Token(&tokentext, 0);
         continue;
       case 0x130:
         sequence->blendTime = parse.ExpectInt();
@@ -143,13 +143,13 @@ static void IReadAnim(
         sequence->flags |= 1;
         break;
       default:
-        parse.FatalUnexpected(tokenText);
+        parse.FatalUnexpected(tokentext);
         break;
     }
     parse.Expect(',');
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   if (errors.NotFound(0x130) && data.version < 900) {
     sequence->blendTime = data.model.blendTime;
   }
@@ -161,79 +161,79 @@ int MDL::ReadSequences(
     MDLDATA &data,
     CMDLStatus *status
 ) {
-  unsigned int token;
-  const char *tokenText;
+  unsigned int savedtoken;
+  const char *tokentext;
   UTokenData value;
-  long expected = parse.GetOptionalInt(&token, &tokenText, 0);
-  if (expected > 0) {
-    data.sequences.ReserveSpace(expected);
-  }
-  parse.Expect('{', token, tokenText);
   long actual = 0;
-  token = parse.Token(&tokenText, &value);
-  while (token == 0x122) {
-    const char *name = parse.ExpectString();
+  long count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
+  if (count > 0) {
+    data.sequences.ReserveSpace(count);
+  }
+  parse.Expect('{', savedtoken, tokentext);
+  savedtoken = parse.Token(&tokentext, &value);
+  while (savedtoken == 0x122) {
+    const char *animname = parse.ExpectString();
     MDLSEQUENCESSECTION *sequence = data.sequences.New();
-    SStrCopy(sequence->name, name, 80);
+    SStrCopy(sequence->name, animname, 80);
     parse.Expect('{');
     IReadAnim(data, parse, sequence, status);
     ++actual;
-    token = parse.Token(&tokenText, &value);
+    savedtoken = parse.Token(&tokentext, &value);
   }
-  parse.Expect('}', token, tokenText);
-  if (expected >= 0 && actual != expected) {
-    parse.WarningCount("sequences", expected, actual);
+  parse.Expect('}', savedtoken, tokentext);
+  if (count >= 0 && actual != count) {
+    parse.WarningCount("sequences", count, actual);
   }
   return !parse.FoundError();
 }
 
 static void IWriteSequenceFlags(
     TSGrowableArray<char> &buffer,
-    const MDLSEQUENCESSECTION &sequence
+    const MDLSEQUENCESSECTION &seq
 ) {
-  if (sequence.flags & 1) {
+  if (seq.flags & 1) {
     MDL::WriteLine(buffer, "\t\t%s,\n", MDL::TokenText(0x17A));
   }
 }
 
 static void IWriteSequence(
-    const MDLSEQUENCESSECTION &sequence,
+    const MDLSEQUENCESSECTION &times,
     TSGrowableArray<char> &buffer
 ) {
   MDL::WriteLine(
       buffer,
       "\t%s \"%s\" {\n",
       MDL::TokenText(0x122),
-      static_cast<const char *>(sequence.name)
+      static_cast<const char *>(times.name)
   );
   MDL::WriteLine(
       buffer,
       "\t\t%s { %u, %u },\n",
       MDL::TokenText(0x160),
-      sequence.time.l,
-      sequence.time.h
+      times.time.l,
+      times.time.h
   );
-  IWriteSequenceFlags(buffer, sequence);
-  WriteOptionalFloat(0x174, "\t\t", sequence.movespeed, buffer);
-  WriteOptionalFloat(0x14E, "\t\t", sequence.frequency, buffer);
-  if (sequence.replay.l && sequence.replay.h) {
+  IWriteSequenceFlags(buffer, times);
+  WriteOptionalFloat(0x174, "\t\t", times.movespeed, buffer);
+  WriteOptionalFloat(0x14E, "\t\t", times.frequency, buffer);
+  if (times.replay.l && times.replay.h) {
     MDL::WriteLine(
         buffer,
         "\t\t%s { %u, %u },\n",
         MDL::TokenText(0x1AB),
-        sequence.replay.l,
-        sequence.replay.h
+        times.replay.l,
+        times.replay.h
     );
   }
-  if (sequence.blendTime) {
+  if (times.blendTime) {
     MDL::WriteLine(
         buffer,
         "\t\t%s %u,\n",
         MDL::TokenText(0x130),
-        sequence.blendTime
+        times.blendTime
     );
   }
-  WriteBounds(sequence.bounds, "\t\t", buffer);
+  WriteBounds(times.bounds, "\t\t", buffer);
   MDL::WriteLine(buffer, "\t}\n");
 }
 
@@ -264,7 +264,7 @@ static unsigned int IReadOldGlobalSeqs(
 ) {
   unsigned int actual = 0;
   unsigned int token;
-  const char *tokenText;
+  const char *tokentext;
   UTokenData value;
   do {
     MDLGLOBALSEQSECTION *sequence = data.globalSeqs.New();
@@ -275,9 +275,9 @@ static unsigned int IReadOldGlobalSeqs(
     parse.Expect('}');
     parse.Expect(',');
     ++actual;
-    token = parse.Token(&tokenText, &value);
+    token = parse.Token(&tokentext, &value);
   } while (token == '{');
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   return actual;
 }
 
@@ -285,18 +285,19 @@ static unsigned int IReadGlobalSeqs(
     Parser &parse,
     MDLDATA &data
 ) {
-  unsigned int actual = 0;
+  unsigned int actual;
+  actual = 0;
   unsigned int token;
-  const char *tokenText;
+  const char *tokentext;
   UTokenData value;
   do {
     MDLGLOBALSEQSECTION *sequence = data.globalSeqs.New();
     sequence->length = parse.ExpectInt();
     parse.Expect(',');
     ++actual;
-    token = parse.Token(&tokenText, &value);
+    token = parse.Token(&tokentext, &value);
   } while (token == 0x143);
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   return actual;
 }
 
@@ -305,17 +306,17 @@ int MDL::ReadGlobalSequences(
     MDLDATA &data,
     CMDLStatus *
 ) {
-  unsigned int token;
-  const char *tokenText;
+  unsigned int savedtoken;
+  const char *tokentext;
   UTokenData value;
-  long count = parse.GetOptionalInt(&token, &tokenText, 0);
+  long count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   if (count > 0) {
     data.globalSeqs.ReserveSpace(count);
   }
-  parse.Expect('{', token, tokenText);
-  token = parse.Token(&tokenText, &value);
+  parse.Expect('{', savedtoken, tokentext);
+  savedtoken = parse.Token(&tokentext, &value);
   unsigned int actual =
-      token == 0x143
+      savedtoken == 0x143
       ? IReadGlobalSeqs(parse, data)
       : IReadOldGlobalSeqs(parse, data);
   if (count >= 0 && actual != static_cast<unsigned int>(count)) {
@@ -336,7 +337,7 @@ int MDL::WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffer
 }
 
 int MDL::ReadBinGlobalSequences(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
@@ -349,31 +350,32 @@ int MDL::ReadBinGlobalSequences(
   unsigned int count = length / 4;
   data.globalSeqs.SetCount(count);
   for (unsigned int i = 0; i < count; ++i) {
-    data.globalSeqs[i].length = buffer.GetUint();
+    data.globalSeqs[i].length = buf.GetUint();
   }
   return 1;
 }
 
-int MDL::WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+int MDL::WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   if (!static_cast<const char *>(data.model.animationFile)[0] && data.globalSeqs.Count()) {
-    buffer.AddDword('SBLG');
-    buffer.AddUint(4 * data.globalSeqs.Count());
+    buf.AddDword('SBLG');
+    buf.AddUint(4 * data.globalSeqs.Count());
     for (unsigned int i = 0; i < data.globalSeqs.Count(); ++i) {
-      buffer.AddUint(data.globalSeqs[i].length);
+      buf.AddUint(data.globalSeqs[i].length);
     }
   }
   return 1;
 }
 
 int MDL::ReadBinSequences(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
 ) {
   FATALASSERT(status);
-  unsigned int count = buffer.GetUint();
-  if (length - 4 != 140 * count) {
+  unsigned int numSeqs;
+  numSeqs = buf.GetUint();
+  if (length - 4 != 140 * numSeqs) {
     status->Add(
         STATUS_ERROR,
         "Invalid SEQX section detected in model -- nonintegral number of sequences.\n"
@@ -381,49 +383,49 @@ int MDL::ReadBinSequences(
     return 0;
   }
 
-  data.sequences.SetCount(count);
-  for (unsigned int i = 0; i < count; ++i) {
+  data.sequences.SetCount(numSeqs);
+  for (unsigned int i = 0; i < numSeqs; ++i) {
     MDLSEQUENCESSECTION &sequence = data.sequences.Ptr()[i];
-    buffer.GetTcharArray(sequence.name, 80);
-    sequence.time.l = buffer.GetInt();
-    sequence.time.h = buffer.GetInt();
-    sequence.movespeed = buffer.GetFloat();
-    sequence.flags = buffer.GetUint();
-    sequence.bounds.radius = buffer.GetFloat();
-    buffer.GetFloatArray(&sequence.bounds.extent.b.x, 3);
-    buffer.GetFloatArray(&sequence.bounds.extent.t.x, 3);
-    sequence.frequency = buffer.GetFloat();
-    sequence.replay.l = buffer.GetInt();
-    sequence.replay.h = buffer.GetInt();
-    sequence.blendTime = buffer.GetUint();
+    buf.GetTcharArray(sequence.name, 80);
+    sequence.time.l = buf.GetInt();
+    sequence.time.h = buf.GetInt();
+    sequence.movespeed = buf.GetFloat();
+    sequence.flags = buf.GetUint();
+    sequence.bounds.radius = buf.GetFloat();
+    buf.GetFloatArray(&sequence.bounds.extent.b.x, 3);
+    buf.GetFloatArray(&sequence.bounds.extent.t.x, 3);
+    sequence.frequency = buf.GetFloat();
+    sequence.replay.l = buf.GetInt();
+    sequence.replay.h = buf.GetInt();
+    sequence.blendTime = buf.GetUint();
   }
   return 1;
 }
 
 int MDL::WriteBinSequences(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *
 ) {
+  unsigned int numSequences = data.sequences.Count();
   if (!static_cast<const char *>(data.model.animationFile)[0]
-      && data.sequences.Count()) {
-    buffer.AddDword('SQES');
-    buffer.AddUint(140 * data.sequences.Count() + 4);
-    buffer.AddUint(data.sequences.Count());
-    for (unsigned int i = 0; i < data.sequences.Count(); ++i) {
-      const MDLSEQUENCESSECTION &sequence = data.sequences.Ptr()[i];
-      buffer.AddTcharArray(sequence.name, 80, 1);
-      buffer.AddInt(sequence.time.l);
-      buffer.AddInt(sequence.time.h);
-      buffer.AddFloat(sequence.movespeed);
-      buffer.AddUint(sequence.flags);
-      buffer.AddFloat(sequence.bounds.radius);
-      buffer.AddFloatArray(&sequence.bounds.extent.b.x, 3);
-      buffer.AddFloatArray(&sequence.bounds.extent.t.x, 3);
-      buffer.AddFloat(sequence.frequency);
-      buffer.AddInt(sequence.replay.l);
-      buffer.AddInt(sequence.replay.h);
-      buffer.AddUint(sequence.blendTime);
+      && numSequences) {
+    buf.AddDword('SQES');
+    buf.AddUint(140 * numSequences + 4);
+    buf.AddUint(numSequences);
+    for (unsigned int i = 0; i < numSequences; ++i) {
+      buf.AddTcharArray(data.sequences.Ptr()[i].name, 80, 1);
+      buf.AddInt(data.sequences.Ptr()[i].time.l);
+      buf.AddInt(data.sequences[i].time.h);
+      buf.AddFloat(data.sequences[i].movespeed);
+      buf.AddUint(data.sequences[i].flags);
+      buf.AddFloat(data.sequences[i].bounds.radius);
+      buf.AddFloatArray(&data.sequences[i].bounds.extent.b.x, 3);
+      buf.AddFloatArray(&data.sequences[i].bounds.extent.t.x, 3);
+      buf.AddFloat(data.sequences[i].frequency);
+      buf.AddInt(data.sequences[i].replay.l);
+      buf.AddInt(data.sequences[i].replay.h);
+      buf.AddUint(data.sequences[i].blendTime);
     }
   }
   return 1;

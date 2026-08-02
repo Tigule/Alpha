@@ -90,7 +90,7 @@ void CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, 
   }
 }
 
-void TradeItemStatsCallback(int, const unsigned __int64 &, void *, bool granted) {
+void TradeItemStatsCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(298);
   }
@@ -146,18 +146,18 @@ void CGTradeInfo::Update(TradeItemData *items) {
     }
   }
 
-  int spellID;
-  int slot = -1;
-  Trade_C_GetProposedEnchantment(0, spellID, slot);
-  if (m_targetEnchantSlot != slot) {
-    m_targetEnchantSlot = slot;
-    FrameScript_SignalEvent(301, "%d", slot + 1);
+  int proposedEnchantmentSpellID;
+  int proposedEnchantmentSlot = -1;
+  Trade_C_GetProposedEnchantment(0, proposedEnchantmentSpellID, proposedEnchantmentSlot);
+  if (m_targetEnchantSlot != proposedEnchantmentSlot) {
+    m_targetEnchantSlot = proposedEnchantmentSlot;
+    FrameScript_SignalEvent(301, "%d", proposedEnchantmentSlot + 1);
   }
 
-  Trade_C_GetProposedEnchantment(1, spellID, slot);
-  if (m_playerEnchantSlot != slot) {
-    m_playerEnchantSlot = slot;
-    FrameScript_SignalEvent(300, "%d", slot + 1);
+  Trade_C_GetProposedEnchantment(1, proposedEnchantmentSpellID, proposedEnchantmentSlot);
+  if (m_playerEnchantSlot != proposedEnchantmentSlot) {
+    m_playerEnchantSlot = proposedEnchantmentSlot;
+    FrameScript_SignalEvent(300, "%d", proposedEnchantmentSlot + 1);
   }
 
   unsigned int playerMoney = Trade_C_GetPlayerTradeGold();
@@ -202,14 +202,14 @@ void CGTradeInfo::SetTradePartner(unsigned __int64 partner) {
 
   if (Trade_C_UseCursorItem()) {
     unsigned __int64 item;
-    unsigned __int64 bag;
+    unsigned __int64 container;
     unsigned int     slot;
-    CGGameUI::GetCursorItem(item, bag, slot);
-    if (item && bag) {
-      Trade_C_AddItem(item, bag, slot, 0);
+    CGGameUI::GetCursorItem(item, container, slot);
+    if (item && container) {
+      Trade_C_AddItem(item, container, slot, 0);
       CGGameUI::ClearCursor(0);
       m_playerItems[0] = item;
-      m_playerItemBag[0] = bag;
+      m_playerItemBag[0] = container;
       m_playerItemSlot[0] = slot;
     }
   }
@@ -290,9 +290,9 @@ static int Script_ClickTradeButton(lua_State *L) {
   }
   int              index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   unsigned __int64 cursorItem;
-  unsigned __int64 cursorBag;
+  unsigned __int64 cursorContainer;
   unsigned int     cursorSlot;
-  CGGameUI::GetCursorItem(cursorItem, cursorBag, cursorSlot);
+  CGGameUI::GetCursorItem(cursorItem, cursorContainer, cursorSlot);
   unsigned __int64 item;
   unsigned __int64 bag;
   unsigned char    slot;
@@ -301,7 +301,7 @@ static int Script_ClickTradeButton(lua_State *L) {
     CGGameUI::ClearCursor(1);
   } else {
     if (cursorItem) {
-      CGTradeInfo::SetPlayerItem(index, cursorItem, cursorBag, cursorSlot);
+      CGTradeInfo::SetPlayerItem(index, cursorItem, cursorContainer, cursorSlot);
     } else {
       CGTradeInfo::SetPlayerItem(index, 0, 0, 0);
     }
@@ -363,8 +363,7 @@ static int Script_GetTradeTargetItemLink(lua_State *L) {
     return luaL_error(L, "Usage: GetTradeTargetItemLink(index)");
   }
   int              itemID = CGTradeInfo::GetTargetTradeItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
-  unsigned __int64 noGuid = 0;
-  const ItemStats *stats = itemID ? g_itemDBCache.GetRecord(itemID, noGuid, 0, 0) : 0;
+  const ItemStats *stats = itemID ? g_itemDBCache.GetRecord(itemID, 0, 0, 0) : 0;
   if (!stats) {
     return 0;
   }
@@ -392,8 +391,7 @@ static int Script_GetTradePlayerItemInfo(lua_State *L) {
     lua_pushnumber(L, 0.0);
     return 5;
   }
-  unsigned __int64 player = ClntObjMgrGetActivePlayer();
-  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), player, TradeItemStatsCallback, 0);
+  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), ClntObjMgrGetActivePlayer(), TradeItemStatsCallback, 0);
   if (stats) {
     lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
   } else {
@@ -427,7 +425,7 @@ static int Script_GetTradePlayerItemLink(lua_State *L) {
   if (!item) {
     return 0;
   }
-  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), guid, 0, 0);
+  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
   if (!stats) {
     return 0;
   }

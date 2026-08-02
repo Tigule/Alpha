@@ -126,25 +126,25 @@ namespace NTempest {
   float CMath::fres_(float *x, unsigned long magic) { *x = fres_(*x, magic); return *x; }
   double CMath::fres_(double *x, unsigned long magic) { *x = fres_(*x, magic); return *x; }
 
-  void CMath::split_(double x, double &fraction, long &integer) {
-    integer = static_cast<long>(x);
-    if (x < 0.0) --integer;
-    fraction = x - integer;
+  void CMath::split_(double x, double &xf, long &xi) {
+    xi = static_cast<long>(x);
+    if (x < 0.0) --xi;
+    xf = x - xi;
   }
-  void CMath::split_(float x, float &fraction, long &integer) {
-    integer = static_cast<long>(x);
-    if (x < 0.0f) --integer;
-    fraction = x - integer;
+  void CMath::split_(float x, float &xf, long &xi) {
+    xi = static_cast<long>(x);
+    if (x < 0.0f) --xi;
+    xf = x - xi;
   }
-  void CMath::splitr_(double x, double &fraction, double &integer) {
-    integer = static_cast<long>(x);
-    if (x < 0.0) integer -= 1.0;
-    fraction = x - integer;
+  void CMath::splitr_(double x, double &xf, double &xi) {
+    xi = static_cast<long>(x);
+    if (x < 0.0) xi -= 1.0;
+    xf = x - xi;
   }
-  void CMath::splitr_(float x, float &fraction, float &integer) {
-    integer = static_cast<float>(static_cast<long>(x));
-    if (x < 0.0f) integer -= 1.0f;
-    fraction = x - integer;
+  void CMath::splitr_(float x, float &xf, float &xi) {
+    xi = static_cast<float>(static_cast<long>(x));
+    if (x < 0.0f) xi -= 1.0f;
+    xf = x - xi;
   }
 
   float CMath::step_(float x, float a) { return x >= a ? 1.0f : 0.0f; }

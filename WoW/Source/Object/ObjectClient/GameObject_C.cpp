@@ -189,9 +189,8 @@ static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* 
   CGGameObject_C *object =
       static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (object) {
-    unsigned __int64 cacheGuid = 0;
     const GameObjectStats_C *stats =
-        g_gameObjectDBCache.GetRecord(id, cacheGuid, 0, 0);
+        g_gameObjectDBCache.GetRecord(id, 0, 0, 0);
     if (stats) {
       object->LoadBaseObject(stats);
     }
@@ -283,8 +282,7 @@ bool CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE *reason) const {
     Spell_C_GetMinMaxRange(spellID, &minRange, &range);
   }
 
-  NTempest::C3Vector delta = player->GetPosition() - GetPosition();
-  if (delta.SquaredMag() > range * range) {
+  if ((player->GetPosition() - GetPosition()).SquaredMag() > range * range) {
     if (reason) {
       *reason = GERR_USE_TOO_FAR;
     }
@@ -305,9 +303,8 @@ bool CGGameObject_C_TypeBase::Use(const unsigned __int64 &) {
 
     if (m_owner->IsValidOpenAction(lock->m_Action[0])) {
       if (lock->m_Type[0] == 1) {
-        unsigned __int64 guid = m_owner->GetGUID();
         const ItemStats_C *stats =
-            g_itemDBCache.GetRecord(lock->m_Index[0], guid, 0, 0);
+            g_itemDBCache.GetRecord(lock->m_Index[0], m_owner->GetGUID(), 0, 0);
         if (stats) {
           CGGameUI::DisplayError(GERR_USE_LOCKED_WITH_ITEM_S, stats->m_displayName[0]);
         }
@@ -445,9 +442,8 @@ void CGGameObject_C::SetStorage(unsigned long *storage) {
 
 void CGGameObject_C::PostInit(const CClientObjCreate &init) {
   CGObject_C::PostInit(init);
-  unsigned __int64 guid = GetGUID();
   const GameObjectStats_C *stats =
-      g_gameObjectDBCache.GetRecord(GetEntryID(), guid, GameObjectStatsCallback, 0);
+      g_gameObjectDBCache.GetRecord(GetEntryID(), GetGUID(), GameObjectStatsCallback, 0);
   if (stats) {
     LoadBaseObject(stats);
   }
@@ -494,9 +490,8 @@ void CGGameObject_C::PostReenable() {
   if (m_baseObj) {
     m_baseObj->PostReenable();
   } else {
-    unsigned __int64 guid = GetGUID();
     const GameObjectStats_C *stats =
-        g_gameObjectDBCache.GetRecord(GetEntryID(), guid, GameObjectStatsCallback, 0);
+        g_gameObjectDBCache.GetRecord(GetEntryID(), GetGUID(), GameObjectStatsCallback, 0);
     if (stats) {
       LoadBaseObject(stats);
     }
@@ -601,8 +596,7 @@ bool CGGameObject_C::IsLocked(
       }
 
       for (unsigned int j = 0; j < CGSpellBook::m_unlockSpells.Count(); ++j) {
-        int spell = CGSpellBook::m_unlockSpells[j];
-        const SpellRec *srec = g_spellDB.GetRecord(spell);
+        const SpellRec *srec = g_spellDB.GetRecord(CGSpellBook::m_unlockSpells[j]);
         FATALASSERT(srec);
         for (int effect = 0; effect < 3; ++effect) {
           if (srec->m_effect[effect] != 33 ||
@@ -614,7 +608,7 @@ bool CGGameObject_C::IsLocked(
           int max;
           Spell_C_GetMinMaxPoints(srec, effect, &min, &max, 0, 0);
           if (spellID) {
-            *spellID = spell;
+            *spellID = CGSpellBook::m_unlockSpells[j];
           }
           if (spellSkill) {
             *spellSkill = min;
@@ -752,8 +746,7 @@ void CGGameObject_C::OnRightClick() {
   if (m_baseObj->CanUse()) {
     GAME_ERROR_TYPE reason;
     if (m_baseObj->CanUseNow(&reason)) {
-      unsigned __int64 player = ClntObjMgrGetActivePlayer();
-      m_baseObj->Use(player);
+      m_baseObj->Use(ClntObjMgrGetActivePlayer());
     } else {
       CGGameUI::DisplayError(reason);
     }
@@ -988,10 +981,9 @@ void CGGameObject_C_TypeAnimated::Disable(int) {
 }
 
 void CGGameObject_C_TypeAnimated::ModelJustLoaded() {
-  HMODEL__ *model = m_owner->GetObjectModel();
   unsigned int i;
   for (i = 0; i < sizeof(s_stateAnimInfo) / sizeof(s_stateAnimInfo[0]); ++i) {
-    if (ModelHasSequenceId(model, s_stateAnimInfo[i].seq)) {
+    if (ModelHasSequenceId(m_owner->GetObjectModel(), s_stateAnimInfo[i].seq)) {
       m_useFallbackAnim[i] = 0;
       m_animPresent |= 1 << i;
     } else {
@@ -1172,26 +1164,27 @@ CGGameObject_C_Type_MapObjTransport::CGGameObject_C_Type_MapObjTransport(CGGameO
     : CGGameObject_C_Type_MapObj(owner), m_position(), m_facing(0.0f) {
   MovementAddTransport(m_owner);
 
-  float speed = static_cast<float>(
-      m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 37)));
-  int pathID[2] = {
+  int pathId[2] = {
       m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 35)),
       m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 36))
   };
 
-  unsigned int maxPoints = g_taxiPathNodeDB.GetNumRecords();
+  unsigned int count = g_taxiPathNodeDB.GetNumRecords();
   TSStackArray<NTempest::C3Vector> points(
-      _alloca(maxPoints * sizeof(NTempest::C3Vector)), maxPoints, 0);
+      _alloca(count * sizeof(NTempest::C3Vector)), count, 0);
   for (unsigned int path = 0; path < 2; ++path) {
-    for (unsigned int i = 0; i < maxPoints; ++i) {
-      const TaxiPathNodeRec *node = g_taxiPathNodeDB.GetRecordByIndex(i);
-      if (node && node->m_PathID == pathID[path]) {
+    for (unsigned int j = 0; j < count; ++j) {
+      const TaxiPathNodeRec *node = g_taxiPathNodeDB.GetRecordByIndex(j);
+      if (node && node->m_PathID == pathId[path]) {
         points.New(NTempest::C3Vector(node->m_LocX, node->m_LocY, node->m_LocZ));
       }
     }
     m_path[path].SetPoints(points.Ptr(), points.Count());
     m_tripTime[path] =
-        static_cast<unsigned int>(m_path[path].cachedLength / speed * 1000.0f + 0.5f);
+        static_cast<unsigned int>(
+            m_path[path].cachedLength /
+            static_cast<float>(m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 37))) *
+            1000.0f + 0.5f);
     points.SetCount(0);
   }
 
@@ -1231,7 +1224,7 @@ void CGGameObject_C_Type_MapObjTransport::Reenable() {
 void CGGameObject_C_Type_MapObjTransport::Disable(int shutdown) {
   unsigned long eventTime = OsGetAsyncTimeMs();
   for (CMovementData *passenger = m_passengers.Head(); passenger;) {
-    CMovementData *next = m_passengers.RawNext(passenger);
+    CMovementData *passengernext_node = m_passengers.RawNext(passenger);
     CMovement *movement = static_cast<CMovement *>(passenger);
     if (passenger->m_guid == ClntObjMgrGetActivePlayer()) {
       movement->OnFallLocal(eventTime);
@@ -1239,7 +1232,7 @@ void CGGameObject_C_Type_MapObjTransport::Disable(int shutdown) {
       movement->OnFall(eventTime);
     }
     passenger->ForceSetTransport(0);
-    passenger = next;
+    passenger = passengernext_node;
   }
 
   MovementRemoveTransport(m_owner);
@@ -1323,13 +1316,10 @@ void CGGameObject_C_Type_Chair::PostInit() {
   FATALASSERT(GetNumSlots());
   FATALASSERT(GetNumSlots() <= MAX_CHAIR_SLOTS);
 
-  NTempest::C34Matrix ownerMatrix = m_owner->CGObject_C::GetMatrix();
-  NTempest::C44Matrix matrix(
-      ownerMatrix.a0, ownerMatrix.a1, ownerMatrix.a2, 0.0f,
-      ownerMatrix.b0, ownerMatrix.b1, ownerMatrix.b2, 0.0f,
-      ownerMatrix.c0, ownerMatrix.c1, ownerMatrix.c2, 0.0f,
-      ownerMatrix.d0, ownerMatrix.d1, ownerMatrix.d2, 1.0f);
-  GenerateChairPoints(matrix, GetNumSlots(), m_slotPositions);
+  GenerateChairPoints(
+      NTempest::C44Matrix(m_owner->CGObject_C::GetMatrix()),
+      GetNumSlots(),
+      m_slotPositions);
 }
 
 CGGameObject_C_Type_SpellFocus::CGGameObject_C_Type_SpellFocus(CGGameObject_C *owner)
@@ -1384,7 +1374,8 @@ CGGameObject_C_Type_Transport::CGGameObject_C_Type_Transport(CGGameObject_C *own
   FATALASSERT(firstKey != -1);
   m_keys = g_transportAnimationDB.GetRecordByIndex(firstKey);
   m_numKeys = 1;
-  for (int i = firstKey + 1; i < g_transportAnimationDB.GetNumRecords(); ++i) {
+  int numRecords = g_transportAnimationDB.GetNumRecords();
+  for (int i = firstKey + 1; i < numRecords; ++i) {
     const TransportAnimationRec *key = g_transportAnimationDB.GetRecordByIndex(i);
     if (key->m_TransportID != owner->GetEntryID()) {
       break;
@@ -1414,9 +1405,10 @@ bool CGGameObject_C_Type_Transport::CanUse() const {
 }
 
 int CGGameObject_C_Type_Transport::IsPointInside(const NTempest::C3Vector &point) const {
-  unsigned int i;
-  for (i = 0; i < m_interior.Count(); ++i) {
-    if (NTempest::C3Vector::Dot(m_interior[i].n, point) + m_interior[i].d > 0.0f) {
+  unsigned int numPlanes = m_interior.Count();
+  while (numPlanes) {
+    --numPlanes;
+    if (NTempest::C3Vector::Dot(m_interior[numPlanes].n, point) + m_interior[numPlanes].d > 0.0f) {
       return 0;
     }
   }
@@ -1430,7 +1422,7 @@ void CGGameObject_C_Type_Transport::Reenable() {
 void CGGameObject_C_Type_Transport::Disable(int) {
   unsigned long eventTime = OsGetAsyncTimeMs();
   for (CMovementData *passenger = m_passengers.Head(); passenger;) {
-    CMovementData *next = m_passengers.RawNext(passenger);
+    CMovementData *passengernext_node = m_passengers.RawNext(passenger);
     CMovement *movement = static_cast<CMovement *>(passenger);
     if (passenger->m_guid == ClntObjMgrGetActivePlayer()) {
       movement->OnFallLocal(eventTime);
@@ -1438,17 +1430,16 @@ void CGGameObject_C_Type_Transport::Disable(int) {
       movement->OnFall(eventTime);
     }
     passenger->ForceSetTransport(0);
-    passenger = next;
+    passenger = passengernext_node;
   }
   MovementRemoveTransport(m_owner);
 }
 
 void CGGameObject_C_Type_Transport::UpdateMovement(
     unsigned long eventTime, float elapsed) {
-  NTempest::C3Vector oldPosition = m_position;
-  m_position =
-      m_owner->GameObject()->m_position + GetMovement(eventTime);
-  NTempest::C3Vector move = m_position - oldPosition;
+  NTempest::C3Vector move =
+      m_owner->GameObject()->m_position + GetMovement(eventTime) - m_position;
+  m_position += move;
 
   m_owner->UpdateMatrix();
   m_owner->UpdateWorldObject();
@@ -1514,14 +1505,12 @@ NTempest::C3Vector CGGameObject_C_Type_Transport::GetMovement(
   float ratio =
       static_cast<float>(time - key->m_TimeIndex) /
       static_cast<float>(nextKey->m_TimeIndex - key->m_TimeIndex);
-  NTempest::C3Vector movement(
+  NTempest::C4Quaternion *rotation =
+      &m_owner->m_gameObj->m_rotation;
+  return NTempest::C33Matrix(*rotation) * NTempest::C3Vector(
       key->m_PosX * (1.0f - ratio) + nextKey->m_PosX * ratio,
       key->m_PosY * (1.0f - ratio) + nextKey->m_PosY * ratio,
       key->m_PosZ * (1.0f - ratio) + nextKey->m_PosZ * ratio);
-  NTempest::C4Quaternion *rotation =
-      &m_owner->m_gameObj->m_rotation;
-  NTempest::C33Matrix matrix = *rotation;
-  return matrix * movement;
 }
 
 int CGGameObject_C_Type_Transport::FindAnimData(CGGameObject_C *owner) {

@@ -1,11 +1,14 @@
 #include "Tooltip.h"
 
+#include "Console/ConsoleVar.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"
 #include "DB/DBClient/AutoCode/SpellAuraNamesRec.h"
 #include "DB/DBClient/AutoCode/SpellEffectNamesRec.h"
 #include "DB/DBClient/AutoCode/SpellItemEnchantmentRec.h"
 #include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/DBClient.h"
+#include "Game/GameClient/NameCache.h"
+#include "Object/ObjectClient/Corpse_C.h"
 #include "Object/ObjectClient/GameObject_C.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/Player_C.h"
@@ -180,6 +183,8 @@ unsigned int                                         CGTooltip::m_spellID;
 static int s_nameOnly;
 static int s_showComparison;
 static int s_itemsWaiting;
+static NTempest::CImVector s_defaultColor(0xFFFFD200UL);
+static NTempest::CImVector s_normalColor(0xFFFFFFFFUL);
 
 static void FrameScriptGetSpellString(TOOLTIP_DETAIL detail, const char* stringLabel, int points, char* positive, unsigned int positiveSize, char* negative, unsigned int negativeSize) {
   char token[64];
@@ -275,10 +280,9 @@ static void TooltipItemStatsCallback(int id, const unsigned __int64&, void* arg,
   if (granted) {
     CGTooltip *tooltip = static_cast<CGTooltip *>(arg);
     FATALASSERT(tooltip);
-    const unsigned __int64 noGUID = 0;
     tooltip->SetItem(
         tooltip->GetItem(),
-        noGUID,
+        0,
         tooltip->GetItemGUID(),
         s_nameOnly,
         s_showComparison,
@@ -484,12 +488,42 @@ static void TooltipCorpseNameCallback(int id, const unsigned __int64&, void* arg
 }
 
 void CGTooltip::SetCorpse(const unsigned __int64 &corpseGUID) {
-  if (!ClntObjMgrObjectPtr(corpseGUID, __FILE__, __LINE__)) {
+  char        line[256];
+  char        buf[128];
+  CGCorpse_C *corpse = static_cast<CGCorpse_C *>(ClntObjMgrObjectPtr(corpseGUID, __FILE__, __LINE__));
+  if (!corpse) {
     return;
   }
+
   ClearLines();
+
+  CVar *showGUIDs = CVar::Lookup("showGUIDs");
+  if (showGUIDs && showGUIDs->GetInt()) {
+    SStrPrintf(buf, sizeof(buf), "0x%016I64X", corpseGUID);
+    AddLine(buf, s_defaultColor, 0);
+  }
+
   m_corpseGUID = corpseGUID;
-  AddLine(FrameScript_GetText("CORPSE", -1, GENDER_NOT_APPLICABLE), 0, 0);
+  const char *str = reinterpret_cast<const char *>(
+      g_nameDBCache.GetRecord(
+          corpse->GetOwner(),
+          corpse->GetOwner(),
+          reinterpret_cast<DBCACHECALLBACKPROC>(TooltipCorpseNameCallback),
+          &m_corpseGUID
+      )
+  );
+  if (!str) {
+    return;
+  }
+
+  SStrCopy(
+      line,
+      FrameScript_GetText("CORPSE_TOOLTIP", -1, GENDER_NOT_APPLICABLE),
+      sizeof(line)
+  );
+  SStrPrintf(buf, sizeof(buf), line, str);
+  AddLine(buf, s_normalColor, 0);
+  Show();
 }
 
 int CGTooltip::SetItem(
@@ -570,8 +604,7 @@ void CGTooltip::SetBuff(int spellID, unsigned char flags) {
 
 void CGTooltip::SetOwner(CLayoutFrame *owner, TOOLTIP_ANCHORPOINT anchorpoint, float yoffset) {
   g_itemDBCache.CancelCallback(m_itemID, TooltipItemStatsCallback, this);
-  const unsigned __int64 noUnit = 0;
-  SetUnit(noUnit);
+  SetUnit(0);
 
   if (owner) {
     m_anchorPoint = anchorpoint;
@@ -626,8 +659,7 @@ void CGTooltip::SetOwner(CLayoutFrame *owner, TOOLTIP_ANCHORPOINT anchorpoint, f
 
 void CGTooltip::SetOwner(CLayoutFrame *owner, float x, float y) {
   g_itemDBCache.CancelCallback(m_itemID, TooltipItemStatsCallback, m_owner);
-  const unsigned __int64 noUnit = 0;
-  SetUnit(noUnit);
+  SetUnit(0);
 
   if (m_owner) {
     ClearAllPoints(1);
@@ -689,17 +721,15 @@ void CGTooltip::AddLine(
     return;
   }
 
-  CSimpleFontString *left = m_leftStrings[m_lines];
-  CSimpleFontString *right = m_rightStrings[m_lines];
   if (leftText && *leftText) {
-    left->SetVertexColor(leftColor);
-    left->SetText(leftText);
-    left->Show();
+    m_leftStrings[m_lines]->SetVertexColor(leftColor);
+    m_leftStrings[m_lines]->SetText(leftText);
+    m_leftStrings[m_lines]->Show();
   }
   if (rightText && *rightText) {
-    right->SetVertexColor(rightColor);
-    right->SetText(rightText);
-    right->Show();
+    m_rightStrings[m_lines]->SetVertexColor(rightColor);
+    m_rightStrings[m_lines]->SetText(rightText);
+    m_rightStrings[m_lines]->Show();
   }
   m_wrapLine[m_lines] = wrapped;
   ++m_lines;
@@ -1010,24 +1040,33 @@ int CGTooltip_SetOwner(lua_State *L) {
   lua_pop(L, 1);
   ASSERT(owner);
 
-  TOOLTIP_ANCHORPOINT anchor = TOOLTIP_ANCHOR_LEFT;
-  if (lua_isstring(L, 3)) {
-    const char *name = lua_tostring(L, 3);
-    if (!SStrCmpI(name, "ANCHOR_RIGHT", 0x7FFFFFFF))
-      anchor = static_cast<TOOLTIP_ANCHORPOINT>(1);
-    else if (!SStrCmpI(name, "ANCHOR_BOTTOMRIGHT", 0x7FFFFFFF))
-      anchor = static_cast<TOOLTIP_ANCHORPOINT>(3);
-    else if (!SStrCmpI(name, "ANCHOR_BOTTOMLEFT", 0x7FFFFFFF))
-      anchor = static_cast<TOOLTIP_ANCHORPOINT>(2);
-    else if (!SStrCmpI(name, "ANCHOR_FIXED", 0x7FFFFFFF))
-      anchor = static_cast<TOOLTIP_ANCHORPOINT>(4);
-    else if (!SStrCmpI(name, "ANCHOR_CURSOR", 0x7FFFFFFF))
-      anchor = TOOLTIP_ANCHOR_CURSOR;
-    else if (!SStrCmpI(name, "ANCHOR_NONE", 0x7FFFFFFF))
-      anchor = static_cast<TOOLTIP_ANCHORPOINT>(6);
+  float yoffset = 0.0f;
+  if (lua_isnumber(L, 4)) {
+    yoffset = static_cast<float>(lua_tonumber(L, 4));
   }
-  float yOffset = lua_isnumber(L, 4) ? static_cast<float>(lua_tonumber(L, 4)) : 0.0f;
-  tooltip->SetOwner(owner, anchor, yOffset);
+  const char *name = 0;
+  if (lua_isstring(L, 3)) {
+    name = lua_tostring(L, 3);
+  }
+  tooltip->SetOwner(
+      owner,
+      !name || !SStrCmpI(name, "ANCHOR_LEFT", 0x7FFFFFFF)
+          ? TOOLTIP_ANCHOR_LEFT
+          : !SStrCmpI(name, "ANCHOR_RIGHT", 0x7FFFFFFF)
+                ? TOOLTIP_ANCHOR_RIGHT
+                : !SStrCmpI(name, "ANCHOR_BOTTOMRIGHT", 0x7FFFFFFF)
+                      ? TOOLTIP_ANCHOR_BOTTOMRIGHT
+                      : !SStrCmpI(name, "ANCHOR_BOTTOMLEFT", 0x7FFFFFFF)
+                            ? TOOLTIP_ANCHOR_BOTTOMLEFT
+                            : !SStrCmpI(name, "ANCHOR_FIXED", 0x7FFFFFFF)
+                                  ? TOOLTIP_ANCHOR_FIXED
+                                  : !SStrCmpI(name, "ANCHOR_CURSOR", 0x7FFFFFFF)
+                                        ? TOOLTIP_ANCHOR_CURSOR
+                                        : !SStrCmpI(name, "ANCHOR_NONE", 0x7FFFFFFF)
+                                              ? TOOLTIP_ANCHOR_NONE
+                                              : TOOLTIP_ANCHOR_LEFT,
+      yoffset
+  );
   return 0;
 }
 
@@ -1054,24 +1093,25 @@ int CGTooltip_AddLine(lua_State *L) {
   NTempest::CImVector leftColor(defaultColor);
   NTempest::CImVector rightColor(defaultColor);
   if (lua_isnumber(L, argument)) {
-    float red = static_cast<float>(lua_tonumber(L, argument));
-    float green = static_cast<float>(lua_tonumber(L, argument + 1));
-    float blue = static_cast<float>(lua_tonumber(L, argument + 2));
-    float alpha = 1.0f;
-    argument += 3;
-    if (lua_isnumber(L, argument)) {
-      alpha = static_cast<float>(lua_tonumber(L, argument++));
-    }
-    leftColor.Set(alpha, red, green, blue);
+    leftColor.Set(
+        lua_isnumber(L, argument + 3)
+            ? static_cast<float>(lua_tonumber(L, argument + 3))
+            : 1.0f,
+        static_cast<float>(lua_tonumber(L, argument)),
+        static_cast<float>(lua_tonumber(L, argument + 1)),
+        static_cast<float>(lua_tonumber(L, argument + 2))
+    );
+    argument += lua_isnumber(L, argument + 3) ? 4 : 3;
   }
   if (lua_isnumber(L, argument)) {
-    float red = static_cast<float>(lua_tonumber(L, argument));
-    float green = static_cast<float>(lua_tonumber(L, argument + 1));
-    float blue = static_cast<float>(lua_tonumber(L, argument + 2));
-    float alpha = lua_isnumber(L, argument + 3)
-        ? static_cast<float>(lua_tonumber(L, argument + 3))
-        : 1.0f;
-    rightColor.Set(alpha, red, green, blue);
+    rightColor.Set(
+        lua_isnumber(L, argument + 3)
+            ? static_cast<float>(lua_tonumber(L, argument + 3))
+            : 1.0f,
+        static_cast<float>(lua_tonumber(L, argument)),
+        static_cast<float>(lua_tonumber(L, argument + 1)),
+        static_cast<float>(lua_tonumber(L, argument + 2))
+    );
   }
 
   tooltip->AddLine(leftText, rightText, leftColor, rightColor, 0);
@@ -1081,20 +1121,20 @@ int CGTooltip_AddLine(lua_State *L) {
 int CGTooltip_SetText(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2)) {
-    return luaL_error(L, "Usage: SetText(\"text\" [, color])");
+    luaL_error(L, "Usage: SetText(\"text\" [, color])");
   }
-  static const NTempest::CImVector defaultColor(0xFFFFFFFFUL);
-  NTempest::CImVector color(defaultColor);
+  const char *tooltipText = lua_tostring(L, 2);
+  NTempest::CImVector tooltipColor(s_defaultColor);
   if (lua_isnumber(L, 3)) {
-    float red = static_cast<float>(lua_tonumber(L, 3));
-    float green = static_cast<float>(lua_tonumber(L, 4));
-    float blue = static_cast<float>(lua_tonumber(L, 5));
-    float alpha =
-        lua_isnumber(L, 6) ? static_cast<float>(lua_tonumber(L, 6)) : 1.0f;
-    color.Set(alpha, red, green, blue);
+    tooltipColor.Set(
+        lua_isnumber(L, 6) ? static_cast<float>(lua_tonumber(L, 6)) : 1.0f,
+        static_cast<float>(lua_tonumber(L, 3)),
+        static_cast<float>(lua_tonumber(L, 4)),
+        static_cast<float>(lua_tonumber(L, 5))
+    );
   }
   tooltip->ClearLines();
-  tooltip->AddLine(lua_tostring(L, 2), color, 0);
+  tooltip->AddLine(tooltipText, tooltipColor, 0);
   tooltip->Show();
   return 0;
 }
@@ -1117,28 +1157,27 @@ int CGTooltip_FadeOut(lua_State *L) {
 int CGTooltip_SetHyperlink(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2)) {
-    return luaL_error(L, "Usage: SetHyperlink(link)");
+    luaL_error(L, "Usage: SetHyperlink(link)");
+    return 0;
   }
   const char *link = lua_tostring(L, 2);
-  if (SStrCmpI(link, "item", 4) || link[4] != ':') {
-    return luaL_error(L, "Unknown link type");
+  int         itemID;
+  if (SStrCmpI(link, "item:", 5) || (itemID = SStrToInt(link + 5)) <= 0) {
+    luaL_error(L, "Unknown link type");
+    return 0;
   }
-  int itemID = SStrToInt(link + 5);
-  if (itemID <= 0) {
-    return luaL_error(L, "Unknown link type");
-  }
-  unsigned __int64 none = 0;
-  tooltip->SetItem(itemID, none, none, 0, 1, 0);
+  tooltip->SetItem(itemID, 0, 0, 0, 1, 0);
   return 0;
 }
 
 int CGTooltip_SetAction(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
+  char buf[32];
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: SetAction(slot)");
   }
 
-  int slot = static_cast<int>(lua_tonumber(L, 2)) - 1;
+  const int slot = static_cast<int>(lua_tonumber(L, 2)) - 1;
   unsigned long startTime = 0;
   unsigned int duration = 0;
   unsigned int enable = 0;
@@ -1147,13 +1186,12 @@ int CGTooltip_SetAction(lua_State *L) {
 
   static const NTempest::CImVector defaultColor(0xFFFFFFFFUL);
   if (CGActionBar::IsAttackAction(slot)) {
-    char text[32];
     SStrCopy(
-        text,
+        buf,
         FrameScript_GetText("ATTACK", -1, GENDER_NOT_APPLICABLE),
-        sizeof(text)
+        sizeof(buf)
     );
-    tooltip->AddLine(text, defaultColor, 0);
+    tooltip->AddLine(buf, defaultColor, 0);
     tooltip->Show();
     lua_pushnil(L);
     return 1;
@@ -1181,24 +1219,22 @@ int CGTooltip_SetAction(lua_State *L) {
     CGBag_C    *bag = player ? player->GetBag() : 0;
     CGItem_C   *item = bag ? bag->FindItemOfType(CGActionBar::GetItem(slot), 0) : 0;
     if (!item) {
-      char text[32];
       SStrCopy(
-          text,
+          buf,
           FrameScript_GetText("USE_ITEM", -1, GENDER_NOT_APPLICABLE),
-          sizeof(text)
+          sizeof(buf)
       );
-      tooltip->AddLine(text, defaultColor, 0);
+      tooltip->AddLine(buf, defaultColor, 0);
       tooltip->Show();
       lua_pushnil(L);
       return 1;
     }
 
-    unsigned __int64 itemGUID = item->GetGUID();
     if (!startTime || !duration) {
       tooltip->SetItem(
           item->GetEntryID(),
-          itemGUID,
-          itemGUID,
+          item->GetGUID(),
+          item->GetGUID(),
           0,
           0,
           0
@@ -1212,8 +1248,8 @@ int CGTooltip_SetAction(lua_State *L) {
     info.creator = item->GetCreator();
     if (tooltip->SetItem(
             item->GetEntryID(),
-            itemGUID,
-            itemGUID,
+            item->GetGUID(),
+            item->GetGUID(),
             0,
             0,
             &info))
@@ -1237,19 +1273,19 @@ int CGTooltip_SetPlayerBuff(lua_State *L) {
   tooltip->SetBuff(buff->GetAuraSpell(), buff->GetAuraFlags());
   if (!buff->GetUntilCancelled()) {
     unsigned int duration = CGBuffBar::GetBuffTimeLeftByIndex(index);
-    char format[64];
-    SStrCopy(format, FrameScript_GetText(
+    char buf[64];
+    SStrCopy(buf, FrameScript_GetText(
         duration < 60000 ? "SPELL_TIME_REMAINING_SEC" : "SPELL_TIME_REMAINING_MIN",
         -1,
-        GENDER_NOT_APPLICABLE), sizeof(format));
+        GENDER_NOT_APPLICABLE), sizeof(buf));
     unsigned int remaining =
         duration < 60000
             ? duration / 1000
             : static_cast<unsigned int>(
                   static_cast<double>(duration) * 0.000016666667 + 0.99000001);
-    char time[32];
-    SStrPrintf(time, sizeof(time), format, remaining);
-    tooltip->AddLine(time, 0, 0);
+    char temp[32];
+    SStrPrintf(temp, sizeof(temp), buf, remaining);
+    tooltip->AddLine(temp, 0, 0);
   }
   tooltip->Show();
   return 0;
@@ -1257,25 +1293,27 @@ int CGTooltip_SetPlayerBuff(lua_State *L) {
 
 int CGTooltip_SetSpell(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
-  if (!lua_isnumber(L, 2) || !lua_isstring(L, 3)) {
-    return luaL_error(L, "Invalid spell slot in SetSpell");
-  }
-  unsigned int slot = static_cast<unsigned int>(lua_tonumber(L, 2) - 1.0);
-  if (slot >= 1024) {
-    return luaL_error(L, "Invalid spell slot in SetSpell");
+  unsigned int slot;
+  if (!lua_isnumber(L, 2) ||
+      !lua_isstring(L, 3) ||
+      (slot = static_cast<unsigned int>(lua_tonumber(L, 2) - 1.0)) >= 1024)
+  {
+    luaL_error(L, "Invalid spell slot in SetSpell");
   }
   const char *type = lua_tostring(L, 3);
-  int         spellID;
-  int         isPet = 0;
+  int spellID;
   if (!SStrCmpI(type, "spell", 0x7FFFFFFF)) {
     spellID = CGSpellBook::GetSpell(slot, PLAYER_SPELL);
+    slot = PLAYER_SPELL;
   } else if (!SStrCmpI(type, "ability", 0x7FFFFFFF)) {
     spellID = CGSpellBook::GetSpell(slot, PLAYER_ABILITY);
+    slot = PLAYER_ABILITY;
   } else if (!SStrCmpI(type, "pet", 0x7FFFFFFF)) {
     spellID = CGSpellBook::GetSpell(slot, PET_SPELL);
-    isPet = 1;
+    slot = PET_SPELL;
   } else {
     spellID = CGSpellBook::GetSpell(slot, PLAYER_SPELL);
+    slot = PLAYER_SPELL;
   }
 
   unsigned int cooldownTime = 0;
@@ -1285,7 +1323,7 @@ int CGTooltip_SetSpell(lua_State *L) {
     unsigned int enable = 0;
     Spell_C_GetSpellCooldown(
         spellID,
-        isPet,
+        slot == PET_SPELL,
         &duration,
         &startTime,
         &enable
@@ -1296,7 +1334,7 @@ int CGTooltip_SetSpell(lua_State *L) {
   }
 
   if (spellID > 0 &&
-      tooltip->SetSpell(spellID, 0, cooldownTime, isPet)) {
+      tooltip->SetSpell(spellID, 0, cooldownTime, slot == PET_SPELL)) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);
@@ -1306,6 +1344,7 @@ int CGTooltip_SetSpell(lua_State *L) {
 
 int CGTooltip_SetInventoryItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
+  int hasCooldown = 0;
   if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
     return luaL_error(L, "Usage: SetInventoryItem(\"unit\", slot)");
   }
@@ -1319,29 +1358,29 @@ int CGTooltip_SetInventoryItem(lua_State *L) {
   int              nameOnly = lua_isnumber(L, 4) && lua_tonumber(L, 4) > 0.0;
   CGUnit_C        *unit = Script_GetUnitFromName(lua_tostring(L, 2));
   CGBag_C         *bag = unit ? unit->GetBag() : 0;
-  unsigned __int64 itemGUID = bag ? bag->GetItem(slot) : 0;
-  CGItem_C        *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(
+      bag ? bag->GetItem(slot) : 0,
+      __FILE__,
+      __LINE__
+  ));
   if (item) {
     unsigned int duration = 0;
     unsigned long startTime = 0;
-    unsigned int enable = 0;
     Spell_C_GetItemCooldown(
         item->GetEntryID(),
         &duration,
         &startTime,
-        &enable
+        0
     );
 
-    unsigned __int64 unitGUID = unit->GetGUID();
-    int hasCooldown = 0;
     if (startTime && duration) {
       TooltipExtendedItemInfo info = {0};
       info.cooldownTime = startTime + duration - OsGetAsyncTimeMs();
       info.creator = item->GetCreator();
       hasCooldown = tooltip->SetItem(
           item->GetEntryID(),
-          unitGUID,
-          itemGUID,
+          unit->GetGUID(),
+          item->GetGUID(),
           nameOnly,
           0,
           &info
@@ -1349,8 +1388,8 @@ int CGTooltip_SetInventoryItem(lua_State *L) {
     } else {
       tooltip->SetItem(
           item->GetEntryID(),
-          unitGUID,
-          itemGUID,
+          unit->GetGUID(),
+          item->GetGUID(),
           nameOnly,
           0,
           0
@@ -1381,31 +1420,30 @@ int CGTooltip_SetLootItem(lua_State *L) {
   if (itemID <= 0) {
     return luaL_error(L, "Invalid loot slot in SetInventoryItem");
   }
-  unsigned __int64 none = 0;
-  tooltip->SetItem(itemID, CGLootInfo::GetObject(), none, 0, 1, 0);
+  tooltip->SetItem(itemID, CGLootInfo::GetObject(), 0, 0, 1, 0);
   return 0;
 }
 
 int CGTooltip_SetQuestItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
-  if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
-    return luaL_error(
+  int itemID;
+  if (!lua_isstring(L, 2) ||
+      !lua_isnumber(L, 3) ||
+      (itemID = CGQuestInfo::GetQuestItemID(
+          lua_tostring(L, 2),
+          static_cast<unsigned int>(lua_tonumber(L, 3) - 1.0)
+      )) <= 0)
+  {
+    luaL_error(
         L,
         "Invalid quest item in SetQuestItem(\"type\", index)"
     );
+    return 0;
   }
-  int itemID = CGQuestInfo::GetQuestItemID(lua_tostring(L, 2), static_cast<unsigned int>(lua_tonumber(L, 3) - 1.0));
-  if (itemID <= 0) {
-    return luaL_error(
-        L,
-        "Invalid quest item in SetQuestItem(\"type\", index)"
-    );
-  }
-  unsigned __int64 none = 0;
   tooltip->SetItem(
       itemID,
       CGQuestInfo::GetQuestGiver(),
-      none,
+      0,
       0,
       1,
       0
@@ -1415,21 +1453,21 @@ int CGTooltip_SetQuestItem(lua_State *L) {
 
 int CGTooltip_SetQuestLogItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
-  if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
-    return luaL_error(
+  int itemID;
+  if (!lua_isstring(L, 2) ||
+      !lua_isnumber(L, 3) ||
+      (itemID = CGQuestLog::GetQuestItemID(
+          lua_tostring(L, 2),
+          static_cast<int>(lua_tonumber(L, 3)) - 1
+      )) <= 0)
+  {
+    luaL_error(
         L,
         "Invalid quest item in SetQuestLogItem(\"type\", index)"
     );
+    return 0;
   }
-  int itemID = CGQuestLog::GetQuestItemID(lua_tostring(L, 2), static_cast<int>(lua_tonumber(L, 3)) - 1);
-  if (itemID <= 0) {
-    return luaL_error(
-        L,
-        "Invalid quest item in SetQuestLogItem(\"type\", index)"
-    );
-  }
-  unsigned __int64 none = 0;
-  tooltip->SetItem(itemID, none, none, 0, 1, 0);
+  tooltip->SetItem(itemID, 0, 0, 0, 1, 0);
   return 0;
 }
 
@@ -1468,14 +1506,11 @@ int CGTooltip_SetTrainerService(lua_State *L) {
     if ((triggerSpell->m_attributes & 0x20) &&
         triggerSpell->m_effect[0] == 24)
     {
-      unsigned __int64 refGUID =
-          static_cast<unsigned int>(triggerSpellID) |
-          0xB000000000000000ui64;
-      const unsigned __int64 noGUID = 0;
       tooltip->SetItem(
           triggerSpell->m_effectItemType[effect],
-          refGUID,
-          noGUID,
+          static_cast<unsigned int>(triggerSpellID) |
+              0xB000000000000000ui64,
+          0,
           0,
           1,
           0
@@ -1497,20 +1532,14 @@ int CGTooltip_SetTradeSkillItem(lua_State *L) {
         "Invalid trade skill item in SetTradeSkillItem(index [,reagent])"
     );
   }
-  unsigned int    index = static_cast<unsigned int>(lua_tonumber(L, 2) - 1.0);
+  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 2) - 1.0);
   const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(index);
   if (!info) {
-    return luaL_error(
-        L,
-        "Invalid trade skill item in SetTradeSkillItem(index [,reagent])"
-    );
+    return luaL_error(L, "Invalid trade skill item in SetTradeSkillItem(index [,reagent])");
   }
   const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
   if (!spell) {
-    return luaL_error(
-        L,
-        "Invalid trade skill item in SetTradeSkillItem(index [,reagent])"
-    );
+    return luaL_error(L, "Invalid trade skill item in SetTradeSkillItem(index [,reagent])");
   }
   int itemID = spell->m_effectItemType[0];
   if (lua_isnumber(L, 3)) {
@@ -1539,23 +1568,17 @@ int CGTooltip_SetTradeSkillItem(lua_State *L) {
 int CGTooltip_SetCraftItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
-    return luaL_error(
-        L,
-        "Invalid craft item in SetCraftItem(index, reagent)"
-    );
+    return luaL_error(L, "Invalid craft item in SetCraftItem(index, reagent)");
   }
   unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 2) - 1.0);
   const CraftInfo *info = CGCraftInfo::GetCraftInfo(index);
   if (!info) {
-    return luaL_error(
-        L,
-        "Invalid craft item in SetCraftItem(index, reagent)"
-    );
+    return luaL_error(L, "Invalid craft item in SetCraftItem(index, reagent)");
   }
   const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
-  unsigned int    reagent = static_cast<unsigned int>(lua_tonumber(L, 3));
-  int             itemID = 0;
-  unsigned int    found = 0;
+  unsigned int reagent = static_cast<unsigned int>(lua_tonumber(L, 3));
+  int itemID = 0;
+  unsigned int found = 0;
   if (spell) {
     for (unsigned int i = 0; i < 8; ++i) {
       if (spell->m_reagent[i] && ++found == reagent) {
@@ -1565,10 +1588,7 @@ int CGTooltip_SetCraftItem(lua_State *L) {
     }
   }
   if (!itemID) {
-    return luaL_error(
-        L,
-        "Invalid craft item in SetCraftItem(index, reagent)"
-    );
+    return luaL_error(L, "Invalid craft item in SetCraftItem(index, reagent)");
   }
   unsigned __int64 ref = static_cast<unsigned int>(info->spellID) | 0xB000000000000000ui64;
   unsigned __int64 none = 0;
@@ -1597,12 +1617,10 @@ int CGTooltip_SetMerchantItem(lua_State *L) {
   }
   int              index = static_cast<int>(lua_tonumber(L, 2) - 1.0);
   const VendorItem *item = CGMerchantInfo::GetItem(index);
-  unsigned __int64 merchant = CGMerchantInfo::GetMerchant();
-  if (!merchant || !item || !item->m_itemType) {
+  if (!CGMerchantInfo::GetMerchant() || !item || !item->m_itemType) {
     return 0;
   }
-  unsigned __int64 none = 0;
-  tooltip->SetItem(item->m_itemType, merchant, none, 0, 1, 0);
+  tooltip->SetItem(item->m_itemType, CGMerchantInfo::GetMerchant(), 0, 0, 1, 0);
   return 0;
 }
 
@@ -1635,8 +1653,14 @@ int CGTooltip_SetTradePlayerItem(lua_State *L) {
   {
     info.proposedEnchantment = proposedEnchantment;
   }
-  playerItemGUID = item->GetGUID();
-  tooltip->SetItem(item->GetEntryID(), playerItemGUID, playerItemGUID, 0, 1, &info);
+  tooltip->SetItem(
+      item->GetEntryID(),
+      item->GetGUID(),
+      item->GetGUID(),
+      0,
+      1,
+      &info
+  );
   return 0;
 }
 
@@ -1646,8 +1670,8 @@ int CGTooltip_SetTradeTargetItem(lua_State *L) {
     return luaL_error(L, "Invalid trade slot in SetTradeTargetItem");
   }
   unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 2) - 1.0);
-  int          targetItem = CGTradeInfo::GetTargetTradeItem(index);
-  if (targetItem <= 0) {
+  int itemID = CGTradeInfo::GetTargetTradeItem(index);
+  if (itemID <= 0) {
     return 0;
   }
   TooltipExtendedItemInfo info = {0};
@@ -1663,11 +1687,10 @@ int CGTooltip_SetTradeTargetItem(lua_State *L) {
   {
     info.proposedEnchantment = proposedEnchantment;
   }
-  unsigned __int64 none = 0;
   tooltip->SetItem(
-      targetItem,
+      itemID,
       CGTradeInfo::GetTradePartner(),
-      none,
+      0,
       0,
       1,
       &info
@@ -1697,17 +1720,19 @@ int CGTooltip_SetBagItem(lua_State *L) {
   if (bag == player->GetBag()) {
     slot += 23;
   }
-  unsigned __int64 itemGUID = slot >= 0 ? bag->GetItem(slot) : 0;
-  CGItem_C        *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(
+      slot >= 0 ? bag->GetItem(slot) : 0,
+      __FILE__,
+      __LINE__
+  ));
   if (item) {
     unsigned int duration = 0;
     unsigned long startTime = 0;
-    unsigned int enable = 0;
     Spell_C_GetItemCooldown(
         item->GetEntryID(),
         &duration,
         &startTime,
-        &enable
+        0
     );
 
     int result;
@@ -1717,8 +1742,8 @@ int CGTooltip_SetBagItem(lua_State *L) {
       info.creator = item->GetCreator();
       result = tooltip->SetItem(
           item->GetEntryID(),
-          itemGUID,
-          itemGUID,
+          item->GetGUID(),
+          item->GetGUID(),
           0,
           1,
           &info
@@ -1726,8 +1751,8 @@ int CGTooltip_SetBagItem(lua_State *L) {
     } else {
       result = tooltip->SetItem(
           item->GetEntryID(),
-          itemGUID,
-          itemGUID,
+          item->GetGUID(),
+          item->GetGUID(),
           0,
           1,
           0

@@ -62,8 +62,8 @@ HEVENTCONTEXT EventGetCurrentContext() {
 
 void EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext) {
   INSTANCELOCK instanceLock;
-  DWORD        id = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
-  EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
+  EvtContext  *context = EvtContext::GetTable().Lock(
+      hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT)), 0, instanceLock, __FILE__, __LINE__);
   if (!context) {
     return;
   }
@@ -74,8 +74,8 @@ void EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext) {
 
 DWORD EventGetContextIdleTime(HEVENTCONTEXT hContext) {
   INSTANCELOCK instanceLock;
-  DWORD        id = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
-  EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
+  EvtContext  *context = EvtContext::GetTable().Lock(
+      hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT)), 0, instanceLock, __FILE__, __LINE__);
   DWORD        idleTime;
 
   if (!context) {
@@ -112,8 +112,8 @@ void EventPostClose() {
 
 void EventPostCloseEx(HEVENTCONTEXT hContext) {
   INSTANCELOCK instanceLock;
-  DWORD        id = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
-  EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
+  EvtContext  *context = EvtContext::GetTable().Lock(
+      hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT)), 0, instanceLock, __FILE__, __LINE__);
   if (context) {
     context->SchedSetClosed();
   }
@@ -191,8 +191,8 @@ void EventSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam
 
 int EventInputProcess(HEVENTCONTEXT hContext) {
   INSTANCELOCK instanceLock;
-  DWORD        id = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
-  EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
+  EvtContext  *context = EvtContext::GetTable().Lock(
+      hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT)), 0, instanceLock, __FILE__, __LINE__);
   if (!context) {
     return 0;
   }

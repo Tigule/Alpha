@@ -125,10 +125,9 @@ int CreateChunkINDOORS(const char *command, const char *arguments) {
 
   char hashName[256];
   SStrPrintf(hashName, sizeof(hashName), "%s%s", subZoneName, zoneName);
-  unsigned int  hash = SStrHashHT(hashName);
-  CHUNKHASHOBJ *chunk = s_chunkHash.Ptr(hash, hashName);
+  CHUNKHASHOBJ *chunk = s_chunkHash.Ptr(SStrHashHT(hashName), hashName);
   if (!chunk) {
-    chunk = s_chunkHash.New(hash, hashName, 0, 0);
+    chunk = s_chunkHash.New(SStrHashHT(hashName), hashName, 0, 0);
     *s_chunkList.New() = chunk;
     s_currentChunk = s_chunkList.Count() - 1;
     chunk->chunkNumber = s_currentChunk;

@@ -350,14 +350,16 @@ void FishingLineObject::Render() {
 void FishingLineObject::RenderLine(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, const NTempest::CImVector &color) {
   NTempest::C3Vector points[201];
   NTempest::C3Vector point0 = p0;
-  NTempest::C3Vector xyIncr = (p1 - p0) * 0.005f;
-  float              maxDip = (p0 - p1).Mag() * 0.05f;
+  NTempest::C3Vector point1 = p1;
+  NTempest::C3Vector xy = point0;
+  NTempest::C3Vector xyIncr = (point1 - point0) * 0.005f;
+  float              maxDip = (point0 - point1).Mag() * 0.05f;
 
   for (unsigned int i = 0; i < 201; ++i) {
-    points[i].x = point0.x;
-    points[i].y = point0.y;
-    points[i].z = point0.z + maxDip * s_segmentPoints[i];
-    point0 += xyIncr;
+    points[i].x = xy.x;
+    points[i].y = xy.y;
+    points[i].z = xy.z + maxDip * s_segmentPoints[i];
+    xy += xyIncr;
   }
 
   GxVertexShaderSelect(GxVS_PassThru);
@@ -677,8 +679,7 @@ SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, uns
   if (visualRec->m_soundID && duration) {
     SndInterfacePlaySpellSound(visualRec->m_soundID, caster);
   }
-  NTempest::C3Vector position = caster->GetPosition();
-  SpellVisualsPlayCameraShakeID(visualRec->m_shakeID, position);
+  SpellVisualsPlayCameraShakeID(visualRec->m_shakeID, caster->GetPosition());
 
   if (!instant) {
     SpellVisualsPlayCastKit(caster, visualRec, id, 0);
@@ -955,9 +956,7 @@ static void PlayImpactKit(CGUnit_C* target, const SpellVisualKitRec* impactKit) 
       true,
       false);
 
-  NTempest::C3Vector position;
-  target->GetPosition(position);
-  SpellVisualsPlayCameraShakeID(impactKit->m_shakeID, position);
+  SpellVisualsPlayCameraShakeID(impactKit->m_shakeID, target->GetPosition());
   target->SetSpellImpactKit(impactKit);
   if (impactKit->m_soundID) {
     SndInterfacePlaySpellSound(impactKit->m_soundID, target);
@@ -1122,13 +1121,13 @@ static bool GetSpellRecords(CGUnit_C* caster, int spellID, const SpellRec*& srec
 }
 
 static void PlayOneShotEffect(
-    const NTempest::C3Vector &location,
+    const NTempest::C3Vector &pos,
     int effectID,
     const TSStackArray<unsigned __int64> &objects
 ) {
   UnitEffectOneShot(
       g_spellVisualEffectNameDB.GetRecord(effectID),
-      location,
+      pos,
       &objects,
       0.0f,
       1.0f);
@@ -1152,9 +1151,7 @@ static void PlayCastAnim(
         kitRec->m_shakeID,
         finalAnim);
     caster->AddSpellProcOneShotEffect(srec->m_ID, kitRec);
-    NTempest::C3Vector position;
-    caster->GetPosition(position);
-    SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, position);
+    SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, caster->GetPosition());
     int oldCastingSpell = caster->SetCastingSpell(srec->m_ID, 0, 0);
     if (animSuccessful) {
       torsoAnimSet = caster->SetTorsoAnimation(38, 0, 0);
@@ -1178,9 +1175,7 @@ static void PlayCastAnim(
     caster->SetCastingSpell(0, 0, 0);
   } else {
     SndInterfacePlaySpellSound(kitRec->m_soundID, caster);
-    NTempest::C3Vector position;
-    caster->GetPosition(position);
-    SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, position);
+    SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, caster->GetPosition());
   }
   if (!torsoAnimSet &&
       caster->GetCurrentTorsoAnim() == 37) {
@@ -1222,9 +1217,8 @@ void HandleMissileEffects(
       }
     }
   } else if (cast.targets & 0x40) {
-    const unsigned __int64 noTarget = 0;
     caster->StoreSpellMissileEffect(
-        noTarget, cast.destLocation, srec->m_speed,
+        0, cast.destLocation, srec->m_speed,
         ammoDisplayID, ammoInventoryType, visRec,
         missReasons == 0, MISS_PHYSICAL, srec->m_ID, wasProc);
   }
@@ -1281,7 +1275,6 @@ void SpellVisualsHandleSpellStartHits(
     int ammoInventoryType,
     int flags
 ) {
-  bool wasProc = (flags & 1) != 0;
   SpellVisualRec visRecData;
   const SpellRec *srec;
   const SpellVisualRec *visRec;
@@ -1291,15 +1284,15 @@ void SpellVisualsHandleSpellStartHits(
     return;
   }
 
-  if (!(flags & 8) && !wasProc && (cast.targets & 0x40)) {
+  if (!(flags & 8) && !(flags & 1) && (cast.targets & 0x40)) {
     PlayOneShotEffect(cast.destLocation, visRec->m_areaModel, targets);
   }
   int torsoAnimSet = 0;
-  if (!wasProc && kitRec) {
+  if (!(flags & 1) && kitRec) {
     PlayCastAnim(
         caster, srec, visRec, kitRec, targets, torsoAnimSet);
   }
-  if (kitRec && !wasProc) {
+  if (kitRec && !(flags & 1)) {
     SpellVisualsProcedure(
         caster,
         kitRec,
@@ -1311,7 +1304,7 @@ void SpellVisualsHandleSpellStartHits(
   if (srec->m_speed > 0.0f) {
     HandleMissileEffects(
         caster, srec, visRec, ammoDisplayID,
-        ammoInventoryType, cast, targets, 0, wasProc);
+        ammoInventoryType, cast, targets, 0, (flags & 1) != 0);
   } else {
     caster->MaybeSaveChannelSpellTargets(spellID, targets);
     const SpellVisualKitRec *impactKit =

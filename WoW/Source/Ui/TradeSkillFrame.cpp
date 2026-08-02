@@ -143,13 +143,13 @@ static const char s_skillCategoryStrings[4][32] = {"optimal", "medium", "easy", 
 
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 
-static void TradeSkillItemCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void TradeSkillItemCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     CGTradeSkillInfo::RefreshList(1);
   }
 }
 
-static void TradeSkillListItemCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void TradeSkillListItemCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     CGTradeSkillInfo::DecrementPendingItem();
   }
@@ -371,8 +371,9 @@ void CGTradeSkillInfo::RefreshList(int resetFilters) {
         }
       }
     }
-    unsigned __int64   guid = static_cast<unsigned __int64>(spellID) | 0xB000000000000000ui64;
-    const ItemStats_C *stats = g_itemDBCache.GetRecord(spell->m_effectItemType[0], guid, TradeSkillListItemCallback, 0);
+    const ItemStats_C *stats = g_itemDBCache.GetRecord(
+        spell->m_effectItemType[0], static_cast<unsigned __int64>(spellID) | 0xB000000000000000ui64, TradeSkillListItemCallback, 0
+    );
     if (!stats) {
       ++m_itemsPending;
       continue;
@@ -589,11 +590,12 @@ static int Script_GetTradeSkillIcon(lua_State *L) {
       CGTradeSkillInfo::GetTradeSkillInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   const SpellRec *spell =
       info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
-  unsigned __int64 guid =
-      info ? static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64 : 0;
   const ItemStats_C *stats =
       spell ? g_itemDBCache.GetRecord(
-                  spell->m_effectItemType[0], guid, TradeSkillItemCallback, 0)
+                  spell->m_effectItemType[0],
+                  info ? static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64 : 0,
+                  TradeSkillItemCallback,
+                  0)
             : 0;
   if (stats) {
     char buffer[260];
@@ -625,8 +627,9 @@ static int Script_GetTradeSkillItemStats(lua_State *L) {
   if (!spell || !spell->m_effectItemType[0]) {
     return 0;
   }
-  unsigned __int64   guid = static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(spell->m_effectItemType[0], guid, TradeSkillItemCallback, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(
+      spell->m_effectItemType[0], static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0
+  );
   if (!stats) {
     return 0;
   }
@@ -647,8 +650,9 @@ static int Script_GetTradeSkillItemLink(lua_State *L) {
   if (!spell || !spell->m_effectItemType[0]) {
     return 0;
   }
-  unsigned __int64   guid = static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(spell->m_effectItemType[0], guid, TradeSkillItemCallback, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(
+      spell->m_effectItemType[0], static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0
+  );
   if (!stats) {
     return 0;
   }
@@ -693,8 +697,9 @@ static int Script_GetTradeSkillReagentInfo(lua_State *L) {
   }
   if (spell && slot < 8) {
     int                itemID = spell->m_reagent[slot];
-    unsigned __int64   guid = static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64;
-    const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, guid, TradeSkillItemCallback, 0);
+    const ItemStats_C *stats = g_itemDBCache.GetRecord(
+        itemID, static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0
+    );
     if (stats) {
       lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
       char        buffer[260];
@@ -731,10 +736,11 @@ static int Script_GetTradeSkillTools(lua_State *L) {
       lua_pushstring(L, focus->m_name_lang[CURRENT_LANGUAGE]);
       ++count;
     }
-    unsigned __int64 guid = static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64;
     for (unsigned int i = 0; i < 2; ++i) {
       if (spell->m_totem[i]) {
-        const ItemStats_C *stats = g_itemDBCache.GetRecord(spell->m_totem[i], guid, TradeSkillItemCallback, 0);
+        const ItemStats_C *stats = g_itemDBCache.GetRecord(
+            spell->m_totem[i], static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0
+        );
         if (stats) {
           lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
           ++count;

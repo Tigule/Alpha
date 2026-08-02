@@ -37,7 +37,7 @@ int          CGQuestLog::m_serverTimeOffset;
 static int s_nextTimeUpdate;
 static int s_questCallbackCount;
 
-static void QuestQueryCounterCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void QuestQueryCounterCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     if (!s_questCallbackCount || !--s_questCallbackCount) {
       CGQuestLog::Update(1);
@@ -45,7 +45,7 @@ static void QuestQueryCounterCallback(int, const unsigned __int64 &, void *, boo
   }
 }
 
-static void QuestQueryCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void QuestQueryCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(285);
   } else {
@@ -53,37 +53,37 @@ static void QuestQueryCallback(int, const unsigned __int64 &, void *, bool grant
   }
 }
 
-static void QuestSelectQueryCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void QuestSelectQueryCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     CGQuestLog::UpdateSelection();
   }
 }
 
-static void QuestFailedCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void QuestFailedCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(285);
   }
 }
 
-static void CreatureQueryCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void CreatureQueryCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(285);
   }
 }
 
-static void ObjectQueryCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void ObjectQueryCallback(int id, const unsigned __int64 &, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(285);
   }
 }
 
-static void ItemQueryCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void ItemQueryCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(285);
   }
 }
 
-static int QuestLogUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int QuestLogUpdateHandler(unsigned __int64, unsigned int offset, unsigned int bytes, const void *, void *) {
   CGQuestLog::Update(1);
   return 1;
 }
@@ -171,16 +171,15 @@ int __cdecl QSortQuestSortTypes(const void *a, const void *b) {
 int __cdecl QSortQuests(const void *a, const void *b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  const QuestLogInfo    *info1 = static_cast<const QuestLogInfo *>(a);
-  const QuestLogInfo    *info2 = static_cast<const QuestLogInfo *>(b);
-  const unsigned __int64 noGuid = 0;
-  const QuestCache      *quest1 = info1->isHeader ? 0 : g_questDBCache.GetRecord(info1->questID, noGuid, 0, 0);
-  const QuestCache      *quest2 = info2->isHeader ? 0 : g_questDBCache.GetRecord(info2->questID, noGuid, 0, 0);
+  const QuestLogInfo     info1 = *static_cast<const QuestLogInfo *>(a);
+  const QuestLogInfo     info2 = *static_cast<const QuestLogInfo *>(b);
+  const QuestCache      *quest1 = info1.isHeader ? 0 : g_questDBCache.GetRecord(info1.questID, 0, 0, 0);
+  const QuestCache      *quest2 = info2.isHeader ? 0 : g_questDBCache.GetRecord(info2.questID, 0, 0, 0);
   unsigned int           sortRank1 = 0;
   unsigned int           sortRank2 = 0;
   unsigned int           i;
-  int                    sortID1 = info1->isHeader ? info1->questID : quest1 ? quest1->m_questSortID : 0;
-  int                    sortID2 = info2->isHeader ? info2->questID : quest2 ? quest2->m_questSortID : 0;
+  int                    sortID1 = info1.isHeader ? info1.questID : quest1 ? quest1->m_questSortID : 0;
+  int                    sortID2 = info2.isHeader ? info2.questID : quest2 ? quest2->m_questSortID : 0;
   for (i = 0; i < CGQuestLog::m_numSortTypes; ++i) {
     if (CGQuestLog::m_sortTypes[i] == sortID1) {
       sortRank1 = i;
@@ -189,8 +188,8 @@ int __cdecl QSortQuests(const void *a, const void *b) {
       sortRank2 = i;
     }
   }
-  int hidden1 = !info1->isHeader && sortRank1 < 16 && !(CGQuestLog::m_collapseFilter & (1 << sortRank1));
-  int hidden2 = !info2->isHeader && sortRank2 < 16 && !(CGQuestLog::m_collapseFilter & (1 << sortRank2));
+  int hidden1 = !info1.isHeader && sortRank1 < 16 && !(CGQuestLog::m_collapseFilter & (1 << sortRank1));
+  int hidden2 = !info2.isHeader && sortRank2 < 16 && !(CGQuestLog::m_collapseFilter & (1 << sortRank2));
   if (hidden1) {
     return hidden2 ? 0 : 1;
   }
@@ -200,10 +199,10 @@ int __cdecl QSortQuests(const void *a, const void *b) {
   if (sortRank1 != sortRank2) {
     return sortRank1 < sortRank2 ? -1 : 1;
   }
-  if (info1->isHeader) {
+  if (info1.isHeader) {
     return -1;
   }
-  if (info2->isHeader) {
+  if (info2.isHeader) {
     return 1;
   }
   if (!quest1 || !quest2) {
@@ -234,6 +233,7 @@ void CGQuestLog::Update(int resetFilters) {
     m_quests[i].isHeader = 0;
   }
   memset(m_sortTypes, 0, sizeof(m_sortTypes));
+  int offset = m_serverTimeOffset;
   m_numQuests = 0;
   m_numSortTypes = 0;
   m_expiredQuests = 0;
@@ -242,8 +242,7 @@ void CGQuestLog::Update(int resetFilters) {
     const CQuestLogData *entry = player->GetQuestLogData(i);
     int                  questID = entry->m_questID;
     if (questID > 0) {
-      const unsigned __int64 noGuid = 0;
-      const QuestCache      *quest = g_questDBCache.GetRecord(questID, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCounterCallback), 0);
+      const QuestCache *quest = g_questDBCache.GetRecord(questID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCounterCallback), 0);
       if (!quest) {
         ++s_questCallbackCount;
         continue;
@@ -251,7 +250,7 @@ void CGQuestLog::Update(int resetFilters) {
       m_quests[m_numQuests].questID = questID;
       m_quests[m_numQuests].logIndex = i;
       if (entry->m_questFailureTime && static_cast<int>(entry->m_questFlags) >= 0 &&
-          m_serverTimeOffset + entry->m_questFailureTime - OsGetTime() - 1 < 0) {
+          offset + entry->m_questFailureTime - OsGetTime() - 1 < 0) {
         m_expiredQuests |= 1 << i;
       }
       ++m_numQuests;
@@ -322,8 +321,7 @@ int CGQuestLog::GetQuestSortIndex(unsigned int index) {
   }
   int sortID = m_quests[index].questID;
   if (!m_quests[index].isHeader) {
-    const unsigned __int64 noGuid = 0;
-    const QuestCache      *quest = g_questDBCache.GetRecord(sortID, noGuid, 0, 0);
+    const QuestCache *quest = g_questDBCache.GetRecord(sortID, 0, 0, 0);
     if (!quest) {
       return -1;
     }
@@ -356,8 +354,7 @@ void CGQuestLog::SetSelectedQuest(int index) {
 }
 
 void CGQuestLog::UpdateSelection() {
-  const unsigned __int64 noGuid = 0;
-  const QuestCache *quest = g_questDBCache.GetRecord(m_selectedQuest, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestSelectQueryCallback), 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(m_selectedQuest, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestSelectQueryCallback), 0);
   if (quest) {
     MinimapSetQuestPOI(quest->m_POIx, quest->m_POIy, quest->m_POIPriority, quest->m_logTitle);
   }
@@ -379,8 +376,7 @@ int CGQuestLog::GetSelectedLogEntry() {
 }
 
 const char *CGQuestLog::GetAbandonQuestName() {
-  const unsigned __int64 noGuid = 0;
-  const QuestCache      *quest = g_questDBCache.GetRecord(m_abandonQuest, noGuid, 0, 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(m_abandonQuest, 0, 0, 0);
   return quest ? quest->m_logTitle : 0;
 }
 
@@ -431,8 +427,7 @@ const char *CGQuestLog::GetQuestName(int index) {
     }
     return "Missing header! (quest designers)";
   }
-  const unsigned __int64 noGuid = 0;
-  const QuestCache *quest = g_questDBCache.GetRecord(m_quests[index].questID, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(m_quests[index].questID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
   return quest ? quest->m_logTitle : 0;
 }
 
@@ -440,8 +435,7 @@ const char *CGQuestLog::GetQuestTag(int index) {
   if (index < 0 || static_cast<unsigned int>(index) >= m_numQuests || m_quests[index].isHeader) {
     return 0;
   }
-  const unsigned __int64 noGuid = 0;
-  const QuestCache *quest = g_questDBCache.GetRecord(m_quests[index].questID, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(m_quests[index].questID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
   const QuestInfoRec *info = quest ? g_questInfoDB.GetRecord(quest->m_questInfoID) : 0;
   return info ? info->m_InfoName_lang[CURRENT_LANGUAGE] : 0;
 }
@@ -450,8 +444,7 @@ int CGQuestLog::GetQuestLevel(int index) {
   if (index < 0 || static_cast<unsigned int>(index) >= m_numQuests || m_quests[index].isHeader) {
     return 0;
   }
-  const unsigned __int64 noGuid = 0;
-  const QuestCache *quest = g_questDBCache.GetRecord(m_quests[index].questID, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(m_quests[index].questID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
   return quest ? quest->m_questLevel : 0;
 }
 
@@ -459,8 +452,7 @@ int CGQuestLog::GetQuestItemID(const char *type, int index) {
   if (!type || !*type || index < 0) {
     return 0;
   }
-  const unsigned __int64 noGuid = 0;
-  const QuestCache      *quest = g_questDBCache.GetRecord(m_selectedQuest, noGuid, 0, 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(m_selectedQuest, 0, 0, 0);
   if (!quest) {
     return 0;
   }
@@ -565,16 +557,13 @@ static int Script_AbandonQuest(lua_State *__formal) {
 }
 
 static int Script_GetQuestLogQuestText(lua_State *L) {
-  const unsigned __int64 noGuid = 0;
   const QuestCache      *quest =
-      g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
+      g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
   char logDesc[1024];
   char questText[1024];
   if (quest) {
-    unsigned __int64 player = ClntObjMgrGetActivePlayer();
-    QuestParserParseText(quest->m_questDescription, questText, sizeof(questText), player, 0);
-    player = ClntObjMgrGetActivePlayer();
-    QuestParserParseText(quest->m_logDescription, logDesc, sizeof(logDesc), player, 0);
+    QuestParserParseText(quest->m_questDescription, questText, sizeof(questText), ClntObjMgrGetActivePlayer(), 0);
+    QuestParserParseText(quest->m_logDescription, logDesc, sizeof(logDesc), ClntObjMgrGetActivePlayer(), 0);
     lua_pushstring(L, questText);
     lua_pushstring(L, logDesc);
   } else {
@@ -588,9 +577,8 @@ static int Script_GetNumQuestLeaderBoards(lua_State *L) {
   int                    count = 0;
   CGPlayer_C            *player = static_cast<CGPlayer_C *>(
       ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const unsigned __int64 noGuid = 0;
   const QuestCache      *quest =
-      player ? g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0) : 0;
+      player ? g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0) : 0;
   if (quest) {
     if (quest->m_areaDescription[0]) {
       ++count;
@@ -615,9 +603,8 @@ static int Script_GetQuestLogLeaderBoard(lua_State *L) {
   }
   int wanted = static_cast<int>(lua_tonumber(L, 1));
   int logEntry = CGQuestLog::GetSelectedLogEntry();
-  const unsigned __int64 noGuid = 0;
   const QuestCache      *quest =
-      g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
+      g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestQueryCallback), 0);
   CGPlayer_C            *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   const CQuestLogData   *logData = player && logEntry >= 0 && logEntry < 17 ? player->GetQuestLogData(logEntry) : 0;
   if (!quest || !logData) {
@@ -657,7 +644,7 @@ static int Script_GetQuestLogLeaderBoard(lua_State *L) {
       if (quest->m_monsterToKill[index] >= 0) {
         SStrCopy(format, FrameScript_GetText("QUEST_MONSTERS_KILLED", -1, GENDER_NOT_APPLICABLE), sizeof(format));
         const CreatureStats_C *stats = g_creatureDBCache.GetRecord(
-            quest->m_monsterToKill[index], noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(CreatureQueryCallback), 0
+            quest->m_monsterToKill[index], 0, reinterpret_cast<DBCACHECALLBACKPROC>(CreatureQueryCallback), 0
         );
         if (stats) {
           name = stats->m_name[FrameScript_GetPluralIndex(quest->m_monsterToKillQuantity[index])];
@@ -668,7 +655,7 @@ static int Script_GetQuestLogLeaderBoard(lua_State *L) {
         if (!*name) {
           const GameObjectStats_C *stats = g_gameObjectDBCache.GetRecord(
               quest->m_monsterToKill[index] & 0x7FFFFFFF,
-              noGuid,
+              0,
               reinterpret_cast<DBCACHECALLBACKPROC>(ObjectQueryCallback),
               0
           );
@@ -700,7 +687,7 @@ static int Script_GetQuestLogLeaderBoard(lua_State *L) {
       char buf[256];
       SStrCopy(format, FrameScript_GetText("QUEST_ITEMS_NEEDED", -1, GENDER_NOT_APPLICABLE), sizeof(format));
       const ItemStats_C *stats =
-          g_itemDBCache.GetRecord(quest->m_itemToGet[index], noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(ItemQueryCallback), 0);
+          g_itemDBCache.GetRecord(quest->m_itemToGet[index], 0, reinterpret_cast<DBCACHECALLBACKPROC>(ItemQueryCallback), 0);
       const char *name = stats ? stats->m_displayName[FrameScript_GetPluralIndex(quest->m_itemToGetQuantity[index])] : " ";
       SStrPrintf(buf, sizeof(buf), format, name, current, quest->m_itemToGetQuantity[index]);
       lua_pushstring(L, buf);
@@ -751,8 +738,7 @@ static int Script_IsCurrentQuestFailed(lua_State *L) {
 
 static int Script_GetNumQuestLogRewards(lua_State *L) {
   int                    count = 0;
-  const unsigned __int64 noGuid = 0;
-  const QuestCache      *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), noGuid, 0, 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, 0, 0);
   int                    index;
   for (index = 0; quest && index < 4; ++index) {
     if (quest->m_rewardItems[index]) {
@@ -765,8 +751,7 @@ static int Script_GetNumQuestLogRewards(lua_State *L) {
 
 static int Script_GetNumQuestLogChoices(lua_State *L) {
   int                    count = 0;
-  const unsigned __int64 noGuid = 0;
-  const QuestCache      *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), noGuid, 0, 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, 0, 0);
   int                    index;
   for (index = 0; quest && index < 6; ++index) {
     if (quest->m_rewardChoiceItems[index]) {
@@ -782,10 +767,9 @@ static int Script_GetQuestLogRewardInfo(lua_State *L) {
     return luaL_error(L, "Usage: GetQuestLogRewardInfo(index)");
   }
   int                    index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  const unsigned __int64 noGuid = 0;
-  const QuestCache      *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), noGuid, 0, 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, 0, 0);
   int                    itemID = quest && index >= 0 && index < 4 ? quest->m_rewardItems[index] : 0;
-  const ItemStats_C     *stats = itemID ? g_itemDBCache.GetRecord(itemID, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(ItemQueryCallback), 0) : 0;
+  const ItemStats_C *stats = itemID ? g_itemDBCache.GetRecord(itemID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(ItemQueryCallback), 0) : 0;
   if (!stats) {
     lua_pushnil(L);
     lua_pushnil(L);
@@ -794,7 +778,7 @@ static int Script_GetQuestLogRewardInfo(lua_State *L) {
     lua_pushnil(L);
     return 5;
   }
-  char        texture[260];
+  static char texture[260];
   const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   SStrPrintf(texture, sizeof(texture), "%s%s", path, *path ? "\\" : "");
   SStrPack(texture, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(texture));
@@ -817,10 +801,9 @@ static int Script_GetQuestLogChoiceInfo(lua_State *L) {
     return luaL_error(L, "Usage: GetQuestLogRewardInfo(index)");
   }
   int                    index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  const unsigned __int64 noGuid = 0;
-  const QuestCache      *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), noGuid, 0, 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, 0, 0);
   int                    itemID = quest && index >= 0 && index < 6 ? quest->m_rewardChoiceItems[index] : 0;
-  const ItemStats_C     *stats = itemID ? g_itemDBCache.GetRecord(itemID, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(ItemQueryCallback), 0) : 0;
+  const ItemStats_C *stats = itemID ? g_itemDBCache.GetRecord(itemID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(ItemQueryCallback), 0) : 0;
   if (!stats) {
     lua_pushnil(L);
     lua_pushnil(L);
@@ -829,7 +812,7 @@ static int Script_GetQuestLogChoiceInfo(lua_State *L) {
     lua_pushnil(L);
     return 5;
   }
-  char        texture[260];
+  static char texture[260];
   const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   SStrPrintf(texture, sizeof(texture), "%s%s", path, *path ? "\\" : "");
   SStrPack(texture, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(texture));
@@ -848,8 +831,7 @@ static int Script_GetQuestLogChoiceInfo(lua_State *L) {
 }
 
 static int Script_GetQuestLogRewardMoney(lua_State *L) {
-  const unsigned __int64 noGuid = 0;
-  const QuestCache      *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), noGuid, 0, 0);
+  const QuestCache *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, 0, 0);
   lua_pushnumber(L, static_cast<double>(quest ? quest->m_rewardMoney : 0));
   return 1;
 }
@@ -859,20 +841,20 @@ static int Script_GetQuestTimers(lua_State *L) {
   unsigned int   numEntries = CGQuestLog::GetNumEntries();
   CGPlayer_C    *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   unsigned int   index;
+  int            offset;
   for (index = 0; player && index < numEntries; ++index) {
     if (CGQuestLog::IsQuestHeader(index)) {
       continue;
     }
-    int offset = CGQuestLog::GetQuestLogEntry(index);
+    offset = CGQuestLog::GetQuestLogEntry(index);
     if (offset >= 0 && offset < 17) {
       const CQuestLogData *logData = player->GetQuestLogData(offset);
       if (logData->m_questFailureTime && static_cast<int>(logData->m_questFlags) >= 0 && !CGQuestLog::IsQuestExpired(index)) {
         int timeLeft = CGQuestLog::GetServerTimeOffset() + logData->m_questFailureTime - OsGetTime() - 1;
         if (timeLeft < 0) {
           CGQuestLog::SetQuestExpired(index);
-          const unsigned __int64 noGuid = 0;
           const QuestCache *quest = g_questDBCache.GetRecord(
-              logData->m_questID, noGuid, reinterpret_cast<DBCACHECALLBACKPROC>(QuestFailedCallback), 0
+              logData->m_questID, 0, reinterpret_cast<DBCACHECALLBACKPROC>(QuestFailedCallback), 0
           );
           if (quest) {
             CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(125), quest->m_logTitle);
@@ -897,12 +879,13 @@ static int Script_GetQuestIndexForTimer(lua_State *L) {
   int            count = 0;
   unsigned int   numEntries = CGQuestLog::GetNumEntries();
   CGPlayer_C    *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned int   index;
+  int            index;
+  int            offset;
   for (index = 0; player && index < numEntries; ++index) {
     if (CGQuestLog::IsQuestHeader(index)) {
       continue;
     }
-    int offset = CGQuestLog::GetQuestLogEntry(index);
+    offset = CGQuestLog::GetQuestLogEntry(index);
     if (offset >= 0 && offset < 17) {
       const CQuestLogData *logData = player->GetQuestLogData(offset);
       if (logData->m_questFailureTime && static_cast<int>(logData->m_questFlags) >= 0 &&

@@ -66,17 +66,15 @@ static void Blit_Argb8888_Rgb565(const C2iVector &size, const void *in, unsigned
 }
 
 static void Blit_Argb8888_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
-  unsigned int rowSize = sizeof(CImVector) * size.x;
-  if (rowSize == inStride && rowSize == outStride) {
-    memcpy(out, in, rowSize * size.y);
+  if (sizeof(CImVector) * size.x == inStride && sizeof(CImVector) * size.x == outStride) {
+    memcpy(out, in, sizeof(CImVector) * size.x * size.y);
     return;
   }
 
   const unsigned char *src = static_cast<const unsigned char *>(in);
   unsigned char       *dst = static_cast<unsigned char *>(out);
-  int                  y;
-  for (y = 0; y < size.y; ++y) {
-    memcpy(dst, src, rowSize);
+  for (int y = size.y; y; --y) {
+    memcpy(dst, src, sizeof(CImVector) * size.x);
     src += inStride;
     dst += outStride;
   }
@@ -85,8 +83,7 @@ static void Blit_Argb8888_Argb8888(const C2iVector &size, const void *in, unsign
 static void Blit_Argb8888_Argb8888_A1(const C2iVector &size, const void *i, unsigned int iStride, void *o, unsigned int oStride) {
   const CImVector *src = static_cast<const CImVector *>(i);
   CImVector       *dst = static_cast<CImVector *>(o);
-  int              y;
-  for (y = 0; y < size.y; ++y) {
+  for (int y = size.y; y; --y) {
     int x;
     for (x = 0; x < size.x; ++x) {
       if (src[x].a) {
@@ -104,23 +101,28 @@ static void Blit_Argb8888_Argb8888_A1(const C2iVector &size, const void *i, unsi
 static void Blit_Argb8888_Argb8888_A8(const C2iVector &size, const void *i, unsigned int iStride, void *o, unsigned int oStride) {
   const CImVector *src = static_cast<const CImVector *>(i);
   CImVector       *dst = static_cast<CImVector *>(o);
-  int              y;
-  for (y = 0; y < size.y; ++y) {
+  for (int y = size.y; y; --y) {
     int x;
     for (x = 0; x < size.x; ++x) {
-      unsigned int alpha = src[x].a;
-      if (!alpha) {
+      if (!(*src[x].IV_() & CImVector::eAlphaMask)) {
         continue;
       }
 
-      if (alpha == 255) {
-        dst[x].r = src[x].r;
-        dst[x].g = src[x].g;
-        dst[x].b = src[x].b;
+      if ((*src[x].IV_() >> CImVector::eAlphaS) == 255) {
+        dst[x].SetRGB(src + x);
       } else {
-        dst[x].r += alpha * (src[x].r - dst[x].r) >> 8;
-        dst[x].g += alpha * (src[x].g - dst[x].g) >> 8;
-        dst[x].b += alpha * (src[x].b - dst[x].b) >> 8;
+        dst[x].Set(
+            dst[x].a,
+            static_cast<unsigned char>(
+                dst[x].r + (((*src[x].IV_() >> CImVector::eAlphaS) * (src[x].r - dst[x].r)) >> 8)
+            ),
+            static_cast<unsigned char>(
+                dst[x].g + (((*src[x].IV_() >> CImVector::eAlphaS) * (src[x].g - dst[x].g)) >> 8)
+            ),
+            static_cast<unsigned char>(
+                dst[x].b + (((*src[x].IV_() >> CImVector::eAlphaS) * (src[x].b - dst[x].b)) >> 8)
+            )
+        );
       }
     }
 
@@ -130,17 +132,15 @@ static void Blit_Argb8888_Argb8888_A8(const C2iVector &size, const void *i, unsi
 }
 
 static void Blit_uint16_uint16(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
-  unsigned int rowSize = sizeof(unsigned short) * size.x;
-  if (rowSize == inStride && rowSize == outStride) {
-    memcpy(out, in, rowSize * size.y);
+  if (sizeof(unsigned short) * size.x == inStride && sizeof(unsigned short) * size.x == outStride) {
+    memcpy(out, in, sizeof(unsigned short) * size.x * size.y);
     return;
   }
 
   const unsigned char *src = static_cast<const unsigned char *>(in);
   unsigned char       *dst = static_cast<unsigned char *>(out);
-  int                  y;
-  for (y = 0; y < size.y; ++y) {
-    memcpy(dst, src, rowSize);
+  for (int y = size.y; y; --y) {
+    memcpy(dst, src, sizeof(unsigned short) * size.x);
     src += inStride;
     dst += outStride;
   }

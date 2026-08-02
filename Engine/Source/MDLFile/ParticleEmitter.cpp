@@ -31,15 +31,15 @@ static void IAddParticleErrors(TSet &errors) {
 
 static void IReadParticleKeyFrames(
     Parser &parse,
-    unsigned int savedToken,
+    unsigned int savedtoken,
     const char *tokenText,
     MDLPARTICLE *options
 ) {
-  if (savedToken == 0x15D) {
+  if (savedtoken == 0x15D) {
     ReadObjectFloatKeyframes(parse, &options->speed);
-  } else if (savedToken == 0x165) {
+  } else if (savedtoken == 0x165) {
     ReadObjectFloatKeyframes(parse, &options->life);
-  } else if (savedToken == 0x1A0) {
+  } else if (savedtoken == 0x1A0) {
     SStrCopy(options->path, parse.ExpectString(), 260);
     parse.Expect(',');
   } else {
@@ -50,13 +50,13 @@ static void IReadParticleKeyFrames(
 
 static void IReadParticleStaticData(
     Parser &parse,
-    unsigned int savedToken,
+    unsigned int savedtoken,
     const char *tokenText,
     MDLPARTICLE *options
 ) {
-  if (savedToken == 0x15D) {
+  if (savedtoken == 0x15D) {
     ReadFloatKeyData(parse, &options->staticSpeed, 1);
-  } else if (savedToken == 0x165) {
+  } else if (savedtoken == 0x165) {
     ReadFloatKeyData(parse, &options->staticLife, 1);
   } else {
     parse.FatalUnexpected(tokenText);
@@ -68,35 +68,35 @@ static void IReadParticleOptions(Parser &parse, MDLPARTICLE *options) {
   TSet errors;
   IAddParticleErrors(errors);
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int savedToken = parse.Token(&tokenText, 0);
-  while (savedToken && savedToken != '}') {
+  const char *tokentext;
+  unsigned int savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken && savedtoken != '}') {
     int expectAnimation =
-        IExpectAnimation(parse, &savedToken, &tokenText);
-    if (!errors.Check(savedToken)) {
-      parse.FatalDuplicate(tokenText);
+        IExpectAnimation(parse, &savedtoken, &tokentext);
+    if (!errors.Check(savedtoken)) {
+      parse.FatalDuplicate(tokentext);
     }
     if (expectAnimation) {
       IReadParticleKeyFrames(
-          parse, savedToken, tokenText, options
+          parse, savedtoken, tokentext, options
       );
     } else {
       IReadParticleStaticData(
-          parse, savedToken, tokenText, options
+          parse, savedtoken, tokentext, options
       );
     }
-    savedToken = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', savedToken, tokenText);
+  parse.Expect('}', savedtoken, tokentext);
 }
 
 static void IReadParticleEmitterKeyFrames(
     Parser &parse,
-    unsigned int savedToken,
+    unsigned int savedtoken,
     const char *tokenText,
     MDLPARTICLEEMITTER *emitter
 ) {
-  switch (savedToken) {
+  switch (savedtoken) {
     case 0x144:
       ReadObjectFloatKeyframes(parse, &emitter->emissionRate);
       break;
@@ -123,12 +123,12 @@ static void IReadParticleEmitterKeyFrames(
 
 static void IReadParticleEmitterStaticData(
     Parser &parse,
-    unsigned int savedToken,
+    unsigned int savedtoken,
     const char *tokenText,
     MDLPARTICLEEMITTER *emitter
 ) {
   float *value = 0;
-  switch (savedToken) {
+  switch (savedtoken) {
     case 0x144: value = &emitter->staticEmissionRate; break;
     case 0x153: value = &emitter->staticGravity; break;
     case 0x161: value = &emitter->staticLongitude; break;
@@ -143,12 +143,12 @@ static void IReadParticleEmitterStaticData(
 
 static int IReadParticleEmitterFlags(
     Parser &parse,
-    unsigned int savedToken,
+    unsigned int savedtoken,
     MDLPARTICLEEMITTER *emitter
 ) {
-  if (savedToken == 0x145) {
+  if (savedtoken == 0x145) {
     emitter->flags |= 0x8000;
-  } else if (savedToken == 0x146) {
+  } else if (savedtoken == 0x146) {
     emitter->flags |= 0x10000;
   } else {
     return 0;
@@ -164,33 +164,33 @@ static void IReadParticleEmitter(
     CMDLStatus *status
 ) {
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int savedToken = parse.Token(&tokenText, 0);
-  while (savedToken && savedToken != '}') {
+  const char *tokentext;
+  unsigned int savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken && savedtoken != '}') {
     int expectAnimation =
-        IExpectAnimation(parse, &savedToken, &tokenText);
-    if (!errors.Check(savedToken)) {
-      parse.FatalDuplicate(tokenText);
+        IExpectAnimation(parse, &savedtoken, &tokentext);
+    if (!errors.Check(savedtoken)) {
+      parse.FatalDuplicate(tokentext);
     }
     if (!ReadObjectBody(
-            parse, savedToken, 0, emitter, status
+            parse, savedtoken, 0, emitter, status
         )
         && !IReadParticleEmitterFlags(
-            parse, savedToken, emitter
+            parse, savedtoken, emitter
         )) {
       if (expectAnimation) {
         IReadParticleEmitterKeyFrames(
-            parse, savedToken, tokenText, emitter
+            parse, savedtoken, tokentext, emitter
         );
       } else {
         IReadParticleEmitterStaticData(
-            parse, savedToken, tokenText, emitter
+            parse, savedtoken, tokentext, emitter
         );
       }
     }
-    savedToken = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', savedToken, tokenText);
+  parse.Expect('}', savedtoken, tokentext);
 }
 
 namespace MDL {
@@ -333,14 +333,15 @@ namespace MDL {
 int WriteParticleEmitters(
     const MDLDATA &data,
     TSGrowableArray<char> &buffer,
-    CMDLStatus *
+  CMDLStatus *
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]) {
-    int needObjIds =
-        data.particleEmitters.Count() != data.objects.Count();
     for (unsigned int i = 0; i < data.particleEmitters.Count(); ++i) {
       IWriteParticleEmitter(
-          data, data.particleEmitters[i], needObjIds, buffer
+          data,
+          data.particleEmitters[i],
+          data.particleEmitters.Count() != data.objects.Count(),
+          buffer
       );
     }
   }
@@ -353,58 +354,63 @@ static unsigned int GetBinParticleEmitterSize(
     const MDLPARTICLEEMITTER &section
 ) {
   unsigned int size = GetBinGenObjectSize(section) + 288;
-  const MDLKEYTRACK<float> *tracks[7] = {
-      &section.emissionRate,
-      &section.gravity,
-      &section.longitude,
-      &section.latitude,
-      &section.particle.life,
-      &section.particle.speed,
-      &section.visibilityKeys
-  };
-  for (unsigned int i = 0; i < 7; ++i) {
-    if (tracks[i]->keys.Count()) {
-      unsigned int values = tracks[i]->type > TRACK_LINEAR ? 3 : 1;
-      size += 16
-          + tracks[i]->keys.Count() * (4 + 4 * values);
-    }
+  if (section.emissionRate.keys.Count()) {
+    size += 16 + section.emissionRate.keys.Count() * (4 + 4 * (section.emissionRate.type > TRACK_LINEAR ? 3 : 1));
+  }
+  if (section.gravity.keys.Count()) {
+    size += 16 + section.gravity.keys.Count() * (4 + 4 * (section.gravity.type > TRACK_LINEAR ? 3 : 1));
+  }
+  if (section.longitude.keys.Count()) {
+    size += 16 + section.longitude.keys.Count() * (4 + 4 * (section.longitude.type > TRACK_LINEAR ? 3 : 1));
+  }
+  if (section.latitude.keys.Count()) {
+    size += 16 + section.latitude.keys.Count() * (4 + 4 * (section.latitude.type > TRACK_LINEAR ? 3 : 1));
+  }
+  if (section.particle.life.keys.Count()) {
+    size += 16 + section.particle.life.keys.Count() * (4 + 4 * (section.particle.life.type > TRACK_LINEAR ? 3 : 1));
+  }
+  if (section.particle.speed.keys.Count()) {
+    size += 16 + section.particle.speed.keys.Count() * (4 + 4 * (section.particle.speed.type > TRACK_LINEAR ? 3 : 1));
+  }
+  if (section.visibilityKeys.keys.Count()) {
+    size += 16 + section.visibilityKeys.keys.Count() * (4 + 4 * (section.visibilityKeys.type > TRACK_LINEAR ? 3 : 1));
   }
   return size;
 }
 
 static void IWriteBinParticleEmitter(
     const MDLPARTICLEEMITTER &section,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *status
 ) {
-  buffer.AddUint(GetBinParticleEmitterSize(section));
-  WriteBinGenObject(section, buffer, status);
-  buffer.AddFloat(section.staticEmissionRate);
-  buffer.AddFloat(section.staticGravity);
-  buffer.AddFloat(section.staticLongitude);
-  buffer.AddFloat(section.staticLatitude);
-  buffer.AddTcharArray(section.particle.path, 260, 1);
-  buffer.AddFloat(section.particle.staticLife);
-  buffer.AddFloat(section.particle.staticSpeed);
-  WriteBinFloatKeyFrames(section.emissionRate, 0x4545504B, buffer);
-  WriteBinFloatKeyFrames(section.gravity, 0x4745504B, buffer);
-  WriteBinFloatKeyFrames(section.longitude, 0x4E4C504B, buffer);
-  WriteBinFloatKeyFrames(section.latitude, 0x544C504B, buffer);
-  WriteBinFloatKeyFrames(section.particle.life, 0x4C45504B, buffer);
-  WriteBinFloatKeyFrames(section.particle.speed, 0x5345504B, buffer);
-  WriteBinFloatKeyFrames(section.visibilityKeys, 0x5349564B, buffer);
+  buf.AddUint(GetBinParticleEmitterSize(section));
+  WriteBinGenObject(section, buf, status);
+  buf.AddFloat(section.staticEmissionRate);
+  buf.AddFloat(section.staticGravity);
+  buf.AddFloat(section.staticLongitude);
+  buf.AddFloat(section.staticLatitude);
+  buf.AddTcharArray(section.particle.path, 260, 1);
+  buf.AddFloat(section.particle.staticLife);
+  buf.AddFloat(section.particle.staticSpeed);
+  WriteBinFloatKeyFrames(section.emissionRate, 0x4545504B, buf);
+  WriteBinFloatKeyFrames(section.gravity, 0x4745504B, buf);
+  WriteBinFloatKeyFrames(section.longitude, 0x4E4C504B, buf);
+  WriteBinFloatKeyFrames(section.latitude, 0x544C504B, buf);
+  WriteBinFloatKeyFrames(section.particle.life, 0x4C45504B, buf);
+  WriteBinFloatKeyFrames(section.particle.speed, 0x5345504B, buf);
+  WriteBinFloatKeyFrames(section.visibilityKeys, 0x5349564B, buf);
 }
 
 static int ReadBinParticleEmitter(
-    CMsgBuffer &buffer,
-    MDLPARTICLEEMITTER *emitter,
+    CMsgBuffer &buf,
+    MDLPARTICLEEMITTER *pEmit,
     CMDLStatus *status,
     unsigned int &totalRead
 ) {
-  unsigned int sectionLength = buffer.GetUint();
+  unsigned int sectionLength = buf.GetUint();
   unsigned int localBytesRead = 4;
   if (!ReadBinGenObject(
-          *emitter, buffer, status, localBytesRead
+          *pEmit, buf, status, localBytesRead
       )) {
     status->Add(
         STATUS_ERROR,
@@ -412,56 +418,56 @@ static int ReadBinParticleEmitter(
     );
     return 0;
   }
-  emitter->staticEmissionRate = buffer.GetFloat();
-  emitter->staticGravity = buffer.GetFloat();
-  emitter->staticLongitude = buffer.GetFloat();
-  emitter->staticLatitude = buffer.GetFloat();
-  buffer.GetTcharArray(emitter->particle.path, 260);
-  emitter->particle.staticLife = buffer.GetFloat();
-  emitter->particle.staticSpeed = buffer.GetFloat();
+  pEmit->staticEmissionRate = buf.GetFloat();
+  pEmit->staticGravity = buf.GetFloat();
+  pEmit->staticLongitude = buf.GetFloat();
+  pEmit->staticLatitude = buf.GetFloat();
+  buf.GetTcharArray(pEmit->particle.path, 260);
+  pEmit->particle.staticLife = buf.GetFloat();
+  pEmit->particle.staticSpeed = buf.GetFloat();
   localBytesRead += 284;
   while (localBytesRead < sectionLength) {
-    unsigned long tag = buffer.GetDword();
+    unsigned long tag = buf.GetDword();
     localBytesRead += 4;
     int ok = 1;
     switch (tag) {
       case 0x4545504B:
         ok = ReadBinFloatKeyFrames(
-            emitter->emissionRate, buffer, localBytesRead
+            pEmit->emissionRate, buf, localBytesRead
         );
         break;
       case 0x4745504B:
         ok = ReadBinFloatKeyFrames(
-            emitter->gravity, buffer, localBytesRead
+            pEmit->gravity, buf, localBytesRead
         );
         break;
       case 0x4E4C504B:
         ok = ReadBinFloatKeyFrames(
-            emitter->longitude, buffer, localBytesRead
+            pEmit->longitude, buf, localBytesRead
         );
         break;
       case 0x544C504B:
         ok = ReadBinFloatKeyFrames(
-            emitter->latitude, buffer, localBytesRead
+            pEmit->latitude, buf, localBytesRead
         );
         break;
       case 0x4C45504B:
         ok = ReadBinFloatKeyFrames(
-            emitter->particle.life, buffer, localBytesRead
+            pEmit->particle.life, buf, localBytesRead
         );
         break;
       case 0x5345504B:
         ok = ReadBinFloatKeyFrames(
-            emitter->particle.speed, buffer, localBytesRead
+            pEmit->particle.speed, buf, localBytesRead
         );
         break;
       case 0x5349564B:
         ok = ReadBinFloatKeyFrames(
-            emitter->visibilityKeys, buffer, localBytesRead
+            pEmit->visibilityKeys, buf, localBytesRead
         );
         break;
       default:
-        SkipUnknown(buffer, localBytesRead);
+        SkipUnknown(buf, localBytesRead);
         break;
     }
     if (!ok) {
@@ -484,12 +490,12 @@ namespace MDL {
 
 int WriteBinParticleEmitters(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *status
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]
       && data.particleEmitters.Count()) {
-    buffer.AddDword('MERP');
+    buf.AddDword('MERP');
     unsigned int totalSize = 4;
     unsigned int i;
     for (i = 0; i < data.particleEmitters.Count(); ++i) {
@@ -497,11 +503,11 @@ int WriteBinParticleEmitters(
           data.particleEmitters[i]
       );
     }
-    buffer.AddUint(totalSize);
-    buffer.AddUint(data.particleEmitters.Count());
+    buf.AddUint(totalSize);
+    buf.AddUint(data.particleEmitters.Count());
     for (i = 0; i < data.particleEmitters.Count(); ++i) {
       IWriteBinParticleEmitter(
-          data.particleEmitters[i], buffer, status
+          data.particleEmitters[i], buf, status
       );
     }
   }
@@ -509,15 +515,15 @@ int WriteBinParticleEmitters(
 }
 
 int ReadBinParticleEmitters(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
 ) {
   unsigned int totalRead = 4;
-  unsigned int count = buffer.GetUint();
+  unsigned int numEmitters = buf.GetUint();
   data.particleEmitters.SetCount(0);
-  data.particleEmitters.ReserveSpace(count);
+  data.particleEmitters.ReserveSpace(numEmitters);
   while (totalRead < length) {
     MDLPARTICLEEMITTER *emitter = data.particleEmitters.New();
     if (!emitter) {
@@ -525,7 +531,7 @@ int ReadBinParticleEmitters(
       return 0;
     }
     if (!ReadBinParticleEmitter(
-            buffer, emitter, status, totalRead
+            buf, emitter, status, totalRead
         )) {
       status->Add(
           STATUS_ERROR, "Error reading particle emitter.\n"

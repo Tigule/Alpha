@@ -91,9 +91,9 @@ int Parser::FoundError() {
 }
 
 void Parser::Expect(unsigned int what) {
-  const char *tokenText;
-  if (Token(&tokenText, 0) != what) {
-    FatalExpected(what, tokenText);
+  const char *tokentext;
+  if (Token(&tokentext, 0) != what) {
+    FatalExpected(what, tokentext);
   }
 }
 
@@ -112,33 +112,33 @@ long Parser::ExpectInt(unsigned int cachedToken, const char *tokenText, UTokenDa
 }
 
 long Parser::ExpectInt() {
-  const char *tokenText;
+  const char *tokentext;
   UTokenData value;
-  unsigned int token = Token(&tokenText, &value);
-  return ExpectInt(token, tokenText, &value);
+  unsigned int token = Token(&tokentext, &value);
+  return ExpectInt(token, tokentext, &value);
 }
 
 float Parser::ExpectFloat() {
-  const char *tokenText;
+  const char *tokentext;
   UTokenData value;
-  unsigned int token = Token(&tokenText, &value);
+  unsigned int token = Token(&tokentext, &value);
   if (token == 0x101) {
     return value.fVal;
   }
   if (token == 0x100) {
     return static_cast<float>(value.lVal);
   }
-  FatalExpected(MDL::TokenText(0x101), tokenText);
+  FatalExpected(MDL::TokenText(0x101), tokentext);
   return 0.0f;
 }
 
 const char *Parser::ExpectString() {
-  const char *tokenText;
+  const char *tokentext;
   UTokenData value;
-  if (Token(&tokenText, &value) == 0x102) {
+  if (Token(&tokentext, &value) == 0x102) {
     return value.sVal;
   }
-  FatalExpected(MDL::TokenText(0x102), tokenText);
+  FatalExpected(MDL::TokenText(0x102), tokentext);
   return 0;
 }
 

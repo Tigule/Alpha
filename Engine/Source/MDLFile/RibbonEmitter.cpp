@@ -240,12 +240,11 @@ int WriteRibbonEmitters(
     CMDLStatus *
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]) {
-    int needObjIds = data.ribbonEmitters.Count() != data.objects.Count();
     for (unsigned int i = 0; i < data.ribbonEmitters.Count(); ++i) {
       IWriteRibbonEmitter(
           data,
           data.ribbonEmitters.Ptr()[i],
-          needObjIds,
+          data.ribbonEmitters.Count() != data.objects.Count(),
           buffer
       );
     }
@@ -346,21 +345,21 @@ static void IWriteBinRibbonEmitter(
 
 int WriteBinRibbonEmitters(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *status
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]
       && data.ribbonEmitters.Count()) {
-    buffer.AddDword('BBIR');
+    buf.AddDword('BBIR');
     unsigned int totalSize = 4;
     unsigned int i;
     for (i = 0; i < data.ribbonEmitters.Count(); ++i) {
       totalSize += GetBinRibbonEmitterSize(data.ribbonEmitters.Ptr()[i]);
     }
-    buffer.AddUint(totalSize);
-    buffer.AddUint(data.ribbonEmitters.Count());
+    buf.AddUint(totalSize);
+    buf.AddUint(data.ribbonEmitters.Count());
     for (i = 0; i < data.ribbonEmitters.Count(); ++i) {
-      IWriteBinRibbonEmitter(data.ribbonEmitters.Ptr()[i], buffer, status);
+      IWriteBinRibbonEmitter(data.ribbonEmitters.Ptr()[i], buf, status);
     }
   }
   return 1;
@@ -465,22 +464,22 @@ static int ReadBinRibbonEmitter(
 }
 
 int ReadBinRibbonEmitters(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
 ) {
-  unsigned int count = buffer.GetUint();
   unsigned int totalRead = 4;
+  unsigned int numEmitters = buf.GetUint();
   data.ribbonEmitters.SetCount(0);
-  data.ribbonEmitters.ReserveSpace(count);
+  data.ribbonEmitters.ReserveSpace(numEmitters);
   while (totalRead < length) {
     MDLRIBBONEMITTER *ribbon = data.ribbonEmitters.New();
     if (!ribbon) {
       status->FatalFlunked("RibbonEmitter", -1);
       return 0;
     }
-    if (!ReadBinRibbonEmitter(buffer, ribbon, status, totalRead)) {
+    if (!ReadBinRibbonEmitter(buf, ribbon, status, totalRead)) {
       status->Add(STATUS_ERROR, "Error reading RibbonEmitter.\n");
       return 0;
     }

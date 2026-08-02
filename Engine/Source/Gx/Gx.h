@@ -10,10 +10,8 @@
 #include <Tempest/crect.h>
 
 #include <stddef.h>
+#include <stpl.h>
 #include <string.h>
-
-template <class T>
-class TSGrowableArray;
 
 namespace NTempest {
   class C34Matrix;

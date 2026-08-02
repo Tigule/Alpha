@@ -250,17 +250,17 @@ int CreateChunkOUTDOORS(const char *command, const char *arguments) {
   }
 
   NTempest::C3Vector location = object->GetPosition();
-  unsigned int       areaID = CWorld::QueryAreaId(location.x, location.y);
-  AREAHASHKEY        key(s_currentContinent, areaID >> 16, static_cast<unsigned short>(areaID));
+  unsigned int       count = CWorld::QueryAreaId(location.x, location.y);
+  AREAHASHKEY        key(s_currentContinent, count >> 16, static_cast<unsigned short>(count));
 
-  OUTDOORSCHUNKHASHOBJ *chunk = s_chunkHash.Ptr(areaID, key);
+  OUTDOORSCHUNKHASHOBJ *chunk = s_chunkHash.Ptr(count, key);
   if (!chunk) {
-    chunk = s_chunkHash.New(areaID, key, 0, 0);
+    chunk = s_chunkHash.New(count, key, 0, 0);
     *s_chunkList.New() = chunk;
     s_currentChunk = s_chunkList.Count() - 1;
     chunk->chunkNumber = s_currentChunk;
     chunk->continentID = s_currentContinent;
-    chunk->areaID = areaID;
+    chunk->areaID = count;
     chunk->DumpInfo(1, 1);
   } else {
     s_currentChunk = chunk->chunkNumber;

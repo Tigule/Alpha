@@ -16,6 +16,7 @@
 bool Spell_C_IsTargeting();
 bool Spell_C_CanTargetItems();
 bool Spell_C_HandleSpriteClick(CGObject_C *object);
+void Spell_C_StopTargeting();
 
 static const float MAX_SHOP_DISTANCE = 5.5555553f;
 static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DISTANCE;
@@ -183,7 +184,7 @@ static int BankUpdateHandler(unsigned __int64, unsigned int, unsigned int, const
 }
 
 void CGBankInfo::PickupItem(int slot, int isBag, int slotIsButtonID) {
-  if (!m_unit) {
+  if (!CGGameUI::m_hasControl) {
     return;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -242,7 +243,7 @@ void CGBankInfo::PickupItem(int slot, int isBag, int slotIsButtonID) {
 }
 
 void CGBankInfo::SplitItem(int slot, int split) {
-  if (!m_unit) {
+  if (!CGGameUI::m_hasControl) {
     return;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -250,14 +251,22 @@ void CGBankInfo::SplitItem(int slot, int split) {
     return;
   }
   slot = ButtonIDToSlotID(slot, 0);
+  unsigned __int64 cursorItem;
+  unsigned __int64 cursorItemPack;
+  unsigned int     cursorItemSlot;
+  CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
+  unsigned int virtualItem;
+  unsigned int virtualSlot;
+  CGGameUI::GetCursorVirtualItem(virtualItem, virtualSlot);
   CGBag_C         *inventory = player->GetBag();
   unsigned __int64 itemGUID = inventory->GetItem(slot);
-  CGItem_C        *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
-  if (!item || !item->IsUnlocked() || split < 1 || split > item->GetStackCount()) {
+  CGItem_C        *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
+  if (!itemPtr || !itemPtr->IsUnlocked() || split < 1 || split > itemPtr->GetStackCount()) {
     return;
   }
   CGGameUI::ClearCursor(1);
-  CGGameUI::SetCursorItem(itemGUID, player->GetGUID(), slot, 0, split == item->GetStackCount() ? 0 : split);
+  Spell_C_StopTargeting();
+  CGGameUI::SetCursorItem(itemGUID, player->GetGUID(), slot, 0, split == itemPtr->GetStackCount() ? 0 : split);
   CGGameUI::LockItem(itemGUID);
 }
 

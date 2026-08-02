@@ -456,11 +456,10 @@ unreal operator*(const unreal &a, const unreal &b) {
   unsigned int bMantissa = b.bits & 0x007FFFFF;
   unsigned int sign = (a.bits ^ b.bits) & 0x80000000;
   int aExponent = a.bits & 0x7F800000;
-  int bExponent = b.bits & 0x7F800000;
 
   if (!aMantissa || !bMantissa) {
-    if (aExponent && bExponent) {
-      int exponent = aExponent + bExponent - 0x3F800000;
+    if (aExponent && (b.bits & 0x7F800000)) {
+      int exponent = aExponent + (b.bits & 0x7F800000) - 0x3F800000;
       result.bits = ~static_cast<unsigned int>((exponent - 0x00800000) >> 31)
                   & (sign | aMantissa | bMantissa | exponent);
     } else {
@@ -472,11 +471,11 @@ unreal operator*(const unreal &a, const unreal &b) {
       * static_cast<unsigned __int64>((bMantissa | 0x00800000) << 8);
     unsigned int high = static_cast<unsigned int>(product >> 32);
     unsigned int normalize = high >> 31;
-    int underflow = aExponent + bExponent - 0x40000000;
+    int underflow = aExponent + (b.bits & 0x7F800000) - 0x40000000;
 
     result.bits = ~static_cast<unsigned int>(underflow >> 31)
                 & (sign
-                 | (aExponent + bExponent - 0x3F800000 + (normalize << 23))
+                 | (aExponent + (b.bits & 0x7F800000) - 0x3F800000 + (normalize << 23))
                  | ((high >> normalize >> 7) & 0x007FFFFF));
   }
 
@@ -493,9 +492,8 @@ unreal operator/(const unreal &a, const unreal &b) {
 
 unreal operator-(const unreal &a, const unreal &b) {
   unreal result;
-  int aBits = a.bits;
   int bBits = b.bits ^ 0x80000000;
-  int aExponent = aBits & 0x7F800000;
+  int aExponent = a.bits & 0x7F800000;
   int bExponent = bBits & 0x7F800000;
 
   if (!aExponent) {
@@ -504,11 +502,11 @@ unreal operator-(const unreal &a, const unreal &b) {
   }
 
   if (!bExponent) {
-    result.bits = aBits;
+    result.bits = a.bits;
     return result;
   }
 
-  int aMantissa = ((aBits >> 31) ^ (2 * (0x00800000 | (aBits & 0x007FFFFF)))) - (aBits >> 31);
+  int aMantissa = ((a.bits >> 31) ^ (2 * (0x00800000 | (a.bits & 0x007FFFFF)))) - (a.bits >> 31);
   int bMantissa = ((bBits >> 31) ^ (2 * (0x00800000 | (bBits & 0x007FFFFF)))) - (bBits >> 31);
   int exponentDelta = bExponent - aExponent;
   int exponent;
@@ -523,7 +521,7 @@ unreal operator-(const unreal &a, const unreal &b) {
     aMantissa >>= static_cast<unsigned int>(exponentDelta) >> 23;
   } else {
     if (exponentDelta <= -0x0B800000) {
-      result.bits = aBits;
+      result.bits = a.bits;
       return result;
     }
 
@@ -621,10 +619,11 @@ unreal operator+(const unreal &a, const unreal &b) {
   return result;
 }
 
-unreal reciprocal(const unreal &value) {
-  ASSERT((value.bits & 0x7F800000) != 0);
+unreal reciprocal(const unreal &a) {
+  ASSERT((a.bits & 0x7F800000) != 0);
 
-  unsigned int mantissa = value.bits & 0x007FFFFF;
+  unsigned int signbit = a.bits & 0x80000000;
+  unsigned int mantissa = a.bits & 0x007FFFFF;
   unsigned int index = mantissa >> 13;
   unsigned int lookup = reciprocalLookupTable[index];
   unsigned int fraction = mantissa << 19;
@@ -632,16 +631,16 @@ unreal reciprocal(const unreal &value) {
   unsigned int interpolation = static_cast<unsigned int>(
       (static_cast<unsigned __int64>(lookup - reciprocalLookupTable[index + 1]) * fraction) >> 32
   );
-  int adjusted = lookup - interpolation - (value.bits & 0x7F800000);
+  int adjusted = lookup - interpolation - (a.bits & 0x7F800000);
 
   unreal result;
-  result.bits = ((value.bits & 0x80000000) | (adjusted + 0x7E800000))
+  result.bits = (signbit | (adjusted + 0x7E800000))
               & ~static_cast<unsigned int>((adjusted + 0x7E000000) >> 31);
   return result;
 }
 
-unreal floor(const unreal &value) {
-  int bits = value.bits;
+unreal floor(const unreal &a) {
+  int bits = a.bits;
   int exponent = static_cast<unsigned char>(static_cast<unsigned int>(bits) >> 23) - 127;
 
   if (exponent < 0) {
@@ -649,7 +648,7 @@ unreal floor(const unreal &value) {
   }
 
   if (exponent >= 23) {
-    return value;
+    return a;
   }
 
   int mask = static_cast<int>(0x80000000) >> (exponent + 8);
@@ -665,8 +664,8 @@ unreal floor(const unreal &value) {
   );
 }
 
-unreal ceil(const unreal &value) {
-  int bits = value.bits;
+unreal ceil(const unreal &a) {
+  int bits = a.bits;
   int exponent = static_cast<unsigned char>(static_cast<unsigned int>(bits) >> 23) - 127;
 
   if (exponent < 0) {
@@ -674,7 +673,7 @@ unreal ceil(const unreal &value) {
   }
 
   if (exponent >= 23) {
-    return value;
+    return a;
   }
 
   int mask = static_cast<int>(0x80000000) >> (exponent + 8);
@@ -689,8 +688,8 @@ unreal ceil(const unreal &value) {
   );
 }
 
-unreal trunc(const unreal &value) {
-  unsigned int bits = value.bits;
+unreal trunc(const unreal &a) {
+  unsigned int bits = a.bits;
   int exponent = static_cast<unsigned char>(bits >> 23) - 127;
 
   if (exponent < 0) {
@@ -698,60 +697,59 @@ unreal trunc(const unreal &value) {
   }
 
   if (exponent >= 23) {
-    return value;
+    return a;
   }
 
   return unreal::fromBits(bits & (static_cast<int>(0x80000000) >> (exponent + 8)));
 }
 
-unreal fract(const unreal &value) {
-  int exponent = static_cast<unsigned char>(value.bits >> 23) - 127;
+unreal fract(const unreal &a) {
+  int exponent = static_cast<unsigned char>(a.bits >> 23) - 127;
 
   if (exponent < 0) {
-    return value;
+    return a;
   }
 
   if (exponent >= 23) {
     return unreal::fromBits(0);
   }
 
-  unreal integer = unreal::fromBits(
-      value.bits & (static_cast<int>(0x80000000) >> (exponent + 8))
+  unreal aTrunc = unreal::fromBits(
+      a.bits & (static_cast<int>(0x80000000) >> (exponent + 8))
   );
-  return value - integer;
+  return a - aTrunc;
 }
 
-unreal round(const unreal &value) {
-  return floor(value + u_0_5);
+unreal round(const unreal &a) {
+  return floor(a + u_0_5);
 }
 
 unreal mod(const unreal &a, const unreal &b) {
-  unreal positiveB = unreal::fromBits(b.bits & 0x7FFFFFFF);
-  unreal result = fract(a * reciprocal(positiveB)) * positiveB;
+  unreal posB = unreal::fromBits(b.bits & 0x7FFFFFFF);
+  unreal result = fract(a * reciprocal(posB)) * posB;
 
   if ((~(static_cast<int>(result.bits) >> 31) & (2 * result.bits)) != 0) {
-    if (result.fp >= positiveB.fp) {
-      result = result - positiveB;
+    if (result.fp >= posB.fp) {
+      result = result - posB;
     }
   } else {
-    unreal negativeB = unreal::fromBits(positiveB.bits ^ 0x80000000);
-    if (result.fp <= negativeB.fp) {
-      result = result + negativeB;
+    if (result.fp <= unreal::fromBits(posB.bits ^ 0x80000000).fp) {
+      result = result + unreal::fromBits(posB.bits ^ 0x80000000);
     }
   }
 
   return result;
 }
 
-unreal unreal::fromInt(int value) {
-  if (!value) {
+unreal unreal::fromInt(int in) {
+  if (!in) {
     return unreal::fromBits(0);
   }
 
-  int magnitude = value;
-  unsigned int sign = value & 0x80000000;
-  if (value < 0) {
-    magnitude = -value;
+  int magnitude = in;
+  unsigned int sign = in & 0x80000000;
+  if (in < 0) {
+    magnitude = -in;
   }
 
   unsigned int unsignedMagnitude = magnitude;
@@ -772,8 +770,8 @@ unreal unreal::fromInt(int value) {
   );
 }
 
-int unreal::asInt(const unreal &value) {
-  int bits = value.bits;
+int unreal::asInt(const unreal &in) {
+  int bits = in.bits;
   unsigned int exponent = static_cast<unsigned char>(static_cast<unsigned int>(bits) >> 23);
   if (exponent < 127) {
     return 0;
@@ -791,57 +789,56 @@ int unreal::asInt(const unreal &value) {
   return (magnitude ^ sign) - sign;
 }
 
-static int ipow(int value, unsigned int exponent) {
+static int ipow(int a, unsigned int b) {
   int result = 1;
-  while (exponent) {
-    if (exponent & 1) {
-      result *= value;
+  while (b) {
+    if (b & 1) {
+      result *= a;
     }
 
-    exponent >>= 1;
-    value *= value;
+    b >>= 1;
+    a *= a;
   }
 
   return result;
 }
 
 void unreal::asString(
-    const unreal &value,
-    char *buffer,
+    const unreal &in,
+    char *out,
     int integerWidth,
     int fractionalPrecision
 ) {
-  if (value.fp >= u_hugeval.fp) {
-    strcpy(buffer, "inf");
+  if (in.fp >= u_hugeval.fp) {
+    strcpy(out, "inf");
     return;
   }
 
-  if (value.fp <= u_nhugeval.fp) {
-    strcpy(buffer, "-inf");
+  if (in.fp <= u_nhugeval.fp) {
+    strcpy(out, "-inf");
     return;
   }
 
-  int trim = 0;
+  int fractOnly = 0;
   if (fractionalPrecision < 0) {
-    trim = 1;
+    fractOnly = 1;
     fractionalPrecision = 6;
   }
 
-  unsigned int absoluteBits = value.bits & 0x7FFFFFFF;
+  unsigned int absoluteBits = in.bits & 0x7FFFFFFF;
   int integer = asInt(unreal::fromBits(absoluteBits));
   if (static_cast<unsigned int>(fractionalPrecision) > 9) {
     fractionalPrecision = 9;
   }
 
   int scale = ipow(10, fractionalPrecision);
-  unreal fractional = unreal::fromBits(fract(value).bits & 0x7FFFFFFF);
-  int fraction = asInt(round(fractional * fromInt(scale)));
+  int fraction = asInt(round(unreal::fromBits(fract(in).bits & 0x7FFFFFFF) * fromInt(scale)));
   if (fraction >= scale) {
     ++integer;
     fraction -= scale;
   }
 
-  if (trim && fractionalPrecision > 1) {
+  if (fractOnly && fractionalPrecision > 1) {
     do {
       if (fraction % 10) {
         break;
@@ -857,44 +854,44 @@ void unreal::asString(
     width = 1;
   }
 
-  const char *sign = ((static_cast<int>(value.bits) >> 31) & (2 * value.bits)) ? "-" : "";
-  sprintf(buffer, "%s%*d.%0*d", sign, width, integer, fractionalPrecision, fraction);
+  const char *sign = ((static_cast<int>(in.bits) >> 31) & (2 * in.bits)) ? "-" : "";
+  sprintf(out, "%s%*d.%0*d", sign, width, integer, fractionalPrecision, fraction);
 }
 
-unreal unreal::fromString(const char *text) {
+unreal unreal::fromString(const char *in) {
   int sign = 1;
-  if (*text == '-') {
+  if (*in == '-') {
     sign = -1;
-    ++text;
-  } else if (*text == '+') {
-    ++text;
+    ++in;
+  } else if (*in == '+') {
+    ++in;
   }
 
   int value = 0;
-  int characterCount = 0;
+  int charCount = 0;
   int foundNonZero = 0;
   int decimalPlaces = 0;
-  int decimalIncrement = 0;
+  int decimalInc = 0;
   int foundDecimalPoint = 0;
 
-  char character = *text++;
+  char character = *in++;
   while (character && character != ' ' && character != ';' && character != '\t') {
     if (isdigit(character)) {
       if (!foundNonZero) {
         foundNonZero = character != '0';
       }
 
-      int oldCharacterCount = characterCount;
-      characterCount += foundNonZero;
-      if (characterCount > 9) {
+      int oldCharacterCount = charCount;
+      charCount += foundNonZero;
+      if (charCount > 9) {
         if (oldCharacterCount + foundNonZero == 10) {
-          --decimalIncrement;
+          --decimalInc;
         }
 
-        decimalPlaces += decimalIncrement;
+        decimalPlaces += decimalInc;
       } else {
         value = character + 10 * value - '0';
-        decimalPlaces += decimalIncrement;
+        decimalPlaces += decimalInc;
       }
     } else {
       if (character != '.' || foundDecimalPoint) {
@@ -902,49 +899,50 @@ unreal unreal::fromString(const char *text) {
       }
 
       foundDecimalPoint = 1;
-      ++decimalIncrement;
+      ++decimalInc;
     }
 
-    character = *text++;
+    character = *in++;
   }
 
   unreal result = fromInt(sign * value);
-  unreal ten = fromBits(0x41200000);
+  unreal uu_10 = fromBits(0x41200000);
   if (decimalPlaces < 0) {
-    return result * pow(ten, -decimalPlaces);
+    return result * pow(uu_10, -decimalPlaces);
   }
 
-  return result / pow(ten, decimalPlaces);
+  return result / pow(uu_10, decimalPlaces);
 }
 
-static unreal __ln(const unreal &value) {
-  unreal z = (value - u_1) / (value + u_1);
+static unreal __ln(const unreal &x) {
+  unreal z = (x - u_1) / (x + u_1);
   unreal z2 = z * z;
   unreal z3 = z * (u_1 + u_n0_2672435 * z2);
   z3.multiplyBy2();
   return z3 / (u_1 + u_n0_600576 * z2);
 }
 
-static unreal _ln(const unreal &value) {
-  if (unreal::asFloat(value) < unreal::asFloat(u_ln_limit1)) {
-    if (unreal::asFloat(value) < unreal::asFloat(u_ln_limit2)) {
-      return __ln(value * u_ln_const2) + u_ln_mult2;
+static unreal _ln(const unreal &x) {
+  if (unreal::asFloat(x) < unreal::asFloat(u_ln_limit1)) {
+    if (unreal::asFloat(x) < unreal::asFloat(u_ln_limit2)) {
+      return __ln(x * u_ln_const2) + u_ln_mult2;
     }
 
-    return __ln(value * u_ln_const1) + u_ln_mult1;
+    return __ln(x * u_ln_const1) + u_ln_mult1;
   }
 
-  return __ln(value);
+  return __ln(x);
 }
 
-unreal ln(const unreal &value) {
-  unreal x = unreal::fromBits((value.bits & 0x007FFFFF) | 0x3F800000);
+unreal ln(const unreal &a) {
+  unreal x = unreal::fromBits((a.bits & 0x007FFFFF) | 0x3F800000);
   x = _ln(x);
-  return u_ln2 * (unreal::fromInt(static_cast<unsigned char>(value.bits >> 23) - 127) + x * u_1ovln2);
+  unreal result = u_ln2 * (unreal::fromInt(static_cast<unsigned char>(a.bits >> 23) - 127) + x * u_1ovln2);
+  return result;
 }
 
-static unreal _e(const unreal &value) {
-  unreal x = value;
+static unreal _e(const unreal &a) {
+  unreal x = a;
   x.multiplyBy4();
   unreal n = trunc(x);
   x = x - n;
@@ -967,56 +965,57 @@ static unreal _e(const unreal &value) {
     );
 
   unreal z = pow(u_eto1ov4, unreal::asInt(n));
-  return y * z;
+  unreal result = y * z;
+  return result;
 }
 
-unreal e(const unreal &value) {
-  if ((static_cast<int>(value.bits) >> 31) & (2 * value.bits)) {
-    return reciprocal(_e(unreal::fromBits(value.bits ^ 0x80000000)));
+unreal e(const unreal &a) {
+  if ((static_cast<int>(a.bits) >> 31) & (2 * a.bits)) {
+    return reciprocal(_e(unreal::fromBits(a.bits ^ 0x80000000)));
   }
 
-  return _e(value);
+  return _e(a);
 }
 
 unreal pow(const unreal &value, unsigned int exponent) {
   unreal factor = value;
-  unreal result = unreal::fromBits(0x3F800000);
+  unreal a = unreal::fromBits(0x3F800000);
 
   while (exponent) {
     if (exponent & 1) {
-      result = result * factor;
+      a = a * factor;
     }
 
     exponent >>= 1;
     factor = factor * factor;
   }
 
-  return result;
+  return a;
 }
 
-unreal pow(const unreal &value, const unreal &exponent) {
+unreal pow(const unreal &a, const unreal &exponent) {
   unreal integerExponent = trunc(exponent);
   if (integerExponent.fp == exponent.fp
       && !((static_cast<int>(exponent.bits) >> 31) & (2 * exponent.bits))) {
-    return pow(value, unreal::asInt(exponent));
+    return pow(a, unreal::asInt(exponent));
   }
 
-  if (!(value.bits & 0x7F800000)) {
+  if (!(a.bits & 0x7F800000)) {
     return unreal::fromBits(0);
   }
 
-  return e(exponent * ln(value));
+  return e(exponent * ln(a));
 }
 
-unreal sqrt(const unreal &value) {
-  if ((~(static_cast<int>(value.bits) >> 31) & (2 * value.bits)) == 0) {
+unreal sqrt(const unreal &a) {
+  if ((~(static_cast<int>(a.bits) >> 31) & (2 * a.bits)) == 0) {
     return unreal::fromBits(0);
   }
 
-  int exponent = static_cast<unsigned char>(value.bits >> 23) - 127;
+  int exponent = static_cast<unsigned char>(a.bits >> 23) - 127;
   unsigned int input =
-      ((value.bits & 0x007FFFFF) >> 15)
-    | (((value.bits & 0x007FFFFF) | 0xFF800000) << 8);
+      ((a.bits & 0x007FFFFF) >> 15)
+    | (((a.bits & 0x007FFFFF) | 0xFF800000) << 8);
   unsigned int remainder = 0;
   unsigned int root = 0;
 
@@ -1030,21 +1029,21 @@ unreal sqrt(const unreal &value) {
     }
   }
 
-  unreal rootMantissa = unreal::fromBits(((46341 * (root >> 1) + 41708) >> 8) | 0x3F800000);
+  unreal rootK = unreal::fromBits(((46341 * (root >> 1) + 41708) >> 8) | 0x3F800000);
   int odd = (exponent << 31) >> 31;
-  unreal rootExponent = unreal::fromBits(
+  unreal root2n = unreal::fromBits(
       (odd & 0x003504F3)
     | ((((odd + exponent) / 2) + 127) << 23)
   );
-  return rootExponent * rootMantissa;
+  return root2n * rootK;
 }
 
-unreal sqrtinv(const unreal &value) {
-  return reciprocal(sqrt(value));
+unreal sqrtinv(const unreal &a) {
+  return reciprocal(sqrt(a));
 }
 
-unreal sin(const unreal &value) {
-  int scaled = unreal::asInt(value * u_2pow19ovpi);
+unreal sin(const unreal &a) {
+  int scaled = unreal::asInt(a * u_2pow19ovpi);
   int quadrant = (scaled >> 18) & 3;
   int index = (scaled >> 8) & 0x3FF;
   unsigned int fraction = static_cast<unsigned char>(scaled);
@@ -1066,13 +1065,13 @@ unreal sin(const unreal &value) {
   }
 
   int sign = (quadrant << 30) >> 31;
-  unreal result = unreal::fromInt((sign ^ (sample + interpolation)) - sign);
-  result.bits -= (result.bits & 0x7F800000) ? 0x0F800000 : 0;
-  return result;
+  unreal x = unreal::fromInt((sign ^ (sample + interpolation)) - sign);
+  x.bits -= (x.bits & 0x7F800000) ? 0x0F800000 : 0;
+  return x;
 }
 
-unreal cos(const unreal &value) {
-  int scaled = unreal::asInt(value * u_2pow19ovpi);
+unreal cos(const unreal &a) {
+  int scaled = unreal::asInt(a * u_2pow19ovpi);
   int quadrant = ((scaled >> 18) + 1) & 3;
   int index = (scaled >> 8) & 0x3FF;
   unsigned int fraction = static_cast<unsigned char>(scaled);
@@ -1094,15 +1093,15 @@ unreal cos(const unreal &value) {
   }
 
   int sign = (quadrant << 30) >> 31;
-  unreal result = unreal::fromInt((sign ^ (sample + interpolation)) - sign);
-  result.bits -= (result.bits & 0x7F800000) ? 0x0F800000 : 0;
-  return result;
+  unreal x = unreal::fromInt((sign ^ (sample + interpolation)) - sign);
+  x.bits -= (x.bits & 0x7F800000) ? 0x0F800000 : 0;
+  return x;
 }
 
-void sincos(const unreal &value, unreal *sine, unreal *cosine) {
-  int scaled = unreal::asInt(value * u_2pow19ovpi);
+void sincos(const unreal &a, unreal *s, unreal *cosine) {
+  int scaled = unreal::asInt(a * u_2pow19ovpi);
   int sineQuadrant = (scaled >> 18) & 3;
-  int cosineQuadrant = (sineQuadrant + 1) & 3;
+  int temp = (sineQuadrant + 1) & 3;
   int index = (scaled >> 8) & 0x3FF;
   unsigned int fraction = static_cast<unsigned char>(scaled);
   fraction |= fraction << 8;
@@ -1123,10 +1122,10 @@ void sincos(const unreal &value, unreal *sine, unreal *cosine) {
   }
 
   int sign = (sineQuadrant << 30) >> 31;
-  *sine = unreal::fromInt((sign ^ (sample + interpolation)) - sign);
-  sine->bits -= (sine->bits & 0x7F800000) ? 0x0F800000 : 0;
+  *s = unreal::fromInt((sign ^ (sample + interpolation)) - sign);
+  s->bits -= (s->bits & 0x7F800000) ? 0x0F800000 : 0;
 
-  if (cosineQuadrant & 1) {
+  if (temp & 1) {
     sample = sinTable[1024 - index];
     interpolation = -static_cast<unsigned int>(
         (static_cast<unsigned __int64>(sample - sinTable[1023 - index]) * fraction) >> 32
@@ -1138,20 +1137,22 @@ void sincos(const unreal &value, unreal *sine, unreal *cosine) {
     );
   }
 
-  sign = (cosineQuadrant << 30) >> 31;
+  sign = (temp << 30) >> 31;
   *cosine = unreal::fromInt((sign ^ (sample + interpolation)) - sign);
   cosine->bits -= (cosine->bits & 0x7F800000) ? 0x0F800000 : 0;
 }
 
-unreal tan(const unreal &value) {
-  unreal sine;
-  unreal cosine;
-  sincos(value, &sine, &cosine);
-  return sine / cosine;
+unreal tan(const unreal &a) {
+  unreal s;
+  unreal c;
+  sincos(a, &s, &c);
+  unreal result = s / c;
+  return result;
 }
 
-unreal acos(const unreal &value) {
-  unsigned int absoluteBits = value.bits & 0x7FFFFFFF;
+unreal acos(const unreal &a) {
+  unsigned int absoluteBits = a.bits & 0x7FFFFFFF;
+  unreal x;
 
   if (absoluteBits > 0x3F7E8000) {
     if (absoluteBits > 0x3F800000) {
@@ -1176,16 +1177,16 @@ unreal acos(const unreal &value) {
         (static_cast<unsigned __int64>(16 * fraction)
        * (acosEdgeTable[index] - acosEdgeTable[index + 1])) >> 32
     );
-    unreal edge = unreal::fromInt(acosEdgeTable[index] - interpolation);
-    edge.bits -= (edge.bits & 0x7F800000) ? 0x11000000 : 0;
+    x = unreal::fromInt(acosEdgeTable[index] - interpolation);
+    x.bits -= (x.bits & 0x7F800000) ? 0x11000000 : 0;
 
-    return static_cast<int>(value.bits) >= 0 ? edge : u_pi - edge;
+    return static_cast<int>(a.bits) >= 0 ? x : u_pi - x;
   }
 
-  ASSERT(value.fp >= u_n1_01.fp && value.fp <= u_1_01.fp);
+  ASSERT(a.fp >= u_n1_01.fp && a.fp <= u_1_01.fp);
 
-  unreal scaled = unreal::fromBits(value.bits + 0x0F000000);
-  int integer = unreal::asInt(scaled);
+  unreal bits = unreal::fromBits(a.bits + 0x0F000000);
+  int integer = unreal::asInt(bits);
   if (static_cast<unsigned int>(integer + 0x3FFFFFFF) > 0x7FFFFFFE) {
     integer = (~((integer + 0x3FFFFFFF) >> 31) & 0x7FFFFFFE) - 0x3FFFFFFF;
   }
@@ -1206,17 +1207,18 @@ unreal acos(const unreal &value) {
     delta = sample - acosTable[index + 1];
   }
 
-  unreal result = unreal::fromInt(
+  x = unreal::fromInt(
       sample - static_cast<unsigned int>(
           (static_cast<unsigned __int64>(fraction) * delta) >> 32
       )
   );
-  result.bits -= (result.bits & 0x7F800000) ? 0x0E800000 : 0;
-  return result;
+  x.bits -= (x.bits & 0x7F800000) ? 0x0E800000 : 0;
+  return x;
 }
 
-unreal asin(const unreal &value) {
-  unsigned int absoluteBits = value.bits & 0x7FFFFFFF;
+unreal asin(const unreal &a) {
+  unsigned int absoluteBits = a.bits & 0x7FFFFFFF;
+  unreal x;
 
   if (absoluteBits > 0x3F7E8000) {
     if (absoluteBits > 0x3F800000) {
@@ -1241,16 +1243,16 @@ unreal asin(const unreal &value) {
         (static_cast<unsigned __int64>(16 * fraction)
        * (acosEdgeTable[index] - acosEdgeTable[index + 1])) >> 32
     );
-    unreal edge = unreal::fromInt(acosEdgeTable[index] - interpolation);
-    edge.bits -= (edge.bits & 0x7F800000) ? 0x11000000 : 0;
+    x = unreal::fromInt(acosEdgeTable[index] - interpolation);
+    x.bits -= (x.bits & 0x7F800000) ? 0x11000000 : 0;
 
-    return static_cast<int>(value.bits) >= 0 ? u_piov2 - edge : u_npiov2 + edge;
+    return static_cast<int>(a.bits) >= 0 ? u_piov2 - x : u_npiov2 + x;
   }
 
-  ASSERT(value.fp >= u_n1_01.fp && value.fp <= u_1_01.fp);
+  ASSERT(a.fp >= u_n1_01.fp && a.fp <= u_1_01.fp);
 
-  unreal scaled = unreal::fromBits(value.bits + 0x0F000000);
-  int integer = unreal::asInt(scaled);
+  unreal bits = unreal::fromBits(a.bits + 0x0F000000);
+  int integer = unreal::asInt(bits);
   if (static_cast<unsigned int>(integer + 0x3FFFFFFF) > 0x7FFFFFFE) {
     integer = (~((integer + 0x3FFFFFFF) >> 31) & 0x7FFFFFFE) - 0x3FFFFFFF;
   }
@@ -1272,19 +1274,19 @@ unreal asin(const unreal &value) {
     delta = sample - acosTable[index + 1];
   }
 
-  unreal result = unreal::fromInt(
+  x = unreal::fromInt(
       sample
     - static_cast<unsigned int>(
           (static_cast<unsigned __int64>(fraction) * delta) >> 32
       )
     - 0x3243F6A8
   );
-  result.bits -= (result.bits & 0x7F800000) ? 0x0E800000 : 0;
-  return result;
+  x.bits -= (x.bits & 0x7F800000) ? 0x0E800000 : 0;
+  return x;
 }
 
-unreal atan(const unreal &value) {
-  unreal x = unreal::fromBits(value.bits & 0x7FFFFFFF);
+unreal atan(const unreal &a) {
+  unreal x = unreal::fromBits(a.bits & 0x7FFFFFFF);
   int reciprocalRange = 0;
   if (x.fp > u_1.fp) {
     reciprocalRange = 1;
@@ -1298,30 +1300,29 @@ unreal atan(const unreal &value) {
   }
 
   unreal x2 = x * x;
-  unreal angle =
+  unreal ang =
       x * (u_0_999999020228907 + u_0_257977658811405 * x2)
     / (u_1 + u_0_59120450521312 * x2);
 
   if (offsetRange) {
-    angle = angle + u_piov6;
+    ang = ang + u_piov6;
   }
 
   if (reciprocalRange) {
-    angle = u_piov2 - angle;
+    ang = u_piov2 - ang;
   }
 
-  if ((static_cast<int>(value.bits) >> 31) & (2 * value.bits)) {
-    angle.bits ^= 0x80000000;
+  if ((static_cast<int>(a.bits) >> 31) & (2 * a.bits)) {
+    ang.bits ^= 0x80000000;
   }
 
-  return angle;
+  return ang;
 }
 
 unreal atan2(const unreal &y, const unreal &x) {
   unreal angle;
   if (x.bits & 0x7F800000) {
-    unreal ratio = unreal::fromBits((y / x).bits & 0x7FFFFFFF);
-    angle = atan(ratio);
+    angle = atan(unreal::fromBits((y / x).bits & 0x7FFFFFFF));
   } else {
     angle = u_piov2;
   }
@@ -1337,14 +1338,14 @@ unreal atan2(const unreal &y, const unreal &x) {
   return angle;
 }
 
-CDataStore &operator<<(CDataStore &store, const unreal &value) {
-  return store.Put(value.bits);
+CDataStore &operator<<(CDataStore &store, const unreal &val) {
+  return store.Put(val.bits);
 }
 
-CDataStore &operator>>(CDataStore &store, unreal &value) {
+CDataStore &operator>>(CDataStore &store, unreal &val) {
   unsigned int bits;
   store.Get(bits);
-  value.bits = bits;
+  val.bits = bits;
   return store;
 }
 

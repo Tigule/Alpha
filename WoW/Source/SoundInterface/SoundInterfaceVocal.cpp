@@ -59,8 +59,6 @@ void SoundInterfacePlayVocalMacro(const CGPlayer_C *player, int category) {
     unsigned int       race = unitData->race;
     unsigned int       sex = unitData->sex;
     unsigned int       soundID = s_macroRaceDescs[race].soundID[category][sex];
-    NTempest::C3Vector position;
-    player->GetPosition(position);
-    SndInterfacePlaySound(soundID, position, -1, 1.0f);
+    SndInterfacePlaySound(soundID, player->GetPosition(), -1, 1.0f);
   }
 }

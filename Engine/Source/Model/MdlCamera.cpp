@@ -39,13 +39,14 @@ void MdxReadCameras(unsigned char *data, unsigned int fileBytes, TSFixedArray<HC
     return;
   }
 
-  unsigned int   sectionBytes = *reinterpret_cast<unsigned int *>(section) - 4;
+  fileBytes = *reinterpret_cast<unsigned int *>(section) - 4;
   unsigned int   numCameras = *reinterpret_cast<unsigned int *>(section + 4);
   unsigned char *cameraData = section + 8;
 
   cameras->SetCount(numCameras);
 
-  for (unsigned int i = 0; i < numCameras; ++i) {
+  unsigned int i;
+  for (i = 0; i < numCameras; ++i) {
     unsigned int bytesThisCamera = *reinterpret_cast<unsigned int *>(cameraData);
     float       *values = reinterpret_cast<float *>(cameraData + 0x54);
 
@@ -63,10 +64,10 @@ void MdxReadCameras(unsigned char *data, unsigned int fileBytes, TSFixedArray<HC
 
     (*cameras)[i] = camera;
 
-    ASSERT(sectionBytes >= bytesThisCamera);
-    sectionBytes -= bytesThisCamera;
+    ASSERT(fileBytes >= bytesThisCamera);
+    fileBytes -= bytesThisCamera;
     cameraData += bytesThisCamera;
   }
 
-  ASSERT(sectionBytes == 0);
+  ASSERT(fileBytes == 0);
 }

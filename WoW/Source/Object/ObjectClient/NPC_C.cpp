@@ -12,7 +12,7 @@ static int              s_questQueriesPending;
 static int              s_questRewardQueriesPending;
 static unsigned __int64 s_npcGUID;
 
-static int NPCResponseHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int NPCResponseHandler(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
   unsigned __int64 npcGUID;
   msg->Get(npcGUID);
   if (!npcGUID) {

@@ -145,11 +145,11 @@ ProcessMaterials(const TSGrowableArray<MDLMATERIALSECTION> &sectionData, unsigne
 static void ProcessLayerAlpha(const TSGrowableArray<MDLMATERIALSECTION> &sectionData, HMATERIAL const *materials) {
   unsigned int numMaterials = sectionData.Count();
 
-  for (unsigned int i = 0; i < numMaterials; ++i) {
-    CMaterial   *unique = static_cast<CMaterial *>(HandleDereference(reinterpret_cast<HOBJECT>(materials[i])));
+  for (unsigned int j = 0; j < numMaterials; ++j) {
+    CMaterial   *unique = static_cast<CMaterial *>(HandleDereference(reinterpret_cast<HOBJECT>(materials[j])));
     unsigned int numLayers = unique->layers.Count();
-    for (unsigned int j = 0; j < numLayers; ++j) {
-      unique->layers[j].layerAlpha = NTempest::CMath::ftol_0_256_(sectionData[i].texLayers[j].staticAlpha * 255.0f);
+    for (unsigned int i = 0; i < numLayers; ++i) {
+      unique->layers[i].layerAlpha = NTempest::CMath::ftol_0_256_(sectionData[j].texLayers[i].staticAlpha * 255.0f);
     }
   }
 }
@@ -198,31 +198,31 @@ LoadGeosetPrimitiveTypes(const unsigned char *primTypes, const unsigned int *pri
   }
 }
 
-static unsigned char *LoadGeosetPrimitiveData(unsigned char *data, CGeosetShared *geoShared) {
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x50595450);
-  unsigned int   numPrimTypes = *reinterpret_cast<const unsigned int *>(data + 4);
-  unsigned char *primTypes = data + 8;
-  data = primTypes + numPrimTypes;
+static unsigned char *LoadGeosetPrimitiveData(unsigned char *geosetData, CGeosetShared *geoShared) {
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x50595450);
+  unsigned int   numPrimTypes = *reinterpret_cast<const unsigned int *>(geosetData + 4);
+  unsigned char *primTypes = geosetData + 8;
+  geosetData = primTypes + numPrimTypes;
 
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x544E4350);
-  unsigned int numPrimCounts = *reinterpret_cast<const unsigned int *>(data + 4);
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x544E4350);
+  unsigned int numPrimCounts = *reinterpret_cast<const unsigned int *>(geosetData + 4);
   ASSERT(numPrimCounts == numPrimTypes);
-  const unsigned int *primVertCounts = reinterpret_cast<const unsigned int *>(data + 8);
-  data += 8 + numPrimCounts * sizeof(unsigned int);
+  const unsigned int *primVertCounts = reinterpret_cast<const unsigned int *>(geosetData + 8);
+  geosetData += 8 + numPrimCounts * sizeof(unsigned int);
 
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x58545650);
-  geoShared->primitiveVertices.SetCount(*reinterpret_cast<const unsigned int *>(data + 4));
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x58545650);
+  geoShared->primitiveVertices.SetCount(*reinterpret_cast<const unsigned int *>(geosetData + 4));
   if (geoShared->primitiveVertices.Count()) {
-    memcpy(geoShared->primitiveVertices.Ptr(), data + 8, geoShared->primitiveVertices.Count() * sizeof(unsigned short));
+    memcpy(geoShared->primitiveVertices.Ptr(), geosetData + 8, geoShared->primitiveVertices.Count() * sizeof(unsigned short));
   }
-  data += 8 + geoShared->primitiveVertices.Count() * sizeof(unsigned short);
+  geosetData += 8 + geoShared->primitiveVertices.Count() * sizeof(unsigned short);
 
   geoShared->primitive.SetCount(CountNumPrimLists(primTypes, numPrimTypes));
   LoadGeosetPrimitiveTypes(primTypes, primVertCounts, numPrimTypes, geoShared);
-  return data;
+  return geosetData;
 }
 
-static unsigned char *LoadGeosetTransformGroups(unsigned char *data, unsigned int loadFlags, CGeosetShared *geoShared) {
+static unsigned char *LoadGeosetTransformGroups(unsigned char *geosetData, unsigned int loadFlags, CGeosetShared *geoShared) {
   if (loadFlags & 0x100) {
     geoShared->boneWeights.SetCount(1);
     geoShared->boneWeights.Ptr()[0] = 0;
@@ -239,86 +239,86 @@ static unsigned char *LoadGeosetTransformGroups(unsigned char *data, unsigned in
       geoShared->hwBoneWeights.Ptr()[i] = 0xFF000000;
     }
 
-    data += 8 + *reinterpret_cast<const unsigned int *>(data + 4);
+    geosetData += 8 + *reinterpret_cast<const unsigned int *>(geosetData + 4);
     for (unsigned int section = 0; section < 4; ++section) {
-      data += 8 + 4 * *reinterpret_cast<const unsigned int *>(data + 4);
+      geosetData += 8 + 4 * *reinterpret_cast<const unsigned int *>(geosetData + 4);
     }
-    return data;
+    return geosetData;
   }
 
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x58444E47);
-  geoShared->boneWeights.SetCount(*reinterpret_cast<const unsigned int *>(data + 4));
-  memcpy(geoShared->boneWeights.Ptr(), data + 8, geoShared->boneWeights.Count());
-  data += 8 + geoShared->boneWeights.Count();
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x58444E47);
+  geoShared->boneWeights.SetCount(*reinterpret_cast<const unsigned int *>(geosetData + 4));
+  memcpy(geoShared->boneWeights.Ptr(), geosetData + 8, geoShared->boneWeights.Count());
+  geosetData += 8 + geoShared->boneWeights.Count();
 
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x4347544D);
-  geoShared->groupMatrixCounts.SetCount(*reinterpret_cast<const unsigned int *>(data + 4));
-  memcpy(geoShared->groupMatrixCounts.Ptr(), data + 8, geoShared->groupMatrixCounts.Count() * sizeof(unsigned int));
-  data += 8 + geoShared->groupMatrixCounts.Count() * sizeof(unsigned int);
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x4347544D);
+  geoShared->groupMatrixCounts.SetCount(*reinterpret_cast<const unsigned int *>(geosetData + 4));
+  memcpy(geoShared->groupMatrixCounts.Ptr(), geosetData + 8, geoShared->groupMatrixCounts.Count() * sizeof(unsigned int));
+  geosetData += 8 + geoShared->groupMatrixCounts.Count() * sizeof(unsigned int);
 
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x5354414D);
-  geoShared->matrices.SetCount(*reinterpret_cast<const unsigned int *>(data + 4));
-  memcpy(geoShared->matrices.Ptr(), data + 8, geoShared->matrices.Count() * sizeof(unsigned int));
-  data += 8 + geoShared->matrices.Count() * sizeof(unsigned int);
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x5354414D);
+  geoShared->matrices.SetCount(*reinterpret_cast<const unsigned int *>(geosetData + 4));
+  memcpy(geoShared->matrices.Ptr(), geosetData + 8, geoShared->matrices.Count() * sizeof(unsigned int));
+  geosetData += 8 + geoShared->matrices.Count() * sizeof(unsigned int);
 
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x58444942);
-  geoShared->hwBoneIndices.SetCount(*reinterpret_cast<const unsigned int *>(data + 4));
-  memcpy(geoShared->hwBoneIndices.Ptr(), data + 8, geoShared->hwBoneIndices.Count() * sizeof(unsigned int));
-  data += 8 + geoShared->hwBoneIndices.Count() * sizeof(unsigned int);
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x58444942);
+  geoShared->hwBoneIndices.SetCount(*reinterpret_cast<const unsigned int *>(geosetData + 4));
+  memcpy(geoShared->hwBoneIndices.Ptr(), geosetData + 8, geoShared->hwBoneIndices.Count() * sizeof(unsigned int));
+  geosetData += 8 + geoShared->hwBoneIndices.Count() * sizeof(unsigned int);
 
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x54475742);
-  geoShared->hwBoneWeights.SetCount(*reinterpret_cast<const unsigned int *>(data + 4));
-  memcpy(geoShared->hwBoneWeights.Ptr(), data + 8, geoShared->hwBoneWeights.Count() * sizeof(unsigned int));
-  data += 8 + geoShared->hwBoneWeights.Count() * sizeof(unsigned int);
-  return data;
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x54475742);
+  geoShared->hwBoneWeights.SetCount(*reinterpret_cast<const unsigned int *>(geosetData + 4));
+  memcpy(geoShared->hwBoneWeights.Ptr(), geosetData + 8, geoShared->hwBoneWeights.Count() * sizeof(unsigned int));
+  geosetData += 8 + geoShared->hwBoneWeights.Count() * sizeof(unsigned int);
+  return geosetData;
 }
 
 static void
-LoadGeosetData(unsigned char *data, unsigned int sectionBytes, unsigned int loadFlags, unsigned int geosetId, CGeosetShared *geoShared) {
-  unsigned char *sectionDone = data + sectionBytes;
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x58545256);
-  unsigned int numVertices = *reinterpret_cast<const unsigned int *>(data + 4);
+LoadGeosetData(unsigned char *geosetData, unsigned int bytesLeft, unsigned int loadFlags, unsigned int geosetId, CGeosetShared *geoShared) {
+  unsigned char *sectionDone = geosetData + bytesLeft;
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x58545256);
+  unsigned int numVertices = *reinterpret_cast<const unsigned int *>(geosetData + 4);
   ASSERT(numVertices <= 0xFFFF);
   geoShared->position.SetCount(numVertices);
-  memcpy(geoShared->position.Ptr(), data + 8, numVertices * sizeof(NTempest::C3Vector));
-  data += 8 + numVertices * sizeof(NTempest::C3Vector);
+  memcpy(geoShared->position.Ptr(), geosetData + 8, numVertices * sizeof(NTempest::C3Vector));
+  geosetData += 8 + numVertices * sizeof(NTempest::C3Vector);
 
-  ASSERT(*reinterpret_cast<const unsigned int *>(data) == 0x534D524E);
-  ASSERT(numVertices == *reinterpret_cast<const unsigned int *>(data + 4));
-  geoShared->normal.SetCount(*reinterpret_cast<const unsigned int *>(data + 4));
-  memcpy(geoShared->normal.Ptr(), data + 8, geoShared->normal.Count() * sizeof(NTempest::C3Vector));
-  data += 8 + geoShared->normal.Count() * sizeof(NTempest::C3Vector);
+  ASSERT(*reinterpret_cast<const unsigned int *>(geosetData) == 0x534D524E);
+  ASSERT(numVertices == *reinterpret_cast<const unsigned int *>(geosetData + 4));
+  geoShared->normal.SetCount(*reinterpret_cast<const unsigned int *>(geosetData + 4));
+  memcpy(geoShared->normal.Ptr(), geosetData + 8, geoShared->normal.Count() * sizeof(NTempest::C3Vector));
+  geosetData += 8 + geoShared->normal.Count() * sizeof(NTempest::C3Vector);
 
-  if (*reinterpret_cast<const unsigned int *>(data) == 0x53415655) {
-    unsigned int numMappingChannels = *reinterpret_cast<const unsigned int *>(data + 4);
-    data += 8;
+  if (*reinterpret_cast<const unsigned int *>(geosetData) == 0x53415655) {
+    unsigned int numMappingChannels = *reinterpret_cast<const unsigned int *>(geosetData + 4);
+    geosetData += 8;
     geoShared->texCoord.SetCount(numMappingChannels);
     for (unsigned int i = 0; i < numMappingChannels; ++i) {
       geoShared->texCoord[i].SetCount(numVertices);
       if (numVertices) {
-        memcpy(geoShared->texCoord[i].Ptr(), data, numVertices * sizeof(NTempest::C2Vector));
+        memcpy(geoShared->texCoord[i].Ptr(), geosetData, numVertices * sizeof(NTempest::C2Vector));
       }
-      data += numVertices * sizeof(NTempest::C2Vector);
+      geosetData += numVertices * sizeof(NTempest::C2Vector);
     }
   }
 
-  data = LoadGeosetPrimitiveData(data, geoShared);
-  data = LoadGeosetTransformGroups(data, loadFlags, geoShared);
+  geosetData = LoadGeosetPrimitiveData(geosetData, geoShared);
+  geosetData = LoadGeosetTransformGroups(geosetData, loadFlags, geoShared);
 
-  geoShared->materialId = *reinterpret_cast<const unsigned int *>(data);
-  geoShared->selectionGroup = *reinterpret_cast<const unsigned int *>(data + 4);
-  geoShared->flags = *reinterpret_cast<const unsigned int *>(data + 8);
-  geoShared->radius = *reinterpret_cast<const float *>(data + 12);
-  data += 16;
+  geoShared->materialId = *reinterpret_cast<const unsigned int *>(geosetData);
+  geoShared->selectionGroup = *reinterpret_cast<const unsigned int *>(geosetData + 4);
+  geoShared->flags = *reinterpret_cast<const unsigned int *>(geosetData + 8);
+  geoShared->radius = *reinterpret_cast<const float *>(geosetData + 12);
+  geosetData += 16;
 
-  const NTempest::C3Vector &minimum = *reinterpret_cast<const NTempest::C3Vector *>(data);
-  const NTempest::C3Vector &maximum = *reinterpret_cast<const NTempest::C3Vector *>(data + 12);
+  const NTempest::C3Vector &minimum = *reinterpret_cast<const NTempest::C3Vector *>(geosetData);
+  const NTempest::C3Vector &maximum = *reinterpret_cast<const NTempest::C3Vector *>(geosetData + 12);
   geoShared->centroid = (minimum + maximum) * 0.5f;
-  data += 24;
+  geosetData += 24;
 
-  unsigned int numSequenceBounds = *reinterpret_cast<const unsigned int *>(data);
-  data += 4 + numSequenceBounds * 7 * sizeof(unsigned int);
-  ASSERT(data == sectionDone);
+  unsigned int numSequenceBounds = *reinterpret_cast<const unsigned int *>(geosetData);
+  geosetData += 4 + numSequenceBounds * 7 * sizeof(unsigned int);
+  ASSERT(geosetData == sectionDone);
 
   geoShared->geosetId = geosetId;
   geoShared->vertexShader = geoShared->groupMatrixCounts.Count() > 1 ? GxVS_Skin : GxVS_PassThru;
@@ -504,8 +504,7 @@ static void LoadLayerData(unsigned char *materialData, CTexLayer *unique, CTexLa
   }
   unique->blendMode = shared->blendMode;
 
-  unsigned int layerFlags = *reinterpret_cast<unsigned int *>(materialData + 4);
-  shared->tmuPass[0].flags = GetTmuPassFlags(createFlags, layerFlags);
+  shared->tmuPass[0].flags = GetTmuPassFlags(createFlags, *reinterpret_cast<unsigned int *>(materialData + 4));
   unique->tmuPass[0].textureId = *reinterpret_cast<unsigned int *>(materialData + 8);
   shared->tmuPass[0].transformId = *reinterpret_cast<unsigned int *>(materialData + 12);
   shared->tmuPass[0].coordId = *reinterpret_cast<unsigned int *>(materialData + 16);
@@ -520,19 +519,19 @@ static void LoadLayerData(unsigned char *materialData, CTexLayer *unique, CTexLa
   if (unique->blendMode >= GxBlend_Alpha && unique->blendMode <= GxBlend_ModAdd) {
     unique->disables |= 0x8;
   }
-  if (layerFlags & 0x1) {
+  if (*reinterpret_cast<unsigned int *>(materialData + 4) & 0x1) {
     unique->disables |= 0x1;
   }
-  if (layerFlags & 0x10) {
+  if (*reinterpret_cast<unsigned int *>(materialData + 4) & 0x10) {
     unique->disables |= 0x10;
   }
-  if (layerFlags & 0x20) {
+  if (*reinterpret_cast<unsigned int *>(materialData + 4) & 0x20) {
     unique->disables |= 0x2;
   }
-  if (layerFlags & 0x40) {
+  if (*reinterpret_cast<unsigned int *>(materialData + 4) & 0x40) {
     unique->disables |= 0x4;
   }
-  if (layerFlags & 0x80) {
+  if (*reinterpret_cast<unsigned int *>(materialData + 4) & 0x80) {
     unique->disables |= 0x8;
   }
 }
@@ -563,9 +562,7 @@ LoadAttachment(unsigned char *data, unsigned int loadFlags, LISTPTR(LINKUNIQUE) 
   unsigned int   dataOffset = *reinterpret_cast<unsigned int *>(data);
   unsigned char *attachmentData = data + dataOffset;
   unsigned int   attachmentId = *reinterpret_cast<unsigned int *>(attachmentData);
-  const char    *fileName = reinterpret_cast<const char *>(attachmentData + 5);
-
-  if (!SStrLen(fileName)) {
+  if (!SStrLen(reinterpret_cast<const char *>(attachmentData + 5))) {
     return attachmentId;
   }
 
@@ -574,14 +571,14 @@ LoadAttachment(unsigned char *data, unsigned int loadFlags, LISTPTR(LINKUNIQUE) 
   createData.flags = loadFlags;
 
   CStatus subStatus;
-  HMODEL  child = ModelCreate(fileName, &createData, &subStatus);
+  HMODEL  child = ModelCreate(reinterpret_cast<const char *>(attachmentData + 5), &createData, &subStatus);
   if (child) {
     LINKUNIQUE *link = attachment->NewNode(LIST_TAIL, 0, 8);
     link->child = child;
   }
 
   if (!subStatus.IsEmpty()) {
-    status->Add(subStatus.GetHighestSeverity(), "%s:\n", fileName);
+    status->Add(subStatus.GetHighestSeverity(), "%s:\n", reinterpret_cast<const char *>(attachmentData + 5));
     status->Add(subStatus);
   }
 
@@ -649,10 +646,10 @@ int MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared *
   return 1;
 }
 
-void MdxLoadGlobalProperties(unsigned char *fileData, unsigned int fileBytes, unsigned int *loadFlags, CModelShared *modelShared) {
+void MdxLoadGlobalProperties(unsigned char *data, unsigned int fileBytes, unsigned int *loadFlags, CModelShared *modelShared) {
   ASSERT(modelShared);
   ASSERT(loadFlags);
-  unsigned char *data = MDLFileBinarySeek(fileData, fileBytes, 0x4C444F4D);
+  data = MDLFileBinarySeek(data, fileBytes, 0x4C444F4D);
   ASSERT(data != 0);
 
   unsigned char globalFlags = data[0x174];
@@ -665,16 +662,16 @@ void MdxLoadGlobalProperties(unsigned char *fileData, unsigned int fileBytes, un
 void MdxReadTextures(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CStatus *status) {
   ASSERT(data);
   ASSERT(modelptr);
-  unsigned char *section = MDLFileBinarySeek(data, fileBytes, 0x53584554);
-  if (!section) {
+  data = MDLFileBinarySeek(data, fileBytes, 0x53584554);
+  if (!data) {
     return;
   }
 
-  unsigned int sectionBytes = *reinterpret_cast<unsigned int *>(section);
+  unsigned int sectionBytes = *reinterpret_cast<unsigned int *>(data);
   unsigned int numTextures = sectionBytes / sizeof(MDLTEXTURESECTION);
   ASSERT(sectionBytes == numTextures * sizeof(MDLTEXTURESECTION));
   modelptr->m_textures.SetCount(numTextures);
-  ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(section + 4), numTextures, flags, status, modelptr->m_textures.Ptr());
+  ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(data + 4), numTextures, flags, status, modelptr->m_textures.Ptr());
 }
 
 void MdxReadTextures(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelSimple *modelptr, CStatus *status) {
@@ -841,15 +838,15 @@ MdxReadAttachments(unsigned char *data, unsigned int fileBytes, unsigned int fla
   ASSERT(modelptr);
   ASSERT(shared);
 
-  unsigned char *section = MDLFileBinarySeek(data, fileBytes, 0x48435441);
-  if (!section) {
+  data = MDLFileBinarySeek(data, fileBytes, 0x48435441);
+  if (!data) {
     return;
   }
 
-  unsigned int   sectionBytes = *reinterpret_cast<unsigned int *>(section) - 8;
-  unsigned int   numAttached = *reinterpret_cast<unsigned int *>(section + 4);
-  unsigned int   highestId = *reinterpret_cast<unsigned int *>(section + 8);
-  unsigned char *attachmentData = section + 12;
+  unsigned int sectionBytes = *reinterpret_cast<unsigned int *>(data) - 8;
+  unsigned int numAttached = *reinterpret_cast<unsigned int *>(data + 4);
+  unsigned int highestId = *reinterpret_cast<unsigned int *>(data + 8);
+  data += 12;
 
   modelptr->m_attached.SetCount(numAttached);
   modelptr->m_attachmentFlags.SetCount(numAttached);
@@ -859,13 +856,13 @@ MdxReadAttachments(unsigned char *data, unsigned int fileBytes, unsigned int fla
   memset(shared->attachIdToIndex.Ptr(), 0xFF, shared->attachIdToIndex.Count() * sizeof(unsigned int));
 
   for (unsigned int i = 0; i < numAttached; ++i) {
-    unsigned int bytesThisAttachment = *reinterpret_cast<unsigned int *>(attachmentData);
-    unsigned int attachmentId = LoadAttachment(attachmentData + 4, flags, &modelptr->m_attached[i], status);
+    unsigned int bytesThisAttachment = *reinterpret_cast<unsigned int *>(data);
+    unsigned int attachmentId = LoadAttachment(data + 4, flags, &modelptr->m_attached[i], status);
     shared->attachIdToIndex[attachmentId] = i;
 
     ASSERT(sectionBytes >= bytesThisAttachment);
     sectionBytes -= bytesThisAttachment;
-    attachmentData += bytesThisAttachment;
+    data += bytesThisAttachment;
   }
 
   ASSERT(sectionBytes == 0);

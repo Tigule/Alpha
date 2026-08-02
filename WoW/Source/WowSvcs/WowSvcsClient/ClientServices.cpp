@@ -406,15 +406,14 @@ void ClientConnection::AccountLogin_Finish(int reason) {
   m_statusResult = reason == 12;
 }
 
-int ClientConnection::HandleAuthChallenge(NETMESSAGE msgId, unsigned long __formal, CDataStore *msg) {
+int ClientConnection::HandleAuthChallenge(NETMESSAGE addr, unsigned long __formal, CDataStore *msg) {
   SHA1_CONTEXT ctx;
   unsigned int localDigest[5];
   int          localChallenge;
   unsigned int loginServerID;
   unsigned int challenge;
-  unsigned int addr;
 
-  ASSERT(msgId == SMSG_AUTH_CHALLENGE);
+  ASSERT(addr == SMSG_AUTH_CHALLENGE);
 
   msg->Get(challenge);
 
@@ -427,7 +426,7 @@ int ClientConnection::HandleAuthChallenge(NETMESSAGE msgId, unsigned long __form
   localChallenge = NTempest::CRandom::uint32_(g_rndSeed);
   resp.Put(localChallenge);
 
-  addr = 0;
+  addr = static_cast<NETMESSAGE>(0);
   loginServerID = m_loginData.m_loginServerID;
 
   SHA1_Init(&ctx);

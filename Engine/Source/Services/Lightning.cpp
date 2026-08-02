@@ -32,10 +32,10 @@ void CLightning::BuildStroke(TSFixedArray<NTempest::C3Vector> &points) {
 }
 
 void CLightning::Update(float elapsed) {
-  if (mDuration == 0.0f) {
+  if (mTexCoordScale == 0.0f) {
     mAccTime = 0.0f;
   } else {
-    mAccTime = fmod(mAccTime + elapsed, mDuration);
+    mAccTime = fmod(mAccTime + elapsed, mTexCoordScale);
   }
 
   if (mRebuildPoints) {

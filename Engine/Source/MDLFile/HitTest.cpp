@@ -29,11 +29,11 @@ int ReadHitTest(
 
   TSGrowableArray<NTempest::C3Vector> vertices;
   float radius = 0.0f;
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     if (!ReadObjectBody(parse, token, 0, section, status)) {
       switch (token) {
@@ -57,18 +57,18 @@ int ReadHitTest(
           break;
         case 0x1D8:
           ReadVertices(parse, "vertices", &vertices);
-          token = parse.Token(&tokenText, 0);
+          token = parse.Token(&tokentext, 0);
           continue;
         case 0x1DA:
           section->shape.plane.width = parse.ExpectFloat();
           break;
         default:
-          parse.FatalUnexpected(tokenText);
+          parse.FatalUnexpected(tokentext);
           break;
       }
       parse.Expect(',');
     }
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
 
   switch (section->type) {
@@ -98,7 +98,7 @@ int ReadHitTest(
       break;
   }
 
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   ReadObjectEnd(
       errors,
       data,
@@ -204,12 +204,12 @@ int WriteHitTests(
     TSGrowableArray<char> &buffer,
     CMDLStatus *
 ) {
-  int needObjectIds = data.hitTestShapes.Count() != data.objects.Count();
+  int needObjIds = data.hitTestShapes.Count() != data.objects.Count();
   for (unsigned int i = 0; i < data.hitTestShapes.Count(); ++i) {
     IWriteHitTestSection(
         data,
         data.hitTestShapes.Ptr()[i],
-        needObjectIds,
+        needObjIds,
         buffer
     );
   }

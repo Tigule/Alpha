@@ -121,8 +121,6 @@ void BindGlExtensions() {
   int         maxIdxs;
   int         versionLow = -1;
   int         versionHigh = -1;
-  const char *compressedTexSubImageProcName = 0;
-  int         maxVerts;
   const char *version = reinterpret_cast<const char *>(glGetString(GL_VERSION));
   sscanf(version, "%d.%d", &versionHigh, &versionLow);
   glVersion = (versionHigh << 16) | versionLow;
@@ -182,6 +180,7 @@ void BindGlExtensions() {
   glExtTextureLodBias = FindGlExt("GL_EXT_texture_lod_bias");
 
   const char *compressedTexImageProcName = 0;
+  const char *compressedTexSubImageProcName = 0;
   if (FindGlExt("GL_ARB_texture_compression")) {
     compressedTexImageProcName = "glCompressedTexImage2DARB";
     compressedTexSubImageProcName = "glCompressedTexSubImage2DARB";
@@ -225,6 +224,7 @@ void BindGlExtensions() {
   }
 
   if (FindGlExt("GL_EXT_draw_range_elements")) {
+    int maxVerts;
     glExtDrawRangeElements = 1;
     glDrawRangeElementsEXT = reinterpret_cast<void(APIENTRY *)(unsigned int, unsigned int, unsigned int, int, unsigned int, const void *)>(
         wglGetProcAddress("glDrawRangeElementsEXT")

@@ -157,13 +157,13 @@ void CSimpleEditBox::LoadXML(const XMLNode *node, CStatus *status) {
         }
       }
     } else if (!SStrCmpI(name, "TextInsets", INT_MAX)) {
-      float left;
-      float right;
-      float top;
-      float bottom;
+      float l;
+      float r;
+      float t;
+      float b;
 
-      if (LoadXML_Insets(child, left, right, top, bottom, status)) {
-        SetEditTextInsets(right, left, top, bottom);
+      if (LoadXML_Insets(child, l, r, t, b, status)) {
+        SetEditTextInsets(r, l, t, b);
       }
     }
   }
@@ -862,14 +862,14 @@ int CSimpleEditBox::PrevCharOffset(int offset) {
 }
 
 int CSimpleEditBox::GetOffsetToLine(int offset) {
-  int line = 0;
+  int maxLines = 0;
   int maxLine = m_visibleLines.Count() - 2;
 
-  while (offset >= static_cast<int>(m_visibleLines[line + 1]) && line < maxLine) {
-    ++line;
+  while (offset >= static_cast<int>(m_visibleLines[maxLines + 1]) && maxLines < maxLine) {
+    ++maxLines;
   }
 
-  return line;
+  return maxLines;
 }
 
 void CSimpleEditBox::GrowText(int size) {
@@ -897,8 +897,7 @@ void CSimpleEditBox::SetText(const char *text) {
   }
 
   if (m_actions[EVENT_SET].obj) {
-    CEvent event(m_actions[EVENT_SET].id, this);
-    m_actions[EVENT_SET].obj->OnEvent(event);
+    m_actions[EVENT_SET].obj->OnEvent(CEvent(m_actions[EVENT_SET].id, this));
   }
 }
 
@@ -1354,17 +1353,17 @@ int CSimpleEditBox::ConvertCoordinateToIndex(float x, float y, int &position) {
   }
 
   const char *text = m_password ? m_textHidden : m_text;
-  unsigned int linePosition = m_visibleLines[line];
+  position = m_visibleLines[line];
   unsigned int amount = m_string->GetNumCharsWithinWidth(
-      text + linePosition,
-      m_visibleLines[line + 1] - linePosition,
+      text + position,
+      m_visibleLines[line + 1] - position,
       offset / m_string->m_layoutScale);
 
   if (text == m_text) {
-    amount = GetNumToLen(linePosition, amount, false);
+    amount = GetNumToLen(position, amount, false);
   }
 
-  position = linePosition + amount;
+  position += amount;
   return 1;
 }
 
@@ -1573,13 +1572,13 @@ void CSimpleEditBox::UpdateLanguageIndicator() {
 void CSimpleEditBox::UpdateClauseInfo() {
   unsigned int clauseLeft;
   unsigned int clauseRight;
-  unsigned int cursorPosition;
+  unsigned int cursorPos;
 
-  if (OsIMEGetClauseInfo(clauseLeft, clauseRight, cursorPosition)) {
+  if (OsIMEGetClauseInfo(clauseLeft, clauseRight, cursorPos)) {
     CreateClauseHighlight();
     m_clauseLeft = m_highlightLeft + GetNumToLen(m_highlightLeft, clauseLeft, false);
     m_clauseRight = m_highlightLeft + GetNumToLen(m_highlightLeft, clauseRight, false);
-    m_cursorPos = m_highlightLeft + GetNumToLen(m_highlightLeft, cursorPosition, false);
+    m_cursorPos = m_highlightLeft + GetNumToLen(m_highlightLeft, cursorPos, false);
     m_dirtyFlags |= DIRTY_HIGHLIGHT | DIRTY_CURSOR;
   }
 }
@@ -1637,8 +1636,8 @@ int CSimpleEditBox::PopulateCandidates(unsigned long which) {
 
 void CSimpleEditBox::DispatchAction(int action) {
   if (m_actions[action].obj) {
-    CEvent event(m_actions[action].id, this);
-    m_actions[action].obj->OnEvent(event);
+    CEvent evt(m_actions[action].id, this);
+    m_actions[action].obj->OnEvent(evt);
   }
 }
 
@@ -1652,10 +1651,10 @@ void CSimpleEditBox::UpdateVisibleHighlight() {
   }
 
   int firstLine = GetOffsetToLine(m_highlightLeft);
-  int lastLine = GetOffsetToLine(m_highlightRight);
-  int numLines = lastLine - firstLine + 1;
+  int maxLine = GetOffsetToLine(m_highlightRight);
+  int numLines = maxLine - firstLine + 1;
 
-  if (firstLine == lastLine) {
+  if (firstLine == maxLine) {
     UpdateHighlightArea(m_highlight[0], m_highlightLeft, m_highlightRight);
     m_highlight[1]->Hide();
     m_highlight[2]->Hide();
@@ -1668,7 +1667,7 @@ void CSimpleEditBox::UpdateVisibleHighlight() {
       m_highlight[1]->Show();
     }
 
-    UpdateHighlightArea(m_highlight[2], m_visibleLines[lastLine], m_highlightRight);
+    UpdateHighlightArea(m_highlight[2], m_visibleLines[maxLine], m_highlightRight);
   }
 }
 
@@ -1679,27 +1678,27 @@ void CSimpleEditBox::UpdateVisibleCursor() {
   }
 
   unsigned int line = 0;
-  unsigned int lastLine = m_visibleLines.Count() - 2;
+  unsigned int maxLines = m_visibleLines.Count() - 2;
   float fontHeight = m_string->m_spacing + m_string->m_fontHeight;
-  float offsetY = 0.0f;
+  float offset_y = 0.0f;
 
-  while (m_cursorPos >= static_cast<int>(m_visibleLines[line + 1]) && line < lastLine) {
+  while (m_cursorPos >= static_cast<int>(m_visibleLines[line + 1]) && line < maxLines) {
     ++line;
-    offsetY -= fontHeight;
+    offset_y -= fontHeight;
   }
 
-  float offsetX;
+  float offset_x;
   if (m_cursorPos == static_cast<int>(m_visibleLines[line])) {
-    offsetX = 0.0f;
+    offset_x = 0.0f;
   } else {
     const char *text = m_password ? m_textHidden : m_text;
-    offsetX = m_string->GetTextWidth(
+    offset_x = m_string->GetTextWidth(
         text + m_visibleLines[line],
         m_cursorPos - m_visibleLines[line]);
   }
 
   FRAMEPOINT point = m_multiline ? FRAMEPOINT_TOPLEFT : FRAMEPOINT_LEFT;
-  m_cursor->SetPoint(point, m_string, point, offsetX, offsetY, 0);
+  m_cursor->SetPoint(point, m_string, point, offset_x, offset_y, 0);
   m_cursor->Resize(1);
   m_blinkElapsedTime = 0.0f;
 

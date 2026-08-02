@@ -484,8 +484,9 @@ void CGxDevice::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *texture, unsigne
   if (!m_textureTarget[GxBuffers_Color].m_texture && !m_textureTarget[GxBuffers_Depth].m_texture) {
     DeviceSetCurWindow(DeviceDefWindow());
   } else {
-    NTempest::CRect rect(0.0f, 0.0f, static_cast<float>(texture->m_height), static_cast<float>(texture->m_width));
-    DeviceSetCurWindow(rect);
+    DeviceSetCurWindow(
+        NTempest::CRect(0.0f, 0.0f, static_cast<float>(texture->m_height), static_cast<float>(texture->m_width))
+    );
   }
 }
 
@@ -1586,9 +1587,8 @@ float CGxDevice::CpuFrequency() {
   }
 
   millisecond = GetTickCount();
-  do {
-    start = CpuTicks();
-  } while (GetTickCount() == millisecond);
+  for (start = CpuTicks(); GetTickCount() == millisecond; start = CpuTicks()) {
+  }
 
   Sleep(250);
   frequency = static_cast<float>(4 * (CpuTicks() - start));

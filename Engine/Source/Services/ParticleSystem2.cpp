@@ -415,9 +415,11 @@ int CParticleEmitter2::MoveParticle(CParticle2_Model &p, float elapsedTime) {
   if (velMag > 0.0001f) {
     float                  angle = velMag * elapsedTime * 0.5f;
     float                  scale = NTempest::CMath::sin_(angle) / velMag;
-    NTempest::C4Quaternion rotation(NTempest::CMath::cos_(angle), scale * p.m_rotVelocity.x, scale * p.m_rotVelocity.y, scale * p.m_rotVelocity.z);
-
-    p.m_rotation = rotation * p.m_rotation;
+    p.m_rotation = NTempest::C4Quaternion(
+                       NTempest::CMath::cos_(angle), scale * p.m_rotVelocity.x, scale * p.m_rotVelocity.y,
+                       scale * p.m_rotVelocity.z
+                   ) *
+                   p.m_rotation;
   }
 
   return MoveParticle(static_cast<CParticle2 &>(p), elapsedTime);
@@ -558,22 +560,22 @@ void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
     return;
   }
 
-  CGxVertexPNCT0 *start = vertices;
+  CGxVertexPNCT0 *vtxBase = vertices;
   if (m_sortZ) {
-    unsigned int index;
-    for (index = 0; index < m_alive.Count(); ++index) {
-      unsigned int particleIndex = m_alive[index];
-      CParticle2  *particle = GetParticle(particleIndex);
-      NTempest::C3Vector      viewPosition = particle->m_position * s_particleToView;
-      CSortableParticleRecord record;
-      record.dist = viewPosition.z;
-      record.p = particle;
-      m_pq.Enqueue(record);
+    unsigned int loop;
+    for (loop = 0; loop < m_alive.Count(); ++loop) {
+      unsigned int particleIndex = m_alive[loop];
+      CParticle2  *p = GetParticle(particleIndex);
+      NTempest::C3Vector      position = p->m_position * s_particleToView;
+      CSortableParticleRecord sp;
+      sp.dist = position.z;
+      sp.p = p;
+      m_pq.Enqueue(sp);
     }
 
-    for (index = 0; index < s_maxParticles; ++index) {
-      CSortableParticleRecord record = m_pq.Dequeue();
-      if (IRenderParticle(*record.p, vertices)) {
+    for (loop = 0; loop < s_maxParticles; ++loop) {
+      CSortableParticleRecord sp = m_pq.Dequeue();
+      if (IRenderParticle(*sp.p, vertices)) {
         vertices += m_verticesPerParticle;
       }
     }
@@ -582,16 +584,16 @@ void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
       m_pq.Dequeue();
     }
   } else {
-    for (unsigned int index = 0; index < s_maxParticles; ++index) {
-      unsigned int particleIndex = m_alive[index];
-      CParticle2  *particle = GetParticle(particleIndex);
-      if (IRenderParticle(*particle, vertices)) {
+    for (unsigned int loop = 0; loop < s_maxParticles; ++loop) {
+      unsigned int particleIndex = m_alive[loop];
+      CParticle2  *p = GetParticle(particleIndex);
+      if (IRenderParticle(*p, vertices)) {
         vertices += m_verticesPerParticle;
       }
     }
   }
 
-  s_renderedParticles = static_cast<unsigned int>((vertices - start) / m_verticesPerParticle);
+  s_renderedParticles = static_cast<unsigned int>((vertices - vtxBase) / m_verticesPerParticle);
 }
 
 void CParticleEmitter2::IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
@@ -693,8 +695,7 @@ void CParticleEmitter2::RenderParticles() {
     buf->m_userCallback = BufRenderParticles;
     buf->m_userArg = this;
     GxBufLock(buf);
-    CGxBatch batch(GxPrim_Triangles, s_renderedIndices, 0, -1, -1);
-    GxBufRender(batch);
+    GxBufRender(CGxBatch(GxPrim_Triangles, s_renderedIndices, 0, -1, -1));
     GxBufUnlock();
   }
   GxRsPop();
@@ -761,30 +762,29 @@ void CParticleEmitter2::RenderParticleModels() {
 
   NTempest::C44Matrix worldToView;
   GxXformView(worldToView);
-  NTempest::C44Matrix modelToWorld(
+  NTempest::C44Matrix particleToView(
       m_modelToWorld.a0, m_modelToWorld.a1, m_modelToWorld.a2, 0.0f, m_modelToWorld.b0, m_modelToWorld.b1, m_modelToWorld.b2, 0.0f, m_modelToWorld.c0,
       m_modelToWorld.c1, m_modelToWorld.c2, 0.0f, m_modelToWorld.d0, m_modelToWorld.d1, m_modelToWorld.d2, 1.0f
   );
-  s_particleToView = m_useModelSpace ? modelToWorld * worldToView : worldToView;
+  s_particleToView = m_useModelSpace ? particleToView * worldToView : worldToView;
 
   if (m_sortZ) {
-    unsigned int index;
-    for (index = 0; index < m_alive.Count(); ++index) {
-      CParticle2_Model       &particle = m_modelParticles[m_alive[index]];
-      NTempest::C3Vector      viewPosition = particle.m_position * s_particleToView;
-      CSortableParticleRecord record;
-      record.dist = viewPosition.z;
-      record.p = &particle;
-      m_pq.Enqueue(record);
+    unsigned int loop;
+    for (loop = 0; loop < m_alive.Count(); ++loop) {
+      CParticle2_Model       &p = m_modelParticles[m_alive[loop]];
+      CSortableParticleRecord sp;
+      sp.dist = (p.m_position * s_particleToView).z;
+      sp.p = &p;
+      m_pq.Enqueue(sp);
     }
 
-    for (index = 0; index < m_alive.Count(); ++index) {
-      CSortableParticleRecord record = m_pq.Dequeue();
-      RenderParticle(*static_cast<CParticle2_Model *>(record.p));
+    for (loop = 0; loop < m_alive.Count(); ++loop) {
+      CSortableParticleRecord sp = m_pq.Dequeue();
+      RenderParticle(*static_cast<CParticle2_Model *>(sp.p));
     }
   } else {
-    for (unsigned int index = 0; index < m_alive.Count(); ++index) {
-      RenderParticle(m_modelParticles[m_alive[index]]);
+    for (unsigned int loop = 0; loop < m_alive.Count(); ++loop) {
+      RenderParticle(m_modelParticles[m_alive[loop]]);
     }
   }
 }
@@ -1159,24 +1159,24 @@ void CParticleEmitter2::StepUpdate(float elapsedTime, int suppressNewParticles) 
         m_dead.Push(m_alive[loop]);
         m_alive.Remove(loop);
         --loop;
-      } else {
-        for (unsigned int ce = 0; ce < 4; ++ce) {
-          CParticleEmitter2 *child = m_childEmitter[ce];
-          if (child) {
+        } else {
+          for (unsigned int ce = 0; ce < 4; ++ce) {
+            CParticleEmitter2 *child = m_childEmitter[ce];
+            if (child) {
             NTempest::C3Vector saveTrans(m_modelToWorld.d0, m_modelToWorld.d1, m_modelToWorld.d2);
 
             m_modelToWorld.d0 = p->m_position.x;
             m_modelToWorld.d1 = p->m_position.y;
             m_modelToWorld.d2 = p->m_position.z;
 
-            if (child->m_instantVelLin) {
-              child->m_frameInstantVelLin = p->m_velocity;
-            }
-            if (child->m_extrude) {
-              child->m_prevModelToWorldTrans = prevPos;
-            }
+              if (child->m_instantVelLin) {
+                child->m_frameInstantVelLin = p->m_velocity;
+              }
+              if (child->m_extrude) {
+                child->m_prevModelToWorldTrans = prevPos;
+              }
 
-            child->EmitNewParticles(elapsedTime, m_modelToWorld);
+              child->EmitNewParticles(elapsedTime, m_modelToWorld);
 
             m_modelToWorld.d0 = saveTrans.x;
             m_modelToWorld.d1 = saveTrans.y;

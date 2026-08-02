@@ -326,8 +326,7 @@ void CSimpleModel::RenderModel(void *param) {
     DataMgrGetCoord(reinterpret_cast<HDATAMGR>(camera), 8, &cameraTarg);
     CameraSetupWorldProjection(camera, viewRect, 0);
   } else {
-    const NTempest::C2Vector screenPoint(viewRect.l, viewRect.t);
-    CameraSetupScreenProjection(viewRect, screenPoint, 0.0f);
+    CameraSetupScreenProjection(viewRect, NTempest::C2Vector(viewRect.l, viewRect.t), 0.0f);
   }
 
   DDCToNDC(viewRect.l, viewRect.t, &viewRect.l, &viewRect.t);
@@ -352,12 +351,11 @@ void CSimpleModel::RenderModel(void *param) {
 
     CGxLight nullLight;
     nullLight.m_enabled = 0;
-    const NTempest::C3Vector zero(0.0f);
     unsigned int             whichLight = 0;
     HMODEL                   model = simpleModel->m_model;
 
     if (simpleModel->m_light.m_enabled) {
-      GxLightSet(0, simpleModel->m_light, zero);
+      GxLightSet(0, simpleModel->m_light, NTempest::C3Vector(0.0f));
       whichLight = 1;
     } else {
       const unsigned int numLights = ModelGetNumLights(model);
@@ -369,12 +367,12 @@ void CSimpleModel::RenderModel(void *param) {
         if (camera && light.m_isOmni) {
           light.m_dir = light.m_dir - cameraPos;
         }
-        GxLightSet(whichLight, light, zero);
+        GxLightSet(whichLight, light, NTempest::C3Vector(0.0f));
       }
     }
 
     for (; whichLight < 8; ++whichLight) {
-      GxLightSet(whichLight, nullLight, zero);
+      GxLightSet(whichLight, nullLight, NTempest::C3Vector(0.0f));
     }
 
     const int fogEnabled = GxMasterEnable(GxMasterEnable_Fog);

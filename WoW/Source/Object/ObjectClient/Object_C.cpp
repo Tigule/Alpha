@@ -581,8 +581,7 @@ int CGObject_C::ShouldRender(unsigned long worldStatus) {
     return 1;
   }
 
-  NTempest::C3Vector groundNormal(0.0f, 0.0f, 1.0f);
-  ModelProcessEvents(m_model, GetPosition(), GetFacing(), groundNormal, 1.0f);
+  ModelProcessEvents(m_model, GetPosition(), GetFacing(), NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f);
   m_flags &= ~0x10U;
   return 0;
 }
@@ -622,15 +621,19 @@ void CGObject_C::Initialize() {
 
   static const unsigned int FADETEX_WIDTH = static_cast<unsigned int>(Gx_MaxTexAspect * 8.0f);
   static const unsigned int FADETEX_HEIGHT = 8;
-  CGxTexFlags               flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  GxTexCreate(FADETEX_HEIGHT, FADETEX_WIDTH, GxTex_Argb8888, flags, 0, s_BlobFadeTex, s_fadeTex);
+  GxTexCreate(
+      FADETEX_HEIGHT, FADETEX_WIDTH, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0,
+      s_BlobFadeTex, s_fadeTex
+  );
 
   if (s_selectionTexture) {
     HandleClose(s_selectionTexture);
   }
 
   CStatus status;
-  s_selectionTexture = TextureCreate("Textures\\UnitSelectTexture.blp", flags, &status, 0);
+  s_selectionTexture = TextureCreate(
+      "Textures\\UnitSelectTexture.blp", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0
+  );
 }
 
 void CGObject_C::Shutdown() {
@@ -719,10 +722,8 @@ void CGObject_C::Animate() {
 void CGObject_C::Animate(const NTempest::C34Matrix &camRelativeMatrix) {
   FATALASSERT(m_model);
 
-  CGCamera          *camera = CGWorldFrame::GetActiveCamera();
-  NTempest::C3Vector cameraPosition = camera->Position();
-  NTempest::C3Vector cameraVector = camera->Forward();
-  ModelAnimate(m_model, camRelativeMatrix, GetScale() * m_renderScale, cameraPosition, cameraVector);
+  CGCamera *camera = CGWorldFrame::GetActiveCamera();
+  ModelAnimate(m_model, camRelativeMatrix, GetScale() * m_renderScale, camera->Position(), camera->Forward());
 }
 
 int CGObject_C::IsObjectModelLoaded() const {
@@ -774,8 +775,7 @@ int CGObject_C::UpdateModelLoadStatus() {
 }
 
 void CGObject_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
-  float scale = GetScale() * m_renderScale;
-  ModelGetStandingMatrix(m_model, GetPosition(), GetGroundNormal(), GetRenderFacing(), scale, worldMatrix);
+  ModelGetStandingMatrix(m_model, GetPosition(), GetGroundNormal(), GetRenderFacing(), GetScale() * m_renderScale, worldMatrix);
 }
 
 void CGObject_C::UpdateObjectHeight(HMODEL__ *model) {

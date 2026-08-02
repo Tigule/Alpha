@@ -227,8 +227,7 @@ namespace OsNet {
         fd_set *set = &m_sets[selectSet];
 
         while (set->fd_count) {
-          unsigned int   sock = set->fd_array[--set->fd_count];
-          NETSELSOCKPTR *selsockPtr = m_selsockTable.Ptr(sock, s_hashKey);
+          NETSELSOCKPTR *selsockPtr = m_selsockTable.Ptr(set->fd_array[--set->fd_count], s_hashKey);
 
           selsockPtr->ptr->Selected(m_net, static_cast<SELECTSET>(selectSet));
         }
@@ -479,14 +478,14 @@ namespace OsNet {
   }
 
   void TCPNET::MakeConnAddr(unsigned int sock, unsigned long port, NETCONNADDR *connAddr) {
-    int peerSize = sizeof(connAddr->peerAddr);
-    int selfSize = sizeof(connAddr->selfAddr);
+    int peerSize = sizeof(connAddr->selfAddr);
 
-    getsockname(sock, reinterpret_cast<sockaddr *>(&connAddr->selfAddr), &selfSize);
+    getsockname(sock, reinterpret_cast<sockaddr *>(&connAddr->selfAddr), &peerSize);
     reinterpret_cast<sockaddr_in *>(&connAddr->selfAddr)->sin_port = htons(static_cast<unsigned short>(port));
     *reinterpret_cast<unsigned long *>(&connAddr->selfAddr.data[8]) = 0;
     *reinterpret_cast<unsigned long *>(&connAddr->selfAddr.data[12]) = 0;
 
+    peerSize = sizeof(connAddr->peerAddr);
     getpeername(sock, reinterpret_cast<sockaddr *>(&connAddr->peerAddr), &peerSize);
     reinterpret_cast<sockaddr_in *>(&connAddr->peerAddr)->sin_port = htons(static_cast<unsigned short>(port));
     *reinterpret_cast<unsigned long *>(&connAddr->peerAddr.data[8]) = 0;
@@ -1276,13 +1275,12 @@ namespace OsNet {
   }
 
   int TCPNET::TcpListen(unsigned short port, NETEVENTPROC eventProc, void *user) {
-    TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator listenIt(m_listenList);
-    unsigned long                              acceptCount;
-
     if (!eventProc) {
       return 0;
     }
 
+    TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator listenIt(m_listenList);
+    unsigned long acceptCount = 0;
     TCPLISTEN *listen = listenIt.CycleInit();
     while (listen) {
       if (!listen->IsClosed() && listen->m_portAddr == port) {
@@ -1301,7 +1299,6 @@ namespace OsNet {
       return 0;
     }
 
-    acceptCount = 0;
     if (!m_listenThread && m_port) {
       if (!CreateIoCompletionPort(reinterpret_cast<HANDLE>(sock), m_port, 0, 0)) {
         LogWrite("%s 1", OSNETERR_PORTFAILED);
@@ -2247,8 +2244,7 @@ namespace OsNet {
   }
 
   void LOOPCONN::EnqueueInput(const void *data, unsigned long bytes) {
-    const unsigned char *inputData = static_cast<const unsigned char *>(data);
-    INPUT               *pinput = m_inputList.Tail();
+    INPUT *pinput = m_inputList.Tail();
 
     if (pinput && pinput->m_bytes < pinput->m_dataBytes) {
       unsigned long copyBytes = pinput->m_dataBytes - pinput->m_bytes;
@@ -2257,9 +2253,9 @@ namespace OsNet {
         copyBytes = bytes;
       }
 
-      memcpy(&pinput->m_data[pinput->m_bytes], inputData, copyBytes);
+      memcpy(&pinput->m_data[pinput->m_bytes], data, copyBytes);
       pinput->m_bytes += copyBytes;
-      inputData += copyBytes;
+      data = static_cast<const unsigned char *>(data) + copyBytes;
       bytes -= copyBytes;
     }
 
@@ -2267,7 +2263,7 @@ namespace OsNet {
       pinput = m_net->LoopAllocInput(bytes);
       pinput->m_bytes = bytes;
       pinput->m_conn = this;
-      memcpy(pinput->m_data, inputData, bytes);
+      memcpy(pinput->m_data, data, bytes);
       m_inputList.LinkNode(pinput, LIST_TAIL, 0);
       m_net->m_loopInputList.LinkNode(pinput, LIST_TAIL, 0);
     }

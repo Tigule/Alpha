@@ -47,22 +47,22 @@ namespace NTempest {
     if (CMath::fequal4_(scale, 1.0f)) {
       return Transpose();
     }
-    C33Matrix result = Transpose();
-    result.Scale(1.0f / (scale * scale));
-    return result;
+    C33Matrix matrix = Transpose();
+    matrix.Scale(1.0f / (scale * scale));
+    return matrix;
   }
 
   C33Matrix C33Matrix::AffineInverse(const C3Vector &scale) const {
-    C3Vector inverseScale(
+    C3Vector s(
         1.0f / scale.x,
         1.0f / scale.y,
         1.0f / scale.z
     );
-    C33Matrix result = *this;
-    result.Scale(inverseScale);
-    result = result.Transpose();
-    result.Scale(inverseScale);
-    return result;
+    C33Matrix rotationScale = *this;
+    rotationScale.Scale(s);
+    C33Matrix matrix = rotationScale.Transpose();
+    matrix.Scale(s);
+    return matrix;
   }
 
   C33Matrix C33Matrix::Rotation(float angle, const C3Vector &axis, bool unit) {

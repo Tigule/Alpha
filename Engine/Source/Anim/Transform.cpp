@@ -485,13 +485,13 @@ static int AdvanceTime(CAnim *unique, CAnimData *shared) {
     }
   }
 
-  const float elapsedSeconds = fTimeElapsed * 0.001f;
+  fTimeElapsed *= 0.001f;
   for (unsigned int emitterIndex = 0; emitterIndex < unique->emitter2Status.Count(); ++emitterIndex) {
-    unique->emitter2Status[emitterIndex].elapsedTime = elapsedSeconds;
+    unique->emitter2Status[emitterIndex].elapsedTime = fTimeElapsed;
   }
 
   for (unsigned int ribbonIndex = 0; ribbonIndex < unique->ribbonStatus.Count(); ++ribbonIndex) {
-    unique->ribbonStatus[ribbonIndex].elapsedTime = elapsedSeconds;
+    unique->ribbonStatus[ribbonIndex].elapsedTime = fTimeElapsed;
   }
 
   return 1;
@@ -535,26 +535,26 @@ static void SetGeosetAlpha(
   ASSERT(currgeoset);
   ASSERT(geoStatus);
 
-  float alpha = 0.0f;
+  float visibility = 0.0f;
   if (currgeoset->visibility.TotalKeys()) {
     unsigned int keys = currgeoset->visibility.SetAnimTime(geoStatus->base, &geoStatus->visibility, animInfo);
     if (keys > 1) {
       const CAnimSequence &sequence = animInfo.shared->seq[geoStatus->base.currSeq];
-      currgeoset->visibility.Interpolate(geoStatus->visibility, sequence.time.h - sequence.time.l, &alpha);
+      currgeoset->visibility.Interpolate(geoStatus->visibility, sequence.time.h - sequence.time.l, &visibility);
     } else {
       if (!(geoStatus->base.flags & 0x10)) {
         return;
       }
       if (keys) {
-        alpha = reinterpret_cast<const CLinearKeyFrame<float> *>(
+        visibility = reinterpret_cast<const CLinearKeyFrame<float> *>(
                     currgeoset->visibility.GetKeyFrame(geoStatus->visibility.currKey)
         )->transform;
       } else {
-        alpha = 1.0f;
+        visibility = 1.0f;
       }
     }
 
-    color->animatedAlpha = min(max(alpha, 0.0f), 1.0f);
+    color->animatedAlpha = min(max(visibility, 0.0f), 1.0f);
     color->animatedColor.a =
         NTempest::CMath::ftol_0_256_(color->animatedAlpha * color->proceduralAlpha * 255.0f);
   }

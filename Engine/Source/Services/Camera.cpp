@@ -124,12 +124,10 @@ void CameraGetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3V
   GxuXformCalcFrustumCorners(view, proj, corners);
 
   NTempest::C3Vector lefty = corners[0] + (corners[1] - corners[0]) * y;
-  NTempest::C3Vector righty = corners[3] + (corners[2] - corners[3]) * y;
-  *a = lefty + (righty - lefty) * x;
+  *a = lefty + (corners[3] + (corners[2] - corners[3]) * y - lefty) * x;
 
   lefty = corners[4] + (corners[5] - corners[4]) * y;
-  righty = corners[7] + (corners[6] - corners[7]) * y;
-  *b = lefty + (righty - lefty) * x;
+  *b = lefty + (corners[7] + (corners[6] - corners[7]) * y - lefty) * x;
 }
 
 void CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NTempest::C2Vector &screenPoint, float depth) {

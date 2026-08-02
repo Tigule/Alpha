@@ -124,8 +124,8 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItem(RECORD *item, KEY key) {
 template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
   KEY              id;
-  unsigned int     invalid;
-  unsigned int     count;
+  unsigned char    invalid;
+  unsigned char    count;
   DBCACHEHASH     *entry;
 
   if (single) {

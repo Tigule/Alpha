@@ -33,46 +33,43 @@ static void ICollisionAddErrors(TSet &errors) {
   errors.Add(0x17B, 1, 0);
 }
 
-static void IReadTriangleIndices(Parser &parse, TSGrowableArray<unsigned short> *indices) {
-  unsigned int token;
-  const char *tokenText;
-  long count = parse.GetOptionalInt(&token, &tokenText, 0);
+static void IReadTriangleIndices(Parser &parse, TSGrowableArray<unsigned short> *triIndices) {
+  unsigned int savedtoken;
+  const char *tokentext;
+  long count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   if (count > 0) {
-    indices->ReserveSpace(3 * count);
+    triIndices->ReserveSpace(3 * count);
   }
-  parse.Expect('{', token, tokenText);
+  parse.Expect('{', savedtoken, tokentext);
   long actual = 0;
-  token = parse.Token(&tokenText, 0);
-  while (token == '{') {
-    unsigned short value = static_cast<unsigned short>(parse.ExpectInt());
-    indices->Add(&value);
+  savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken == '{') {
+    *triIndices->New() = static_cast<unsigned short>(parse.ExpectInt());
     parse.Expect(',');
-    value = static_cast<unsigned short>(parse.ExpectInt());
-    indices->Add(&value);
+    *triIndices->New() = static_cast<unsigned short>(parse.ExpectInt());
     parse.Expect(',');
-    value = static_cast<unsigned short>(parse.ExpectInt());
-    indices->Add(&value);
+    *triIndices->New() = static_cast<unsigned short>(parse.ExpectInt());
     parse.Expect('}');
     parse.Expect(',');
     ++actual;
-    token = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', savedtoken, tokentext);
   if (count >= 0 && actual != count) {
     parse.WarningCount("collision triangles", count, actual);
   }
 }
 
 static void IWriteTriangleIndices(
-    const TSGrowableArray<unsigned short> &indices,
+    const TSGrowableArray<unsigned short> &triIndices,
     TSGrowableArray<char> &buffer
 ) {
-  unsigned int count = indices.Count() / 3;
-  MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(0x1C9), count);
-  for (unsigned int i = 0; i < count; ++i) {
+  unsigned int numTriangles = triIndices.Count() / 3;
+  MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(0x1C9), numTriangles);
+  for (unsigned int i = 0; i < numTriangles; ++i) {
     MDL::WriteLine(
         buffer, "\t\t{ %hu, %hu, %hu },\n",
-        indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]
+        triIndices[i * 3], triIndices[i * 3 + 1], triIndices[i * 3 + 2]
     );
   }
   MDL::WriteLine(buffer, "\t}\n");
@@ -87,11 +84,11 @@ int MDL::ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   TSet errors;
   ICollisionAddErrors(errors);
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     if (token == 0x1D8) {
       ReadVertices(parse, "collision vertices", &data.collision.vertices);
@@ -100,11 +97,11 @@ int MDL::ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     } else if (token == 0x17B) {
       ReadVertices(parse, "facet normals", &data.collision.facetNormals);
     } else {
-      parse.FatalUnexpected(tokenText);
+      parse.FatalUnexpected(tokentext);
     }
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   errors.Complete(status);
   return !parse.FoundError();
 }
@@ -121,7 +118,7 @@ int MDL::WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDL
 }
 
 int MDL::ReadBinCollision(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
@@ -130,22 +127,22 @@ int MDL::ReadBinCollision(
   if (!length) {
     return 1;
   }
-  if (!ReadBinC3VectorSection(buffer, 'XTRV', "Vertex", &data.collision.vertices, &totalRead, status)) {
+  if (!ReadBinC3VectorSection(buf, 'XTRV', "Vertex", &data.collision.vertices, &totalRead, status)) {
     return 0;
   }
-  if (buffer.GetDword() != ' IRT') {
+  if (buf.GetDword() != ' IRT') {
     status->Add(STATUS_ERROR, "Invalid %s section detected in model.\n", "Triangle Index");
     return 0;
   }
-  unsigned int count = buffer.GetUint();
+  unsigned int count = buf.GetUint();
   totalRead += 8;
   data.collision.triIndices.SetCount(count);
   if (count) {
-    buffer.GetWordArray(data.collision.triIndices.Ptr(), count);
+    buf.GetWordArray(data.collision.triIndices.Ptr(), count);
     totalRead += 2 * count;
   }
   if (!ReadBinC3VectorSection(
-          buffer, 'SMRN', "Facet Normal", &data.collision.facetNormals, &totalRead, status)) {
+          buf, 'SMRN', "Facet Normal", &data.collision.facetNormals, &totalRead, status)) {
     return 0;
   }
   if (totalRead > length) {
@@ -155,15 +152,15 @@ int MDL::ReadBinCollision(
   return totalRead >= length;
 }
 
-int MDL::WriteBinCollision(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+int MDL::WriteBinCollision(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   if (data.collision.vertices.Count()) {
-    buffer.AddDword('DILC');
-    buffer.AddUint(GetSectionSize(data.collision));
-    WriteBinC3VectorSection(buffer, 'XTRV', data.collision.vertices);
-    buffer.AddDword(' IRT');
-    buffer.AddUint(data.collision.triIndices.Count());
-    buffer.AddWordArray(data.collision.triIndices.Ptr(), data.collision.triIndices.Count());
-    WriteBinC3VectorSection(buffer, 'SMRN', data.collision.facetNormals);
+    buf.AddDword('DILC');
+    buf.AddUint(GetSectionSize(data.collision));
+    WriteBinC3VectorSection(buf, 'XTRV', data.collision.vertices);
+    buf.AddDword(' IRT');
+    buf.AddUint(data.collision.triIndices.Count());
+    buf.AddWordArray(data.collision.triIndices.Ptr(), data.collision.triIndices.Count());
+    WriteBinC3VectorSection(buf, 'SMRN', data.collision.facetNormals);
   }
   return 1;
 

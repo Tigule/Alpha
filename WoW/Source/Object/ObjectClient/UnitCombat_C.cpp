@@ -160,9 +160,9 @@ void ATTACKROUNDINFO::UI(CDataStore &msg) {
   msg.Get(victim);
   msg.Get(dmg.totalDamage);
 
-  unsigned char damageCount;
-  msg.Get(damageCount);
-  for (unsigned int i = 0; i < damageCount; ++i) {
+  unsigned char d;
+  msg.Get(d);
+  for (unsigned int i = 0; i < d; ++i) {
     msg.Get(dmg.damageType[i]);
     msg.Get(dmg.damageFloat[i]);
     msg.Get(dmg.damage[i]);
@@ -490,15 +490,15 @@ int OnUnitDamageTaken(void *__formal, NETMESSAGE msgId, unsigned long eventTime,
 int OnUnitDamageTaken(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   unsigned __int64 guid;
   unsigned int     flags;
-  int              damage;
-  unsigned char    damageClass;
+  unsigned char    damage;
+  int              amount;
 
   msg->Get(guid);
-  msg->Get(damageClass);
   msg->Get(damage);
+  msg->Get(amount);
   msg->Get(flags);
-  if (damage > 0) {
-    CGGameUI::ShowCombatFeedback(guid, damage, damageClass, flags);
+  if (amount > 0) {
+    CGGameUI::ShowCombatFeedback(guid, amount, damage, flags);
   }
   return 1;
 }
@@ -1023,8 +1023,7 @@ void CGUnit_C::OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo) {
   }
 
   if (roundInfo.victim == ClntObjMgrGetActivePlayer() && !CGGameUI::GetLockedTarget()) {
-    unsigned __int64 attacker = GetGUID();
-    CGGameUI::Target(attacker, 0);
+    CGGameUI::Target(GetGUID(), 0);
   }
 }
 
@@ -1054,24 +1053,19 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
     attackerPtr->SetMeleeDeathHold(0);
   }
 
-  NTempest::C3Vector position;
   switch (roundInfo->newVictimState) {
     case VS_PARRY:
-      GetPosition(position);
-      PlayParrySound(0, roundInfo, position);
+      PlayParrySound(0, roundInfo, GetPosition());
       break;
     case VS_BLOCK:
-      GetPosition(position);
-      PlayParrySound(1, roundInfo, position);
+      PlayParrySound(1, roundInfo, GetPosition());
       break;
     case VS_IMMUNE:
-      GetPosition(position);
-      SndInterfacePlayImmuneSound(position);
+      SndInterfacePlayImmuneSound(GetPosition());
       break;
     default:
       if (roundInfo->flags & 0x10000) {
-        GetPosition(position);
-        SndInterfacePlayAbsorbedSound(position);
+        SndInterfacePlayAbsorbedSound(GetPosition());
       }
       break;
   }
@@ -1100,9 +1094,8 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
 
   if (m_flags & 0x8000) {
     if (m_customAttackSound == -1) {
-      GetPosition(position);
       if (roundInfo->newVictimState == VS_DEFLECT) {
-        SndInterfacePlayDeflectedSound(position);
+        SndInterfacePlayDeflectedSound(GetPosition());
       } else {
         COMBATHAND hand = (roundInfo->flags & 0x200) ? COMBAT_OFFHAND : COMBAT_MAINHAND;
         PlayImpactSound(roundInfo->attacker, roundInfo->flags & 8, hand);
@@ -1308,8 +1301,7 @@ void CGUnit_C::DetatchResEffectModel() {
 
 void CGUnit_C::ShowPlayerXPGained() {
   if (m_accumulatedXPDrop) {
-    unsigned __int64 guid = GetGUID();
-    UnitCombatLogShowXPGained(guid, m_accumulatedXPDrop);
+    UnitCombatLogShowXPGained(GetGUID(), m_accumulatedXPDrop);
 
     CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
@@ -1520,8 +1512,7 @@ void CGUnit_C::AttackUnit(CGUnit_C *newVictim) {
     currentVictim = 0;
   }
 
-  unsigned __int64 victim = newVictim->GetGUID();
-  CGGameUI::Target(victim, 0);
+  CGGameUI::Target(newVictim->GetGUID(), 0);
 
   CGPlayer_C *player;
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
@@ -1538,9 +1529,10 @@ void CGUnit_C::AttackUnit(CGUnit_C *newVictim) {
     return;
   }
 
-  victim = currentVictim ? currentVictim : newVictim->GetGUID();
   if (!m_combat.IsAttacking() && !m_combat.AttackBeenSent()) {
-    OnAttackSwing(victim, OsGetAsyncTimeMs());
+    OnAttackSwing(
+        currentVictim ? currentVictim : newVictim->GetGUID(),
+        OsGetAsyncTimeMs());
   }
 }
 

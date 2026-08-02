@@ -48,9 +48,9 @@ void WorldMatrixScale(float scale) {
 }
 
 void WorldMatrixBasis(const NTempest::C3Vector &x, const NTempest::C3Vector &y, const NTempest::C3Vector &z) {
-  NTempest::C34Matrix  basis(x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z, 0.0f, 0.0f, 0.0f);
+  NTempest::C34Matrix  rotationBasis(x, y, z);
   NTempest::C34Matrix &world = s_worldMatrixStack.Get();
-  world = basis * world;
+  world = rotationBasis * world;
 }
 
 void WorldMatrixRemove(unsigned int removeFlags) {

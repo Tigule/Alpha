@@ -458,9 +458,9 @@ void CGWorldMap::GetPlayerPosition(unsigned __int64 guid, float &x, float &y) {
     x = y = 0.0f;
     return;
   }
-  NTempest::C3Vector position = object->GetPosition();
-  NTempest::C2Vector pos(position.x, position.y);
-  GetWorldPosition(pos, ClntObjMgrGetMapID(), x, y);
+  NTempest::C3Vector pos = object->GetPosition();
+  NTempest::C2Vector mapPos(pos.x, pos.y);
+  GetWorldPosition(mapPos, ClntObjMgrGetMapID(), x, y);
 }
 
 void CGWorldMap::GetBindPosition(float &x, float &y) {
@@ -482,8 +482,7 @@ void CGWorldMap::GetPOIPosition(const AreaPOIRec *rec, float &x, float &y) {
     return;
   }
 
-  NTempest::C2Vector pos(rec->m_x, rec->m_y);
-  GetWorldPosition(pos, rec->m_continentID, x, y);
+  GetWorldPosition(NTempest::C2Vector(rec->m_x, rec->m_y), rec->m_continentID, x, y);
 }
 
 void CGWorldMap::GetPortLocPosition(const WorldSafeLocsRec *rec, float &x, float &y) {
@@ -493,8 +492,7 @@ void CGWorldMap::GetPortLocPosition(const WorldSafeLocsRec *rec, float &x, float
     return;
   }
 
-  NTempest::C2Vector pos(rec->m_locX, rec->m_locY);
-  GetWorldPosition(pos, rec->m_continent, x, y);
+  GetWorldPosition(NTempest::C2Vector(rec->m_locX, rec->m_locY), rec->m_continent, x, y);
 }
 
 unsigned __int64 Script_GetGUIDFromName(const char *name);
@@ -535,24 +533,20 @@ static int Script_SetMapToCurrentZone(lua_State *__formal) {
 }
 
 static int Script_GetMapInfo(lua_State *L) {
-  const char *filename = CGWorldMap::GetMapFilename();
-  if (filename) {
-    unsigned int height = CGWorldMap::GetMapHeight();
-    unsigned int padded = height;
-    unsigned int low = height & 0xFF;
-    if (low && (low & (low - 1))) {
-      unsigned int power = 1;
-      while (power < low) {
-        power <<= 1;
-      }
-      padded = (height & ~0xFF) + power;
+  lua_pushstring(L, CGWorldMap::GetMapFilename());
+  unsigned int height = CGWorldMap::GetMapHeight();
+  lua_pushnumber(L, static_cast<double>(height));
+  unsigned int padded = height;
+  unsigned int low = height & 0xFF;
+  if (low && (low & (low - 1))) {
+    unsigned int power = 1;
+    while (power < low) {
+      power <<= 1;
     }
-    lua_pushstring(L, filename);
-    lua_pushnumber(L, static_cast<double>(height));
-    lua_pushnumber(L, static_cast<double>(padded));
-    return 3;
+    padded = (height & ~0xFF) + power;
   }
-  return 0;
+  lua_pushnumber(L, static_cast<double>(padded));
+  return 3;
 }
 
 static int Script_GetCurrentMapContinent(lua_State *L) {
@@ -569,7 +563,9 @@ static int Script_ProcessMapClick(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: ProcessMapClick(x, y)");
   }
-  CGWorldMap::ProcessClick(static_cast<float>(lua_tonumber(L, 1)), static_cast<float>(lua_tonumber(L, 2)));
+  float x = static_cast<float>(lua_tonumber(L, 1));
+  float y = static_cast<float>(lua_tonumber(L, 2));
+  CGWorldMap::ProcessClick(x, y);
   return 0;
 }
 

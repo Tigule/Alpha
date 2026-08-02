@@ -165,13 +165,13 @@ void SndInterfaceSetProviderPrefs(unsigned int index, unsigned int indexUnderwat
   }
 
   if ((g_underWater && !(s_flags & 2)) || (s_flags & 3) != 3) {
-    const _FSOUND_REVERB_PROPERTIES defaultDesc = {
+    const _FSOUND_REVERB_PROPERTIES blah = {
         0,     7.5f, 1.0f,  -10000, -10000, 0,       1.0f,   1.0f, 1.0f, -2602, 0.007f, {0.0f, 0.0f, 0.0f},
                                 200, 0.011f, {0.0f, 0.0f, 0.0f},
         0.25f, 0.0f, 0.25f, 0.0f,   -5.0f,  5000.0f, 250.0f, 0.0f, 0.0f, 0.0f,  0x33F
     };
 
-    s_currentProviderDesc = defaultDesc;
+    s_currentProviderDesc = blah;
     StopProviderPrefFade();
     return;
   }
@@ -201,13 +201,13 @@ void SndInterfaceClearProviderPrefs(int indoors) {
     return;
   }
 
-  const _FSOUND_REVERB_PROPERTIES defaultDesc = {
+  const _FSOUND_REVERB_PROPERTIES blah = {
       0,     7.5f, 1.0f,  -10000, -10000, 0,       1.0f,   1.0f, 1.0f, -2602, 0.007f, {0.0f, 0.0f, 0.0f},
                               200, 0.011f, {0.0f, 0.0f, 0.0f},
       0.25f, 0.0f, 0.25f, 0.0f,   -5.0f,  5000.0f, 250.0f, 0.0f, 0.0f, 0.0f,  0x33F
   };
 
-  s_currentProviderDesc = defaultDesc;
+  s_currentProviderDesc = blah;
   StopProviderPrefFade();
 }
 
@@ -270,13 +270,13 @@ void SndInterfaceProviderPrefsUnderwaterChanged() {
   if (selected) {
     s_currentProviderDesc = *selected;
   } else {
-    const _FSOUND_REVERB_PROPERTIES defaultDesc = {
+    const _FSOUND_REVERB_PROPERTIES blah = {
         0,     7.5f, 1.0f,  -10000, -10000, 0,       1.0f,   1.0f, 1.0f, -2602, 0.007f, {0.0f, 0.0f, 0.0f},
                                 200, 0.011f, {0.0f, 0.0f, 0.0f},
         0.25f, 0.0f, 0.25f, 0.0f,   -5.0f,  5000.0f, 250.0f, 0.0f, 0.0f, 0.0f,  0x33F
     };
 
-    s_currentProviderDesc = defaultDesc;
+    s_currentProviderDesc = blah;
   }
   StopProviderPrefFade();
 }

@@ -105,19 +105,18 @@ void IEvtQueueDestroy() {
 int IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
   FATALASSERT(context);
 
-  int                            keyDown = 0;
   LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
   EvtKeyDown                    *entry = keyDownList.Head();
   while (entry) {
     if (entry->key == key) {
-      keyDown = 1;
-      break;
+      context->QueueUnlockSyncKeyDownList();
+      return 1;
     }
     entry = keyDownList.Next(entry);
   }
 
   context->QueueUnlockSyncKeyDownList();
-  return keyDown;
+  return 0;
 }
 
 int IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button) {

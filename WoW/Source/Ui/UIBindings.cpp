@@ -528,10 +528,11 @@ static int Script_GetBindingKey(lua_State *L) {
   }
   CGUIBindings *bindings = CGUIBindings::GetActive();
   FATALASSERT(bindings);
-  const char  *command = lua_tostring(L, 1);
-  unsigned int count = bindings->GetNumCommandKeys(command);
-  for (unsigned int i = 0; i < count; ++i) {
-    lua_pushstring(L, bindings->GetCommandKey(command, i));
+  const char *command = lua_tostring(L, 1);
+  int         count = 0;
+  for (const char *key = bindings->GetCommandKey(command, 0); key; key = bindings->GetCommandKey(command, count)) {
+    ++count;
+    lua_pushstring(L, key);
   }
   return count;
 }

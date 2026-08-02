@@ -133,34 +133,38 @@ void CMapArea::Create(unsigned char *data) {
   FATALASSERT(data);
   FATALASSERT(CMap::bActive);
 
-  SIffChunk *mIffChunk = reinterpret_cast<SIffChunk *>(data);
-  FATALASSERT(mIffChunk->token == 'MHDR');
+  FATALASSERT(reinterpret_cast<SIffChunk *>(data)->token == 'MHDR');
 
-  unsigned int *areaData = reinterpret_cast<unsigned int *>(data) + 2;
+  data += sizeof(SIffChunk);
 
-  mIffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(areaData) + reinterpret_cast<SMAreaHeader *>(areaData)->offsInfo);
-  FATALASSERT(mIffChunk->token == 'MCIN');
-  memcpy(chunkInfo, mIffChunk + 1, mIffChunk->size);
+  FATALASSERT(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsInfo)->token == 'MCIN');
+  memcpy(
+      chunkInfo, reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsInfo) + 1,
+      reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsInfo)->size
+  );
 
-  mIffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(areaData) + reinterpret_cast<SMAreaHeader *>(areaData)->offsTex);
-  FATALASSERT(mIffChunk->token == 'MTEX');
-  char *mTexNames = reinterpret_cast<char *>(mIffChunk + 1);
-  LoadTextures(mTexNames, mIffChunk->size);
+  FATALASSERT(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsTex)->token == 'MTEX');
+  char *mTexNames = reinterpret_cast<char *>(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsTex) + 1);
+  LoadTextures(mTexNames, reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsTex)->size);
 
-  mIffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(areaData) + reinterpret_cast<SMAreaHeader *>(areaData)->offsDoo);
-  FATALASSERT(mIffChunk->token == 'MDDF');
-  doodadDefList.SetCount(mIffChunk->size / sizeof(SMDoodadDef));
+  FATALASSERT(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo)->token == 'MDDF');
+  doodadDefList.SetCount(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo)->size / sizeof(SMDoodadDef));
   if (doodadDefList.Count()) {
     SMDoodadDef *mDoodadDef = &doodadDefList[0];
-    memcpy(mDoodadDef, mIffChunk + 1, mIffChunk->size);
+    memcpy(
+        mDoodadDef, reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo) + 1,
+        reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo)->size
+    );
   }
 
-  mIffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<unsigned char *>(areaData) + reinterpret_cast<SMAreaHeader *>(areaData)->offsMob);
-  FATALASSERT(mIffChunk->token == 'MODF');
-  mapObjDefList.SetCount(mIffChunk->size / sizeof(SMMapObjDef));
+  FATALASSERT(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob)->token == 'MODF');
+  mapObjDefList.SetCount(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob)->size / sizeof(SMMapObjDef));
   if (mapObjDefList.Count()) {
     SMMapObjDef *mMapObjDef = &mapObjDefList[0];
-    memcpy(mMapObjDef, mIffChunk + 1, mIffChunk->size);
+    memcpy(
+        mMapObjDef, reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob) + 1,
+        reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob)->size
+    );
   }
 
   CMap::areaTable[infoIndex] = this;

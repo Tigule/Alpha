@@ -277,9 +277,9 @@ static int CCommand_TurnSpeed(const char* command, const char* arguments) {
 }
 
 static int CCommand_Money(const char* command, const char* arguments) {
-  const char *string = arguments;
   char currArg[64];
-  SStrTokenize(&string, currArg, sizeof(currArg), "\t\r\n\" ", 0);
+  const char whitespace[] = "\t\r\n\" ";
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
     ConsoleWrite("Usage: money [copper]", static_cast<COLOR_T>(4));
     return 0;
@@ -298,10 +298,9 @@ static int CCommand_WorldTeleport(const char* command, const char* arguments) {
   NTempest::C3Vector position = player->GetPosition();
   float facing = player->GetFacing();
 
-  const char *string = arguments;
   char currArg[64];
   const char whitespace[] = "\t\r\n\" ";
-  SStrTokenize(&string, currArg, sizeof(currArg), whitespace, 0);
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
     ConsoleWrite(
         "Usage: worldport <continentID> [x y z] [facing]",
@@ -310,19 +309,19 @@ static int CCommand_WorldTeleport(const char* command, const char* arguments) {
   }
 
   unsigned int mapID = SStrToUnsigned(currArg);
-  SStrTokenize(&string, currArg, sizeof(currArg), whitespace, 0);
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (currArg[0]) {
     position.x = SStrToFloat(currArg);
   }
-  SStrTokenize(&string, currArg, sizeof(currArg), whitespace, 0);
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (currArg[0]) {
     position.y = SStrToFloat(currArg);
   }
-  SStrTokenize(&string, currArg, sizeof(currArg), whitespace, 0);
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (currArg[0]) {
     position.z = SStrToFloat(currArg);
   }
-  SStrTokenize(&string, currArg, sizeof(currArg), whitespace, 0);
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (currArg[0]) {
     facing = SStrToFloat(currArg) * 0.017453292f;
   }
@@ -362,16 +361,15 @@ static int CCommand_Teleport(const char* command, const char* arguments) {
     return 1;
   }
 
-  const char *string = arguments;
   char currArg[64];
   const char whitespace[] = "\t\r\n\" ,";
-  SStrTokenize(&string, currArg, sizeof(currArg), whitespace, 0);
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
     return 0;
   }
   float x = SStrToFloat(currArg);
 
-  SStrTokenize(&string, currArg, sizeof(currArg), whitespace, 0);
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
     return 0;
   }
@@ -385,11 +383,11 @@ static int CCommand_Teleport(const char* command, const char* arguments) {
     return 1;
   }
 
-  SStrTokenize(&string, currArg, sizeof(currArg), whitespace, 0);
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   float z = currArg[0]
       ? SStrToFloat(currArg)
       : CWorld::CalcAltitude(x, y, 0.0f);
-  SStrTokenize(&string, currArg, sizeof(currArg), whitespace, 0);
+  SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   float facing = currArg[0]
       ? SStrToFloat(currArg) * 0.017453292f
       : player->GetFacing();
@@ -424,9 +422,8 @@ static int CCommand_CreateGameObject(const char* command, const char* arguments)
 }
 
 static int CCommand_CreateMonster(const char* command, const char* arguments) {
-  const char *string = arguments;
   char type[32];
-  SStrTokenize(&string, type, sizeof(type), " \t", 0);
+  SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
   CDataStore msg;
   msg.Put(17);
   msg.Put(atoi(type));
@@ -436,9 +433,8 @@ static int CCommand_CreateMonster(const char* command, const char* arguments) {
 }
 
 static int CCommand_CreatePet(const char* command, const char* arguments) {
-  const char *string = arguments;
   char type[32];
-  SStrTokenize(&string, type, sizeof(type), " \t", 0);
+  SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
   CDataStore msg;
   msg.Put(17);
   msg.Put(-atoi(type));
@@ -676,9 +672,8 @@ static void QuestLogRemoveQuest(int entry) {
 }
 
 static int CCommand_QuestCommand(const char* command, const char* arguments) {
-  const char *string = arguments;
   char buffer[64];
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected questGiver.", DEFAULT_COLOR);
     return 0;
@@ -686,7 +681,7 @@ static int CCommand_QuestCommand(const char* command, const char* arguments) {
 
   unsigned __int64 questGiver;
   sscanf(buffer, "%I64X", &questGiver);
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected questID.", DEFAULT_COLOR);
     return 0;
@@ -778,9 +773,8 @@ static int CCommand_CameraTarget(const char*, const char*) {
 }
 
 static int CCommand_Reclaim(const char* command, const char* arguments) {
-  const char *string = arguments;
   char buffer[64];
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected corpseGUID.", DEFAULT_COLOR);
     return 0;
@@ -797,16 +791,15 @@ static int CCommand_Reclaim(const char* command, const char* arguments) {
 }
 
 static int CCommand_BuySpell(const char* command, const char* arguments) {
-  const char *string = arguments;
   char buffer[64];
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected trainer.", DEFAULT_COLOR);
     return 0;
   }
   unsigned __int64 trainer;
   sscanf(buffer, "%I64X", &trainer);
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected spellID", DEFAULT_COLOR);
     return 0;
@@ -821,16 +814,15 @@ static int CCommand_BuySpell(const char* command, const char* arguments) {
 }
 
 static int CCommand_SellItem(const char* command, const char* arguments) {
-  const char *string = arguments;
   char buffer[64];
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected merchant.", DEFAULT_COLOR);
     return 0;
   }
   unsigned __int64 merchant;
   sscanf(buffer, "%I64X", &merchant);
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected item.", DEFAULT_COLOR);
     return 0;
@@ -838,101 +830,95 @@ static int CCommand_SellItem(const char* command, const char* arguments) {
   unsigned __int64 item;
   sscanf(buffer, "%I64X", &item);
   unsigned char amount = 0;
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (buffer[0]) {
     amount = static_cast<unsigned char>(SStrToInt(buffer));
   }
-  CDataStore msg;
-  msg.Put(368);
-  msg.Put(merchant);
-  msg.Put(item);
-  msg.Put(amount);
-  msg.Finalize();
-  ClientServices_Send(&msg);
+  CDataStore sellMsg;
+  sellMsg.Put(368);
+  sellMsg.Put(merchant);
+  sellMsg.Put(item);
+  sellMsg.Put(amount);
+  sellMsg.Finalize();
+  ClientServices_Send(&sellMsg);
   return 1;
 }
 
 static int CCommand_BuyItem(const char* command, const char* arguments) {
-  const char *string = arguments;
   char buffer[64];
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected merchant.", DEFAULT_COLOR);
     return 0;
   }
   unsigned __int64 merchant;
   sscanf(buffer, "%I64X", &merchant);
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected muid.", DEFAULT_COLOR);
     return 0;
   }
   unsigned int muid = SStrToInt(buffer);
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected quantity.", DEFAULT_COLOR);
     return 0;
   }
   unsigned int quantity = SStrToInt(buffer);
-  unsigned char unknown = 0;
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
-  if (buffer[0]) {
-    unknown = static_cast<unsigned char>(SStrToInt(buffer) != 0);
-  }
-  CDataStore msg;
-  msg.Put(370);
-  msg.Put(merchant);
-  msg.Put(muid);
-  msg.Put(quantity);
-  msg.Put(unknown);
-  msg.Finalize();
-  ClientServices_Send(&msg);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  CDataStore buyMsg;
+  buyMsg.Put(370);
+  buyMsg.Put(merchant);
+  buyMsg.Put(muid);
+  buyMsg.Put(quantity);
+  buyMsg.Put(static_cast<unsigned char>(buffer[0] && SStrToInt(buffer) != 0));
+  buyMsg.Finalize();
+  ClientServices_Send(&buyMsg);
   return 1;
 }
 
 static int CCommand_BuyItemInSlot(const char* command, const char* arguments) {
-  const char *string = arguments;
   char buffer[64];
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected merchant.", DEFAULT_COLOR);
     return 0;
   }
   unsigned __int64 merchant;
   sscanf(buffer, "%I64X", &merchant);
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected muid.", DEFAULT_COLOR);
     return 0;
   }
   unsigned int muid = SStrToInt(buffer);
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected container.", DEFAULT_COLOR);
     return 0;
   }
   unsigned __int64 container;
   sscanf(buffer, "%I64X", &container);
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected quantity.", DEFAULT_COLOR);
     return 0;
   }
   unsigned int quantity = SStrToInt(buffer);
   unsigned char slot = static_cast<unsigned char>(-1);
-  SStrTokenize(&string, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (buffer[0]) {
     slot = static_cast<unsigned char>(SStrToInt(buffer));
   }
-  CDataStore msg;
-  msg.Put(371);
-  msg.Put(merchant);
-  msg.Put(muid);
-  msg.Put(container);
-  msg.Put(slot);
-  msg.Put(quantity);
-  msg.Finalize();
-  ClientServices_Send(&msg);
+  CDataStore buyMsg;
+  buyMsg.Put(371);
+  buyMsg.Put(merchant);
+  buyMsg.Put(muid);
+  buyMsg.Put(container);
+  buyMsg.Put(slot);
+  buyMsg.Put(quantity);
+  buyMsg.Finalize();
+  ClientServices_Send(&buyMsg);
   return 1;
 }
 

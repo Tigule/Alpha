@@ -61,33 +61,43 @@ void CSortTable::Destroy() {
 
 void CSortTable::Clear() {
   for (unsigned int index = 0; index < 26; ++index) {
-    CMapChunk *chunk;
-    while ((chunk = table[index].chunkList.Head())) {
+    CMapChunk *chunk = table[index].chunkList.Head();
+    while (chunk) {
+      CMapChunk *next = table[index].chunkList.Next(chunk);
       table[index].chunkList.UnlinkNode(chunk);
+      chunk = next;
     }
 
     for (unsigned int type = 0; type < 4; ++type) {
-      CChunkLiquid *liquid;
-      while ((liquid = table[index].liquidList[type].Head())) {
+      CChunkLiquid *liquid = table[index].liquidList[type].Head();
+      while (liquid) {
+        CChunkLiquid *next = table[index].liquidList[type].Next(liquid);
         table[index].liquidList[type].UnlinkNode(liquid);
+        liquid = next;
       }
     }
 
-    CMapDoodadDef *doodadDef;
-    while ((doodadDef = table[index].doodadDefList.Head())) {
+    CMapDoodadDef *doodadDef = table[index].doodadDefList.Head();
+    while (doodadDef) {
+      CMapDoodadDef *next = table[index].doodadDefList.Next(doodadDef);
       table[index].doodadDefList.UnlinkNode(doodadDef);
+      doodadDef = next;
     }
 
-    CMapObjDef *mapObjDef;
-    while ((mapObjDef = table[index].mapObjDefList.Head())) {
+    CMapObjDef *mapObjDef = table[index].mapObjDefList.Head();
+    while (mapObjDef) {
+      CMapObjDef *next = table[index].mapObjDefList.Next(mapObjDef);
       table[index].mapObjDefList.UnlinkNode(mapObjDef);
+      mapObjDef = next;
     }
 
-    CMapEntity *entity;
-    while ((entity = table[index].entityList.Head())) {
+    CMapEntity *entity = table[index].entityList.Head();
+    while (entity) {
+      CMapEntity *next = table[index].entityList.Next(entity);
       entity->flagVisible = 0;
       table[index].entityList.UnlinkNode(entity);
       nonVisEntityList.LinkNode(entity, LIST_TAIL, 0);
+      entity = next;
     }
   }
 }
@@ -153,8 +163,7 @@ void CWorldScene::PrepareRenderLiquid() {
   }
 
   if (camMapObjDef && camMapObj && camMapObjGroup) {
-    NTempest::C3Vector localPos = camQueryPos * camMapObjDef->invMat;
-    camMapObjGroup->QueryLiquidStatus(localPos, newLiquid, lqSurface, lqDir);
+    camMapObjGroup->QueryLiquidStatus(camQueryPos * camMapObjDef->invMat, newLiquid, lqSurface, lqDir);
   } else {
     CWorld::QueryLiquidStatus(camQueryPos, newLiquid, lqSurface, lqDir);
   }
@@ -208,8 +217,7 @@ void CWorldScene::PrepareRender(const NTempest::C3Vector &position, const NTempe
   GxXformView(mv);
   GxXformProjection(mp);
   GxXformViewport(vpMinPos.x, vpMaxPos.x, vpMinPos.y, vpMaxPos.y, vpMinPos.z, vpMaxPos.z);
-  NTempest::C3Vector translation = -camPos;
-  mv.Translate(translation);
+  mv.Translate(-camPos);
   mvp = mv * mp;
   mvpCol3 = NTempest::C4Vector(mvp.a3, mvp.b3, mvp.c3, mvp.d3);
   CalcFrustumCorners(camFrustumCorners);
@@ -286,7 +294,6 @@ void CWorldScene::RenderAlpha() {
 
   CMapChunk *chunk = sortTable.visChunkList.Head();
   while (chunk) {
-    CMapChunk *next = sortTable.visChunkList.Next(chunk);
     if (chunk->detailDoodadInst) {
       cMat = NTempest::C44Matrix();
       cMat.Translate(chunk->corner - camPos);
@@ -295,7 +302,7 @@ void CWorldScene::RenderAlpha() {
       chunk->detailDoodadInst->RenderAlpha();
     }
     sortTable.visChunkList.UnlinkNode(chunk);
-    chunk = next;
+    chunk = sortTable.visChunkList.Head();
   }
 
   GxRsSet(GxRs_TexLodBias0, -(CWorld::texLodBias - 0.5f));
@@ -386,8 +393,9 @@ void CWorldScene::ClipBufferUpdate(
   }
 
   for (i = 0; i < nVertices; ++i) {
-    NTempest::C3Vector vertex = vertices[indicies[i]] + corner;
-    clipVertexBuffer[i] = NTempest::C4Vector(vertex.x, vertex.y, vertex.z, 1.0f) * mvp;
+    clipVertexBuffer[i] = vertices[indicies[i]] + corner;
+    clipVertexBuffer[i].w = 1.0f;
+    clipVertexBuffer[i] = clipVertexBuffer[i] * mvp;
     float ooW = 1.0f / clipVertexBuffer[i].w;
     clipVertexBuffer[i].x = clipVertexBuffer[i].x * ooW + 1.0f;
     clipVertexBuffer[i].y = clipVertexBuffer[i].y * ooW;
@@ -469,8 +477,7 @@ void CWorldScene::CalcFrustumCorners(NTempest::C3Vector *corners) {
   GxXformView(lMv);
   GxXformProjection(lMp);
 
-  NTempest::C3Vector translation = -camPos;
-  lMv.Translate(translation);
+  lMv.Translate(-camPos);
   GxuXformCalcFrustumCorners(lMv, lMp, corners);
 }
 
@@ -920,21 +927,23 @@ void CWorldScene::RenderDoodads() {
         transform.d1 -= camPos.y;
         transform.d2 -= camPos.z;
 
-        NTempest::C34Matrix orientation(
-            transform.a0, transform.a1, transform.a2, transform.b0, transform.b1, transform.b2, transform.c0, transform.c1, transform.c2,
-            transform.d0, transform.d1, transform.d2
-        );
-        NTempest::C3Vector cameraVector = camTarg - camPos;
-        ModelAnimate(doodadDef->model, orientation, doodadDef->scale, camPos, cameraVector);
+        ModelAnimate(
+            doodadDef->model,
+            NTempest::C34Matrix(
+                transform.a0, transform.a1, transform.a2, transform.b0, transform.b1, transform.b2,
+                transform.c0, transform.c1, transform.c2, transform.d0, transform.d1, transform.d2),
+            doodadDef->scale,
+            camPos,
+            camTarg - camPos);
 
         transform.d0 += camPos.x;
         transform.d1 += camPos.y;
         transform.d2 += camPos.z;
-        orientation = NTempest::C34Matrix(
-            transform.a0, transform.a1, transform.a2, transform.b0, transform.b1, transform.b2, transform.c0, transform.c1, transform.c2,
-            transform.d0, transform.d1, transform.d2
-        );
-        ModelProcessEvents(doodadDef->model, orientation);
+        ModelProcessEvents(
+            doodadDef->model,
+            NTempest::C34Matrix(
+                transform.a0, transform.a1, transform.a2, transform.b0, transform.b1, transform.b2,
+                transform.c0, transform.c1, transform.c2, transform.d0, transform.d1, transform.d2));
         ModelAddToScene(doodadDef->model, doodadDef->camDist <= CWorld::farFog ? 0 : 7);
       }
     }
@@ -1145,8 +1154,7 @@ void CWorldScene::RenderOcean() {
   GxRsSet(GxRs_Blend, GxBlend_Opaque);
   GxXformPush(GxXform_Tex1);
 
-  NTempest::C3Vector texScale(0.11f, 0.11f, 0.11f);
-  GxXformScale(GxXform_Tex1, texScale);
+  GxXformScale(GxXform_Tex1, NTempest::C3Vector(0.11f, 0.11f, 0.11f));
   GxXformTranslate(GxXform_Tex1, camPos);
 
   if (CMap::EnableSpecularWater()) {
@@ -1189,8 +1197,7 @@ void CWorldScene::RenderWater() {
   GxRsSet(GxRs_Blend, GxBlend_Opaque);
   GxXformPush(GxXform_Tex1);
 
-  NTempest::C3Vector texScale(0.14f, 0.14f, 0.14f);
-  GxXformScale(GxXform_Tex1, texScale);
+  GxXformScale(GxXform_Tex1, NTempest::C3Vector(0.14f, 0.14f, 0.14f));
   GxXformTranslate(GxXform_Tex1, camPos);
 
   if (CMap::EnableSpecularWater()) {
@@ -1495,21 +1502,23 @@ struct ClipInfo {
   unsigned int mask;
   unsigned int filler;
 
-  void Set(NTempest::C3Vector *v) {
-    bc[0] = v->x;
-    bc[1] = 1.0f - v->x;
-    bc[2] = v->y;
-    bc[3] = 1.0f - v->y;
-    bc[4] = v->z;
-    bc[5] = 1.0f - v->z;
-    mask = 0;
-    for (unsigned int i = 0; i < 6; ++i) {
-      if (bc[i] < 0.0f) {
-        mask |= 0x80000000 >> i;
-      }
+  void Set(const NTempest::C3Vector *v);
+};
+
+void ClipInfo::Set(const NTempest::C3Vector *v) {
+  bc[0] = v->x;
+  bc[1] = 1.0f - v->x;
+  bc[2] = v->y;
+  bc[3] = 1.0f - v->y;
+  bc[4] = v->z;
+  bc[5] = 1.0f - v->z;
+  mask = 0;
+  for (unsigned int i = 0; i < 6; ++i) {
+    if (bc[i] < 0.0f) {
+      mask |= 0x80000000 >> i;
     }
   }
-};
+}
 
 struct ClipFrame {
   NTempest::C3Vector **points;
@@ -1525,7 +1534,7 @@ static NTempest::C3Vector *sInPointPtrs[32];
 static NTempest::C3Vector *sOutPointPtrs[32];
 
 int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTempest::C3Vector **&p_outVerts, unsigned int &p_outCount) {
-  ClipInfo  inInfo[32];
+  ClipInfo  sInInfo[32];
   ClipInfo  infoPool[32];
   ClipInfo *inInfoPtrs[32];
   ClipInfo *outInfoPtrs[32];
@@ -1538,11 +1547,11 @@ int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTemp
   unsigned int andMask = 0xFFFFFFFF;
   unsigned int orMask = 0;
   for (unsigned int i = 0; i < p_inCount; ++i) {
-    inInfo[i].Set(&p_inVerts[i]);
-    inInfoPtrs[i] = &inInfo[i];
+    sInInfo[i].Set(&p_inVerts[i]);
+    inInfoPtrs[i] = &sInInfo[i];
     sInPointPtrs[i] = &p_inVerts[i];
-    andMask &= inInfo[i].mask;
-    orMask |= inInfo[i].mask;
+    andMask &= sInInfo[i].mask;
+    orMask |= sInInfo[i].mask;
   }
 
   if (andMask) {
@@ -1559,7 +1568,7 @@ int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTemp
   ClipFrame          *in = &inFrame;
   ClipFrame          *out = &outFrame;
   NTempest::C3Vector *pointPool = sPointPool;
-  ClipInfo           *nextInfo = infoPool;
+  ClipInfo           *sInfoPool = infoPool;
 
   unsigned int planeMask = 0x80000000;
   for (unsigned int plane = 0; plane < 6; ++plane, planeMask >>= 1) {
@@ -1579,9 +1588,9 @@ int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTemp
         }
         float t = in->info[from]->bc[plane] / denominator;
         *pointPool = *in->points[from] + (*in->points[to] - *in->points[from]) * t;
-        nextInfo->Set(pointPool);
+        sInfoPool->Set(pointPool);
         out->points[out->count] = pointPool++;
-        out->info[out->count++] = nextInfo++;
+        out->info[out->count++] = sInfoPool++;
       }
       if (!toMask) {
         out->points[out->count] = in->points[to];

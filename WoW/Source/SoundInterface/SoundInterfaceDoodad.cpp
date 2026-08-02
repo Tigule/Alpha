@@ -23,14 +23,14 @@ static int              s_elapsed;
 
 static LOOPEDDOODADDESC *FindFreeDoodadLoop(int soundID, int &freeSlot, int &soundIndex) {
   LOOPEDDOODADDESC *freeDoodadLoop = 0;
-  int               freeIndex = 0;
+  soundIndex = 0;
 
   for (int index = 0; index < 8; ++index) {
     LOOPEDDOODADDESC *doodadLoop = &s_doodadLoopedInfo[index];
 
     if (doodadLoop->soundID == -1) {
       freeDoodadLoop = doodadLoop;
-      freeIndex = index;
+      soundIndex = index;
     }
     if (doodadLoop->soundID == static_cast<int>(soundID) && static_cast<unsigned char>(doodadLoop->posInUseFlags) != 0xFF) {
       freeSlot = doodadLoop->FindFreeSlot();
@@ -42,7 +42,6 @@ static LOOPEDDOODADDESC *FindFreeDoodadLoop(int soundID, int &freeSlot, int &sou
   if (freeDoodadLoop) {
     freeDoodadLoop->posInUseFlags = 0;
     freeSlot = 0;
-    soundIndex = freeIndex;
     freeDoodadLoop->soundID = soundID;
     return freeDoodadLoop;
   }
@@ -54,10 +53,10 @@ static LOOPEDDOODADDESC *FindFreeDoodadLoop(int soundID, int &freeSlot, int &sou
 
 int DoodadLoopHandler(const void* dataPtr, void* param) {
   s_elapsed += static_cast<int>(*static_cast<const float *>(dataPtr) * 1000.0f);
-  NTempest::C3Vector listener(0.0f);
-  Sound::GetListenerPosition(listener);
+  NTempest::C3Vector lPos(0.0f);
+  Sound::GetListenerPosition(lPos);
   for (unsigned int i = 0; i < 8; ++i) {
-    s_doodadLoopedInfo[i].Update(listener);
+    s_doodadLoopedInfo[i].Update(lPos);
   }
   return 1;
 }
@@ -177,7 +176,6 @@ void SndInterfaceHandleDoodadLoopStop(unsigned int soundHandle) {
 
 void SndInterfaceHandleDoodadOneShot(unsigned int soundID, const NTempest::C3Vector &position) {
   if (soundID) {
-    NTempest::C3Vector adjustedPosition(position.x, position.y, position.z + 2.0f);
-    SndInterfacePlaySound(soundID, adjustedPosition, -1, 1.0f);
+    SndInterfacePlaySound(soundID, NTempest::C3Vector(position.x, position.y, position.z + 2.0f), -1, 1.0f);
   }
 }

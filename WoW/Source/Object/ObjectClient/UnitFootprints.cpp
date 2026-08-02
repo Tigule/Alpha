@@ -150,8 +150,7 @@ static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
 
 bool SPLATDATA::Update(float progress, bool &nuke) {
   nuke = 0;
-  NTempest::C3Vector delta = position - s_currentCamera;
-  if (!data.Count() || !indices.Count() || delta.SquaredMag() >= s_maxPurgeDist * s_maxPurgeDist) {
+  if (!data.Count() || !indices.Count() || (position - s_currentCamera).SquaredMag() >= s_maxPurgeDist * s_maxPurgeDist) {
     nuke = 1;
     return 1;
   }
@@ -204,7 +203,7 @@ void LISTBASE::SetTexture(const char *n) {
 CHUNKDATA *LISTBASE::FindChunk(int id) {
   CHUNKDATA *chunk = m_chunks.Head();
   while (chunk && chunk->m_sourceID != id) {
-    chunk = m_chunks.RawNext(chunk);
+    chunk = m_chunks.Next(chunk);
   }
   if (!chunk) {
     chunk = s_freeChunks.Get(0);
@@ -234,8 +233,10 @@ static SPLATDATA *GetSplat() {
   if (splat) {
     s_freeList.UnlinkNode(splat);
   } else {
-    void *storage = SMemAlloc(sizeof(SPLATDATA), __FILE__, __LINE__, 0);
-    splat = storage ? new (storage) SPLATDATA : 0;
+    splat = static_cast<SPLATDATA *>(SMemAlloc(sizeof(SPLATDATA), __FILE__, __LINE__, 0));
+    if (splat) {
+      splat = new (splat) SPLATDATA;
+    }
   }
   if (splat) {
     splat->skip = 0;
@@ -252,8 +253,7 @@ void CHUNKDATA::Render() {
     buf->UserCallbackSet(ProjectTexRenderPNCT0T1);
     buf->CountSet(m_vertCount, m_indexCount);
     GxBufLock(buf);
-    CGxBatch batch(GxPrim_Triangles, m_indexCount, 0, -1, -1);
-    GxBufRender(batch);
+    GxBufRender(CGxBatch(GxPrim_Triangles, m_indexCount, 0, -1, -1));
     GxBufUnlock();
   }
 }
@@ -439,9 +439,11 @@ void UnitFootprintNewSplat(
 ) {
   const TerrainTypeRec *rec = g_terrainTypeDB.GetRecord(terrain);
   if (rec && s_renderSplatsCVar->GetInt() && (rec->m_Flags & 1) && textureID < s_footStepTextureTable.Count()) {
-    NTempest::C44Matrix basis = MakeBasis(mirrorLength, facing, size);
-    NTempest::CAaBox    box = MakeCAaBox(size, position);
-    s_footStepTextureTable[textureID].Add(position, box, basis);
+    s_footStepTextureTable[textureID].Add(
+        position,
+        MakeCAaBox(size, position),
+        MakeBasis(mirrorLength, facing, size)
+    );
   }
 }
 
@@ -456,9 +458,11 @@ void UnitFootprintNewBloodSplat(const UnitBloodRec *rec, unsigned int unitSize, 
   NTempest::C2Vector  size(s_splatSizes[unitSize].x * sizeVariance, s_splatSizes[unitSize].y * sizeVariance);
   unsigned int        texture = NTempest::CMath::mulhwu_(5, NTempest::CRandom::uint32_(s_rndSeed));
   TIMEDTEXTURE       &list = s_bloodSplatTextureTable[texture][rec->m_ID];
-  NTempest::C44Matrix basis = MakeBasis(OsGetAsyncTimeMs() & 1, facing, size);
-  NTempest::CAaBox    box = MakeCAaBox(size, position);
-  list.Add(position, box, basis);
+  list.Add(
+      position,
+      MakeCAaBox(size, position),
+      MakeBasis(OsGetAsyncTimeMs() & 1, facing, size)
+  );
 }
 
 void UnitFootprintPlayParticle(CGUnit_C *unit, const NTempest::C3Vector &position, unsigned int terrainID, float scale) {

@@ -61,16 +61,10 @@ static void TextureUpdateFunc(
 }
 
 static void UglifyMapTexture() {
-  C4Pixel      color;
   unsigned int index;
 
-  color.b = 0xFF;
-  color.g = 0;
-  color.r = 0xFF;
-  color.a = 0xFF;
-
   for (index = 0; index < 512 * 512; ++index) {
-    s_textureData[index] = color;
+    s_textureData[index] = C4Pixel(0xFFFF00FF);
   }
 }
 

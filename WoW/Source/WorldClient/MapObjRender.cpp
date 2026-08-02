@@ -543,7 +543,7 @@ void CMapObj::RenderGroupLightTex(const CMapObjGroup *group, unsigned int frustu
     GxBufLock(group->extGxBuf[i]);
 
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
-    for (unsigned int j = 0; j < gxBatch.batchCount; ++j, ++batch) {
+    for (unsigned int i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
         batch->flags &= 0x0F;
       }
@@ -563,8 +563,7 @@ void CMapObj::RenderGroupLightTex(const CMapObjGroup *group, unsigned int frustu
         GxTexSetFlags(texture, diffTexFlags);
         GxRsSet(GxRs_Texture0, texture);
 
-        CGxBatch drawBatch(GxPrim_Triangles, batch->count, group->indexList[batch->startIndex], batch->minIndex, batch->maxIndex);
-        GxBufRender(drawBatch);
+        GxBufRender(CGxBatch(GxPrim_Triangles, batch->count, group->indexList[batch->startIndex], batch->minIndex, batch->maxIndex));
       }
     }
 
@@ -600,7 +599,7 @@ void CMapObj::RenderGroupLightmapTex_Int(const CMapObjGroup *group, unsigned int
     );
 
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
-    for (unsigned int j = 0; j < gxBatch.batchCount; ++j, ++batch) {
+    for (unsigned int i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
         batch->flags &= 0x0F;
       }
@@ -649,7 +648,7 @@ void CMapObj::RenderGroupLightmapTex_Ext(const CMapObjGroup *group, unsigned int
     );
 
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
-    for (unsigned int j = 0; j < gxBatch.batchCount; ++j, ++batch) {
+    for (unsigned int i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
         batch->flags &= 0x0F;
       }
@@ -722,7 +721,7 @@ void CMapObj::RenderGroupColorTex_Int(const CMapObjGroup *group, unsigned int fr
     );
 
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
-    for (unsigned int j = 0; j < gxBatch.batchCount; ++j, ++batch) {
+    for (unsigned int i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
         batch->flags &= 0x0F;
       }
@@ -769,7 +768,7 @@ void CMapObj::RenderGroupColorTex_Ext(const CMapObjGroup *group, unsigned int fr
     );
 
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
-    for (unsigned int j = 0; j < gxBatch.batchCount; ++j, ++batch) {
+    for (unsigned int i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
         batch->flags &= 0x0F;
       }
@@ -834,7 +833,7 @@ void CMapObj::RenderGroupLightmap(const CMapObjGroup *group, unsigned int frustu
         group->lightmapVertexList + gxBatch.vertStart, sizeof(NTempest::C2Vector), 0, 0
     );
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
-    for (unsigned int j = 0; j < gxBatch.batchCount; ++j, ++batch) {
+    for (unsigned int i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
         batch->flags &= 0x0F;
       }
@@ -869,7 +868,7 @@ void CMapObj::RenderGroupTex(const CMapObjGroup *group, unsigned int frustumCoun
         group->textureVertexList + gxBatch.vertStart, sizeof(NTempest::C2Vector), 0, 0
     );
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
-    for (unsigned int j = 0; j < gxBatch.batchCount; ++j, ++batch) {
+    for (unsigned int i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
         batch->flags &= 0x0F;
       }
@@ -906,7 +905,7 @@ void CMapObj::RenderGroup_Ext(const CMapObjGroup *group, unsigned int frustumCou
         gxBatch.vertCount, group->vertexList + gxBatch.vertStart, sizeof(NTempest::C3Vector), 0, 0, &WHITE, 0, 0, 0, 0, 0, 0, 0
     );
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
-    for (unsigned int j = 0; j < gxBatch.batchCount; ++j, ++batch) {
+    for (unsigned int i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
         batch->flags &= 0x0F;
       }
@@ -937,7 +936,7 @@ void CMapObj::RenderGroup_Int(const CMapObjGroup *group, unsigned int frustumCou
         gxBatch.vertCount, group->vertexList + gxBatch.vertStart, sizeof(NTempest::C3Vector), 0, 0, &WHITE, 0, 0, 0, 0, 0, 0, 0
     );
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
-    for (unsigned int j = 0; j < gxBatch.batchCount; ++j, ++batch) {
+    for (unsigned int i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
         batch->flags &= 0x0F;
       }
@@ -961,9 +960,8 @@ void CMapObj::RenderPortals(CMapObjGroup *group) {
     return;
   }
 
-  SMOPortalRef *portalRef = portalRefList + group->portalStart;
-  for (i = 0; i < group->portalCount; ++i, ++portalRef) {
-    SMOPortal &portal = portalList[portalRef->portalIndex];
+  for (i = 0; i < group->portalCount; ++i) {
+    SMOPortal &portal = portalList[portalRefList[group->portalStart + i].portalIndex];
     for (unsigned int j = 0; j < portal.count - 2; ++j) {
       s_indexList[indexCount++] = portal.startVertex + j;
       s_indexList[indexCount++] = portal.startVertex + j + 1;
@@ -1127,8 +1125,8 @@ void CMapObj::RenderWaterIndices_0(const CMapObjGroup *group, unsigned short *id
   unsigned short *index = idxBase;
 
   for (ty = 0; ty < group->liquidTiles.y; ++ty) {
-    unsigned short i2 = static_cast<unsigned short>(vtxSub + ty * group->liquidVerts.x);
-    unsigned short i3 = static_cast<unsigned short>(i2 + group->liquidVerts.x);
+    unsigned short i1 = static_cast<unsigned short>(vtxSub + ty * group->liquidVerts.x);
+    unsigned short i2 = static_cast<unsigned short>(i1 + group->liquidVerts.x);
     for (tx = 0; tx < group->liquidTiles.x; ++tx, ++tile) {
       int render = tile->IsLiquid();
       if (!tile->IsLiquid()) {
@@ -1144,17 +1142,17 @@ void CMapObj::RenderWaterIndices_0(const CMapObjGroup *group, unsigned short *id
         }
       } else {
         if (!rendering) {
+          *index++ = i1;
+          *index++ = i1;
           *index++ = i2;
-          *index++ = i2;
-          *index++ = i3;
           rendering = 1;
         }
+        *index++ = i1 + 1;
         *index++ = i2 + 1;
-        *index++ = i3 + 1;
-        lastRenderedVtx = i3 + 1;
+        lastRenderedVtx = i2 + 1;
       }
+      ++i1;
       ++i2;
-      ++i3;
     }
 
     if (rendering) {
@@ -1219,7 +1217,6 @@ void CMapObj::RenderInteriorWater_0(const CMapObjGroup *group, unsigned int liqu
   vtxBase = static_cast<CGxVertexPCT0 *>(GxAllocVertexMem(nVerts * sizeof(CGxVertexPCT0)));
   idxBase = static_cast<unsigned short *>(GxAllocIndexMem(nVerts * 3 * sizeof(unsigned short)));
 
-  SMOMaterial   &material = materialList[group->liquidMtlId];
   SMOLVert      *liquidVert = group->liquidVertexList;
   CGxVertexPCT0 *vtx = vtxBase;
   float          px = group->liquidCorner.x;
@@ -1227,7 +1224,7 @@ void CMapObj::RenderInteriorWater_0(const CMapObjGroup *group, unsigned int liqu
     float py = group->liquidCorner.y;
     for (x = 0; x < group->liquidVerts.x; ++x, ++vtx, ++liquidVert) {
       vtx->p.Set(px, py, liquidVert->waterVert.height);
-      vtx->c = material.diffColor;
+      vtx->c = materialList[group->liquidMtlId].diffColor;
       vtx->tc[0] = NTempest::C2Vector(static_cast<float>(x), static_cast<float>(y));
       py += 4.1666665f;
     }
@@ -1322,9 +1319,7 @@ void CMapObj::RenderMagma(const CMapObjGroup *group, unsigned int liquid) {
   RenderWaterIndices_0(group, idxBase, 0, idxSub);
   int texXform = liquid & 0xC;
   if (texXform == 4) {
-    NTempest::C44Matrix texMat;
-    texMat.d1 = fmod(CWorld::GetCurTimeSec(), 10.0f) * 0.1f;
-    GxXformSet(GxXform_Tex0, texMat);
+    GxXformTranslate(GxXform_Tex0, NTempest::C3Vector(0.0f, fmod(CWorld::GetCurTimeSec(), 10.0f) * 0.1f, 0.0f));
     GxRsSet(GxRs_TextureShader0, 1);
   }
   GxRsSet(GxRs_Lighting, 0);

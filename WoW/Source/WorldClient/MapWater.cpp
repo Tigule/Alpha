@@ -147,10 +147,11 @@ void CMap::QueryLiquidSounds(
 
   int areaX = (static_cast<int>(mx * 0.24f - 0.5f) >> 7) & 0x3F;
   int areaY = (static_cast<int>(my * 0.24f - 0.5f) >> 7) & 0x3F;
-  int minAreaX = areaX > 0 ? areaX - 1 : 0;
-  int minAreaY = areaY > 0 ? areaY - 1 : 0;
-  int maxAreaX = areaX + 1 < 63 ? areaX + 1 : 63;
-  int maxAreaY = areaY + 1 < 63 ? areaY + 1 : 63;
+  int a[4];
+  a[0] = areaX > 0 ? areaX - 1 : 0;
+  a[1] = areaX + 1 < 63 ? areaX + 1 : 63;
+  a[2] = areaY > 0 ? areaY - 1 : 0;
+  a[3] = areaY + 1 < 63 ? areaY + 1 : 63;
 
   NTempest::CAaSphere querySphere;
   querySphere.c.x = worldPos.x;
@@ -158,8 +159,8 @@ void CMap::QueryLiquidSounds(
   querySphere.c.z = 0.0f;
   querySphere.r = radius;
 
-  for (int y = minAreaY; y <= maxAreaY; ++y) {
-    for (int x = minAreaX; x <= maxAreaX; ++x) {
+  for (int y = a[2]; y <= a[3]; ++y) {
+    for (int x = a[0]; x <= a[1]; ++x) {
       CMapArea *area = areaTable[y * 64 + x];
       if (area) {
         NTempest::CAaBox areaBox;
@@ -306,15 +307,15 @@ void CMapObjGroup::QueryLiquidSounds(
       } else {
         height = liquidVertexList[y * liquidVerts.x + x].waterVert.height;
       }
-      NTempest::C3Vector delta;
-      delta.x = liquidCorner.x - static_cast<float>(x) * 4.1666665f - pos.x;
-      delta.y = liquidCorner.y + static_cast<float>(y) * 4.1666665f - pos.y;
-      delta.z = height - pos.z;
+      NTempest::C3Vector d;
+      d.x = liquidCorner.x - static_cast<float>(x) * 4.1666665f - pos.x;
+      d.y = liquidCorner.y + static_cast<float>(y) * 4.1666665f - pos.y;
+      d.z = height - pos.z;
       lbool[tile] = 1;
-      float distanceSquared = delta.SquaredMag();
+      float distanceSquared = d.SquaredMag();
       if (distanceSquared < ldsquared[tile]) {
         ldsquared[tile] = distanceSquared;
-        ldelta[tile] = delta;
+        ldelta[tile] = d;
       }
     }
   }
@@ -335,15 +336,17 @@ void LODArrays::GenFixes(unsigned int p_nFixes, unsigned int vertsPerSide, unsig
 
   from = static_cast<unsigned short>(2 * vertsPerSide - 1);
   unsigned short to = 0;
+  unsigned short to2 = static_cast<unsigned short>(4 * vertsPerSide);
   for (i = 0; i < nFixes / 2; ++i) {
     fixes[index].from = from;
     fixes[index].to = to;
     ++index;
     fixes[index].from = static_cast<unsigned short>(from + 2 * vertsPerSide);
-    fixes[index].to = static_cast<unsigned short>(to + 4 * vertsPerSide);
+    fixes[index].to = to2;
     ++index;
     from = static_cast<unsigned short>(from + 4 * vertsPerSide);
     to = static_cast<unsigned short>(to + 4 * vertsPerSide);
+    to2 = static_cast<unsigned short>(to2 + 4 * vertsPerSide);
   }
 
   from = static_cast<unsigned short>(tilesPerSide * vertsPerSide + 1);
@@ -525,7 +528,7 @@ HTEXTURE__ *CMap::GetLiquidTexture(unsigned int liquid) {
   char         filename[256];
   CStatus      status;
   const float  secsPerLoop = liquidTexLoopTime[liquid];
-  unsigned int allLoaded;
+  unsigned char allLoaded;
 
   ASSERT(liquid < LIQUID_COUNT);
 
@@ -546,8 +549,7 @@ HTEXTURE__ *CMap::GetLiquidTexture(unsigned int liquid) {
 
         FATALASSERT(liquidTexBaseName[liquid]);
         SStrPrintf(filename, sizeof(filename), liquidTexBaseName[liquid], i + 1);
-        CGxTexFlags flags(filter, 1, 1, 0, 0, 0, CWorld::texMaxAnisotropy);
-        liquidTex[liquid][i] = TextureCreate(filename, flags, &status, 0);
+        liquidTex[liquid][i] = TextureCreate(filename, CGxTexFlags(filter, 1, 1, 0, 0, 0, CWorld::texMaxAnisotropy), &status, 0);
         SysMsgAdd(status, 2);
       }
 
@@ -714,17 +716,14 @@ void CMap::WaterInitialize() {
 
   {
     for (unsigned int i = 0; i < 256; ++i) {
-      float oceanDepth = MD_OCEAN_DEPTH_SCALE * i;
-      float riverDepth = MD_RIVER_DEPTH_SCALE * i;
-
-      if (oceanDepth <= 26.666666f) {
-        s_oceanDepthCoordTable[i] = oceanDepth * 0.037500001f;
+      if (MD_OCEAN_DEPTH_SCALE * i <= 26.666666f) {
+        s_oceanDepthCoordTable[i] = MD_OCEAN_DEPTH_SCALE * i * 0.037500001f;
       } else {
         s_oceanDepthCoordTable[i] = 1.0f;
       }
 
-      if (riverDepth <= 4.6666665f) {
-        s_riverDepthCoordTable[i] = riverDepth * 0.21428572f;
+      if (MD_RIVER_DEPTH_SCALE * i <= 4.6666665f) {
+        s_riverDepthCoordTable[i] = MD_RIVER_DEPTH_SCALE * i * 0.21428572f;
       } else {
         s_riverDepthCoordTable[i] = 1.0f;
       }
@@ -740,14 +739,18 @@ void CMap::WaterInitialize() {
       if (thetai == 0.0f) {
         fs = 0.021111846f;
       } else {
-        float sinRatio = static_cast<float>(sin(thetat - thetai) / sin(thetat + thetai));
+        fs = static_cast<float>(sin(thetat - thetai) / sin(thetat + thetai));
         float tanRatio = static_cast<float>(tan(thetat - thetai) / tan(thetat + thetai));
 
-        fs = 0.5f * (sinRatio * sinRatio + tanRatio * tanRatio);
+        fs = 0.5f * (fs * fs + tanRatio * tanRatio);
       }
 
-      unsigned char value = static_cast<unsigned char>(fs * 255.0f);
-      s_reflectivity[i].Set(value, value, value, value);
+      s_reflectivity[i].Set(
+          static_cast<unsigned char>(fs * 255.0f),
+          static_cast<unsigned char>(fs * 255.0f),
+          static_cast<unsigned char>(fs * 255.0f),
+          static_cast<unsigned char>(fs * 255.0f)
+      );
     }
   }
 
@@ -971,20 +974,18 @@ unsigned short CChunkLiquid::Render0I(unsigned short *idxBase, unsigned int liqu
   unsigned short  i2;
   unsigned int    ty;
   unsigned short  lastRenderedVtx = 0;
-  unsigned int    inStrip = 0;
+  unsigned char   inStrip = 0;
   unsigned short *idx = idxBase;
 
   for (ty = 0; ty < 8; ++ty) {
     unsigned short i0 = static_cast<unsigned short>(9 * ty);
-    unsigned short i1 = static_cast<unsigned short>(i0 + 9);
-    i2 = static_cast<unsigned short>(i1 + 1);
-    for (unsigned int tx = 0; tx < 8; ++tx) {
-      FATALASSERT(tx < 8);
-      if ((tiles.tiles[ty][tx] & 0xF) == liquidType) {
+    i2 = static_cast<unsigned short>(i0 + 10);
+    while (i0 < 9 * ty + 8) {
+      if ((tiles.tiles[ty][i0 - 9 * ty] & 0xF) == liquidType) {
         if (!inStrip) {
           *idx++ = i0;
           *idx++ = i0;
-          *idx++ = i1;
+          *idx++ = static_cast<unsigned short>(i0 + 9);
           inStrip = 1;
         }
         *idx++ = static_cast<unsigned short>(i0 + 1);
@@ -995,7 +996,6 @@ unsigned short CChunkLiquid::Render0I(unsigned short *idxBase, unsigned int liqu
         inStrip = 0;
       }
       ++i0;
-      ++i1;
       ++i2;
     }
     if (inStrip) {
@@ -1047,8 +1047,7 @@ void CChunkLiquid::RenderOcean0() {
     gxBuf->CountSet(81, 192);
     GxBufLock(gxBuf);
     FATALASSERT(arg.indexCount <= gxBuf->IndexCount());
-    CGxBatch batch(GxPrim_TriangleStrip, arg.indexCount, 0, 0, gxBuf->VertexCount() - 1);
-    GxBufRender(batch);
+    GxBufRender(CGxBatch(GxPrim_TriangleStrip, arg.indexCount, 0, 0, gxBuf->VertexCount() - 1));
     GxBufUnlock();
   }
 }
@@ -1064,8 +1063,7 @@ void CChunkLiquid::RenderRiver0(unsigned int type) {
     gxBuf->CountSet(81, 192);
     GxBufLock(gxBuf);
     FATALASSERT(arg.indexCount <= gxBuf->IndexCount());
-    CGxBatch batch(GxPrim_TriangleStrip, arg.indexCount, 0, 0, gxBuf->VertexCount() - 1);
-    GxBufRender(batch);
+    GxBufRender(CGxBatch(GxPrim_TriangleStrip, arg.indexCount, 0, 0, gxBuf->VertexCount() - 1));
     GxBufUnlock();
   }
 }
@@ -1081,8 +1079,7 @@ void CChunkLiquid::RenderMagma0(unsigned int type) {
     gxBuf->CountSet(81, 192);
     GxBufLock(gxBuf);
     FATALASSERT(arg.indexCount <= gxBuf->IndexCount());
-    CGxBatch batch(GxPrim_TriangleStrip, arg.indexCount, 0, 0, gxBuf->VertexCount() - 1);
-    GxBufRender(batch);
+    GxBufRender(CGxBatch(GxPrim_TriangleStrip, arg.indexCount, 0, 0, gxBuf->VertexCount() - 1));
     GxBufUnlock();
   }
 }
@@ -1123,10 +1120,9 @@ void Particulate::InitMovement() {
   const float pi = 3.1415927f;
   float       rotY = NTempest::CRandom::reals_(g_rndSeed) * pi;
   float       rotZ = NTempest::CRandom::reals_(g_rndSeed) * pi;
-  float       sinRotY = NTempest::CMath::sin_(rotY);
 
-  movement.dir.y = NTempest::CMath::sin_(rotZ) * sinRotY;
-  movement.dir.x = NTempest::CMath::cos_(rotZ) * sinRotY;
+  movement.dir.y = NTempest::CMath::sin_(rotZ) * NTempest::CMath::sin_(rotY);
+  movement.dir.x = NTempest::CMath::cos_(rotZ) * NTempest::CMath::sin_(rotY);
   movement.dir.z = NTempest::CMath::cos_(rotY) * 0.25f;
 
   if (movement.dir.z < 0.0f) {
@@ -1195,9 +1191,7 @@ void Particulate::SetTexture(const char *name) {
   }
 
   CStatus     status;
-  CGxTexFlags flags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1);
-
-  texture = TextureCreate(name, flags, &status, 0);
+  texture = TextureCreate(name, CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 2);
 }
 

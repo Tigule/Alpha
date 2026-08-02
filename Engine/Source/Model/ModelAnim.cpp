@@ -157,9 +157,7 @@ static void BuildPrimBone(NTempest::C34Matrix *boneMatrices, unsigned int *matri
 }
 
 static void BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatrices, NTempest::C34Matrix *weightedMatrices) {
-  unsigned int numGroups = geoset->groupMatrixCounts.Count();
-
-  if (!numGroups) {
+  if (!geoset->groupMatrixCounts.Count()) {
     *weightedMatrices = *boneMatrices;
     return;
   }
@@ -171,7 +169,7 @@ static void BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatri
     BuildPrimBone(boneMatrices, mtxList, *mtxCount, weightedMatrices);
     mtxList += *mtxCount++;
     ++weightedMatrices;
-  } while (--numGroups);
+  } while (mtxCount != geoset->groupMatrixCounts.Ptr() + geoset->groupMatrixCounts.Count());
 }
 
 static void SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared, NTempest::C34Matrix *boneMatrices) {
@@ -266,7 +264,9 @@ static void SetUnanimatedGeosetMatrices(CModelComplex *unique, CModelShared *sha
 }
 
 static void GetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsigned char *layerAlpha) {
-  for (unsigned int i = 0; i < numMaterials; ++i) {
+  unsigned int i;
+
+  for (i = 0; i < numMaterials; ++i) {
     CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[i]);
     ASSERT(uniqueMtl);
 
@@ -278,7 +278,9 @@ static void GetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsig
 }
 
 static void SetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsigned char *layerAlpha) {
-  for (unsigned int i = 0; i < numMaterials; ++i) {
+  unsigned int i;
+
+  for (i = 0; i < numMaterials; ++i) {
     CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[i]);
     ASSERT(uniqueMtl);
 
@@ -583,23 +585,22 @@ static void IModelGetStandingBasis(
     NTempest::C3Vector       *yprime,
     NTempest::C3Vector       *zprime
 ) {
-  float sinFacing;
-  float cosFacing;
-  NTempest::CMath::sincos_(facing, sinFacing, cosFacing);
+  NTempest::C2Vector xaxis;
+  NTempest::CMath::sincos_(facing, xaxis.y, xaxis.x);
 
   if (trackType == TRACK_PITCH_YAW) {
-    yprime->Set(-sinFacing, cosFacing, 0.0f);
+    yprime->Set(-xaxis.y, xaxis.x, 0.0f);
     *xprime = NTempest::C3Vector::Cross(*yprime, groundNormal);
     xprime->Normalize();
     *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
   } else if (trackType == TRACK_PITCH_YAW_ROLL) {
     *zprime = groundNormal;
-    yprime->Set(-sinFacing * zprime->z, cosFacing * zprime->z, sinFacing * zprime->x - cosFacing * zprime->y);
+    yprime->Set(-xaxis.y * zprime->z, xaxis.x * zprime->z, xaxis.y * zprime->x - xaxis.x * zprime->y);
     yprime->Normalize();
     *xprime = NTempest::C3Vector::Cross(*yprime, *zprime);
   } else {
-    xprime->Set(cosFacing, sinFacing, 0.0f);
-    yprime->Set(-sinFacing, cosFacing, 0.0f);
+    xprime->Set(xaxis.x, xaxis.y, 0.0f);
+    yprime->Set(-xaxis.y, xaxis.x, 0.0f);
     zprime->Set(0.0f, 0.0f, 1.0f);
   }
 }
@@ -1105,8 +1106,7 @@ int ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMode
   }
 
   CModelComplex *complex = static_cast<CModelComplex *>(unique);
-  unsigned int   numAttachments = complex->m_attached.Count();
-  for (unsigned int index = 0; index < numAttachments; ++index) {
+  for (unsigned int index = 0; index < complex->m_attached.Count(); ++index) {
     int enabled = 1;
     if (unique->m_anim) {
       if (complex->m_attachmentFlags[index] & 1) {
@@ -1145,11 +1145,10 @@ int ModelForceSequenceTime(HMODEL model, unsigned int seqIndex, int timeOffset, 
 
   if (doLinkedModels && (unique->m_flags & 0x20)) {
     CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
-    unsigned int                                numAttachments = complex->m_attached.Count();
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
     unsigned int                                index = 0;
 
-    while (index < numAttachments) {
+    while (index < complex->m_attached.Count()) {
       int enabled = 1;
       if (unique->m_anim) {
         if (complex->m_attachmentFlags[index] & 1) {
@@ -1190,10 +1189,9 @@ int ModelAdvanceTime(HMODEL model) {
   ASSERT(reinterpret_cast<CModel *>(model));
   if (unique->m_flags & 0x20) {
     CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
-    unsigned int                                numAttachments = complex->m_attached.Count();
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
-    for (unsigned int index = 0; index < numAttachments; ++index) {
+    for (unsigned int index = 0; index < complex->m_attached.Count(); ++index) {
       int enabled = 1;
       if (unique->m_anim) {
         if (complex->m_attachmentFlags[index] & 1) {
@@ -1230,10 +1228,9 @@ int ModelAdvanceTime(HMODEL model, int timeChange) {
   FATALASSERT(reinterpret_cast<CModel *>(model));
   if (unique->m_flags & 0x20) {
     CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
-    unsigned int                                numAttachments = complex->m_attached.Count();
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
-    for (unsigned int index = 0; index < numAttachments; ++index) {
+    for (unsigned int index = 0; index < complex->m_attached.Count(); ++index) {
       int enabled = 1;
       if (unique->m_anim) {
         if (complex->m_attachmentFlags[index] & 1) {
@@ -1258,6 +1255,7 @@ int ModelAdvanceTime(HMODEL model, int timeChange) {
 
 void ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
   CModelBase *unique;
+  CModelComplex *complex;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
     return;
   }
@@ -1267,15 +1265,22 @@ void ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
   }
 
   if (doLinkedModels && (unique->m_flags & 0x20)) {
-    CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
-    unsigned int                                numAttachments = complex->m_attached.Count();
+    complex = static_cast<CModelComplex *>(unique);
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
-    for (unsigned int index = 0; index < numAttachments; ++index) {
-      int enabled = !unique->m_anim || AnimIsAttachmentEnabled(unique->m_anim, index);
+    for (unsigned int index = 0; index < complex->m_attached.Count(); ++index) {
+      int enabled = 1;
+      if (unique->m_anim) {
+        if (complex->m_attachmentFlags[index] & 1) {
+          enabled = complex->m_attachmentFlags[index] & 2;
+        } else {
+          enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
+          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
+        }
+      }
       if (enabled) {
         ITERATELISTPTR(LINKUNIQUE, attached, link) {
-          ModelPauseTime(link->child, pause, 1);
+          ModelPauseTime(link->child, pause, 0);
         }
       }
       ++attached;
@@ -1457,15 +1462,15 @@ void ModelForceStandingMatrix(
   } else if (NTempest::CMath::fabs_(blendRatio) < 0.00000095367432f) {
     IModelGetStandingMatrix(shared->groundTrack, position, groundNormal, facing, scale, orientation);
   } else {
-    NTempest::C34Matrix standing;
-    NTempest::C34Matrix forced;
-    IModelGetStandingMatrix(shared->groundTrack, position, groundNormal, facing, 1.0f, &standing);
-    IModelGetStandingMatrix(static_cast<GROUND_TRACK>(enumGroundTrack), position, groundNormal, facing, 1.0f, &forced);
+    NTempest::C34Matrix standMtx;
+    NTempest::C34Matrix deadMtx;
+    IModelGetStandingMatrix(shared->groundTrack, position, groundNormal, facing, 1.0f, &standMtx);
+    IModelGetStandingMatrix(static_cast<GROUND_TRACK>(enumGroundTrack), position, groundNormal, facing, 1.0f, &deadMtx);
 
     float        standingRatio = 1.0f - blendRatio;
     float       *out = &orientation->a0;
-    const float *stand = &standing.a0;
-    const float *force = &forced.a0;
+    const float *stand = &standMtx.a0;
+    const float *force = &deadMtx.a0;
     for (int i = 0; i < 9; ++i) {
       out[i] = stand[i] * standingRatio + force[i] * blendRatio;
     }

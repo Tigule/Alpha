@@ -21,10 +21,10 @@ void CGxDeviceD3d::IShaderForceRecreation(int freeShaders) {
 }
 
 void CGxDeviceD3d::IPixelShaderCreate(CGxPixelShader *ps) {
-  ID3DXBuffer           *buffer = 0;
-  IDirect3DPixelShader9 *shader = 0;
+  ID3DXBuffer *buffer = 0;
 
   if (D3DXAssembleShader(reinterpret_cast<const char *>(ps->code.Ptr()), ps->code.Count(), 0, 0, 0, &buffer, 0) == 0) {
+    IDirect3DPixelShader9 *shader = 0;
     if (m_d3dDevice->CreatePixelShader(static_cast<const unsigned long *>(buffer->GetBufferPointer()), &shader) == 0) {
       ps->apiSpecific = reinterpret_cast<unsigned int>(shader);
       ps->valid = 1;

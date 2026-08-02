@@ -199,10 +199,6 @@ int CObserver::DispatchEvent(CEvent &event) {
   return DispatchEvent(event.Id(), event);
 }
 
-int CObserver::OnEvent(const CEvent &) {
-  return 0;
-}
-
 int CObserver::DispatchEvent(int id, CEvent &event) {
   EventReg *reg = GetEventReg(id, 0);
   if (!reg) {
@@ -338,7 +334,7 @@ void EventReg::RegisterEvent(int expectedEventId, CObserver *pObserver) {
 void EventReg::UnregisterCallback(EVENTCALLBACK callback) {
   EVENTCALLBACKREG *entry = callbackList.Head();
   while (entry) {
-    EVENTCALLBACKREG *next = callbackList.Next(entry);
+    EVENTCALLBACKREG *pCallbackRegnext_node = callbackList.Next(entry);
     if (!callback || entry->callback == callback) {
       entry->callback = 0;
       if (Locked()) {
@@ -351,14 +347,14 @@ void EventReg::UnregisterCallback(EVENTCALLBACK callback) {
         break;
       }
     }
-    entry = next;
+    entry = pCallbackRegnext_node;
   }
 }
 
 void EventReg::UnregisterEvent(CObserver *pObserver) {
   EVENTDISPATCHREG *entry = dispatchList.Head();
   while (entry) {
-    EVENTDISPATCHREG *next = dispatchList.Next(entry);
+    EVENTDISPATCHREG *pDispatchRegnext_node = dispatchList.Next(entry);
     if (!pObserver || entry->pObserver == pObserver) {
       entry->pObserver = static_cast<CObserver *>(0);
       if (Locked()) {
@@ -371,7 +367,7 @@ void EventReg::UnregisterEvent(CObserver *pObserver) {
         break;
       }
     }
-    entry = next;
+    entry = pDispatchRegnext_node;
   }
 }
 

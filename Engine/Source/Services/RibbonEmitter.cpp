@@ -360,22 +360,22 @@ void CRibbonEmitter::Update(float elapsedSec, int suppressNewEdges) {
   }
 
   if (!suppressNewEdges && m_enabled && m_posSet) {
-    float v1 = elapsedSec * m_edgesPerSec + m_startTime;
-    if (v1 >= 1.0f) {
-      float ooDenom = 1.0f / (v1 - m_startTime);
-      int   count = static_cast<int>(floor(v1 - 1.0f)) + 1;
+    float interpTime = elapsedSec * m_edgesPerSec + m_startTime;
+    if (interpTime >= 1.0f) {
+      float ooDenom = 1.0f / (interpTime - m_startTime);
+      int   count = static_cast<int>(floor(interpTime - 1.0f)) + 1;
 
       InitInterpDeltas();
-      float edge = 1.0f;
+      float newEdgeTime = 1.0f;
       while (count) {
-        float v0 = (edge - m_startTime) * ooDenom;
+        float v0 = (newEdgeTime - m_startTime) * ooDenom;
         InterpEdge(-(v0 * elapsedSec), v0, 1);
         --count;
-        edge += 1.0f;
+        newEdgeTime += 1.0f;
       }
     }
 
-    m_startTime = v1 - static_cast<float>(floor(v1));
+    m_startTime = interpTime - static_cast<float>(floor(interpTime));
     InterpEdge(0.0f, 1.0f, 0);
 
     CRibbonVertex &v0 = m_gxVertices[2 * m_writePos];
@@ -418,9 +418,10 @@ int CRibbonEmitter::Render() {
     return 0;
   }
 
-  NTempest::C3Vector  move(-m_cameraPos.x, -m_cameraPos.y, -m_cameraPos.z);
   NTempest::C44Matrix worldToCamera;
-  worldToCamera.Translate(move);
+  worldToCamera.Translate(
+      NTempest::C3Vector(-m_cameraPos.x, -m_cameraPos.y, -m_cameraPos.z)
+  );
 
   GxXformPush(GxXform_World, worldToCamera);
   GxVertexShaderSelect(GxVS_PassThru);
@@ -465,13 +466,15 @@ int CRibbonEmitter::IsDead() {
 }
 
 void CRibbonEmitter::MaterialDisableLight(int disable) {
-  for (unsigned int i = 0; i < m_materials.Count(); ++i) {
+  unsigned int numMaterials = m_materials.Count();
+  for (unsigned int i = 0; i < numMaterials; ++i) {
     m_materials[i].enableLighting = !disable;
   }
 }
 
 void CRibbonEmitter::MaterialDisableFog(int disable) {
-  for (unsigned int i = 0; i < m_materials.Count(); ++i) {
+  unsigned int numMaterials = m_materials.Count();
+  for (unsigned int i = 0; i < numMaterials; ++i) {
     m_materials[i].enableFog = !disable;
   }
 }

@@ -54,12 +54,12 @@ class CClippedTriangle {
   }
 
   const NTempest::C3Vector &Last() const {
-    FATALASSERT(numVerts);
+    FATALASSERT(numVerts > 0);
     return verts[numVerts - 1];
   }
 
   void SetCount(unsigned int count) {
-    FATALASSERT(count <= 9);
+    FATALASSERT(count < 9);
     numVerts = count;
   }
 
@@ -157,35 +157,32 @@ static float ClipPolygonToPlane(const NTempest::C4Plane &plane, CClippedTriangle
       nextIndex = 0;
     }
 
-    NTempest::C3Vector current = input[i];
-    NTempest::C3Vector next = input[nextIndex];
-    float              dist1 = plane.DistSigned(current);
-    float              dist2 = plane.DistSigned(next);
+    float dist1 = plane.DistSigned(input[i]);
+    float dist2 = plane.DistSigned(input[nextIndex]);
     if (-dist1 > penetrationDepth) {
       penetrationDepth = -dist1;
     }
 
     if ((dist1 < 0.0f || dist2 <= 0.0013888889f) && (dist1 <= 0.0013888889f || dist2 < 0.0f)) {
       if (dist1 > 0.0013888889f || dist2 > 0.0013888889f) {
-        float              t = dist1 / (dist1 - dist2);
-        NTempest::C3Vector intersection = current + (next - current) * t;
+        NTempest::C3Vector intersection = input[i] + (input[nextIndex] - input[i]) * (dist1 / (dist1 - dist2));
         if (dist1 <= 0.0f && dist2 > 0.0f) {
-          if (!poly->Count() || poly->Last() != current) {
-            poly->Add(current);
+          if (!poly->Count() || poly->Last() != input[i]) {
+            poly->Add(input[i]);
           }
           poly->Add(intersection);
         } else if (dist1 > 0.0f && dist2 <= 0.0f) {
           poly->Add(intersection);
           if (nextIndex) {
-            poly->Add(next);
+            poly->Add(input[nextIndex]);
           }
         }
       } else {
-        if (!poly->Count() || poly->Last() != current) {
-          poly->Add(current);
+        if (!poly->Count() || poly->Last() != input[i]) {
+          poly->Add(input[i]);
         }
-        if (nextIndex || !poly->Count() || (*poly)[0] != next) {
-          poly->Add(next);
+        if (nextIndex || !poly->Count() || (*poly)[0] != input[nextIndex]) {
+          poly->Add(input[nextIndex]);
         }
       }
     }
@@ -267,27 +264,27 @@ void CMovement::Redirect(
       (((typeX == 8 || typeX == 16) && !typeY) || ((typeY == 8 || typeY == 16) && !typeX) || (typeX == 4 && !typeY) || (typeY == 4 && !typeX) ||
        (typeX == 4 && typeY == 4));
   if (corner) {
-    const NTempest::C3Vector *normal;
+    const NTempest::C3Vector *newDirection;
     if (!hitInfoX.flags) {
-      normal = &hitInfoY.surfaceNorm[0];
+      newDirection = &hitInfoY.surfaceNorm[0];
     } else if (
         !hitInfoY.flags ||
         NTempest::C3Vector::Dot(hitInfoX.surfaceNorm[0], unitMoveVector) < NTempest::C3Vector::Dot(hitInfoY.surfaceNorm[0], unitMoveVector)
     )
     {
-      normal = &hitInfoX.surfaceNorm[0];
+      newDirection = &hitInfoX.surfaceNorm[0];
     } else {
-      normal = &hitInfoY.surfaceNorm[0];
+      newDirection = &hitInfoY.surfaceNorm[0];
     }
-    Obstruct(timeStamp, unitMoveVector, platformNorm, *normal);
+    Obstruct(timeStamp, unitMoveVector, platformNorm, *newDirection);
   } else if ((hitInfoX.flags & 0x1B) && (hitInfoY.flags & 0x1B)) {
     Halt(timeStamp);
   } else {
-    NTempest::C3Vector normal(hitInfoX.flags & 0x1B ? 0.0f : 1.0f, hitInfoX.flags & 0x1B ? 1.0f : 0.0f, 0.0f);
-    if (NTempest::C3Vector::Dot(normal, unitMoveVector) < 0.0f) {
-      normal = normal * -1.0f;
+    NTempest::C3Vector newDirection(hitInfoX.flags & 0x1B ? 0.0f : 1.0f, hitInfoX.flags & 0x1B ? 1.0f : 0.0f, 0.0f);
+    if (NTempest::C3Vector::Dot(newDirection, unitMoveVector) < 0.0f) {
+      newDirection = newDirection * -1.0f;
     }
-    AttemptRedirect(timeStamp, unitMoveVector, normal);
+    AttemptRedirect(timeStamp, unitMoveVector, newDirection);
   }
 }
 
@@ -464,7 +461,7 @@ int CMovement::FallFromTransport() {
     return 0;
   }
   FATALASSERT(m_transportGUID);
-  MovementGetTransportVector(m_transportGUID);
+  NTempest::C3Vector moveVector = MovementGetTransportVector(m_transportGUID);
   return SetTransport(0) != 0;
 }
 
@@ -579,7 +576,7 @@ static int AddNormal(const NTempest::C3Vector &normal, unsigned int maxNormals, 
     return 0;
   }
   for (unsigned int i = 0; i < *numNormals; ++i) {
-    if (NTempest::C3Vector::Dot(normalList[i], normal) > 0.99984771f) {
+    if (NTempest::C3Vector::Dot(normal, normalList[i]) > 0.99984771f) {
       return 1;
     }
   }
@@ -733,11 +730,12 @@ float CMovement::CollideWithWaterSurface(
     return distanceWanted;
   }
 
-  m_reDirection.Set(unitMoveWanted.x, unitMoveWanted.y, 0.0f);
-  float magnitude = m_reDirection.Mag();
+  NTempest::C3Vector moveVector(unitMoveWanted.x, unitMoveWanted.y, 0.0f);
+  float magnitude = moveVector.Mag();
   if (NTempest::CMath::fabs_(magnitude) >= 0.00000023841858f) {
-    m_reDirection *= 1.0f / magnitude;
+    moveVector *= 1.0f / magnitude;
   }
+  m_reDirection = moveVector;
   m_moveFlags |= 0x1000;
   return (m_waterSurfaceElev - m_position.z) / verticalMove * distanceWanted;
 }
@@ -845,19 +843,19 @@ float CMovement::ExtrudeSlideBoxDownHill(const NTempest::C3Vector &unitMove, flo
   ExtrudeBoxSideY(moveVector, pyramidHgt, boxPlanes[1]);
   int   pyrSideX = ExtrudePyramidSideX(unitMove, distanceWanted, boxPlanes[2]);
   int   pyrSideY = ExtrudePyramidSideY(unitMove, distanceWanted, boxPlanes[3]);
-  float distance = FLT_MAX;
+  distanceWanted = FLT_MAX;
   for (int side = 0; side < 2; ++side) {
     startPlanes[side] = boxPlanes[side][0];
     startPlanes[side].d += 0.027777778f;
-    FindObstacles(unitMove, boxPlanes[side], 6, startPlanes[side], 0, &distance, hitInfo);
+    FindObstacles(unitMove, boxPlanes[side], 6, startPlanes[side], 0, &distanceWanted, hitInfo);
   }
   if (pyrSideX) {
-    FindObstacles(unitMove, boxPlanes[2], 5, boxPlanes[2][0], 1, &distance, hitInfo);
+    FindObstacles(unitMove, boxPlanes[2], 5, boxPlanes[2][0], 1, &distanceWanted, hitInfo);
   }
   if (pyrSideY) {
-    FindObstacles(unitMove, boxPlanes[3], 5, boxPlanes[3][0], 1, &distance, hitInfo);
+    FindObstacles(unitMove, boxPlanes[3], 5, boxPlanes[3][0], 1, &distanceWanted, hitInfo);
   }
-  return distance > 0.0f ? distance : 0.0f;
+  return distanceWanted > 0.0f ? distanceWanted : 0.0f;
 }
 
 static float GetDist2d(NTempest::C3Vector &unitMove, float closestDist3D) {
@@ -1212,18 +1210,18 @@ unsigned int CMovement::Fall(unsigned int fallenSoFar, unsigned int timeIncremen
 }
 
 void CMovement::GetMoveFacets(float distance, unsigned int timeToFall, const NTempest::C3Vector &unitMove) {
-  NTempest::C3Vector moveDirection = unitMove;
+  NTempest::C3Vector moveVector = unitMove;
   if (!(m_moveFlags & 0x02000000)) {
-    moveDirection.z = 0.0f;
-    if (NTempest::CMath::fabs_(moveDirection.x) >= 0.00000023841858f && NTempest::CMath::fabs_(moveDirection.y) >= 0.00000023841858f) {
-      float ooMag = 1.0f / static_cast<float>(sqrt(moveDirection.x * moveDirection.x + moveDirection.y * moveDirection.y));
-      moveDirection.x *= ooMag;
-      moveDirection.y *= ooMag;
+    moveVector.z = 0.0f;
+    if (NTempest::CMath::fabs_(moveVector.x) >= 0.00000023841858f && NTempest::CMath::fabs_(moveVector.y) >= 0.00000023841858f) {
+      float ooMag = 1.0f / static_cast<float>(sqrt(moveVector.x * moveVector.x + moveVector.y * moveVector.y));
+      moveVector.x *= ooMag;
+      moveVector.y *= ooMag;
     }
   }
+  moveVector *= distance;
 
   NTempest::C3Vector  position = m_position;
-  NTempest::C3Vector  moveVector = moveDirection * distance;
   NTempest::C34Matrix worldToTransport;
   if (m_transportGUID) {
     NTempest::C34Matrix transportToWorld;
@@ -1232,10 +1230,11 @@ void CMovement::GetMoveFacets(float distance, unsigned int timeToFall, const NTe
     position *= transportToWorld;
   }
 
-  NTempest::C3Vector boxBottom(position.x - m_collisionBoxHalfDepth, position.y - m_collisionBoxHalfDepth, position.z);
-  NTempest::C3Vector boxTop(position.x + m_collisionBoxHalfDepth, position.y + m_collisionBoxHalfDepth, position.z + m_collisionBoxHeight);
-  NTempest::CAaBox   start(boxBottom, boxTop);
-  NTempest::CAaBox   end(boxBottom + moveVector, boxTop + moveVector);
+  NTempest::CAaBox start(
+      NTempest::C3Vector(position.x - m_collisionBoxHalfDepth, position.y - m_collisionBoxHalfDepth, position.z),
+      NTempest::C3Vector(position.x + m_collisionBoxHalfDepth, position.y + m_collisionBoxHalfDepth, position.z + m_collisionBoxHeight)
+  );
+  NTempest::CAaBox end(start.b + moveVector, start.t + moveVector);
   NTempest::CAaBox   axisAlign(NTempest::C3Vector::Min(start.b, end.b), NTempest::C3Vector::Max(start.t, end.t));
 
   if (!(m_moveFlags & 0x02000000)) {
@@ -1388,10 +1387,10 @@ void CMovement::ShowCollisionBox(const NTempest::C3Vector &unitMove, unsigned in
   NTempest::C3Vector boxMax(m_position.x + m_collisionBoxHalfDepth, m_position.y + m_collisionBoxHalfDepth, m_position.z + m_collisionBoxHeight);
   CollisionInfoAddBox(boxMin, boxMax);
 
-  NTempest::C3Vector vectorPosition = m_position;
-  vectorPosition.z += (m_collisionBoxHeight + m_stepUpHeight) * 0.5f;
+  NTempest::C3Vector vectPos = m_position;
+  vectPos.z += (m_collisionBoxHeight + m_stepUpHeight) * 0.5f;
   NTempest::C3Vector &moveDirection = m_moveFlags & 0x1000 ? m_reDirection : unitMove;
-  CollisionInfoAddVector(vectorPosition, moveDirection);
+  CollisionInfoAddVector(vectPos, moveDirection);
 }
 
 int CMovement::CollideRequestMove(
@@ -1589,8 +1588,7 @@ float CMovement::CalcFallSurfaceProjection(
     );
     return distToFall;
   }
-  NTempest::C3Vector platformNorm(0.0f, 0.0f, 1.0f);
-  platform->Set(platformNorm, position);
+  platform->Set(NTempest::C3Vector(0.0f, 0.0f, 1.0f), position);
   LogWrite("0x%016I64X: unit position(%g,%g,%g), flat platform\n", m_guid, position.x, position.y, position.z);
   return 0.0f;
 }
@@ -1652,10 +1650,11 @@ int CMovement::IsTooLow(
     float               distanceMoved,
     float               currSpeedInv
 ) {
+  float minElevation;
   if (distanceMoved >= surface->farDist) {
     LogWrite("0x%016I64X: distanceMoved(%g) beyond surface(%g,%g)\n", m_guid, distanceMoved, surface->closeDist, surface->farDist);
   }
-  float minElevation = position.z - (surface->farDist - distanceMoved) * 1.1917536f;
+  minElevation = position.z - (surface->farDist - distanceMoved) * 1.1917536f;
   LogWrite(
       "0x%016I64X: Checking if face is below: LPOC(%g), minElevation(%g), unit(%g)\n", m_guid, surface->lastPtOfContact.z, minElevation, position.z
   );
@@ -2124,9 +2123,8 @@ CMovement::ProjectileFall(
   LogWrite(
       "0x%016I64X: ====| Starting new projectile fall: time to move (%u), time fallen so far (%d)\n", m_guid, timeToMove, eventTime - m_fallStartTime
   );
-  float              updateFallTimeSecs = static_cast<float>(timeToMove) * 0.001f;
-  float              relativeFall = RelDistanceFallen(eventTime, updateFallTimeSecs);
-  NTempest::C3Vector move(moveWanted.x, moveWanted.y, -relativeFall);
+  float              distToFall = RelDistanceFallen(eventTime, static_cast<float>(timeToMove) * 0.001f);
+  NTempest::C3Vector move(moveWanted.x, moveWanted.y, -distToFall);
   float              distance = move.Mag();
   if (NTempest::CMath::fabs_(distance) < 0.00000023841858f) {
     return 0;
@@ -2139,7 +2137,7 @@ CMovement::ProjectileFall(
   unsigned __int64 gameObjHit = 0;
   float            distanceMoved = FLT_MAX;
   if (s_facetData.facets.Count()) {
-    if (relativeFall >= 0.0f) {
+    if (distToFall >= 0.0f) {
       distanceMoved = ExtrudeProjectileBoxDownHill(eventTime, unitMove, distance, unitMoveWanted, &gameObjHit);
     } else {
       distanceMoved = ExtrudeProjectileBoxUpHill(unitMove, distance, &gameObjHit);
@@ -2150,7 +2148,7 @@ CMovement::ProjectileFall(
   if (distanceMoved < distance) {
     move = unitMove * distanceMoved;
     m_position += move;
-    float adjustedTime = NTempest::CMath::fabs_(distanceMoved) * inverseDistance * updateFallTimeSecs * 1000.0f;
+    float adjustedTime = NTempest::CMath::fabs_(distanceMoved) * inverseDistance * (static_cast<float>(timeToMove) * 0.001f) * 1000.0f;
     if (adjustedTime <= 0.0f) {
       timeUsed = static_cast<unsigned int>(-static_cast<long>(-adjustedTime + 0.5f));
     } else {
@@ -2158,7 +2156,7 @@ CMovement::ProjectileFall(
     }
 
     if (m_moveFlags & 0x4000) {
-      if (relativeFall < 0.0f) {
+      if (distToFall < 0.0f) {
         ProcessFallReset(eventTime + timeUsed);
       }
     } else if (gameObjHit) {
@@ -2230,8 +2228,7 @@ unsigned int CMovement::TraceSurface(
   surfacePool.SetCount(0);
   EnqueueFacets(slopeTestPlane, *reinterpret_cast<NTempest::C2Vector *>(&m_position), unitMove, s_facetData.facets, &surfacePool);
 
-  NTempest::C3Vector r(unitMove.x, unitMove.y, 0.0f);
-  startPlane.Set(r, m_position);
+  startPlane.Set(NTempest::C3Vector(unitMove.x, unitMove.y, 0.0f), m_position);
   ClipFacetsWithOneAnother(startPlane, &surfacePool);
 
   fullMoveVector = m_position;
@@ -2508,7 +2505,9 @@ int CMovement::DetermineBoxHitType(
 NTempest::C3Vector CMovement::CalcAverageSurfaceNormal(const NTempest::C4Plane *box, unsigned int count) {
   NTempest::C3Vector average(0.0f);
   unsigned int       numNormals = 0;
-  for (unsigned int facetId = 0; facetId < s_facetData.facets.Count(); ++facetId) {
+  unsigned int       numFacets = s_facetData.facets.Count();
+  float              penetrationDepth;
+  for (unsigned int facetId = 0; facetId < numFacets; ++facetId) {
     NTempest::CFacet &facet = s_facetData.facets[facetId];
     if (facet.plane.n.z <= 0.017452406f) {
       continue;
@@ -2516,7 +2515,6 @@ NTempest::C3Vector CMovement::CalcAverageSurfaceNormal(const NTempest::C4Plane *
 
     CClippedTriangle clippedPoly;
     clippedPoly.Init(facet.vertices);
-    float penetrationDepth;
     if (ClipPolygonToPolyhedron(box, count, &clippedPoly, &penetrationDepth) && penetrationDepth >= 0.013888889f) {
       average += facet.plane.n;
       ++numNormals;
@@ -2540,15 +2538,17 @@ void CMovement::FindObstacles(
     float              *closestDist,
     CRedirect          *hitInfo
 ) {
-  for (unsigned int facetId = 0; facetId < s_facetData.facets.Count(); ++facetId) {
-    NTempest::CFacet &facet = s_facetData.facets[facetId];
-    if (NTempest::C3Vector::Dot(facet.plane.n, unitMoveVector) > -0.017452406f) {
+  unsigned int numFacets = s_facetData.facets.Count();
+  float        minDist;
+  unsigned int savedFlags;
+  for (unsigned int facetId = 0; facetId < numFacets; ++facetId) {
+    if (NTempest::C3Vector::Dot(s_facetData.facets[facetId].plane.n, unitMoveVector) > -0.017452406f) {
       CollisionInfoColorFace(facetId, FACET_TESTED_UNTOUCHED);
       continue;
     }
 
     CClippedTriangle clippedPoly;
-    clippedPoly.Init(facet.vertices);
+    clippedPoly.Init(s_facetData.facets[facetId].vertices);
     float penetrationDepth;
     if (!ClipPolygonToPolyhedron(box, numSides, &clippedPoly, &penetrationDepth)) {
       CollisionInfoColorFace(facetId, FACET_TESTED_UNTOUCHED);
@@ -2561,7 +2561,7 @@ void CMovement::FindObstacles(
     CollisionInfoColorFace(facetId, FACET_TESTED_TOUCHED);
 
     NTempest::C3Vector closest(0.0f);
-    float              minDist = FLT_MAX;
+    minDist = FLT_MAX;
     for (unsigned int i = 0; i < clippedPoly.Count(); ++i) {
       float distance = DistFromPlaneAlongVector(clippedPoly[i], startPlane, unitMoveVector);
       if (distance < minDist) {
@@ -2579,15 +2579,15 @@ void CMovement::FindObstacles(
       }
 
       if (NTempest::CMath::fabs_(sqDist) < 0.000048225309f) {
-        float newDot = NTempest::C3Vector::Dot(facet.plane.n, unitMoveVector);
+        float newDot = NTempest::C3Vector::Dot(s_facetData.facets[facetId].plane.n, unitMoveVector);
         float oldDot = NTempest::C3Vector::Dot(hitInfo->surfaceNorm[0], unitMoveVector);
         if (NTempest::CMath::fabs_(newDot - oldDot) >= 0.00000095367432f) {
           hitInfo->flags |= 0x80;
           if (newDot >= oldDot) {
-            hitInfo->surfaceNorm[1] = facet.plane.n;
+            hitInfo->surfaceNorm[1] = s_facetData.facets[facetId].plane.n;
           } else {
             hitInfo->surfaceNorm[1] = hitInfo->surfaceNorm[0];
-            hitInfo->surfaceNorm[0] = facet.plane.n;
+            hitInfo->surfaceNorm[0] = s_facetData.facets[facetId].plane.n;
           }
         }
       } else if (DetermineHitType(hitType, unitMoveVector, minDist, facetId, hitInfo)) {
@@ -2606,14 +2606,14 @@ void CMovement::FindObstacles(
       continue;
     }
 
-    unsigned int savedFlags = hitInfo->flags;
+    savedFlags = hitInfo->flags;
     hitInfo->flags = 0;
     if (!DetermineHitType(hitType, unitMoveVector, minDist, facetId, hitInfo)) {
       hitInfo->flags = savedFlags;
       continue;
     }
 
-    hitInfo->surfaceNorm[0] = facet.plane.n;
+    hitInfo->surfaceNorm[0] = s_facetData.facets[facetId].plane.n;
     hitInfo->gameObjHit = facetId < s_facetData.gameObjects.Count() ? s_facetData.gameObjects[facetId] : 0;
     hitInfo->hitPoint = closest;
     *closestDist = minDist;

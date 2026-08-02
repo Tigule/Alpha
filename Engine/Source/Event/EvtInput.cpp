@@ -56,30 +56,9 @@ void UnconvertPosition(float x, float y, int *clientx, int *clienty) {
 
 void ConvertPosition(int clientx, int clienty, float *x, float *y) {
   if (s_boundingRect.r - s_boundingRect.l != 0.0f && s_boundingRect.b - s_boundingRect.t != 0.0f) {
-    float floatX = static_cast<float>(clientx);
-    float floatY = static_cast<float>(clienty);
-
-    if (floatX <= s_boundingRect.l || floatX >= s_boundingRect.r || floatY <= s_boundingRect.t || floatY >= s_boundingRect.b) {
-      float minX = s_boundingRect.l + 1.0f;
-      float maxX = s_boundingRect.r - 1.0f;
-      float minY = s_boundingRect.t + 1.0f;
-      float maxY = s_boundingRect.b - 1.0f;
-
-      if (floatX < minX) {
-        floatX = minX;
-      }
-      if (floatX > maxX) {
-        floatX = maxX;
-      }
-      if (floatY < minY) {
-        floatY = minY;
-      }
-      if (floatY > maxY) {
-        floatY = maxY;
-      }
-
-      clientx = static_cast<int>(floatX);
-      clienty = static_cast<int>(floatY);
+    if (clientx <= s_boundingRect.l || clientx >= s_boundingRect.r || clienty <= s_boundingRect.t || clienty >= s_boundingRect.b) {
+      clientx = static_cast<int>(NTempest::CMath::clamp_(static_cast<float>(clientx), s_boundingRect.l + 1.0f, s_boundingRect.r - 1.0f));
+      clienty = static_cast<int>(NTempest::CMath::clamp_(static_cast<float>(clienty), s_boundingRect.t + 1.0f, s_boundingRect.b - 1.0f));
       OsInputSetMousePosition(clientx, clienty);
     }
   }

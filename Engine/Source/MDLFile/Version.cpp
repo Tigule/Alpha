@@ -16,21 +16,21 @@ int ReadVersion(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   errors.Add(0x14C, 1, 0);
   parse.Expect('{');
 
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     if (token == 0x14C) {
       data.version = parse.ExpectInt();
     } else {
-      parse.FatalUnexpected(tokenText);
+      parse.FatalUnexpected(tokentext);
     }
     parse.Expect(',');
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   errors.Complete(status);
 
   if (errors.Found(0x14C) && data.version > 0x514) {
@@ -52,10 +52,10 @@ int WriteVersion(const MDLDATA &, TSGrowableArray<char> &buffer, CMDLStatus *) {
   return 1;
 }
 
-int ReadBinVersion(CMsgBuffer &buffer, unsigned int length, MDLDATA &data, CMDLStatus *status) {
+int ReadBinVersion(CMsgBuffer &buf, unsigned int len, MDLDATA &data, CMDLStatus *status) {
   FATALASSERT(status);
-  if (length == 4) {
-    data.version = buffer.GetUint();
+  if (len == 4) {
+    data.version = buf.GetUint();
     return 1;
   }
   status->Add(STATUS_ERROR, "Invalid VERX section detected in model.\n");

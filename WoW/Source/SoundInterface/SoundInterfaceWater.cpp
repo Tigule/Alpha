@@ -130,9 +130,9 @@ static int WaterHandler(const void* dataPtr, void* param) {
 void LIQUIDINFO::StartSound(unsigned int subType, const NTempest::C3Vector &listenerPos) {
   FATALASSERT(subType < (sizeof(m_subTypes) / sizeof(m_subTypes[0])));
   if (m_sound) {
-    NTempest::C3Vector worldPosition = m_positionOffset[subType] + listenerPos;
+    NTempest::C3Vector pos = m_positionOffset[subType] + listenerPos;
     if (m_sound->IsPlaying()) {
-      m_sound->SetPosition(worldPosition, 0);
+      m_sound->SetPosition(pos, 0);
     }
     return;
   }
@@ -198,8 +198,8 @@ void LIQUIDINFO::UpdateVolume() {
 void LIQUIDINFO::Tick() {
   if (m_sound && m_currentRecord) {
     FATALASSERT(m_currentPlayingSound < (sizeof(m_positionOffset) / sizeof(m_positionOffset[0])));
-    float distanceSquared = m_positionOffset[m_currentPlayingSound].SquaredMag();
-    m_sound->SetPanning(1.0f - distanceSquared / PANNING_DIST_SQUARED);
+    NTempest::C3Vector offset = m_positionOffset[m_currentPlayingSound];
+    m_sound->SetPanning(1.0f - offset.SquaredMag() / PANNING_DIST_SQUARED);
   }
 }
 

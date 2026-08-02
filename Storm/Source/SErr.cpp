@@ -9,7 +9,7 @@
 int CheckMachineStateSymbolHelper();
 void LoadMachineStateSymbols();
 void UnloadMachineStateSymbols();
-int LogMiniDump(void *file, EXCEPTION_POINTERS *exceptionPointers, UINT userStreamCount, char **const userStreams);
+int LogMiniDump(void *file, EXCEPTION_POINTERS *exceptionPointers, UINT userStreamCount, char **userStreams);
 int LogMiniDumpIsAvailable();
 
 typedef struct _MSGSRC {
@@ -328,7 +328,7 @@ static int MakeDirectory(LPCSTR pszFullPath) {
 
 static void __cdecl WriteLine(void *param, const char *format, ...) {
   char    buffer[0x800];
-  DWORD   written;
+  DWORD   byteswritten;
   va_list args;
 
   if (!format) {
@@ -340,8 +340,8 @@ static void __cdecl WriteLine(void *param, const char *format, ...) {
   va_end(args);
   buffer[sizeof(buffer) - 3] = 0;
   SStrPack(buffer, "\r\n", sizeof(buffer));
-  written = 0;
-  WriteFile((HANDLE)param, buffer, SStrLen(buffer), &written, NULL);
+  byteswritten = 0;
+  WriteFile((HANDLE)param, buffer, SStrLen(buffer), &byteswritten, NULL);
 }
 
 static void WriteMessageToLog(HANDLE logfile, LPCSTR message) {
@@ -1018,10 +1018,8 @@ static void UnregisterAllThreads() {
 
 extern "C" void APIENTRY SErrRegisterThread(HANDLE thread, DWORD threadid) {
   HANDLE process;
-  HANDLE duplicate;
   int    i;
 
-  duplicate = NULL;
   SErrThreadsEnter();
   for (i = 0; i < s_numthreads; i++) {
     if (s_threadids[i] == threadid) {
@@ -1030,8 +1028,7 @@ extern "C" void APIENTRY SErrRegisterThread(HANDLE thread, DWORD threadid) {
   }
   if (i == s_numthreads && s_numthreads < MAX_ERR_THREADS) {
     process = GetCurrentProcess();
-    if (DuplicateHandle(process, thread, process, &duplicate, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-      s_threads[s_numthreads] = duplicate;
+    if (DuplicateHandle(process, thread, process, &s_threads[s_numthreads], 0, FALSE, DUPLICATE_SAME_ACCESS)) {
       s_threadids[s_numthreads] = threadid;
       s_numthreads++;
     }
@@ -1060,13 +1057,13 @@ extern "C" void APIENTRY SErrUnregisterThread(HANDLE thread, DWORD threadid) {
 static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCSTR description, LPCSTR suffix) {
   BOOL   suspended[MAX_ERR_THREADS];
   HANDLE log;
-  DWORD  currentThreadId;
+  DWORD  currentid;
   int    currentIndex;
   int    suspendedCount;
   int    count;
   int    i;
   int    loggedIndex;
-  char   buffer[0x100];
+  char   msg[0x100];
 
   if (numthreads <= 0) {
     return;
@@ -1083,12 +1080,12 @@ static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCST
 
   LoadMachineStateSymbols();
   ZeroMemory(suspended, sizeof(suspended));
-  currentThreadId = GetCurrentThreadId();
+  currentid = GetCurrentThreadId();
   currentIndex = -1;
   suspendedCount = 0;
 
   for (i = 0; i < count; i++) {
-    if (threadids[i] == currentThreadId) {
+    if (threadids[i] == currentid) {
       currentIndex = i;
       suspendedCount++;
     } else if (SuspendThread(threads[i]) != (DWORD)-1) {
@@ -1097,19 +1094,19 @@ static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCST
     }
   }
 
-  SStrPrintf(buffer, sizeof(buffer), "================================================================\n\nLogging %d threads\n\n", suspendedCount);
-  WriteMessageToLog(log, buffer);
+  SStrPrintf(msg, sizeof(msg), "================================================================\n\nLogging %d threads\n\n", suspendedCount);
+  WriteMessageToLog(log, msg);
 
   loggedIndex = 0;
   if (currentIndex >= 0) {
     loggedIndex++;
     SStrPrintf(
-        buffer, sizeof(buffer),
+        msg, sizeof(msg),
         "================================================================\n================================================================"
         "\n\nLogging thread %d of %d (the current thread), thread id = 0x%08X, thread handle = 0x%08X\n\n",
         loggedIndex, count, threadids[currentIndex], (DWORD)threads[currentIndex]
     );
-    WriteMessageToLog(log, buffer);
+    WriteMessageToLog(log, msg);
     LogContext(log, 1, NULL);
   }
 
@@ -1122,12 +1119,12 @@ static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCST
 
     loggedIndex++;
     SStrPrintf(
-        buffer, sizeof(buffer),
+        msg, sizeof(msg),
         "================================================================\n================================================================"
         "\n\nLogging thread %d of %d, thread id = 0x%08X, thread handle = 0x%08X\n\n",
         loggedIndex, count, threadids[i], (DWORD)threads[i]
     );
-    WriteMessageToLog(log, buffer);
+    WriteMessageToLog(log, msg);
 
     ZeroMemory(&context, sizeof(context));
     context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS;

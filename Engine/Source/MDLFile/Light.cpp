@@ -250,9 +250,13 @@ int WriteLights(
     CMDLStatus *
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]) {
-    int needObjIds = data.lights.Count() != data.objects.Count();
     for (unsigned int i = 0; i < data.lights.Count(); ++i) {
-      IWriteLightSection(data, data.lights.Ptr()[i], needObjIds, buffer);
+      IWriteLightSection(
+          data,
+          data.lights.Ptr()[i],
+          data.lights.Count() != data.objects.Count(),
+          buffer
+      );
     }
   }
   return 1;
@@ -341,21 +345,21 @@ static void IWriteBinLightSection(
 
 int WriteBinLights(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *status
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]
       && data.lights.Count()) {
-    buffer.AddDword('ETIL');
+    buf.AddDword('ETIL');
     unsigned int totalSize = 4;
     unsigned int i;
     for (i = 0; i < data.lights.Count(); ++i) {
       totalSize += GetBinLightSize(data.lights.Ptr()[i]);
     }
-    buffer.AddUint(totalSize);
-    buffer.AddUint(data.lights.Count());
+    buf.AddUint(totalSize);
+    buf.AddUint(data.lights.Count());
     for (i = 0; i < data.lights.Count(); ++i) {
-      IWriteBinLightSection(data.lights.Ptr()[i], buffer, status);
+      IWriteBinLightSection(data.lights.Ptr()[i], buf, status);
     }
   }
   return 1;
@@ -430,22 +434,22 @@ static int ReadBinLight(
 }
 
 int ReadBinLights(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
 ) {
-  unsigned int count = buffer.GetUint();
+  unsigned int numLights = buf.GetUint();
   unsigned int totalRead = 4;
   data.lights.SetCount(0);
-  data.lights.ReserveSpace(count);
+  data.lights.ReserveSpace(numLights);
   while (totalRead < length) {
     MDLLIGHTSECTION *light = data.lights.New();
     if (!light) {
       status->FatalFlunked("Light", -1);
       return 0;
     }
-    if (!ReadBinLight(buffer, light, status, totalRead, data.version)) {
+    if (!ReadBinLight(buf, light, status, totalRead, data.version)) {
       status->Add(STATUS_ERROR, "Error reading light section.\n");
       return 0;
     }

@@ -32,9 +32,8 @@ void CMap::SnapBaseObjToSubChunk(CMapBaseObj *baseObj, NTempest::C3Vector &pos, 
   tVec = pos + aaBox.b;
 
   int x = static_cast<int>((tVec.x + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK - OneHalfOffset);
-  int y = static_cast<int>((tVec.y + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK - OneHalfOffset);
   pos.x -= tVec.x - x * (150.0f / 36.0f);
-  pos.y -= tVec.y - y * (150.0f / 36.0f);
+  pos.y -= tVec.y - static_cast<int>((tVec.y + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK - OneHalfOffset) * (150.0f / 36.0f);
 }
 
 void CMap::Update() {
@@ -115,7 +114,6 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
   SMOLight        *sLight;
   unsigned int     i;
   CMapObjDefGroup *mapObjDefGroup;
-  CMapObj         *mapObj;
 
   FATALASSERT(mapObjDef);
   mapObjDef->pos = pos;
@@ -124,9 +122,8 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
   mapObjDef->mat.Rotate(angle, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
   mapObjDef->invMat = mapObjDef->mat.AffineInverse();
 
-  mapObj = mapObjDef->mapObj;
-  FATALASSERT(mapObj);
-  if (!mapObj->bLoaded) {
+  FATALASSERT(mapObjDef->mapObj);
+  if (!mapObjDef->mapObj->bLoaded) {
     mapObjDef->aaSphere.c = pos;
     mapObjDef->aaSphere.r = 0.0f;
     mapObjDef->aaBox.b = pos;
@@ -134,18 +131,18 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
     return;
   }
 
-  mapObj->GetBounds(mapObjDef->aaSphere);
+  mapObjDef->mapObj->GetBounds(mapObjDef->aaSphere);
   mapObjDef->aaSphere.c *= mapObjDef->mat;
-  mapObj->GetBounds(aaBox);
+  mapObjDef->mapObj->GetBounds(aaBox);
   CWorldMath::TransformAABox(mapObjDef->mat, aaBox, mapObjDef->aaBox);
 
   ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
     mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
     FATALASSERT(mapObjDefGroup);
-    mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
+    mapObjGroup = mapObjDef->mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
     if (mapObjGroup) {
       for (i = 0; i < mapObjGroup->lightRefCount; ++i) {
-        sLight = &mapObj->lightList[mapObjGroup->lightRefList[i]];
+        sLight = &mapObjDef->mapObj->lightList[mapObjGroup->lightRefList[i]];
         if (mapObjDef->lightList[mapObjGroup->lightRefList[i]]) {
           mapObjDef->lightList[mapObjGroup->lightRefList[i]]->gxLight.m_dir = sLight->position * mapObjDef->mat;
           if (!(mapObjDefGroup->flags & CMapBaseObj::Flag_InteriorLit)) {

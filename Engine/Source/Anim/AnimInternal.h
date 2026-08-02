@@ -839,21 +839,20 @@ inline int CKeyFrameTrack<T, U>::InterpolateVolatile(
     const U           &fallback,
     U                 *transform
 ) {
-  if (!NumKeysThisSeqSafe(base.currSeq)) {
-    *transform = fallback;
+  *transform = fallback;
+  if (!TotalKeys()) {
     return 0;
   }
   unsigned int keys = SetAnimTime(base, keyStatus, info);
-  if (!keys) {
-    *transform = fallback;
-    return 0;
-  }
-  if (keys == 1 || keyStatus->currKey == keyStatus->nextKey) {
+  if (keys == 1) {
     return InterpolateVolatileFewKeys(*keyStatus, transform);
   }
-  unsigned int sequenceTime = info.shared->seq[base.currSeq].time.h - info.shared->seq[base.currSeq].time.l;
-  Interpolate(*keyStatus, sequenceTime, transform);
-  return 1;
+  if (keys > 1) {
+    unsigned int sequenceTime = info.shared->seq[base.currSeq].time.h - info.shared->seq[base.currSeq].time.l;
+    Interpolate(*keyStatus, sequenceTime, transform);
+    return 1;
+  }
+  return 0;
 }
 
 template <class T, class U>
@@ -864,21 +863,23 @@ inline int CKeyFrameTrack<T, U>::InterpolateRetained(
     const U           &fallback,
     U                 *transform
 ) {
-  if (!NumKeysThisSeqSafe(base.currSeq)) {
-    *transform = fallback;
+  if (!TotalKeys()) {
     return 0;
   }
   unsigned int keys = SetAnimTime(base, keyStatus, info);
-  if (!keys) {
+  if (keys > 1) {
+    unsigned int sequenceTime = info.shared->seq[base.currSeq].time.h - info.shared->seq[base.currSeq].time.l;
+    Interpolate(*keyStatus, sequenceTime, transform);
+    return 1;
+  }
+  if (base.flags & 0x10) {
+    if (keys) {
+      return InterpolateRetainedFewKeys(*keyStatus, transform);
+    }
     *transform = fallback;
-    return 0;
+    return 1;
   }
-  if (keys == 1 || keyStatus->currKey == keyStatus->nextKey) {
-    return InterpolateRetainedFewKeys(*keyStatus, transform);
-  }
-  unsigned int sequenceTime = info.shared->seq[base.currSeq].time.h - info.shared->seq[base.currSeq].time.l;
-  Interpolate(*keyStatus, sequenceTime, transform);
-  return 1;
+  return 0;
 }
 
 template <class T, class U>

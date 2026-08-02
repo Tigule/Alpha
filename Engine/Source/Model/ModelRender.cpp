@@ -586,11 +586,15 @@ static void GetTransformedUVLayer(CModelBase *modelptr, const CTexLayerShared &l
     ASSERT(texBones);
 
     const NTempest::C34Matrix &transform = texBones[layerShared.tmuPass[tmu].transformId];
-    NTempest::C44Matrix        matrix(
-        transform.a0, transform.a1, transform.a2, 0.0f, transform.b0, transform.b1, transform.b2, 0.0f, transform.c0, transform.c1, transform.c2,
-        0.0f, transform.d0, transform.d1, transform.d2, 1.0f
+    GxXformPush(
+        static_cast<EGxXform>(GxXform_Tex0 + tmu),
+        NTempest::C44Matrix(
+            transform.a0, transform.a1, transform.a2, 0.0f,
+            transform.b0, transform.b1, transform.b2, 0.0f,
+            transform.c0, transform.c1, transform.c2, 0.0f,
+            transform.d0, transform.d1, transform.d2, 1.0f
+        )
     );
-    GxXformPush(static_cast<EGxXform>(GxXform_Tex0 + tmu), matrix);
   }
 }
 
@@ -1080,19 +1084,27 @@ static void RenderGeosetPrep(CModelBase *modelptr, CGeoset *geoUnique, CGeosetSh
 
   if (modelptr->m_PickLights) {
     SaveFog();
-    NTempest::C3Vector center = s_sceneCameraPos + geoShared->centroid * modelptr->m_modelToWorld;
-    modelptr->m_PickLights(modelptr->m_pickLightsParm, center, s_sceneCameraPos, 8);
+    modelptr->m_PickLights(
+        modelptr->m_pickLightsParm,
+        s_sceneCameraPos + geoShared->centroid * modelptr->m_modelToWorld,
+        s_sceneCameraPos,
+        8
+    );
   }
 
   NTempest::C34Matrix *weightedBones = MatrixDeref(geoUnique->weightedBones);
   if (geoShared->vertexShader == GxVS_PassThru) {
     GxXformPush(GxXform_World);
     if (weightedBones) {
-      NTempest::C44Matrix matrix(
-          weightedBones->a0, weightedBones->a1, weightedBones->a2, 0.0f, weightedBones->b0, weightedBones->b1, weightedBones->b2, 0.0f,
-          weightedBones->c0, weightedBones->c1, weightedBones->c2, 0.0f, weightedBones->d0, weightedBones->d1, weightedBones->d2, 1.0f
+      GxXformSet(
+          GxXform_World,
+          NTempest::C44Matrix(
+              weightedBones->a0, weightedBones->a1, weightedBones->a2, 0.0f,
+              weightedBones->b0, weightedBones->b1, weightedBones->b2, 0.0f,
+              weightedBones->c0, weightedBones->c1, weightedBones->c2, 0.0f,
+              weightedBones->d0, weightedBones->d1, weightedBones->d2, 1.0f
+          )
       );
-      GxXformSet(GxXform_World, matrix);
     }
   } else {
     ASSERT(weightedBones);
@@ -1543,10 +1555,12 @@ static void GenerateSphereVerts(
     float radius = static_cast<float>(sin(latitude));
     float latZ = static_cast<float>(cos(latitude));
     for (unsigned int lon = 0; lon < latLongLines; ++lon) {
-      float              longitude = static_cast<float>(lon) * 2.0f * PI / static_cast<float>(latLongLines);
-      NTempest::C3Vector normal(static_cast<float>(sin(longitude)) * radius, static_cast<float>(cos(longitude)) * radius, latZ);
-      normals->operator[](dst) = normal;
-      vertices->operator[](dst) = bounds.c + normal * bounds.r;
+      normals->operator[](dst).Set(
+          static_cast<float>(sin(static_cast<float>(lon) * 2.0f * PI / static_cast<float>(latLongLines))) * radius,
+          static_cast<float>(cos(static_cast<float>(lon) * 2.0f * PI / static_cast<float>(latLongLines))) * radius,
+          latZ
+      );
+      vertices->operator[](dst) = bounds.c + normals->operator[](dst) * bounds.r;
       ++dst;
     }
   }
@@ -1565,12 +1579,11 @@ static void CreateSphereGeometry(
 ) {
   const unsigned int lines = 15;
   unsigned int       vertOffset = vertices->Count();
-  unsigned int       indexOffset = vertIndices->Count();
   GenerateSphereVerts(bounds, lines, vertices, normals);
   texCoords->SetCount(vertices->Count());
-  vertIndices->SetCount(indexOffset + 527);
+  vertIndices->SetCount(vertIndices->Count() + 527);
 
-  unsigned short *out = vertIndices->Ptr() + indexOffset;
+  unsigned short *out = vertIndices->Ptr() + vertIndices->Count() - 527;
   unsigned int    i;
   for (i = 0; i < lines; ++i) {
     *out++ = static_cast<unsigned short>(vertOffset + 1 + i);
@@ -2227,13 +2240,13 @@ int ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float 
   return 0;
 }
 
-void ModelSceneGetFrustumPlanes(NTempest::C4Vector *const fp) {
+void ModelSceneGetFrustumPlanes(NTempest::C4Vector *fp) {
   for (unsigned int i = 0; i < 6; ++i) {
     fp[i] = s_frustumPlanes[i];
   }
 }
 
-void ModelSceneSetFrustumPlanes(NTempest::C4Vector *const fp) {
+void ModelSceneSetFrustumPlanes(NTempest::C4Vector *fp) {
   for (unsigned int i = 0; i < 6; ++i) {
     s_frustumPlanes[i] = fp[i];
   }
@@ -2249,7 +2262,6 @@ int ModelIntersectLineSegment(HMODEL__* model, float scale, const NTempest::C3Ve
   NTempest::CAaSphere bounds;
   IModelGetBoundingSphere(modelptr, shared, &bounds);
   TransformBounds(modelptr->m_modelToWorld, scale, &bounds);
-
   NTempest::C3Vector closest = bounds.c - a;
   NTempest::C3Vector segment = b - a;
   float              position = NTempest::C3Vector::Dot(closest, segment);
@@ -2280,16 +2292,16 @@ static int LineSegmentIntersectBox(const NTempest::C34Matrix& boxToWorld, float 
   ASSERT(NTempest::CMath::fnotequal_(boxScale, 0.0f));
 
   NTempest::C34Matrix worldToBox = boxToWorld.AffineInverse(boxScale);
-  NTempest::C3Vector  boxA = a * worldToBox;
-  NTempest::C3Vector  boxB = b * worldToBox;
-  NTempest::C3Vector  lineSegment = boxB - boxA;
+  NTempest::C3Vector  ax = a * worldToBox;
+  NTempest::C3Vector  bx = b * worldToBox;
+  NTempest::C3Vector  lineSegment = bx - ax;
   ASSERT(NTempest::CMath::fnotequal_(lineSegment.Mag(), 0.0f));
 
   float t0 = 0.0f;
   float t1 = 1.0f;
   float q;
 
-  q = boxMin.x - boxA.x;
+  q = boxMin.x - ax.x;
   if (lineSegment.x > 0.0f) {
     if (q > lineSegment.x * t1) return 0;
     if (q > lineSegment.x * t0) t0 = q / lineSegment.x;
@@ -2300,7 +2312,7 @@ static int LineSegmentIntersectBox(const NTempest::C34Matrix& boxToWorld, float 
     return 0;
   }
 
-  q = boxA.x - boxMax.x;
+  q = ax.x - boxMax.x;
   if (-lineSegment.x > 0.0f) {
     if (q > -lineSegment.x * t1) return 0;
     if (q > -lineSegment.x * t0) t0 = q / -lineSegment.x;
@@ -2311,7 +2323,7 @@ static int LineSegmentIntersectBox(const NTempest::C34Matrix& boxToWorld, float 
     return 0;
   }
 
-  q = boxMin.y - boxA.y;
+  q = boxMin.y - ax.y;
   if (lineSegment.y > 0.0f) {
     if (q > lineSegment.y * t1) return 0;
     if (q > lineSegment.y * t0) t0 = q / lineSegment.y;
@@ -2322,7 +2334,7 @@ static int LineSegmentIntersectBox(const NTempest::C34Matrix& boxToWorld, float 
     return 0;
   }
 
-  q = boxA.y - boxMax.y;
+  q = ax.y - boxMax.y;
   if (-lineSegment.y > 0.0f) {
     if (q > -lineSegment.y * t1) return 0;
     if (q > -lineSegment.y * t0) t0 = q / -lineSegment.y;
@@ -2333,7 +2345,7 @@ static int LineSegmentIntersectBox(const NTempest::C34Matrix& boxToWorld, float 
     return 0;
   }
 
-  q = boxMin.z - boxA.z;
+  q = boxMin.z - ax.z;
   if (lineSegment.z > 0.0f) {
     if (q > lineSegment.z * t1) return 0;
     if (q > lineSegment.z * t0) t0 = q / lineSegment.z;
@@ -2344,7 +2356,7 @@ static int LineSegmentIntersectBox(const NTempest::C34Matrix& boxToWorld, float 
     return 0;
   }
 
-  q = boxA.z - boxMax.z;
+  q = ax.z - boxMax.z;
   if (-lineSegment.z > 0.0f) {
     if (q > -lineSegment.z * t1) return 0;
     if (q > -lineSegment.z * t0) t0 = q / -lineSegment.z;
@@ -2365,27 +2377,26 @@ static int LineSegmentIntersectCylinder(const NTempest::C34Matrix& cylToWorld, f
   ASSERT(NTempest::CMath::fnotequal_(cylScale, 0.0f));
 
   NTempest::C34Matrix worldToCyl = cylToWorld.AffineInverse(cylScale);
-  NTempest::C3Vector  cylA = a * worldToCyl;
-  NTempest::C3Vector  cylB = b * worldToCyl;
+  NTempest::C3Vector  ax = a * worldToCyl;
+  NTempest::C3Vector  bx = b * worldToCyl;
   float               cylTop = cylBottom.z + cylHeight;
-  if ((cylA.z < cylBottom.z && cylB.z < cylBottom.z) || (cylA.z > cylTop && cylB.z > cylTop)) {
+  if ((ax.z < cylBottom.z && bx.z < cylBottom.z) || (ax.z > cylTop && bx.z > cylTop)) {
     return 0;
   }
 
-  NTempest::C2Vector closest(cylBottom.x - cylA.x, cylBottom.y - cylA.y);
-  NTempest::C2Vector line(cylB.x - cylA.x, cylB.y - cylA.y);
-  float              position = closest.x * line.x + closest.y * line.y;
-  float              divisor = line.x * line.x + line.y * line.y;
+  NTempest::C2Vector closest(cylBottom.x - ax.x, cylBottom.y - ax.y);
+  float position = closest.x * (bx.x - ax.x) + closest.y * (bx.y - ax.y);
+  float divisor = (bx.x - ax.x) * (bx.x - ax.x) + (bx.y - ax.y) * (bx.y - ax.y);
   if (position < 0.0f) {
     position = 0.0f;
   } else if (position <= divisor) {
     position /= divisor;
-    closest.x -= line.x * position;
-    closest.y -= line.y * position;
+    closest.x -= (bx.x - ax.x) * position;
+    closest.y -= (bx.y - ax.y) * position;
   } else {
     position = 1.0f;
-    closest.x -= line.x;
-    closest.y -= line.y;
+    closest.x -= bx.x - ax.x;
+    closest.y -= bx.y - ax.y;
   }
 
   *linePos = position;
@@ -2396,21 +2407,20 @@ static int LineSegmentIntersectSphere(const NTempest::C34Matrix& sphToWorld, flo
   NTempest::C3Vector center = sphCenter * sphToWorld;
   float              radius = sphScale * sphRadius;
   NTempest::C3Vector closest = center - a;
-  NTempest::C3Vector line = b - a;
-  float              position = NTempest::C3Vector::Dot(closest, line);
-  float              divisor = NTempest::C3Vector::Dot(line, line);
+  float              divisor = NTempest::C3Vector::Dot(b - a, b - a);
+  float position = NTempest::C3Vector::Dot(closest, b - a);
   if (position < 0.0f) {
     position = 0.0f;
   } else if (position <= divisor) {
     position /= divisor;
-    closest.x -= line.x * position;
-    closest.y -= line.y * position;
-    closest.z -= line.z * position;
+    closest.x -= (b.x - a.x) * position;
+    closest.y -= (b.y - a.y) * position;
+    closest.z -= (b.z - a.z) * position;
   } else {
     position = 1.0f;
-    closest.x -= line.x;
-    closest.y -= line.y;
-    closest.z -= line.z;
+    closest.x -= b.x - a.x;
+    closest.y -= b.y - a.y;
+    closest.z -= b.z - a.z;
   }
 
   *linePos = position;
@@ -2524,25 +2534,24 @@ static void CreatePlanarQuadGeometry(
     TSGrowableArray<unsigned short> *vertIndices,
     TSGrowableArray<CPrimitive> *primitives
 ) {
-  unsigned int vertexOffset = positions->Count();
   unsigned int indexOffset = vertIndices->Count();
 
   texCoords->SetCount(texCoords->Count() + 4);
   vertIndices->SetCount(indexOffset + 6);
-  (*vertIndices)[indexOffset + 0] = static_cast<unsigned short>(vertexOffset);
-  (*vertIndices)[indexOffset + 1] = static_cast<unsigned short>(vertexOffset + 2);
-  (*vertIndices)[indexOffset + 2] = static_cast<unsigned short>(vertexOffset + 1);
-  (*vertIndices)[indexOffset + 3] = static_cast<unsigned short>(vertexOffset + 1);
-  (*vertIndices)[indexOffset + 4] = static_cast<unsigned short>(vertexOffset + 2);
-  (*vertIndices)[indexOffset + 5] = static_cast<unsigned short>(vertexOffset + 3);
+  (*vertIndices)[indexOffset + 0] = static_cast<unsigned short>(positions->Count());
+  (*vertIndices)[indexOffset + 1] = static_cast<unsigned short>(positions->Count() + 2);
+  (*vertIndices)[indexOffset + 2] = static_cast<unsigned short>(positions->Count() + 1);
+  (*vertIndices)[indexOffset + 3] = static_cast<unsigned short>(positions->Count() + 1);
+  (*vertIndices)[indexOffset + 4] = static_cast<unsigned short>(positions->Count() + 2);
+  (*vertIndices)[indexOffset + 5] = static_cast<unsigned short>(positions->Count() + 3);
 
-  positions->SetCount(vertexOffset + 4);
+  positions->SetCount(positions->Count() + 4);
   float halfLength = length * 0.5f;
   float halfWidth = width * 0.5f;
-  (*positions)[vertexOffset + 0].Set(base.x - halfLength, base.y - halfWidth, base.z);
-  (*positions)[vertexOffset + 1].Set(base.x - halfLength, base.y + halfWidth, base.z);
-  (*positions)[vertexOffset + 2].Set(base.x + halfLength, base.y - halfWidth, base.z);
-  (*positions)[vertexOffset + 3].Set(base.x + halfLength, base.y + halfWidth, base.z);
+  (*positions)[positions->Count() - 4].Set(base.x - halfLength, base.y - halfWidth, base.z);
+  (*positions)[positions->Count() - 3].Set(base.x - halfLength, base.y + halfWidth, base.z);
+  (*positions)[positions->Count() - 2].Set(base.x + halfLength, base.y - halfWidth, base.z);
+  (*positions)[positions->Count() - 1].Set(base.x + halfLength, base.y + halfWidth, base.z);
 
   unsigned int normalOffset = normals->Count();
   normals->SetCount(normalOffset + 4);
@@ -2584,10 +2593,10 @@ static void GenerateCylinderVerts(
   (*normals)[vertex++] = topNormal;
 
   unsigned int i;
+  NTempest::C4Quaternion quat;
   for (i = 0; i < segments; ++i) {
-    float angle = static_cast<float>(i) * TWO_PI / static_cast<float>(segments);
-    NTempest::C4Quaternion rotation(angle, topNormal);
-    NTempest::C3Vector rot = rotation * perp;
+    quat = NTempest::C4Quaternion(static_cast<float>(i) * TWO_PI / static_cast<float>(segments), topNormal);
+    NTempest::C3Vector rot = quat * perp;
     (*vertices)[vertex] = rot + height;
     (*normals)[vertex++] = topNormal;
   }
@@ -2596,31 +2605,28 @@ static void GenerateCylinderVerts(
   (*normals)[vertex++] = bottomNormal;
 
   for (i = 0; i < segments; ++i) {
-    float angle = static_cast<float>(i) * TWO_PI / static_cast<float>(segments);
-    NTempest::C4Quaternion rotation(angle, topNormal);
-    NTempest::C3Vector rot = rotation * perp;
+    quat = NTempest::C4Quaternion(static_cast<float>(i) * TWO_PI / static_cast<float>(segments), topNormal);
+    NTempest::C3Vector rot = quat * perp;
     (*vertices)[vertex] = rot + base;
     (*normals)[vertex++] = bottomNormal;
   }
 
   for (i = 0; i < segments; ++i) {
-    float angle = static_cast<float>(i) * TWO_PI / static_cast<float>(segments);
-    NTempest::C4Quaternion rotation(angle, topNormal);
-    NTempest::C3Vector rot = rotation * perp;
-    NTempest::C3Vector normal = rot;
-    normal.Normalize();
+    quat = NTempest::C4Quaternion(static_cast<float>(i) * TWO_PI / static_cast<float>(segments), topNormal);
+    NTempest::C3Vector rot = quat * perp;
+    NTempest::C3Vector norm = rot;
+    norm.Normalize();
     (*vertices)[vertex] = rot + height;
-    (*normals)[vertex++] = normal;
+    (*normals)[vertex++] = norm;
   }
 
   for (i = 0; i < segments; ++i) {
-    float angle = static_cast<float>(i) * TWO_PI / static_cast<float>(segments);
-    NTempest::C4Quaternion rotation(angle, topNormal);
-    NTempest::C3Vector rot = rotation * perp;
-    NTempest::C3Vector normal = rot;
-    normal.Normalize();
+    quat = NTempest::C4Quaternion(static_cast<float>(i) * TWO_PI / static_cast<float>(segments), topNormal);
+    NTempest::C3Vector rot = quat * perp;
+    NTempest::C3Vector norm = rot;
+    norm.Normalize();
     (*vertices)[vertex] = rot + base;
-    (*normals)[vertex++] = normal;
+    (*normals)[vertex++] = norm;
   }
 }
 
@@ -2921,23 +2927,26 @@ int ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, c
   IModelGetBoundingSphere(modelptr, shared, &bounds);
   TransformBounds(modelptr->m_modelToWorld, scale, &bounds);
 
-  NTempest::C3Vector lineSegment = b - a;
-  float              lineLength = lineSegment.Mag();
+  float lineLength = (b - a).Mag();
   *linePos = 0.0f;
-  if (lineLength > 0.0f) {
-    float divisor = lineSegment.SquaredMag();
-    float position = NTempest::C3Vector::Dot(bounds.c - a, lineSegment);
-    if (position < 0.0f) {
-      position = 0.0f;
-    } else if (position > divisor) {
-      position = divisor;
+  NTempest::C3Vector closest = bounds.c - a;
+  NTempest::C3Vector lineSegment = b - a;
+  float              position = NTempest::C3Vector::Dot(closest, lineSegment);
+  if (position < 0.0f) {
+    position = 0.0f;
+  } else {
+    float divisor = NTempest::C3Vector::Dot(lineSegment, lineSegment);
+    if (position > divisor) {
+      position = 1.0f;
+    } else {
+      position /= divisor;
     }
-    position /= divisor;
-    NTempest::C3Vector closest = a + lineSegment * position;
-    if ((closest - bounds.c).SquaredMag() <= bounds.r * bounds.r) {
-      *linePos = position * lineLength;
-      return 1;
-    }
+  }
+  closest -= position * lineSegment;
+  *linePos = position;
+  if (NTempest::C3Vector::Dot(closest, closest) <= bounds.r * bounds.r) {
+    *linePos = position * lineLength;
+    return 1;
   }
 
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
@@ -2945,7 +2954,7 @@ int ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, c
     unsigned int   numAttachments = complex->m_attached.Count();
     for (unsigned int i = 0; i < numAttachments; ++i) {
       ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
-        if (ModelHitTestSphere(link->child, scale * link->scale, a, b, 1, linePos)) {
+        if (ModelHitTestSphere(link->child, scale, a, b, 1, linePos)) {
           return 1;
         }
       }

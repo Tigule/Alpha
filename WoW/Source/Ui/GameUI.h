@@ -13,6 +13,7 @@ class CSimpleTop;
 class CGTooltip;
 class CGCursor;
 class CGSpellBook;
+class CGBankInfo;
 class CGObject_C;
 class CinematicSequencesRec;
 class CinematicCameraRec;
@@ -521,6 +522,7 @@ class CGGameUI {
   friend class CGTooltip;
   friend class CGCursor;
   friend class CGSpellBook;
+  friend class CGBankInfo;
   friend class CGActionBar;
   friend class CGPlayer_C;
   friend class CGMinimapFrame;

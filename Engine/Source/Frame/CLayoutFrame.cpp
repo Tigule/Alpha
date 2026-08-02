@@ -62,8 +62,8 @@ static float SynthesizeCenter(float side1, float side2, float size) {
 }
 
 float CLayoutFrame::GetFirstPointX(const FRAMEPOINT *pointarray, int elements) {
-  for (int index = 0; index < elements; ++index) {
-    CFramePoint *point = m_points[pointarray[index]];
+  for (; elements; --elements, ++pointarray) {
+    CFramePoint *point = m_points[*pointarray];
 
     if (point) {
       float value = point->X(m_layoutScale);
@@ -78,8 +78,8 @@ float CLayoutFrame::GetFirstPointX(const FRAMEPOINT *pointarray, int elements) {
 }
 
 float CLayoutFrame::GetFirstPointY(const FRAMEPOINT *pointarray, int elements) {
-  for (int index = 0; index < elements; ++index) {
-    CFramePoint *point = m_points[pointarray[index]];
+  for (; elements; --elements, ++pointarray) {
+    CFramePoint *point = m_points[*pointarray];
 
     if (point) {
       float value = point->Y(m_layoutScale);

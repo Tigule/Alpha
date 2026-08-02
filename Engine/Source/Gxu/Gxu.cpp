@@ -147,9 +147,9 @@ void GxuXformCreateLookAtXXX(const NTempest::C3Vector& eye, const NTempest::C3Ve
   dst.Translate(NTempest::C3Vector(-eye.x, -eye.y, -eye.z));
 }
 
-void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest::C44Matrix &proj, NTempest::C3Vector *corners) {
-  NTempest::C44Matrix projInv = proj.Inverse(proj.Determinant());
+void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest::C44Matrix &proj, NTempest::C3Vector corners[8]) {
   NTempest::C44Matrix viewInv = view.Inverse(view.Determinant());
+  NTempest::C44Matrix projInv = proj.Inverse(proj.Determinant());
   NTempest::C44Matrix inv = projInv * viewInv;
   float               zMin;
   float               zMax;
@@ -162,32 +162,25 @@ void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest:
     zMax = -(proj.d2 / (proj.c2 - 1.0f));
   }
 
-#define GXU_SET_FRUSTUM_CORNER(i, px, py, pz, pw)                                 \
-  corners[i].x = ((px) * inv.a0 + (py) * inv.b0 + (pz) * inv.c0 + (pw) * inv.d0); \
-  corners[i].y = ((px) * inv.a1 + (py) * inv.b1 + (pz) * inv.c1 + (pw) * inv.d1); \
-  corners[i].z = ((px) * inv.a2 + (py) * inv.b2 + (pz) * inv.c2 + (pw) * inv.d2)
-
   if (NTempest::CMath::fabs_(proj.d3 - 1.0f) < 2.38418579e-7f) {
-    GXU_SET_FRUSTUM_CORNER(0, -1.0f, -1.0f, -1.0f, 1.0f);
-    GXU_SET_FRUSTUM_CORNER(1, -1.0f, 1.0f, -1.0f, 1.0f);
-    GXU_SET_FRUSTUM_CORNER(2, 1.0f, 1.0f, -1.0f, 1.0f);
-    GXU_SET_FRUSTUM_CORNER(3, 1.0f, -1.0f, -1.0f, 1.0f);
-    GXU_SET_FRUSTUM_CORNER(4, -1.0f, -1.0f, 1.0f, 1.0f);
-    GXU_SET_FRUSTUM_CORNER(5, -1.0f, 1.0f, 1.0f, 1.0f);
-    GXU_SET_FRUSTUM_CORNER(6, 1.0f, 1.0f, 1.0f, 1.0f);
-    GXU_SET_FRUSTUM_CORNER(7, 1.0f, -1.0f, 1.0f, 1.0f);
+    corners[0] = NTempest::C3Vector(NTempest::C4Vector(-1.0f, -1.0f, -1.0f, 1.0f) * inv);
+    corners[1] = NTempest::C3Vector(NTempest::C4Vector(-1.0f, 1.0f, -1.0f, 1.0f) * inv);
+    corners[2] = NTempest::C3Vector(NTempest::C4Vector(1.0f, 1.0f, -1.0f, 1.0f) * inv);
+    corners[3] = NTempest::C3Vector(NTempest::C4Vector(1.0f, -1.0f, -1.0f, 1.0f) * inv);
+    corners[4] = NTempest::C3Vector(NTempest::C4Vector(-1.0f, -1.0f, 1.0f, 1.0f) * inv);
+    corners[5] = NTempest::C3Vector(NTempest::C4Vector(-1.0f, 1.0f, 1.0f, 1.0f) * inv);
+    corners[6] = NTempest::C3Vector(NTempest::C4Vector(1.0f, 1.0f, 1.0f, 1.0f) * inv);
+    corners[7] = NTempest::C3Vector(NTempest::C4Vector(1.0f, -1.0f, 1.0f, 1.0f) * inv);
   } else {
-    GXU_SET_FRUSTUM_CORNER(0, -zMin, -zMin, -zMin, zMin);
-    GXU_SET_FRUSTUM_CORNER(1, -zMin, zMin, -zMin, zMin);
-    GXU_SET_FRUSTUM_CORNER(2, zMin, zMin, -zMin, zMin);
-    GXU_SET_FRUSTUM_CORNER(3, zMin, -zMin, -zMin, zMin);
-    GXU_SET_FRUSTUM_CORNER(4, -zMax, -zMax, zMax, zMax);
-    GXU_SET_FRUSTUM_CORNER(5, -zMax, zMax, zMax, zMax);
-    GXU_SET_FRUSTUM_CORNER(6, zMax, zMax, zMax, zMax);
-    GXU_SET_FRUSTUM_CORNER(7, zMax, -zMax, zMax, zMax);
+    corners[0] = NTempest::C3Vector(NTempest::C4Vector(-zMin, -zMin, -zMin, zMin) * inv);
+    corners[1] = NTempest::C3Vector(NTempest::C4Vector(-zMin, zMin, -zMin, zMin) * inv);
+    corners[2] = NTempest::C3Vector(NTempest::C4Vector(zMin, zMin, -zMin, zMin) * inv);
+    corners[3] = NTempest::C3Vector(NTempest::C4Vector(zMin, -zMin, -zMin, zMin) * inv);
+    corners[4] = NTempest::C3Vector(NTempest::C4Vector(-zMax, -zMax, zMax, zMax) * inv);
+    corners[5] = NTempest::C3Vector(NTempest::C4Vector(-zMax, zMax, zMax, zMax) * inv);
+    corners[6] = NTempest::C3Vector(NTempest::C4Vector(zMax, zMax, zMax, zMax) * inv);
+    corners[7] = NTempest::C3Vector(NTempest::C4Vector(zMax, -zMax, zMax, zMax) * inv);
   }
-
-#undef GXU_SET_FRUSTUM_CORNER
 }
 
 void GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector *planes) {
@@ -306,17 +299,16 @@ int GxuTestRayAndSphere(const NTempest::C3Vector& rayStart, const NTempest::C3Ve
   if (centerDistance < -sphereRadius) {
     return 0;
   }
-  NTempest::C3Vector closest = rayStart + rayDirection * centerDistance - sphereCenter;
-  if (closest.SquaredMag() > sphereRadius * sphereRadius) {
+  if ((rayStart + rayDirection * centerDistance - sphereCenter).SquaredMag() > sphereRadius * sphereRadius) {
     return 0;
   }
   distance = centerDistance;
   return 1;
 }
 
-int GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector *planes) {
+int GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &sphereCenterInWorld, float radius, const NTempest::C4Vector *planes) {
   for (unsigned int i = 0; i < 6; ++i) {
-    if (planes[i].x * center.x + planes[i].y * center.y + planes[i].z * center.z + planes[i].w > radius) {
+    if (planes[i].x * sphereCenterInWorld.x + planes[i].y * sphereCenterInWorld.y + planes[i].z * sphereCenterInWorld.z + planes[i].w > radius) {
       return 0;
     }
   }

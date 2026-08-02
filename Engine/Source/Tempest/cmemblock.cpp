@@ -4,18 +4,18 @@
 
 namespace NTempest {
 
-  void CMemBlock::Set32b_(char *c, unsigned char value, unsigned long size) {
+  void CMemBlock::Set32b_(char *c, unsigned char d, unsigned long size) {
     unsigned long prefix = -reinterpret_cast<unsigned long>(c) & 3;
     unsigned long suffix = (size - prefix) & 3;
     unsigned long body = size - suffix - prefix;
 
     switch (prefix) {
       case 3:
-        c[2] = value;
+        c[2] = d;
       case 2:
-        c[1] = value;
+        c[1] = d;
       case 1:
-        c[0] = value;
+        c[0] = d;
     }
 
     c += prefix;
@@ -23,7 +23,7 @@ namespace NTempest {
     if (body) {
       ASSERT((body & 0x3) == 0);
 
-      unsigned long word = value;
+      unsigned long word = d;
       word |= word << 8;
       word |= word << 16;
       Set32b_(reinterpret_cast<unsigned long *>(c), word, body);
@@ -32,73 +32,73 @@ namespace NTempest {
 
     switch (suffix) {
       case 3:
-        c[2] = value;
+        c[2] = d;
       case 2:
-        c[1] = value;
+        c[1] = d;
       case 1:
-        c[0] = value;
+        c[0] = d;
     }
   }
 
-  void CMemBlock::Set32b_(unsigned long *c, unsigned long value, unsigned long size) {
+  void CMemBlock::Set32b_(unsigned long *c, unsigned long d, unsigned long size) {
     unsigned long count = size >> 4;
 
     while (count) {
-      c[0] = value;
-      c[1] = value;
-      c[2] = value;
-      c[3] = value;
+      c[0] = d;
+      c[1] = d;
+      c[2] = d;
+      c[3] = d;
       c += 4;
       --count;
     }
 
     switch ((size >> 2) & 3) {
       case 3:
-        c[2] = value;
+        c[2] = d;
       case 2:
-        c[1] = value;
+        c[1] = d;
       case 1:
-        c[0] = value;
+        c[0] = d;
     }
   }
 
-  void CMemBlock::SetM_(char *c, unsigned char value, unsigned long size) {
+  void CMemBlock::SetM_(char *c, unsigned char d, unsigned long size) {
     if (size >= 16) {
-      Set32b_(c, value, size);
+      Set32b_(c, d, size);
       return;
     }
 
     switch (size) {
       case 15:
-        c[14] = value;
+        c[14] = d;
       case 14:
-        c[13] = value;
+        c[13] = d;
       case 13:
-        c[12] = value;
+        c[12] = d;
       case 12:
-        c[11] = value;
+        c[11] = d;
       case 11:
-        c[10] = value;
+        c[10] = d;
       case 10:
-        c[9] = value;
+        c[9] = d;
       case 9:
-        c[8] = value;
+        c[8] = d;
       case 8:
-        c[7] = value;
+        c[7] = d;
       case 7:
-        c[6] = value;
+        c[6] = d;
       case 6:
-        c[5] = value;
+        c[5] = d;
       case 5:
-        c[4] = value;
+        c[4] = d;
       case 4:
-        c[3] = value;
+        c[3] = d;
       case 3:
-        c[2] = value;
+        c[2] = d;
       case 2:
-        c[1] = value;
+        c[1] = d;
       case 1:
-        c[0] = value;
+        c[0] = d;
     }
   }
 

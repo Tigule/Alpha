@@ -156,8 +156,8 @@ int CGReputationInfo::GetFactionFromSortIndex(unsigned int index) {
   return index < m_numFactions ? IndexToFaction(m_factionSorting[index]) : 0;
 }
 
-void CGReputationInfo::SetFactionFlags(int index, unsigned char flags) {
-  m_factionFlags[index] = flags;
+void CGReputationInfo::SetFactionFlags(int factionIndex, unsigned char flags) {
+  m_factionFlags[factionIndex] = flags;
 }
 
 void CGReputationInfo::SetAtWar(int faction, bool state) {
@@ -229,13 +229,15 @@ static int Script_GetFactionInfo(lua_State *L) {
   int               faction = CGReputationInfo::GetFactionFromSortIndex(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
   const FactionRec *rec = g_factionDB.GetRecord(faction);
   if (rec) {
-    UNIT_REACTION    reaction = CGReputationInfo::GetFactionStandingReaction(faction);
-    static const int threshold[8] = {-4200, -600, -300, 0, 300, 900, 2100, 3300};
-    int              standing = CGReputationInfo::GetFactionStanding(faction);
-    FATALASSERT(standing >= threshold[reaction] && standing <= threshold[reaction + 1]);
     lua_pushstring(L, rec->m_name_lang[CURRENT_LANGUAGE]);
+    UNIT_REACTION    reaction = CGReputationInfo::GetFactionStandingReaction(faction);
     lua_pushnumber(L, static_cast<double>(reaction + 1));
-    lua_pushnumber(L, static_cast<double>(standing - threshold[reaction]) / (threshold[reaction + 1] - threshold[reaction]));
+    static const int threshold[8] = {-4200, -600, -300, 0, 300, 900, 2100, 3300};
+    int              min = threshold[reaction];
+    int              max = threshold[reaction + 1];
+    int              standing = CGReputationInfo::GetFactionStanding(faction);
+    FATALASSERT(standing >= min && standing <= max);
+    lua_pushnumber(L, static_cast<double>(standing - min) / (max - min));
     if (CGReputationInfo::IsAtWar(faction)) {
       lua_pushnumber(L, 1.0);
     } else {

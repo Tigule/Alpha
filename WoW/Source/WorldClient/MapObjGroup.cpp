@@ -730,15 +730,15 @@ bool CMapObjGroup::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVe
 }
 
 bool QueryCull(const NTempest::CAaBox& aaBox, const NTempest::C3Vector* verts) {
-  for (unsigned int component = 0; component < 3; ++component) {
+  for (unsigned int cc = 0; cc < 3; ++cc) {
     unsigned int signMax = 0xFFFFFFFF;
     unsigned int signMin = 0xFFFFFFFF;
 
     for (unsigned int vertex = 0; vertex < 3; ++vertex) {
-      float dmax = aaBox.t[component] - verts[vertex][component];
+      float dmax = aaBox.t[cc] - verts[vertex][cc];
       signMax &= *reinterpret_cast<unsigned int *>(&dmax) & 0x80000000;
 
-      float dmin = verts[vertex][component] - aaBox.b[component];
+      float dmin = verts[vertex][cc] - aaBox.b[cc];
       signMin &= *reinterpret_cast<unsigned int *>(&dmin) & 0x80000000;
     }
 

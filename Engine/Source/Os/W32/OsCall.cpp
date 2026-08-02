@@ -176,12 +176,13 @@ void OsCallSetContext(void *contextDataPtr) {
 }
 
 void OsCallResetContext(void *contextDataPtr) {
+  ThreadData *threadData;
   ContextData *contextData = static_cast<ContextData *>(contextDataPtr);
   if (!s_initCount || !contextData) {
     return;
   }
 
-  ThreadData *threadData = static_cast<ThreadData *>(OsTlsGetValue(s_tlsIndex));
+  threadData = static_cast<ThreadData *>(OsTlsGetValue(s_tlsIndex));
   if (!threadData) {
     return;
   }

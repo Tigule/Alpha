@@ -3,6 +3,10 @@
 
 static TRefCntPtr<CInputObserver> s_pInputObserver;
 
+int CObserver::OnEvent(const CEvent &) {
+  return 0;
+}
+
 void InputObserverInitialize() {
 }
 
@@ -19,39 +23,39 @@ CInputObserver *CInputObserver::GetInputObserver() {
 }
 
 int CInputObserver::OnChar(const EVENT_DATA_CHAR *pCharEvtData, void *param) {
-  CCharEvent event(*pCharEvtData);
-  event.SetId(0x40060067);
-  static_cast<CInputObserver *>(param)->DispatchEvent(event);
+  CCharEvent charEvent(*pCharEvtData);
+  charEvent.SetId(0x40060067);
+  static_cast<CInputObserver *>(param)->DispatchEvent(charEvent);
   return 1;
 }
 
 int CInputObserver::OnKeyDown(const EVENT_DATA_KEY *pKeyData, void *param) {
-  CKeyEvent event(*pKeyData);
-  event.SetId(0x40060064);
-  static_cast<CInputObserver *>(param)->DispatchEvent(event);
+  CKeyEvent keyEvent(*pKeyData);
+  keyEvent.SetId(0x40060064);
+  static_cast<CInputObserver *>(param)->DispatchEvent(keyEvent);
   return 1;
 }
 
 int CInputObserver::OnKeyRepeat(const EVENT_DATA_KEY *pKeyData, void *param) {
-  CKeyEvent event(*pKeyData);
-  event.SetId(0x40060065);
-  static_cast<CInputObserver *>(param)->DispatchEvent(event);
+  CKeyEvent keyEvent(*pKeyData);
+  keyEvent.SetId(0x40060065);
+  static_cast<CInputObserver *>(param)->DispatchEvent(keyEvent);
   return 1;
 }
 
 int CInputObserver::OnKeyUp(const EVENT_DATA_KEY *pKeyData, void *param) {
-  CKeyEvent event(*pKeyData);
-  event.SetId(0x40060066);
-  static_cast<CInputObserver *>(param)->DispatchEvent(event);
+  CKeyEvent keyEvent(*pKeyData);
+  keyEvent.SetId(0x40060066);
+  static_cast<CInputObserver *>(param)->DispatchEvent(keyEvent);
   return 1;
 }
 
-#define INPUT_OBSERVER_MOUSE_HANDLER(name, eventId)                            \
-  int CInputObserver::name(const EVENT_DATA_MOUSE *data, void *param) { \
-    CMouseEvent event(*data);                                                  \
-    event.SetId(eventId);                                                      \
-    static_cast<CInputObserver *>(param)->DispatchEvent(event);                \
-    return 1;                                                                  \
+#define INPUT_OBSERVER_MOUSE_HANDLER(name, eventId)                          \
+  int CInputObserver::name(const EVENT_DATA_MOUSE *pMouseData, void *param) { \
+    CMouseEvent mouseEvent(*pMouseData);                                     \
+    mouseEvent.SetId(eventId);                                               \
+    static_cast<CInputObserver *>(param)->DispatchEvent(mouseEvent);         \
+    return 1;                                                               \
   }
 
 INPUT_OBSERVER_MOUSE_HANDLER(OnMouseDown, 0x400500C8)
@@ -64,37 +68,37 @@ INPUT_OBSERVER_MOUSE_HANDLER(OnMouseModeChanged, 0x400500CC)
 #undef INPUT_OBSERVER_MOUSE_HANDLER
 
 int CInputObserver::OnIme(const EVENT_DATA_IME *pImeData, void *param) {
-  CImeEvent event(*pImeData);
-  event.SetId(0x40060068);
-  static_cast<CInputObserver *>(param)->DispatchEvent(event);
+  CImeEvent imeEvent(*pImeData);
+  imeEvent.SetId(0x40060068);
+  static_cast<CInputObserver *>(param)->DispatchEvent(imeEvent);
   return 1;
 }
 
 int CInputObserver::OnWindowSize(const EVENT_DATA_SIZE *pSizeData, void *param) {
-  CSizeEvent event(*pSizeData);
-  event.SetId(0x40040064);
-  static_cast<CInputObserver *>(param)->DispatchEvent(event);
+  CSizeEvent sizeEvent(*pSizeData);
+  sizeEvent.SetId(0x40040064);
+  static_cast<CInputObserver *>(param)->DispatchEvent(sizeEvent);
   return 1;
 }
 
 int CInputObserver::OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, void *param) {
-  CFocusEvent event(*pFocusData);
-  event.SetId(0x40040065);
-  static_cast<CInputObserver *>(param)->DispatchEvent(event);
+  CFocusEvent focusEvent(*pFocusData);
+  focusEvent.SetId(0x40040065);
+  static_cast<CInputObserver *>(param)->DispatchEvent(focusEvent);
   return 1;
 }
 
 #define INPUT_OBSERVER_REGISTRATION(name, eventId, handler, inputEventId)                  \
-  void CInputObserver::Register##name(CObserver *observer) {                    \
+  void CInputObserver::Register##name(CObserver *pObs) {                       \
     CInputObserver *input = GetInputObserver();                                             \
     if (!input->IsEventRegistered(eventId)) {                                               \
       EventRegisterEx(inputEventId, reinterpret_cast<EVENTHANDLER>(handler), input, EVENT_PRIORITY_NORMAL); \
     }                                                                                       \
-    GetInputObserver()->RegisterEvent(eventId, eventId, observer);                          \
+    GetInputObserver()->RegisterEvent(eventId, eventId, pObs);                              \
   }                                                                                         \
-  void CInputObserver::Unregister##name(CObserver *observer) {                   \
+  void CInputObserver::Unregister##name(CObserver *pObs) {                      \
     CInputObserver *input = GetInputObserver();                                             \
-    input->UnregisterEvent(eventId, observer);                                              \
+    input->UnregisterEvent(eventId, pObs);                                                  \
     if (!GetInputObserver()->IsEventRegistered(eventId)) {                                  \
       input = GetInputObserver();                                                           \
       EventUnregisterEx(inputEventId, reinterpret_cast<EVENTHANDLER>(handler), input, 0xFFFFFFFF); \

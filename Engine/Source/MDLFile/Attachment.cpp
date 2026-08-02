@@ -103,11 +103,15 @@ int ReadAttachment(
 ) {
   TSet errors;
   MDLATTACHMENTSECTION *attachment = data.attachments.New();
-  NTempest::C3Vector *pivot =
-      data.pivotPoints.Count() < 500 ? data.pivotPoints.New() : 0;
   IAddAttachmentErrors(errors);
   ReadObjectName(parse, attachment->name);
-  IReadAttachment(parse, errors, pivot, attachment, status);
+  IReadAttachment(
+      parse,
+      errors,
+      data.pivotPoints.Count() < 500 ? data.pivotPoints.New() : 0,
+      attachment,
+      status
+  );
   if (errors.NotFound(0x124)) {
     attachment->attachmentId = data.attachments.Count() - 1;
   }
@@ -128,19 +132,19 @@ int WriteAttachments(
     CMDLStatus *
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]) {
-    int needObjectIds = data.attachments.Count() != data.objects.Count();
-    for (unsigned int i = 0; i < data.attachments.Count(); ++i) {
-      const MDLATTACHMENTSECTION &attachment = data.attachments.Ptr()[i];
-      WriteObjectHeader(data, attachment, 0x110, needObjectIds, buffer);
-      if (SStrLen(attachment.path)) {
+    int needObjIds = data.attachments.Count() != data.objects.Count();
+    const MDLATTACHMENTSECTION *attachment = data.attachments.Ptr();
+    for (; attachment < data.attachments.Ptr() + data.attachments.Count(); ++attachment) {
+      WriteObjectHeader(data, *attachment, 0x110, needObjIds, buffer);
+      if (SStrLen(attachment->path)) {
         WriteLine(
             buffer,
             "\t%s \"%s\",\n",
             TokenText(0x1A0),
-            static_cast<const char *>(attachment.path)
+            static_cast<const char *>(attachment->path)
         );
       }
-      const MDLKEYTRACK<float> &track = attachment.visibilityKeys;
+      const MDLKEYTRACK<float> &track = attachment->visibilityKeys;
       if (track.keys.Count()) {
         WriteLine(
             buffer,
@@ -167,8 +171,8 @@ int WriteAttachments(
               track.globalSeqId
           );
         }
-        for (unsigned int j = 0; j < track.keys.Count(); ++j) {
-          const MDLKEYFRAME<float> &key = track.keys.Ptr()[j];
+        for (unsigned int n = 0; n < track.keys.Count(); ++n) {
+          const MDLKEYFRAME<float> &key = track.keys.Ptr()[n];
           WriteLine(buffer, "\t\t%d: ", key.time);
           WriteKeyData(buffer, &key.value, 1);
           if (track.type > TRACK_LINEAR) {
@@ -180,15 +184,15 @@ int WriteAttachments(
         }
         WriteLine(buffer, "\t}\n");
       }
-      if (attachment.attachmentId != i) {
+      if (attachment->attachmentId != attachment - data.attachments.Ptr()) {
         WriteLine(
             buffer,
             "\t%s %d,\n",
             TokenText(0x124),
-            attachment.attachmentId
+            attachment->attachmentId
         );
       }
-      WriteObjectTrailer(attachment, buffer);
+      WriteObjectTrailer(*attachment, buffer);
     }
   }
   return 1;
@@ -305,30 +309,31 @@ static int ReadBinAttachment(
 }
 
 int ReadBinAttachments(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
-    CMDLStatus *status
+  CMDLStatus *status
 ) {
   unsigned int totalRead = 8;
-  unsigned int count = buffer.GetUint();
-  buffer.GetUint();
+  unsigned int numAttached = buf.GetUint();
+  buf.GetUint();
   data.attachments.SetCount(0);
-  data.attachments.ReserveSpace(count);
+  data.attachments.ReserveSpace(numAttached);
+  MDLATTACHMENTSECTION *pAtt;
   while (totalRead < length) {
-    MDLATTACHMENTSECTION *attachment = data.attachments.New();
-    if (!attachment) {
+    pAtt = data.attachments.New();
+    if (!pAtt) {
       status->FatalFlunked("Attachment", -1);
       return 0;
     }
-    ReadBinAttachment(buffer, attachment, status, totalRead);
+    ReadBinAttachment(buf, pAtt, status, totalRead);
     if (totalRead > length) {
       status->FatalOverran("Attachment", -1);
       return 0;
     }
     ReadBinObjectEnd(
         data,
-        attachment,
+        pAtt,
         data.attachments.Count() - 1,
         0x40000000
     );
@@ -363,34 +368,32 @@ static unsigned int GetParentGeosetAnimId(
 
 int WriteBinAttachments(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *status
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]
       && data.attachments.Count()) {
-    buffer.AddDword('HCTA');
-    unsigned int count = data.attachments.Count();
+    buf.AddDword('HCTA');
     unsigned int totalSize = 8;
-    unsigned int maxAttachmentId = 0;
+    unsigned int numAttached = data.attachments.Count();
+    unsigned int highestId = 0;
     unsigned int i;
-    for (i = 0; i < count; ++i) {
-      const MDLATTACHMENTSECTION &attachment = data.attachments.Ptr()[i];
-      totalSize += GetBinAttachmentSize(attachment);
-      if (maxAttachmentId < attachment.attachmentId) {
-        maxAttachmentId = attachment.attachmentId;
+
+    for (i = 0; i < numAttached; ++i) {
+      totalSize += GetBinAttachmentSize(data.attachments[i]);
+      if (highestId < data.attachments[i].attachmentId) {
+        highestId = data.attachments[i].attachmentId;
       }
     }
-    buffer.AddUint(totalSize);
-    buffer.AddUint(count);
-    buffer.AddUint(maxAttachmentId);
-    for (i = 0; i < count; ++i) {
-      const MDLATTACHMENTSECTION &attachment = data.attachments.Ptr()[i];
-      unsigned int geosetAnimId =
-          GetParentGeosetAnimId(data, attachment);
+    buf.AddUint(totalSize);
+    buf.AddUint(numAttached);
+    buf.AddUint(highestId);
+    for (i = 0; i < numAttached; ++i) {
+      unsigned int geosetAnimId = GetParentGeosetAnimId(data, data.attachments[i]);
       IWriteBinAttachmentSection(
-          attachment,
+          data.attachments[i],
           geosetAnimId,
-          buffer,
+          buf,
           status
       );
     }

@@ -58,6 +58,8 @@ static int   s_sleepInBackground = 1;
 static DWORD s_backgroundSleepMs;
 
 static int __cdecl IOsGetProcessorFeatures(unsigned char *const vendor, unsigned long *featuresStd, unsigned long *featuresExt) {
+  int result = 1;
+
   memset(vendor, 0, 12);
   *featuresStd = 0;
   *featuresExt = 0;
@@ -75,7 +77,7 @@ static int __cdecl IOsGetProcessorFeatures(unsigned char *const vendor, unsigned
     *featuresExt |= 0x80000000;
   }
 
-  return 1;
+  return result;
 }
 
 unsigned long OsGetProcessorFeaturesEx(int &vendorID) {

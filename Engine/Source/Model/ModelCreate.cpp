@@ -127,6 +127,9 @@ struct CModelHash : public TSHashObject<CModelHash, CHashKeyFilePath> {
   LINKDECLEX(CModelHash, link);
 };
 
+MDLBASE::MDLBASE() {
+}
+
 static EModelParamType s_modelParamTypes[MODEL_NUM_COMMANDS][4] = {
     {  MPARAM_UINT,   MPARAM_HANDLE, MPARAM_FLOAT, MPARAM_NONE},
     {  MPARAM_UINT, MPARAM_C3VECTOR,  MPARAM_NONE, MPARAM_NONE},
@@ -542,27 +545,28 @@ static void MdxReadExtents(unsigned char *data, unsigned int fileBytes, CModelBa
   ASSERT(globalData);
   LoadBoundsData(globalData + 0x158, &shared->bounds);
 
-  unsigned char *sequenceData = MDLFileBinarySeek(data, fileBytes, 0x53514553);
-  if (!sequenceData) {
+  globalData = MDLFileBinarySeek(data, fileBytes, 0x53514553);
+  if (!globalData) {
     return;
   }
 
-  unsigned int numSequences = *reinterpret_cast<unsigned int *>(sequenceData + 4);
+  unsigned int numSequences = *reinterpret_cast<unsigned int *>(globalData + 4);
   if (!numSequences) {
     return;
   }
 
   if (modelptr->m_anim && AnimNeedsSequenceBounds(modelptr->m_anim)) {
     shared->seqBounds.SetCount(numSequences);
-    unsigned char *record = sequenceData + 8;
-    for (unsigned int i = 0; i < numSequences; ++i) {
-      LoadBoundsData(record + 0x60, &shared->seqBounds[i]);
-      record += 0x8C;
+    globalData += 8;
+    CBoundsData *bounds = shared->seqBounds.Ptr();
+    while (numSequences--) {
+      globalData = LoadBoundsData(globalData + 0x60, bounds++);
+      globalData += 0x10;
     }
-  } else if (fabs(shared->bounds.sphere.r) < 0.00000023841858f) {
-    sequenceData = MDLFileBinarySeek(data, fileBytes, 0x53514553);
-    if (sequenceData) {
-      LoadBoundsData(sequenceData + 0x68, &shared->bounds);
+  } else if (NTempest::CMath::fabs_(shared->bounds.sphere.r) < 0.00000023841858f) {
+    globalData = MDLFileBinarySeek(data, fileBytes, 0x53514553);
+    if (globalData) {
+      LoadBoundsData(globalData + 0x68, &shared->bounds);
     }
   }
 }
@@ -872,8 +876,7 @@ static void BuildSimpleGeoset(
 HMODEL CreateDefaultModel(const char *fileName, unsigned int modelLoadFlags, CStatus *status) {
   status->Add(STATUS_WARNING, "Warning, model %s failed to load\n", fileName);
 
-  CGxTexFlags textureFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  HTEXTURE    texture = LoadModelTexture("Textures\\ShaneCube", modelLoadFlags, textureFlags, status);
+  HTEXTURE texture = LoadModelTexture("Textures\\ShaneCube", modelLoadFlags, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), status);
   ASSERT(texture);
 
   NTempest::CAaBox bounds;

@@ -64,11 +64,11 @@ int ReadCamera(
   AddCameraErrors(errors);
   ReadObjectName(parse, camera->name);
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     switch (token) {
       case 0x149:
@@ -100,13 +100,13 @@ int ReadCamera(
         ReadObjectFloatKeyframes(parse, &camera->visibilityKeys);
         break;
       default:
-        parse.FatalUnexpected(tokenText);
+        parse.FatalUnexpected(tokentext);
         parse.Expect(',');
         break;
     }
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   errors.Complete(status);
   return !parse.FoundError();
 }
@@ -267,20 +267,21 @@ static void IWriteBinCamera(
 
 int WriteBinCameras(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *
 ) {
-  if (data.cameras.Count()) {
-    buffer.AddDword('SMAC');
+  unsigned int numCameras = data.cameras.Count();
+  if (numCameras) {
+    buf.AddDword('SMAC');
     unsigned int totalSize = 4;
     unsigned int i;
     for (i = 0; i < data.cameras.Count(); ++i) {
-      totalSize += GetBinCameraSize(data.cameras.Ptr()[i]);
+      totalSize += GetBinCameraSize(data.cameras[i]);
     }
-    buffer.AddUint(totalSize);
-    buffer.AddUint(data.cameras.Count());
-    for (i = 0; i < data.cameras.Count(); ++i) {
-      IWriteBinCamera(data.cameras.Ptr()[i], buffer);
+    buf.AddUint(totalSize);
+    buf.AddUint(numCameras);
+    for (i = 0; i < numCameras; ++i) {
+      IWriteBinCamera(data.cameras[i], buf);
     }
   }
   return 1;
@@ -336,18 +337,20 @@ int ReadBinCamera(
 }
 
 int ReadBinCameras(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
 ) {
-  unsigned int count = buffer.GetUint();
+  unsigned int numCameras;
+  numCameras = buf.GetUint();
   unsigned int totalRead = 4;
   data.cameras.SetCount(0);
-  data.cameras.ReserveSpace(count);
+  data.cameras.ReserveSpace(numCameras);
+  MDLCAMERASECTION *pCam;
   while (totalRead < length) {
-    MDLCAMERASECTION *camera = data.cameras.New();
-    if (!ReadBinCamera(buffer, camera, status, totalRead)) {
+    pCam = data.cameras.New();
+    if (!ReadBinCamera(buf, pCam, status, totalRead)) {
       status->Add(STATUS_ERROR, "Failure reading camera section.\n");
       return 0;
     }

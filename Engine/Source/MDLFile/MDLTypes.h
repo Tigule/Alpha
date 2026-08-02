@@ -708,6 +708,8 @@ struct MDLRIBBONEMITTER : public MDLGENOBJECT {
 };
 
 struct MDLBASE {
+  MDLBASE();
+
   void RebuildObjectPtrs();
 
   MDLHEADERSECTION                      header;

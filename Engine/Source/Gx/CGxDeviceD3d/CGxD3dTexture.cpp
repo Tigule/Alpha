@@ -195,8 +195,8 @@ void CGxDeviceD3d::ITexMarkAsUpdated(CGxTex *texId) {
   }
 
   if (texId->m_needsUpdate) {
-    unsigned int h = texId->m_height;
     unsigned int w = texId->m_width;
+    unsigned int h = texId->m_height;
     unsigned int startLevel = 0;
     unsigned int endLevel = 1;
 

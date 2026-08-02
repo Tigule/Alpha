@@ -24,6 +24,7 @@
 #include "DB/DBClient/AutoCode/SkillLineAbilityRec.h"
 #include "DB/DBClient/AutoCode/SkillLineRec.h"
 #include "DB/DBClient/AutoCode/SpellItemEnchantmentRec.h"
+#include "DB/DBClient/AutoCode/SpellCastTimesRec.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"
 #include "DB/DBClient/AutoCode/TaxiNodesRec.h"
 #include "DB/DBClient/DBCacheInstances.h"
@@ -43,6 +44,7 @@
 #include "Services/AsyncFileRead.h"
 #include "Ui/ActionBarFrame.h"
 #include "Ui/ChatFrame.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/ClassTrainerFrame.h"
 #include "Ui/GameUI.h"
 #include "Ui/GuildRegistrar.h"
@@ -210,6 +212,7 @@ static unsigned int               s_attackBreakTimer;
 static int                        s_bindSaved;
 static NTempest::C3Vector         s_bindPosition;
 static unsigned int               s_bindZoneID;
+static const float                MAX_BIND_DISTANCE = 10.0f;
 static TSFixedArray<unsigned int> s_weaponSubclassSpells;
 static unsigned int               s_defenseSkillID;
 static TSGrowableArray<ITEMSWAP>  s_pendingSwaps;
@@ -230,6 +233,158 @@ static const int                  s_clearLinkPointFlags[2][4] = {
     {26, 31, 32, -1},
     {27, 30, 33, 28}
 };
+
+int IsSitStandSleepTransition(unsigned int animState);
+
+const char *CGUnit_C::GetObjectName() const {
+  return GetUnitName();
+}
+
+NTempest::C3Vector CGUnit_C::GetPosition() const {
+  return m_move.GetPosition(m_move.m_position);
+}
+
+void CGUnit_C::GetPosition(NTempest::C3Vector &vec) const {
+  vec = GetPosition();
+}
+
+float CGUnit_C::GetFacing() const {
+  return m_move.GetFacing(m_move.m_facing);
+}
+
+NTempest::C3Vector CGUnit_C::GetGroundNormal() const {
+  return m_move.m_groundNormal;
+}
+
+int CGUnit_C::ShouldFadeIn() const {
+  return !(m_unit->flags & 2);
+}
+
+int CGUnit_C::IsSolidSelectable() const {
+  return 1;
+}
+
+int CGUnit_C::IsSolidCollidable() const {
+  return 0;
+}
+
+int CGUnit_C::CanBeTargetted() const {
+  return CanHighlight();
+}
+
+void CGUnit_C::OnGetAttacked(unsigned __int64) {
+}
+
+void CGPlayer_C::SetBaseAnimState(unsigned int newState) {
+  unsigned int oldState = m_currentBaseAnimState;
+  CGUnit_C::SetBaseAnimState(newState);
+
+  if (GetGUID() == ClntObjMgrGetActivePlayer() && oldState != newState &&
+      IsSitStandSleepTransition(oldState) != IsSitStandSleepTransition(newState))
+  {
+    CGInputControl::GetActive()->UpdatePlayer(OsGetAsyncTimeMs());
+  }
+}
+
+void CGPlayer_C::SetEmoteState(unsigned int emoteID) {
+  CDataStore msg;
+  msg.Put(static_cast<int>(CMSG_EMOTE));
+  msg.Put(static_cast<int>(emoteID));
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
+
+int CGPlayer_C::GetSpellCastingTime(int spellID) const {
+  const SpellRec *srec = g_spellDB.GetRecord(spellID);
+  if (!srec) {
+    return 0;
+  }
+  const SpellCastTimesRec *castTime = g_spellCastTimesDB.GetRecord(srec->m_castingTimeIndex);
+  if (!castTime) {
+    return 0;
+  }
+  int baseCastingTime = castTime->m_base;
+  int timePerLevel = castTime->m_perLevel;
+  int result = baseCastingTime + timePerLevel * (const_cast<CGPlayer_C *>(this)->GetSpellRank(spellID) / 5);
+  if (result < castTime->m_minimum) {
+    result = castTime->m_minimum;
+  }
+  if (result > 0 && m_unit->modCastingSpeed) {
+    result += result * m_unit->modCastingSpeed / 100;
+  }
+  if (srec->m_attributes & 2) {
+    CGItem_C *rangedItem = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(17), __FILE__, __LINE__));
+    if (rangedItem) {
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(rangedItem->GetEntryID(), m_obj->m_guid, 0, 0);
+      if (stats) {
+        result += stats->m_delay;
+      }
+    }
+  }
+  return result > 0 ? result : 0;
+}
+
+void CGPlayer_C::CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel) {
+  CGUnit_C::CleanupUnitArtwork(playerModelChanged, wasPlayerModel);
+}
+
+void CGPlayer_C::ReinitializeUnitArtwork() {
+  CGUnit_C::ReinitializeUnitArtwork();
+  FATALASSERT(!m_texComponent);
+  FATALASSERT(!m_geosetHandle);
+  for (unsigned int attachment = 0; attachment < 36; ++attachment) {
+    for (unsigned int component = 0; component < 23; ++component) {
+      HMODEL model = m_components[component][attachment];
+      if (!model) {
+        continue;
+      }
+      if (attachment == 5 || attachment == 6 || attachment == 11) {
+        AddAttachment(m_model, attachment, model, 1.0f);
+      } else {
+        ModelAddLink(m_model, attachment, model, 1.0f);
+      }
+    }
+  }
+  if (m_unit->weaponMode == WEAPONMODE_SHEATHEDMODE) {
+    for (unsigned int hand = 0; hand < 2; ++hand) {
+      if (ClntObjMgrObjectPtr(m_inventory.GetItem(s_hands[hand]), __FILE__, __LINE__)) {
+        SheatheObjComponent(s_hands[hand], 1);
+      }
+    }
+  }
+  InitComponents();
+  if (m_geosetHandle) {
+    CharCustomizationCommitItemGeosets(m_geosetHandle, 0, m_paperDollModel);
+    Animate();
+  }
+}
+
+void CGPlayer_C::PostReinitializeArtwork() {
+  CGUnit_C::PostReinitializeArtwork();
+  if (!m_texComponent) {
+    return;
+  }
+  for (unsigned int slot = 0; slot < 23; ++slot) {
+    if (m_texComponentInfo[slot].m_displayID && m_texComponentInfo[slot].m_inventoryType) {
+      AddComponent(
+          m_texComponentInfo[slot].m_displayID,
+          m_texComponentInfo[slot].m_inventoryType,
+          slot,
+          0
+      );
+    }
+  }
+  CGItem_C *head = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(0), __FILE__, __LINE__));
+  if (head) {
+    HeadGeosetHideCharGeosets(
+        m_geosetHandle,
+        g_itemDisplayInfoDB.GetRecord(head->GetDisplayID()),
+        m_unit->race,
+        m_preferredGeosets,
+        15
+    );
+  }
+}
 
 void ModelShowBoundingSphere(HMODEL model);
 static const char *s_actionsArray[18] = {
@@ -480,7 +635,7 @@ void ShowForceActionFlags(unsigned int *flags) {
   }
 }
 
-void RandomRollNameQueryCallback(int, const unsigned __int64 &guid, void *arg, bool granted) {
+void RandomRollNameQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
   char            buf[256];
   RandomRollInfo *info = static_cast<RandomRollInfo *>(arg);
   FATALASSERT(info);
@@ -1312,10 +1467,9 @@ int OnInitialSpells(void *__formal, NETMESSAGE msgId, unsigned long eventTime, C
   unsigned short itemID;
   unsigned short category;
   unsigned short count;
-  unsigned int   initial;
   unsigned short index;
 
-  msg->Get(*reinterpret_cast<unsigned char *>(&initial));
+  msg->Get(*reinterpret_cast<unsigned char *>(&onHold));
   msg->Get(count);
   s_initialSpells.SetCount(count);
 
@@ -1355,7 +1509,6 @@ int OnPetSpells(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   int              categoryDuration;
   unsigned short   category;
   unsigned int     onHold;
-  unsigned int     count;
   unsigned int     index;
 
   CGPetInfo::ClearActions();
@@ -1372,16 +1525,16 @@ int OnPetSpells(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
       CGPetInfo::SetAction(index, action, 0);
     }
 
-    msg->Get(*reinterpret_cast<unsigned char *>(&count));
+    msg->Get(*reinterpret_cast<unsigned char *>(&onHold));
     CGSpellBook::ClearPetSpells();
-    for (index = 0; index < count; ++index) {
+    for (index = 0; index < onHold; ++index) {
       unsigned short spellID;
       msg->Get(spellID);
       CGSpellBook::AddPetSpell(spellID);
     }
 
-    msg->Get(*reinterpret_cast<unsigned char *>(&count));
-    for (index = 0; index < count; ++index) {
+    msg->Get(*reinterpret_cast<unsigned char *>(&onHold));
+    for (index = 0; index < onHold; ++index) {
       unsigned short spellID;
       msg->Get(spellID);
       msg->Get(category);
@@ -1458,15 +1611,15 @@ int OnGroupNewLeader(void *__formal, NETMESSAGE msgId, unsigned long eventTime, 
 }
 
 int OnGroupUninvite(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
-  CGPartyInfo::RemoveAll();
-  CGPartyInfo::SetLeader(0);
+  CGGameUI::RemoveAllPartyMembers();
+  CGGameUI::SetPartyLeader(0);
   CGGameUI::DisplayError(GERR_UNINVITE_YOU);
   return 1;
 }
 
 int OnGroupDestroy(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
-  CGPartyInfo::RemoveAll();
-  CGPartyInfo::SetLeader(0);
+  CGGameUI::RemoveAllPartyMembers();
+  CGGameUI::SetPartyLeader(0);
   CGGameUI::DisplayError(GERR_GROUP_DISBANDED);
   return 1;
 }
@@ -1641,11 +1794,11 @@ int OnGuildInfo(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CData
   unsigned int numAccounts;
 
   msg->GetString(name, sizeof(name));
-  msg->Get(numAccounts);
-  msg->Get(numChars);
-  msg->Get(year);
-  msg->Get(month);
   msg->Get(day);
+  msg->Get(month);
+  msg->Get(year);
+  msg->Get(numChars);
+  msg->Get(numAccounts);
 
   SStrCopy(temp, FrameScript_GetText("GUILD_NAME_TEMPLATE", -1, GENDER_NOT_APPLICABLE), sizeof(temp));
   SStrPrintf(buf, sizeof(buf), temp, name);
@@ -1714,13 +1867,13 @@ int OnGuildEmblemError(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
 
 int OnGuildEvent(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   char            string[2][256];
-  unsigned int    numStrings;
-  unsigned int    event;
+  unsigned char   numStrings;
+  unsigned char   event;
   GAME_ERROR_TYPE errorType;
 
   event = 0;
-  msg->Get(*reinterpret_cast<unsigned char *>(&event));
-  msg->Get(*reinterpret_cast<unsigned char *>(&numStrings));
+  msg->Get(event);
+  msg->Get(numStrings);
   for (unsigned int index = 0; index < numStrings; ++index) {
     msg->GetString(string[index], sizeof(string[index]));
   }
@@ -1914,15 +2067,15 @@ int OnMirrorTimerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime
 
 int CGPlayer_C::OnVendorInventory(CDataStore *msg) {
   unsigned __int64 vendorGuid;
-  unsigned int     reason = 0xFF;
-  unsigned int     count = 0;
+  unsigned char    reason = 0xFF;
+  unsigned char    count;
 
   for (unsigned int index = 0; index < 128; ++index) {
     s_lastVendorList[index].m_muid = 0;
   }
 
   msg->Get(vendorGuid);
-  msg->Get(*reinterpret_cast<unsigned char *>(&count));
+  msg->Get(count);
   FATALASSERT(count <= 128);
   s_lastVendorListReceived = vendorGuid;
 
@@ -1937,7 +2090,7 @@ int CGPlayer_C::OnVendorInventory(CDataStore *msg) {
       msg->Get(s_lastVendorList[index].m_stackCount);
     }
   } else {
-    msg->Get(*reinterpret_cast<unsigned char *>(&reason));
+    msg->Get(reason);
     switch (reason) {
       case 0:
         ConsoleWrite("Vendor has no inventory", DEFAULT_COLOR);
@@ -1968,13 +2121,16 @@ int CGPlayer_C::OnQuestGiverListQuests(CDataStore *msg) {
   char                greetText[256];
   unsigned __int64    questGiverGuid;
   QUESTGIVEREMOTENODE node;
-  unsigned int        count = 0;
+  node.delay = 0;
+  node.emoteID = 0;
 
-  msg->Get(questGiverGuid);
-  msg->GetString(greetText, 0x7FFFFFFF);
-  msg->Get(node.emoteID);
-  msg->Get(node.delay);
-  msg->Get(*reinterpret_cast<unsigned char *>(&count));
+  {
+    unsigned char count;
+    msg->Get(questGiverGuid);
+    msg->GetString(greetText, 0x7FFFFFFF);
+    msg->Get(node.delay);
+    msg->Get(node.emoteID);
+    msg->Get(count);
 
   memset(s_lastQuestList, 0, sizeof(s_lastQuestList));
   memset(s_lastQuestListType, 0, sizeof(s_lastQuestListType));
@@ -2000,6 +2156,7 @@ int CGPlayer_C::OnQuestGiverListQuests(CDataStore *msg) {
     static_cast<CGUnit_C *>(object)->SetEmoteQueue(&node, 1);
   }
   CGQuestInfo::EndQuestList();
+  }
   return 1;
 }
 
@@ -2035,7 +2192,6 @@ int CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
   unsigned __int64 questGiverGuid;
   int              rewardItemCount;
   int              chooseRewardCount;
-  int              numEmotes;
 
   msg->Get(questGiverGuid);
   msg->Get(questID);
@@ -2063,17 +2219,19 @@ int CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
   }
 
   msg->Get(rewardMoney);
-  msg->Get(numEmotes);
-  TSStackArray<QUESTGIVEREMOTENODE> emotes(_alloca(numEmotes * sizeof(QUESTGIVEREMOTENODE)), numEmotes, numEmotes);
-  for (index = 0; index < numEmotes; ++index) {
-    msg->Get(emotes[index].delay);
-    msg->Get(emotes[index].emoteID);
-  }
+  {
+    int numEmotes;
+    msg->Get(numEmotes);
+    TSStackArray<QUESTGIVEREMOTENODE> emotes(_alloca(numEmotes * sizeof(QUESTGIVEREMOTENODE)), numEmotes, numEmotes);
+    for (index = 0; index < numEmotes; ++index) {
+      msg->Get(emotes[index].delay);
+      msg->Get(emotes[index].emoteID);
+    }
 
-  CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
-  if (object && (object->GetType() & TYPE_UNIT)) {
-    static_cast<CGUnit_C *>(object)->SetEmoteQueue(emotes);
-  }
+    CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
+    if (object && (object->GetType() & TYPE_UNIT)) {
+      static_cast<CGUnit_C *>(object)->SetEmoteQueue(emotes);
+    }
 
   CGQuestInfo::SetState(questGiverGuid, QUEST_OFFER, questText, questID);
   CGQuestInfo::SetLogDescription(logDescription);
@@ -2081,6 +2239,7 @@ int CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
       questTitle, chooseReward, chooseRewardDispID, chooseRewardQty, chooseRewardCount, rewardItem, rewardItemDispID, rewardItemQty, rewardItemCount,
       rewardMoney, autoLaunched
   );
+  }
   return 1;
 }
 
@@ -2144,25 +2303,26 @@ int CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
   unsigned __int64 questGiverGuid;
   int              rewardItemCount;
   int              chooseRewardCount;
-  int              emoteCount;
 
   msg->Get(questGiverGuid);
   msg->Get(questID);
   msg->GetString(questTitle, 0x7FFFFFFF);
   msg->GetString(questText, 0x7FFFFFFF);
   msg->Get(autoLaunched);
-  msg->Get(emoteCount);
+  {
+    int emoteCount;
+    msg->Get(emoteCount);
 
-  TSStackArray<QUESTGIVEREMOTENODE> emotes(_alloca(emoteCount * sizeof(QUESTGIVEREMOTENODE)), emoteCount, emoteCount);
-  for (int index = 0; index < emoteCount; ++index) {
-    msg->Get(emotes[index].delay);
-    msg->Get(emotes[index].emoteID);
-  }
+    TSStackArray<QUESTGIVEREMOTENODE> emotes(_alloca(emoteCount * sizeof(QUESTGIVEREMOTENODE)), emoteCount, emoteCount);
+    for (int index = 0; index < emoteCount; ++index) {
+      msg->Get(emotes[index].delay);
+      msg->Get(emotes[index].emoteID);
+    }
 
-  CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
-  if (object && (object->GetType() & TYPE_UNIT)) {
-    static_cast<CGUnit_C *>(object)->SetEmoteQueue(emotes);
-  }
+    CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
+    if (object && (object->GetType() & TYPE_UNIT)) {
+      static_cast<CGUnit_C *>(object)->SetEmoteQueue(emotes);
+    }
 
   msg->Get(chooseRewardCount);
   memset(chooseReward, 0, sizeof(chooseReward));
@@ -2188,6 +2348,7 @@ int CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
       questTitle, chooseReward, chooseRewardDispID, chooseRewardQty, chooseRewardCount, rewardItem, rewardItemDispID, rewardItemQty, rewardItemCount,
       rewardMoney, autoLaunched
   );
+  }
   return 1;
 }
 
@@ -2266,12 +2427,16 @@ int CGPlayer_C::OnQuestGiverQuestComplete(CDataStore *msg) {
       SStrPrintf(coinBuf[coin], sizeof(coinBuf[coin]), "%d %s", coins[coin], coinName);
     }
 
-    const char *copper = coins[0] ? coinBuf[0] : "";
-    const char *silver = coins[1] ? coinBuf[1] : "";
-    const char *gold = coins[2] ? coinBuf[2] : "";
-    const char *copperSeparator = coins[0] && (coins[1] || coins[2]) ? ", " : "";
-    const char *silverSeparator = coins[2] && (coins[1] || coins[0]) ? ", " : "";
-    SStrPrintf(buf, sizeof(buf), "%s%s%s%s%s", gold, silverSeparator, silver, copperSeparator, copper);
+    SStrPrintf(
+        buf,
+        sizeof(buf),
+        "%s%s%s%s%s",
+        coins[2] ? coinBuf[2] : "",
+        coins[2] && (coins[1] || coins[0]) ? ", " : "",
+        coins[1] ? coinBuf[1] : "",
+        coins[0] && (coins[1] || coins[2]) ? ", " : "",
+        coins[0] ? coinBuf[0] : ""
+    );
     CGGameUI::DisplayError(GERR_QUEST_REWARD_MONEY_S, buf);
   }
 
@@ -2416,13 +2581,13 @@ int CGPlayer_C::OnBuyFailed(CDataStore *msg) {
   char             buf[256];
   unsigned __int64 vendorGUID;
   unsigned int     muid;
-  unsigned int     quantity = 0;
-  unsigned int     reason = 0;
+  unsigned char    quantity;
+  unsigned char    reason;
 
   msg->Get(vendorGUID);
   msg->Get(muid);
-  msg->Get(*reinterpret_cast<unsigned char *>(&quantity));
-  msg->Get(*reinterpret_cast<unsigned char *>(&reason));
+  msg->Get(quantity);
+  msg->Get(reason);
 
   if (reason == 1 && vendorGUID == s_lastVendorListReceived) {
     for (unsigned int index = 0; index < 128; ++index) {
@@ -2500,10 +2665,10 @@ int CGPlayer_C::OnBuySucceeded(CDataStore *msg) {
 int CGPlayer_C::OnSellResponse(CDataStore *msg) {
   unsigned __int64 vendorGUID;
   unsigned __int64 itemGUID;
-  unsigned int     reason = 0;
+  unsigned char    reason;
   msg->Get(vendorGUID);
   msg->Get(itemGUID);
-  msg->Get(*reinterpret_cast<unsigned char *>(&reason));
+  msg->Get(reason);
 
   if (reason) {
     switch (reason) {
@@ -2691,7 +2856,7 @@ int OnUpdateInventoryComponent(unsigned __int64 guid, unsigned int offset, unsig
   return 1;
 }
 
-static int OnUpdateMoney(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int OnUpdateMoney(unsigned __int64, unsigned int offset, unsigned int bytes, const void *, void *) {
   CGActionBar::UpdateUsable();
   return 1;
 }
@@ -2783,13 +2948,13 @@ static int SkillRankChangeHandler(unsigned __int64 player, unsigned int offset, 
   return 1;
 }
 
-static int SkillMaxRankChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int SkillMaxRankChangeHandler(unsigned __int64, unsigned int offset, unsigned int, const void *, void *) {
   CGActionBar::UpdateUsable();
   CGCharacterInfo::UpdateAllSkillLines();
   return 1;
 }
 
-static int SkillModifierChangeHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int SkillModifierChangeHandler(unsigned __int64, unsigned int offset, unsigned int, const void *, void *) {
   CGChat::UpdateLanguages();
   return 1;
 }
@@ -2900,8 +3065,7 @@ int CGPlayer_C::ShouldRender(unsigned long worldStatus) {
     return CGUnit_C::ShouldRender(worldStatus);
   }
 
-  NTempest::C3Vector groundNormal(0.0f, 0.0f, 1.0f);
-  ModelProcessEvents(GetObjectModel(), GetPosition(), GetFacing(), groundNormal, 1.0f);
+  ModelProcessEvents(GetObjectModel(), GetPosition(), GetFacing(), NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f);
   UpdatePlayerNameWorldText();
   ObjectSetNotRendering();
   return 0;
@@ -2938,58 +3102,54 @@ void CGPlayer_C::CommitTexture(int force) {
 }
 
 void CGPlayer_C::SetActiveMirrorHandlers() {
-  unsigned int playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  unsigned int unitOffset = CGUnit_C::OffsetOf(ID_UNIT);
   unsigned int component;
 
   for (component = 312; component <= 496; component += 8) {
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + component, 8, OnUpdateInventoryComponent, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + component, 8, OnUpdateInventoryComponent, 0, HANDLER_PRIORITY_NORMAL);
   }
   for (component = 504; component <= 544; component += 8) {
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + component, 8, OnUpdateInventoryComponent, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + component, 8, OnUpdateInventoryComponent, 0, HANDLER_PRIORITY_NORMAL);
   }
   for (component = 0; component < 384; component += 24) {
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + 1372 + component, 24, OnUpdateQuest, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 1372 + component, 24, OnUpdateQuest, 0, HANDLER_PRIORITY_NORMAL);
   }
 
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), unitOffset + 196, 1, OnUpdateMoney, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), unitOffset + 16, 8, CharmChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), unitOffset, 16, SummonChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), unitOffset + 666, 1, FarsightChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + 560, 8, PetChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 196, 1, OnUpdateMoney, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 16, 8, CharmChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT), 16, SummonChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 666, 1, FarsightChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 560, 8, PetChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
 
   for (component = 0; component < 768; component += 12) {
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + 602 + component, 2, SkillRankChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + 604 + component, 2, SkillMaxRankChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + 606 + component, 2, SkillModifierChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 602 + component, 2, SkillRankChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 604 + component, 2, SkillMaxRankChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 606 + component, 2, SkillModifierChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
   }
 }
 
 void CGPlayer_C::UnsetActiveMirrorHandlers() {
-  unsigned int playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  unsigned int unitOffset = CGUnit_C::OffsetOf(ID_UNIT);
   unsigned int component;
 
   for (component = 312; component <= 496; component += 8) {
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + component, OnUpdateInventoryComponent, 0);
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + component, OnUpdateInventoryComponent, 0);
   }
   for (component = 504; component <= 544; component += 8) {
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + component, OnUpdateInventoryComponent, 0);
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + component, OnUpdateInventoryComponent, 0);
   }
   for (component = 0; component < 384; component += 24) {
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 1372 + component, OnUpdateQuest, 0);
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 1372 + component, OnUpdateQuest, 0);
   }
 
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), unitOffset + 196, OnUpdateMoney, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), unitOffset + 16, CharmChangeHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), unitOffset, SummonChangeHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 560, PetChangeHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), unitOffset + 666, FarsightChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 196, OnUpdateMoney, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 16, CharmChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT), SummonChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 560, PetChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 666, FarsightChangeHandler, 0);
 
   for (component = 0; component < 768; component += 12) {
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 602 + component, SkillRankChangeHandler, 0);
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 604 + component, SkillMaxRankChangeHandler, 0);
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 606 + component, SkillModifierChangeHandler, 0);
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 602 + component, SkillRankChangeHandler, 0);
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 604 + component, SkillMaxRankChangeHandler, 0);
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 606 + component, SkillModifierChangeHandler, 0);
   }
 }
 
@@ -3249,12 +3409,11 @@ void CGPlayer_C::AddComponent(int displayID, unsigned int inventoryType, int slo
     m_texComponentInfo[slot].m_inventoryType = inventoryType;
   }
 
-  HTEXCOMPONENT             texComponent = m_texComponent;
   const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
-  if (texComponent) {
+  if (m_texComponent) {
     if ((1 << slot) & 0x403F8) {
       CStatus status;
-      TexComponentAdd(&status, m_unit->sex, texComponent, displayInfo, inventoryType, 1);
+      TexComponentAdd(&status, m_unit->sex, m_texComponent, displayInfo, inventoryType, 1);
       if (!status.IsEmpty()) {
         char buffer[512];
         status.GetErrorStr(buffer, sizeof(buffer), STATUS_INFO);
@@ -3269,7 +3428,7 @@ void CGPlayer_C::AddComponent(int displayID, unsigned int inventoryType, int slo
         OnGuildChanged();
       }
       CharCustomizationAddItemGeosets(
-          m_geosetHandle, displayInfo, inventoryType, texComponent, m_unit->race, commit == 0
+          m_geosetHandle, displayInfo, inventoryType, m_texComponent, m_unit->race, commit == 0
       );
     }
   }
@@ -3432,8 +3591,7 @@ void CGPlayer_C::SaveTabard(int eStyle, int eColor, int bStyle, int bColor, int 
     return;
   }
 
-  const unsigned __int64 noGuid = 0;
-  const GuildStats_C    *guild = g_guildInfoCache.GetRecord(GetGuildID(), noGuid, 0, 0);
+  const GuildStats_C *guild = g_guildInfoCache.GetRecord(GetGuildID(), 0, 0, 0);
   if (!guild) {
     CGGameUI::DisplayError(GERR_GUILDEMBLEM_NOGUILD);
     return;
@@ -3469,8 +3627,7 @@ bool CGPlayer_C::OnGuildChanged() {
   PlayerNameTriggerNameRegenerate(m_unitNameHandle);
   FrameScript_SignalEvent(359);
 
-  HTEXCOMPONENT component = GetTexComponent();
-  if (!component) {
+  if (!GetTexComponent()) {
     return 0;
   }
 
@@ -3482,13 +3639,12 @@ bool CGPlayer_C::OnGuildChanged() {
     return 0;
   }
 
-  const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(item->GetDisplayID());
-  if (!displayInfo || !(displayInfo->m_flags & 1)) {
+  if (!g_itemDisplayInfoDB.GetRecord(item->GetDisplayID()) ||
+      !(g_itemDisplayInfoDB.GetRecord(item->GetDisplayID())->m_flags & 1)) {
     return 0;
   }
 
-  unsigned __int64 guid = GetGUID();
-  Script_SendUnitSignal(guid, 324);
+  Script_SendUnitSignal(GetGUID(), 324);
 
   int eStyle;
   int eColor;
@@ -3496,22 +3652,22 @@ bool CGPlayer_C::OnGuildChanged() {
   int bColor;
   int background;
   if (GuildGetGuildTabard(GetGuildID(), GuildCallback, eStyle, eColor, bStyle, bColor, background) &&
-      ComponentApplyTabardTexture(component, eStyle, eColor, bStyle, bColor, background))
+      ComponentApplyTabardTexture(GetTexComponent(), eStyle, eColor, bStyle, bColor, background))
   {
     return 1;
   }
 
-  ComponentRemoveTabardTexture(m_unit->sex, component, const_cast<ItemDisplayInfoRec *>(displayInfo), item->GetInventoryType());
+  ComponentRemoveTabardTexture(
+      m_unit->sex,
+      GetTexComponent(),
+      const_cast<ItemDisplayInfoRec *>(g_itemDisplayInfoDB.GetRecord(item->GetDisplayID())),
+      item->GetInventoryType());
   return 1;
 }
 
 int CGPlayer_C::CanEngageTarget(const CGUnit_C *unitPtr) {
   FATALASSERT(unitPtr);
-  NTempest::C3Vector there;
-  NTempest::C3Vector here;
-  unitPtr->GetPosition(there);
-  GetPosition(here);
-  if ((here - there).SquaredMag() < 10.45f * 10.45f) {
+  if ((GetPosition() - unitPtr->GetPosition()).SquaredMag() < 10.45f * 10.45f) {
     return 1;
   }
   CGGameUI::DisplayError(GERR_OUT_OF_RANGE);
@@ -3528,8 +3684,7 @@ void CGPlayer_C::HandleRepopRequest() {
 }
 
 static void SwapItemsStatsCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
-  unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(id, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(id, 0, 0, 0);
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   unsigned int count = s_pendingSwaps.Count();
   for (unsigned int index = 0; index < count; ++index) {
@@ -3673,34 +3828,25 @@ void CGPlayer_C::AutoStoreItemInBag(
     int              ignoreOwnershipRules
 ) {
   FATALASSERT(cursorSlot <= 0xFF);
-  if (!cursorItem) {
-    return;
-  }
-
-  unsigned char cursorItemContainerSlot = FindSlotIndex(cursorContainer);
-  unsigned char newContainerSlot = FindSlotIndex(containerB);
-  if (newContainerSlot == 0xFF && containerB != GetGUID()) {
-    return;
-  }
-
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_AUTOSTORE_BAG_ITEM));
-  msg.Put(cursorItemContainerSlot);
-  msg.Put(static_cast<unsigned char>(cursorSlot));
-  msg.Put(newContainerSlot);
-  msg.Finalize();
-  ClientServices_Send(&msg);
+  if (cursorItem) {
+    unsigned char cursorItemContainerSlot = FindSlotIndex(cursorContainer);
+    unsigned char newContainerSlot = FindSlotIndex(containerB);
+    if (newContainerSlot == 0xFF && containerB != GetGUID()) {
+      return;
+    }
+
+    msg.Put(static_cast<unsigned int>(CMSG_AUTOSTORE_BAG_ITEM));
+    msg.Put(cursorItemContainerSlot);
+    msg.Put(static_cast<unsigned char>(cursorSlot));
+    msg.Put(newContainerSlot);
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  }
 }
 
 unsigned char CGPlayer_C::FindSlotIndex(unsigned __int64 obj) {
-  unsigned char slot = 0;
-  while (slot < m_inventory.NumSlots()) {
-    if (m_inventory.GetItem(slot) == obj) {
-      return slot;
-    }
-    ++slot;
-  }
-  return 0xFF;
+  return static_cast<unsigned char>(m_inventory.GetIndexOfObject(obj));
 }
 
 unsigned char CGPlayer_C::FindItemSlot(unsigned __int64 containerGUID, CGItem_C *item) {
@@ -3719,8 +3865,7 @@ unsigned char CGPlayer_C::FindItemSlot(unsigned __int64 containerGUID, CGItem_C 
 
 static void AutoEquipStatsCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
   if (granted) {
-    unsigned __int64 noGuid = 0;
-    if (g_itemDBCache.GetRecord(id, noGuid, 0, 0)) {
+    if (g_itemDBCache.GetRecord(id, 0, 0, 0)) {
       CGObject_C *item = ClntObjMgrObjectPtr(CGGameUI::GetCursorItem(), __FILE__, __LINE__);
       if (item && item->GetEntryID() == id) {
         CGPlayer_C *player =
@@ -3865,8 +4010,7 @@ void CGPlayer_C::SellItem(unsigned __int64 merchant, unsigned __int64 item, unsi
 void CGPlayer_C::SetActive(const CGPlayer_C *playerPtr) {
   if (ClntObjMgrGetPlayerType() != PLAYER_BOT) {
     UnitCombatLogSetActivePlayer(playerPtr);
-    unsigned __int64 guid = playerPtr ? playerPtr->GetGUID() : 0;
-    CGUnit_C::SetActiveMover(guid);
+    CGUnit_C::SetActiveMover(playerPtr ? playerPtr->GetGUID() : 0);
   }
   ConsolePrintf("Local player guid (0x%016I64X)\n", ClntObjMgrGetActivePlayer());
 }
@@ -4218,10 +4362,10 @@ int CCommand_ForceActionShowFlags(const char *command, const char *arguments) {
 int CCommand_TogglePVP(const char *command, const char *arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    unsigned int enable = !(player->GetUnitData()->flags & 1);
+    unsigned char enable = !(player->GetUnitData()->flags & 1);
     CDataStore   msg;
     msg.Put(static_cast<unsigned int>(CMSG_ENABLE_PVP));
-    msg.Put(static_cast<unsigned char>(enable));
+    msg.Put(enable);
     msg.Finalize();
     ClientServices_Send(&msg);
     ConsoleWrite(enable ? "PVP Enabled" : "PVP Disabled", DEFAULT_COLOR);
@@ -4249,7 +4393,7 @@ int OnProficiency(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   return 1;
 }
 
-void ResurrectNameQueryCallback(int, const unsigned __int64 &, void *, bool) {
+void ResurrectNameQueryCallback(int id, const unsigned __int64 &guid, void *, bool) {
   const NameCache *name = g_nameDBCache.GetRecord(s_resurrectOffer, s_resurrectOffer, 0, 0);
   if (name) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -4328,9 +4472,8 @@ int AreaTriggerCheck(const void *eventData, void *arg) {
       FATALASSERT(rec);
 
       if (worldId == rec->m_ContinentID) {
-        NTempest::C3Vector center(rec->m_x, rec->m_y, rec->m_z);
-        float              radius = rec->m_radius * 1.1f;
-        if ((center - pos).SquaredMag() < radius * radius) {
+        if ((NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z) - pos).SquaredMag() <
+            (rec->m_radius * 1.1f) * (rec->m_radius * 1.1f)) {
           goto reset_timer;
         }
       }
@@ -4343,8 +4486,7 @@ int AreaTriggerCheck(const void *eventData, void *arg) {
       FATALASSERT(rec);
 
       if (rec->m_ContinentID == worldId) {
-        NTempest::C3Vector center(rec->m_x, rec->m_y, rec->m_z);
-        if ((center - pos).SquaredMag() < rec->m_radius * rec->m_radius) {
+        if ((NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z) - pos).SquaredMag() < rec->m_radius * rec->m_radius) {
           CDataStore msg;
           msg.Put(static_cast<unsigned int>(CMSG_AREATRIGGER));
           msg.Put(rec->m_ID);
@@ -4942,8 +5084,7 @@ void CGPlayer_C::DelKnownSpell(int spellID) {
   if (spell && spell->m_castUI > SPELL_CAST_UI_NONE) {
     SPELL_CAST_UI_TYPE craftType = static_cast<SPELL_CAST_UI_TYPE>(spell->m_castUI);
     FATALASSERT(craftType < NUM_SPELL_CAST_UI_TYPES);
-    unsigned int count = m_craftSpells[craftType].Count();
-    for (unsigned int index = 0; index < count; ++index) {
+    for (unsigned int index = 0; index < m_craftSpells[craftType].Count(); ++index) {
       if (found) {
         m_craftSpells[craftType][index - 1] = m_craftSpells[craftType][index];
       } else if (m_craftSpells[craftType][index] == spellID) {
@@ -4951,7 +5092,7 @@ void CGPlayer_C::DelKnownSpell(int spellID) {
       }
     }
     if (found) {
-      m_craftSpells[craftType].SetCount(count - 1);
+      m_craftSpells[craftType].SetCount(m_craftSpells[craftType].Count() - 1);
       CGCraftInfo::RefreshList();
     }
   }
@@ -4961,11 +5102,9 @@ void CGPlayer_C::DelKnownSpell(int spellID) {
 }
 
 ITEMEXPIRATION *CGPlayer_C::GetPendingItemExpirationNode(const unsigned __int64 &itemGUID) {
-  CHashKeyGUID    key(itemGUID);
-  unsigned int    hash = static_cast<unsigned int>(itemGUID);
-  ITEMEXPIRATION *itemNode = s_pendingItemExpirations.Ptr(hash, key);
+  ITEMEXPIRATION *itemNode = s_pendingItemExpirations.Ptr(static_cast<unsigned int>(itemGUID), CHashKeyGUID(itemGUID));
   if (!itemNode) {
-    itemNode = s_pendingItemExpirations.New(hash, key, 0, 0);
+    itemNode = s_pendingItemExpirations.New(static_cast<unsigned int>(itemGUID), CHashKeyGUID(itemGUID), 0, 0);
     itemNode->timeLeft = 0;
     memset(itemNode->enchantmentTimeLeft, 0, sizeof(itemNode->enchantmentTimeLeft));
   }
@@ -4979,7 +5118,7 @@ const TSGrowableArray<int> *CGPlayer_C::GetTradeSkills(int skillLine) const {
 }
 
 const TSGrowableArray<int> *CGPlayer_C::GetCraftSkills(SPELL_CAST_UI_TYPE type) const {
-  if (type <= SPELL_CAST_UI_NONE || type >= NUM_SPELL_CAST_UI_TYPES) {
+  if (type == SPELL_CAST_UI_NONE || type >= NUM_SPELL_CAST_UI_TYPES) {
     return 0;
   }
   return &m_craftSpells[type];
@@ -5018,7 +5157,7 @@ int CGPlayer_C::ValidateSlot(unsigned int slotID, unsigned __int64 cursorItem) {
   }
 
   CGItem_C *item = static_cast<CGItem_C *>(object);
-  if (!(object->GetType() & TYPE_ITEM) ||
+  if (!(object->GetType() & TYPE_CONTAINER) ||
       (slotID >= 19 && slotID <= 22) ||
       (slotID >= 63 && slotID <= 68)) {
     return item->CanGoInSlot(slotID);
@@ -5305,9 +5444,7 @@ void CGPlayer_C::UpdateTaxiStatusAll() {
 
 void CGPlayer_C::UpdateBindStatus(CGUnit_C *unit) {
   if (unit->UnitReaction(this) > UNIT_REACTION_HOSTILE && (unit->m_unit->npcFlags & 0x10)) {
-    NTempest::C3Vector position;
-    unit->GetPosition(position);
-    unit->UpdateInteractIcon(DeathBindDistanceCompare(position) ? INTERACTICON_NONE : INTERACTICON_BINDER);
+    unit->UpdateInteractIcon(DeathBindDistanceCompare(unit->GetPosition()) ? INTERACTICON_NONE : INTERACTICON_BINDER);
   }
 }
 
@@ -5360,13 +5497,13 @@ int CGPlayer_C::OnLootResponse(unsigned int eventTime, CDataStore *msg) {
   unsigned __int64 objectGUID;
   CGObject_C      *lootobject;
   unsigned int     coins;
-  unsigned int     accquired = 0;
-  unsigned int     reason = 0;
-  unsigned int     slot = 0;
-  unsigned int     count = 0;
+  unsigned char    accquired;
+  unsigned char    reason;
+  unsigned char    slot;
+  unsigned char    count;
 
   msg->Get(objectGUID);
-  msg->Get(*reinterpret_cast<unsigned char *>(&accquired));
+  msg->Get(accquired);
 
   if ((!m_lootingUnitSent || objectGUID != m_lootingUnitSent) &&
       (m_lootingUnitSent || (accquired != LOOT_ACQUIRE_PICKPOCKET && accquired != LOOT_ACQUIRE_FISHING)))
@@ -5383,7 +5520,7 @@ int CGPlayer_C::OnLootResponse(unsigned int eventTime, CDataStore *msg) {
 
   if (accquired) {
     msg->Get(coins);
-    msg->Get(*reinterpret_cast<unsigned char *>(&count));
+    msg->Get(count);
     if (count > 16) {
       count = 16;
     }
@@ -5394,7 +5531,7 @@ int CGPlayer_C::OnLootResponse(unsigned int eventTime, CDataStore *msg) {
       s_numLootItems = count;
       memset(s_lootItems, 0, sizeof(s_lootItems));
       for (unsigned int index = 0; index < count; ++index) {
-        msg->Get(*reinterpret_cast<unsigned char *>(&slot));
+        msg->Get(slot);
         msg->Get(s_lootItems[slot].m_itemID);
         msg->Get(s_lootItems[slot].m_quantity);
         msg->Get(s_lootItems[slot].m_displayID);
@@ -5406,7 +5543,7 @@ int CGPlayer_C::OnLootResponse(unsigned int eventTime, CDataStore *msg) {
     return 1;
   }
 
-  msg->Get(*reinterpret_cast<unsigned char *>(&reason));
+  msg->Get(reason);
   switch (reason) {
     case 4:
       CGGameUI::DisplayError(GERR_LOOT_TOO_FAR);
@@ -5450,8 +5587,8 @@ unsigned int CGPlayer_C::GetLootItemQuantity(unsigned int slot) {
 }
 
 int CGPlayer_C::OnLootRemoved(CDataStore *msg) {
-  unsigned int slot = 0;
-  msg->Get(*reinterpret_cast<unsigned char *>(&slot));
+  unsigned char slot;
+  msg->Get(slot);
   if (ClntObjMgrObjectPtr(m_lootingUnit, __FILE__, __LINE__)) {
     s_lootItems[slot].m_itemID = 0;
     s_lootItems[slot].m_displayID = 0;
@@ -5502,11 +5639,11 @@ int CGPlayer_C::OnLootItemNotify(CDataStore *msg) {
   char             itemName[64];
   unsigned __int64 player;
   int              displayID;
-  unsigned int     slot = 0;
-  unsigned int     pushed = 0;
+  unsigned char    pushed;
+  unsigned char    slot;
   msg->Get(player);
-  msg->Get(*reinterpret_cast<unsigned char *>(&slot));
-  msg->Get(*reinterpret_cast<unsigned char *>(&pushed));
+  msg->Get(pushed);
+  msg->Get(slot);
   msg->Get(displayID);
   msg->GetString(itemName, 64);
   return 1;
@@ -5514,9 +5651,9 @@ int CGPlayer_C::OnLootItemNotify(CDataStore *msg) {
 
 int CGPlayer_C::OnLootReleaseResponse(CDataStore *msg) {
   unsigned __int64 packGUID;
-  unsigned int     success = 0;
+  unsigned char    success;
   msg->Get(packGUID);
-  msg->Get(*reinterpret_cast<unsigned char *>(&success));
+  msg->Get(success);
   if (success && packGUID == m_lootingUnit) {
     m_lootingUnit = 0;
     if (GetPlayerAnimState() == ANIM_STATE_LOOTBEGIN) {
@@ -5530,7 +5667,7 @@ int CGPlayer_C::OnLootReleaseResponse(CDataStore *msg) {
 
 void CGPlayer_C::LootAnimEndHandler() {
   if (!m_lootingUnit && !(m_unit->flags & 0x400)) {
-    UpdateBaseAnimation(GetPlayerAnimState(), 0);
+    UpdateBaseAnimation(GetAnimationState(), 0);
   }
 }
 
@@ -5752,7 +5889,6 @@ unsigned int Player_C_GetDisplayId(unsigned int race, unsigned int sex) {
 
 void CGPlayer_C::ReadItemResult(NETMESSAGE msgID, CDataStore *msg) {
   unsigned __int64 item;
-  int              delay;
   unsigned int     subcode;
 
   msg->Get(item);
@@ -5773,8 +5909,8 @@ void CGPlayer_C::ReadItemResult(NETMESSAGE msgID, CDataStore *msg) {
 
     case 1:
       CGItemText::SetItem(item, 0);
-      msg->Get(delay);
-      FrameScript_SignalEvent(274, "%f", static_cast<float>(delay) * 0.001f);
+      msg->Get(subcode);
+      FrameScript_SignalEvent(274, "%f", static_cast<float>(subcode) * 0.001f);
       break;
 
     default:
@@ -5993,10 +6129,8 @@ int CGPlayer_C::OnAttackIconPressed() {
     return 0;
   }
 
-  NTempest::C3Vector targetPosition = unit->GetPosition();
-  NTempest::C3Vector position = GetPosition();
-  float              maxRange = g_combatModeMaxDistance->GetFloat();
-  if ((position - targetPosition).SquaredMag() > maxRange * maxRange) {
+  if ((GetPosition() - unit->GetPosition()).SquaredMag() >
+      g_combatModeMaxDistance->GetFloat() * g_combatModeMaxDistance->GetFloat()) {
     CGGameUI::DisplayError(GERR_OUT_OF_RANGE);
     return 0;
   }
@@ -6031,15 +6165,15 @@ void CGPlayer_C::ResetCombatModeTimer(int newCombat) {
 }
 
 unsigned int CGPlayer_C::GetCombatModeTimerInterval() const {
-  FATALASSERT(m_flags & 0x400);
+  FATALASSERT(IsInCombatMode());
   return 500;
 }
 
 void CGPlayer_C::OnTaxiNodeStatus(CDataStore *msg) {
   unsigned __int64 taxiGUID;
-  unsigned int     status = 0;
+  unsigned char    status;
   msg->Get(taxiGUID);
-  msg->Get(*reinterpret_cast<unsigned char *>(&status));
+  msg->Get(status);
 
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(taxiGUID, __FILE__, __LINE__));
   if (unit && (unit->m_unit->npcFlags & 4)) {
@@ -6117,8 +6251,8 @@ unsigned __int64 CGPlayer_C::GetLocalTarget() const {
 }
 
 int CGPlayer_C::DeathBindDistanceCompare(const NTempest::C3Vector &bindStonePosition) {
+  float              bindRadiusCheckSquared = MAX_BIND_DISTANCE * 1.5f;
   NTempest::C3Vector diff = s_bindPosition - bindStonePosition;
-  float              bindRadiusCheckSquared = 10.0f * 1.5f;
   bindRadiusCheckSquared *= bindRadiusCheckSquared;
   return s_bindSaved && ClntObjMgrGetMapID() == s_bindZoneID && diff.SquaredMag() <= bindRadiusCheckSquared;
 }
@@ -6162,8 +6296,7 @@ void CGPlayer_C::PlayVocalMacro(int category) {
 }
 
 static int SoulStoneCompare(const CGItem_C *item, void *__formal) {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
   if (!stats) {
     return 0;
   }
@@ -6427,15 +6560,15 @@ bool CGPlayer_C::IsGiftWrapping() {
 void CGPlayer_C::GiftWrap(CGItem_C *item) {
   CGItem_C *wrapper = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(s_giftWrapItem, __FILE__, __LINE__));
   if (wrapper) {
-    unsigned char wrapperContainerSlot = FindSlotIndex(wrapper->m_item->m_containedIn);
-    unsigned char wrapperSlot = FindItemSlot(wrapper->m_item->m_containedIn, wrapper);
+    unsigned char wrapperItemContainerSlot = FindSlotIndex(wrapper->m_item->m_containedIn);
+    unsigned char wrapperItemSlot = FindItemSlot(wrapper->m_item->m_containedIn, wrapper);
     unsigned char itemContainerSlot = FindSlotIndex(item->m_item->m_containedIn);
     unsigned char itemSlot = FindItemSlot(item->m_item->m_containedIn, item);
 
     CDataStore msg;
     msg.Put(static_cast<unsigned int>(CMSG_WRAP_ITEM));
-    msg.Put(wrapperContainerSlot);
-    msg.Put(wrapperSlot);
+    msg.Put(wrapperItemContainerSlot);
+    msg.Put(wrapperItemSlot);
     msg.Put(itemContainerSlot);
     msg.Put(itemSlot);
     msg.Finalize();
@@ -6511,17 +6644,18 @@ void CGPlayer_C::ToggleFarSight() {
   }
 
   SetCombatMode(0);
-  unsigned __int64 mover = 0;
   if (focus->GetType() & TYPE_UNIT) {
     CGUnit_C         *unit = static_cast<CGUnit_C *>(focus);
     const CGUnitData *unitData = unit->m_unit;
     unsigned __int64  controller = unitData->charmedBy ? unitData->charmedBy : unitData->createdBy;
     if ((unitData->flags & 0x01000000) && controller == GetGUID()) {
-      mover = focus->GetGUID();
+      CGUnit_C::SetActiveMover(focus->GetGUID());
+    } else {
+      CGUnit_C::SetActiveMover(0);
     }
+  } else {
+    CGUnit_C::SetActiveMover(0);
   }
-
-  CGUnit_C::SetActiveMover(mover);
   m_flags |= 0x800;
   CGWorldFrame::GetActive()->SetCameraTarget(focus);
 }
@@ -6674,12 +6808,11 @@ void GuildCharterTurnInCallback(int, const unsigned __int64 &, void *, bool gran
 }
 
 void CGPlayer_C::TurnInGuildCharter() {
-  CGBag_C     *inventory = GetBag();
   CGItem_C    *item = 0;
   unsigned int j;
 
   for (j = 23; j <= 38; ++j) {
-    unsigned __int64 guid = inventory->GetItem(j);
+    unsigned __int64 guid = m_inventory.GetItem(j);
     item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
     if (item && item->IsA(TYPE_ITEM)) {
       const CGPetition *petition = g_petitionCache.GetRecord(item->GetEntryID(), guid, GuildCharterTurnInCallback, 0);
@@ -6696,7 +6829,7 @@ void CGPlayer_C::TurnInGuildCharter() {
   int found = item != 0;
   if (!found) {
     for (j = 19; j <= 22 && !found; ++j) {
-      CGObject_C *container = ClntObjMgrObjectPtr(inventory->GetItem(j), __FILE__, __LINE__);
+      CGObject_C *container = ClntObjMgrObjectPtr(m_inventory.GetItem(j), __FILE__, __LINE__);
       CGBag_C    *bag = container ? container->GetBag() : 0;
       if (!bag) {
         continue;
@@ -6887,7 +7020,7 @@ bool CGPlayer_C::GetAttackSkillRank(int hand, int &base, int &modifier) const {
 }
 
 void CGPlayer_C::CombatLoggingFlagChanged() {
-  UnitDebugCombatLogOnEnable(m_unit->flags & 0x800000);
+  UnitDebugCombatLogOnEnable(m_unit->flags & 0x2000000);
 }
 
 void CGPlayer_C::PlayerFlagsChanged(unsigned char oldFlags) {
@@ -6971,11 +7104,11 @@ void CGPlayer_C::OnBadAttackFacing(unsigned __int64 victim) {
   }
 
   if (!(m_flags & 0x40)) {
-    char buffer[128];
+    char buf[128];
     SStrCopy(
-        buffer,
+        buf,
         FrameScript_GetText("ERR_WRONG_DIRECTION_FOR_ATTACK", -1, GENDER_NOT_APPLICABLE),
-        sizeof(buffer)
+        sizeof(buf)
     );
     CGGameUI::DisplayError(GERR_BADATTACKFACING);
     m_flags |= 0x40;
@@ -6989,11 +7122,11 @@ void CGPlayer_C::OnBadAttackPosition(unsigned __int64 victim, float range) {
   }
 
   if (!(m_flags & 0x80)) {
-    char buffer[128];
+    char buf[128];
     SStrCopy(
-        buffer,
+        buf,
         FrameScript_GetText("ERR_TOO_FAR_TO_ATTACK", -1, GENDER_NOT_APPLICABLE),
-        sizeof(buffer)
+        sizeof(buf)
     );
     CGGameUI::DisplayError(GERR_BADATTACKPOS);
     m_flags |= 0x80;
@@ -7180,7 +7313,6 @@ void CGPlayer_C::SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec
     info->enchantmentVisual = const_cast<ItemVisualsRec *>(rec);
   }
 
-  const int               *visualSlots = rec->m_Slot;
   ATTACHMENTMODELINFO     *modelInfo = info->modelInfo;
   for (int modelIndex = 0; modelIndex < 2; ++modelIndex) {
     int currentLink = modelInfo->currentLink;
@@ -7194,7 +7326,7 @@ void CGPlayer_C::SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec
         continue;
       }
 
-      int visualID = visualSlots[visualIndex];
+      int visualID = rec->m_Slot[visualIndex];
       if (!visualID) {
         continue;
       }

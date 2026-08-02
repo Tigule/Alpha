@@ -216,10 +216,10 @@ namespace NTempest {
   void CRandom::shuffle_(unsigned char *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
-      unsigned char value = buf[i];
+      unsigned char bi = buf[i];
       unsigned long index = dice_(i + 1, seed);
       buf[i] = buf[index];
-      buf[index] = value;
+      buf[index] = bi;
     }
   }
 
@@ -231,10 +231,10 @@ namespace NTempest {
   void CRandom::shuffle_(unsigned short *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
-      unsigned short value = buf[i];
+      unsigned short bi = buf[i];
       unsigned long index = dice_(i + 1, seed);
       buf[i] = buf[index];
-      buf[index] = value;
+      buf[index] = bi;
     }
   }
 
@@ -246,30 +246,30 @@ namespace NTempest {
   void CRandom::shuffle_(unsigned long *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
-      unsigned long value = buf[i];
+      unsigned long bi = buf[i];
       unsigned long index = dice_(i + 1, seed);
       buf[i] = buf[index];
-      buf[index] = value;
+      buf[index] = bi;
     }
   }
 
   void CRandom::shuffle_(float *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
-      float value = buf[i];
+      float bi = buf[i];
       unsigned long index = dice_(i + 1, seed);
       buf[i] = buf[index];
-      buf[index] = value;
+      buf[index] = bi;
     }
   }
 
   void CRandom::shuffle_(double *buf, unsigned long count, CRndSeed &seed) {
     ASSERT(buf);
     for (unsigned long i = 1; i < count; ++i) {
-      double value = buf[i];
+      double bi = buf[i];
       unsigned long index = dice_(i + 1, seed);
       buf[i] = buf[index];
-      buf[index] = value;
+      buf[index] = bi;
     }
   }
 
@@ -277,10 +277,9 @@ namespace NTempest {
     ASSERT((reinterpret_cast<unsigned long>(buf) & 3) == 0);
     CRndSeed seed(seedNumber);
     unsigned long offset = -reinterpret_cast<unsigned long>(buf) & 3;
-    unsigned long count = (size - offset) >> 2;
     buf += offset;
-    for (unsigned long i = 0; i < count; ++i) {
-      buf[i] ^= static_cast<char>(uint32_(seed));
+    for (unsigned long ind = 0; ind < (size - offset) >> 2; ++ind) {
+      buf[ind] ^= static_cast<char>(uint32_(seed));
     }
   }
 
@@ -308,10 +307,10 @@ namespace NTempest {
     return lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
   }
 
-  void CRandom::lattice2_(long x, unsigned long *vertices) {
-    ASSERT(vertices);
-    vertices[0] = lattice_(x);
-    vertices[1] = lattice_(x + 1);
+  void CRandom::lattice2_(long x, unsigned long *vtx) {
+    ASSERT(vtx);
+    vtx[0] = lattice_(x);
+    vtx[1] = lattice_(x + 1);
   }
 
   void CRandom::lattice4_(long x, long y, unsigned long *vertices) {
@@ -334,11 +333,11 @@ namespace NTempest {
     vertices[7] = lattice_(x + 1, y + 1, z + 1);
   }
 
-  void CRandom::lattice3_(long x, unsigned long *vertices) {
-    ASSERT(vertices);
-    vertices[0] = lattice_(x - 1);
-    vertices[1] = lattice_(x);
-    vertices[2] = lattice_(x + 1);
+  void CRandom::lattice3_(long x, unsigned long *vtx) {
+    ASSERT(vtx);
+    vtx[0] = lattice_(x - 1);
+    vtx[1] = lattice_(x);
+    vtx[2] = lattice_(x + 1);
   }
 
   void CRandom::lattice9_(long x, long y, unsigned long *vertices) {
@@ -609,18 +608,18 @@ namespace NTempest {
     return (3.0f - value - value) * value * value;
   }
 
-  float CRandom::turbulence_(double x, double y, double z, C3Vector &derivative, unsigned long) {
-    C3Vector octaveDerivative(0.0f, 0.0f, 0.0f);
-    float value = noise_(x, y, z, derivative);
-    value += noise_(x * 2.0, y * 2.0, z * 2.0, octaveDerivative) * 0.5f;
-    derivative += octaveDerivative;
-    value += noise_(x * 4.0, y * 4.0, z * 4.0, octaveDerivative) * 0.25f;
-    derivative += octaveDerivative;
-    value += noise_(x * 8.0, y * 8.0, z * 8.0, octaveDerivative) * 0.125f;
-    derivative += octaveDerivative;
-    value += noise_(x * 16.0, y * 16.0, z * 16.0, octaveDerivative) * 0.0625f;
-    derivative += octaveDerivative;
-    return value * 0.51612902f;
+  float CRandom::turbulence_(double x, double y, double z, C3Vector &d, unsigned long) {
+    C3Vector td(0.0f, 0.0f, 0.0f);
+    float n = noise_(x, y, z, d);
+    n += noise_(x * 2.0, y * 2.0, z * 2.0, td) * 0.5f;
+    d += td;
+    n += noise_(x * 4.0, y * 4.0, z * 4.0, td) * 0.25f;
+    d += td;
+    n += noise_(x * 8.0, y * 8.0, z * 8.0, td) * 0.125f;
+    d += td;
+    n += noise_(x * 16.0, y * 16.0, z * 16.0, td) * 0.0625f;
+    d += td;
+    return n * 0.51612902f;
   }
 
 }  // namespace NTempest

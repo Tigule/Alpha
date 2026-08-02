@@ -450,7 +450,7 @@ static int Script_IsInGuild(lua_State *L) {
   return 1;
 }
 
-static void NameQueryCallback(int, const unsigned __int64 &guid, void *, bool granted) {
+static void NameQueryCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     CGGameUI::UnitNameUpdate(guid);
   }

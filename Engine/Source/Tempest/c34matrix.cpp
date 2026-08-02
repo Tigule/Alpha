@@ -125,16 +125,16 @@ namespace NTempest {
     );
   }
 
-  C3Vector operator*=(C3Vector &l, const C34Matrix &r) {
-    const float x = l.x;
-    const float y = l.y;
-    const float z = l.z;
+  C3Vector operator*=(C3Vector &v, const C34Matrix &r) {
+    const float x = v.x;
+    const float y = v.y;
+    const float z = v.z;
 
-    l.x = x * r.a0 + y * r.b0 + z * r.c0 + r.d0;
-    l.y = x * r.a1 + y * r.b1 + z * r.c1 + r.d1;
-    l.z = x * r.a2 + y * r.b2 + z * r.c2 + r.d2;
+    v.x = x * r.a0 + y * r.b0 + z * r.c0 + r.d0;
+    v.y = x * r.a1 + y * r.b1 + z * r.c1 + r.d1;
+    v.z = x * r.a2 + y * r.b2 + z * r.c2 + r.d2;
 
-    return l;
+    return v;
   }
 
   C34Matrix operator/(const C34Matrix &l, float a) {
@@ -187,9 +187,9 @@ namespace NTempest {
   }
 
   C34Matrix C34Matrix::AffineInverse(const C3Vector &scale) const {
-    C3Vector inverseScale(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z);
+    C3Vector s(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z);
     C33Matrix rotationScale(a0, a1, a2, b0, b1, b2, c0, c1, c2);
-    rotationScale.Scale(inverseScale);
+    rotationScale.Scale(s);
 
     C34Matrix matrix(
         rotationScale.a0, rotationScale.b0, rotationScale.c0,
@@ -197,7 +197,7 @@ namespace NTempest {
         rotationScale.a2, rotationScale.b2, rotationScale.c2,
         0.0f, 0.0f, 0.0f
     );
-    matrix.Scale(inverseScale);
+    matrix.Scale(s);
     matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
   }

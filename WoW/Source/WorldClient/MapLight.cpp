@@ -130,10 +130,14 @@ CMapLight::~CMapLight() {
 }
 
 void CMapLight::CreatePointAtten() {
-  CStatus     lame;
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
+  CStatus lame;
 
-  s_hPointAttenTex = TextureCreate("Textures\\PointAtten.blp", flags, &lame, 0);
+  s_hPointAttenTex = TextureCreate(
+      "Textures\\PointAtten.blp",
+      CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
+      &lame,
+      0
+  );
 }
 
 void CMapLight::DestroyPointAtten() {
@@ -164,10 +168,10 @@ void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
       FATALASSERT(0);
   }
 
-  unsigned short vertexIndex = batch->GetMinIndex();
-  for (unsigned int i = 0; i < batch->GetVertexCount(); ++i, ++vertexIndex) {
-    vertices[i].p = batch->GetVertex(vertexIndex);
-    vertices[i].n = batch->GetNormal(vertexIndex);
+  unsigned short vidx = batch->GetMinIndex();
+  for (unsigned int i = 0; i < batch->GetVertexCount(); ++i, ++vidx) {
+    vertices[i].p = batch->GetVertex(vidx);
+    vertices[i].n = batch->GetNormal(vidx);
   }
 
   unsigned short *indices = 0;

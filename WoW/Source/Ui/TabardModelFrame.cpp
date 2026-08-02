@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static void GuildCallback(int, const unsigned __int64 &, void *, bool granted);
+static void GuildCallback(int id, const unsigned __int64 &guid, void *, bool granted);
 
 static const unsigned int s_maxVariations[TABARDVARS_NUMVARS] = {42, 4, 2, 4, 19};
 
@@ -45,7 +45,7 @@ static void EmblemTextureUpdate(
   }
 }
 
-static void GuildCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void GuildCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(359);
   }
@@ -98,8 +98,7 @@ void CGTabardModelFrame::InitializeModel(HMODEL model) {
 }
 
 void CGTabardModelFrame::InitializeTabardColors(const CGPlayer_C *playerPtr) {
-  const unsigned __int64 noGuid = 0;
-  const GuildStats_C    *guild = g_guildInfoCache.GetRecord(playerPtr->GetGuildID(), noGuid, GuildCallback, 0);
+  const GuildStats_C *guild = g_guildInfoCache.GetRecord(playerPtr->GetGuildID(), 0, GuildCallback, 0);
   if (guild && guild->m_emblemStyle != -1 && guild->m_emblemColor != -1 && guild->m_borderStyle != -1 && guild->m_borderColor != -1 &&
       guild->m_backgroundColor != -1)
   {
@@ -142,8 +141,7 @@ int CGTabardModelFrame::CanSaveTabard() {
     return 0;
   }
 
-  const unsigned __int64 noGuid = 0;
-  const GuildStats_C    *guild = g_guildInfoCache.GetRecord(player->GetGuildID(), noGuid, GuildCallback, 0);
+  const GuildStats_C *guild = g_guildInfoCache.GetRecord(player->GetGuildID(), 0, GuildCallback, 0);
   return guild && player->GetGuildRank() == 0 && guild->m_emblemStyle == -1 && guild->m_emblemColor == -1 && guild->m_borderStyle == -1 &&
          guild->m_borderColor == -1 && guild->m_backgroundColor == -1;
 }

@@ -66,17 +66,18 @@ int IEvtTimerDispatch(EvtContext *context) {
 unsigned int IEvtTimerGetNextTime(EvtContext *context, DWORD currTime) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
-  unsigned int            result = INFINITE;
 
   FATALASSERT(context);
 
   context->TimerLockIdTableAndQueue(table, queue);
   if (queue->Count()) {
     LONG remaining = static_cast<LONG>((*queue)[0]->targetTime.Get() - currTime);
-    result = remaining < 0 ? 0 : static_cast<DWORD>(remaining);
+    currTime = remaining < 0 ? 0 : static_cast<DWORD>(remaining);
+  } else {
+    currTime = INFINITE;
   }
   context->TimerUnlockIdTableAndQueue();
-  return result;
+  return currTime;
 }
 
 float IEvtTimerGetRemaining(EvtContext *context, unsigned int id) {
@@ -149,7 +150,6 @@ unsigned int IEvtTimerSet(
     void            *guidParam2
 ) {
   LONG                    timeoutMs;
-  DWORD                   targetTime;
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
@@ -161,7 +161,7 @@ unsigned int IEvtTimerSet(
   }
 
   timeoutMs = static_cast<LONG>(timeout * 1000.0f);
-  targetTime = OsGetAsyncTimeMs() + timeoutMs;
+  timeoutMs += OsGetAsyncTimeMs();
   context->TimerLockIdTableAndQueue(table, queue);
   id = table->Alloc();
   timer = (*table)[id];
@@ -169,7 +169,7 @@ unsigned int IEvtTimerSet(
     timer = NEW(EvtTimer);
     (*table)[id] = timer;
   }
-  timer->targetTime.Set(targetTime);
+  timer->targetTime.Set(timeoutMs);
   timer->id = id;
   timer->timeout = timeout;
   timer->handler = handler;
@@ -233,7 +233,6 @@ unsigned int IEvtTimerSetAbsolute(
     void            *guidParam2
 ) {
   DWORD                   currTime;
-  float                   timeout;
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
@@ -245,7 +244,6 @@ unsigned int IEvtTimerSetAbsolute(
   }
 
   currTime = OsGetAsyncTimeMs();
-  timeout = static_cast<float>(static_cast<double>(triggerTime - currTime) * 0.001);
   context->TimerLockIdTableAndQueue(table, queue);
   id = table->Alloc();
   timer = (*table)[id];
@@ -255,7 +253,7 @@ unsigned int IEvtTimerSetAbsolute(
   }
   timer->targetTime.Set(triggerTime);
   timer->id = id;
-  timer->timeout = timeout;
+  timer->timeout = static_cast<float>(static_cast<double>(triggerTime - currTime) * 0.001);
   timer->handler = handler;
   timer->param = param;
   timer->guidHandler = guidHandler;

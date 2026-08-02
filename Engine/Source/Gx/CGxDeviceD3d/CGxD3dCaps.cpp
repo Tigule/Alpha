@@ -7,12 +7,12 @@ void CGxDeviceD3d::CapsWindowSize(NTempest::CRect &dst) {
 void CGxDeviceD3d::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
   if (IDevIsWindowed()) {
     const NTempest::CRect &windowRect = DeviceCurWindow();
-    RECT                   window = {0, 0, static_cast<LONG>(windowRect.r), static_cast<LONG>(windowRect.b)};
-    MapWindowPoints(m_hwnd, 0, reinterpret_cast<LPPOINT>(&window), 2);
-    dst.t = static_cast<float>(window.top);
-    dst.l = static_cast<float>(window.left);
-    dst.b = static_cast<float>(window.bottom);
-    dst.r = static_cast<float>(window.right);
+    RECT                   wrect = {0, 0, static_cast<LONG>(windowRect.r), static_cast<LONG>(windowRect.b)};
+    MapWindowPoints(m_hwnd, 0, reinterpret_cast<LPPOINT>(&wrect), 2);
+    dst.t = static_cast<float>(wrect.top);
+    dst.l = static_cast<float>(wrect.left);
+    dst.b = static_cast<float>(wrect.bottom);
+    dst.r = static_cast<float>(wrect.right);
   } else {
     dst = DeviceCurWindow();
   }

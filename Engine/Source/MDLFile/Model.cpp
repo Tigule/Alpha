@@ -255,23 +255,23 @@ int WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLSt
 }
 
 int ReadBinModelGlobals(
-    CMsgBuffer &buffer,
-    unsigned int length,
+    CMsgBuffer &buf,
+    unsigned int len,
     MDLDATA &data,
     CMDLStatus *status
 ) {
   FATALASSERT(status);
-  if (length != 373) {
+  if (len != 373) {
     status->Add(STATUS_ERROR, "Invalid MODL section detected in model.\n");
     return 0;
   }
-  buffer.GetTcharArray(data.model.name, 80);
-  buffer.GetTcharArray(data.model.animationFile, 260);
-  data.model.bounds.radius = buffer.GetFloat();
-  buffer.GetFloatArray(&data.model.bounds.extent.b.x, 3);
-  buffer.GetFloatArray(&data.model.bounds.extent.t.x, 3);
-  data.model.flags = buffer.GetByte();
-  data.objects.ReserveSpace(buffer.GetUint());
+  buf.GetTcharArray(data.model.name, 80);
+  buf.GetTcharArray(data.model.animationFile, 260);
+  data.model.bounds.radius = buf.GetFloat();
+  buf.GetFloatArray(&data.model.bounds.extent.b.x, 3);
+  buf.GetFloatArray(&data.model.bounds.extent.t.x, 3);
+  data.model.flags = buf.GetByte();
+  data.objects.ReserveSpace(buf.GetUint());
   return 1;
 }
 

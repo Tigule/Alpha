@@ -944,12 +944,12 @@ void TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperH
   CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentptr);
 
-  unsigned int upperWidth;
-  unsigned int upperHeight;
-  unsigned int lowerWidth;
-  unsigned int lowerHeight;
-  if (!CompUtilGetSectionDimensions(TCS_UPPERHEAD, &upperWidth, &upperHeight) ||
-      !CompUtilGetSectionDimensions(TCS_LOWERHEAD, &lowerWidth, &lowerHeight))
+  unsigned int uWidth;
+  unsigned int uHeight;
+  unsigned int lWidth;
+  unsigned int lHeight;
+  if (!CompUtilGetSectionDimensions(TCS_UPPERHEAD, &uWidth, &uHeight) ||
+      !CompUtilGetSectionDimensions(TCS_LOWERHEAD, &lWidth, &lHeight))
   {
     return;
   }
@@ -960,15 +960,15 @@ void TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperH
     componentptr->SetLowerHeadTexture(lowerHead);
   } else if (layer == TEXLAYER_CLOTH || layer == TEXLAYER_ARMOR) {
     if (!upperHead || !*upperHead) {
-      componentptr->SetTexture(&status, 0, componentptr->m_upperFaceTexture, TCS_UPPERHEAD, TEXLAYER_SKIN, LAYERPRIORITY_0, upperWidth, upperHeight);
+      componentptr->SetTexture(&status, 0, componentptr->m_upperFaceTexture, TCS_UPPERHEAD, TEXLAYER_SKIN, LAYERPRIORITY_0, uWidth, uHeight);
     }
     if (!lowerHead || !*lowerHead) {
-      componentptr->SetTexture(&status, 0, componentptr->m_lowerFaceTexture, TCS_LOWERHEAD, TEXLAYER_SKIN, LAYERPRIORITY_0, lowerWidth, lowerHeight);
+      componentptr->SetTexture(&status, 0, componentptr->m_lowerFaceTexture, TCS_LOWERHEAD, TEXLAYER_SKIN, LAYERPRIORITY_0, lWidth, lHeight);
     }
   }
 
-  componentptr->SetTexture(&status, 0, upperHead, TCS_UPPERHEAD, static_cast<TEXCOMPONENT_LAYERS>(layer), LAYERPRIORITY_3, upperWidth, upperHeight);
-  componentptr->SetTexture(&status, 0, lowerHead, TCS_LOWERHEAD, static_cast<TEXCOMPONENT_LAYERS>(layer), LAYERPRIORITY_3, lowerWidth, lowerHeight);
+  componentptr->SetTexture(&status, 0, upperHead, TCS_UPPERHEAD, static_cast<TEXCOMPONENT_LAYERS>(layer), LAYERPRIORITY_3, uWidth, uHeight);
+  componentptr->SetTexture(&status, 0, lowerHead, TCS_LOWERHEAD, static_cast<TEXCOMPONENT_LAYERS>(layer), LAYERPRIORITY_3, lWidth, lHeight);
 }
 
 void CTexComponent::SetUpperHeadTexture(const char *upperHead) {
@@ -1086,9 +1086,9 @@ DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, unsigned int numSubC
 
   unsigned int i;
   for (i = 0; i < numSubComponents; ++i) {
-    char modelBuffer[MAX_PATH];
-    CompDecorateObjName(subComponents[i].pathName, modelBuffer, sizeof(modelBuffer), race, sex);
-    UpdateSubComponentPathNames(&subComponents[i], modelBuffer);
+    char mBuffer[MAX_PATH];
+    CompDecorateObjName(subComponents[i].pathName, mBuffer, sizeof(mBuffer), race, sex);
+    UpdateSubComponentPathNames(&subComponents[i], mBuffer);
   }
 }
 

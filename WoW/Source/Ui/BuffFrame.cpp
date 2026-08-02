@@ -67,7 +67,13 @@ class CGBuffBar {
 CGBuffDesc   CGBuffBar::m_buffs[56];
 unsigned int CGBuffBar::m_durations[56];
 
-static int AuraUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int AuraUpdateHandler(
+    unsigned __int64,
+    unsigned int offset,
+    unsigned int bytes,
+    const void *,
+    void *
+) {
   CGBuffBar::UpdateBuffs();
   return 1;
 }
@@ -96,24 +102,25 @@ void CGBuffBar::LeaveWorld() {
 }
 
 void CGBuffBar::UpdateBuffs() {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(
+      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)
+  );
   if (!player) {
     return;
   }
 
-  const CGUnitData *unitData = player->GetUnitData();
   unsigned int      desc = 0;
   while (desc < 56 && m_buffs[desc].m_auraSpell > 0) {
-    int       spellID = m_buffs[desc].m_auraSpell;
-    const SpellRec *spell = g_spellDB.GetRecord(spellID);
+    int             id = m_buffs[desc].m_auraSpell;
+    const SpellRec *spell = g_spellDB.GetRecord(id);
     if (spell && (static_cast<signed char>(spell->m_attributes) < 0 || (spell->m_attributesEx & 0x10000000))) {
       continue;
     }
 
     int aura;
     for (aura = 0; aura < 56; ++aura) {
-      unsigned int flags = (unitData->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
-      if (unitData->auras[aura] == spellID && (flags & 0xE)) {
+      unsigned int flags = (player->GetUnitData()->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
+      if (player->GetUnitData()->auras[aura] == id && (flags & 0xE)) {
         m_buffs[desc].SetAuraIndex(aura, player);
         ++desc;
         break;
@@ -126,8 +133,8 @@ void CGBuffBar::UpdateBuffs() {
   }
 
   for (int aura = 0; aura < 56; ++aura) {
-    int          spellID = unitData->auras[aura];
-    unsigned int flags = (unitData->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
+    int          spellID = player->GetUnitData()->auras[aura];
+    unsigned int flags = (player->GetUnitData()->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
     const SpellRec    *spell = g_spellDB.GetRecord(spellID);
     if (spellID <= 0 || !(flags & 0xE) ||
         (spell && (static_cast<signed char>(spell->m_attributes) < 0 || (spell->m_attributesEx & 0x10000000)))) {

@@ -55,24 +55,23 @@ int WritePivotPoints(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLSta
   return 1;
 }
 
-int WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+int WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   if (data.pivotPoints.Count()) {
-    buffer.AddDword('TVIP');
-    buffer.AddUint(12 * data.pivotPoints.Count());
-    buffer.AddFloatArray(&data.pivotPoints.Ptr()->x, 3 * data.pivotPoints.Count());
+    buf.AddDword('TVIP');
+    buf.AddUint(12 * data.pivotPoints.Count());
+    buf.AddFloatArray(&data.pivotPoints.Ptr()->x, 3 * data.pivotPoints.Count());
   }
   return 1;
 }
 
 int ReadBinPivotPoints(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
 ) {
-  unsigned int count = length / 12;
   data.pivotPoints.SetCount(0);
-  data.pivotPoints.ReserveSpace(count);
+  data.pivotPoints.ReserveSpace(length / 12);
 
   unsigned int totalRead = 0;
   while (totalRead < length) {
@@ -81,7 +80,7 @@ int ReadBinPivotPoints(
       status->FatalFlunked("Pivot", -1);
       return 0;
     }
-    buffer.GetFloatArray(&pivot->x, 3);
+    buf.GetFloatArray(&pivot->x, 3);
     totalRead += 12;
     if (totalRead > length) {
       status->FatalOverran("Pivot", -1);

@@ -299,10 +299,10 @@ ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichCom
   subComp->pathName = SStrDupA(modelName, __FILE__, __LINE__);
   const char *textureName = displayInfoRec->m_modelTexture[whichComponent];
   if (textureName && *textureName) {
-    char alternate[MAX_PATH];
+    char buffer[MAX_PATH];
     if (TextureDiscoverFileType(textureName) == TEXFILETYPE_TGA) {
-      TexturePickAlternateFilename(textureName, TEXFILETYPE_TGA, alternate, sizeof(alternate));
-      textureName = alternate;
+      TexturePickAlternateFilename(textureName, TEXFILETYPE_TGA, buffer, sizeof(buffer));
+      textureName = buffer;
     }
     subComp->textureName = SStrDupA(textureName, __FILE__, __LINE__);
   }

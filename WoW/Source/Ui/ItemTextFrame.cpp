@@ -40,11 +40,10 @@ void CGItemText::EnterWorld() {
 }
 
 void CGItemText::LeaveWorld() {
-  const unsigned __int64 noItem = 0;
-  SetItem(noItem, 0);
+  SetItem(0, 0);
 }
 
-void CGItemText::ItemTextCallback(int, const unsigned __int64 &guid, void *, bool granted) {
+void CGItemText::ItemTextCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
   if (granted && m_itemGUID == guid) {
     SetItem(guid, 1);
   }
@@ -103,12 +102,11 @@ void CGItemText::SetItem(const unsigned __int64 &item, int callback) {
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    unsigned __int64 containerGUID = itemObject->GetContainedIn();
-    CGObject_C      *container = ClntObjMgrObjectPtr(containerGUID, __FILE__, __LINE__);
+    CGObject_C *container = ClntObjMgrObjectPtr(itemObject->GetContainedIn(), __FILE__, __LINE__);
     if (container) {
       int slot = container->GetBag()->GetIndexOfObject(item);
       if (slot >= 0) {
-        player->ReadItem(containerGUID, static_cast<unsigned char>(slot));
+        player->ReadItem(itemObject->GetContainedIn(), static_cast<unsigned char>(slot));
       }
     }
   }
@@ -143,8 +141,7 @@ void CGItemText::DisplayText(const unsigned __int64 &item, int useSkill) {
       return;
     }
 
-    const unsigned __int64 noGuid = 0;
-    const ItemStats_C     *stats = g_itemDBCache.GetRecord(*object->GetData(3), noGuid, 0, 0);
+    const ItemStats_C *stats = g_itemDBCache.GetRecord(*object->GetData(3), 0, 0, 0);
     FATALASSERT(stats);
     language = stats->m_languageID;
   } else if (object->GetType() & TYPE_GAMEOBJECT) {
@@ -191,8 +188,7 @@ static int Script_ItemTextGetMaterial(lua_State *L) {
   int         material = 0;
   if (object) {
     if (object->GetType() & TYPE_ITEM) {
-      const unsigned __int64 noGuid = 0;
-      const ItemStats_C     *stats = g_itemDBCache.GetRecord(object->GetEntryID(), noGuid, 0, 0);
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(object->GetEntryID(), 0, 0, 0);
       if (stats) {
         material = stats->m_pageMaterial;
       }
@@ -236,8 +232,7 @@ static int Script_ItemTextNextPage(lua_State *L) {
 }
 
 static int Script_CloseItemText(lua_State *__formal) {
-  const unsigned __int64 noItem = 0;
-  CGItemText::SetItem(noItem, 0);
+  CGItemText::SetItem(0, 0);
   return 0;
 }
 

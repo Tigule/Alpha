@@ -24,21 +24,21 @@ void CPlaneParticleEmitter::CreateParticle(CParticle2 &p, float elapsedTime, con
       NTempest::C3Vector(NTempest::CRandom::reals_(m_randSeed) * m_width * 0.5f, NTempest::CRandom::reals_(m_randSeed) * m_height * 0.5f, 0.0f);
 
   float              speed = CalcVelocity();
-  NTempest::C3Vector zsvel;
+  NTempest::C4Vector vel(0.0f, 0.0f, speed, 0.0f);
   if (m_particleZsource == 0.0f) {
-    float rotY = NTempest::CRandom::reals_(m_randSeed) * m_latitude;
+    elapsedTime = NTempest::CRandom::reals_(m_randSeed) * m_latitude;
     float rotZ = NTempest::CRandom::reals_(m_randSeed) * m_longitude;
-    float radial = sin(rotY) * speed;
-    zsvel = NTempest::C3Vector(cos(rotZ) * radial, sin(rotZ) * radial, cos(rotY) * speed);
+    float radial = sin(elapsedTime) * speed;
+    vel = NTempest::C4Vector(cos(rotZ) * radial, sin(rotZ) * radial, cos(elapsedTime) * speed, 0.0f);
   } else {
-    zsvel = NTempest::C3Vector(p.m_position.x, p.m_position.y, p.m_position.z - m_particleZsource);
+    NTempest::C3Vector zsvel(p.m_position.x, p.m_position.y, p.m_position.z - m_particleZsource);
     zsvel *= speed / NTempest::CMath::sqrt_(zsvel.SquaredMag());
+    vel = NTempest::C4Vector(zsvel.x, zsvel.y, zsvel.z, 0.0f);
   }
 
   if (m_useModelSpace) {
-    p.m_velocity = zsvel;
+    p.m_velocity = NTempest::C3Vector(vel.x, vel.y, vel.z);
   } else {
-    NTempest::C4Vector vel(zsvel.x, zsvel.y, zsvel.z, 0.0f);
     p.m_velocity.x = vel.x * basis.a0 + vel.y * basis.b0 + vel.z * basis.c0;
     p.m_velocity.y = vel.x * basis.a1 + vel.y * basis.b1 + vel.z * basis.c1;
     p.m_velocity.z = vel.x * basis.a2 + vel.y * basis.b2 + vel.z * basis.c2;
@@ -105,19 +105,19 @@ void CSphereParticleEmitter::CreateParticle(CParticle2 &p, float elapsedTime, co
   NTempest::C3Vector cart(cos(rho) * planar, sin(rho) * planar, sin(theta));
   p.m_position = cart * radius;
 
-  NTempest::C3Vector zsvel = cart;
+  NTempest::C4Vector vel(cart.x, cart.y, cart.z, 0.0f);
   if (m_particleZsource != 0.0f) {
-    zsvel = NTempest::C3Vector(p.m_position.x, p.m_position.y, p.m_position.z - m_particleZsource);
+    NTempest::C3Vector zsvel(p.m_position.x, p.m_position.y, p.m_position.z - m_particleZsource);
     zsvel *= 1.0f / NTempest::CMath::sqrt_(zsvel.SquaredMag());
+    vel = NTempest::C4Vector(zsvel.x, zsvel.y, zsvel.z, 0.0f);
   } else if (m_zvelOnly) {
-    zsvel = NTempest::C3Vector(0.0f, 0.0f, 1.0f);
+    vel = NTempest::C4Vector(0.0f, 0.0f, 1.0f, 0.0f);
   }
 
-  zsvel *= CalcVelocity();
+  vel *= CalcVelocity();
   if (m_useModelSpace) {
-    p.m_velocity = zsvel;
+    p.m_velocity = NTempest::C3Vector(vel.x, vel.y, vel.z);
   } else {
-    NTempest::C4Vector vel(zsvel.x, zsvel.y, zsvel.z, 0.0f);
     p.m_velocity.x = vel.x * basis.a0 + vel.y * basis.b0 + vel.z * basis.c0;
     p.m_velocity.y = vel.x * basis.a1 + vel.y * basis.b1 + vel.z * basis.c1;
     p.m_velocity.z = vel.x * basis.a2 + vel.y * basis.b2 + vel.z * basis.c2;
@@ -191,27 +191,26 @@ void CSplineParticleEmitter::CreateParticle(CParticle2 &p, float elapsedTime, co
   m_spline.Pos(t, p.m_position, NTempest::C3Spline::EVAL_ARCLENGTH);
 
   float              speed = CalcVelocity();
-  NTempest::C3Vector zsvel(0.0f, 0.0f, speed);
+  NTempest::C4Vector vel(0.0f, 0.0f, speed, 0.0f);
   if (m_particleZsource != 0.0f) {
-    zsvel = NTempest::C3Vector(p.m_position.x, p.m_position.y, p.m_position.z - m_particleZsource);
+    NTempest::C3Vector zsvel(p.m_position.x, p.m_position.y, p.m_position.z - m_particleZsource);
     zsvel *= speed / NTempest::CMath::sqrt_(zsvel.SquaredMag());
+    vel = NTempest::C4Vector(zsvel.x, zsvel.y, zsvel.z, 0.0f);
   } else if (m_latitude != 0.0f) {
     NTempest::C3Vector tangent;
     m_spline.Vel(t, tangent, NTempest::C3Spline::EVAL_ARCLENGTH);
     tangent.Normalize();
-    float               angle = NTempest::CRandom::reals_(m_randSeed) * m_latitude;
-    NTempest::C33Matrix rotation = NTempest::C33Matrix::Rotation(angle, tangent, true);
-    NTempest::C3Vector  posVector(rotation.c0, rotation.c1, rotation.c2);
-    zsvel = posVector * speed;
+    float              angle = NTempest::CRandom::reals_(m_randSeed) * m_latitude;
+    NTempest::C3Vector posVector = NTempest::C33Matrix::Rotation(angle, tangent, true).Row2();
+    vel = NTempest::C4Vector(posVector.x * speed, posVector.y * speed, posVector.z * speed, 0.0f);
     if (m_radius != 0.0f) {
       p.m_position += posVector * (NTempest::CRandom::real_(m_randSeed) * m_radius);
     }
   }
 
   if (m_useModelSpace) {
-    p.m_velocity = zsvel;
+    p.m_velocity = NTempest::C3Vector(vel.x, vel.y, vel.z);
   } else {
-    NTempest::C4Vector vel(zsvel.x, zsvel.y, zsvel.z, 0.0f);
     p.m_velocity.x = vel.x * basis.a0 + vel.y * basis.b0 + vel.z * basis.c0;
     p.m_velocity.y = vel.x * basis.a1 + vel.y * basis.b1 + vel.z * basis.c1;
     p.m_velocity.z = vel.x * basis.a2 + vel.y * basis.b2 + vel.z * basis.c2;

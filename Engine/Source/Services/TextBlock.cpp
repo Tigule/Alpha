@@ -135,8 +135,6 @@ HTEXTBLOCK TextBlockCreate(
   TEXTBLOCK         *textPtr;
   NTempest::C3Vector position;
   unsigned int       gxFlags = 0;
-  EGxFontHJusts      horzJustification = GxHJ_Center;
-  EGxFontVJusts      vertJustification = GxVJ_Middle;
 
   FATALASSERT(font);
 
@@ -184,25 +182,11 @@ HTEXTBLOCK TextBlockCreate(
     gxFlags |= 0x800;
   }
 
-  if (flags & 0x4) {
-    horzJustification = GxHJ_Right;
-  } else if (flags & 0x2) {
-    horzJustification = GxHJ_Center;
-  } else if (flags & 0x1) {
-    horzJustification = GxHJ_Left;
-  }
-
-  if (flags & 0x8) {
-    vertJustification = GxVJ_Top;
-  } else if (flags & 0x20) {
-    vertJustification = GxVJ_Bottom;
-  } else if (flags & 0x10) {
-    vertJustification = GxVJ_Middle;
-  }
-
   GxuFontCreateString(
       reinterpret_cast<FONTHASHOBJ *>(font)->font, text, fontHeight, position, blockWidth, blockHeight, lineSpacing, textPtr->string,
-      vertJustification, horzJustification, gxFlags, color, charSpacing
+      flags & 0x8 ? GxVJ_Top : flags & 0x20 ? GxVJ_Bottom : GxVJ_Middle,
+      flags & 0x4 ? GxHJ_Right : flags & 0x2 ? GxHJ_Center : flags & 0x1 ? GxHJ_Left : GxHJ_Center,
+      gxFlags, color, charSpacing
   );
 
   return reinterpret_cast<HTEXTBLOCK>(HandleCreate(textPtr, "HTEXTBLOCK"));

@@ -51,11 +51,8 @@ static int PingSound(const char *command, const char *arguments) {
 
     CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
     if (object) {
-      NTempest::C3Vector position = object->GetPosition();
-
-      s_pingPosition.x = position.x;
-      s_pingPosition.y = position.y;
-      s_pingPosition.z = position.z + 2.0f;
+      s_pingPosition = object->GetPosition();
+      s_pingPosition.z += 2.0f;
     } else {
       Sound::GetListenerPosition(s_pingPosition);
     }

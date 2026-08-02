@@ -199,13 +199,13 @@ static int ApplyObjectLookAtType(HANIM anim, unsigned int objectId, const NTempe
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
-  unsigned int sharedObjectId = shared->objectOrder[objectId];
-  if (sharedObjectId == static_cast<unsigned int>(-1)) {
+  objectId = shared->objectOrder[objectId];
+  if (objectId == static_cast<unsigned int>(-1)) {
     return 0;
   }
-  ASSERT(sharedObjectId < unique->status.Count());
+  ASSERT(objectId < unique->status.Count());
 
-  CAnimObjStatus *status = unique->status[sharedObjectId];
+  CAnimObjStatus *status = unique->status[objectId];
   if (status->base.flags & lookAtTypeFlag) {
     unique->lookAtTarget[status->lookAtId] = target;
     return 1;
@@ -222,7 +222,7 @@ static int ApplyObjectLookAtType(HANIM anim, unsigned int objectId, const NTempe
 
   status->base.flags |= lookAtTypeFlag | 4;
   if ((unique->flags & 0x10) && (lookAtTypeFlag & 2)) {
-    unique->blendStatus[sharedObjectId].blendTimer = shared->seq[status->base.currSeq].blendTime;
+    unique->blendStatus[objectId].blendTimer = shared->seq[status->base.currSeq].blendTime;
   }
   return 1;
 }
@@ -234,30 +234,33 @@ static int RemoveObjectLookAtType(HANIM anim, unsigned int objectId, unsigned in
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
-  unsigned int sharedObjectId = shared->objectOrder[objectId];
-  if (sharedObjectId == static_cast<unsigned int>(-1)) {
+  objectId = shared->objectOrder[objectId];
+  if (objectId == static_cast<unsigned int>(-1)) {
     return 0;
   }
-  ASSERT(sharedObjectId < unique->status.Count());
+  ASSERT(objectId < unique->status.Count());
 
-  CAnimObjStatus *status = unique->status[sharedObjectId];
+  CAnimObjStatus *status = unique->status[objectId];
   if (status->base.flags & lookAtTypeFlag) {
     unsigned int lookAtId = status->lookAtId;
     status->base.flags = (status->base.flags & ~lookAtTypeFlag) | 4;
 
-    unsigned int newCount = unique->lookAtTarget.Count() - 1;
-    if (lookAtId < newCount) {
-      memmove(&unique->lookAtTarget[lookAtId], &unique->lookAtTarget[lookAtId + 1], (newCount - lookAtId) * sizeof(NTempest::C3Vector));
+    if (lookAtId < unique->lookAtTarget.Count() - 1) {
+      memmove(
+          &unique->lookAtTarget[lookAtId],
+          &unique->lookAtTarget[lookAtId + 1],
+          (unique->lookAtTarget.Count() - 1 - lookAtId) * sizeof(NTempest::C3Vector)
+      );
       for (unsigned int i = 0; i < unique->status.Count(); ++i) {
         if (unique->status[i]->lookAtId > lookAtId) {
           --unique->status[i]->lookAtId;
         }
       }
     }
-    unique->lookAtTarget.SetCount(newCount);
+    unique->lookAtTarget.SetCount(unique->lookAtTarget.Count() - 1);
 
     if ((unique->flags & 0x10) && (lookAtTypeFlag & 2)) {
-      unique->blendStatus[sharedObjectId].blendTimer = shared->seq[status->base.currSeq].blendTime;
+      unique->blendStatus[objectId].blendTimer = shared->seq[status->base.currSeq].blendTime;
     }
   }
   return 1;
@@ -501,8 +504,7 @@ void AnimSetSequenceOrdering(HANIM anim, const char **sequenceNames, unsigned in
   ASSERT(shared);
   ASSERT(sequenceNames);
 
-  unsigned char index;
-  for (index = 0; index < shared->seqOrder.Count(); ++index) {
+  for (unsigned char index = 0; index < shared->seqOrder.Count(); ++index) {
     if (shared->seqOrder[index].nameListUsed == sequenceNames) {
       unique->seqMapIndex = index;
       SetSeqFrequencies(shared->seqOrder[index].order, &shared->seq);
@@ -732,12 +734,12 @@ float AnimGetPrimarySequenceCompletion(HANIM anim) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
   CAnimSequence &sequence = shared->seq[unique->primarySeq];
-  int            duration = sequence.time.h - sequence.time.l;
-  if (!duration) {
+  if (sequence.time.h == sequence.time.l) {
     return 0.0f;
   }
 
-  float completion = static_cast<float>(unique->seq[unique->primarySeq].elapsed - sequence.time.l) / static_cast<float>(duration);
+  float completion = static_cast<float>(unique->seq[unique->primarySeq].elapsed - sequence.time.l) /
+                     static_cast<float>(sequence.time.h - sequence.time.l);
   if (completion < 0.0f) {
     return 0.0f;
   }

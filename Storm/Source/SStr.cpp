@@ -200,16 +200,9 @@ static inline double SStrParseDecimalDouble(LPCSTR string) {
   DWORD       digit;
   int         exponent;
   int         tableOffset;
-  int         negative;
 
   CheckInitialized();
   scan = string;
-  negative = FALSE;
-
-  if (*scan == '-') {
-    negative = TRUE;
-    scan++;
-  }
 
   result = SStrParseIntegerDouble(&scan);
 
@@ -239,7 +232,7 @@ static inline double SStrParseDecimalDouble(LPCSTR string) {
     result *= pow(10.0, SStrToInt(scan));
   }
 
-  return negative ? -result : result;
+  return result;
 }
 
 const char *SStrChr(const char *string, char ch) {
@@ -472,15 +465,39 @@ DWORD __cdecl SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, char *argli
 }
 
 double APIENTRY SStrToDouble(LPCSTR string) {
+  int    negative;
+  double result;
+
   FATALASSERT(string);
 
-  return SStrParseDecimalDouble(string);
+  negative = *string == '-';
+  if (negative) {
+    string++;
+  }
+
+  result = SStrParseDecimalDouble(string);
+  if (negative) {
+    result = -result;
+  }
+  return result;
 }
 
 float APIENTRY SStrToFloat(LPCSTR string) {
+  int    negative;
+  double result;
+
   FATALASSERT(string);
 
-  return (float)SStrParseDecimalDouble(string);
+  negative = *string == '-';
+  if (negative) {
+    string++;
+  }
+
+  result = SStrParseDecimalDouble(string);
+  if (negative) {
+    result = -result;
+  }
+  return (float)result;
 }
 
 static inline int SStrParseInt(LPCSTR string) {
@@ -521,7 +538,7 @@ static inline unsigned __int64 SStrParseUnsigned64(LPCSTR *string) {
   unsigned __int64 result;
   DWORD            chunk;
   DWORD            digit;
-  DWORD            multiplier;
+  unsigned __int64 multiplier;
 
   source = *string;
   result = 0;
@@ -534,7 +551,7 @@ static inline unsigned __int64 SStrParseUnsigned64(LPCSTR *string) {
       chunk = chunk * 10 + digit;
       source++;
       if (chunk >= 0x19999999) {
-        multiplier = (DWORD)(pow(10.0, source - chunkStart) + 0.5);
+        multiplier = (unsigned __int64)(pow(10.0, source - chunkStart) + 0.5);
         result = result * multiplier + chunk;
         chunk = 0;
         chunkStart = source;
@@ -546,7 +563,7 @@ static inline unsigned __int64 SStrParseUnsigned64(LPCSTR *string) {
   }
 
   if (result != 0) {
-    multiplier = (DWORD)(pow(10.0, source - chunkStart) + 0.5);
+    multiplier = (unsigned __int64)(pow(10.0, source - chunkStart) + 0.5);
     result = result * multiplier + chunk;
   } else {
     result = chunk;
@@ -557,22 +574,21 @@ static inline unsigned __int64 SStrParseUnsigned64(LPCSTR *string) {
 }
 
 __int64 APIENTRY SStrToInt64(LPCSTR string) {
-  unsigned __int64 result;
-  int              negative;
+  __int64 result;
+  int     negative;
 
   FATALASSERT(string);
 
-  result = 0;
-  negative = FALSE;
-
-  if (*string == '-') {
-    negative = TRUE;
+  negative = *string == '-';
+  if (negative) {
     string++;
   }
 
   result = SStrParseUnsigned64(&string);
-
-  return (__int64)(negative ? (0 - result) : result);
+  if (negative) {
+    result = -result;
+  }
+  return result;
 }
 
 unsigned int APIENTRY SStrToUnsigned(LPCSTR string) {
@@ -764,11 +780,15 @@ __int64 APIENTRY SStrHash64(LPCSTR string, DWORD flags, __int64 seed) {
   return result;
 }
 
-static DWORD bjhash(unsigned char *k, DWORD length, DWORD initval) {
-  DWORD a = 0x9E3779B9;
-  DWORD b = 0x9E3779B9;
-  DWORD c = initval;
-  DWORD len = length;
+static DWORD __fastcall bjhash(unsigned char *k, DWORD length, DWORD initval) {
+  register DWORD a;
+  register DWORD b;
+  register DWORD c;
+  register DWORD len;
+
+  len = length;
+  a = b = 0x9E3779B9;
+  c = initval;
 
 #define BJ_MIX(a_, b_, c_) \
   do {                     \

@@ -189,10 +189,9 @@ int __stdcall SoundFileCache::Read(void *buffer, int size, unsigned int handle) 
 
   while (size) {
     blockStartOffset = object->instances[instanceNumber].currentOffset & ~(CACHE_BLOCK_SIZE - 1);
-    unsigned int cacheBlockOffset = bigFile ? 0 : blockStartOffset;
-    hashKey = (static_cast<__int64>(object->hash) << 32) | cacheBlockOffset;
+    hashKey = (static_cast<__int64>(object->hash) << 32) | (bigFile ? 0 : blockStartOffset);
 
-    SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCache.Ptr(cacheBlockOffset, HASHKEY_LONGLONG(hashKey));
+    SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCache.Ptr(bigFile ? 0 : blockStartOffset, HASHKEY_LONGLONG(hashKey));
     needToRead = cacheBlock == 0;
     if (!cacheBlock) {
       cacheBlock = AllocCacheBlock(hashKey);

@@ -543,14 +543,13 @@ static bool CheckJongsung(const unsigned short *text, int position) {
 
 const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const CSimpleFontString &rhs) {
   unsigned int        fontFlags = rhs.m_font ? TextBlockGetFontFlags(rhs.m_font) : 0;
-  float               fontHeight = rhs.m_fontHeight;
   const char         *fontName = rhs.m_font ? TextBlockGetFontName(rhs.m_font) : 0;
   NTempest::CImVector color(0ul);
   NTempest::CImVector shadowColor;
-  NTempest::C2Vector  shadowOffset(0.0f);
+  NTempest::C2Vector  offset(0.0f);
 
   m_font = fontName;
-  m_fontHeight = fontHeight;
+  m_fontHeight = rhs.m_fontHeight;
   m_fontFlags = fontFlags;
   m_flags |= FLAG_FONT_UPDATE;
 
@@ -564,10 +563,10 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
   shadowColor = color;
   if (rhs.m_styleFlags & 0x100) {
     shadowColor = rhs.m_shadowColor;
-    shadowOffset = rhs.m_shadowOffset;
+    offset = rhs.m_shadowOffset;
   }
   m_shadowColor = shadowColor;
-  m_shadowOffset = shadowOffset;
+  m_shadowOffset = offset;
   m_flags |= FLAG_SHADOW_UPDATE;
 
   m_spacing = rhs.m_spacing;
@@ -576,11 +575,8 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
 }
 
 const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const CSimpleFontStringAttributes &rhs) {
-  const char *font = m_font;
-  const char *attribFont = rhs.m_font;
-
-  if (font != attribFont || m_fontHeight != rhs.m_fontHeight || m_fontFlags != rhs.m_fontFlags) {
-    m_font = attribFont;
+  if (m_font != rhs.m_font || m_fontHeight != rhs.m_fontHeight || m_fontFlags != rhs.m_fontFlags) {
+    m_font = rhs.m_font;
     m_fontHeight = rhs.m_fontHeight;
     m_fontFlags = rhs.m_fontFlags;
     m_flags |= FLAG_FONT_UPDATE;
@@ -614,12 +610,11 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
 
 static const char *LanguageRule1(const char *text) {
   unsigned short *readpos;
-  unsigned short *writepos;
 
   SUniConvertUTF8to16(output16, 0x1000, text, 0x7FFFFFFF, 0, 0);
 
   readpos = output16;
-  writepos = output16;
+  unsigned short *writepos = output16;
 
   while (*readpos) {
     if (*readpos == '|') {
@@ -850,7 +845,6 @@ void CSimpleFontString::LoadXML(const XMLNode *node, CStatus *status) {
       NTempest::CImVector color(0xFF000000ul);
       float               x = 0.001f;
       float               y = -0.001f;
-      NTempest::C2Vector  offset;
       const XMLNode      *shadowChild = child->GetChildByName("Color");
 
       if (shadowChild) {
@@ -862,9 +856,7 @@ void CSimpleFontString::LoadXML(const XMLNode *node, CStatus *status) {
         LoadXML_Dimensions(shadowChild, x, y, status);
       }
 
-      offset.x = x;
-      offset.y = y;
-      AddShadow(color, offset);
+      AddShadow(color, NTempest::C2Vector(x, y));
     }
   }
 }

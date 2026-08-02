@@ -169,9 +169,9 @@ long OsGetTime(long* timer) {
 
 void OsFileTimeGetCurrent(OSFILETIME* filetime) {
   FATALASSERT(filetime);
-  SYSTEMTIME sysTime;
-  GetSystemTime(&sysTime);
-  SystemTimeToFileTime(&sysTime, reinterpret_cast<FILETIME *>(&filetime->m_value));
+  SYSTEMTIME systime;
+  GetSystemTime(&systime);
+  SystemTimeToFileTime(&systime, reinterpret_cast<FILETIME *>(&filetime->m_value));
 }
 
 int OsFileTimeCompare(const OSFILETIME* filetime1, const OSFILETIME* filetime2) {
@@ -371,23 +371,26 @@ void OsTimeManager::Calibrate() {
   while (WaitMultiplePtr(1, waitObjectPtrs, TRUE, sleepVal)) {
     Snapshot(&interval);
 
-    unsigned long deltaTick = interval.tickCount - baseTime.tickCount;
-    if (deltaTick >= 30000) {
+    if (interval.tickCount - baseTime.tickCount >= 30000) {
       break;
     }
 
     __int64 deltaCpu = interval.rdtsc - baseTime.rdtsc;
 
     if (hasQPF) {
-      __int64 deltaQP = interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart;
-      if (deltaQP) {
+      if (interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) {
         cpuTicksPerSecond_qp =
-            static_cast<__int64>((double)qPerfFreq.QuadPart / (double)deltaQP * (double)deltaCpu);
+            static_cast<__int64>(
+                (double)qPerfFreq.QuadPart /
+                (double)(interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) *
+                (double)deltaCpu
+            );
       }
     }
 
-    if (deltaTick) {
-      cpuTicksPerSecond_ti = 1000 * deltaCpu / deltaTick;
+    if (interval.tickCount - baseTime.tickCount) {
+      cpuTicksPerSecond_ti =
+          1000 * deltaCpu / (interval.tickCount - baseTime.tickCount);
     }
 
     if (hasQPF && cpuTicksPerSecond_qp) {

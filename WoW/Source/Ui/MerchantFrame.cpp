@@ -27,7 +27,12 @@ VendorItem       CGMerchantInfo::m_items[128];
 int              CGMerchantInfo::m_itemCount;
 unsigned int     CGMerchantInfo::m_callbackCount;
 
-void MerchantItemStatsCallback(int, const unsigned __int64 &, void *, bool) {
+void MerchantItemStatsCallback(
+    int id,
+    const unsigned __int64 &guid,
+    void *,
+    bool
+) {
   CGMerchantInfo::DecrementCallbackCount();
 }
 
@@ -90,8 +95,7 @@ const ItemStats *CGMerchantInfo::GetItemStats(unsigned int itemID) {
   if (!itemID) {
     return 0;
   }
-  unsigned __int64   merchant = m_merchant;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, merchant, MerchantItemStatsCallback, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, GetMerchant(), MerchantItemStatsCallback, 0);
   if (!stats) {
     ++m_callbackCount;
   }

@@ -1827,7 +1827,11 @@ class TSHashTable {
   unsigned int GetPeakBinDepth() const;
 
   void Delete(const char *key) {
-    Delete(Hash(key), key);
+    T *ptr = Ptr(key);
+
+    FATALASSERT(ptr);
+
+    Delete(ptr);
   }
 
   void Delete(unsigned int hashval, const char *key) {
@@ -1910,26 +1914,7 @@ class TSHashTable {
     return NonConst().Prev(ptr);
   }
 
-  T *Ptr(const char *key) {
-    unsigned int hashval;
-    unsigned int slot;
-    T           *ptr;
-
-    if (!Initialized()) {
-      return 0;
-    }
-
-    hashval = SStrHashHT(key);
-    slot = ComputeSlot(hashval);
-    ptr = m_slotlistarray[slot].Head();
-    while (reinterpret_cast<long>(ptr) > 0) {
-      if (ptr->m_hashval == hashval && ptr->m_key == key) {
-        return ptr;
-      }
-      ptr = m_slotlistarray[slot].RawNext(ptr);
-    }
-    return 0;
-  }
+  T *Ptr(const char *key);
 
   const T *Ptr(const char *key) const {
     return NonConst().Ptr(key);
@@ -2139,6 +2124,28 @@ T *TSHashTable<T, KEY>::InternalNewNode(unsigned int hashval, unsigned long extr
   m_fulllist.LinkNode(ptr, LIST_LINK_BEFORE, 0);
   ptr->m_hashval = hashval;
   return ptr;
+}
+
+template <class T, class KEY>
+T *TSHashTable<T, KEY>::Ptr(const char *key) {
+  unsigned int hashval;
+  unsigned int slot;
+  T           *ptr;
+
+  if (!Initialized()) {
+    return 0;
+  }
+
+  hashval = SStrHashHT(key);
+  slot = ComputeSlot(hashval);
+  ptr = m_slotlistarray[slot].Head();
+  while (reinterpret_cast<long>(ptr) > 0) {
+    if (ptr->m_hashval == hashval && ptr->m_key == key) {
+      return ptr;
+    }
+    ptr = m_slotlistarray[slot].RawNext(ptr);
+  }
+  return 0;
 }
 
 template <class T, class KEY>

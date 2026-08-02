@@ -470,39 +470,52 @@ void CBLPFile::DecompPalARGB4444(unsigned char *data, const void *tempBuffer, un
 }
 
 void CBLPFile::DecompPalARGB1555(unsigned char *data, const void *tempBuffer, unsigned int colorSize) {
-  const unsigned char *colorData = static_cast<const unsigned char *>(tempBuffer);
-  const unsigned char *alphaData = colorData + colorSize;
+  const unsigned char *pComp = static_cast<const unsigned char *>(tempBuffer);
   unsigned short       pal[256];
   unsigned short      *pPix = reinterpret_cast<unsigned short *>(data);
+  unsigned int         alphaBit = 0;
   unsigned int         i;
 
   for (i = 0; i < 256; ++i) {
     const BlpPalPixel &color = m_header.extended.palette[i];
-    pal[i] = static_cast<unsigned short>(((color.r & 0xF8) << 7) | ((color.g & 0xF8) << 2) | (color.b >> 3));
+    pal[i] = static_cast<unsigned short>(((color.r & 0xF8) << 7) + ((color.g & 0xF8) << 2) + (color.b >> 3));
   }
 
   for (i = 0; i < colorSize; ++i) {
-    pPix[i] = pal[colorData[i]];
+    *pPix++ = pal[*pComp++];
   }
 
-  if (m_header.alphaSize == 1) {
-    for (i = 0; i < colorSize; ++i) {
-      unsigned int alphaBit = i & 7;
-      pPix[i] |= static_cast<unsigned short>((alphaData[i >> 3] & (1U << alphaBit)) << (15 - alphaBit));
-    }
-  } else if (m_header.alphaSize == 4) {
-    for (i = 0; i < colorSize; ++i) {
-      unsigned char alpha = alphaData[i >> 1];
-      if (i & 1) {
-        pPix[i] |= static_cast<unsigned short>((alpha & 0x80) << 8);
-      } else {
-        pPix[i] |= static_cast<unsigned short>((alpha & 0x08) << 12);
+  pPix = reinterpret_cast<unsigned short *>(data);
+
+  switch (m_header.alphaSize) {
+    case 1:
+      for (i = 0; i < colorSize; ++i) {
+        *pPix++ |= static_cast<unsigned short>((*pComp & (1U << alphaBit)) << (15 - alphaBit));
+        if (++alphaBit >= 8) {
+          alphaBit = 0;
+          ++pComp;
+        }
       }
-    }
-  } else if (m_header.alphaSize == 8) {
-    for (i = 0; i < colorSize; ++i) {
-      pPix[i] |= static_cast<unsigned short>((alphaData[i] & 0x80) << 8);
-    }
+      break;
+
+    case 4:
+      for (i = 0; i < colorSize; ++i) {
+        if (alphaBit) {
+          alphaBit = 0;
+          *pPix |= static_cast<unsigned short>((*pComp++ & 0x80) << 8);
+        } else {
+          *pPix |= static_cast<unsigned short>((*pComp & 0x08) << 12);
+          alphaBit = m_header.alphaSize;
+        }
+        ++pPix;
+      }
+      break;
+
+    case 8:
+      for (i = 0; i < colorSize; ++i) {
+        *pPix++ |= static_cast<unsigned short>((*pComp++ & 0x80) << 8);
+      }
+      break;
   }
 }
 
@@ -595,20 +608,20 @@ int CBLPFile::Lock2(PIXEL_FORMAT format, unsigned int mipLevel, unsigned char *d
         case PIXEL_ARGB4444:
         case PIXEL_RGB565: {
           unsigned int width = m_header.width >> mipLevel;
-          unsigned int height = m_header.height >> mipLevel;
           if (width < 1) {
             width = 1;
-          }
-          if (height < 1) {
-            height = 1;
           }
 
           BlitFormat   srcFormat = GetBlitFormat(static_cast<PIXEL_FORMAT>(m_header.preferredFormat));
           BlitFormat   dstFormat = GetBlitFormat(format);
-          C2iVector    mipSize(width, height);
+          unsigned int height = m_header.height >> mipLevel;
+          if (height < 1) {
+            height = 1;
+          }
+
           unsigned int srcStride = CalcRowStride(srcFormat, width);
           unsigned int dstStride = CalcRowStride(dstFormat, width);
-          Blit(mipSize, BlitAlpha_0, tempBuffer, srcStride, srcFormat, data, dstStride, dstFormat);
+          Blit(C2iVector(width, height), BlitAlpha_0, tempBuffer, srcStride, srcFormat, data, dstStride, dstFormat);
           return 1;
         }
 
@@ -632,10 +645,10 @@ unsigned int CBLPFile::Bytes() const {
     return m_header.mipSizes[0];
   }
 
-  unsigned int size;
+  unsigned int bytes;
   unsigned int stride;
-  GetFormatSize(PIXEL_ARGB8888, 0, &size, &stride);
-  return size;
+  GetFormatSize(PIXEL_ARGB8888, 0, &bytes, &stride);
+  return bytes;
 }
 
 unsigned int CBLPFile::Bytes(unsigned int mipLevel) const {
@@ -643,8 +656,8 @@ unsigned int CBLPFile::Bytes(unsigned int mipLevel) const {
     return m_header.mipSizes[mipLevel];
   }
 
-  unsigned int size;
+  unsigned int bytes;
   unsigned int stride;
-  GetFormatSize(PIXEL_ARGB8888, mipLevel, &size, &stride);
-  return size;
+  GetFormatSize(PIXEL_ARGB8888, mipLevel, &bytes, &stride);
+  return bytes;
 }

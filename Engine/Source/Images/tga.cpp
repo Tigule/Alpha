@@ -203,21 +203,20 @@ int CTgaFile::ReadRawImage(unsigned int flags) {
     return 0;
   }
 
-  unsigned int pixelCount = m_header.wWidth * m_header.wHeight;
-  unsigned int sourceBytes = pixelCount * ((m_header.bPixelDepth + 7) / 8);
+  unsigned int sourceBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
   ASSERT(m_image == 0);
 
-  m_image = static_cast<unsigned char *>(ALLOC(sourceBytes + addAlpha * pixelCount));
+  m_image = static_cast<unsigned char *>(ALLOC(sourceBytes + addAlpha * m_header.wWidth * m_header.wHeight));
   if (!m_image) {
     return 0;
   }
 
-  if (!SFile::Read(m_file, m_image + addAlpha * pixelCount, sourceBytes, 0, 0, 0)) {
+  if (!SFile::Read(m_file, m_image + addAlpha * m_header.wWidth * m_header.wHeight, sourceBytes, 0, 0, 0)) {
     return 0;
   }
 
   if (addAlpha) {
-    AddAlphaChannel(m_image, m_image + pixelCount, 0);
+    AddAlphaChannel(m_image, m_image + m_header.wWidth * m_header.wHeight, 0);
   }
 
   return 1;
@@ -225,21 +224,20 @@ int CTgaFile::ReadRawImage(unsigned int flags) {
 
 int CTgaFile::ReadRleImage(unsigned int flags) {
   int          addAlpha = (flags & 1) && m_header.Desc.bAlphaChannelBits == 0;
-  unsigned int pixelCount = m_header.wWidth * m_header.wHeight;
-  unsigned int imageBytes = pixelCount * ((m_header.bPixelDepth + 7) / 8);
+  unsigned int imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
   ASSERT(m_image == 0);
 
-  m_image = static_cast<unsigned char *>(ALLOC(imageBytes + addAlpha * pixelCount));
+  m_image = static_cast<unsigned char *>(ALLOC(imageBytes + addAlpha * m_header.wWidth * m_header.wHeight));
   if (!m_image) {
     return 0;
   }
 
-  unsigned long rleBytes = SFile::GetFileSize(m_file, 0) - PreImageBytes();
-  if (rleBytes == static_cast<unsigned long>(-1)) {
+  imageBytes = SFile::GetFileSize(m_file, 0) - PreImageBytes();
+  if (imageBytes == static_cast<unsigned long>(-1)) {
     return 0;
   }
 
-  unsigned char *rleData = static_cast<unsigned char *>(ALLOC(rleBytes));
+  unsigned char *rleData = static_cast<unsigned char *>(ALLOC(imageBytes));
   if (!rleData) {
     return 0;
   }
@@ -248,18 +246,18 @@ int CTgaFile::ReadRleImage(unsigned int flags) {
     return 0;
   }
 
-  if (!SFile::Read(m_file, rleData, rleBytes, 0, 0, 0)) {
+  if (!SFile::Read(m_file, rleData, imageBytes, 0, 0, 0)) {
     return 0;
   }
 
-  int result = RLEDecompressImage(rleData, m_image + addAlpha * pixelCount);
+  int result = RLEDecompressImage(rleData, m_image + addAlpha * m_header.wWidth * m_header.wHeight);
   FREE(rleData);
   if (!result) {
     return 0;
   }
 
   if (addAlpha) {
-    AddAlphaChannel(m_image, m_image + pixelCount, 0);
+    AddAlphaChannel(m_image, m_image + m_header.wWidth * m_header.wHeight, 0);
   }
 
   return 1;
@@ -505,25 +503,25 @@ int CTgaFile::CountRun(unsigned char *pImage, int nMax) {
   ASSERT(pImage != 0);
 
   unsigned int pixelBytes = (m_header.bPixelDepth + 7) / 8;
-  unsigned int check = 0;
-  memcpy(&check, pImage, pixelBytes);
+  int          nCount = 0;
+  unsigned int dwCheck = 0;
+  memcpy(&dwCheck, pImage, pixelBytes);
 
   if (nMax > 128) {
     nMax = 128;
   }
 
-  int count = 0;
   while (nMax) {
     --nMax;
-    if (memcmp(pImage, &check, pixelBytes)) {
+    if (memcmp(pImage, &dwCheck, pixelBytes)) {
       break;
     }
 
     pImage += pixelBytes;
-    ++count;
+    ++nCount;
   }
 
-  return count;
+  return nCount;
 }
 
 int CTgaFile::RleCompressLine(unsigned char **uncompressed, unsigned char **compressed) {
@@ -534,45 +532,43 @@ int CTgaFile::RleCompressLine(unsigned char **uncompressed, unsigned char **comp
 
   unsigned char *pRawImage = *uncompressed;
   unsigned char *pRLEData = *compressed;
-  unsigned char *copyLength = 0;
-  unsigned int   pixelBytes = (m_header.bPixelDepth + 7) / 8;
-  unsigned int   rawBytes = m_header.wWidth * m_header.wHeight * pixelBytes;
-  int            lineWidth = m_header.wWidth;
+  unsigned char *pbCopyLen = 0;
+  int            nLineWid = m_header.wWidth;
 
-  while (lineWidth) {
-    int runLength = CountRun(pRawImage, lineWidth);
-    if (runLength >= 2) {
-      m_imageBytes += pixelBytes + 1;
-      copyLength = 0;
-      if (m_imageBytes >= rawBytes) {
+  while (nLineWid) {
+    int nRunLen = CountRun(pRawImage, nLineWid);
+    if (nRunLen >= 2) {
+      m_imageBytes += (m_header.bPixelDepth + 7) / 8 + 1;
+      pbCopyLen = 0;
+      if (m_imageBytes >= m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8)) {
         return 0;
       }
 
-      *pRLEData = static_cast<unsigned char>((runLength - 1) | 0x80);
-      memcpy(pRLEData + 1, pRawImage, pixelBytes);
-      pRLEData += pixelBytes + 1;
-      pRawImage += runLength * pixelBytes;
-      lineWidth -= runLength;
+      *pRLEData = static_cast<unsigned char>((nRunLen - 1) | 0x80);
+      memcpy(pRLEData + 1, pRawImage, (m_header.bPixelDepth + 7) / 8);
+      pRLEData += (m_header.bPixelDepth + 7) / 8 + 1;
+      pRawImage += nRunLen * ((m_header.bPixelDepth + 7) / 8);
+      nLineWid -= nRunLen;
       continue;
     }
 
-    if (!copyLength || *copyLength == 127) {
+    if (!pbCopyLen || *pbCopyLen == 127) {
       *pRLEData = 0;
-      copyLength = pRLEData++;
+      pbCopyLen = pRLEData++;
       ++m_imageBytes;
     } else {
-      ++*copyLength;
+      ++*pbCopyLen;
     }
 
-    m_imageBytes += pixelBytes;
-    if (m_imageBytes >= rawBytes) {
+    m_imageBytes += (m_header.bPixelDepth + 7) / 8;
+    if (m_imageBytes >= m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8)) {
       return 0;
     }
 
-    memcpy(pRLEData, pRawImage, pixelBytes);
-    pRLEData += pixelBytes;
-    pRawImage += pixelBytes;
-    --lineWidth;
+    memcpy(pRLEData, pRawImage, (m_header.bPixelDepth + 7) / 8);
+    pRLEData += (m_header.bPixelDepth + 7) / 8;
+    pRawImage += (m_header.bPixelDepth + 7) / 8;
+    --nLineWid;
   }
 
   *uncompressed = pRawImage;
@@ -597,13 +593,13 @@ int CTgaFile::Compress() {
     return 0;
   }
 
-  unsigned char *rawCursor = rawImage;
-  unsigned char *compressedCursor = compressedImage;
+  unsigned char *pRawImage = rawImage;
+  unsigned char *pRLEData = compressedImage;
   int            rows = m_header.wHeight;
   m_imageBytes = 0;
 
   while (rows--) {
-    if (!RleCompressLine(&rawCursor, &compressedCursor)) {
+    if (!RleCompressLine(&pRawImage, &pRLEData)) {
       FREE(compressedImage);
       m_imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
       return 1;

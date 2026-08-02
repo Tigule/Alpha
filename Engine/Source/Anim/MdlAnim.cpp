@@ -593,7 +593,8 @@ static void BuildHierarchy(
     const MDLDATA &data,
     const TSStackArray<unsigned int> &idConversion
 ) {
-  for (unsigned int i = 0; i < data.objects.Count(); ++i) {
+  unsigned int numObjects = data.objects.Count();
+  for (unsigned int i = 0; i < numObjects; ++i) {
     const MDLGENOBJECT *object = data.objects[i];
     unsigned int objectId = idConversion[object->objectId];
     if (objectId == static_cast<unsigned int>(-1)) {
@@ -616,34 +617,43 @@ static void IAnimCreateObjects(
     const TSStackArray<unsigned int> &idConversion
 ) {
   MDLTRACKTYPE forceType = (flags & 4) ? TRACK_LINEAR : NUM_TRACK_TYPES;
+  unsigned int numElements;
   unsigned int i;
 
-  for (i = 0; i < data.bones.Count(); ++i) {
+  numElements = data.bones.Count();
+  for (i = 0; i < numElements; ++i) {
     CreateBone(shared, data.bones[i], idConversion, forceType);
   }
   if (flags & 1) {
-    for (i = 0; i < data.hitTestShapes.Count(); ++i) {
+    numElements = data.hitTestShapes.Count();
+    for (i = 0; i < numElements; ++i) {
       CreateHitTestShape(shared, data.hitTestShapes[i], idConversion, forceType);
     }
   }
   if (!(flags & 2)) {
-    for (i = 0; i < data.lights.Count(); ++i) {
+    numElements = data.lights.Count();
+    for (i = 0; i < numElements; ++i) {
       CreateLight(shared, data.lights[i], idConversion, forceType);
     }
   }
-  for (i = 0; i < data.helpers.Count(); ++i) {
+  numElements = data.helpers.Count();
+  for (i = 0; i < numElements; ++i) {
     CreateHelper(shared, data.helpers[i], idConversion, forceType);
   }
-  for (i = 0; i < data.attachments.Count(); ++i) {
+  numElements = data.attachments.Count();
+  for (i = 0; i < numElements; ++i) {
     CreateAttachmentPoint(shared, data, i, idConversion, forceType);
   }
-  for (i = 0; i < data.particleEmitters2.Count(); ++i) {
+  numElements = data.particleEmitters2.Count();
+  for (i = 0; i < numElements; ++i) {
     CreateParticleEmitter2(shared, data.particleEmitters2[i], idConversion, forceType);
   }
-  for (i = 0; i < data.ribbonEmitters.Count(); ++i) {
+  numElements = data.ribbonEmitters.Count();
+  for (i = 0; i < numElements; ++i) {
     CreateRibbonEmitter(shared, data.ribbonEmitters[i], idConversion, forceType);
   }
-  for (i = 0; i < data.events.Count(); ++i) {
+  numElements = data.events.Count();
+  for (i = 0; i < numElements; ++i) {
     CreateEventObject(shared, data.events[i], idConversion, forceType);
   }
 }
@@ -861,8 +871,10 @@ HANIM AnimCreate(const MDLDATA &data, unsigned int flags, CStatus *status) {
   }
 
   unsigned int animatedLayers = 0;
-  for (unsigned int material = 0; material < data.materials.Count(); ++material) {
-    for (unsigned int layer = 0; layer < data.materials[material].texLayers.Count(); ++layer) {
+  unsigned int numMaterials = data.materials.Count();
+  for (unsigned int material = 0; material < numMaterials; ++material) {
+    unsigned int numLayers = data.materials[material].texLayers.Count();
+    for (unsigned int layer = 0; layer < numLayers; ++layer) {
       const MDLTEXLAYER &layerData = data.materials[material].texLayers[layer];
       if (layerData.alphaKeys.keys.Count() || layerData.flipKeys.keys.Count()) {
         ++animatedLayers;
@@ -904,12 +916,12 @@ HANIM AnimCreate(const char *sourcefile, unsigned int flags, CStatus *status) {
     return anim;
   }
 
-  MDLDATA data;
-  if (!MDLFileRead(sourcefile, &data, status)) {
+  MDLDATA mdlData;
+  if (!MDLFileRead(sourcefile, &mdlData, status)) {
     return 0;
   }
 
-  anim = AnimCreate(data, flags, status);
+  anim = AnimCreate(mdlData, flags, status);
   if (!anim) {
     return 0;
   }

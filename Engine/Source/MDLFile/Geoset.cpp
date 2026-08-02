@@ -17,17 +17,17 @@ void ReadVertices(
     const char *title,
     TSGrowableArray<NTempest::C3Vector> *vertices
 ) {
-  unsigned int token;
-  const char *tokenText;
-  long count = parse.GetOptionalInt(&token, &tokenText, 0);
+  unsigned int savedtoken;
+  const char *tokentext;
+  long actual = 0;
+  long count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   if (count > 0) {
     vertices->ReserveSpace(count);
   }
-  parse.Expect('{', token, tokenText);
+  parse.Expect('{', savedtoken, tokentext);
 
-  long actual = 0;
-  token = parse.Token(&tokenText, 0);
-  while (token == '{') {
+  savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken == '{') {
     NTempest::C3Vector *vertex = vertices->New();
     vertex->x = parse.ExpectFloat();
     parse.Expect(',');
@@ -37,9 +37,9 @@ void ReadVertices(
     parse.Expect('}');
     parse.Expect(',');
     ++actual;
-    token = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', savedtoken, tokentext);
   if (count >= 0 && actual != count) {
     parse.WarningCount(title, count, actual);
   }
@@ -59,56 +59,56 @@ void WriteVertices(
 }
 
 void WriteBinC3VectorSection(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned long title,
     const TSGrowableArray<NTempest::C3Vector> &section
 ) {
-  buffer.AddDword(title);
-  buffer.AddUint(section.Count());
-  buffer.AddFloatArray(&section.Ptr()->x, 3 * section.Count());
+  buf.AddDword(title);
+  buf.AddUint(section.Count());
+  buf.AddFloatArray(&section.Ptr()->x, 3 * section.Count());
 }
 
 int ReadBinC3VectorSection(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned long title,
     const char *name,
     TSGrowableArray<NTempest::C3Vector> *section,
     unsigned int *localBytesRead,
     CMDLStatus *status
 ) {
-  if (buffer.GetDword() != title) {
+  if (buf.GetDword() != title) {
     status->Add(STATUS_ERROR, "Invalid %s section detected in model.\n", name);
     return 0;
   }
-  unsigned int count = buffer.GetUint();
+  unsigned int count = buf.GetUint();
   *localBytesRead += 8;
   section->SetCount(count);
   if (count) {
     *localBytesRead += 12 * count;
-    buffer.GetFloatArray(&section->Ptr()->x, 3 * count);
+    buf.GetFloatArray(&section->Ptr()->x, 3 * count);
   }
   return 1;
 }
 
 int IReadBinUintSection(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned long title,
     const char *name,
     TSGrowableArray<unsigned int> *section,
     unsigned int *localBytesRead,
     CMDLStatus *status
 ) {
-  unsigned long found = buffer.GetDword();
+  unsigned long found = buf.GetDword();
   *localBytesRead += 4;
   if (found != title) {
     status->Add(STATUS_ERROR, "Invalid %s section.\n", name);
     return 0;
   }
-  unsigned int count = buffer.GetUint();
+  unsigned int count = buf.GetUint();
   *localBytesRead += 4;
   if (count) {
     section->SetCount(count);
-    buffer.GetUintArray(section->Ptr(), count);
+    buf.GetUintArray(section->Ptr(), count);
     *localBytesRead += 4 * count;
   }
   return 1;
@@ -160,16 +160,16 @@ static void IReadTVertices(
     Parser &parse,
     TSGrowableArray<NTempest::C2Vector> *texcoords
 ) {
-  unsigned int token;
-  const char *tokenText;
-  long count = parse.GetOptionalInt(&token, &tokenText, 0);
+  unsigned int savedtoken;
+  const char *tokentext;
+  long count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   if (count > 0) {
     texcoords->ReserveSpace(count);
   }
-  parse.Expect('{', token, tokenText);
+  parse.Expect('{', savedtoken, tokentext);
   long actual = 0;
-  token = parse.Token(&tokenText, 0);
-  while (token == '{') {
+  savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken == '{') {
     NTempest::C2Vector *coord = texcoords->New();
     coord->x = parse.ExpectFloat();
     parse.Expect(',');
@@ -177,28 +177,29 @@ static void IReadTVertices(
     parse.Expect('}');
     parse.Expect(',');
     ++actual;
-    token = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', savedtoken, tokentext);
   if (count >= 0 && count != actual) {
     parse.WarningCount("vertices", count, actual);
   }
 }
 
 static void ISkipDuplicates(Parser &parse) {
-  unsigned int token;
-  const char *tokenText;
-  parse.GetOptionalInt(&token, &tokenText, 0);
-  parse.Expect('{', token, tokenText);
-  token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
-    if (token != 0x100) {
-      parse.FatalUnexpected(tokenText);
+  unsigned int savedtoken;
+  const char *tokentext;
+  UTokenData savedvalue;
+  parse.GetOptionalInt(&savedtoken, &tokentext, &savedvalue);
+  parse.Expect('{', savedtoken, tokentext);
+  savedtoken = parse.Token(&tokentext, &savedvalue);
+  while (savedtoken && savedtoken != '}') {
+    if (savedtoken != 0x100) {
+      parse.FatalUnexpected(tokentext);
     }
     parse.Expect(',');
-    token = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, &savedvalue);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', savedtoken, tokentext);
 }
 
 static unsigned int IVertexList(
@@ -208,14 +209,14 @@ static unsigned int IVertexList(
   FATALASSERT(vertlist);
   vertlist->New()[0] = static_cast<unsigned short>(parse.ExpectInt());
   unsigned int entries = 1;
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token == ',') {
     vertlist->New()[0] = static_cast<unsigned short>(parse.ExpectInt());
     ++entries;
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   return entries;
 }
 
@@ -239,49 +240,49 @@ static unsigned int IPrimitives(
     int (*IsInvalid)(unsigned int),
     const char *errorText
 ) {
-  unsigned int added = 0;
+  unsigned int primsAdded = 0;
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token == '{') {
     unsigned int count = IVertexListSet(parse, primitives, type);
     if (IsInvalid(count)) {
       parse.FatalNotFound(errorText);
     }
     *entries += count;
-    ++added;
-    token = parse.Token(&tokenText, 0);
+    ++primsAdded;
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
-  return added;
+  parse.Expect('}', token, tokentext);
+  return primsAdded;
 }
 
 static int NeverInvalid(unsigned int) {
   return 0;
 }
 
-static int InvalidLines(unsigned int count) {
-  return count & 1;
+static int InvalidLines(unsigned int numVerts) {
+  return numVerts & 1;
 }
 
-static int InvalidLineStripLoop(unsigned int count) {
-  return count < 2;
+static int InvalidLineStripLoop(unsigned int numVerts) {
+  return numVerts < 2;
 }
 
-static int InvalidTriangles(unsigned int count) {
-  return count % 3;
+static int InvalidTriangles(unsigned int numVerts) {
+  return numVerts % 3;
 }
 
-static int InvalidTriangleFanStrip(unsigned int count) {
-  return count < 3;
+static int InvalidTriangleFanStrip(unsigned int numVerts) {
+  return numVerts < 3;
 }
 
-static int InvalidQuads(unsigned int count) {
-  return count & 3;
+static int InvalidQuads(unsigned int numVerts) {
+  return numVerts & 3;
 }
 
-static int InvalidQuadStrip(unsigned int count) {
-  return count < 4 || (count & 1);
+static int InvalidQuadStrip(unsigned int numVerts) {
+  return numVerts < 4 || (numVerts & 1);
 }
 
 static unsigned int IMultiPoints(
@@ -388,84 +389,84 @@ static unsigned int IQuadStrip(
 }
 
 static void IReadPrimitives(Parser &parse, MDLPRIMITIVES *primitives) {
-  unsigned int token;
-  const char *tokenText;
-  UTokenData tokenData;
-  long estimatedPrimitives =
-      parse.GetOptionalInt(&token, &tokenText, &tokenData);
-  long estimatedVertices = -1;
-  if (estimatedPrimitives > 0) {
-    estimatedVertices = parse.GetOptionalInt(
-        token, &tokenData, &token, &tokenText
+  unsigned int savedtoken;
+  const char *tokentext;
+  UTokenData savedvalue;
+  long estPrims =
+      parse.GetOptionalInt(&savedtoken, &tokentext, &savedvalue);
+  long estVerts = -1;
+  if (estPrims > 0) {
+    estVerts = parse.GetOptionalInt(
+        savedtoken, &savedvalue, &savedtoken, &tokentext
     );
     primitives->ReserveSpace(
-        estimatedPrimitives,
-        estimatedVertices > 0
-            ? estimatedVertices
-            : 3 * estimatedPrimitives
+        estPrims,
+        estVerts > 0
+            ? estVerts
+            : 3 * estPrims
     );
   }
-  parse.Expect('{', token, tokenText);
-  long actualVertices = 0;
+  parse.Expect('{', savedtoken, tokentext);
+  long actualVerts = 0;
   long actualPrimitives = 0;
-  token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
-    switch (token) {
+  savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken && savedtoken != '}') {
+    switch (savedtoken) {
       case 0x168:
-        actualPrimitives += ILines(parse, primitives, &actualVertices);
+        actualPrimitives += ILines(parse, primitives, &actualVerts);
         break;
       case 0x16A:
         actualPrimitives +=
-            ILineStripLoop(parse, primitives, &actualVertices, 2);
+            ILineStripLoop(parse, primitives, &actualVerts, 2);
         break;
       case 0x16B:
         actualPrimitives +=
-            ILineStripLoop(parse, primitives, &actualVertices, 3);
+            ILineStripLoop(parse, primitives, &actualVerts, 3);
         break;
       case 0x1A3:
         actualPrimitives +=
-            IMultiPoints(parse, primitives, &actualVertices, 0);
+            IMultiPoints(parse, primitives, &actualVerts, 0);
         break;
       case 0x1A4:
         actualPrimitives +=
-            IMultiPoints(parse, primitives, &actualVertices, 9);
+            IMultiPoints(parse, primitives, &actualVerts, 9);
         break;
       case 0x1A8:
-        actualPrimitives += IQuads(parse, primitives, &actualVertices);
+        actualPrimitives += IQuads(parse, primitives, &actualVerts);
         break;
       case 0x1A9:
         actualPrimitives += IQuadStrip(
-            parse, primitives, &actualVertices
+            parse, primitives, &actualVerts
         );
         break;
       case 0x1C9:
         actualPrimitives +=
-            ITriangles(parse, primitives, &actualVertices);
+            ITriangles(parse, primitives, &actualVerts);
         break;
       case 0x1CA:
         actualPrimitives +=
-            ITriangleFanStrip(parse, primitives, &actualVertices, 5);
+            ITriangleFanStrip(parse, primitives, &actualVerts, 5);
         break;
       case 0x1CB:
         actualPrimitives +=
-            ITriangleFanStrip(parse, primitives, &actualVertices, 6);
+            ITriangleFanStrip(parse, primitives, &actualVerts, 6);
         break;
       default:
-        parse.FatalUnexpected(tokenText);
+        parse.FatalUnexpected(tokentext);
         break;
     }
-    token = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
-  if (estimatedVertices >= 0 && estimatedVertices != actualVertices) {
+  parse.Expect('}', savedtoken, tokentext);
+  if (estVerts >= 0 && estVerts != actualVerts) {
     parse.WarningCount(
-        "primitive vertices", estimatedVertices, actualVertices
+        "primitive vertices", estVerts, actualVerts
     );
   }
-  if (estimatedPrimitives >= 0
-      && estimatedPrimitives != actualPrimitives) {
+  if (estPrims >= 0
+      && estPrims != actualPrimitives) {
     parse.WarningCount(
-        "primitives", estimatedPrimitives, actualPrimitives
+        "primitives", estPrims, actualPrimitives
     );
   }
 }
@@ -481,14 +482,14 @@ static void IReadMatrices(
   parse.Expect('{');
   *matrixIdList->New() = parse.ExpectInt();
   ++*mtxCount;
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token == ',') {
     *matrixIdList->New() = parse.ExpectInt();
     ++*mtxCount;
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
 }
 
 static void IReadGroup(
@@ -506,11 +507,11 @@ static void IReadGroup(
   unsigned int *matrixCount = geoset->groupMatrixCounts.New();
   *matrixCount = 0;
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     if (token == 0x16E) {
       IReadMatrices(parse, matrixCount, &geoset->matrices);
@@ -518,12 +519,12 @@ static void IReadGroup(
     } else if (token == 0x1D6) {
       *vertexCount = parse.ExpectInt();
     } else {
-      parse.FatalUnexpected(tokenText);
+      parse.FatalUnexpected(tokentext);
     }
     parse.Expect(',');
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   errors.Complete(status);
 }
 
@@ -532,28 +533,28 @@ static void IReadGroups(
     MDLGEOSETSECTION *geoset,
     CMDLStatus *status
 ) {
-  unsigned int token;
-  const char *tokenText;
-  UTokenData tokenData;
-  long estimatedGroups =
-      parse.GetOptionalInt(&token, &tokenText, &tokenData);
-  long estimatedMatrices = -1;
-  if (estimatedGroups > 0) {
-    estimatedMatrices = parse.GetOptionalInt(
-        token, &tokenData, &token, &tokenText
+  unsigned int savedtoken;
+  const char *tokentext;
+  UTokenData savedvalue;
+  long estGroups =
+      parse.GetOptionalInt(&savedtoken, &tokentext, &savedvalue);
+  long estMatrices = -1;
+  if (estGroups > 0) {
+    estMatrices = parse.GetOptionalInt(
+        savedtoken, &savedvalue, &savedtoken, &tokentext
     );
-    geoset->groupMatrixCounts.ReserveSpace(estimatedGroups);
-    if (estimatedMatrices > 0) {
-      geoset->matrices.ReserveSpace(estimatedMatrices);
+    geoset->groupMatrixCounts.ReserveSpace(estGroups);
+    if (estMatrices > 0) {
+      geoset->matrices.ReserveSpace(estMatrices);
     }
   }
-  parse.Expect('{', token, tokenText);
+  parse.Expect('{', savedtoken, tokentext);
   long actualGroups = 0;
   long actualMatrices = 0;
   TSGrowableArray<unsigned int> groupVertexCounts;
-  token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
-    if (token == 0x155) {
+  savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken && savedtoken != '}') {
+    if (savedtoken == 0x155) {
       IReadGroup(
           parse,
           geoset,
@@ -561,27 +562,27 @@ static void IReadGroups(
           &groupVertexCounts,
           status
       );
-    } else if (token == 0x16E) {
+    } else if (savedtoken == 0x16E) {
       unsigned int *count = geoset->groupMatrixCounts.New();
       IReadMatrices(parse, count, &geoset->matrices);
       actualMatrices += *count;
     } else {
-      parse.FatalUnexpected(tokenText);
+      parse.FatalUnexpected(tokentext);
     }
     ++actualGroups;
     parse.Expect(',');
-    token = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', savedtoken, tokentext);
   if (groupVertexCounts.Count()) {
     SetVertexGroupIndices(groupVertexCounts, geoset);
   }
-  if (estimatedGroups >= 0 && estimatedGroups != actualGroups) {
-    parse.WarningCount("groups", estimatedGroups, actualGroups);
+  if (estGroups >= 0 && estGroups != actualGroups) {
+    parse.WarningCount("groups", estGroups, actualGroups);
   }
-  if (estimatedMatrices >= 0 && estimatedMatrices != actualMatrices) {
+  if (estMatrices >= 0 && estMatrices != actualMatrices) {
     parse.WarningCount(
-        "matrices", estimatedMatrices, actualMatrices
+        "matrices", estMatrices, actualMatrices
     );
   }
 }
@@ -614,20 +615,20 @@ static void IReadVertexGroupIds(
 ) {
   geoset->vertGroupIndices.ReserveSpace(geoset->vertices.Count());
   parse.Expect('{');
-  const char *tokenText;
-  UTokenData tokenData;
-  unsigned int token = parse.Token(&tokenText, &tokenData);
+  const char *tokentext;
+  UTokenData savedvalue;
+  unsigned int token = parse.Token(&tokentext, &savedvalue);
   while (token && token != '}') {
     if (token == 0x100) {
       *geoset->vertGroupIndices.New() =
-          static_cast<unsigned char>(tokenData.cVal);
+          static_cast<unsigned char>(savedvalue.cVal);
     } else {
-      parse.FatalUnexpected(tokenText);
+      parse.FatalUnexpected(tokentext);
     }
     parse.Expect(',');
-    token = parse.Token(&tokenText, &tokenData);
+    token = parse.Token(&tokentext, &savedvalue);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
 }
 
 static void IReadVertex(Parser &parse, NTempest::C3Vector *vertex) {
@@ -654,11 +655,11 @@ static void IReadAnimBounds(
   TSet errors;
   IAnimBoundsAddErrors(errors);
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     if (token == 0x170) {
       IReadVertex(parse, &bounds->extent.b);
@@ -667,12 +668,12 @@ static void IReadAnimBounds(
     } else if (token == 0x134) {
       bounds->radius = parse.ExpectFloat();
     } else {
-      parse.FatalUnexpected(tokenText);
+      parse.FatalUnexpected(tokentext);
     }
     parse.Expect(',');
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   errors.Complete(status);
 }
 
@@ -681,9 +682,9 @@ static int ValidateVertexCounts(
     Parser &parse,
     CMDLStatus *status
 ) {
-  unsigned int count = geoset.vertices.Count();
-  if (count != geoset.normals.Count()
-      || count != geoset.vertGroupIndices.Count()) {
+  unsigned int numVertices = geoset.vertices.Count();
+  if (numVertices != geoset.normals.Count()
+      || numVertices != geoset.vertGroupIndices.Count()) {
     status->Add(
         STATUS_FATAL,
         "Error (line %d): Vertex count doesn't match normals and group indices\n",
@@ -691,8 +692,9 @@ static int ValidateVertexCounts(
     );
     return 0;
   }
-  for (unsigned int i = 0; i < geoset.texCoords.Count(); ++i) {
-    if (geoset.texCoords[i].Count() != count) {
+  unsigned int numTexLayers = geoset.texCoords.Count();
+  for (unsigned int i = 0; i < numTexLayers; ++i) {
+    if (geoset.texCoords[i].Count() != numVertices) {
       status->Add(
           STATUS_FATAL,
           "Error (line %d): Vertex count doesn't match texture coordinates\n",
@@ -712,10 +714,10 @@ static void IGeosetAnimAddErrors(TSet &errors) {
 
 static int IReadAlpha(
     Parser &parse,
-    int expectAnimation,
+    int expectanimation,
     MDLGEOSETANIMSECTION *geoset
 ) {
-  if (expectAnimation) {
+  if (expectanimation) {
     ReadObjectFloatKeyframes(parse, &geoset->alphaKeys);
     return 1;
   }
@@ -725,10 +727,10 @@ static int IReadAlpha(
 
 static int IReadColor(
     Parser &parse,
-    int expectAnimation,
+    int expectanimation,
     MDLGEOSETANIMSECTION *geoset
 ) {
-  if (expectAnimation) {
+  if (expectanimation) {
     ReadObjectFloatKeyframes(parse, &geoset->colorKeys);
     return 1;
   }
@@ -742,32 +744,32 @@ static int IllegalStaticToken(unsigned int token) {
 
 static int IReadGeosetAnim(
     Parser &parse,
-    unsigned int savedToken,
+    unsigned int savedtoken,
     const char *tokenText,
     TSet *errors,
     MDLGEOSETANIMSECTION *geoAnim
 ) {
   int expectAnimation = IExpectAnimation(
       parse,
-      &savedToken,
+      &savedtoken,
       &tokenText
   );
-  if (!expectAnimation && IllegalStaticToken(savedToken)) {
+  if (!expectAnimation && IllegalStaticToken(savedtoken)) {
     parse.FatalUnexpected(tokenText);
   }
-  if (!errors->Check(savedToken)) {
+  if (!errors->Check(savedtoken)) {
     parse.FatalDuplicate(tokenText);
   }
   if (!geoAnim) {
     return 0;
   }
-  if (savedToken == 0x11C || savedToken == 0x189) {
+  if (savedtoken == 0x11C || savedtoken == 0x189) {
     if (!IReadAlpha(parse, expectAnimation, geoAnim)) {
       parse.Expect(',');
     }
     return 1;
   }
-  if (savedToken == 0x136) {
+  if (savedtoken == 0x136) {
     geoAnim->flags |= 1;
     if (!IReadColor(parse, expectAnimation, geoAnim)) {
       parse.Expect(',');
@@ -802,12 +804,12 @@ static void IWriteGeosetTexCoords(
 }
 
 static void IWriteVertexGroupIndices(
-    const TSGrowableArray<unsigned char> &indices,
+    const TSGrowableArray<unsigned char> &vertGroupIndices,
     TSGrowableArray<char> &buffer
 ) {
   MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x1D7));
-  for (unsigned int i = 0; i < indices.Count(); ++i) {
-    MDL::WriteLine(buffer, "\t\t%u,\n", indices[i]);
+  for (unsigned int i = 0; i < vertGroupIndices.Count(); ++i) {
+    MDL::WriteLine(buffer, "\t\t%u,\n", vertGroupIndices[i]);
   }
   MDL::WriteLine(buffer, "\t}\n");
 }
@@ -912,12 +914,12 @@ static void IWriteBoneWeights(
 }
 
 static void IWriteAnimBounds(
-    const TSGrowableArray<CMdlBounds> &bounds,
+    const TSGrowableArray<CMdlBounds> &geoBounds,
     TSGrowableArray<char> &buffer
 ) {
-  for (unsigned int i = 0; i < bounds.Count(); ++i) {
+  for (unsigned int i = 0; i < geoBounds.Count(); ++i) {
     MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x122));
-    WriteBounds(bounds[i], "\t\t", buffer);
+    WriteBounds(geoBounds[i], "\t\t", buffer);
     MDL::WriteLine(buffer, "\t}\n");
   }
 }
@@ -967,11 +969,11 @@ int ReadGeoset(
     CMDLStatus *status
 ) {
   MDLGEOSETSECTION *geoset = data.geosets.New();
-  MDLGEOSETANIMSECTION *geosetAnim = 0;
+  MDLGEOSETANIMSECTION *geoAnim = 0;
   TSet geosetAnimErrors;
   if (data.version < 600) {
-    geosetAnim = data.geosetAnims.New();
-    geosetAnim->geosetId = data.geosets.Count() - 1;
+    geoAnim = data.geosetAnims.New();
+    geoAnim->geosetId = data.geosets.Count() - 1;
     IGeosetAnimAddErrors(geosetAnimErrors);
   }
   geoset->seqBounds.ReserveSpace(data.sequences.Count());
@@ -979,21 +981,21 @@ int ReadGeoset(
   TSet errors;
   IGeosetAddErrors(errors);
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (IReadGeosetAnim(
             parse,
             token,
-            tokenText,
+            tokentext,
             &geosetAnimErrors,
-            geosetAnim
+            geoAnim
         )) {
-      token = parse.Token(&tokenText, 0);
+      token = parse.Token(&tokentext, 0);
       continue;
     }
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     switch (token) {
       case 0x122:
@@ -1045,13 +1047,13 @@ int ReadGeoset(
         ReadVertices(parse, "vertices", &geoset->vertices);
         break;
       default:
-        parse.FatalUnexpected(tokenText);
+        parse.FatalUnexpected(tokentext);
         break;
     }
     parse.Expect(',');
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   errors.Complete(status);
   geoset->seqBounds.TrimUnusedSpace();
   return ValidateVertexCounts(*geoset, parse, status)
@@ -1080,20 +1082,20 @@ int ReadGeosetAnim(
   section->geosetId = data.geosetAnims.Count() - 1;
   IGeosetAnimAddErrors(errors);
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
-    if (!IReadGeosetAnim(parse, token, tokenText, &errors, section)) {
+    if (!IReadGeosetAnim(parse, token, tokentext, &errors, section)) {
       if (token == 0x150) {
         section->geosetId = parse.ExpectInt();
       } else {
-        parse.FatalUnexpected(tokenText);
+        parse.FatalUnexpected(tokentext);
       }
       parse.Expect(',');
     }
-    token = parse.Token(&tokenText, 0);
+    token = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   errors.Complete(status);
   return !parse.FoundError();
 }
@@ -1239,13 +1241,13 @@ static int IReadBinGeosetAnim(
 }
 
 int ReadBinGeosetAnim(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
 ) {
   unsigned int totalRead = 4;
-  unsigned int count = buffer.GetUint();
+  unsigned int count = buf.GetUint();
   data.geosetAnims.ReserveSpace(count);
   while (totalRead < length) {
     MDLGEOSETANIMSECTION *section = data.geosetAnims.New();
@@ -1253,7 +1255,7 @@ int ReadBinGeosetAnim(
       status->FatalFlunked("GeosetAnim", -1);
       return 0;
     }
-    if (!IReadBinGeosetAnim(buffer, section, totalRead, status)) {
+    if (!IReadBinGeosetAnim(buf, section, totalRead, status)) {
       status->Add(STATUS_ERROR, "Error reading Geoset anim section.\n");
       return 0;
     }
@@ -1311,12 +1313,12 @@ static void IWriteBinGeosetAnimSection(
 
 int WriteBinGeosetAnims(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]
       && data.geosetAnims.Count()) {
-    buffer.AddDword('AOEG');
+    buf.AddDword('AOEG');
     unsigned int totalSize = 4;
     unsigned int i;
     for (i = 0; i < data.geosetAnims.Count(); ++i) {
@@ -1324,10 +1326,10 @@ int WriteBinGeosetAnims(
           data.geosetAnims.Ptr()[i]
       );
     }
-    buffer.AddUint(totalSize);
-    buffer.AddUint(data.geosetAnims.Count());
+    buf.AddUint(totalSize);
+    buf.AddUint(data.geosetAnims.Count());
     for (i = 0; i < data.geosetAnims.Count(); ++i) {
-      IWriteBinGeosetAnimSection(data.geosetAnims.Ptr()[i], buffer);
+      IWriteBinGeosetAnimSection(data.geosetAnims.Ptr()[i], buf);
     }
   }
   return 1;
@@ -1541,19 +1543,19 @@ static int ReadBinGeoset(
 }
 
 int ReadBinGeosets(
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     unsigned int length,
     MDLDATA &data,
     CMDLStatus *status
 ) {
   FATALASSERT(status);
   unsigned int totalRead = 4;
-  unsigned int count = buffer.GetUint();
+  unsigned int numGeosets = buf.GetUint();
   data.geosets.SetCount(0);
-  data.geosets.ReserveSpace(count);
+  data.geosets.ReserveSpace(numGeosets);
   while (totalRead < length) {
     MDLGEOSETSECTION *section = data.geosets.New();
-    if (!ReadBinGeoset(buffer, section, status, totalRead)) {
+    if (!ReadBinGeoset(buf, section, status, totalRead)) {
       status->Add(STATUS_ERROR, "Error reading Geoset.\n");
       return 0;
     }
@@ -1670,20 +1672,20 @@ static void WriteBinGeoset(
 
 int WriteBinGeosets(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *
 ) {
   if (data.geosets.Count()) {
-    buffer.AddDword('SOEG');
+    buf.AddDword('SOEG');
     unsigned int totalSize = 4;
     unsigned int i;
     for (i = 0; i < data.geosets.Count(); ++i) {
       totalSize += GetBinGeosetSize(data.geosets[i]);
     }
-    buffer.AddUint(totalSize);
-    buffer.AddUint(data.geosets.Count());
+    buf.AddUint(totalSize);
+    buf.AddUint(data.geosets.Count());
     for (i = 0; i < data.geosets.Count(); ++i) {
-      WriteBinGeoset(buffer, data.geosets[i]);
+      WriteBinGeoset(buf, data.geosets[i]);
     }
   }
   return 1;

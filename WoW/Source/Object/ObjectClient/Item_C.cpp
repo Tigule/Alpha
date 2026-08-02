@@ -67,16 +67,16 @@ static int OnUpdateOwner(unsigned __int64 guid, unsigned int offset, unsigned in
   FATALASSERT(item);
   FATALASSERT(prevValue);
   unsigned __int64 previousOwner = *static_cast<const unsigned __int64 *>(prevValue);
-  unsigned __int64 owner = item->GetOwner();
-  if (previousOwner && !owner) {
+  unsigned __int64 currOwner = item->GetOwner();
+  if (previousOwner && !currOwner) {
     ClntObjMgrShowObject(guid);
     item->AddWorldObject();
-  } else if (!previousOwner && owner) {
+  } else if (!previousOwner && currOwner) {
     ClntObjMgrHideObject(guid);
     item->RemoveWorldObject();
   }
   if (previousOwner == ClntObjMgrGetActivePlayer() ||
-      owner == ClntObjMgrGetActivePlayer()) {
+      currOwner == ClntObjMgrGetActivePlayer()) {
     CGActionBar::UpdateItem(item->GetEntryID());
     CGContainerInfo::UpdateItem(guid);
   }
@@ -242,16 +242,14 @@ static void LoadItemCacheCallback(int id, const unsigned __int64& guid, void* ar
 void CGItem_C::PostInit(const CClientObjCreate &init) {
   CGObject_C::PostInit(init);
 
-  unsigned __int64 guid = GetGUID();
-  if (g_itemDBCache.GetRecord(GetEntryID(), guid, LoadItemCacheCallback, 0)) {
+  if (g_itemDBCache.GetRecord(GetEntryID(), GetGUID(), LoadItemCacheCallback, 0)) {
     PostInitWithStats();
   }
 }
 
 void CGItem_C::PostInitWithStats() {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
-  FATALASSERT(stats);
+  const ItemStats_C *stat = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  FATALASSERT(stat);
 
   InstallObjMirrorHandlers();
   InstallItemIDMirrorHandler();
@@ -293,8 +291,7 @@ void CGItem_C::Disable(int shutdown) {
     CGGameUI::ClearCursor(0);
   }
   if (CGItemText::GetItem() == GetGUID()) {
-    const unsigned __int64 noGuid = 0;
-    CGItemText::SetItem(noGuid, 0);
+    CGItemText::SetItem(0, 0);
   }
 
   bool updateUI = !shutdown && m_item->m_owner == ClntObjMgrGetActivePlayer();
@@ -345,8 +342,7 @@ const char *CGItem_C::GetModelFileName() const {
 }
 
 int CGItem_C::CanBeUsed() {
-  const unsigned __int64 player = ClntObjMgrGetActivePlayer();
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(GetEntryID(), player, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), ClntObjMgrGetActivePlayer(), 0, 0);
   if (!stats) {
     return 0;
   }
@@ -359,8 +355,7 @@ int CGItem_C::CanBeUsed() {
 }
 
 int CGItem_C::GetUseSpell() {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   if (!stats) {
     return 0;
   }
@@ -377,8 +372,7 @@ bool CGItem_C::Use() {
     return false;
   }
 
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(GetEntryID(), noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   if (!stats) {
     return false;
   }
@@ -391,14 +385,12 @@ bool CGItem_C::Use() {
   }
 
   if (stats->m_pageText) {
-    const unsigned __int64 guid = GetGUID();
-    CGItemText::SetItem(guid, 0);
+    CGItemText::SetItem(GetGUID(), 0);
     return false;
   }
   if (stats->m_startQuestID) {
     if (player) {
-      const unsigned __int64 guid = GetGUID();
-      player->QueryQuest(guid, stats->m_startQuestID);
+      player->QueryQuest(GetGUID(), stats->m_startQuestID);
     }
     return false;
   }
@@ -502,8 +494,7 @@ void CGItem_C::UpdateEnchantmentTime(int slot, int timeLeft) {
 }
 
 int CGItem_C::GetSheatheType() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats ? stats->m_sheatheType : 0;
 }
 
@@ -512,38 +503,32 @@ const char *CGItem_C::GetInventoryArt() const {
 }
 
 int CGItem_C::GetClassID() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats ? stats->m_class : 0;
 }
 
 int CGItem_C::GetSubtypeID() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats ? stats->m_subclass : 0;
 }
 
 unsigned int CGItem_C::GetInventoryType() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats ? stats->m_inventoryType : 0;
 }
 
 int CGItem_C::GetDisplayID() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats ? stats->m_displayInfoID : 0;
 }
 
 int CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats && (stats->m_flags & flags) == flags;
 }
 
 int CGItem_C::GetMaterial() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats ? stats->m_material : 0;
 }
 
@@ -557,8 +542,7 @@ int CGItem_C::IsMetal(unsigned int material) {
 }
 
 const ItemStats *CGItem_C::GetStats() const {
-  const unsigned __int64 noGuid = 0;
-  return g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  return g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
 }
 
 int CGItem_C::SetBlock(unsigned int i, unsigned long data) {
@@ -609,20 +593,17 @@ void CGItem_C::OnRightClick() {
 int CGItem_C::GetPageTextID(
     void(*func)(int, const unsigned __int64 &, void *, bool)
 ) const {
-  unsigned __int64 guid = m_obj->m_guid;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, guid, func, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, m_obj->m_guid, func, 0);
   return stats ? stats->m_pageText : 0;
 }
 
 const char *CGItem_C::GetObjectName() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats ? stats->m_displayName[0] : 0;
 }
 
 int CGItem_C::GetMaxCount() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats ? stats->m_maxCount : 1;
 }
 
@@ -639,7 +620,6 @@ int CGItem_C::GetSheatheInvisible() const {
 }
 
 bool CGItem_C::IsWrapper() const {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats && (stats->m_flags & ITEM_FLAG_IS_WRAPPER) != 0;
 }

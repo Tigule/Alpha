@@ -920,9 +920,9 @@ static LPVOID SatisfyAllocRequest(HLOCKEDHEAP *lockedhandle, HEAPPTR heapptr, DW
 
 static void SatisfyFreeRequest(HEAPPTR heapptr, LPVOID ptr, BLOCKPTR blockptr) {
   DWORD bytes;
-  DWORD overhead;
+  DWORD sourceOverhead;
 
-  GetBlockSize(blockptr, ptr, &bytes, &overhead);
+  GetBlockSize(blockptr, ptr, &bytes, &sourceOverhead);
   if (s_fillmode && !(blockptr->flags & BF_LARGEALLOC)) {
     memset(ptr, 0xDD, bytes);
   }
@@ -935,11 +935,11 @@ static void SatisfyFreeRequest(HEAPPTR heapptr, LPVOID ptr, BLOCKPTR blockptr) {
 
 static LPVOID SatisfyReAllocRequest(HLOCKEDHEAP *lockedhandle, HEAPPTR heapptr, LPVOID ptr, BLOCKPTR blockptr, DWORD bytes, DWORD flags) {
   DWORD  sourceBytes;
-  DWORD  overhead;
+  DWORD  sourceOverhead;
   LPVOID newptr;
   DWORD  copyBytes;
 
-  GetBlockSize(blockptr, ptr, &sourceBytes, &overhead);
+  GetBlockSize(blockptr, ptr, &sourceBytes, &sourceOverhead);
   newptr = NULL;
 
   if (!s_reallocshufflemode && !(blockptr->flags & BF_LARGEALLOC)) {

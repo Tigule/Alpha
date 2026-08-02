@@ -3,13 +3,13 @@
 #include <gl/gl.h>
 
 int SetupPixelFormat(HDC hdc, const CGxFormat &format) {
-  unsigned int gBits = 6;
-  unsigned int bBits = 5;
-  unsigned int rBits = 5;
-  unsigned int stencilBits = 0;
-  unsigned int colorBits = 16;
-  unsigned int depthBits = 16;
-  unsigned int alphaBits = 0;
+  unsigned char gBits = 6;
+  unsigned char bBits = 5;
+  unsigned char rBits = 5;
+  unsigned char stencilBits = 0;
+  unsigned char colorBits = 16;
+  unsigned char depthBits = 16;
+  unsigned char alphaBits = 0;
 
   switch (format.colorFormat) {
     case CGxFormat::Fmt_Rgb565:
@@ -124,7 +124,7 @@ HGLRC AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format) {
   return 0;
 }
 
-void RemoveGlContext(HGLRC context) {
+void RemoveGlContext(HGLRC hglrc) {
   wglMakeCurrent(0, 0);
-  wglDeleteContext(context);
+  wglDeleteContext(hglrc);
 }

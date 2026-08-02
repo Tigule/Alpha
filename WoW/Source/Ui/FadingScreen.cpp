@@ -119,8 +119,7 @@ void EnableFadingScreen(float fadeTime, void(*fadedCallback)(void *), void *para
     FadingScreenCleanup();
   }
 
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  GxTexCreate(8, 8, GxTex_Argb8888, flags, 0, GxuUpdateSingleColorTexture, s_textureHandle);
+  GxTexCreate(8, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0, GxuUpdateSingleColorTexture, s_textureHandle);
 
   rect.left = 0.0f;
   rect.bottom = 0.0f;

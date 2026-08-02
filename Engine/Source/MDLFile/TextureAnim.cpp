@@ -264,21 +264,21 @@ static void IWriteBinTextureAnim(
 
 int WriteBinTextureAnims(
     const MDLDATA &data,
-    CMsgBuffer &buffer,
+    CMsgBuffer &buf,
     CMDLStatus *
 ) {
   if (!static_cast<const char *>(data.model.animationFile)[0]
       && data.textureanims.Count()) {
-    buffer.AddDword('NAXT');
+    buf.AddDword('NAXT');
     unsigned int totalSize = 4;
     unsigned int i;
     for (i = 0; i < data.textureanims.Count(); ++i) {
       totalSize += GetBinTexAnimSize(data.textureanims.Ptr()[i]);
     }
-    buffer.AddUint(totalSize);
-    buffer.AddUint(data.textureanims.Count());
+    buf.AddUint(totalSize);
+    buf.AddUint(data.textureanims.Count());
     for (i = 0; i < data.textureanims.Count(); ++i) {
-      IWriteBinTextureAnim(data.textureanims.Ptr()[i], buffer);
+      IWriteBinTextureAnim(data.textureanims.Ptr()[i], buf);
     }
   }
   return 1;

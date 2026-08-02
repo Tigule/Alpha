@@ -522,6 +522,7 @@ int CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
     return 0;
   }
 
+  int active = 0;
   const SpellRec *spell = g_spellDB.GetRecord(GetSpell(slot, type));
   if (!spell || !spell->m_activeIconID) {
     return 0;
@@ -531,10 +532,11 @@ int CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
   const unsigned char   *auraFlags = unitData->auraFlags;
   for (unsigned int aura = 0; aura < 40; ++aura) {
     if (unitData->auras[aura] == spell->m_ID && ((auraFlags[aura / 2] >> (4 * (aura % 2))) & 1)) {
-      return 1;
+      active = 1;
+      break;
     }
   }
-  return 0;
+  return active;
 }
 
 static int GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &type) {

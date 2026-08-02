@@ -59,10 +59,9 @@ void CMovement::MoveUnit(unsigned long timeNow, unsigned long lastUpdate, void *
     OnMoveUpdate(m_guid, timeNow);
 
     if (m_moveFlags & 0x40FF) {
-      double positionComponent = m_position.x;
-      if (_isnan(positionComponent) ||
-          (positionComponent = m_position.y, _isnan(positionComponent)) ||
-          (positionComponent = m_position.z, _isnan(positionComponent))) {
+      if (_isnan(static_cast<double>(m_position.x)) ||
+          _isnan(static_cast<double>(m_position.y)) ||
+          _isnan(static_cast<double>(m_position.z))) {
         ConsolePrintf("Mover at invalid position");
         MovementFixOutOfBoundsUnit(m_guid);
       } else {
@@ -85,7 +84,7 @@ void CMovement::MoveUnits(unsigned long timeNow, unsigned long lastUpdate) {
 
   CMovementData *baseMover = globals->movers.Head();
   while (reinterpret_cast<long>(baseMover) > 0) {
-    CMovementData *baseMoverNext = globals->movers.RawNext(baseMover);
+    CMovementData *baseMovernext_node = globals->movers.RawNext(baseMover);
     CMovement     *mover = static_cast<CMovement *>(baseMover);
     FATALASSERT(mover != ((CMovementGlobals *)MovementGetGlobals())->m_localMover);
 
@@ -155,28 +154,27 @@ void CMovement::MoveUnits(unsigned long timeNow, unsigned long lastUpdate) {
         globals->movers.UnlinkNode(mover);
         --globals->numMovers;
         MovementUnlock(obj);
-        baseMover = baseMoverNext;
+        baseMover = baseMovernext_node;
         continue;
       } else {
-        double positionComponent = mover->m_position.x;
-        if (_isnan(positionComponent) ||
-            (positionComponent = mover->m_position.y, _isnan(positionComponent)) ||
-            (positionComponent = mover->m_position.z, _isnan(positionComponent))) {
+        if (_isnan(static_cast<double>(mover->m_position.x)) ||
+            _isnan(static_cast<double>(mover->m_position.y)) ||
+            _isnan(static_cast<double>(mover->m_position.z))) {
           ConsolePrintf("Mover at invalid position");
           MovementFixOutOfBoundsUnit(mover->m_guid);
           MovementUnlock(obj);
-          baseMover = baseMoverNext;
+          baseMover = baseMovernext_node;
           continue;
         } else {
           MovementUpdateProxMap(obj);
           MovementUnlock(obj);
-          baseMover = baseMoverNext;
+          baseMover = baseMovernext_node;
           continue;
         }
       }
     }
 
-    baseMover = baseMoverNext;
+    baseMover = baseMovernext_node;
   }
 
   if (entriesOnList) {
@@ -461,7 +459,7 @@ unsigned long MovementGetLastUpdate() {
 }
 
 void CMovement::GetMovingDirection(NTempest::C3Vector *direction) const {
-  *direction = m_moveFlags & 2 ? m_direction * -1.0f : m_direction;
+  *direction = m_moveFlags & 2 ? -m_direction : m_direction;
 }
 
 void CMovement::GetStrafingDirection(NTempest::C3Vector *direction) const {
@@ -494,8 +492,7 @@ void CMovement::GetMovingDirection2d(NTempest::C2Vector *direction) const {
 }
 
 void CMovement::GetStrafingDirection2d(NTempest::C2Vector *direction) const {
-  direction->x = m_direction2d.y;
-  direction->y = m_direction2d.x;
+  direction->Set(m_direction2d.y, m_direction2d.x);
   if (m_moveFlags & 4) {
     direction->x = -direction->x;
   } else {
@@ -512,8 +509,7 @@ void CMovement::GetDiagonalDirection2d(NTempest::C2Vector *direction) const {
 }
 
 void CMovement::PlotLinearPosition(const NTempest::C3Vector &direction, float secsElapsed, NTempest::C3Vector *totalMove) {
-  NTempest::C3Vector elapsedMove = direction * secsElapsed;
-  *totalMove = elapsedMove * GetCurrentSpeed();
+  *totalMove = (direction * secsElapsed) * GetCurrentSpeed();
   LogWrite(
       "0x%016I64X: Want to move (%g,%g,%g) straight for %g secs\n",
       m_guid,
@@ -676,8 +672,8 @@ void CMovement::PlotUnitRotation(float elapsedSec) {
     );
   }
 
-  float facing = GetCurrentTurnRate();
-  facing = static_cast<float>(fmod(facing * elapsedSec + m_anchorFacing, 6.2831855));
+  float turnRate = GetCurrentTurnRate();
+  float facing = static_cast<float>(fmod(turnRate * elapsedSec + m_anchorFacing, 6.2831855));
   if (facing < 0.0f) {
     facing += 6.2831855f;
   }
@@ -747,16 +743,15 @@ void CMovement::PlotSpiralPosition(const NTempest::C2Vector &direction2d, float 
 void CMovement::PlotVertCircularPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
   float currentSpeed = GetCurrentSpeed();
   float pitchRate = GetCurrentPitchRate();
-  float inversePitchRate = 1.0f / pitchRate;
-  float pitchRadius = inversePitchRate * currentSpeed;
+  float pitchRadius = currentSpeed / pitchRate;
   float pitchAngle = pitchRate * secsElapsed;
   float overflowTime = 0.0f;
 
   if (m_anchorPitch + pitchAngle > 1.5707964f) {
-    overflowTime = (m_anchorPitch + pitchAngle - 1.5707964f) * inversePitchRate;
+    overflowTime = (m_anchorPitch + pitchAngle - 1.5707964f) / pitchRate;
     pitchAngle = 1.5707964f - m_anchorPitch;
   } else if (m_anchorPitch + pitchAngle < -1.5707964f) {
-    overflowTime = (m_anchorPitch + pitchAngle + 1.5707964f) * inversePitchRate;
+    overflowTime = (m_anchorPitch + pitchAngle + 1.5707964f) / pitchRate;
     pitchAngle = -1.5707964f - m_anchorPitch;
   }
 
@@ -783,10 +778,8 @@ void CMovement::PlotVertCircularPosition(const NTempest::C2Vector &direction2d, 
 void CMovement::PlotHorzCircularPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
   float currentSpeed = GetCurrentSpeed();
   float turnRate = GetCurrentTurnRate();
-  float turnRadius = currentSpeed / turnRate;
-  float turnAngle = turnRate * secsElapsed;
-  float turnX = NTempest::CMath::sin_(turnAngle) * turnRadius;
-  float turnY = turnRadius - NTempest::CMath::cos_(turnAngle) * turnRadius;
+  float turnX = NTempest::CMath::sin_(turnRate * secsElapsed) * (currentSpeed / turnRate);
+  float turnY = currentSpeed / turnRate - NTempest::CMath::cos_(turnRate * secsElapsed) * (currentSpeed / turnRate);
 
   totalMove->x = (turnX * direction2d.x - turnY * direction2d.y) * m_cosAnchorPitch;
   totalMove->y = (turnY * direction2d.x + turnX * direction2d.y) * m_cosAnchorPitch;
@@ -1391,12 +1384,12 @@ void CMovement::ApplyMovement(unsigned long eventTime, unsigned int fallTime, un
   } else if ((oldMoveFlags & 0x800) || (m_spline && !(m_spline->flags & 4) && (m_spline->flags & 0x200))) {
     SimpleRequestMove(fallTime + elapsed, moveVector);
   } else if (oldMoveFlags & 0x400F) {
-    NTempest::C3Vector moveWanted = m_anchorPosition + moveVector - m_position;
+    NTempest::C3Vector move = m_anchorPosition + moveVector - m_position;
     m_moveFlags = oldMoveFlags & 0xEFFFFFFF;
     if (!(oldMoveFlags & 0x02000000)) {
-      moveWanted.z = 0.0f;
+      move.z = 0.0f;
     }
-    moveAdjusted = CollideRequestMove(eventTime, elapsed, moveWanted);
+    moveAdjusted = CollideRequestMove(eventTime, elapsed, move);
     ApplyAdjustedMove(eventTime + elapsed, moveVector, moveAdjusted, oldMoveFlags);
   }
 

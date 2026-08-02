@@ -705,7 +705,7 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
 
   NTempest::C3Vector targetPosition;
   target->GetPosition(targetPosition);
-  int hasMoved = targetPosition.x != m_lastTarget.x || targetPosition.y != m_lastTarget.y || targetPosition.z != m_lastTarget.z;
+  bool hasMoved = targetPosition.x != m_lastTarget.x || targetPosition.y != m_lastTarget.y || targetPosition.z != m_lastTarget.z;
   if (hasMoved) {
     m_lastTarget = targetPosition;
   }
@@ -736,9 +736,12 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
     m_distance = m_desiredDistance;
     m_zoomSmoothingTimestamp = 0;
   } else {
-    float timeFac = (timestamp - m_zoomSmoothingTimestamp) * 0.001f / m_zoomTime;
-    if (timeFac < 1.0f) {
-      m_distance = OrganicSmooth(m_previousDistance, m_desiredDistance, timeFac);
+    if ((timestamp - m_zoomSmoothingTimestamp) * 0.001f / m_zoomTime < 1.0f) {
+      m_distance = OrganicSmooth(
+          m_previousDistance,
+          m_desiredDistance,
+          (timestamp - m_zoomSmoothingTimestamp) * 0.001f / m_zoomTime
+      );
     } else {
       m_distance = m_desiredDistance;
     }
@@ -750,9 +753,12 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
       m_pitchSmoothingTimestamp = 0;
       m_pitch = m_desiredPitch;
     } else if (timestamp >= m_pitchSmoothingTimestamp) {
-      float timeFac = (timestamp - m_pitchSmoothingTimestamp) * 0.001f / m_pitchTime;
-      if (timeFac < 1.0f) {
-        m_pitch = OrganicSmooth(m_previousPitch, m_desiredPitch, timeFac);
+      if ((timestamp - m_pitchSmoothingTimestamp) * 0.001f / m_pitchTime < 1.0f) {
+        m_pitch = OrganicSmooth(
+            m_previousPitch,
+            m_desiredPitch,
+            (timestamp - m_pitchSmoothingTimestamp) * 0.001f / m_pitchTime
+        );
       } else {
         m_pitch = m_desiredPitch;
       }
@@ -762,9 +768,12 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
       m_yawSmoothingTimestamp = 0;
       m_yawOffset = m_desiredYaw;
     } else if (timestamp >= m_yawSmoothingTimestamp) {
-      float timeFac = (timestamp - m_yawSmoothingTimestamp) * 0.001f / m_yawTime;
-      if (timeFac < 1.0f) {
-        m_yawOffset = OrganicSmooth(m_previousYaw, m_desiredYaw, timeFac);
+      if ((timestamp - m_yawSmoothingTimestamp) * 0.001f / m_yawTime < 1.0f) {
+        m_yawOffset = OrganicSmooth(
+            m_previousYaw,
+            m_desiredYaw,
+            (timestamp - m_yawSmoothingTimestamp) * 0.001f / m_yawTime
+        );
       } else {
         m_yawOffset = m_desiredYaw;
       }
@@ -806,8 +815,7 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
     SetTargetFadeValue(255);
   }
 
-  NTempest::C3Vector facing(m_facing.a0, m_facing.a1, m_facing.a2);
-  CSimpleCamera::SetFacing(facing);
+  CSimpleCamera::SetFacing(NTempest::C3Vector(m_facing.a0, m_facing.a1, m_facing.a2));
 }
 
 void CGCamera::CalcFirstPerson(CGObject_C *target, unsigned long timestamp) {
@@ -1393,8 +1401,7 @@ int CGCamera::SetModelCamera(
   ModelSetSeqFinishedHandler(m_model, 0, ModelCameraFinished, param);
   m_modelMatrix.Identity();
   m_modelMatrix.Translate(origin);
-  NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
-  m_modelMatrix.Rotate(facing, axis, 1);
+  m_modelMatrix.Rotate(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
 
   while (!ModelIsLoaded(m_model, 1)) {
     AsyncFileReadWaitAll();
@@ -1503,19 +1510,15 @@ void CGCamera::SetSmoothingAngle(float smoothingAngle, unsigned long timestamp, 
     smoothingAngle = -0.52359879f;
   }
 
-  float newAngle = m_desiredPitch - m_smoothingAngle + smoothingAngle;
-  if (newAngle > 1.5707964f) {
-    newAngle = 1.5707964f;
-  } else if (newAngle < -1.5707964f) {
-    newAngle = -1.5707964f;
+  float smoothTime = m_desiredPitch - m_smoothingAngle + smoothingAngle;
+  if (smoothTime > 1.5707964f) {
+    smoothTime = 1.5707964f;
+  } else if (smoothTime < -1.5707964f) {
+    smoothTime = -1.5707964f;
   }
 
-  if (NTempest::CMath::fnotequal_(newAngle, m_desiredPitch)) {
-    float smoothTime = CAMERA_SMOOTH_TIME;
-    if (quickly) {
-      smoothTime = 1.0f * 0.25f;
-    }
-    SetDesiredPitchAngleOverTime(newAngle, smoothTime, timestamp);
+  if (NTempest::CMath::fnotequal_(smoothTime, m_desiredPitch)) {
+    SetDesiredPitchAngleOverTime(smoothTime, quickly ? 1.0f * 0.25f : CAMERA_SMOOTH_TIME, timestamp);
   }
   m_smoothingAngle = smoothingAngle;
 }
@@ -1523,6 +1526,7 @@ void CGCamera::SetSmoothingAngle(float smoothingAngle, unsigned long timestamp, 
 void CGCamera::PerformTerrainTilt(
     unsigned long timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly
 ) {
+  int quickly;
   if (!s_cameraSmooth->GetInt()) {
     return;
   }
@@ -1530,7 +1534,6 @@ void CGCamera::PerformTerrainTilt(
     return;
   }
 
-  int           quickly;
   unsigned long nextUpdate;
   if (moving || !turning) {
     quickly = 0;

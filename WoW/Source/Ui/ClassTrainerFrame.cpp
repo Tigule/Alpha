@@ -752,8 +752,12 @@ static int Script_GetTrainerServiceIcon(lua_State *L) {
       if (spell->m_effect[i] == 36 || spell->m_effect[i] == 57) {
         const SpellRec *learned = g_spellDB.GetRecord(spell->m_effectTriggerSpell[i]);
         if (learned && learned->m_effectItemType[0]) {
-          unsigned __int64   guid = static_cast<unsigned __int64>(learned->m_ID) | 0xB000000000000000ui64;
-          const ItemStats_C *stats = g_itemDBCache.GetRecord(learned->m_effectItemType[0], guid, TradeSkillItemCallback, 0);
+          const ItemStats_C *stats = g_itemDBCache.GetRecord(
+              learned->m_effectItemType[0],
+              static_cast<unsigned __int64>(learned->m_ID) | 0xB000000000000000ui64,
+              TradeSkillItemCallback,
+              0
+          );
           if (stats) {
             char        buffer[260];
             const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
@@ -787,9 +791,16 @@ static int Script_GetTrainerServiceCost(lua_State *L) {
     return luaL_error(L, "Usage: GetTrainerServiceCost(index)");
   }
   const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  lua_pushnumber(L, service ? static_cast<double>(service->moneyCost) : 0.0);
-  lua_pushnumber(L, service ? static_cast<double>(service->pointCost[0]) : 0.0);
-  lua_pushnumber(L, service ? static_cast<double>(service->pointCost[1]) : 0.0);
+  int moneyCost = 0;
+  int costCP[2] = {0, 0};
+  if (service) {
+    moneyCost = service->moneyCost;
+    costCP[0] = service->pointCost[0];
+    costCP[1] = service->pointCost[1];
+  }
+  lua_pushnumber(L, static_cast<double>(moneyCost));
+  lua_pushnumber(L, static_cast<double>(costCP[0]));
+  lua_pushnumber(L, static_cast<double>(costCP[1]));
   return 3;
 }
 
@@ -798,7 +809,8 @@ static int Script_GetTrainerServiceLevelReq(lua_State *L) {
     return luaL_error(L, "Usage: GetTrainerServiceLevelReq(index)");
   }
   const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  lua_pushnumber(L, service ? static_cast<double>(service->reqLevel) : 0.0);
+  int level = service ? service->reqLevel : 0;
+  lua_pushnumber(L, static_cast<double>(level));
   return 1;
 }
 
@@ -806,12 +818,28 @@ static int Script_GetTrainerServiceSkillReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceSkillReq(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  int                 met = 1;
+  int                 rank = 0;
   CGPlayer_C         *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const SkillLineRec *line = service ? g_skillLineDB.GetRecord(service->reqSkillLine) : 0;
-  lua_pushstring(L, line ? line->m_displayName_lang[CURRENT_LANGUAGE] : 0);
-  lua_pushnumber(L, service ? static_cast<double>(service->reqSkillRank) : 0.0);
-  if (service && player && player->GetSkillRank(service->reqSkillLine) >= static_cast<int>(service->reqSkillRank)) {
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const SkillLineRec *line = 0;
+  if (player && service && service->reqSkillLine) {
+    rank = service->reqSkillRank;
+    if (rank) {
+      line = g_skillLineDB.GetRecord(service->reqSkillLine);
+      if (line && player->GetSkillRank(service->reqSkillLine) < rank) {
+        met = 0;
+      }
+    }
+  }
+  if (line && line->m_displayName_lang[CURRENT_LANGUAGE] && *line->m_displayName_lang[CURRENT_LANGUAGE]) {
+    lua_pushstring(L, line->m_displayName_lang[CURRENT_LANGUAGE]);
+    lua_pushnumber(L, static_cast<double>(rank));
+  } else {
+    lua_pushnil(L);
+    lua_pushnumber(L, 0.0);
+  }
+  if (met) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);
@@ -844,6 +872,7 @@ static int Script_GetTrainerServiceAbilityReq(lua_State *L) {
   unsigned int        abilityIndex = static_cast<unsigned int>(lua_tonumber(L, 2)) - 1;
   const SpellRec     *spell = service && abilityIndex < 3 ? g_spellDB.GetRecord(service->reqAbility[abilityIndex]) : 0;
   char                ability[256];
+  int                 met = 1;
   ability[0] = 0;
   if (spell) {
     if (spell->m_nameSubtext_lang[CURRENT_LANGUAGE] && *spell->m_nameSubtext_lang[CURRENT_LANGUAGE]) {
@@ -864,7 +893,10 @@ static int Script_GetTrainerServiceAbilityReq(lua_State *L) {
       break;
     }
   }
-  if (!spell || !unit || unit->IsSpellKnown(spell->m_ID) || unit->IsSpellSuperceded(spell->m_ID)) {
+  if (spell && unit && !unit->IsSpellKnown(spell->m_ID) && !unit->IsSpellSuperceded(spell->m_ID)) {
+    met = 0;
+  }
+  if (met) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);

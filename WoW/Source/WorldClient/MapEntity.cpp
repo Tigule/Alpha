@@ -402,7 +402,13 @@ void CMap::UpdateEntity(CMapEntity *entity) {
 void CMap::LinkEntityToMapObj(CMapStaticEntity *entity, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
   CMapBaseObjLink *link = AllocBaseObjLink(entity);
   link->ref = mapObjDefGroup;
-  mapObjDefGroup->entityLinkList.LinkNode(link, LIST_TAIL, 0);
+  if (entity->GetType() & CMapBaseObj::Type_Entity) {
+    mapObjDefGroup->entityLinkList.LinkNode(link, LIST_TAIL, 0);
+  } else if (entity->GetType() & CMapBaseObj::Type_DoodadDef) {
+    mapObjDefGroup->doodadDefLinkList.LinkNode(link, LIST_TAIL, 0);
+  } else {
+    FATALASSERT(0);
+  }
 
   FATALASSERT(mapObjDef->mapObj);
   CMapObjGroup *mapObjGroup = mapObjDef->mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
@@ -424,7 +430,13 @@ void CMap::LinkEntityToMapObj(CMapStaticEntity *entity, CMapObjDef *mapObjDef, C
 void CMap::LinkEntityToChunk(CMapStaticEntity *entity, CMapChunk *chunk) {
   CMapBaseObjLink *link = AllocBaseObjLink(entity);
   link->ref = chunk;
-  chunk->entityLinkList.LinkNode(link, LIST_TAIL, 0);
+  if (entity->GetType() & CMapBaseObj::Type_Entity) {
+    chunk->entityLinkList.LinkNode(link, LIST_TAIL, 0);
+  } else if (entity->GetType() & CMapBaseObj::Type_DoodadDef) {
+    chunk->doodadDefLinkList.LinkNode(link, LIST_TAIL, 0);
+  } else {
+    FATALASSERT(0);
+  }
   entity->flags |= CMapBaseObj::Flag_ExteriorLit;
 }
 

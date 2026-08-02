@@ -51,7 +51,6 @@ int SCreateProcess(const char *appName, char *commandLine, SPROCESSCOMPLETIONPRO
   WCHAR               commandLineW[MAX_PATH];
   STARTUPINFOW        startInfo;
   PROCESS_INFORMATION processInfo;
-  unsigned int        threadID;
 
   ZeroMemory(&startInfo, sizeof(startInfo));
   startInfo.cb = sizeof(startInfo);
@@ -75,7 +74,12 @@ int SCreateProcess(const char *appName, char *commandLine, SPROCESSCOMPLETIONPRO
     completionInfo->proc = callbackWhenProcessCompletes;
     completionInfo->param = callbackData;
     completionInfo->process = processInfo.hProcess;
-    SCreateThread(ProcessCompletionCallbackThread, completionInfo, &threadID, NULL, NULL);
+    SCreateThread(
+        ProcessCompletionCallbackThread,
+        completionInfo,
+        reinterpret_cast<unsigned int *>(&callbackWhenProcessCompletes),
+        NULL,
+        NULL);
   }
 
   return 1;

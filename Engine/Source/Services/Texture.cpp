@@ -276,13 +276,11 @@ CTexture::~CTexture() {
 
 static HTEXTURE GetTexture(const char *texMap, CGxTexFlags flags) {
   CTextureHash *textureHash;
-  unsigned int  hash;
 
   ASSERT(texMap);
 
-  hash = SStrHash(texMap, 0, 0);
   HASHKEY_TEXTUREFILE hashKey(texMap, flags);
-  textureHash = s_textureCache.Ptr(hash, hashKey);
+  textureHash = s_textureCache.Ptr(SStrHash(texMap, 0, 0), hashKey);
   if (!textureHash) {
     return 0;
   }
@@ -348,11 +346,12 @@ static unsigned int LoadPredrawnMips(const CTgaFile &mipZero, const char *filema
   unsigned int levels;
   unsigned int index = 1;
 
+  width = mipZero.Width();
+  height = mipZero.Height();
+
   ASSERT(filemask);
   ASSERT(buffer);
 
-  width = mipZero.Width();
-  height = mipZero.Height();
   levels = TextureCalcMipCount(width, height);
   ASSERT(levels > 0);
 
@@ -484,7 +483,8 @@ LoadTgaMips(const char *fileName, unsigned int *width, unsigned int *height, EGx
   unsigned int imageWidth = texFile.Width();
   unsigned int imageHeight = texFile.Height();
   unsigned int levels = TextureCalcMipCount(imageWidth, imageHeight);
-  MipBits     *buffer = TextureAllocMippedImg(GxTex_Argb8888, imageWidth, imageHeight);
+  MipBits     *buffer;
+  buffer = TextureAllocMippedImg(GxTex_Argb8888, imageWidth, imageHeight);
   TGA32Pixel  *source = texFile.ImageTGA32Pixel();
   C4Pixel     *dst = buffer->mip[0];
   unsigned int pixelCount = imageWidth * imageHeight;
@@ -718,6 +718,7 @@ static CGxTex *TextureAllocGxTex(
   CGxTexParmsEx gxTexParmsEx;
   CGxTexParmsEx gxTexParmsEx2;
   CGxTexCache  *gxTexCache = 0;
+  CGxTex       *gxTex = 0;
   unsigned int  indexW = 0;
   unsigned int  indexH = 0;
 
@@ -767,7 +768,6 @@ static CGxTex *TextureAllocGxTex(
   }
 
   if (!gxTexCache) {
-    CGxTex *gxTex = 0;
     int     ret = GxTexCreate(gxTexParmsEx, gxTex);
     ASSERT(ret);
     return gxTex;
@@ -1040,9 +1040,10 @@ static int AsyncTextureLoadImageCreate(CTexture *texture) {
 }
 
 static void FillInSolidTexture(const NTempest::CImVector &color, CTexture *texture) {
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-
-  GxTexCreate(8, 8, GxTex_Argb8888, flags, reinterpret_cast<void *>(*color.IV_()), GxuUpdateSingleColorTexture, texture->gxTex);
+  GxTexCreate(
+      8, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
+      reinterpret_cast<void *>(*color.IV_()), GxuUpdateSingleColorTexture, texture->gxTex
+  );
 
   if (color.a >= 0xFE) {
     texture->flags |= 1;
@@ -1192,12 +1193,12 @@ void TextureCacheFlush() {
 void TextureGxCacheFlush() {
   unsigned int x;
   unsigned int y;
-  unsigned int format;
+  unsigned int z;
 
   for (x = 0; x < 5; ++x) {
     for (y = 0; y < 5; ++y) {
-      for (format = 0; format < GxTexFormats_Last; ++format) {
-        LISTEX(CGxTexCache, link) &cacheList = s_gxTexCacheList[x][y][format];
+      for (z = 0; z < GxTexFormats_Last; ++z) {
+        LISTEX(CGxTexCache, link) &cacheList = s_gxTexCacheList[x][y][z];
         CGxTexCache                    *gxTexCache;
 
         while ((gxTexCache = cacheList.Head()) != 0) {
@@ -1350,22 +1351,21 @@ HTEXTURE TextureLoadImage(const char *filename) {
 }
 
 MipBits *TextureLoadImage(
-    HTEXTURE      textureptr,
+    HTEXTURE      texture,
     unsigned int *width,
     unsigned int *height,
     unsigned int *gxTexFormat,
     CStatus      *status,
     unsigned int *alphaBits
 ) {
-  FATALASSERT(textureptr);
+  FATALASSERT(texture);
 
-  int isOpaque;
   return TextureLoadImage(
-      reinterpret_cast<CTexture *>(textureptr)->filename,
+      reinterpret_cast<CTexture *>(texture)->filename,
       width,
       height,
       gxTexFormat,
-      &isOpaque,
+      0,
       status,
       alphaBits
   );
@@ -1588,7 +1588,9 @@ TextureGenerateMips(unsigned int width, unsigned int height, unsigned int levels
   unsigned int sourceHeight = height;
   unsigned int destWidth = width;
   unsigned int destHeight = height;
-  unsigned int last_good_level = 0;
+  unsigned int last_good_level;
+
+  last_good_level = 0;
 
   if (levelsProvided) {
     last_good_level = levelsProvided - 1;

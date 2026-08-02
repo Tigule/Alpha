@@ -317,9 +317,9 @@ static void SetFogColors() {
   s_dnInfo.intFogInfo.start = 0.0f;
   s_dnInfo.intFogInfo.end = 0.0f;
 
-  SMOFog::Fogs fogs;
-  float        pct;
-  s_dnInfo.intFog = CWorld::QueryMapObjFog(0, fogs, pct) == 1;
+  SMOFog::Fogs intFog;
+  float        intPct;
+  s_dnInfo.intFog = CWorld::QueryMapObjFog(0, intFog, intPct) == 1;
   if (!s_dnInfo.intFog) {
     return;
   }
@@ -334,12 +334,12 @@ static void SetFogColors() {
     return;
   }
 
-  SMOFog::Fog &fog = fogs[liquid < 2];
+  SMOFog::Fog &fog = intFog[liquid < 2];
   float        fogEnd = fog.end < s_dnInfo.farClip ? fog.end : s_dnInfo.farClip;
-  s_dnInfo.intFogInfo.end = (fogEnd - s_dnInfo.fogInfo.end) * pct + s_dnInfo.fogInfo.end;
-  s_dnInfo.intFogInfo.start = ((fog.startScalar - s_dnInfo.light.FogStartScalar) * pct + s_dnInfo.light.FogStartScalar) * s_dnInfo.intFogInfo.end;
+  s_dnInfo.intFogInfo.end = (fogEnd - s_dnInfo.fogInfo.end) * intPct + s_dnInfo.fogInfo.end;
+  s_dnInfo.intFogInfo.start = ((fog.startScalar - s_dnInfo.light.FogStartScalar) * intPct + s_dnInfo.light.FogStartScalar) * s_dnInfo.intFogInfo.end;
   s_dnInfo.intFogInfo.color = s_dnInfo.fogInfo.color;
-  BlendRGB255(s_dnInfo.intFogInfo.color, fog.color, NTempest::CMath::fuint_n(pct * 255.0f));
+  BlendRGB255(s_dnInfo.intFogInfo.color, fog.color, NTempest::CMath::fuint_n(intPct * 255.0f));
 }
 
 void DNSky::SetColors() {
@@ -351,7 +351,8 @@ void DNSky::SetColors() {
   }
 
   NTempest::CImVector *color = m_clrVerts.Ptr();
-  *color++ = DarkenColor(s_dnInfo.light.SkyArray[0], 1.0f);
+  NTempest::CImVector  topColor = DarkenColor(s_dnInfo.light.SkyArray[0], 1.0f);
+  *color++ = topColor;
 
   for (unsigned int band = 1; band <= 4; ++band) {
     float angle = s_dnInfo.faceAngle * 0.15915494f + 0.25f;
@@ -369,8 +370,8 @@ void DNSky::SetColors() {
       if (fade >= 0.0f) {
         bandColor = BlendColor(midColors[band], s_dnInfo.light.SkyArray[band], (1.0f - fade) * darkness);
       } else {
-        NTempest::CImVector botColor = BlendColor(midColors[band], s_dnInfo.light.SkyArray[0], darkness * 0.69999999f);
-        bandColor = BlendColor(midColors[band], botColor, -fade * darkness);
+        NTempest::CImVector darkClr = BlendColor(midColors[band], s_dnInfo.light.SkyArray[0], darkness * 0.69999999f);
+        bandColor = BlendColor(midColors[band], darkClr, -fade * darkness);
       }
       BlendRGB255(bandColor, s_dnInfo.eclipseColor, s_dnInfo.eclipseAmount);
       *color++ = bandColor;
@@ -397,12 +398,12 @@ static void SetDirection() {
       NTempest::C2Vector(0.75f, PI * 1.25f)
   };
 
-  float theta = InterpTable(thetaTable, 4, s_dnInfo.dayProgression);
-  float phi = InterpTable(phiTable, 4, s_dnInfo.dayProgression);
-  float sinTheta = sin(theta);
-  s_dnInfo.lightInfo.dir.x = cos(phi) * sinTheta;
-  s_dnInfo.lightInfo.dir.y = sin(phi) * sinTheta;
-  s_dnInfo.lightInfo.dir.z = cos(theta);
+  float phi = InterpTable(thetaTable, 4, s_dnInfo.dayProgression);
+  float theta = InterpTable(phiTable, 4, s_dnInfo.dayProgression);
+  float sinPhi = sin(phi);
+  s_dnInfo.lightInfo.dir.x = cos(theta) * sinPhi;
+  s_dnInfo.lightInfo.dir.y = sin(theta) * sinPhi;
+  s_dnInfo.lightInfo.dir.z = cos(phi);
 }
 
 static void SetPlanets() {
@@ -438,24 +439,26 @@ static void SetPlanets() {
       NTempest::C2Vector(0.99930555f, 1.0f)
   };
 
-  s_dnInfo.sunMoonPath = (s_dnInfo.stormPercentage + 10.0f) * 0.1f;
+  s_dnInfo.billbRescale = (s_dnInfo.nearClipScaled + 10.0f) * 0.1f;
 
-  float              theta = InterpTable(moon2ThetaTable, 5, s_dnInfo.dayProgression);
-  float              phi = InterpTable(moon2PhiTable, 3, s_dnInfo.dayProgression);
-  NTempest::C3Vector dir(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-  dir.Normalize();
-  s_planets[0].m_pos = s_dnInfo.playerPos + dir * 12.0f;
-  s_planets[0].m_scale = InterpTable(sunScaleTable, 4, s_dnInfo.dayProgression) * s_planets[0].m_baseScale * s_dnInfo.sunMoonPath;
+  float phi = InterpTable(moon2ThetaTable, 5, s_dnInfo.dayProgression);
+  float theta = InterpTable(moon2PhiTable, 3, s_dnInfo.dayProgression);
+  s_planets[0].m_pos.Set(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi));
+  s_planets[0].m_pos.Normalize();
+  s_planets[0].m_pos *= 12.0f;
+  s_planets[0].m_pos += s_dnInfo.cameraPos;
+  s_planets[0].m_scale = InterpTable(sunScaleTable, 4, s_dnInfo.dayProgression) * s_planets[0].m_baseScale * s_dnInfo.billbRescale;
   s_sunGlare.m_pos = s_planets[0].m_pos;
 
-  theta = InterpTable(sunThetaTable, 5, s_dnInfo.dayProgression);
-  phi = InterpTable(sunPhiTable, 3, s_dnInfo.dayProgression);
-  dir.Set(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-  dir.Normalize();
-  s_planets[1].m_pos = s_dnInfo.playerPos + dir * 12.0f;
-  s_planets[1].m_scale = InterpTable(moonScaleTable, 4, s_dnInfo.dayProgression) * s_planets[1].m_baseScale * s_dnInfo.sunMoonPath;
+  phi = InterpTable(sunThetaTable, 5, s_dnInfo.dayProgression);
+  theta = InterpTable(sunPhiTable, 3, s_dnInfo.dayProgression);
+  s_planets[1].m_pos.Set(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi));
+  s_planets[1].m_pos.Normalize();
+  s_planets[1].m_pos *= 12.0f;
+  s_planets[1].m_pos += s_dnInfo.cameraPos;
+  s_planets[1].m_scale = InterpTable(moonScaleTable, 4, s_dnInfo.dayProgression) * s_planets[1].m_baseScale * s_dnInfo.billbRescale;
   s_moonGlare.m_pos = s_planets[1].m_pos;
-  s_moonGlare.m_scaleMin = s_planets[1].m_scale * s_dnInfo.sunMoonPath;
+  s_moonGlare.m_scaleMin = s_planets[1].m_scale * s_dnInfo.billbRescale;
   s_moonGlare.m_scaleMax = s_moonGlare.m_scaleMin;
 
   s_sunGlare.Update(s_dnInfo.elapsedSec);
@@ -464,12 +467,13 @@ static void SetPlanets() {
   float moon2t =
       (s_dnInfo.day + s_dnInfo.dayProgression) - floor((s_dnInfo.day + s_dnInfo.dayProgression) / s_planets[2].m_period) * s_planets[2].m_period;
   moon2t /= s_planets[2].m_period;
-  theta = InterpTable(moonThetaTable, 5, moon2t);
-  phi = InterpTable(moonPhiTable, 3, moon2t);
-  dir.Set(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-  dir.Normalize();
-  s_planets[2].m_pos = s_dnInfo.playerPos + dir * 12.0f;
-  s_planets[2].m_scale = InterpTable(moonScaleTable, 4, moon2t) * s_planets[2].m_baseScale * s_dnInfo.sunMoonPath;
+  phi = InterpTable(moonThetaTable, 5, moon2t);
+  theta = InterpTable(moonPhiTable, 3, moon2t);
+  s_planets[2].m_pos.Set(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi));
+  s_planets[2].m_pos.Normalize();
+  s_planets[2].m_pos *= 12.0f;
+  s_planets[2].m_pos += s_dnInfo.cameraPos;
+  s_planets[2].m_scale = InterpTable(moonScaleTable, 4, moon2t) * s_planets[2].m_baseScale * s_dnInfo.billbRescale;
 
   if (s_dnInfo.dayProgression >= 0.22916667f && s_dnInfo.dayProgression < 0.5f) {
     s_dnInfo.sunMoonPath = (s_dnInfo.dayProgression - 0.22916667f) / (0.5f - 0.22916667f);
@@ -524,9 +528,8 @@ static void SetColors() {
       float z = s_dnInfo.playerPos.z < -30.0f ? -30.0f : s_dnInfo.playerPos.z;
       darken = 1.0f + z / 30.0f;
     }
-    float ambientDarken = (darken + 1.0f) * 0.5f;
-    s_dnInfo.fogInfo.color = DarkenColor(s_dnInfo.fogInfo.color, ambientDarken);
-    s_dnInfo.lightInfo.ambColor = DarkenColor(s_dnInfo.lightInfo.ambColor, ambientDarken);
+    s_dnInfo.fogInfo.color = DarkenColor(s_dnInfo.fogInfo.color, (darken + 1.0f) * 0.5f);
+    s_dnInfo.lightInfo.ambColor = DarkenColor(s_dnInfo.lightInfo.ambColor, (darken + 1.0f) * 0.5f);
     s_dnInfo.lightInfo.dirColor = DarkenColor(s_dnInfo.lightInfo.dirColor, darken * 0.25f + 0.75f);
   }
 
@@ -584,12 +587,11 @@ void DNClouds::Collide(const NTempest::C3Vector &origin, const NTempest::C3Vecto
 
   FATALASSERT(origin.x == 0.0f && origin.y == 0.0f && origin.z == 0.0f);
 
-  float a = dir.SquaredMag();
   float b = dir.z * 1472.0f;
   float c = -98304.0f;
-  float root = NTempest::CMath::sqrt_(b * b - 4.0f * a * c);
+  float root = NTempest::CMath::sqrt_(b * b - 4.0f * dir.SquaredMag() * c);
   float q = -0.5f * (b <= 0.0f ? b - root : b + root);
-  r1 = q / a;
+  r1 = q / dir.SquaredMag();
   r2 = c / q;
   if (r2 < r1) {
     float swap = r1;
@@ -642,17 +644,16 @@ void DNClouds::BumpMap() {
   float              sunScaler = InterpTable(m_bumpFadeTable, 8, s_dnInfo.dayProgression);
 
   for (unsigned long y = 0; y < m_updateSize; ++y) {
-    float texelY = static_cast<float>(y + m_updateRow);
     for (unsigned long x = 0; x < m_tmSize; ++x) {
-      unsigned char height = static_cast<unsigned char>(((255 - *clheight) >> 1) + 64);
       if (*clheight) {
-        NTempest::C3Vector texelLightPos(texPt.x - static_cast<float>(x), texPt.y - texelY, 16.0f);
+        NTempest::C3Vector texelLightPos(texPt.x - static_cast<float>(x), texPt.y - static_cast<float>(y + m_updateRow), 16.0f);
         NTempest::C3Vector rayDir(clbump->x, clbump->y, 1.0f);
         float              dot = (texelLightPos.x * rayDir.x + texelLightPos.y * rayDir.y + 16.0f) /
                                  NTempest::CMath::sqrt_(rayDir.SquaredMag() * texelLightPos.SquaredMag());
         NTempest::C3Vector color(
-            emsColor.x + ambColor.x * (height * 0.0039215689f), emsColor.y + ambColor.y * (height * 0.0039215689f),
-            emsColor.z + ambColor.z * (height * 0.0039215689f)
+            emsColor.x + ambColor.x * (static_cast<unsigned char>(((255 - *clheight) >> 1) + 64) * 0.0039215689f),
+            emsColor.y + ambColor.y * (static_cast<unsigned char>(((255 - *clheight) >> 1) + 64) * 0.0039215689f),
+            emsColor.z + ambColor.z * (static_cast<unsigned char>(((255 - *clheight) >> 1) + 64) * 0.0039215689f)
         );
         if (dot > 0.0f) {
           dot *= sunScaler;
@@ -754,10 +755,10 @@ void DNSky::GenSphere(float sphRadius) {
 
     if (phiStep > 0) {
       for (int thetaStep = 0; thetaStep <= m_sphThetaTess; ++thetaStep) {
-        unsigned short prev = NTempest::CMath::fabs_(prevPhi) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess);
-        unsigned short current = NTempest::CMath::fabs_(phi - PI) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess);
-        *newIndex++ = static_cast<unsigned short>(prevRowIdx + prev);
-        *newIndex++ = static_cast<unsigned short>(thisRowIdx + current);
+        *newIndex++ = static_cast<unsigned short>(
+            prevRowIdx + (NTempest::CMath::fabs_(prevPhi) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess)));
+        *newIndex++ = static_cast<unsigned short>(
+            thisRowIdx + (NTempest::CMath::fabs_(phi - PI) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess)));
       }
     }
 
@@ -799,11 +800,9 @@ void DNClouds::OverrideDensitySharpness(float newDensity, float newSharpness) {
 
 void DNClouds::SetSharpness(float newSharpness) {
   float cldelta = static_cast<float>(255 - static_cast<unsigned char>(m_density)) / 256.0f;
-  float clval = 0.0f;
   m_sharpness = newSharpness;
   for (unsigned int i = 0; i < 256; ++i) {
-    cloudTable[i] = static_cast<unsigned char>(255.0f - pow(m_sharpness, clval) * 255.0f);
-    clval += cldelta;
+    cloudTable[i] = static_cast<unsigned char>(255.0f - pow(m_sharpness, i * cldelta) * 255.0f);
   }
 }
 
@@ -837,8 +836,7 @@ void DNClouds::SetLOD(unsigned long newlod, unsigned long newUpdateSize) {
   m_lastBumpNoiseY.SetCount(m_tmSize);
   m_bump.SetCount(texelCount);
 
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  GxTexCreate(m_tmSize, m_tmSize, GxTex_Argb8888, flags, this, Callback_GxTex, m_texid);
+  GxTexCreate(m_tmSize, m_tmSize, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), this, Callback_GxTex, m_texid);
   m_updateRow = 0;
   m_lastTime = 0;
 }
@@ -1127,8 +1125,14 @@ void DNPlanet::GenGeometry(
     if (fade1 > 0.001f && fade2 < 0.001f) {
       vertCount = 6;
       idxCount = 8;
-      const unsigned short fadeIdx[8] = {0, 4, 1, 5, 5, 3, 4, 2};
-      memcpy(idx, fadeIdx, sizeof(fadeIdx));
+      idx[0] = 0;
+      idx[1] = 4;
+      idx[2] = 1;
+      idx[3] = 5;
+      idx[4] = 5;
+      idx[5] = 3;
+      idx[6] = 4;
+      idx[7] = 2;
       float clipt = fade1 / (fade1 - fade2);
       geov[4].z = geov[5].z = geov[0].z + (geov[2].z - geov[0].z) * clipt;
       texv[4].y = texv[5].y = texv[0].y + (texv[2].y - texv[0].y) * clipt;

@@ -35,8 +35,7 @@ void CMapObjGroup::CreateLightmaps() {
         format = GxTex_Rgb565;
       }
 
-      CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-      lightmapTex.hTexture = TextureCreate("Lightmap", 256, 256, format, LIGHTMAP_FORMAT, flags);
+        lightmapTex.hTexture = TextureCreate("Lightmap", 256, 256, format, LIGHTMAP_FORMAT, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1));
       CGxTex *texture = TextureGetGxTex(lightmapTex.hTexture, 1, 0);
       GxTexSetUserData(texture, UpdateLightmapTex, &lightmapTex);
     }
@@ -46,7 +45,8 @@ void CMapObjGroup::CreateLightmaps() {
 void CMapObjGroup::FreeLightmaps() {
   unsigned int freed = 0;
 
-  for (unsigned int i = 0; i < lightmapTexCount; ++i) {
+  unsigned int i;
+  for (i = 0; i < lightmapTexCount; ++i) {
     if (lightmapTexList[i].hTexture) {
       HandleClose(lightmapTexList[i].hTexture);
       lightmapTexList[i].hTexture = 0;

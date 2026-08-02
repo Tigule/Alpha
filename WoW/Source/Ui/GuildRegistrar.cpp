@@ -94,8 +94,7 @@ static int Script_TurnInGuildCharter(lua_State *__formal) {
 static int Script_GetTabardInfo(lua_State *__formal) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    const unsigned __int64 registrar = CGGuildRegistrar::GetRegistrar();
-    player->TalkToTabardVendor(registrar);
+    player->TalkToTabardVendor(CGGuildRegistrar::GetRegistrar());
   }
   CGGuildRegistrar::CloseRegistrar();
   return 0;

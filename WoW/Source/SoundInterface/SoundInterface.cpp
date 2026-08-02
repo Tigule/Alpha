@@ -75,6 +75,7 @@ static HASHKEY_NONE                                s_nullHashKey;
 static TSHashTable<FOOTSTEPSNDCACHE, HASHKEY_NONE> s_footstepHash;
 static unsigned int                                s_footstepRequest;
 static unsigned int                                s_footstepAccept;
+static float                                       MaximumFoostepDistance = 20.0f;
 static VOCALUISOUND                                s_vocalUISounds[66];
 static VOCALUISOUNDS                               s_lastPlayedVocalUISound;
 static VOCALUISOUNDTYPE                            s_currentVocalUISoundType;
@@ -162,8 +163,8 @@ static void FootstepTerrainInitialize() {
 }
 
 static unsigned int GetFootstepTerrain(unsigned int soundID, unsigned int terrainID, int splashing) {
-  const TerrainTypeRec *terrain = g_terrainTypeDB.GetRecord(terrainID);
-  if (!terrain) {
+  const TerrainTypeRec *terrainSoundID = g_terrainTypeDB.GetRecord(terrainID);
+  if (!terrainSoundID) {
     return 0;
   }
 
@@ -172,10 +173,9 @@ static unsigned int GetFootstepTerrain(unsigned int soundID, unsigned int terrai
     return 0;
   }
 
-  unsigned int terrainSoundID = terrain->m_SoundID;
   TSGrowableArray<unsigned int> &sounds = splashing ? entry->m_splashSoundIDs : entry->m_soundIDs;
-  FATALASSERT(terrainSoundID < sounds.Count());
-  return sounds[terrainSoundID];
+  FATALASSERT(terrainSoundID->m_SoundID < sounds.Count());
+  return sounds[terrainSoundID->m_SoundID];
 }
 
 static float ObstructionCallback(const NTempest::C3Vector &listener, const NTempest::C3Vector &source) {
@@ -447,9 +447,7 @@ SndInterfacePlayHitSound(const VirtualItemInfo *attackingWeapon, unsigned int de
 }
 
 void SndInterfacePlayDeflectedSound(const NTempest::C3Vector &position) {
-  NTempest::C3Vector pos = position;
-  pos.z += 2.0f;
-  SndInterfacePlaySound(3263, pos, -1, 1.0f);
+  SndInterfacePlaySound(3263, NTempest::C3Vector(position.x, position.y, position.z + 2.0f), -1, 1.0f);
 }
 
 void SndInterfacePlayWeaponSwooshSound(WEAPONSWING_SOUNDTYPES soundType, int criticalHit, const NTempest::C3Vector &position, int missed) {
@@ -457,10 +455,8 @@ void SndInterfacePlayWeaponSwooshSound(WEAPONSWING_SOUNDTYPES soundType, int cri
     return;
   }
 
-  NTempest::C3Vector soundPosition = position;
-  soundPosition.z += 1.0f;
   unsigned int soundID = g_weaponSwingSounds[soundType].soundList[criticalHit != 0];
-  SndInterfacePlaySound(soundID, soundPosition, -1, missed ? 0.5f : 1.0f);
+  SndInterfacePlaySound(soundID, NTempest::C3Vector(position.x, position.y, position.z + 1.0f), -1, missed ? 0.5f : 1.0f);
 }
 
 void SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj) {
@@ -472,8 +468,7 @@ void SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj) {
   if (definition->m_flags & 0x200) {
     obj->PlaySpellLoopedSound(soundID);
   } else {
-    NTempest::C3Vector position = obj->GetPosition();
-    SndInterfacePlaySound(soundID, position, -1, 1.0f);
+    SndInterfacePlaySound(soundID, obj->GetPosition(), -1, 1.0f);
   }
 }
 
@@ -561,13 +556,11 @@ void SndInterfacePlayFootstepSound(unsigned int footstepID, const NTempest::C3Ve
   ++s_footstepRequest;
   NTempest::C3Vector listenerPosition;
   Sound::GetListenerPosition(listenerPosition);
-  if ((position - listenerPosition).SquaredMag() <= 20.0f * 20.0f) {
+  if ((position - listenerPosition).SquaredMag() <= MaximumFoostepDistance * MaximumFoostepDistance) {
     ++s_footstepAccept;
     unsigned int soundID = GetFootstepTerrain(footstepID, terrainID, splashing);
     if (soundID) {
-      NTempest::C3Vector soundPosition = position;
-      soundPosition.z += 1.0f / 36.0f;
-      SndInterfacePlaySound(soundID, soundPosition, -1, 1.0f);
+      SndInterfacePlaySound(soundID, NTempest::C3Vector(position.x, position.y, position.z + 1.0f / 36.0f), -1, 1.0f);
     }
   }
 }
@@ -594,9 +587,7 @@ void SndInterfacePlaySheatheSound(const VirtualItemInfo* info, int sheathing, co
 }
 
 void SndInterfacePlayImmuneSound(const NTempest::C3Vector &pos) {
-  NTempest::C3Vector position = pos;
-  position.z += 2.0f;
-  SndInterfacePlaySound(3334, position, -1, 1.0f);
+  SndInterfacePlaySound(3334, NTempest::C3Vector(pos.x, pos.y, pos.z + 2.0f), -1, 1.0f);
 }
 
 static bool InternalPlaySound(SOUNDCATEGORIES category, unsigned int soundID, int forceIndex) {
@@ -628,9 +619,7 @@ static bool InternalPlaySound(SOUNDCATEGORIES category, unsigned int soundID, in
 }
 
 void SndInterfacePlayAbsorbedSound(const NTempest::C3Vector &pos) {
-  NTempest::C3Vector position = pos;
-  position.z += 2.0f;
-  SndInterfacePlaySound(3334, position, -1, 1.0f);
+  SndInterfacePlaySound(3334, NTempest::C3Vector(pos.x, pos.y, pos.z + 2.0f), -1, 1.0f);
 }
 
 unsigned int SndInterfaceGetSoundVariations(unsigned int soundID) {
@@ -904,5 +893,5 @@ int SOUNDDEFINITION::GetOsFlags() const {
   return flags;
 }
 
-void SndSetObstructionCallback(float(*)(const NTempest::C3Vector &, const NTempest::C3Vector &callback)) {
+void SndSetObstructionCallback(float(*callback)(const NTempest::C3Vector &, const NTempest::C3Vector &)) {
 }

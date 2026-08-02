@@ -175,8 +175,7 @@ int CGLootInfo::GetLootQuality(unsigned int slot) {
     --slot;
   }
   FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, 0, 0, 0);
   return stats && stats->m_inventoryType ? stats->m_overallQualityID : -1;
 }
 
@@ -355,7 +354,12 @@ int CGLootInfo::HasLoot() {
   return 0;
 }
 
-void CGLootInfo::LootButtonItemStatsCallback(int id, const unsigned __int64 &, void *, bool) {
+void CGLootInfo::LootButtonItemStatsCallback(
+    int id,
+    const unsigned __int64 &guid,
+    void *,
+    bool
+) {
   for (unsigned int index = 0; index < 16; ++index) {
     if (m_loot[index].pending && m_loot[index].itemID == id) {
       m_loot[index].pending = 0;

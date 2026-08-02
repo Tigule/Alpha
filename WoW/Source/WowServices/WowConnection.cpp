@@ -786,15 +786,15 @@ char *WowConnection::GetStringAddress(char *buf, int size) {
 }
 
 int WowConnection::InitOsNet(
-    bool(*verifyAddr)(const NETADDR *),
-    void(*threadInit)(),
+    bool(*fcn)(const NETADDR *),
+    void(*threadinit)(),
     int  numThreads,
     bool useEngine
 ) {
   WDataStore::StaticInitialize();
-  m_verifyAddr = verifyAddr;
+  m_verifyAddr = fcn;
   s_destroyed = 0;
-  s_network = new (ALLOC(sizeof(WowConnectionNet))) WowConnectionNet(numThreads, threadInit);
+  s_network = new (ALLOC(sizeof(WowConnectionNet))) WowConnectionNet(numThreads, threadinit);
   s_network->PlatformInit(useEngine);
   s_network->Start();
   return 1;

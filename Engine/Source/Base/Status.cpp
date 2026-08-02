@@ -5,7 +5,7 @@
 
 static CStatus s_errorList;
 
-static char *FormatStatusMessage(const char *format, va_list args);
+static char *FormatStatusMessage(const char *format, va_list argptr);
 
 CStatus &GetGlobalStatusObj() {
   return s_errorList;
@@ -15,9 +15,9 @@ CStatus::~CStatus() {
   Clear();
 }
 
-static char *FormatStatusMessage(const char *format, va_list args) {
+static char *FormatStatusMessage(const char *format, va_list argptr) {
   static char buffer[0x100];
-  int         length = _vsnprintf(buffer, sizeof(buffer), format, args);
+  int         length = _vsnprintf(buffer, sizeof(buffer), format, argptr);
 
   if (length == sizeof(buffer)) {
     length = sizeof(buffer) - 1;

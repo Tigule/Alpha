@@ -211,23 +211,22 @@ void AddKeyFrames(
 ) {
   ASSERT(shared);
   ASSERT(interp);
-  unsigned int numKeys = keyTrack.keys.Count();
-  if (!numKeys) {
+  if (!keyTrack.keys.Count()) {
     return;
   }
   interp->SetGlobalSequenceId(keyTrack.globalSeqId);
   interp->SetTrackType(GetTrackType(keyTrack.type, forceType));
-  interp->SetNumKeys(numKeys);
+  interp->SetNumKeys(keyTrack.keys.Count());
   int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
-  for (unsigned int i = 0; i < numKeys; ++i) {
+  for (unsigned int key = 0; key < keyTrack.keys.Count(); ++key) {
     if (interp->GetTrackType() < KEYTYPE_HERMITE) {
-      interp->AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
+      interp->AddKey(keyTrack.keys[key].time - timeAdjustment, keyTrack.keys[key].value);
     } else {
       interp->AddKey(
-          keyTrack.keys[i].time - timeAdjustment,
-          keyTrack.keys[i].value,
-          keyTrack.keys[i].inTan,
-          keyTrack.keys[i].outTan
+          keyTrack.keys[key].time - timeAdjustment,
+          keyTrack.keys[key].value,
+          keyTrack.keys[key].inTan,
+          keyTrack.keys[key].outTan
       );
     }
   }
@@ -242,23 +241,22 @@ void AddKeyFrames(
 ) {
   ASSERT(shared);
   ASSERT(interp);
-  unsigned int numKeys = keyTrack.keys.Count();
-  if (!numKeys) {
+  if (!keyTrack.keys.Count()) {
     return;
   }
   interp->SetGlobalSequenceId(keyTrack.globalSeqId);
   interp->SetTrackType(GetTrackType(keyTrack.type, forceType));
-  interp->SetNumKeys(numKeys);
+  interp->SetNumKeys(keyTrack.keys.Count());
   int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
-  for (unsigned int i = 0; i < numKeys; ++i) {
+  for (unsigned int key = 0; key < keyTrack.keys.Count(); ++key) {
     if (interp->GetTrackType() < KEYTYPE_HERMITE) {
-      interp->AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
+      interp->AddKey(keyTrack.keys[key].time - timeAdjustment, keyTrack.keys[key].value);
     } else {
       interp->AddKey(
-          keyTrack.keys[i].time - timeAdjustment,
-          keyTrack.keys[i].value,
-          keyTrack.keys[i].inTan,
-          keyTrack.keys[i].outTan
+          keyTrack.keys[key].time - timeAdjustment,
+          keyTrack.keys[key].value,
+          keyTrack.keys[key].inTan,
+          keyTrack.keys[key].outTan
       );
     }
   }
@@ -275,16 +273,15 @@ void AnimObjectSetVisibilityTrack(
   ASSERT(objptr);
   ASSERT(shared);
   ASSERT(&objptr->visibility);
-  unsigned int numKeys = keyTrack.keys.Count();
-  if (!numKeys) {
+  if (!keyTrack.keys.Count()) {
     return;
   }
   CKeyFrameTrack<float, float> &interp = objptr->visibility;
   interp.SetGlobalSequenceId(keyTrack.globalSeqId);
   interp.SetTrackType(GetTrackType(keyTrack.type, forceType));
-  interp.SetNumKeys(numKeys);
+  interp.SetNumKeys(keyTrack.keys.Count());
   int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
-  for (unsigned int i = 0; i < numKeys; ++i) {
+  for (unsigned int i = 0; i < keyTrack.keys.Count(); ++i) {
     if (interp.GetTrackType() < KEYTYPE_HERMITE) {
       interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
     } else {
@@ -320,18 +317,17 @@ void AnimObjectSetRotation(
   ASSERT(objptr);
   ASSERT(shared);
   ASSERT(&objptr->rotation);
-  unsigned int numKeys = keyTrack.keys.Count();
-  if (!numKeys) {
+  if (!keyTrack.keys.Count()) {
     return;
   }
 
   CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion> &interp = objptr->rotation;
   interp.SetGlobalSequenceId(keyTrack.globalSeqId);
   interp.SetTrackType(GetTrackType(keyTrack.type, forceType));
-  interp.SetNumKeys(numKeys);
+  interp.SetNumKeys(keyTrack.keys.Count());
   int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
 
-  for (unsigned int i = 0; i < numKeys; ++i) {
+  for (unsigned int i = 0; i < keyTrack.keys.Count(); ++i) {
     if (interp.GetTrackType() < KEYTYPE_HERMITE) {
       interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
     } else {
@@ -362,14 +358,13 @@ void AnimObjectSetScaling(
   ASSERT(objptr);                                                                                                                       \
   ASSERT(shared);                                                                                                                       \
   ASSERT(&objptr->trackMember);                                                                                                         \
-  unsigned int numKeys = keyTrack.keys.Count();                                                                                         \
-  if (numKeys) {                                                                                                                        \
+  if (keyTrack.keys.Count()) {                                                                                                          \
     CKeyFrameTrack<float, float> &interp = objptr->trackMember;                                                                         \
     interp.SetGlobalSequenceId(keyTrack.globalSeqId);                                                                                    \
     interp.SetTrackType(GetTrackType(keyTrack.type, forceType));                                                                         \
-    interp.SetNumKeys(numKeys);                                                                                                          \
+    interp.SetNumKeys(keyTrack.keys.Count());                                                                                            \
     int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;                             \
-    for (unsigned int i = 0; i < numKeys; ++i) {                                                                                        \
+    for (unsigned int i = 0; i < keyTrack.keys.Count(); ++i) {                                                                          \
       if (interp.GetTrackType() < KEYTYPE_HERMITE) {                                                                                         \
         interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);                                                   \
       } else {                                                                                                                           \
@@ -452,33 +447,34 @@ DEFINE_RIBBON_FLOAT_SETTER(AnimObjectSetRibbonAlpha, alpha)
 
 void AnimObjectSetRibbonColor(
     CAnimData *shared,
-    CAnimRibbonObj *objptr,
+    CAnimRibbonObj *currobj,
     const MDLKEYTRACK<C3Color> &keyTrack,
     MDLTRACKTYPE forceType
 ) {
-  AddKeyFrames(shared, keyTrack, &objptr->color, forceType);
+  AddKeyFrames(shared, keyTrack, &currobj->color, forceType);
 }
 
 void AnimObjectSetRibbonSlot(
     CAnimData *shared,
-    CAnimRibbonObj *objptr,
+    CAnimRibbonObj *currobj,
     const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyTrack
 ) {
   ASSERT(shared);
-  ASSERT(objptr);
-  unsigned int numKeys = keyTrack.keys.Count();
-  if (!numKeys) {
+  ASSERT(currobj);
+  if (!keyTrack.keys.Count()) {
     return;
   }
 
-  objptr->slot.SetGlobalSequenceId(keyTrack.globalSeqId);
-  objptr->slot.SetTrackType(KEYTYPE_NOINTERP);
-  objptr->slot.SetNumKeys(numKeys);
-  int timeAdjustment = keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time;
-  for (unsigned int i = 0; i < numKeys; ++i) {
-    objptr->slot.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
+  currobj->slot.SetGlobalSequenceId(keyTrack.globalSeqId);
+  currobj->slot.SetTrackType(KEYTYPE_NOINTERP);
+  currobj->slot.SetNumKeys(keyTrack.keys.Count());
+  for (unsigned int i = 0; i < keyTrack.keys.Count(); ++i) {
+    currobj->slot.AddKey(
+        keyTrack.keys[i].time - (keyTrack.globalSeqId == static_cast<unsigned int>(-1) ? 0 : keyTrack.keys[0].time),
+        keyTrack.keys[i].value
+    );
   }
-  objptr->slot.SetSequenceIndices(shared->seq);
+  currobj->slot.SetSequenceIndices(shared->seq);
 }
 
 void AnimObjectSetEventTrack(
@@ -504,52 +500,52 @@ void AnimObjectSetEventTrack(
 
 #undef SET_MDL_FLOAT_TRACK
 
-#define ADD_KEY_FRAMES_TYPE(valueType, bytesRemaining, track, tag)                                                                            \
+#define ADD_KEY_FRAMES_TYPE(valueType, bytesRemaining, track, tag, fileData)                                                                  \
   ASSERT(shared);                                                                                                                             \
   ASSERT(track);                                                                                                                              \
-  if (bytesRemaining >= 8 && *reinterpret_cast<unsigned int *>(data) == tag) {                                                                \
-    unsigned int numKeys = *reinterpret_cast<unsigned int *>(data + 4);                                                                       \
+  if (bytesRemaining >= 8 && *reinterpret_cast<unsigned int *>(fileData) == tag) {                                                            \
+    unsigned int numKeys = *reinterpret_cast<unsigned int *>(fileData + 4);                                                                   \
     ASSERT(numKeys);                                                                                                                          \
-    KEYTYPE trackType = GetTrackType(*reinterpret_cast<MDLTRACKTYPE *>(data + 8), forceType);                                                 \
-    (track)->m_globalSeqId = *reinterpret_cast<unsigned int *>(data + 12);                                                                    \
+    KEYTYPE trackType = GetTrackType(*reinterpret_cast<MDLTRACKTYPE *>(fileData + 8), forceType);                                             \
+    (track)->m_globalSeqId = *reinterpret_cast<unsigned int *>(fileData + 12);                                                                \
     (track)->SetTrackType(trackType);                                                                                                         \
-    data += 16;                                                                                                                               \
-    int          timeAdjustment = (track)->m_globalSeqId == static_cast<unsigned int>(-1) ? 0 : *reinterpret_cast<int *>(data);               \
+    fileData += 16;                                                                                                                           \
+    int          timeAdjustment = (track)->m_globalSeqId == static_cast<unsigned int>(-1) ? 0 : *reinterpret_cast<int *>(fileData);           \
     unsigned int valueCount = trackType < TRACK_HERMITE ? 1 : 3;                                                                              \
     (track)->SetNumKeys(numKeys, sizeof(int) + valueCount * sizeof(valueType));                                                               \
     for (unsigned int keyIndex = 0; keyIndex < numKeys; ++keyIndex) {                                                                         \
-      int keyTime = *reinterpret_cast<int *>(data) - timeAdjustment;                                                                          \
-      data += sizeof(int);                                                                                                                    \
+      int keyTime = *reinterpret_cast<int *>(fileData) - timeAdjustment;                                                                      \
+      fileData += sizeof(int);                                                                                                                \
       unsigned char *keyData = reinterpret_cast<unsigned char *>((track)->m_keyFrames) + (track)->m_numKeyFrames++ * (track)->m_keyFrameSize; \
       *reinterpret_cast<int *>(keyData) = keyTime;                                                                                            \
-      memcpy(keyData + sizeof(int), data, valueCount * sizeof(valueType));                                                                    \
-      data += valueCount * sizeof(valueType);                                                                                                 \
+      memcpy(keyData + sizeof(int), fileData, valueCount * sizeof(valueType));                                                                \
+      fileData += valueCount * sizeof(valueType);                                                                                             \
     }                                                                                                                                         \
     (track)->SetSequenceIndices(shared->seq);                                                                                                 \
   }
 
 unsigned char *AddKeyFramesType(
-    unsigned char                                          *data,
-    unsigned int                                            bytesRemaining,
+    unsigned char                                          *fileData,
+    unsigned int                                            fileBytes,
     unsigned long                                           tag,
     CAnimData                                              *shared,
     CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector> *track,
     MDLTRACKTYPE                                            forceType
 ) {
-  ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, bytesRemaining, track, tag);
-  return data;
+  ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, track, tag, fileData);
+  return fileData;
 }
 
 unsigned char *AddKeyFramesType(
-    unsigned char                *data,
-    unsigned int                  bytesRemaining,
+    unsigned char                *fileData,
+    unsigned int                  fileBytes,
     unsigned long                 tag,
     CAnimData                    *shared,
     CKeyFrameTrack<float, float> *track,
     MDLTRACKTYPE                  forceType
 ) {
-  ADD_KEY_FRAMES_TYPE(float, bytesRemaining, track, tag);
-  return data;
+  ADD_KEY_FRAMES_TYPE(float, fileBytes, track, tag, fileData);
+  return fileData;
 }
 
 unsigned char *AnimObjectSetEventTrack(unsigned char *data, unsigned int bytesLeft, CAnimData *shared, CAnimEventObj *objptr) {
@@ -577,7 +573,7 @@ unsigned char *AnimObjectSetEventTrack(unsigned char *data, unsigned int bytesLe
 
 unsigned char *
 AnimObjectSetTranslation(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, &objptr->translation, 0x5254474B);
+  ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, &objptr->translation, 0x5254474B, data);
   return data;
 }
 
@@ -616,56 +612,56 @@ AnimObjectSetRotation(unsigned char *data, unsigned int fileBytes, CAnimData *sh
 }
 
 unsigned char *
-AnimObjectSetScaling(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, &objptr->scale, 0x4353474B);
-  return data;
+AnimObjectSetScaling(unsigned char *fileData, unsigned int fileBytes, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType) {
+  ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, &objptr->scale, 0x4353474B, fileData);
+  return fileData;
 }
 
 unsigned char *
 AnimObjectSetAttenuation(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
   unsigned char *fileEnd = data + fileBytes;
   {
-    ADD_KEY_FRAMES_TYPE(float, fileEnd - data, &objptr->attenstart, 0x53414C4B);
+    ADD_KEY_FRAMES_TYPE(float, fileEnd - data, &objptr->attenstart, 0x53414C4B, data);
   }
   {
-    ADD_KEY_FRAMES_TYPE(float, fileEnd - data, &objptr->attenend, 0x45414C4B);
+    ADD_KEY_FRAMES_TYPE(float, fileEnd - data, &objptr->attenend, 0x45414C4B, data);
   }
   return data;
 }
 
 unsigned char *
-AnimObjectSetColor(unsigned char *data, unsigned int bytesRemaining, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(C3Color, bytesRemaining, &objptr->color, 0x43414C4B);
+AnimObjectSetColor(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
+  ADD_KEY_FRAMES_TYPE(C3Color, fileBytes, &objptr->color, 0x43414C4B, data);
   return data;
 }
 
 unsigned char *
 AnimObjectSetIntensity(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->intensity, 0x49414C4B);
+  ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->intensity, 0x49414C4B, data);
   return data;
 }
 
 unsigned char *
-AnimObjectSetAmbColor(unsigned char *data, unsigned int bytesRemaining, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(C3Color, bytesRemaining, &objptr->ambColor, 0x43424C4B);
+AnimObjectSetAmbColor(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
+  ADD_KEY_FRAMES_TYPE(C3Color, fileBytes, &objptr->ambColor, 0x43424C4B, data);
   return data;
 }
 
 unsigned char *
 AnimObjectSetAmbIntensity(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->ambIntensity, 0x49424C4B);
+  ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->ambIntensity, 0x49424C4B, data);
   return data;
 }
 
 unsigned char *
 AnimObjectSetVisibilityTrack(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimVisibleObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->visibility, 0x5349564B);
+  ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->visibility, 0x5349564B, data);
   return data;
 }
 
 #define ANIM_FLOAT_TRACK_SETTER(name, member, tag)                                                                                                   \
   unsigned char *name(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimEmitter2Obj *objptr, MDLTRACKTYPE forceType) { \
-    ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->member, tag);                                                                                     \
+    ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->member, tag, data);                                                                               \
     return data;                                                                                                                                     \
   }
 
@@ -684,7 +680,7 @@ ANIM_FLOAT_TRACK_SETTER(AnimObjectSetParticleLifeSpan2, lifeSpan, 0x46494C4B)
 
 #define ANIM_RIBBON_TRACK_SETTER(name, member, tag)                                                                                                \
   unsigned char *name(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType) { \
-    ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->member, tag);                                                                                   \
+    ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->member, tag, data);                                                                             \
     return data;                                                                                                                                   \
   }
 
@@ -717,8 +713,8 @@ unsigned char *AnimObjectSetRibbonSlot(unsigned char *data, unsigned int fileByt
 }
 
 unsigned char *
-AnimObjectSetRibbonColor(unsigned char *data, unsigned int bytesRemaining, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(C3Color, bytesRemaining, &objptr->color, 0x4F43524B);
+AnimObjectSetRibbonColor(unsigned char *data, unsigned int fileBytes, CAnimData *shared, CAnimRibbonObj *currobj, MDLTRACKTYPE forceType) {
+  ADD_KEY_FRAMES_TYPE(C3Color, fileBytes, &currobj->color, 0x4F43524B, data);
   return data;
 }
 
@@ -951,7 +947,7 @@ void AnimAddGeosets(unsigned char *fileData, unsigned int fileBytes, CAnimData *
 
     data = AddKeyFramesType(data, static_cast<unsigned int>(fileData + fileBytes - data), 0x4F41474B, shared, &shared->geo[i].visibility, forceType);
     {
-      ADD_KEY_FRAMES_TYPE(C3Color, static_cast<unsigned int>(fileData + fileBytes - data), &shared->geo[i].color, 0x4341474B);
+      ADD_KEY_FRAMES_TYPE(C3Color, static_cast<unsigned int>(fileData + fileBytes - data), &shared->geo[i].color, 0x4341474B, data);
     }
     ASSERT(data == geosetDone);
   }
@@ -1127,29 +1123,29 @@ void AnimAddSequences(
   ASSERT(sequences.Count() <= static_cast<unsigned char>(0xFF));
   ASSERT(globalSeqs.Count() <= static_cast<unsigned char>(0xFF));
 
-  shared->seq.ReserveSpace(sequences.Count());
-  shared->seq.SetCount(sequences.Count());
-  for (unsigned int i = 0; i < sequences.Count(); ++i) {
-    const MDLSEQUENCESSECTION &source = sequences[i];
+  unsigned int numSequences = sequences.Count();
+  shared->seq.ReserveSpace(numSequences);
+  shared->seq.SetCount(numSequences);
+  for (unsigned int i = 0; i < numSequences; ++i) {
     CAnimSequence &sequence = shared->seq[i];
     SStrCopy(
         sequence.name,
-        source.name,
+        sequences[i].name,
         sizeof(sequence.name)
     );
-    sequence.time = source.time;
-    sequence.moveSpeed = source.movespeed;
-    sequence.flags = source.flags;
-    float pickChance = source.frequency * 32767.0f;
+    sequence.time = sequences[i].time;
+    sequence.moveSpeed = sequences[i].movespeed;
+    sequence.flags = sequences[i].flags;
+    float pickChance = sequences[i].frequency * 32767.0f;
     sequence.randPickChance =
         pickChance <= 0.0f ? -static_cast<int>(-pickChance + 0.5f) : static_cast<unsigned int>(pickChance + 0.5f);
-    sequence.replay = source.replay;
-    sequence.bounds = source.bounds;
-    sequence.blendTime = source.blendTime;
+    sequence.replay = sequences[i].replay;
+    sequence.bounds = sequences[i].bounds;
+    sequence.blendTime = sequences[i].blendTime;
   }
 
-  unique->seq.ReserveSpace(sequences.Count());
-  unique->seq.SetCount(sequences.Count());
+  unique->seq.ReserveSpace(numSequences);
+  unique->seq.SetCount(numSequences);
   unique->seqLastTime = IAnimGetCurrTimeMs();
   unique->globalSeqElapsed.ReserveSpace(globalSeqs.Count());
   unique->globalSeqElapsed.SetCount(globalSeqs.Count());

@@ -49,14 +49,11 @@ static int GetCompositionString(int which, char* string, int maxlen) {
     return 0;
   }
 
-  char temp[512];
-  unsigned short wide[512];
-  memset(temp, 0, sizeof(temp));
-  ImmGetCompositionStringA(context, which, temp, sizeof(temp) - 1);
-  MultiByteToWideChar(OsInputGetCodePage(), 0, temp, -1, reinterpret_cast<wchar_t *>(wide), 512);
-  unsigned int length = 0;
-  ConvertUTF16toUTF8(string, maxlen - 1, wide, 512, &length, 0);
-  string[length] = 0;
+  unsigned short wtemp[512];
+  ImmGetCompositionStringA(context, which, string, maxlen);
+  MultiByteToWideChar(OsInputGetCodePage(), 0, string, -1, reinterpret_cast<wchar_t *>(wtemp), 512);
+  ConvertUTF16toUTF8(string, maxlen - 1, wtemp, 512, reinterpret_cast<unsigned int *>(&maxlen), 0);
+  string[maxlen] = 0;
   ImmReleaseContext(wnd, context);
   return 1;
 }
@@ -70,7 +67,7 @@ int OsIMEGetCompositionResult(char* string, unsigned int maxlen) {
 }
 
 int OsIMEGetClauseInfo(unsigned int& clauseLeft, unsigned int& clauseRight, unsigned int& cursorPos) {
-  unsigned int codePage = OsInputGetCodePage();
+  unsigned int codepage = OsInputGetCodePage();
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
   HIMC context = ImmGetContext(wnd);
   if (!context) {
@@ -78,65 +75,68 @@ int OsIMEGetClauseInfo(unsigned int& clauseLeft, unsigned int& clauseRight, unsi
   }
 
   unsigned int cursor = static_cast<unsigned short>(ImmGetCompositionStringA(context, GCS_CURSORPOS, 0, 0));
-  LONG clauseBytes = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, 0, 0);
-  if (!clauseBytes) {
+  unsigned int length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, 0, 0);
+  if (!length) {
     ImmReleaseContext(wnd, context);
     return 0;
   }
 
-  unsigned int *clauses = static_cast<unsigned int *>(SMemAlloc(clauseBytes, __FILE__, __LINE__, 0));
-  memset(clauses, 0, clauseBytes);
-  LONG received = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, clauses, clauseBytes);
-  if (received == IMM_ERROR_NODATA || received == IMM_ERROR_GENERAL) {
+  unsigned int *clauses = static_cast<unsigned int *>(SMemAlloc(length, __FILE__, __LINE__, 0));
+  memset(clauses, 0, length);
+  length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, clauses, length);
+  if (length == IMM_ERROR_NODATA || length == IMM_ERROR_GENERAL) {
     SMemFree(clauses, __FILE__, __LINE__, 0);
     ImmReleaseContext(wnd, context);
     return 0;
   }
 
-  unsigned int clauseCount = received / sizeof(unsigned int);
+  length /= sizeof(unsigned int);
   unsigned int currentClause = 0;
-  for (unsigned int i = 0; i + 1 < clauseCount; ++i) {
+  unsigned int i;
+  for (i = 0; i + 1 < length; ++i) {
     if (cursor >= clauses[i] && cursor < clauses[i + 1]) {
       currentClause = i;
     }
   }
 
   unsigned char attrib[512];
-  char composition[512];
-  memset(attrib, 0, sizeof(attrib));
-  memset(composition, 0, sizeof(composition));
   ImmGetCompositionStringA(context, GCS_COMPATTR, attrib, sizeof(attrib));
-  for (unsigned int j = 0; j + 1 < clauseCount; ++j) {
-    if (!attrib[clauses[j]]) {
-      currentClause = j;
+  for (i = 0; i + 1 < length; ++i) {
+    if (!attrib[clauses[i]]) {
+      currentClause = i;
     }
   }
-  ImmGetCompositionStringA(context, GCS_COMPSTR, composition, sizeof(composition));
+  char string[512];
+  memset(string, 0, sizeof(string));
+  ImmGetCompositionStringA(context, GCS_COMPSTR, string, sizeof(string));
   ImmReleaseContext(wnd, context);
 
-  clauseLeft = MultiByteToWideChar(codePage, 0, composition, clauses[currentClause], 0, 0);
-  clauseRight = clauseLeft + MultiByteToWideChar(
-      codePage, 0, composition + clauses[currentClause],
+  unsigned int cursorLen = MultiByteToWideChar(codepage, 0, string, cursor, 0, 0);
+  length = MultiByteToWideChar(codepage, 0, string, clauses[currentClause], 0, 0);
+  currentClause = length + MultiByteToWideChar(
+      codepage, 0, string + clauses[currentClause],
       clauses[currentClause + 1] - clauses[currentClause], 0, 0
   );
-  cursorPos = MultiByteToWideChar(codePage, 0, composition, cursor, 0, 0);
   SMemFree(clauses, __FILE__, __LINE__, 0);
+  clauseLeft = length;
+  clauseRight = currentClause;
+  cursorPos = cursorLen;
   return 1;
 }
 
 int OsIMEGetCandidates(
     unsigned long which,
-    unsigned int &pageSize,
+    unsigned int &pagesize,
     unsigned int &count,
     unsigned int &selection,
     TSGrowableArray<OsIMECandidate> &candidates) {
   candidates.Clear();
 
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
-  HIMC context = ImmGetContext(wnd);
-  if (!context || !which) {
-    if (context) {
-      ImmReleaseContext(wnd, context);
+  HIMC hIMC = ImmGetContext(wnd);
+  if (!hIMC || !which) {
+    if (hIMC) {
+      ImmReleaseContext(wnd, hIMC);
     }
     return 0;
   }
@@ -147,76 +147,76 @@ int OsIMEGetCandidates(
     ++listIndex;
   }
 
-  DWORD size = ImmGetCandidateListA(context, listIndex, 0, 0);
+  DWORD size = ImmGetCandidateListA(hIMC, listIndex, 0, 0);
   if (!size) {
-    ImmReleaseContext(wnd, context);
+    ImmReleaseContext(wnd, hIMC);
     return 0;
   }
 
-  CANDIDATELIST *list = static_cast<CANDIDATELIST *>(SMemAlloc(size, __FILE__, __LINE__, 0));
-  ImmGetCandidateListA(context, listIndex, list, size);
+  CANDIDATELIST *pcl = static_cast<CANDIDATELIST *>(SMemAlloc(size, __FILE__, __LINE__, 0));
+  ImmGetCandidateListA(hIMC, listIndex, pcl, size);
 
-  if (!list->dwPageSize) {
-    ImmNotifyIME(context, NI_SETCANDIDATE_PAGESIZE, listIndex, 9);
-    SMemFree(list, __FILE__, __LINE__, 0);
-    ImmReleaseContext(wnd, context);
+  if (!pcl->dwPageSize) {
+    ImmNotifyIME(hIMC, NI_SETCANDIDATE_PAGESIZE, listIndex, 9);
+    SMemFree(pcl, __FILE__, __LINE__, 0);
+    ImmReleaseContext(wnd, hIMC);
     return 0;
   }
 
-  int pageChanged = 0;
-  if (list->dwSelection < list->dwPageStart) {
-    pageChanged = 1;
-    while (list->dwPageStart > list->dwPageSize) {
-      list->dwPageStart -= list->dwPageSize;
-      if (list->dwSelection >= list->dwPageStart) {
+  int pageStartChanged = 0;
+  if (pcl->dwSelection < pcl->dwPageStart) {
+    pageStartChanged = 1;
+    while (pcl->dwPageStart > pcl->dwPageSize) {
+      pcl->dwPageStart -= pcl->dwPageSize;
+      if (pcl->dwSelection >= pcl->dwPageStart) {
         break;
       }
     }
-    if (list->dwSelection < list->dwPageStart) {
-      list->dwPageStart = 0;
+    if (pcl->dwSelection < pcl->dwPageStart) {
+      pcl->dwPageStart = 0;
     }
   }
 
-  if (list->dwSelection >= list->dwPageStart + list->dwPageSize) {
+  if (pcl->dwSelection >= pcl->dwPageStart + pcl->dwPageSize) {
     do {
-      list->dwPageStart += list->dwPageSize;
-    } while (list->dwSelection >= list->dwPageStart + list->dwPageSize);
-    pageChanged = 1;
+      pcl->dwPageStart += pcl->dwPageSize;
+    } while (pcl->dwSelection >= pcl->dwPageStart + pcl->dwPageSize);
+    pageStartChanged = 1;
   }
 
-  if (pageChanged) {
-    ImmNotifyIME(context, NI_SETCANDIDATE_PAGESTART, listIndex, list->dwPageStart);
-    SMemFree(list, __FILE__, __LINE__, 0);
-    ImmReleaseContext(wnd, context);
+  if (pageStartChanged) {
+    ImmNotifyIME(hIMC, NI_SETCANDIDATE_PAGESTART, listIndex, pcl->dwPageStart);
+    SMemFree(pcl, __FILE__, __LINE__, 0);
+    ImmReleaseContext(wnd, hIMC);
     return 0;
   }
 
-  pageSize = list->dwPageSize;
-  count = list->dwCount;
-  selection = list->dwSelection;
+  pagesize = pcl->dwPageSize;
+  count = pcl->dwCount;
+  selection = pcl->dwSelection;
 
-  for (unsigned int i = 0; i < pageSize; ++i) {
+  for (unsigned int i = 0; i < pagesize; ++i) {
     OsIMECandidate *candidate = candidates.New();
     unsigned int written = 0;
 
-    if (list->dwPageStart + i < list->dwCount) {
-      unsigned short wide[512];
-      const char *source = reinterpret_cast<const char *>(list) + list->dwOffset[list->dwPageStart + i];
+    if (pcl->dwPageStart + i < pcl->dwCount) {
+      unsigned short wtemp[512];
+      const char *source = reinterpret_cast<const char *>(pcl) + pcl->dwOffset[pcl->dwPageStart + i];
       MultiByteToWideChar(
           OsInputGetCodePage(),
           0,
           source,
           -1,
-          reinterpret_cast<wchar_t *>(wide),
+          reinterpret_cast<wchar_t *>(wtemp),
           512);
-      ConvertUTF16toUTF8(candidate->candidate, 1023, wide, 512, &written, 0);
+      ConvertUTF16toUTF8(candidate->candidate, 1023, wtemp, 512, &written, 0);
     }
 
     candidate->candidate[written] = 0;
   }
 
-  SMemFree(list, __FILE__, __LINE__, 0);
-  ImmReleaseContext(wnd, context);
+  SMemFree(pcl, __FILE__, __LINE__, 0);
+  ImmReleaseContext(wnd, hIMC);
   return 1;
 }
 

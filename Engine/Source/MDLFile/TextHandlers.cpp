@@ -69,16 +69,16 @@ void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...) {
   static char line[1024];
   va_list args;
   va_start(args, format);
-  int count = _vsnprintf(line, sizeof(line), format, args);
+  int numchars = _vsnprintf(line, sizeof(line), format, args);
   va_end(args);
 
-  if (count == sizeof(line)) {
-    count = sizeof(line) - 1;
-    line[count] = 0;
-  } else if (count <= 0) {
+  if (numchars == sizeof(line)) {
+    numchars = sizeof(line) - 1;
+    line[numchars] = 0;
+  } else if (numchars <= 0) {
     return;
   }
-  buffer.Add(count, line);
+  buffer.Add(numchars, line);
 }
 
 int CallTextReadHandler(

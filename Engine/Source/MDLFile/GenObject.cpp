@@ -116,28 +116,28 @@ static void AddDontIneritErrors(TSet &errors) {
 
 static void IReadDontInherit(
     Parser &parse,
-    MDLGENOBJECT *object,
+    MDLGENOBJECT *obj,
     CMDLStatus *status
 ) {
   TSet errors;
   AddDontIneritErrors(errors);
   parse.Expect('{');
-  const char *tokenText;
-  unsigned int token = parse.Token(&tokenText, 0);
+  const char *tokentext;
+  unsigned int savedtoken = parse.Token(&tokentext, 0);
   do {
-    if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+    if (!errors.Check(savedtoken)) {
+      parse.FatalDuplicate(tokentext);
     }
-    switch (token) {
-      case 0x1AD: object->flags |= 4; break;
-      case 0x1AF: object->flags |= 2; break;
-      case 0x1C7: object->flags |= 1; break;
+    switch (savedtoken) {
+      case 0x1AD: obj->flags |= 4; break;
+      case 0x1AF: obj->flags |= 2; break;
+      case 0x1C7: obj->flags |= 1; break;
       default:
-        parse.FatalUnexpected(tokenText);
+        parse.FatalUnexpected(tokentext);
         break;
     }
-  } while (parse.GetOptionalToken(',', &token, &tokenText));
-  parse.Expect('}', token, tokenText);
+  } while (parse.GetOptionalToken(',', &savedtoken, &tokentext));
+  parse.Expect('}', savedtoken, tokentext);
   errors.Complete(status);
 }
 
@@ -191,10 +191,10 @@ static void IReadDontInherit(
   } while (0)
 
 static void INormalizeQuats(
-    TSGrowableArray<MDLKEYFRAME<NTempest::C4Quaternion> > *keys
+    TSGrowableArray<MDLKEYFRAME<NTempest::C4Quaternion> > *keyframes
 ) {
-  for (unsigned int i = 0; i < keys->Count(); ++i) {
-    MDLKEYFRAME<NTempest::C4Quaternion> &key = keys->Ptr()[i];
+  for (unsigned int i = 0; i < keyframes->Count(); ++i) {
+    MDLKEYFRAME<NTempest::C4Quaternion> &key = keyframes->Ptr()[i];
     key.value.Normalize();
     key.inTan.Normalize();
     key.outTan.Normalize();
@@ -203,38 +203,38 @@ static void INormalizeQuats(
 
 int ReadObjectBody(
     Parser &parse,
-    unsigned int savedToken,
+    unsigned int savedtoken,
     NTempest::C3Vector *pivot,
-    MDLGENOBJECT *object,
+    MDLGENOBJECT *obj,
     CMDLStatus *status
 ) {
-  switch (savedToken) {
+  switch (savedtoken) {
     case 0x129:
-      object->flags |= 8;
+      obj->flags |= 8;
       parse.Expect(',');
       return 1;
     case 0x12A:
-      object->flags |= 0x10;
+      obj->flags |= 0x10;
       parse.Expect(',');
       return 1;
     case 0x12B:
-      object->flags |= 0x20;
+      obj->flags |= 0x20;
       parse.Expect(',');
       return 1;
     case 0x12C:
-      object->flags |= 0x40;
+      obj->flags |= 0x40;
       parse.Expect(',');
       return 1;
     case 0x13F:
-      IReadDontInherit(parse, object, status);
+      IReadDontInherit(parse, obj, status);
       parse.Expect(',');
       return 1;
     case 0x187:
-      object->objectId = parse.ExpectInt();
+      obj->objectId = parse.ExpectInt();
       parse.Expect(',');
       return 1;
     case 0x18B:
-      object->parentId = parse.ExpectInt();
+      obj->parentId = parse.ExpectInt();
       parse.Expect(',');
       return 1;
     case 0x1A5:
@@ -245,18 +245,18 @@ int ReadObjectBody(
       parse.Expect(',');
       return 1;
     case 0x1A7:
-      object->flags |= 0x4000;
+      obj->flags |= 0x4000;
       parse.Expect(',');
       return 1;
     case 0x1AD:
-      READ_OBJECT_TRACK(parse, object->rotkeys, 4, "key frames", NTempest::C4Quaternion);
-      INormalizeQuats(&object->rotkeys.keys);
+      READ_OBJECT_TRACK(parse, obj->rotkeys, 4, "key frames", NTempest::C4Quaternion);
+      INormalizeQuats(&obj->rotkeys.keys);
       return 1;
     case 0x1AF:
-      ReadObjectFloatKeyframes(parse, &object->scalekeys);
+      ReadObjectFloatKeyframes(parse, &obj->scalekeys);
       return 1;
     case 0x1C7:
-      ReadObjectFloatKeyframes(parse, &object->transkeys);
+      ReadObjectFloatKeyframes(parse, &obj->transkeys);
       return 1;
     default:
       return 0;
@@ -289,11 +289,11 @@ void ReadObjectEnd(
 
 int IExpectAnimation(
     Parser &parse,
-    unsigned int *savedToken,
+    unsigned int *savedtoken,
     const char **tokenText
 ) {
-  if (*savedToken == 0x1BB) {
-    *savedToken = parse.Token(tokenText, 0);
+  if (*savedtoken == 0x1BB) {
+    *savedtoken = parse.Token(tokenText, 0);
     return 0;
   }
   return 1;
@@ -425,12 +425,12 @@ void WriteIntKeyFrames(
   } while (0)
 
 void WriteObjectTrailer(
-    const MDLGENOBJECT &object,
+    const MDLGENOBJECT &obj,
     TSGrowableArray<char> &buffer
 ) {
-  WRITE_TRACK(0x1C7, object.transkeys, 3, buffer, NTempest::C3Vector);
-  WRITE_TRACK(0x1AD, object.rotkeys, 4, buffer, NTempest::C4Quaternion);
-  WRITE_TRACK(0x1AF, object.scalekeys, 3, buffer, NTempest::C3Vector);
+  WRITE_TRACK(0x1C7, obj.transkeys, 3, buffer, NTempest::C3Vector);
+  WRITE_TRACK(0x1AD, obj.rotkeys, 4, buffer, NTempest::C4Quaternion);
+  WRITE_TRACK(0x1AF, obj.scalekeys, 3, buffer, NTempest::C3Vector);
   MDL::WriteLine(buffer, "}\n");
 }
 
@@ -451,7 +451,7 @@ static void IWriteObjectFlags(
 
 void WriteObjectHeader(
     const MDLDATA &data,
-    const MDLGENOBJECT &object,
+    const MDLGENOBJECT &obj,
     unsigned int title,
     int writeIndex,
     TSGrowableArray<char> &buffer
@@ -460,39 +460,39 @@ void WriteObjectHeader(
       buffer,
       "%s \"%s\" {\n",
       MDL::TokenText(title),
-      static_cast<const char *>(object.name)
+      static_cast<const char *>(obj.name)
   );
   if (writeIndex) {
     MDL::WriteLine(
         buffer,
         "\t%s %d,\n",
         MDL::TokenText(0x187),
-        object.objectId
+        obj.objectId
     );
   }
-  if (object.parentId != static_cast<unsigned int>(-1)) {
+  if (obj.parentId != static_cast<unsigned int>(-1)) {
     MDL::WriteLine(
         buffer,
         "\t%s %d,\t// \"%s\"\n",
         MDL::TokenText(0x18B),
-        object.parentId,
-        static_cast<const char *>(data.objects[object.parentId]->name)
+        obj.parentId,
+        static_cast<const char *>(data.objects[obj.parentId]->name)
     );
   }
-  IWriteObjectFlags(object.flags, buffer);
-  if (object.flags & 7) {
+  IWriteObjectFlags(obj.flags, buffer);
+  if (obj.flags & 7) {
     MDL::WriteLine(buffer, "\t%s { ", MDL::TokenText(0x13F));
     int needComma = 0;
-    if (object.flags & 1) {
+    if (obj.flags & 1) {
       MDL::WriteLine(buffer, "%s", MDL::TokenText(0x1C7));
       needComma = 1;
     }
-    if (object.flags & 2) {
+    if (obj.flags & 2) {
       if (needComma) MDL::WriteLine(buffer, ", ");
       MDL::WriteLine(buffer, "%s", MDL::TokenText(0x1AF));
       needComma = 1;
     }
-    if (object.flags & 4) {
+    if (obj.flags & 4) {
       if (needComma) MDL::WriteLine(buffer, ", ");
       MDL::WriteLine(buffer, "%s", MDL::TokenText(0x1AD));
     }
@@ -501,7 +501,7 @@ void WriteObjectHeader(
 }
 
 void WriteOptionalVertex(
-    unsigned int token,
+    unsigned int title,
     const char *indent,
     const NTempest::C3Vector &vertex,
     TSGrowableArray<char> &buffer
@@ -511,19 +511,19 @@ void WriteOptionalVertex(
       || fabs(vertex.z) >= 2.3841858e-7f) {
     MDL::WriteLine(
         buffer, "%s%s { %g, %g, %g },\n",
-        indent, MDL::TokenText(token), vertex.x, vertex.y, vertex.z
+        indent, MDL::TokenText(title), vertex.x, vertex.y, vertex.z
     );
   }
 }
 
 void WriteOptionalFloat(
-    unsigned int token,
+    unsigned int title,
     const char *indent,
     float value,
     TSGrowableArray<char> &buffer
 ) {
   if (fabs(value) >= 2.3841858e-7f) {
-    MDL::WriteLine(buffer, "%s%s %g,\n", indent, MDL::TokenText(token), value);
+    MDL::WriteLine(buffer, "%s%s %g,\n", indent, MDL::TokenText(title), value);
   }
 }
 
@@ -537,25 +537,25 @@ void WriteBounds(
   WriteOptionalFloat(0x134, indent, bounds.radius, buffer);
 }
 
-void SkipUnknown(CMsgBuffer &buffer, unsigned int &totalRead) {
-  unsigned int size = buffer.GetUint();
+void SkipUnknown(CMsgBuffer &buf, unsigned int &totalRead) {
+  unsigned int size = buf.GetUint();
   totalRead += 4;
   unsigned int bytes = size - 4;
-  if (bytes > static_cast<unsigned int>(buffer.Bytes())) {
-    bytes = buffer.Bytes();
+  if (bytes > static_cast<unsigned int>(buf.Bytes())) {
+    bytes = buf.Bytes();
   }
-  buffer.GetData(bytes);
+  buf.GetData(bytes);
   totalRead += bytes;
 }
 
 unsigned int GetBinQuatKeyFramesSize(
-    const MDLKEYTRACK<NTempest::C4Quaternion> &track
+    const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes
 ) {
-  if (!track.keys.Count()) {
+  if (!keyframes.keys.Count()) {
     return 0;
   }
-  unsigned int dataSize = track.type > TRACK_LINEAR ? 24 : 8;
-  return 16 + track.keys.Count() * (4 + dataSize);
+  unsigned int dataSize = keyframes.type > TRACK_LINEAR ? 24 : 8;
+  return 16 + keyframes.keys.Count() * (4 + dataSize);
 }
 
 #define READ_BIN_FLOAT_KEYFRAMES(track, buffer, totalRead, elements, keyType)        \
@@ -682,39 +682,40 @@ void WriteBinUintKeyFrames(
   }
 }
 
-unsigned int GetBinGenObjectSize(const MDLGENOBJECT &object) {
+unsigned int GetBinGenObjectSize(const MDLGENOBJECT &obj) {
   unsigned int size = 96;
-  if (object.transkeys.keys.Count()) {
-    unsigned int dataSize = object.transkeys.type > TRACK_LINEAR ? 36 : 12;
-    size += 16 + object.transkeys.keys.Count() * (4 + dataSize);
+  if (obj.transkeys.keys.Count()) {
+    unsigned int dataSize = obj.transkeys.type > TRACK_LINEAR ? 36 : 12;
+    size += 16 + obj.transkeys.keys.Count() * (4 + dataSize);
   }
-  size += GetBinQuatKeyFramesSize(object.rotkeys);
-  if (object.scalekeys.keys.Count()) {
-    unsigned int dataSize = object.scalekeys.type > TRACK_LINEAR ? 36 : 12;
-    size += 16 + object.scalekeys.keys.Count() * (4 + dataSize);
+  size += GetBinQuatKeyFramesSize(obj.rotkeys);
+  if (obj.scalekeys.keys.Count()) {
+    unsigned int dataSize = obj.scalekeys.type > TRACK_LINEAR ? 36 : 12;
+    size += 16 + obj.scalekeys.keys.Count() * (4 + dataSize);
   }
   return size;
 }
 
 void WriteBinQuatKeyFrames(
-    const MDLKEYTRACK<NTempest::C4Quaternion> &track,
-    unsigned long magic,
+    const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes,
+    unsigned long magicParam,
     CMsgBuffer &buffer
 ) {
-  if (!track.keys.Count()) {
+  unsigned int numKeys = keyframes.keys.Count();
+  if (!numKeys) {
     return;
   }
-  buffer.AddDword(magic);
-  buffer.AddUint(track.keys.Count());
-  buffer.AddUint(track.type);
-  buffer.AddUint(track.globalSeqId);
+  buffer.AddDword(magicParam);
+  buffer.AddUint(numKeys);
+  buffer.AddUint(keyframes.type);
+  buffer.AddUint(keyframes.globalSeqId);
 
-  for (unsigned int i = 0; i < track.keys.Count(); ++i) {
-    const MDLKEYFRAME<NTempest::C4Quaternion> &key = track.keys[i];
-    buffer.AddInt(key.time);
+  for (unsigned int key = 0; key < numKeys; ++key) {
+    const MDLKEYFRAME<NTempest::C4Quaternion> &frame = keyframes.keys[key];
+    buffer.AddInt(frame.time);
 
-    const NTempest::C4Quaternion *quaternion = &key.value;
-    unsigned int values = track.type > TRACK_LINEAR ? 3 : 1;
+    const NTempest::C4Quaternion *quaternion = &frame.value;
+    unsigned int values = keyframes.type > TRACK_LINEAR ? 3 : 1;
     for (unsigned int j = 0; j < values; ++j, ++quaternion) {
       int sign = quaternion->w >= 0.0f ? 1 : -1;
       __int64 x = static_cast<__int64>(quaternion->x * 2097152.0f);
@@ -733,36 +734,36 @@ void WriteBinQuatKeyFrames(
 }
 
 int ReadBinQuatKeyFrames(
-    MDLKEYTRACK<NTempest::C4Quaternion> &track,
-    CMsgBuffer &buffer,
+    MDLKEYTRACK<NTempest::C4Quaternion> &keyframes,
+    CMsgBuffer &buf,
     unsigned int &totalRead
 ) {
-  if (buffer.Bytes() < 12) {
+  if (buf.Bytes() < 12) {
     return 0;
   }
-  unsigned int count = buffer.GetUint();
+  unsigned int numKeys = buf.GetUint();
   totalRead += 4;
-  if (!count) {
+  if (!numKeys) {
     return 0;
   }
-  track.type = static_cast<MDLTRACKTYPE>(buffer.GetUint());
-  track.globalSeqId = buffer.GetUint();
+  keyframes.type = static_cast<MDLTRACKTYPE>(buf.GetUint());
+  keyframes.globalSeqId = buf.GetUint();
   totalRead += 8;
-  track.keys.SetCount(count);
+  keyframes.keys.SetCount(numKeys);
 
-  unsigned int values = track.type > TRACK_LINEAR ? 3 : 1;
-  unsigned int bytesPerKey = 4 + values * 8;
-  if (count * bytesPerKey > static_cast<unsigned int>(buffer.Bytes())) {
+  unsigned int key = keyframes.type > TRACK_LINEAR ? 3 : 1;
+  unsigned int bytesPerKey = 4 + key * 8;
+  if (numKeys * bytesPerKey > static_cast<unsigned int>(buf.Bytes())) {
     return 0;
   }
 
-  for (unsigned int i = 0; i < count; ++i) {
-    MDLKEYFRAME<NTempest::C4Quaternion> &key = track.keys[i];
-    key.time = buffer.GetInt();
+  for (unsigned int i = 0; i < numKeys; ++i) {
+    MDLKEYFRAME<NTempest::C4Quaternion> &frame = keyframes.keys[i];
+    frame.time = buf.GetInt();
     totalRead += 4;
-    NTempest::C4Quaternion *quaternion = &key.value;
-    for (unsigned int j = 0; j < values; ++j, ++quaternion) {
-      unsigned __int64 packed = buffer.GetUlongLong();
+    NTempest::C4Quaternion *quaternion = &frame.value;
+    for (unsigned int j = 0; j < key; ++j, ++quaternion) {
+      unsigned __int64 packed = buf.GetUlongLong();
       int z = static_cast<int>(static_cast<__int64>(packed << 43) >> 43);
       int y = static_cast<int>(
           static_cast<__int64>(((packed >> 21) & 0x1FFFFF) << 43) >> 43
@@ -784,39 +785,39 @@ int ReadBinQuatKeyFrames(
 }
 
 int WriteBinGenObject(
-    const MDLGENOBJECT &object,
-    CMsgBuffer &buffer,
+    const MDLGENOBJECT &obj,
+    CMsgBuffer &buf,
     CMDLStatus *
 ) {
-  buffer.AddUint(GetBinGenObjectSize(object));
-  buffer.AddTcharArray(object.name, 80, 1);
-  buffer.AddUint(object.objectId);
-  buffer.AddUint(object.parentId);
-  buffer.AddUint(object.flags);
+  buf.AddUint(GetBinGenObjectSize(obj));
+  buf.AddTcharArray(obj.name, 80, 1);
+  buf.AddUint(obj.objectId);
+  buf.AddUint(obj.parentId);
+  buf.AddUint(obj.flags);
 
-  if (object.transkeys.keys.Count()) {
-    buffer.AddDword('RTGK');
-    buffer.AddUint(object.transkeys.keys.Count());
-    buffer.AddUint(object.transkeys.type);
-    buffer.AddUint(object.transkeys.globalSeqId);
-    unsigned int values = object.transkeys.type > TRACK_LINEAR ? 9 : 3;
-    for (unsigned int i = 0; i < object.transkeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = object.transkeys.keys[i];
-      buffer.AddInt(key.time);
-      buffer.AddFloatArray(&key.value.x, values);
+  if (obj.transkeys.keys.Count()) {
+    buf.AddDword('RTGK');
+    buf.AddUint(obj.transkeys.keys.Count());
+    buf.AddUint(obj.transkeys.type);
+    buf.AddUint(obj.transkeys.globalSeqId);
+    unsigned int values = obj.transkeys.type > TRACK_LINEAR ? 9 : 3;
+    for (unsigned int i = 0; i < obj.transkeys.keys.Count(); ++i) {
+      const MDLKEYFRAME<NTempest::C3Vector> &key = obj.transkeys.keys[i];
+      buf.AddInt(key.time);
+      buf.AddFloatArray(&key.value.x, values);
     }
   }
-  WriteBinQuatKeyFrames(object.rotkeys, 'RTRK', buffer);
-  if (object.scalekeys.keys.Count()) {
-    buffer.AddDword('CSGK');
-    buffer.AddUint(object.scalekeys.keys.Count());
-    buffer.AddUint(object.scalekeys.type);
-    buffer.AddUint(object.scalekeys.globalSeqId);
-    unsigned int values = object.scalekeys.type > TRACK_LINEAR ? 9 : 3;
-    for (unsigned int i = 0; i < object.scalekeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = object.scalekeys.keys[i];
-      buffer.AddInt(key.time);
-      buffer.AddFloatArray(&key.value.x, values);
+  WriteBinQuatKeyFrames(obj.rotkeys, 'RTRK', buf);
+  if (obj.scalekeys.keys.Count()) {
+    buf.AddDword('CSGK');
+    buf.AddUint(obj.scalekeys.keys.Count());
+    buf.AddUint(obj.scalekeys.type);
+    buf.AddUint(obj.scalekeys.globalSeqId);
+    unsigned int values = obj.scalekeys.type > TRACK_LINEAR ? 9 : 3;
+    for (unsigned int i = 0; i < obj.scalekeys.keys.Count(); ++i) {
+      const MDLKEYFRAME<NTempest::C3Vector> &key = obj.scalekeys.keys[i];
+      buf.AddInt(key.time);
+      buf.AddFloatArray(&key.value.x, values);
     }
   }
   return 1;
@@ -900,21 +901,21 @@ int ReadBinGenObject(
 
 void ReadBinObjectEnd(
     MDLDATA &data,
-    MDLGENOBJECT *object,
+    MDLGENOBJECT *obj,
     unsigned long listIndex,
     unsigned long listMask
 ) {
-  FATALASSERT(object);
+  FATALASSERT(obj);
 
-  object->objectId = data.objects.Count();
-  if (object->objectId >= data.objects.Count()) {
+  obj->objectId = data.objects.Count();
+  if (obj->objectId >= data.objects.Count()) {
     unsigned int oldCount = data.objects.Count();
-    data.objects.SetCount(object->objectId + 1);
+    data.objects.SetCount(obj->objectId + 1);
     for (unsigned int i = oldCount; i < data.objects.Count(); ++i) {
       data.objects[i] = 0;
     }
   }
-  data.objects[object->objectId] =
+  data.objects[obj->objectId] =
       reinterpret_cast<MDLGENOBJECT *>(listMask | listIndex);
 }
 

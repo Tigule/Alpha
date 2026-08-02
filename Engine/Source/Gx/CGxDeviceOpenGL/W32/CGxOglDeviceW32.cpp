@@ -53,9 +53,9 @@ static HWND WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
   );
 }
 
-void WindowDestroy(HWND &window) {
-  DestroyWindow(window);
-  window = 0;
+void WindowDestroy(HWND &hwnd) {
+  DestroyWindow(hwnd);
+  hwnd = 0;
 }
 
 void CGxDeviceOpenGl::DeviceCreatePbuffer() {

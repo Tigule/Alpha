@@ -82,7 +82,7 @@ void CSimpleDoodad::RenderScene() {
 
   CSimpleDoodad *simpleDoodad = simpleDoodadScene.Head();
   while (simpleDoodad) {
-    CSimpleDoodad *nextNode = simpleDoodadScene.Next(simpleDoodad);
+    CSimpleDoodad *simpleDoodadnext_node = simpleDoodadScene.Next(simpleDoodad);
 
     for (unsigned int n = 0; n < simpleDoodad->nGeosets; ++n) {
       CSimpleDoodadGeoset *geoset = &simpleDoodad->geosets[n];
@@ -109,7 +109,7 @@ void CSimpleDoodad::RenderScene() {
     simpleDoodad->sceneLink.Unlink();
     simpleDoodad->matrixList.SetCount(0);
     simpleDoodad->doodadDefList.SetCount(0);
-    simpleDoodad = nextNode;
+    simpleDoodad = simpleDoodadnext_node;
   }
 
   GxXformPop(GxXform_World);

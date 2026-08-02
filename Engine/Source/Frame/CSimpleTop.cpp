@@ -213,8 +213,6 @@ void CSimpleTop::UnregisterFrame(CSimpleFrame *frame) {
 }
 
 void CSimpleTop::NotifyFrameMovedOrResized(CSimpleFrame *frame) {
-  CFrameStrata *strata;
-
   m_strata[frame->GetFrameStrata()]->OnFrameMovedOrResized(frame);
 
   if (!m_layout.frame) {
@@ -222,18 +220,17 @@ void CSimpleTop::NotifyFrameMovedOrResized(CSimpleFrame *frame) {
     return;
   }
 
-  strata = m_strata[frame->GetFrameStrata()];
-  if (strata->levelsDirty) {
+  if (m_strata[frame->GetFrameStrata()]->levelsDirty) {
     if (!m_mouseCapture) {
-      strata->CompressLevels();
+      m_strata[frame->GetFrameStrata()]->CompressLevels();
     }
 
-    strata->CheckOcclusion();
-    strata->levelsDirty = 0;
+    m_strata[frame->GetFrameStrata()]->CheckOcclusion();
+    m_strata[frame->GetFrameStrata()]->levelsDirty = 0;
   }
 
-  if (strata->batchDirty) {
-    strata->BuildBatches(!m_mouseCapture);
+  if (m_strata[frame->GetFrameStrata()]->batchDirty) {
+    m_strata[frame->GetFrameStrata()]->BuildBatches(!m_mouseCapture);
   }
 
   RaiseFrame(m_layout.frame, 0);
@@ -530,28 +527,23 @@ void CSimpleTop::OnLayerUpdate(float elapsedSec) {
 }
 
 void CSimpleTop::OnLayerRender() {
-  NTempest::C2Vector screenPoint(0.0f);
-  unsigned int       strataIndex;
+  CameraSetupScreenProjection(m_rect, NTempest::C2Vector(0.0f), 0.0f);
 
-  CameraSetupScreenProjection(m_rect, screenPoint, 0.0f);
-
-  for (strataIndex = 0; strataIndex < NUM_FRAME_STRATA; ++strataIndex) {
-    CFrameStrata *strata = m_strata[strataIndex];
-
-    if (strata->levelsDirty) {
+  for (unsigned int strataIndex = 0; strataIndex < NUM_FRAME_STRATA; ++strataIndex) {
+    if (m_strata[strataIndex]->levelsDirty) {
       if (!m_mouseCapture) {
-        strata->CompressLevels();
+        m_strata[strataIndex]->CompressLevels();
       }
 
-      strata->CheckOcclusion();
-      strata->levelsDirty = 0;
+      m_strata[strataIndex]->CheckOcclusion();
+      m_strata[strataIndex]->levelsDirty = 0;
     }
 
-    if (strata->batchDirty) {
-      strata->BuildBatches(!m_mouseCapture);
+    if (m_strata[strataIndex]->batchDirty) {
+      m_strata[strataIndex]->BuildBatches(!m_mouseCapture);
     }
 
-    strata->RenderBatches();
+    m_strata[strataIndex]->RenderBatches();
   }
 }
 
@@ -801,10 +793,9 @@ int CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, void *param) {
     if (frame) {
       frame->Raise();
       if (frame->GetTitleRegion()) {
-        NTempest::C2Vector point(mouseEvent.x, mouseEvent.y);
         CLayoutFrame      *title = reinterpret_cast<CLayoutFrame *>(frame->GetTitleRegion());
 
-        if (title->PtInFrameRect(point)) {
+        if (title->PtInFrameRect(NTempest::C2Vector(mouseEvent.x, mouseEvent.y))) {
           top->StartMoveOrResizeFrame(frame, mouseEvent, 0);
           eaten = 1;
         }

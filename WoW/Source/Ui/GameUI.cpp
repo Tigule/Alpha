@@ -3071,7 +3071,7 @@ static int Script_SetCursor(lua_State *L) {
   struct {
     CURSORANIMATIONS animation;
     const char      *string;
-  } cursorModes[8] = {
+  } array[8] = {
       {       POINT_CURSOR,        "POINT_CURSOR"},
       {        CAST_CURSOR,         "CAST_CURSOR"},
       {         BUY_CURSOR,          "BUY_CURSOR"},
@@ -3086,17 +3086,16 @@ static int Script_SetCursor(lua_State *L) {
     luaL_error(L, "Usage: SetCursor(\"cursor\")");
   }
 
-  const char *name = lua_tostring(L, 1);
   int         i;
   for (i = 0; i < 8; ++i) {
-    if (!SStrCmp(cursorModes[i].string, name, INT_MAX)) {
+    if (!SStrCmp(array[i].string, lua_tostring(L, 1), INT_MAX)) {
       break;
     }
   }
   if (i == 8) {
     luaL_error(L, "Usage: SetCursor(\"cursor\")");
   }
-  CursorSetCursorMode(cursorModes[i].animation);
+  CursorSetCursorMode(array[i].animation);
   return 0;
 }
 
@@ -3318,8 +3317,7 @@ static int Script_FollowByName(lua_State *L) {
 
 static int Script_ClearTarget(lua_State *L) {
   int                    hadTarget = CGGameUI::GetLockedTarget() != 0;
-  const unsigned __int64 noTarget = 0;
-  CGGameUI::Target(noTarget, 0);
+  CGGameUI::Target(0, 0);
   if (hadTarget) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -3370,8 +3368,7 @@ static int Script_Jump(lua_State *L) {
   unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
-    unsigned int moveFlags = mover->GetMoveFlags();
-    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
+    if ((mover->GetMoveFlags() & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
       eventTime = mover->GetMoveStartTime();
     }
 
@@ -3380,7 +3377,7 @@ static int Script_Jump(lua_State *L) {
     if (unitData->health > 0 &&
         ((flags & 0x01000000) ||
          ((mover->GetType() & TYPE_PLAYER) && !unitData->charmedBy && ((flags & 2) || !(flags & 0x00C00004)) && !(flags & 1))) &&
-        !mover->IsInStandSitTransition() && !(moveFlags & 0x2400))
+        !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & 0x2400))
     {
       unsigned int standState = unitData->standState;
       if (standState != 1 && standState != 3 && (standState < 4 || standState > 6)) {
@@ -3428,8 +3425,7 @@ static int Script_NotifyInspect(lua_State *L) {
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-    player->InspectPlayer(guid);
+    player->InspectPlayer(Script_GetGUIDFromName(lua_tostring(L, 1)));
   }
   return 0;
 }
@@ -3591,7 +3587,7 @@ static int Script_ForceLogout(lua_State *__formal) {
 }
 
 static int Script_ForceQuit(lua_State *__formal) {
-  ClientPostClose();
+  EventPostClose();
   return 0;
 }
 
@@ -3850,7 +3846,6 @@ static int Script_SplitMoney(lua_State *L) {
     luaL_error(L, "Usage: SplitMoney(\"gold silver copper\")");
   }
   const char *text = lua_tostring(L, 1);
-  int         parsed[3];
   int         count = 0;
   while (*text && count < 3) {
     while (*text == ' ') {
@@ -3859,13 +3854,17 @@ static int Script_SplitMoney(lua_State *L) {
     if (!*text) {
       break;
     }
-    parsed[count++] = SStrToInt(text);
+    coins[count++] = SStrToInt(text);
     while (*text && *text != ' ') {
       ++text;
     }
   }
-  for (int i = 0; i < count; ++i) {
-    coins[3 - count + i] = parsed[i];
+  int i;
+  for (i = count - 1; i >= 0; --i) {
+    coins[3 - count + i] = coins[i];
+  }
+  for (i = 0; i < 3 - count; ++i) {
+    coins[i] = 0;
   }
   unsigned int money = CurrencyTotal(coins);
   if (!money) {
@@ -3916,11 +3915,11 @@ static int Script_GetCursorPosition(lua_State *L) {
 
 static int Script_GetNetStats(lua_State *L) {
   unsigned long latency;
-  float         bandwidthOut;
-  float         bandwidthIn;
-  ClientServices_GetNetStats(bandwidthIn, bandwidthOut, latency);
-  lua_pushnumber(L, bandwidthIn);
-  lua_pushnumber(L, bandwidthOut);
+  float         out;
+  float         in;
+  ClientServices_GetNetStats(in, out, latency);
+  lua_pushnumber(L, in);
+  lua_pushnumber(L, out);
   lua_pushnumber(L, latency);
   return 3;
 }
@@ -4143,8 +4142,7 @@ static int PlacedFrameCallback(CSimpleFrame *frame, void *param) {
   NTempest::CRect rect;
   unsigned long   count;
 
-  const char *name = frame->GetName();
-  if (!name || !name[0] || !frame->IsUserPlaced() || (!frame->IsMovable() && !frame->IsResizable())) {
+  if (!frame->GetName() || !frame->GetName()[0] || !frame->IsUserPlaced() || (!frame->IsMovable() && !frame->IsResizable())) {
     return 1;
   }
 
@@ -4156,7 +4154,7 @@ static int PlacedFrameCallback(CSimpleFrame *frame, void *param) {
     return 1;
   }
 
-  SStrPrintf(line, sizeof(line), "Frame: %s\n", name);
+  SStrPrintf(line, sizeof(line), "Frame: %s\n", frame->GetName());
   OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
   SStrPrintf(line, sizeof(line), "FrameLevel: %d\n", frame->GetFrameLevel());
   OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
@@ -4442,17 +4440,15 @@ static unsigned char GetCinematicStartingCameraPosition(
     return 0;
   }
 
-  NTempest::C34Matrix modelMatrix;
-  modelMatrix.Translate(origin);
-
-  NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
-  modelMatrix.Rotate(facing, axis, true);
+  NTempest::C34Matrix m_modelMatrix;
+  m_modelMatrix.Translate(origin);
+  m_modelMatrix.Rotate(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
 
   AsyncFileReadWaitAll();
   FATALASSERT(ModelIsLoaded(model, 1));
 
   HCAMERA camera = ModelGetCamera(model, 0);
-  ModelAnimateCameras(model, modelMatrix);
+  ModelAnimateCameras(model, m_modelMatrix);
   DataMgrGetCoord(reinterpret_cast<HDATAMGR>(camera), 7, &position);
   HandleClose(reinterpret_cast<HOBJECT>(camera));
   HandleClose(reinterpret_cast<HOBJECT>(model));
@@ -4468,16 +4464,16 @@ int CGGameUI::StartCinematicCamera() {
     return 0;
   }
 
+  const char         *cameraModel = cinematicCamera->m_model;
+  float               cameraFacing = cinematicCamera->m_originFacing;
   NTempest::C3Vector cameraOrigin(cinematicCamera->m_originX, cinematicCamera->m_originY, cinematicCamera->m_originZ);
   NTempest::C3Vector initialPosition(0.0f);
-  if (GetCinematicStartingCameraPosition(
-          cinematicCamera->m_model, cameraOrigin, cinematicCamera->m_originFacing, initialPosition
-      ) &&
+  if (GetCinematicStartingCameraPosition(cameraModel, cameraOrigin, cameraFacing, initialPosition) &&
       (camera->Position() - initialPosition).SquaredMag() > 2500.0f) {
     CWorld::Preload(initialPosition);
   }
 
-  if (!camera->SetModelCamera(cinematicCamera->m_model, cameraOrigin, cinematicCamera->m_originFacing, NextCinematic, 0)) {
+  if (!camera->SetModelCamera(cameraModel, cameraOrigin, cameraFacing, NextCinematic, 0)) {
     return 0;
   }
 
@@ -4795,8 +4791,7 @@ void CGGameUI::Shutdown() {
   CGUnit_C::UpdateUnitNameplates(0);
   CGUnit_C::RemoveAllNamePlates();
 
-  const unsigned __int64 noTarget = 0;
-  Target(noTarget, 0);
+  Target(0, 0);
   Trade_C_CancelTrade();
   SavePlacedFrames(m_simpleTop);
 
@@ -4914,8 +4909,7 @@ void ItemPushItemStatsCallback(int id, const unsigned __int64 &, void *arg, bool
 }
 
 void CGGameUI::OnItemPush(unsigned __int64 player, int slot, int itemID, int pushed, int display) {
-  const unsigned __int64 noGuid = 0;
-  const ItemStats_C     *stats = g_itemDBCache.GetRecord(itemID, noGuid, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, 0, 0, 0);
   if (!stats) {
     ItemPushInfo *info = NEW(ItemPushInfo);
     info->player = player;
@@ -4929,10 +4923,11 @@ void CGGameUI::OnItemPush(unsigned __int64 player, int slot, int itemID, int pus
 
   const char *colorString = stats->m_overallQualityID < 3 ? "" : CGTooltip::GetItemQualityColorString(stats->m_overallQualityID);
   const char *colorEnd = *colorString ? "|r" : "";
+  const char *temp;
   char        buffer[260];
 
   if (player == ClntObjMgrGetActivePlayer()) {
-    const char *temp = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+    temp = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     SStrPrintf(buffer, sizeof(buffer), "%s%s", temp, *temp ? "\\" : "");
     SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
     FrameScript_SignalEvent(249, "%d%s", slot == 255 ? 0 : slot + 1, buffer);
@@ -5033,10 +5028,10 @@ void CGGameUI::OnTargetContextAction() {
   CGWorldFrame *worldFramePtr = CGWorldFrame::GetActive();
   FATALASSERT(worldFramePtr);
 
-  NTempest::C3Vector worldPosition = object->GetPosition();
-  worldPosition.z += object->GetScale() * object->GetObjectHeight() * 0.5f;
-  NTempest::C2Vector screenPosition = worldFramePtr->GetScreenCoordinates(worldPosition);
-  OnSpriteRightClick(m_lockedTarget, screenPosition.x, screenPosition.y);
+  NTempest::C2Vector position = worldFramePtr->GetScreenCoordinates(
+      object->GetPosition() + NTempest::C3Vector(0.0f, 0.0f, object->GetScale() * object->GetObjectHeight() * 0.5f)
+  );
+  OnSpriteRightClick(m_lockedTarget, position.x, position.y);
 }
 
 void CGGameUI::HandleObjectTrackChange(unsigned __int64 object, unsigned __int64 oldGUID, float x, float y) {
@@ -5120,8 +5115,7 @@ int CGGameUI::HandleTerrainClick(const CTerrainClickEvent &evt) {
   }
 
   if (!OnTerrainClick(evt)) {
-    const unsigned __int64 target = 0;
-    Target(target, 0);
+    Target(0, 0);
   }
   return 1;
 }
@@ -5149,8 +5143,7 @@ int CGGameUI::HandleWorldClick(const CWorldClickEvent &evt) {
       return 1;
     }
     if (cursorWasEmpty) {
-      const unsigned __int64 target = 0;
-      Target(target, 0);
+      Target(0, 0);
     }
   }
   return 1;
@@ -5219,9 +5212,7 @@ void CGGameUI::UpdateInteractTarget() {
     if (!target || target->IsDisabled() || !player) {
       CloseInteraction();
     } else if (!(target->GetType() & TYPE_ITEM)) {
-      NTempest::C3Vector targetPosition = target->GetPosition();
-      NTempest::C3Vector playerPosition = player->GetPosition();
-      if ((targetPosition - playerPosition).SquaredMag() > m_interactMaxDist * m_interactMaxDist) {
+      if ((target->GetPosition() - player->GetPosition()).SquaredMag() > m_interactMaxDist * m_interactMaxDist) {
         CloseInteraction();
       }
     }
@@ -5412,19 +5403,16 @@ static int ClosestObjectMatchProc(unsigned __int64 guid, void *param) {
   }
 
   const char *match = data->match;
-  const char *candidate = name;
-  while (*match && *candidate && toupper(*match) == toupper(*candidate)) {
+  while (*match && *name && toupper(*match) == toupper(*name)) {
     ++match;
-    ++candidate;
+    ++name;
   }
   int matchLength = static_cast<int>(match - data->match);
   if (matchLength < data->best_match) {
     return 1;
   }
 
-  NTempest::C3Vector position = object->GetPosition();
-  NTempest::C3Vector sourcePosition = data->source->GetPosition();
-  float              distanceSq = (sourcePosition - position).SquaredMag();
+  float distanceSq = (data->source->GetPosition() - object->GetPosition()).SquaredMag();
   if (matchLength <= data->best_match && distanceSq >= data->best_distance) {
     return 1;
   }
@@ -5453,8 +5441,9 @@ unsigned __int64 CGGameUI::ClosestObjectMatch(const char *match, OBJECT_TYPE typ
 }
 
 void CGGameUI::AssistByName(const char *name) {
-  unsigned __int64 target = name && *name ? ClosestObjectMatch(name, TYPE_UNIT) : m_lockedTarget;
-  CGUnit_C        *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
+  CGUnit_C *unit = static_cast<CGUnit_C *>(
+      ClntObjMgrObjectPtr(name && *name ? ClosestObjectMatch(name, TYPE_UNIT) : m_lockedTarget, __FILE__, __LINE__)
+  );
   if (unit) {
     unsigned __int64 newTarget;
     if (unit->GetType() & TYPE_PLAYER) {
@@ -5485,7 +5474,7 @@ void CGGameUI::FollowByName(const char *name) {
   if (!unit) {
     DisplayError(static_cast<GAME_ERROR_TYPE>(name && *name ? 268 : 168));
   } else if (player && (unit->GetType() & TYPE_PLAYER) && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
-    player->SaveTrackingTarget(target, TRACKTYPE_FOLLOW, false);
+    player->SaveTrackingTarget(unit->GetGUID(), TRACKTYPE_FOLLOW, false);
   } else {
     DisplayError(static_cast<GAME_ERROR_TYPE>(269));
   }
@@ -5556,8 +5545,7 @@ void CGGameUI::TargetNearestEnemy(int reverse) {
   }
 
   s_sameTargetTime = OsGetAsyncTimeMs();
-  unsigned int start = s_nearestIndex;
-  unsigned int index = start;
+  unsigned int index = s_nearestIndex;
   for (;;) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_nearestList[index].guid, __FILE__, __LINE__));
     if (unit && unit->GetUnitData()->health > 0) {
@@ -5575,7 +5563,7 @@ void CGGameUI::TargetNearestEnemy(int reverse) {
       }
     }
 
-    if (index == start) {
+    if (index == s_nearestIndex) {
       s_nearestList.SetCount(0);
       return;
     }
@@ -5772,8 +5760,7 @@ void CGGameUI::SetCursorItem(
 void CGGameUI::DeleteCursorItem() {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_cursorItem, __FILE__, __LINE__));
   if (item && item->GetOwner() == ClntObjMgrGetActivePlayer()) {
-    const unsigned __int64 noGuid = 0;
-    const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), noGuid, 0, 0);
+    const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
     if (stats) {
       FrameScript_SignalEvent(271, "%s", stats->m_displayName[0]);
     }
@@ -5834,8 +5821,6 @@ void CGGameUI::SetCursorPetAction(const PetAction &action) {
   unsigned int type = value >> 24 & 0x3F;
   unsigned int id = value & 0xFFFF;
   const char  *texture = 0;
-  char         textureToken[64];
-
   switch (type) {
     case 1:
     case 2:
@@ -5849,14 +5834,18 @@ void CGGameUI::SetCursorPetAction(const PetAction &action) {
       }
       break;
     }
-    case 6:
-      SStrPrintf(textureToken, sizeof(textureToken), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(id));
-      texture = FrameScript_GetText(textureToken, -1, GENDER_NOT_APPLICABLE);
+    case 6: {
+      char buf[64];
+      SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(id));
+      texture = FrameScript_GetText(buf, -1, GENDER_NOT_APPLICABLE);
       break;
-    case 7:
-      SStrPrintf(textureToken, sizeof(textureToken), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(id));
-      texture = FrameScript_GetText(textureToken, -1, GENDER_NOT_APPLICABLE);
+    }
+    case 7: {
+      char buf[64];
+      SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(id));
+      texture = FrameScript_GetText(buf, -1, GENDER_NOT_APPLICABLE);
       break;
+    }
   }
 
   if (texture) {
@@ -6076,23 +6065,23 @@ void CGGameUI::UnlockItem(unsigned __int64 itemGUID) {
 
 void CGGameUI::UnlockAllItems() {
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
-  CGBag_C    *inventory = player ? player->GetBag() : 0;
-  if (!inventory) {
+  if (!player || !player->GetBag()) {
     return;
   }
 
-  for (unsigned int slot = 0; slot < inventory->NumSlots(); ++slot) {
-    CGObject_C *item = ClntObjMgrObjectPtr(inventory->GetItem(slot), __FILE__, __LINE__);
+  CGBag_C     *bag = player->GetBag();
+  unsigned int numSlots = bag->NumSlots();
+  for (unsigned int slot = 0; slot < numSlots; ++slot) {
+    CGObject_C *item = ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__);
     if (!item) {
       continue;
     }
 
     static_cast<CGItem_C *>(item)->Unlock();
     if (item->IsA(TYPE_CONTAINER)) {
-      CGBag_C *bag = item->GetBag();
-      if (bag) {
-        for (unsigned int bagSlot = 0; bagSlot < bag->NumSlots(); ++bagSlot) {
-          CGItem_C *bagItem = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(bagSlot), __FILE__, __LINE__));
+      if (item->GetBag()) {
+        for (unsigned int bagSlot = 0; bagSlot < item->GetBag()->NumSlots(); ++bagSlot) {
+          CGItem_C *bagItem = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item->GetBag()->GetItem(slot), __FILE__, __LINE__));
           if (bagItem) {
             bagItem->Unlock();
           }
@@ -6138,8 +6127,7 @@ void CGGameUI::OnClientControlChanged(int hasControl) {
 
 void CGGameUI::ClearClientControls() {
   ClearCursor(1);
-  const unsigned __int64 noTarget = 0;
-  Target(noTarget, 0);
+  Target(0, 0);
   Spell_C_CancelSpell(1, 1, SPELL_FAILED_ERROR);
 }
 

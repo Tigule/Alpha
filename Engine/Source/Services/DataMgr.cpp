@@ -259,10 +259,10 @@ void DataMgrSetColor(HDATAMGR__* mgr, unsigned int fieldId, const C3Color& color
 }
 
 void DataMgrSetCoord(HDATAMGR mgr, unsigned int fieldId, const NTempest::C3Vector &coord, unsigned int coordFlags) {
-  NTempest::C3Vector current(0.0f);
-  DataMgrGetCoord(mgr, fieldId, &current);
+  NTempest::C3Vector curr(0.0f);
+  DataMgrGetCoord(mgr, fieldId, &curr);
 
-  NTempest::C3Vector setTo(coordFlags & 0x1 ? current.x : coord.x, coordFlags & 0x2 ? current.y : coord.y, coordFlags & 0x4 ? current.z : coord.z);
+  NTempest::C3Vector setTo(coordFlags & 0x1 ? curr.x : coord.x, coordFlags & 0x2 ? curr.y : coord.y, coordFlags & 0x4 ? curr.z : coord.z);
 
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);

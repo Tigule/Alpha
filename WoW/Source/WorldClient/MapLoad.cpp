@@ -528,23 +528,23 @@ void CMap::CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef) {
   FATALASSERT(mapObj);
   FATALASSERT(mapObjDef);
 
-  for (unsigned int groupNum = 0; groupNum < mapObj->groupCount; ++groupNum) {
+  for (unsigned int i = 0; i < mapObj->groupCount; ++i) {
     CMapObjDefGroup *mapObjDefGroup = AllocMapObjDefGroup();
     CMapBaseObjLink *link = AllocBaseObjLink(mapObjDefGroup);
     link->ref = mapObjDef;
     mapObjDef->groupLinkList.LinkNode(link, LIST_TAIL, 0);
 
     NTempest::CAaBox aaBox;
-    mapObj->GetGroupBounds(mapObjDefGroup->aaSphere, groupNum);
+    mapObj->GetGroupBounds(mapObjDefGroup->aaSphere, i);
     mapObjDefGroup->aaSphere.c *= mapObjDef->mat;
-    mapObj->GetGroupBounds(aaBox, groupNum);
+    mapObj->GetGroupBounds(aaBox, i);
     CWorldMath::TransformAABox(mapObjDef->mat, aaBox, mapObjDefGroup->aaBox);
     FATALASSERT(mapObjDefGroup->aaBox.b != mapObjDefGroup->aaBox.t);
 
-    mapObjDefGroup->groupNum = groupNum;
+    mapObjDefGroup->groupNum = i;
     mapObjDefGroup->ambient = mapObjDef->ambient;
     mapObjDefGroup->flags = 0;
-    if (mapObj->GetGroupFlags(groupNum) & 0x48) {
+    if (mapObj->GetGroupFlags(i) & 0x48) {
       mapObjDefGroup->flags |= CMapBaseObj::Flag_ExteriorLit;
     } else {
       mapObjDefGroup->flags |= CMapBaseObj::Flag_InteriorLit;
@@ -636,9 +636,8 @@ void CMap::CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMa
 }
 
 void DNPlanet::Initialize(const char *filename) {
-  CStatus     status;
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  m_texid = TextureCreate(filename, flags, &status, 0);
+  CStatus status;
+  m_texid = TextureCreate(filename, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 2);
 }
 
@@ -652,8 +651,7 @@ void DNStars::Initialize() {
 }
 
 void DNGlare::Initialize(const char *filename) {
-  CStatus     status;
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  m_texid = TextureCreate(filename, flags, &status, 0);
+  CStatus status;
+  m_texid = TextureCreate(filename, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 2);
 }

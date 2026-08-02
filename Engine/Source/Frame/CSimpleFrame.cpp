@@ -287,13 +287,13 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
       backdrop->LoadXML(child, status);
       SetBackdrop(backdrop);
     } else if (!SStrCmpI(childName, "HitRectInsets", 0x7FFFFFFF)) {
-      float left;
-      float right;
-      float top;
-      float bottom;
+      float l;
+      float r;
+      float t;
+      float b;
 
-      if (LoadXML_Insets(child, left, right, top, bottom, status)) {
-        SetHitRectInsets(left, right, top, bottom);
+      if (LoadXML_Insets(child, l, r, t, b, status)) {
+        SetHitRectInsets(l, r, t, b);
       }
     } else if (!SStrCmpI(childName, "Layers", 0x7FFFFFFF)) {
       LoadXML_Layers(child, status);

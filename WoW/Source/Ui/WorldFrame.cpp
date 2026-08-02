@@ -408,9 +408,9 @@ void CGWorldFrame::HideObstructingModels(float maxDist) {
 }
 
 unsigned __int64 CGWorldFrame::FindClosestModel(const NTempest::C3Vector &a, const NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist) {
-  NTempest::C3Vector cameraPosition = m_camera->Position();
-  NTempest::C3Vector aVector = a - cameraPosition;
-  NTempest::C3Vector bVector = b - cameraPosition;
+  NTempest::C3Vector cameraPos = m_camera->Position();
+  NTempest::C3Vector aVector = a - cameraPos;
+  NTempest::C3Vector bVector = b - cameraPos;
 
   if (!SphereTestModels(aVector, bVector, hitFilter)) {
     return 0;
@@ -511,10 +511,10 @@ unsigned int CGWorldFrame::GetHitTestFilterFlags() const {
 }
 
 CGWorldFrame::HIT_TYPE CGWorldFrame::HitTestPoint(float x, float y, HitTestResult *hitTestResult) {
-  NTempest::C44Matrix savedProjection;
-  NTempest::C44Matrix savedView;
-  GxXformProjection(savedProjection);
-  GxXformView(savedView);
+  NTempest::C44Matrix saved_proj;
+  NTempest::C44Matrix saved_view;
+  GxXformProjection(saved_proj);
+  GxXformView(saved_view);
   m_camera->SetupWorldProjection(m_rect);
 
   HIT_TYPE hitType = HIT_NONE;
@@ -528,14 +528,13 @@ CGWorldFrame::HIT_TYPE CGWorldFrame::HitTestPoint(float x, float y, HitTestResul
     }
   }
 
-  GxXformSetProjection(savedProjection);
-  GxXformSetView(savedView);
+  GxXformSetProjection(saved_proj);
+  GxXformSetView(saved_view);
   return hitType;
 }
 
 int CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b) {
-  NTempest::C2Vector point(x, y);
-  if (!PtInFrameRect(point)) {
+  if (!PtInFrameRect(NTempest::C2Vector(x, y))) {
     return 0;
   }
 
@@ -583,11 +582,7 @@ int ObjectCollisionProc(unsigned __int64 param64, unsigned long param32, WorldOb
   data->collideExt = gameObject->m_collideExtents;
   data->scale = object->GetScale() * object->GetRenderScale();
 
-  NTempest::C34Matrix matrix = object->GetMatrix();
-  data->matrix = NTempest::C44Matrix(
-      matrix.a0, matrix.a1, matrix.a2, 0.0f, matrix.b0, matrix.b1, matrix.b2, 0.0f, matrix.c0, matrix.c1, matrix.c2, 0.0f, matrix.d0, matrix.d1,
-      matrix.d2, 1.0f
-  );
+  data->matrix = NTempest::C44Matrix(object->GetMatrix());
   return 1;
 }
 
@@ -751,11 +746,12 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
   WorldTextInitialize();
   CGUnit_C::NamePlateShow(0);
 
-  CStatus     status;
-  CGxTexFlags textureFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1);
+  CStatus status;
   for (unsigned int i = 0; i < 2; ++i) {
     FATALASSERT(!s_spellShadowTexture[i]);
-    s_spellShadowTexture[i] = TextureCreate(s_spellShadowName[i], textureFlags, &status, 0);
+    s_spellShadowTexture[i] = TextureCreate(
+        s_spellShadowName[i], CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0
+    );
     SysMsgAdd(status, 1);
   }
 
@@ -1040,9 +1036,10 @@ void CGWorldFrame::CursorTrackUnit(CGUnit_C *unit) {
   }
 
   if (unit->CanBeLooted(m_updateTimeStamp)) {
-    unsigned __int64 guid = unit->GetGUID();
     CursorModelSetSequence(
-        player->CanLoot(unit) || guid == player->m_lootingUnit || guid == player->GetUnitBeingLooted() ? PICKUP_CURSOR : PICKUP_ERROR_CURSOR
+        player->CanLoot(unit) || unit->GetGUID() == player->m_lootingUnit || unit->GetGUID() == player->GetUnitBeingLooted()
+            ? PICKUP_CURSOR
+            : PICKUP_ERROR_CURSOR
     );
   } else if (
       player->GetUnitData()->health > 0 && !(player->GetUnitData()->flags & 0x2000) && unit->GetUnitData()->health > 0 && player->CanAttack(unit)
@@ -1243,9 +1240,10 @@ void CGWorldFrame::RenderWorld(void *param) {
 }
 
 NTempest::C2Vector CGWorldFrame::GetScreenCoordinates(const NTempest::C3Vector &point) {
-  NTempest::C4Vector position(point.x - m_camera->m_position.x,
-                             point.y - m_camera->m_position.y,
-                             point.z - m_camera->m_position.z,
+  NTempest::C3Vector cameraPos = m_camera->m_position;
+  NTempest::C4Vector position(point.x - cameraPos.x,
+                             point.y - cameraPos.y,
+                             point.z - cameraPos.z,
                              0.0f);
   position = position * m_worldMatrix;
 
@@ -1255,11 +1253,12 @@ NTempest::C2Vector CGWorldFrame::GetScreenCoordinates(const NTempest::C3Vector &
   position.z = (position.z * inverseW + 1.0f) * 0.5f;
   position.w = (position.w * inverseW + 1.0f) * 0.5f;
 
-  NTempest::C2Vector screen;
-  NDCToDDC(position.x, position.y, &screen.x, &screen.y);
-  screen.x = screen.x > 0.0f ? (screen.x < 0.8f ? screen.x : 0.8f) : 0.0f;
-  screen.y = screen.y > 0.0f ? (screen.y < 0.6f ? screen.y : 0.6f) : 0.0f;
-  return screen;
+  float screenx;
+  float screeny;
+  NDCToDDC(position.x, position.y, &screenx, &screeny);
+  screenx = screenx > 0.0f ? (screenx < 0.8f ? screenx : 0.8f) : 0.0f;
+  screeny = screeny > 0.0f ? (screeny < 0.6f ? screeny : 0.6f) : 0.0f;
+  return NTempest::C2Vector(screenx, screeny);
 }
 
 NTempest::C2Vector CGWorldFrame::GetScreenCoordinates(
@@ -1284,13 +1283,12 @@ NTempest::C2Vector CGWorldFrame::GetScreenCoordinates(
   position.z = (position.z * inverseW + 1.0f) * 0.5f;
   position.w = (position.w * inverseW + 1.0f) * 0.5f;
 
-  NTempest::C2Vector screen(position.x, position.y);
   if (!clip) {
-    NDCToDDC(position.x, position.y, &screen.x, &screen.y);
-    screen.x = screen.x > 0.0f ? (screen.x < 0.8f ? screen.x : 0.8f) : 0.0f;
-    screen.y = screen.y > 0.0f ? (screen.y < 0.6f ? screen.y : 0.6f) : 0.0f;
+    NDCToDDC(position.x, position.y, &position.x, &position.y);
+    position.x = position.x > 0.0f ? (position.x < 0.8f ? position.x : 0.8f) : 0.0f;
+    position.y = position.y > 0.0f ? (position.y < 0.6f ? position.y : 0.6f) : 0.0f;
   }
-  return screen;
+  return NTempest::C2Vector(position.x, position.y);
 }
 
 void CGWorldFrame::OnWorldUpdate() {
@@ -1428,9 +1426,8 @@ void CGWorldFrame::RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT 
     return;
   }
 
-  const unsigned __int64 guid = object->GetGUID();
-  CHashKeyGUID           key(guid);
-  unsigned int           hash = static_cast<unsigned int>(guid);
+  CHashKeyGUID key(object->GetGUID());
+  unsigned int hash = static_cast<unsigned int>(object->GetGUID());
   if (s_fadeOutModelTable.Ptr(hash, key)) {
     return;
   }

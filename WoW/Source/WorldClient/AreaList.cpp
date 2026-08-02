@@ -189,9 +189,6 @@ static bool HandleIndoorZoneChange(unsigned long worldObject, const char *&zoneN
   const char            *szName = 0;
   const char            *zName = 0;
   unsigned int           chunk = 0;
-  int                    p;
-  int                    mu;
-  int                    m;
 
   CWorld::QueryMapObjZoneName(worldObject, zName);
   CWorld::QueryMapObjSubzoneName(worldObject, szName, chunk);
@@ -217,19 +214,18 @@ static bool HandleIndoorZoneChange(unsigned long worldObject, const char *&zoneN
     return true;
   }
 
-  m = rec && rec->m_ZoneMusic ? rec->m_ZoneMusic : globalRec ? globalRec->m_ZoneMusic : 0;
-  mu = rec && rec->m_MIDIAmbience ? rec->m_MIDIAmbience : globalRec ? globalRec->m_MIDIAmbience : 0;
-  p = rec && rec->m_MIDIAmbienceUnderwater ? rec->m_MIDIAmbienceUnderwater : globalRec ? globalRec->m_MIDIAmbienceUnderwater : 0;
-  SndInterfaceRegisterNewZone(m);
-  SndInterfaceSetMIDIArea(mu, p);
+  int musicID = rec && rec->m_ZoneMusic ? rec->m_ZoneMusic : globalRec ? globalRec->m_ZoneMusic : 0;
+  int m = rec && rec->m_MIDIAmbience ? rec->m_MIDIAmbience : globalRec ? globalRec->m_MIDIAmbience : 0;
+  int mu = rec && rec->m_MIDIAmbienceUnderwater ? rec->m_MIDIAmbienceUnderwater : globalRec ? globalRec->m_MIDIAmbienceUnderwater : 0;
+  int p = rec && rec->m_SoundProviderPref ? rec->m_SoundProviderPref : globalRec ? globalRec->m_SoundProviderPref : 0;
+  int pu = rec && rec->m_SoundProviderPrefUnderwater ? rec->m_SoundProviderPrefUnderwater : globalRec ? globalRec->m_SoundProviderPrefUnderwater : 0;
+  int priority = rec && rec->m_IntroSound ? rec->m_IntroPriority : globalRec && globalRec->m_IntroSound ? globalRec->m_IntroPriority : 0;
+  int introSound = rec && rec->m_IntroSound ? rec->m_IntroSound : globalRec ? globalRec->m_IntroSound : 0;
 
-  m = rec && rec->m_SoundProviderPref ? rec->m_SoundProviderPref : globalRec ? globalRec->m_SoundProviderPref : 0;
-  p = rec && rec->m_SoundProviderPrefUnderwater ? rec->m_SoundProviderPrefUnderwater : globalRec ? globalRec->m_SoundProviderPrefUnderwater : 0;
-  SndInterfaceSetProviderPrefs(m, p, 2000);
-
-  m = rec && rec->m_IntroSound ? rec->m_IntroSound : globalRec ? globalRec->m_IntroSound : 0;
-  p = rec && rec->m_IntroSound ? rec->m_IntroPriority : globalRec && globalRec->m_IntroSound ? globalRec->m_IntroPriority : 0;
-  SndInterfaceRegisterNewZoneIntro(m, p);
+  SndInterfaceRegisterNewZone(musicID);
+  SndInterfaceSetMIDIArea(m, mu);
+  SndInterfaceSetProviderPrefs(p, pu, 2000);
+  SndInterfaceRegisterNewZoneIntro(introSound, priority);
 
   return true;
 }
@@ -320,9 +316,9 @@ void AreaListRegisterLocation(const NTempest::C3Vector &location, unsigned int c
 
 int AreaListZoneHasBreathParticles(unsigned long worldObject, unsigned int continentID, const NTempest::C3Vector &position) {
   const WMOAreaTableRec *globalRec;
-  const WMOAreaTableRec *rec;
 
   if (CWorld::QueryObjectInside(worldObject)) {
+    const WMOAreaTableRec *rec;
     if (CWorld::QueryMapObjAreaTable(worldObject, rec, globalRec)) {
       if (rec && (rec->m_Flags & 2)) {
         return rec->m_Flags & 1;

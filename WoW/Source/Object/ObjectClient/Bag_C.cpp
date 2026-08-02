@@ -60,7 +60,10 @@ static int FindItemClassCallback(const CGItem_C *item, void *param) {
 CGItem_C *CGBag_C::FindItemOfClass(int classID, int subclassMask, unsigned int flags) const {
   unsigned __int64 bagGUID;
   unsigned int     slot;
-  return FindItemOfClass(classID, subclassMask, bagGUID, slot, flags);
+  FindItemClassData data;
+  data.classID = classID;
+  data.subclassMask = subclassMask;
+  return FindItem(FindItemClassCallback, &data, bagGUID, slot, flags);
 }
 
 CGItem_C *CGBag_C::FindItemOfClass(int classID, int subclassMask, unsigned __int64 &bagGUID, unsigned int &slot, unsigned int flags) const {
@@ -85,26 +88,29 @@ CGItem_C *CGBag_C::FindItem(
 ) const {
   FATALASSERT(func);
 
+  unsigned int index;
+
   if (IsInventory() && !(flags & 7)) {
     flags |= 7;
   }
 
-  for (slot = 0; slot < NumSlots(); ++slot) {
+  for (index = 0; index < NumSlots(); ++index) {
     if (IsInventory() &&
-        !((slot <= 18 && (flags & 1)) ||
-          (slot >= 19 && slot <= 22 && (flags & 2)) ||
-          (slot >= 23 && slot <= 38 && (flags & 4)) ||
-          (slot >= 39 && slot <= 62 && (flags & 8)))) {
+        !((index <= 18 && (flags & 1)) ||
+          (index >= 19 && index <= 22 && (flags & 2)) ||
+          (index >= 23 && index <= 38 && (flags & 4)) ||
+          (index >= 39 && index <= 62 && (flags & 8)))) {
       continue;
     }
 
-    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(GetItem(slot), __FILE__, __LINE__));
+    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(GetItem(index), __FILE__, __LINE__));
     if (!item || item->IsDisabled()) {
       continue;
     }
 
     if (func(item, param)) {
       bagGUID = GetGUID();
+      slot = index;
       return item;
     }
 

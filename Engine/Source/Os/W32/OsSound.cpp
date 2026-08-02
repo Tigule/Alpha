@@ -602,8 +602,11 @@ void Sound::ProcessCutoffList(const NTempest::C3Vector &listenerPos) {
         sound->m_flags &= ~0x01000000U;
         sound->Resume();
 
-        float volume = (sound->m_flags & 0x80000000) ? sound->m_fadeVolume / 255.0f : sound->m_volume;
-        sound->SetFadeIn(2.0f, volume);
+        if (sound->m_flags & 0x80000000) {
+          sound->SetFadeIn(2.0f, sound->m_fadeVolume / 255.0f);
+        } else {
+          sound->SetFadeIn(2.0f, sound->m_volume);
+        }
       }
     } else if (!(sound->m_flags & 0x01000000)) {
       if (sound->m_flags & 0x04000000) {
@@ -923,7 +926,7 @@ void Sound::UpdateVolume() {
 }
 
 void Sound::UpdatePosition() {
-  if ((m_flags & (0x08000000 | 0x00040000)) == (0x08000000 | 0x00040000)) {
+  if ((m_flags & 0x08000000) && (m_flags & 0x00040000)) {
     SetPosition(m_worldPosition, (m_flags & 0x00400000) ? &m_velocity : 0);
   }
 }
@@ -1193,7 +1196,7 @@ int Sound::GetNumOutputSystems() {
 }
 
 const char *Sound::GetOutputSystemName(int index) {
-  ASSERT(index >= 0 && index < 13);
+  ASSERT(index >= 0 && index <= 12);
   return s_outputSystemName[index];
 }
 

@@ -494,15 +494,14 @@ class CCharGeoset : public CHandleObject {
         unsigned int workingFlags = m_workingGeosetInfo.flags[group];
         if (!(workingFlags & 1) || !(m_geosetInfo.flags[group] & 1)) {
           if (!(workingFlags & 2) || !(m_geosetInfo.flags[group] & 2)) {
-            unsigned int geoset = m_workingGeosetInfo.currentGeosets[group];
             if (workingFlags & 1) {
               HideGeosetSection(s_clothingGeosetRanges[group]);
               m_currentGeosets[s_clothingGeosetRanges[group]] = 0;
             } else {
-              if (workingFlags & 2) {
-                geoset = 1;
-              }
-              ShowGeosetSection(s_clothingGeosetRanges[group], geoset, 0);
+              ShowGeosetSection(
+                  s_clothingGeosetRanges[group],
+                  workingFlags & 2 ? 1 : m_workingGeosetInfo.currentGeosets[group],
+                  0);
             }
           }
         }
@@ -682,12 +681,11 @@ static void FillInMissingTextureFileNames() {
 
       for (section = 0; section < CHARTEXTURESECTION_NUM; ++section) {
         int variation = g_charTextureSectionMapping[section];
-        int variations = maxVars[variation];
         int sectionVariation;
 
-        sexVar.GetSectionData(section).SetCount(variations);
+        sexVar.GetSectionData(section).SetCount(maxVars[variation]);
 
-        for (sectionVariation = 0; sectionVariation < variations; ++sectionVariation) {
+        for (sectionVariation = 0; sectionVariation < maxVars[variation]; ++sectionVariation) {
           if (sectionVariation < sexVar.firstNPCVar[section] && sectionVariation > sexVar.lastNPCVar[section]) {
             sexVar.GetNames(section, sectionVariation).SetColorCount(maxColor[variation]);
           }
@@ -700,7 +698,8 @@ static void FillInMissingTextureFileNames() {
 static void ReadTextureFileNames(int numRaces) {
   int i;
 
-  for (i = g_charTextureVariationsV2DB.GetNumRecords(); i; --i) {
+  i = g_charTextureVariationsV2DB.GetNumRecords();
+  for (; i; --i) {
     const CharTextureVariationsV2Rec *rec = g_charTextureVariationsV2DB.GetRecordByIndex(i - 1);
     CHARACTERSEXVARIATIONS           &sexVar = s_raceTextureFileNames[rec->m_RaceID].sex[rec->m_SexID];
     CHARACTERVARIATIONS              *variation;
@@ -730,8 +729,9 @@ static void ReadTextureFileNames(int numRaces) {
       variation->SetColorCount(rec->m_ColorID + 1);
     }
 
-    if (rec->m_TextureName && *rec->m_TextureName) {
-      variation->GetColor(rec->m_ColorID).SetString("", rec->m_TextureName);
+    const char *textureName = rec->m_TextureName;
+    if (textureName && *textureName) {
+      variation->GetColor(rec->m_ColorID).SetString("", textureName);
     }
   }
 }
@@ -747,7 +747,8 @@ static void InitializeTextureFileNames() {
 static void InitializeHairGeosets() {
   int i;
 
-  for (i = g_charHairGeosetsDB.GetNumRecords(); i; --i) {
+  i = g_charHairGeosetsDB.GetNumRecords();
+  for (; i; --i) {
     const CharHairGeosetsRec *rec = g_charHairGeosetsDB.GetRecordByIndex(i - 1);
     int                       geoset;
 
@@ -769,7 +770,8 @@ static void InitializeHairGeosets() {
 static void InitializeTextureHoldLayers() {
   int i;
 
-  for (i = g_charVariationsDB.GetNumRecords(); i; --i) {
+  i = g_charVariationsDB.GetNumRecords();
+  for (; i; --i) {
     const CharVariationsRec *rec = g_charVariationsDB.GetRecordByIndex(i - 1);
     int                      race;
 
@@ -793,7 +795,8 @@ static void InitializeFacialHairVariations() {
   int               j;
   int               i;
 
-  for (j = 0; j < MAX_PLAYER_RACE_ID * 2; ++j) {
+  j = 0;
+  for (; j < MAX_PLAYER_RACE_ID * 2; ++j) {
     maxVariationID[j] = -1;
   }
 
@@ -841,7 +844,8 @@ void CharCustomizationInitialize() {
 
   s_characterVariations.SetCount(g_chrRacesDB.GetMaxID() + 1);
 
-  for (i = s_characterVariations.Count(); i; --i) {
+  i = s_characterVariations.Count();
+  for (; i; --i) {
     s_characterVariations[i - 1].SetCount(UNITSEX_LAST);
   }
 
@@ -894,15 +898,14 @@ HTEXTURE CharCustomizationLoadSkin(
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sexID < UNITSEX_LAST);
 
-  int numPCVariations;
   int numNPCVariations;
-  CharCustomizationGetNumSkinTextures(raceID, sexID, &numPCVariations, &numNPCVariations);
-  FATALASSERT(numPCVariations + numNPCVariations);
+  CharCustomizationGetNumSkinTextures(raceID, sexID, &numNPCVariations, 0);
+  FATALASSERT(numNPCVariations);
 
   int color = textureNumber;
   int variation = 0;
-  if (isNPC && static_cast<int>(textureNumber) >= numPCVariations) {
-    color -= numPCVariations;
+  if (isNPC && static_cast<int>(textureNumber) >= numNPCVariations) {
+    color -= numNPCVariations;
     variation = 1;
   }
 
@@ -937,15 +940,14 @@ HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, unsigned int raceID, un
   FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sexID < UNITSEX_LAST);
 
-  int numPCVariations;
   int numNPCVariations;
-  CharCustomizationGetNumSkinTextures(raceID, sexID, &numPCVariations, &numNPCVariations);
-  FATALASSERT(numPCVariations + numNPCVariations);
+  CharCustomizationGetNumSkinTextures(raceID, sexID, &numNPCVariations, 0);
+  FATALASSERT(numNPCVariations);
 
   int color = textureNumber;
   int variation = 0;
-  if (isNPC && static_cast<int>(textureNumber) >= numPCVariations) {
-    color -= numPCVariations;
+  if (isNPC && static_cast<int>(textureNumber) >= numNPCVariations) {
+    color -= numNPCVariations;
     variation = 1;
   }
 
@@ -992,16 +994,17 @@ int CharCustomizationGetNakedSectionName(
   FATALASSERT(outBufferSize);
 
   int PCSkinVariations;
-  int NPCSkinVariations;
-  CharCustomizationGetNumSkinTextures(raceID, sexID, &PCSkinVariations, &NPCSkinVariations);
-  if (isNPC && NPCSkinVariations) {
-    PCSkinVariations = NPCSkinVariations;
-    isNPC = 1;
-  } else {
+  if (isNPC) {
+    CharCustomizationGetNumSkinTextures(raceID, sexID, 0, &PCSkinVariations);
     if (!PCSkinVariations) {
-      return 0;
+      CharCustomizationGetNumSkinTextures(raceID, sexID, &PCSkinVariations, 0);
+      isNPC = 0;
     }
-    isNPC = 0;
+  } else {
+    CharCustomizationGetNumSkinTextures(raceID, sexID, &PCSkinVariations, 0);
+  }
+  if (!PCSkinVariations) {
+    return 0;
   }
 
   int                  color = skinID % PCSkinVariations;
@@ -1042,23 +1045,21 @@ void CharCustomizationSetFaceTexture(
 
   int pcFaceVars;
   int npcFaceVars;
-  int PCSkinVariations;
   int NPCSkinVariations;
-  CharCustomizationGetNumSkinTextures(raceID, sexID, &PCSkinVariations, &NPCSkinVariations);
+  CharCustomizationGetNumSkinTextures(raceID, sexID, &NPCSkinVariations, 0);
   CharCustomizationNumFaces(raceID, sexID, &pcFaceVars, &npcFaceVars);
 
   if (isNPC) {
     if (colorID >= 100) {
-      colorID += PCSkinVariations - 100;
+      colorID += NPCSkinVariations - 100;
     }
-    PCSkinVariations += NPCSkinVariations;
     if (varID >= 100) {
       varID += pcFaceVars - 100;
     }
     pcFaceVars += npcFaceVars;
   }
 
-  if (!PCSkinVariations || !pcFaceVars) {
+  if (!NPCSkinVariations || !pcFaceVars) {
     return;
   }
 

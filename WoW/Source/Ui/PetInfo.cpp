@@ -86,11 +86,10 @@ void CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
   FATALASSERT(index < (sizeof(m_actions) / sizeof(m_actions[0])));
 
   unsigned int &rawAction = action;
-  unsigned int  actionType = rawAction >> 24 & 0x3F;
   if (rawAction == static_cast<const unsigned int &>(m_actions[index])) {
     return;
   }
-  if (actionType == 1) {
+  if ((rawAction >> 24 & 0x3F) == 1) {
     const SpellRec *spell = g_spellDB.GetRecord(rawAction & 0xFFFF);
     if (!spell || spell->m_attributes & 0x40) {
       return;
@@ -113,7 +112,7 @@ void CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
     return;
   }
 
-  if (save && oldSlot < 0 && actionType == 1) {
+  if (save && oldSlot < 0 && (rawAction >> 24 & 0x3F) == 1) {
     rawAction |= 0x40000000;
   }
   if (oldSlot >= 0) {
@@ -201,14 +200,17 @@ void CGPetInfo::SendPetAction(const PetAction &action, const unsigned __int64 &t
     if (id <= 1) {
       SetPetOrders(id);
     } else if (id == 2) {
-      CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(actionTarget, __FILE__, __LINE__));
-      if (!unit) {
-        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(141));
-        return;
-      }
-      if (!unit->CanBeTargetted()) {
-        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(142));
-        return;
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player) {
+        CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(actionTarget, __FILE__, __LINE__));
+        if (!unit) {
+          CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(141));
+          return;
+        }
+        if (!player->CanAttack(unit)) {
+          CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(142));
+          return;
+        }
       }
     }
   }
@@ -223,33 +225,28 @@ void CGPetInfo::SendPetAction(const PetAction &action, const unsigned __int64 &t
 }
 
 void CGPetInfo::PetPassiveMode() {
-  PetAction              action(0x06000000);
-  const unsigned __int64 noTarget = 0;
-  SendPetAction(action, noTarget);
+  PetAction action(0x06000000);
+  SendPetAction(action, 0);
 }
 
 void CGPetInfo::PetDefensiveMode() {
-  PetAction              action(0x06000001);
-  const unsigned __int64 noTarget = 0;
-  SendPetAction(action, noTarget);
+  PetAction action(0x06000001);
+  SendPetAction(action, 0);
 }
 
 void CGPetInfo::PetAggressiveMode() {
-  PetAction              action(0x06000002);
-  const unsigned __int64 noTarget = 0;
-  SendPetAction(action, noTarget);
+  PetAction action(0x06000002);
+  SendPetAction(action, 0);
 }
 
 void CGPetInfo::PetWait() {
-  PetAction              action(0x07000000);
-  const unsigned __int64 noTarget = 0;
-  SendPetAction(action, noTarget);
+  PetAction action(0x07000000);
+  SendPetAction(action, 0);
 }
 
 void CGPetInfo::PetFollow() {
-  PetAction              action(0x07000001);
-  const unsigned __int64 noTarget = 0;
-  SendPetAction(action, noTarget);
+  PetAction action(0x07000001);
+  SendPetAction(action, 0);
 }
 
 void CGPetInfo::PetAttackTarget(const unsigned __int64 &targetGUID) {
@@ -258,9 +255,8 @@ void CGPetInfo::PetAttackTarget(const unsigned __int64 &targetGUID) {
 }
 
 void CGPetInfo::PetDismiss() {
-  PetAction              action(0x07000003);
-  const unsigned __int64 noTarget = 0;
-  SendPetAction(action, noTarget);
+  PetAction action(0x07000003);
+  SendPetAction(action, 0);
   FrameScript_SignalEvent(368, "%d", 10000);
 }
 
@@ -463,8 +459,7 @@ static int Script_CastPetAction(lua_State *L) {
   } else {
     const PetAction *action = CGPetInfo::GetAction(index);
     if (action) {
-      const unsigned __int64 noTarget = 0;
-      CGPetInfo::SendPetAction(*action, noTarget);
+      CGPetInfo::SendPetAction(*action, 0);
       SndInterfacePlayInterfaceSound("GAMEABILITYACTIVATE");
     }
   }

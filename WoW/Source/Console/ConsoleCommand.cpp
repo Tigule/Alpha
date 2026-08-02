@@ -75,7 +75,6 @@ static int CreateWTFFilePath(char *filename, unsigned int size) {
 static int ConsoleCommand_Help(const char *command, const char *arguments) {
   unsigned int    index;
   unsigned int    categoryCount;
-  CATEGORY        category;
   CONSOLECOMMAND *entry;
   const char     *helpText;
   char           *separator;
@@ -100,8 +99,7 @@ static int ConsoleCommand_Help(const char *command, const char *arguments) {
 
   for (index = 0; index < 8; ++index) {
     if (!SStrCmpI(s_translation[index].categoryString, arguments, 0x7FFFFFFF)) {
-      category = s_translation[index].categoryValue;
-      if (category != NONE) {
+      if (s_translation[index].categoryValue != NONE) {
         char buffer[128];
 
         buffer[0] = 0;
@@ -111,7 +109,7 @@ static int ConsoleCommand_Help(const char *command, const char *arguments) {
         categoryCount = 0;
         buffer[0] = 0;
         ITERATELIST(CONSOLECOMMAND, g_consoleCommandHash, categoryEntry) {
-          if (categoryEntry->m_category == category) {
+          if (categoryEntry->m_category == s_translation[index].categoryValue) {
             SStrPack(buffer, categoryEntry->GetString(), 128);
             SStrPack(buffer, ", ", 128);
             ++categoryCount;
@@ -476,14 +474,12 @@ void ConsoleCommandUnregister(const char *command) {
 
 int ConsoleCommandComplete(const char *partial, const char **previous, int direction) {
   unsigned int    partialLength;
-  const char     *previousString;
   CONSOLECOMMAND *entry;
 
   ASSERT(previous);
 
-  previousString = *previous;
-  if (previousString) {
-    entry = g_consoleCommandHash.Ptr(previousString);
+  if (*previous) {
+    entry = g_consoleCommandHash.Ptr(*previous);
     if (!entry) {
       return 0;
     }

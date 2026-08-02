@@ -45,13 +45,12 @@ CGxDeviceOpenGl::~CGxDeviceOpenGl() {
 }
 
 void CGxDeviceOpenGl::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels) {
-  int                  width;
   NTempest::CImVector *src1;
 
   ClampRectToWindow(rect);
 
-  width = rect.r - rect.l;
-  pixels.SetCount(width * (rect.b - rect.t));
+  pixels.SetCount((rect.r - rect.l) * (rect.b - rect.t));
+  int width = rect.r - rect.l;
 
   glReadPixels(rect.l, static_cast<int>(DeviceCurWindow().b) - rect.b, width, rect.b - rect.t, GL_BGRA_EXT, GL_UNSIGNED_BYTE, pixels.Ptr());
 
@@ -121,10 +120,11 @@ void CGxDeviceOpenGl::GetError() {
 void CGxDeviceOpenGl::IAllocVAR() {
   FATALASSERT(m_nvvarMem == 0);
 
+  unsigned int freqlp;
   unsigned int order = 3;
   while (order) {
     unsigned int bytes = 0;
-    for (unsigned int freqlp = 0; freqlp < order; ++freqlp) {
+    for (freqlp = 0; freqlp < order; ++freqlp) {
       EGxBufWriteFreq freq = freqOrder[freqlp];
       if (freq == GxBWF_Dynamic) {
         bytes += GxVertexSize(GxVBF_PNCT0T1) << 15;

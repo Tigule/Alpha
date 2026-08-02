@@ -279,7 +279,6 @@ CGxTex *CMapChunk::AllocAlphaGxTex(
     GxTexSetUserData(gxTex, userFunc, userArg);
   } else {
     unsigned int size = CWorld::alphaMipLevel == 1 ? 32 : 64;
-    CGxTexFlags  texFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
     GxTexCreate(
         GxTex_2d,
         size,
@@ -287,7 +286,7 @@ CGxTex *CMapChunk::AllocAlphaGxTex(
         0,
         GxTex_Argb4444,
         GxTex_Argb8888,
-        texFlags,
+        CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
         userArg,
         userFunc,
         gxTex
@@ -318,7 +317,6 @@ CGxTex *CMapChunk::AllocShadowGxTex(
     GxTexSetUserData(gxTex, userFunc, userArg);
   } else {
     unsigned int size = CWorld::shadowMipLevel == 1 ? 32 : 64;
-    CGxTexFlags  texFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
     GxTexCreate(
         GxTex_2d,
         size,
@@ -326,7 +324,7 @@ CGxTex *CMapChunk::AllocShadowGxTex(
         0,
         GxTex_Argb4444,
         GxTex_Argb8888,
-        texFlags,
+        CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
         userArg,
         userFunc,
         gxTex

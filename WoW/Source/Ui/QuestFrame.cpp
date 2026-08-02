@@ -27,7 +27,7 @@ static const float MAX_SHOP_DISTANCE_SQUARED = MAX_SHOP_DISTANCE * MAX_SHOP_DIST
 
 bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
 
-static void QuestItemStatsCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void QuestItemStatsCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(280);
   }
@@ -99,8 +99,7 @@ void CGQuestInfo::SetState(unsigned __int64 guid, QUEST_STATE state, const char 
   }
 
   char             parsed[1024];
-  unsigned __int64 player = ClntObjMgrGetActivePlayer();
-  QuestParserParseText(text, parsed, sizeof(parsed), player, 0);
+  QuestParserParseText(text, parsed, sizeof(parsed), ClntObjMgrGetActivePlayer(), 0);
   if (!parsed[0]) {
     SStrCopy(parsed, " ", sizeof(parsed));
   }
@@ -130,8 +129,7 @@ void CGQuestInfo::SetState(unsigned __int64 guid, QUEST_STATE state, const char 
 void CGQuestInfo::SetLogDescription(const char *desc) {
   if (desc && *desc) {
     char             parsed[1024];
-    unsigned __int64 player = ClntObjMgrGetActivePlayer();
-    QuestParserParseText(desc, parsed, sizeof(parsed), player, 0);
+    QuestParserParseText(desc, parsed, sizeof(parsed), ClntObjMgrGetActivePlayer(), 0);
     SStrCopy(m_questLogText, parsed, sizeof(m_questLogText));
   } else {
     m_questLogText[0] = 0;
@@ -306,11 +304,16 @@ void CGQuestInfo::AcceptQuest() {
 }
 
 void CGQuestInfo::DeclineQuest() {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player && m_npc) {
-    player->CancelQuest(m_npc);
+  CGObject_C *object = ClntObjMgrObjectPtr(m_npc, __FILE__, __LINE__);
+  if ((object && object->GetType() & TYPE_ITEM) || m_autoLaunched) {
+    QuestGiverFinished();
+  } else {
+    CDataStore hello;
+    hello.Put(static_cast<unsigned int>(CMSG_QUESTGIVER_HELLO));
+    hello.Put(m_npc);
+    hello.Finalize();
+    ClientServices_Send(&hello);
   }
-  QuestGiverFinished();
 }
 
 void CGQuestInfo::GiveQuestItems() {
@@ -632,8 +635,7 @@ static int Script_GetQuestBackgroundMaterial(lua_State *L) {
   int material = 0;
   if (object) {
     if (object->GetType() & TYPE_ITEM) {
-      const unsigned __int64 noGuid = 0;
-      const ItemStats_C *stats = g_itemDBCache.GetRecord(object->GetEntryID(), noGuid, 0, 0);
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(object->GetEntryID(), 0, 0, 0);
       if (stats) {
         material = stats->m_pageMaterial;
       }

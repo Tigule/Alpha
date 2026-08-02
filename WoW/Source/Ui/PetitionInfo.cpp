@@ -131,8 +131,7 @@ void CGPetitionInfo::DecrementPendingName() {
 
 void CGPetitionInfo::SetPetitionStats(int id) {
   if (m_petitionID == id) {
-    const unsigned __int64 noGuid = 0;
-    m_petition = g_petitionCache.GetRecord(id, noGuid, 0, 0);
+    m_petition = g_petitionCache.GetRecord(id, 0, 0, 0);
     if (m_petition && !m_pendingNames) {
       FrameScript_SignalEvent(373);
       ConsoleWrite("Petition shown", DEFAULT_COLOR);
@@ -216,11 +215,11 @@ static int Script_SignPetition(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     choice = static_cast<unsigned char>(lua_tonumber(L, 1));
   }
-  unsigned __int64 petition = CGPetitionInfo::GetPetition();
-  if (petition) {
+  unsigned __int64 petitionGUID = CGPetitionInfo::GetPetition();
+  if (petitionGUID) {
     CDataStore msg;
     msg.Put(static_cast<unsigned int>(CMSG_PETITION_SIGN));
-    msg.Put(petition);
+    msg.Put(petitionGUID);
     msg.Put(choice);
     msg.Finalize();
     ClientServices_Send(&msg);

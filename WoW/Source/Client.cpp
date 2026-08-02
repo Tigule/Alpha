@@ -333,11 +333,11 @@ static int LookupResultsHandler(void *__formal, NETMESSAGE msgID, unsigned long 
     return 1;
   }
 
-  void *results;
-  msg->GetDataInSitu(results, numResults * 0xC4);
-  ASSERT(results);
+  void *data;
+  msg->GetDataInSitu(data, numResults * 0xC4);
+  ASSERT(data);
 
-  char *result = static_cast<char *>(results) + 68;
+  char *result = static_cast<char *>(data) + 68;
   for (unsigned int i = 0; i < numResults; ++i, result += 0xC4) {
     unsigned int id = *reinterpret_cast<unsigned int *>(result - 68);
     ConsoleWriteA("[%.04d] \"%s\" \"%s\" %s", DEFAULT_COLOR, id, result - 64, result, result + 64);
@@ -579,11 +579,10 @@ static void PrintFilterMask() {
 static int SetFilterMask(const char *filterString) {
   char         filter[64];
   char         whitespace[] = "\t\r\n\" ";
-  const char  *string = filterString;
   int          invert = 0;
   unsigned int categoryFilter = 0;
 
-  SStrTokenize(&string, filter, sizeof(filter), whitespace, 0);
+  SStrTokenize(&filterString, filter, sizeof(filter), whitespace, 0);
   while (filter[0]) {
     switch (filter[0]) {
       case 'A':
@@ -685,7 +684,7 @@ static int SetFilterMask(const char *filterString) {
         goto unknownFilter;
     }
 
-    SStrTokenize(&string, filter, sizeof(filter), whitespace, 0);
+    SStrTokenize(&filterString, filter, sizeof(filter), whitespace, 0);
   }
 
   SysMsgSetFilter(categoryFilter);
@@ -1162,8 +1161,8 @@ static int ClientFocus(const void *packetData, void *__formal) {
   return 1;
 }
 
-void ClientKillTimer(unsigned int timerId, CLIENTTIMERHANDLER handler, const char *handlerName) {
-  EventKillTimer(timerId, handler, handlerName);
+void ClientKillTimer(unsigned int timerId, CLIENTTIMERHANDLER handlerAddress, const char *handlerName) {
+  EventKillTimer(timerId, handlerAddress, handlerName);
 }
 
 void ClientPostClose() {
@@ -1334,10 +1333,10 @@ static void LogObjectInfo(const char *label, CGObject_C *object, char *log, unsi
     return;
   }
 
-  NTempest::C3Vector position(object->GetPosition());
+  NTempest::C3Vector pos(object->GetPosition());
   guid = object->GetGUID();
 
-  SStrPrintf(text, sizeof(text), "%s: %s, %016I64X, (%g,%g,%g)\r\n", label, object->GetObjectName(), guid, position.x, position.y, position.z);
+  SStrPrintf(text, sizeof(text), "%s: %s, %016I64X, (%g,%g,%g)\r\n", label, object->GetObjectName(), guid, pos.x, pos.y, pos.z);
   SStrPack(log, text, size);
 }
 

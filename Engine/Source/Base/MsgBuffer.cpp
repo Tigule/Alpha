@@ -68,7 +68,14 @@ void CMsgBuffer::AddTcharString(const char *str, int compress) {
   if (length > 0x3F) {
     prefix |= 0x40;
   }
-  if (!compress) {
+  if (compress) {
+    for (unsigned int i = 0; i < length; ++i) {
+      if (str[i] > 0xFF) {
+        prefix |= 0x80;
+        break;
+      }
+    }
+  } else {
     prefix |= 0x80;
   }
   AddByte(prefix);

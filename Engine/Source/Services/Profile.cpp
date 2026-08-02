@@ -143,7 +143,6 @@ namespace ProfileInternal {
   static void WriteLine(TSGrowableArray<char> &buffer, const char *pszFmt, ...) {
     va_list args;
     int     numchars;
-    int     index;
 
     va_start(args, pszFmt);
     numchars = _vsnprintf(buf, sizeof(buf), pszFmt, args);
@@ -156,9 +155,7 @@ namespace ProfileInternal {
       return;
     }
 
-    for (index = 0; index < numchars; ++index) {
-      *buffer.New() = buf[index];
-    }
+    buffer.Add(numchars, buf);
   }
 
   static KEYVALUE *GetKeyValue(PROFILE *profile, const char *sectionName, const char *keyName) {

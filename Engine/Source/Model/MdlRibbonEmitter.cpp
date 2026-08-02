@@ -61,8 +61,10 @@ static void LoadEmitterData(unsigned char *emitterData, CModelComplex *modelptr,
   ASSERT(material);
   LoadRibbonMaterial(*material, modelptr->m_textures, &mats, &textures, &replace);
 
-  NTempest::CRect texBox(0.0f, 0.0f, 1.0f, 1.0f);
-  ribbon->Initialize(static_cast<float>(edgesPerSecond), edgeLifetime, diffColor, textures, mats, replace, texBox, textureRows, textureCols);
+  ribbon->Initialize(
+      static_cast<float>(edgesPerSecond), edgeLifetime, diffColor, textures, mats, replace,
+      NTempest::CRect(0.0f, 0.0f, 1.0f, 1.0f), textureRows, textureCols
+  );
   ribbon->SetAbove(staticHeightAbove);
   ribbon->SetBelow(staticHeightBelow);
   ribbon->SetTexSlot(staticTextureSlot);
