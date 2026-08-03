@@ -620,8 +620,8 @@ void CMap::CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMa
       light->gxLight.m_enabled = 1;
       light->gxLight.m_isOmni = 1;
       light->gxLight.m_dir = lightPos;
-      light->gxLight.m_ambColor = sLight->color;
-      light->gxLight.m_ambIntensity = sLight->intensity;
+      light->gxLight.m_dirColor = sLight->color;
+      light->gxLight.m_dirIntensity = sLight->intensity;
       light->gxLight.m_constantAttenuation = 0.0f;
       light->gxLight.m_linearAttenuation = 0.7f;
     }

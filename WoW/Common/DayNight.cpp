@@ -180,9 +180,9 @@ static void DoAreaLights(int underWater) {
 
   for (unsigned int i = 1; i < g_areaLights.m_lightData.Count(); ++i) {
     LightData         &light = g_areaLights.m_lightData[i];
-    NTempest::C3Vector delta = s_dnInfo.playerPos - light.m_lightlist.m_lightLocation;
+    NTempest::C3Vector delta = s_dnInfo.cameraPos - light.m_lightlist.m_lightLocation;
     float              dist = delta.Mag();
-    if (dist < light.m_lightlist.m_lightRadius) {
+    if (dist < light.m_lightlist.m_lightDropoff) {
       lightq.Enqueue(LightQE(dist, i));
     }
   }
@@ -202,12 +202,12 @@ static void DoAreaLights(int underWater) {
 
     CurrentLight areaLight;
     CalcLightColors(
-        static_cast<int>(s_dnInfo.dayProgression * 2880.0f), &areaLight, lightdata, stormdata, static_cast<int>(s_dnInfo.stormPercentage * 100.0f)
+        static_cast<int>(s_dnInfo.dayProgression * 2880.0f - 0.5f), &areaLight, lightdata, stormdata, 0
     );
 
     float alpha = 1.0f;
-    if (entry.dist > light.m_lightlist.m_lightDropoff) {
-      alpha = 1.0f - (entry.dist - light.m_lightlist.m_lightDropoff) / (light.m_lightlist.m_lightRadius - light.m_lightlist.m_lightDropoff);
+    if (entry.dist > light.m_lightlist.m_lightRadius) {
+      alpha = 1.0f - (entry.dist - light.m_lightlist.m_lightRadius) / (light.m_lightlist.m_lightDropoff - light.m_lightlist.m_lightRadius);
     }
     ScaleOutputs(s_dnInfo.light, areaLight, alpha);
   }
