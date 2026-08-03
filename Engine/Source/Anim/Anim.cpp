@@ -585,7 +585,8 @@ static void SetEmitter2Values(const AnimInfo& animInfo, CAnimEmitter2Obj* currob
   FATALASSERT(currobj->splitIndex < animInfo.data.emitters2->Count());
   CAnimEmitter2ObjStatus *status = &animInfo.unique->emitter2Status[currobj->splitIndex];
   float isVisible = 1.0f;
-  if (currobj->visibility.InterpolateRetained(animInfo, status->base, &status->visibility, 1.0f, &isVisible)) {
+  if (!currobj->visibility.TotalKeys() ||
+      currobj->visibility.InterpolateRetained(animInfo, status->base, &status->visibility, 1.0f, &isVisible)) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetEnabled(isVisible > 0.0f && !currobj->squirts, 1);
   }
   SetParticleVariation2(animInfo, currobj, status);
