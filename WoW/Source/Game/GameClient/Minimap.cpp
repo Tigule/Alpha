@@ -61,8 +61,8 @@ static float                                     s_POIRotation[3];
 static int                                       s_updateDistantPOI;
 static int                                       s_lowestVisiblePriority = 3;
 static TSHashTable<MINIMAPMD5NAME, HASHKEY_STRI> s_md5NameHash;
-static const char                               *FILENAME_TEMPLATE = "%s_%03d_%02d_%02d.blp";
-static const char                               *s_mapObjTemplate = "%s\\%s";
+static const char                               *FILENAME_TEMPLATE = "%s_%03d_%02d_%02d.blp"; // todo: "%s\\map%d_%d.blp";
+static const char                               *s_mapObjTemplate = "%s\\%s"; // todo: "%s_%03d_%02d_%02d.blp";
 static char                                      s_mapObjDir[260];
 
 static void UpdatePointsOfInterest() {

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import bisect
 import collections
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import re
@@ -61,6 +62,7 @@ CODEVIEW_PRIMITIVE_TYPES = {
     0x0078: "__int128",
     0x0079: "unsigned __int128",
 }
+HEX_BYTES = tuple(f"{value:02x}" for value in range(256))
 
 # CodeView type leaves used by VC6 PDBs.
 LF_MODIFIER = 0x1001
@@ -650,6 +652,7 @@ class TypeTable:
         self._layout_cache: dict[int, Any] = {}
         self._field_cache: dict[int, tuple[Any, ...]] = {}
         self._method_cache: dict[int, tuple[Any, ...]] = {}
+        self._named_header_cache: dict[int, tuple[str, str, int, int, int | str]] = {}
 
     def canonical(self, type_index: int, active: frozenset[int] = frozenset()) -> Any:
         if type_index < TYPE_INDEX_BEGIN:
@@ -754,6 +757,9 @@ class TypeTable:
     def _named_header(
         self, type_index: int
     ) -> tuple[str, str, int, int, int | str]:
+        cached = self._named_header_cache.get(type_index)
+        if cached is not None:
+            return cached
         record = self.records[type_index]
         data = record.payload
         kinds = {
@@ -776,7 +782,9 @@ class TypeTable:
             position = 12
         name, _ = pascal_string(data, position)
         name = normalize_line_template_arguments(name)
-        return kind, name, count, properties, size
+        value = kind, name, count, properties, size
+        self._named_header_cache[type_index] = value
+        return value
 
     def named_layouts(self) -> dict[tuple[str, str], Any]:
         candidates: dict[tuple[str, str], tuple[int, int]] = {}
@@ -1334,6 +1342,24 @@ def data_pointer_offsets(
     base: int = 0,
     active: frozenset[int] = frozenset(),
 ) -> set[int]:
+    cache = getattr(types, "_data_pointer_offsets_cache", None)
+    if cache is None:
+        cache = {}
+        setattr(types, "_data_pointer_offsets_cache", cache)
+    key = ("type", type_index, active)
+    if key not in cache:
+        cache[key] = frozenset(
+            _compute_data_pointer_offsets(types, type_index, 0, active)
+        )
+    return {base + offset for offset in cache[key]}
+
+
+def _compute_data_pointer_offsets(
+    types: TypeTable,
+    type_index: int,
+    base: int,
+    active: frozenset[int],
+) -> set[int]:
     if type_index < TYPE_INDEX_BEGIN:
         return {base} if type_index & 0xF00 == 0x400 else set()
     if type_index in active:
@@ -1421,25 +1447,32 @@ def resolve_forward_data_type(
         return None
     if not properties & CV_PROP_FORWARD_REF:
         return type_index
-    candidates = []
-    for index, candidate in types.records.items():
-        if candidate.leaf != record.leaf:
-            continue
-        try:
-            candidate_kind, candidate_name, count, candidate_properties, size = (
-                types._named_header(index)
-            )
-        except (struct.error, ValidationError):
-            continue
-        if (
-            candidate_kind == kind
-            and candidate_name == name
-            and not candidate_properties & CV_PROP_FORWARD_REF
-            and isinstance(size, int)
-            and size > 0
-            and (total_size is None or total_size % size == 0)
-        ):
-            candidates.append((count, size, index))
+    candidates_by_name = getattr(types, "_forward_definition_candidates", None)
+    if candidates_by_name is None:
+        candidates_by_name = collections.defaultdict(list)
+        for index, candidate in types.records.items():
+            if candidate.leaf not in (LF_CLASS, LF_STRUCTURE, LF_UNION):
+                continue
+            try:
+                candidate_kind, candidate_name, count, candidate_properties, size = (
+                    types._named_header(index)
+                )
+            except (struct.error, ValidationError):
+                continue
+            if (
+                not candidate_properties & CV_PROP_FORWARD_REF
+                and isinstance(size, int)
+                and size > 0
+            ):
+                candidates_by_name[(candidate.leaf, candidate_kind, candidate_name)].append(
+                    (count, size, index)
+                )
+        setattr(types, "_forward_definition_candidates", candidates_by_name)
+    candidates = [
+        candidate
+        for candidate in candidates_by_name.get((record.leaf, kind, name), ())
+        if total_size is None or total_size % candidate[1] == 0
+    ]
     if len(candidates) == 1:
         result = candidates[0][2]
         cache[cache_key] = result
@@ -1449,6 +1482,24 @@ def resolve_forward_data_type(
 
 
 def data_field_pointer_offsets(
+    types: TypeTable,
+    type_index: int,
+    base: int,
+    active: frozenset[int],
+) -> set[int]:
+    cache = getattr(types, "_data_pointer_offsets_cache", None)
+    if cache is None:
+        cache = {}
+        setattr(types, "_data_pointer_offsets_cache", cache)
+    key = ("field", type_index, active)
+    if key not in cache:
+        cache[key] = frozenset(
+            _compute_data_field_pointer_offsets(types, type_index, 0, active)
+        )
+    return {base + offset for offset in cache[key]}
+
+
+def _compute_data_field_pointer_offsets(
     types: TypeTable,
     type_index: int,
     base: int,
@@ -1590,14 +1641,15 @@ def canonical_data_initializer(
 ) -> tuple[str, ...]:
     result: list[str] = []
     position = 0
-    while position < len(data):
-        if position in pointer_offsets and position + 4 <= len(data):
+    data_size = len(data)
+    while position < data_size:
+        if position in pointer_offsets and position + 4 <= data_size:
             value = struct.unpack_from("<I", data, position)[0]
             if image.contains_va(value):
                 result.append(f"@{position:#x}={resolver.target(value)}")
                 position += 4
                 continue
-        result.append(f"{data[position]:02x}")
+        result.append(HEX_BYTES[data[position]])
         position += 1
     return tuple(result)
 
@@ -2122,20 +2174,10 @@ def wine_runner(dumpbin: Path) -> tuple[list[str], Path] | None:
     return None
 
 
-def wine_path(path: Path, runner: Sequence[str]) -> str:
-    try:
-        result = subprocess.run(
-            [*runner, "winepath.exe", "-w", str(path.resolve())],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-            text=True,
-            errors="replace",
-            env={**os.environ, "WINEDEBUG": "-all"},
-        )
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise ValidationError(f"could not convert {path} for Wine: {exc}") from exc
-    return result.stdout.strip()
+def wine_path(path: Path) -> str:
+    # Wine maps the host filesystem to Z:, so avoid starting winepath.exe for
+    # every input and temporary batch file.
+    return "Z:\\" + "\\".join(path.resolve().parts[1:])
 
 
 def disassemble(path: Path, dumpbin: Path) -> list[Instruction]:
@@ -2163,9 +2205,9 @@ def disassemble(path: Path, dumpbin: Path) -> list[Instruction]:
                 batch_file.write(
                     "@echo off\r\n"
                     f'call "{vcvars_win}"\r\n'
-                    f'"{dumpbin_win}" /nologo /disasm "{wine_path(path, runner)}"\r\n'
+                    f'"{dumpbin_win}" /nologo /disasm "{wine_path(path)}"\r\n'
                 )
-            command = [*runner, "cmd", "/c", wine_path(temporary_bat, runner)]
+            command = [*runner, "cmd", "/c", wine_path(temporary_bat)]
         else:
             command = [str(dumpbin), "/nologo", "/disasm", str(path)]
         result = subprocess.run(
@@ -2625,13 +2667,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             reference_image = PeImage(args.reference_exe)
             actual_image = PeImage(args.actual_exe)
             dumpbin = args.dumpbin or find_dumpbin(Path.cwd())
+            with ThreadPoolExecutor(max_workers=2) as workers:
+                reference_disassembly, actual_disassembly = workers.map(
+                    lambda path: disassemble(path, dumpbin),
+                    (args.reference_exe, args.actual_exe),
+                )
             bytecode_result = compare_bytecode(
                 reference_map,
                 actual_map,
                 reference_image,
                 actual_image,
-                disassemble(args.reference_exe, dumpbin),
-                disassemble(args.actual_exe, dumpbin),
+                reference_disassembly,
+                actual_disassembly,
                 args.compiland,
             )
             comparisons.append(bytecode_result)
