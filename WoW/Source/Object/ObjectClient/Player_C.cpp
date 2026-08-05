@@ -688,8 +688,8 @@ int OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDa
     }
 
     case SMSG_GODMODE: {
-      unsigned int enabled = 0;
-      msg->Get(*reinterpret_cast<unsigned char *>(&enabled));
+      unsigned char enabled = 0;
+      msg->Get(enabled);
       ConsoleWrite(enabled ? "Godmode enabled" : "Godmode disabled", DEFAULT_COLOR);
       return 1;
     }
@@ -706,8 +706,8 @@ int OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDa
     }
 
     case SMSG_INVENTORY_CHANGE_FAILURE: {
-      unsigned int result = 0;
-      msg->Get(*reinterpret_cast<unsigned char *>(&result));
+      unsigned char result = 0;
+      msg->Get(result);
       if (result == BAG_OK) {
         return 1;
       }
@@ -720,10 +720,10 @@ int OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDa
 
       unsigned __int64 item1;
       unsigned __int64 item2;
-      unsigned int     containerBSlot = 0;
+      unsigned char    containerBSlot = 0;
       msg->Get(item1);
       msg->Get(item2);
-      msg->Get(*reinterpret_cast<unsigned char *>(&containerBSlot));
+      msg->Get(containerBSlot);
 
       if (result == BAG_LEVEL_MISMATCH) {
         CGGameUI::DisplayError(error, itemID);
@@ -757,9 +757,9 @@ int OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDa
     }
 
     case SMSG_UPDATE_AURA_DURATION: {
-      unsigned int slot = 0;
-      unsigned int duration;
-      msg->Get(*reinterpret_cast<unsigned char *>(&slot));
+      unsigned char slot = 0;
+      unsigned int  duration;
+      msg->Get(slot);
       msg->Get(duration);
       CGBuffBar::UpdateDuration(slot, duration);
       return 1;
@@ -823,12 +823,12 @@ int OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDa
       unsigned __int64 player;
       int              slot;
       int              itemID;
-      unsigned int     pushed = 0;
+      unsigned char    pushed = 0;
       int              displayText;
       msg->Get(player);
       msg->Get(slot);
       msg->Get(itemID);
-      msg->Get(*reinterpret_cast<unsigned char *>(&pushed));
+      msg->Get(pushed);
       msg->Get(displayText);
       CGGameUI::OnItemPush(player, slot, itemID, pushed, displayText);
       return 1;
@@ -838,8 +838,8 @@ int OnPlayerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDa
     case SMSG_DISMOUNTRESULT: {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if (player) {
-        unsigned int result = 0;
-        msg->Get(*reinterpret_cast<unsigned char *>(&result));
+        unsigned char result = 0;
+        msg->Get(result);
         if (msgId == SMSG_MOUNTRESULT) {
           player->HandleMountResult(result);
         } else {
@@ -1079,8 +1079,8 @@ int HandlePartyMemberStats(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
     maxPower = stats->maxPower;
     msg->Get(stats->health);
     msg->Get(stats->maxHealth);
-    unsigned int powerType = 0;
-    msg->Get(*reinterpret_cast<unsigned char *>(&powerType));
+    unsigned char powerType = 0;
+    msg->Get(powerType);
     stats->powerType = static_cast<POWER_TYPE>(powerType);
     msg->Get(stats->power);
     msg->Get(stats->maxPower);
@@ -1470,7 +1470,7 @@ int OnSupercededSpell(void *__formal, NETMESSAGE msgId, unsigned long eventTime,
 
 int OnInitialSpells(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   int            recoveryTime;
-  unsigned int   onHold;
+  unsigned char  onHold;
   int            categoryRecoveryTime;
   unsigned short spellID;
   unsigned short itemID;
@@ -1478,7 +1478,7 @@ int OnInitialSpells(void *__formal, NETMESSAGE msgId, unsigned long eventTime, C
   unsigned short count;
   unsigned short index;
 
-  msg->Get(*reinterpret_cast<unsigned char *>(&onHold));
+  msg->Get(onHold);
   msg->Get(count);
   s_initialSpells.SetCount(count);
 
@@ -1517,7 +1517,7 @@ int OnPetSpells(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   unsigned long    timelimit = 0;
   int              categoryDuration;
   unsigned short   category;
-  unsigned int     onHold;
+  unsigned char    onHold;
   unsigned int     index;
 
   CGPetInfo::ClearActions();
@@ -1534,7 +1534,7 @@ int OnPetSpells(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
       CGPetInfo::SetAction(index, action, 0);
     }
 
-    msg->Get(*reinterpret_cast<unsigned char *>(&onHold));
+    msg->Get(onHold);
     CGSpellBook::ClearPetSpells();
     for (index = 0; index < onHold; ++index) {
       unsigned short spellID;
@@ -1542,7 +1542,7 @@ int OnPetSpells(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
       CGSpellBook::AddPetSpell(spellID);
     }
 
-    msg->Get(*reinterpret_cast<unsigned char *>(&onHold));
+    msg->Get(onHold);
     for (index = 0; index < onHold; ++index) {
       unsigned short spellID;
       msg->Get(spellID);
@@ -1692,8 +1692,8 @@ int OnGroupList(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CData
   int              isLeader;
   unsigned __int64 guid;
   unsigned __int64 lootMaster;
-  unsigned int     connected;
-  unsigned int     lootMethod;
+  unsigned char    connected;
+  unsigned char    lootMethod;
 
   msg->Get(count);
   memset(oldMembers, 0, sizeof(oldMembers));
@@ -1714,7 +1714,7 @@ int OnGroupList(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CData
     msg->GetString(string, sizeof(string));
     ConsoleWrite(string, DEFAULT_COLOR);
     msg->Get(guid);
-    msg->Get(*reinterpret_cast<unsigned char *>(&connected));
+    msg->Get(connected);
 
     if (guid == ClntObjMgrGetActivePlayer()) {
       if (!i) {
@@ -1767,7 +1767,7 @@ int OnGroupList(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CData
   }
 
   if (count) {
-    msg->Get(*reinterpret_cast<unsigned char *>(&lootMethod));
+    msg->Get(lootMethod);
     msg->Get(lootMaster);
     CGPartyInfo::SetLootMethod(static_cast<LOOT_METHOD>(lootMethod), lootMaster);
   }
@@ -2038,27 +2038,27 @@ const char *MirrorTimerLabel(int timer, int spellID) {
 int OnMirrorTimerEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
   switch (msgId) {
     case SMSG_START_MIRROR_TIMER: {
-      int          value;
-      int          maxValue;
-      int          scale;
-      int          spellID;
-      int          timer;
-      unsigned int paused;
+      int           value;
+      int           maxValue;
+      int           scale;
+      int           spellID;
+      int           timer;
+      unsigned char paused;
       msg->Get(timer);
       msg->Get(value);
       msg->Get(maxValue);
       msg->Get(scale);
-      msg->Get(*reinterpret_cast<unsigned char *>(&paused));
+      msg->Get(paused);
       msg->Get(spellID);
       FrameScript_SignalEvent(346, "%s%d%d%d%d%s", MirrorTimerToName(timer), value, maxValue, scale, paused, MirrorTimerLabel(timer, spellID));
       break;
     }
 
     case SMSG_PAUSE_MIRROR_TIMER: {
-      int          timer;
-      unsigned int paused;
+      int           timer;
+      unsigned char paused;
       msg->Get(timer);
-      msg->Get(*reinterpret_cast<unsigned char *>(&paused));
+      msg->Get(paused);
       FrameScript_SignalEvent(347, "%s%d", MirrorTimerToName(timer), paused);
       break;
     }
@@ -3165,7 +3165,7 @@ void CGPlayer_C::UnsetActiveMirrorHandlers() {
 void CGPlayer_C::PostInit(const CClientObjCreate &init) {
   unsigned __int64 item;
   unsigned long    time1;
-  unsigned int     sheathe;
+  unsigned char    sheathe;
   CGItem_C        *itemptr;
   int              linkPoint;
 
@@ -4392,9 +4392,9 @@ int CCommand_Cinematic(const char *command, const char *arguments) {
 }
 
 int OnProficiency(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
-  unsigned int proficiencyMask;
-  unsigned int proficiencyClass;
-  msg->Get(*reinterpret_cast<unsigned char *>(&proficiencyClass));
+  unsigned char proficiencyClass;
+  unsigned int  proficiencyMask;
+  msg->Get(proficiencyClass);
   msg->Get(proficiencyMask);
   s_playerProficiencies[proficiencyClass] = proficiencyMask;
   ConsolePrintf("Proficiency in item class %d set to %08x", proficiencyClass, proficiencyMask);
@@ -5898,7 +5898,7 @@ unsigned int Player_C_GetDisplayId(unsigned int race, unsigned int sex) {
 
 void CGPlayer_C::ReadItemResult(NETMESSAGE msgID, CDataStore *msg) {
   unsigned __int64 item;
-  unsigned int     subcode;
+  unsigned char    subcode;
 
   msg->Get(item);
   if (msgID == SMSG_READ_ITEM_OK) {
@@ -5910,7 +5910,7 @@ void CGPlayer_C::ReadItemResult(NETMESSAGE msgID, CDataStore *msg) {
     return;
   }
 
-  msg->Get(*reinterpret_cast<unsigned char *>(&subcode));
+  msg->Get(subcode);
   switch (subcode) {
     case 0:
       CGItemText::SetItem(item, 1);
@@ -6697,9 +6697,9 @@ CGUnit_C *CGPlayer_C::GetPossessedUnit() {
 
 int CGPlayer_C::OnPetitionShowList(CDataStore *msg) {
   unsigned __int64 petitionNpcGUID;
-  unsigned int     count = 0;
+  unsigned char    count = 0;
   msg->Get(petitionNpcGUID);
-  msg->Get(*reinterpret_cast<unsigned char *>(&count));
+  msg->Get(count);
 
   memset(petitionList, 0, sizeof(petitionList));
   for (unsigned int index = 0; index < count; ++index) {
@@ -6730,13 +6730,13 @@ int CGPlayer_C::OnPetitionShowSignatures(CDataStore *msg) {
   unsigned __int64 itemGUID;
   unsigned __int64 ownerGUID;
   int              petitionID;
-  unsigned int     count = 0;
+  unsigned char    count = 0;
   unsigned int     i;
 
   msg->Get(itemGUID);
   msg->Get(ownerGUID);
   msg->Get(petitionID);
-  msg->Get(*reinterpret_cast<unsigned char *>(&count));
+  msg->Get(count);
 
   unsigned __int64 *signers = static_cast<unsigned __int64 *>(_alloca(sizeof(unsigned __int64) * count));
   int              *choices = static_cast<int *>(_alloca(sizeof(int) * count));

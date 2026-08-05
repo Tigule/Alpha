@@ -261,9 +261,9 @@ static unsigned int GetNumDwordBlocks(OBJECT_TYPE objType) {
 static void SkipPartialObjectUpdate(CDataStore *msg) {
   unsigned int  changeMasks[20];
   unsigned long junk;
-  unsigned int  updateMaskBlocks = 0;
+  unsigned char updateMaskBlocks = 0;
 
-  msg->Get(*reinterpret_cast<unsigned char *>(&updateMaskBlocks));
+  msg->Get(updateMaskBlocks);
   FATALASSERT(updateMaskBlocks <= 20);
 
   unsigned int block;
@@ -300,14 +300,14 @@ static void FillInPartialObjectData(C_OBJECTHASH *foundObj, CDataStore *msg, boo
   unsigned int                      blockOffset;
   unsigned int                      objectTypeId;
   CGObject_C                       *obj;
-  unsigned int                      updateMaskBlocks = 0;
+  unsigned char                     updateMaskBlocks = 0;
 
   FATALASSERT(foundObj);
   FATALASSERT(msg);
   obj = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
   FATALASSERT(obj);
 
-  msg->Get(*reinterpret_cast<unsigned char *>(&updateMaskBlocks));
+  msg->Get(updateMaskBlocks);
   FATALASSERT(updateMaskBlocks <= 20);
   for (block = 0; block < updateMaskBlocks; ++block) {
     msg->Get(changeMasks[block]);
@@ -349,7 +349,7 @@ static void CallMirrorHandlers(CDataStore *msg, bool forFullUpdate, unsigned __i
   unsigned int                      numBlocks;
   C_OBJECTHASH                     *foundObj;
   CGObject_C                       *obj;
-  unsigned int                      updateMaskBlocks = 0;
+  unsigned char                     updateMaskBlocks = 0;
 
   FATALASSERT(msg);
   if (!forFullUpdate) {
@@ -365,7 +365,7 @@ static void CallMirrorHandlers(CDataStore *msg, bool forFullUpdate, unsigned __i
   obj = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
   FATALASSERT(obj);
 
-  msg->Get(*reinterpret_cast<unsigned char *>(&updateMaskBlocks));
+  msg->Get(updateMaskBlocks);
   FATALASSERT(updateMaskBlocks <= 20);
   unsigned int block;
   for (block = 0; block < updateMaskBlocks; ++block) {
@@ -511,10 +511,10 @@ static void PostInitObject(CDataStore *msg) {
   CClientObjCreate init;
   unsigned __int64 guid;
   OBJECT_TYPE_ID   type;
-  unsigned int     btype = 0;
+  unsigned char    btype = 0;
 
   msg->Get(guid);
-  msg->Get(*reinterpret_cast<unsigned char *>(&btype));
+  msg->Get(btype);
   type = static_cast<OBJECT_TYPE_ID>(btype);
   CGObject_C *object = GetObjectPtr(guid);
   FATALASSERT(object);
@@ -697,12 +697,12 @@ static int CreateObject(unsigned long eventTime, CDataStore *msg) {
   unsigned __int64 guid;
   unsigned int     memHandle;
   OBJECT_TYPE_ID   type;
-  unsigned int     btype = 0;
+  unsigned char    btype = 0;
 
   FATALASSERT(msg);
   msg->Get(guid);
   s_curMgr->m_legalGuidDeref = guid;
-  msg->Get(*reinterpret_cast<unsigned char *>(&btype));
+  msg->Get(btype);
   type = static_cast<OBJECT_TYPE_ID>(btype);
 
   C_OBJECTHASH *foundObj = GetUpdateObject(guid);
@@ -923,14 +923,14 @@ static void SkipSetOfObjects(CDataStore *msg) {
 
 static int ObjectUpdateHandler(void *, NETMESSAGE, unsigned long eventTime, CDataStore *msg) {
   unsigned __int64 oldActive;
-  unsigned int     marker1 = 0;
+  unsigned char    marker1 = 0;
   int              success;
   unsigned int     numObjUpdates;
-  unsigned int     updateType = 0;
+  unsigned char    updateType = 0;
 
   msg->Get(numObjUpdates);
   unsigned int marker = msg->Tell();
-  msg->Get(*reinterpret_cast<unsigned char *>(&marker1));
+  msg->Get(marker1);
   unsigned int firstUpdate = 0;
   if (marker1 == 3) {
     UpdateOutOfRangeObjects(msg);
@@ -946,7 +946,7 @@ static int ObjectUpdateHandler(void *, NETMESSAGE, unsigned long eventTime, CDat
   unsigned int i;
   for (i = firstUpdate; i < numObjUpdates; ++i) {
     s_curMgr->m_legalGuidDeref = 0;
-    msg->Get(*reinterpret_cast<unsigned char *>(&updateType));
+    msg->Get(updateType);
     switch (updateType) {
       case 0:
         if (!UpdateObject(msg)) {
@@ -986,7 +986,7 @@ static int ObjectUpdateHandler(void *, NETMESSAGE, unsigned long eventTime, CDat
   msg->Seek(marker);
   for (i = 0; i < numObjUpdates; ++i) {
     updateType = 0;
-    msg->Get(*reinterpret_cast<unsigned char *>(&updateType));
+    msg->Get(updateType);
     switch (updateType) {
       case 0:
         CallMirrorHandlers(msg, false, 0);

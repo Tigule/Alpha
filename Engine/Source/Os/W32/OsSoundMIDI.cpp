@@ -184,7 +184,7 @@ void PostLoadCallback(void *userArg) {
   }
 
   MY_DMUS_OBJECTDESC objDesc;
-  objDesc.dwSize = sizeof(DMUS_OBJECTDESC);
+  objDesc.dwSize = sizeof(objDesc);
   objDesc.dwValidData = 0x402;
   objDesc.guidClass = CLSID_DirectMusicSegment;
   objDesc.asyncLoader = &s_MID;
