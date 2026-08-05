@@ -867,9 +867,7 @@ bool CMap::VectorIntersectSubchunks(
 
     NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
     NTempest::C4Plane  *p = &chunk->planeList[4 * (x + 8 * y)];
-    int                *indices = &iIndiciesP[0][0];
-
-    while (indices < reinterpret_cast<int *>(idxoffs)) {
+    for (unsigned int triangle = 0; triangle < 4; ++triangle) {
       float ip0 = NTempest::C3Vector::Dot(p->n, lp0) + p->d;
       float ip1 = NTempest::C3Vector::Dot(p->n, lp1) + p->d;
 
@@ -877,15 +875,13 @@ bool CMap::VectorIntersectSubchunks(
         float it = ip0 / (ip0 - ip1);
         if (it >= 0.0f && it <= 1.0f) {
           NTempest::C3Vector tempIp = lp0 + (lp1 - lp0) * it;
-          if (VectorIntersectTri(&tempIp, &v[9], &v[indices[0]], &v[indices[1]], &p->n) && it < hitT) {
+          if (VectorIntersectTri(&tempIp, &v[9], &v[iIndiciesP[triangle][0]], &v[iIndiciesP[triangle][1]], &p->n) && it < hitT) {
             hitT = it;
             hitChunk = chunk;
           }
         }
       }
-
       ++p;
-      indices += 2;
     }
   }
 
@@ -1036,9 +1032,7 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
 
     NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
     NTempest::C4Plane  *p = &chunk->planeList[4 * (x + 8 * y)];
-    int                *indices = &iIndiciesP[0][0];
-
-    while (indices < reinterpret_cast<int *>(idxoffs)) {
+    for (unsigned int triangle = 0; triangle < 4; ++triangle) {
       float ip0 = NTempest::C3Vector::Dot(p->n, localSeg.start) + p->d;
       float ip1 = NTempest::C3Vector::Dot(p->n, localSeg.end) + p->d;
 
@@ -1048,7 +1042,7 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
         if (it >= 0.0f && it <= 1.0f) {
           NTempest::C3Vector tempIp = localSeg.start + (localSeg.end - localSeg.start) * it;
 
-          if (VectorIntersectTri(&tempIp, &v[9], &v[indices[0]], &v[indices[1]], &p->n)) {
+          if (VectorIntersectTri(&tempIp, &v[9], &v[iIndiciesP[triangle][0]], &v[iIndiciesP[triangle][1]], &p->n)) {
             if (it < t) {
               t = it;
               facet = *p;
@@ -1057,9 +1051,7 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
           }
         }
       }
-
       ++p;
-      indices += 2;
     }
   } while (scCnt);
 
@@ -1702,4 +1694,3 @@ bool CMap::GetFacetsMapObjs(const CWFrustum &frustum, CWFacetData *facetData, un
 
   return hit;
 }
-
