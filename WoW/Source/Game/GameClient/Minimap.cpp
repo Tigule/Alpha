@@ -35,7 +35,21 @@ static NTempest::C2iVector                       s_currentUpperLeftArea(-1);
 static NTempest::C2iVector                       s_currentLowerRightArea(-1);
 static const unsigned int                        s_chunksPerSizeAtZoom[6] = {14, 12, 10, 8, 6, 4};
 static const float                               s_minimapZoomSize[6] = {150.0f, 120.0f, 90.0f, 60.0f, 40.0f, 25.0f};
+static const struct {
+  unsigned int xIncrement;
+  unsigned int yIncrement;
+} s_areaCoordOffsets[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+static const float                               AREA_WORLD_SIZE_X = 533.33331f;
+static const float                               AREA_WORLD_SIZE_Y = 533.33331f;
+static const float                               CLOSEENOUGH = 0.013888889f;
 static const float                               MAX_POI_DISTANCE = 694.44446f;
+static float                                     angle = 90.0f;
+static float                                     boxHeight = 1066.6666f;
+static float                                     boxWidth = 1066.6666f;
+static const float                               HALF_AREA_WORLD_SIZE_X = AREA_WORLD_SIZE_X * 0.5f;
+static const float                               HALF_AREA_WORLD_SIZE_Y = AREA_WORLD_SIZE_Y * 0.5f;
+static const float                               HALF_WORLD_SIZE_X = AREA_WORLD_SIZE_X * 64.0f * 0.5f;
+static const float                               HALF_WORLD_SIZE_Y = AREA_WORLD_SIZE_Y * 64.0f * 0.5f;
 static unsigned int                              s_currentZoom = 3;
 static unsigned int                              s_currentInsideZoom = 3;
 static unsigned int                              s_mapObjID;
@@ -61,8 +75,8 @@ static float                                     s_POIRotation[3];
 static int                                       s_updateDistantPOI;
 static int                                       s_lowestVisiblePriority = 3;
 static TSHashTable<MINIMAPMD5NAME, HASHKEY_STRI> s_md5NameHash;
-static const char                               *FILENAME_TEMPLATE = "%s_%03d_%02d_%02d.blp"; // todo: "%s\\map%d_%d.blp";
-static const char                               *s_mapObjTemplate = "%s\\%s"; // todo: "%s_%03d_%02d_%02d.blp";
+static const char                               *FILENAME_TEMPLATE = "%s\\map%d_%d.blp";
+static const char                               *s_mapObjTemplate = "%s_%03d_%02d_%02d.blp";
 static char                                      s_mapObjDir[260];
 
 static void UpdatePointsOfInterest() {
@@ -188,7 +202,7 @@ static NTempest::C2iVector CoordinateToArea(const NTempest::C3Vector &position) 
 }
 
 static NTempest::C3Vector AreaToCoordinate(const NTempest::C2iVector &coords) {
-  return NTempest::C3Vector(17066.666f - coords.y * 533.33331f, 17066.666f - coords.x * 533.33331f, 0.0f);
+  return NTempest::C3Vector(HALF_WORLD_SIZE_Y - coords.y * AREA_WORLD_SIZE_X, 17066.666f - coords.x * AREA_WORLD_SIZE_Y, 0.0f);
 }
 
 static void BuildPathName(const NTempest::C2iVector &location, char *buffer, unsigned int size) {
@@ -201,7 +215,7 @@ static void BuildPathName(const NTempest::C2iVector &location, char *buffer, uns
     return;
   }
 
-  SStrPrintf(buffer, size, "%s\\map%d_%d.blp", map->m_Directory, location.x, location.y);
+  SStrPrintf(buffer, size, FILENAME_TEMPLATE, map->m_Directory, location.x, location.y);
   MINIMAPMD5NAME *name = s_md5NameHash.Ptr(buffer);
   if (name) {
     SStrPrintf(buffer, size, "%s\\%s", MINIMAP_MD5_DIR, name->filename);
@@ -211,11 +225,6 @@ static void BuildPathName(const NTempest::C2iVector &location, char *buffer, uns
 }
 
 static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int continentChanged, QUADDATA *quads) {
-  static const struct {
-    unsigned int xIncrement;
-    unsigned int yIncrement;
-  } s_areaCoordOffsets[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
-
   unsigned int i;
   for (i = 0; i < 4; ++i) {
     quads[i].m_flags &= ~2u;
@@ -271,10 +280,10 @@ static void SetupQuad(
   CStatus status;
 
   quadData.m_flags |= 2;
-  SStrPrintf(fileName, sizeof(fileName), FILENAME_TEMPLATE, wmoName, wmmQuad.groupNum, wmmQuad.quad.x, wmmQuad.quad.y);
+  SStrPrintf(fileName, sizeof(fileName), s_mapObjTemplate, wmoName, wmmQuad.groupNum, wmmQuad.quad.x, wmmQuad.quad.y);
   MINIMAPMD5NAME *name = s_md5NameHash.Ptr(fileName);
   if (name) {
-    SStrPrintf(fileName, sizeof(fileName), s_mapObjTemplate, MINIMAP_MD5_DIR, name->filename);
+    SStrPrintf(fileName, sizeof(fileName), "%s\\%s", MINIMAP_MD5_DIR, name->filename);
   } else {
     SysMsgPrintf(SYSMSG_ERROR, 2, "No minimap texture: \"%s\"", fileName);
     fileName[0] = 0;
@@ -328,7 +337,7 @@ static void SetupMapObj(unsigned long hWorldObject, NTempest::C44Matrix &minimap
   minimapMtx.d0 = 0.0f;
   minimapMtx.d1 = 0.0f;
   minimapMtx.d2 = 0.0f;
-  minimapMtx.Rotate(90.0f * 0.017453292f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
+  minimapMtx.Rotate(angle * 0.017453292f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
 
   if (!CWorld::QueryMapObjFileName(hWorldObject, wmoName)) {
     s_mapObjDir[0] = 0;
@@ -466,10 +475,10 @@ static int __fastcall MinimapUpdatePosition(
   UpdatePointsOfInterest();
 
   NTempest::C2iVector areaCoord = CoordinateToArea(pos);
-  NTempest::C3Vector  corner(pos.x + 266.66666f, pos.y + 266.66666f, 0.0f);
+  NTempest::C3Vector  corner(pos.x + HALF_AREA_WORLD_SIZE_X, pos.y + HALF_AREA_WORLD_SIZE_Y, 0.0f);
   NTempest::C2iVector upperLeftArea = CoordinateToArea(corner);
-  corner.x = pos.x - 266.66666f;
-  corner.y = pos.y - 266.66666f;
+  corner.x = pos.x - HALF_AREA_WORLD_SIZE_X;
+  corner.y = pos.y - HALF_AREA_WORLD_SIZE_Y;
   NTempest::C2iVector lowerRightArea = CoordinateToArea(corner);
 
   if (upperLeftArea.x == lowerRightArea.x) {
@@ -499,15 +508,13 @@ static int __fastcall MinimapUpdatePosition(
   s_flags &= ~1u;
 
   NTempest::C3Vector upperLeftCoordinate = AreaToCoordinate(upperLeftArea);
-  const float        boxHeight = 1066.6666f;
-  const float        boxWidth = 1066.6666f;
   NTempest::CRect    boxBoundary(
       upperLeftCoordinate.x, upperLeftCoordinate.y, upperLeftCoordinate.x - boxHeight, upperLeftCoordinate.y - boxWidth
   );
-  FATALASSERT((pos.x - 0.013888889f) < boxBoundary.t);
-  FATALASSERT((pos.x + 0.013888889f) > boxBoundary.b);
-  FATALASSERT((pos.y - 0.013888889f) < boxBoundary.l);
-  FATALASSERT((pos.y + 0.013888889f) > boxBoundary.r);
+  FATALASSERT((pos.x - CLOSEENOUGH) < boxBoundary.t);
+  FATALASSERT((pos.x + CLOSEENOUGH) > boxBoundary.b);
+  FATALASSERT((pos.y - CLOSEENOUGH) < boxBoundary.l);
+  FATALASSERT((pos.y + CLOSEENOUGH) > boxBoundary.r);
 
   NTempest::C2Vector center;
   center.x = (boxBoundary.l - pos.y) / boxHeight;
