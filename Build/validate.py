@@ -12,6 +12,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
@@ -19,6 +20,47 @@ from typing import Any, Iterable, Iterator, Sequence
 
 PDB2_SIGNATURE = b"Microsoft C/C++ program database 2.00\r\n\x1aJG\0\0"
 TYPE_INDEX_BEGIN = 0x1000
+
+CODEVIEW_PRIMITIVE_TYPES = {
+    0x0000: "<no type>",
+    0x0003: "void",
+    0x0004: "currency",
+    0x0010: "char",
+    0x0011: "short",
+    0x0012: "long",
+    0x0013: "__int64",
+    0x0014: "__int128",
+    0x0020: "unsigned char",
+    0x0021: "unsigned short",
+    0x0022: "unsigned long",
+    0x0023: "unsigned __int64",
+    0x0024: "unsigned __int128",
+    0x0030: "bool",
+    0x0031: "bool",
+    0x0032: "bool",
+    0x0033: "bool",
+    0x0040: "float",
+    0x0041: "double",
+    0x0042: "long double",
+    0x0060: "bit",
+    0x0061: "pascal char",
+    0x0062: "variant",
+    0x0063: "complex",
+    0x0064: "bit",
+    0x0065: "pascal char",
+    0x0068: "signed char",
+    0x0069: "unsigned char",
+    0x0070: "char",
+    0x0071: "wchar_t",
+    0x0072: "short",
+    0x0073: "unsigned short",
+    0x0074: "int",
+    0x0075: "unsigned int",
+    0x0076: "__int64",
+    0x0077: "unsigned __int64",
+    0x0078: "__int128",
+    0x0079: "unsigned __int128",
+}
 
 # CodeView type leaves used by VC6 PDBs.
 LF_MODIFIER = 0x1001
@@ -205,6 +247,14 @@ def normalize_object(name: str) -> str:
     name = name.replace("\\", "/").rsplit("/", 1)[-1]
     name = name.rsplit(":", 1)[-1].lower()
     for suffix in (".cpp.obj", ".cxx.obj", ".cc.obj", ".c.obj"):
+        if name.endswith(suffix):
+            return name[:-len(suffix)] + ".obj"
+    return name
+
+
+def normalize_compiland(name: str) -> str:
+    name = normalize_object(name)
+    for suffix in (".cpp", ".cxx", ".cc", ".c"):
         if name.endswith(suffix):
             return name[:-len(suffix)] + ".obj"
     return name
@@ -930,6 +980,50 @@ def compact(value: Any, limit: int = 300) -> str:
     return text if len(text) <= limit else text[:limit - 3] + "..."
 
 
+def format_type(value: Any) -> str:
+    if not isinstance(value, tuple) or not value:
+        return compact(value, 1000)
+
+    kind = value[0]
+    if kind == "primitive":
+        primitive = value[1]
+        try:
+            primitive_code = int(primitive, 16)
+        except (TypeError, ValueError):
+            return str(primitive)
+        return CODEVIEW_PRIMITIVE_TYPES.get(
+            primitive_code,
+            f"primitive({primitive})",
+        )
+    if kind == "named":
+        named_kind, name = value[1:3]
+        return f"{named_kind} {name}" if named_kind in ("enum", "union") else name
+    if kind == "pointer":
+        return f"{format_type(value[2])}*"
+    if kind == "modifier":
+        attrs = value[1]
+        modifiers = []
+        if attrs & 1:
+            modifiers.append("const")
+        if attrs & 2:
+            modifiers.append("volatile")
+        if attrs & 4:
+            modifiers.append("unaligned")
+        base = format_type(value[2])
+        return " ".join((*modifiers, base)) if modifiers else base
+    if kind == "array":
+        return f"{format_type(value[3])}[{value[1]}]"
+    if kind == "bitfield":
+        return f"{format_type(value[3])}:{value[1]}"
+    if kind == "recursive":
+        return "<recursive type>"
+    if kind == "missing-type":
+        return "<missing type>"
+    if kind in ("leaf", "malformed"):
+        return str(value[1])
+    return compact(value, 1000)
+
+
 def canonical_locals(
     procedure: Procedure, types: TypeTable
 ) -> tuple[tuple[str, str], ...]:
@@ -941,28 +1035,44 @@ def canonical_locals(
     )
 
 
-def describe_locals(groups: Sequence[tuple[tuple[str, str], ...]]) -> str:
+def readable_locals(procedure: Procedure, types: TypeTable) -> tuple[str, ...]:
+    """Render locals as declarations while retaining canonical matching elsewhere."""
+    return tuple(
+        sorted(
+            f"{format_type(types.canonical(local.type_index))} {local.name}"
+            for local in procedure.locals
+        )
+    )
+
+
+def describe_locals(groups: Sequence[Sequence[str]]) -> str:
     count = sum(len(locals_) for locals_ in groups)
     noun = "local" if count == 1 else "locals"
-    formatted_groups = [list(locals_) for locals_ in groups]
+    formatted_groups = ["; ".join(locals_) for locals_ in groups]
     if len(formatted_groups) == 1:
         text = f"{count} {noun}: {formatted_groups[0]}"
     else:
         text = (
             f"{count} {noun} across {len(groups)} overloads: "
-            f"{formatted_groups}"
+            + " | ".join(f"[{group}]" for group in formatted_groups)
         )
     return text if len(text) <= 1000 else text[:997] + "..."
 
 
-def compare_pdbs(reference: Pdb2, actual: Pdb2) -> tuple[Comparison, Comparison]:
+def compare_pdbs(
+    reference: Pdb2, actual: Pdb2, compiland: str | None = None
+) -> tuple[Comparison, Comparison]:
     reference_groups: dict[tuple[str, str], list[Procedure]] = collections.defaultdict(list)
     actual_groups: dict[tuple[str, str], list[Procedure]] = collections.defaultdict(list)
     for procedure in reference.procedures:
+        if compiland is not None and procedure.obj != compiland:
+            continue
         reference_groups[(procedure.obj, procedure_identity(procedure.name))].append(
             procedure
         )
     for procedure in actual.procedures:
+        if compiland is not None and procedure.obj != compiland:
+            continue
         actual_groups[(procedure.obj, procedure_identity(procedure.name))].append(
             procedure
         )
@@ -1030,10 +1140,10 @@ def compare_pdbs(reference: Pdb2, actual: Pdb2) -> tuple[Comparison, Comparison]
                     "locals",
                     label,
                     describe_locals(
-                        [canonical_locals(item, reference.types) for item in expected]
+                        [readable_locals(item, reference.types) for item in expected]
                     ),
                     describe_locals(
-                        [canonical_locals(item, actual.types) for item in found]
+                        [readable_locals(item, actual.types) for item in found]
                     ),
                     key[0],
                 )
@@ -1527,9 +1637,20 @@ def compare_globals(
     actual: Pdb2,
     reference_image: PeImage,
     actual_image: PeImage,
+    compiland: str | None = None,
 ) -> Comparison:
-    expected = [item for item in reference.data_symbols if is_source_data_symbol(item)]
-    found = [item for item in actual.data_symbols if is_source_data_symbol(item)]
+    expected = [
+        item
+        for item in reference.data_symbols
+        if is_source_data_symbol(item)
+        and (compiland is None or item.obj == compiland)
+    ]
+    found = [
+        item
+        for item in actual.data_symbols
+        if is_source_data_symbol(item)
+        and (compiland is None or item.obj == compiland)
+    ]
     result = Comparison("Static/global variables", len(expected), len(found))
     expected_groups: dict[tuple[str, str], list[DataSymbol]] = collections.defaultdict(list)
     actual_groups: dict[tuple[str, str], list[DataSymbol]] = collections.defaultdict(list)
@@ -1683,14 +1804,25 @@ def compare_globals(
 def compare_global_initializers(
     reference: Pdb2,
     actual: Pdb2,
+    compiland: str | None = None,
 ) -> Comparison:
     # VC6 emits file-scope dynamic initializers as $E<line> procedures. Their
     # target data begins as zero in the PE, so a data-byte comparison cannot
     # distinguish a correct expression from an omitted initializer. Presence,
     # compiland, generated name, and signature belong to the global audit; the
     # normal bytecode pass checks the initializer expression itself.
-    expected = [item for item in reference.procedures if item.name.startswith("$E")]
-    found = [item for item in actual.procedures if item.name.startswith("$E")]
+    expected = [
+        item
+        for item in reference.procedures
+        if item.name.startswith("$E")
+        and (compiland is None or item.obj == compiland)
+    ]
+    found = [
+        item
+        for item in actual.procedures
+        if item.name.startswith("$E")
+        and (compiland is None or item.obj == compiland)
+    ]
     expected_groups: dict[tuple[str, str], list[Procedure]] = collections.defaultdict(list)
     actual_groups: dict[tuple[str, str], list[Procedure]] = collections.defaultdict(list)
     for procedure in expected:
@@ -1937,12 +2069,73 @@ def find_dumpbin(root: Path) -> Path:
             / "DUMPBIN.EXE",
         ]
     )
+    prefixes = []
+    if os.environ.get("WINEPREFIX"):
+        prefixes.append(Path(os.environ["WINEPREFIX"]))
+    prefixes.extend(
+        [
+            Path.home()
+            / "Library/Application Support/CrossOver/Bottles"
+            / os.environ.get("CROSSOVER_BOTTLE", "Tigule"),
+            Path.home() / ".wine",
+        ]
+    )
+    candidates.extend(
+        prefix / "drive_c/VC6/VC98/Bin/DUMPBIN.EXE"
+        for prefix in prefixes
+    )
     for candidate in candidates:
         if candidate.is_file():
             return candidate
     raise ValidationError(
         "DUMPBIN.EXE was not found; run from VCVARS32 or provide --dumpbin"
     )
+
+
+def wine_runner(dumpbin: Path) -> tuple[list[str], Path] | None:
+    if os.name == "nt":
+        return None
+    drive_c = next(
+        (parent for parent in (dumpbin.parent, *dumpbin.parents)
+         if parent.name.lower() == "drive_c"),
+        None,
+    )
+    if drive_c is None:
+        return None
+    crossover_roots = []
+    if os.environ.get("CROSSOVER_ROOT"):
+        crossover_roots.append(Path(os.environ["CROSSOVER_ROOT"]))
+    crossover_roots.extend(
+        [
+            Path.home()
+            / "Applications/CrossOver.app/Contents/SharedSupport/CrossOver",
+            Path("/Applications/CrossOver.app/Contents/SharedSupport/CrossOver"),
+        ]
+    )
+    for root in crossover_roots:
+        wine = root / "bin/wine"
+        if wine.is_file():
+            return [str(wine), "--bottle", drive_c.parent.name], drive_c
+    wine = shutil.which("wine")
+    if wine:
+        return [wine], drive_c
+    return None
+
+
+def wine_path(path: Path, runner: Sequence[str]) -> str:
+    try:
+        result = subprocess.run(
+            [*runner, "winepath.exe", "-w", str(path.resolve())],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            text=True,
+            errors="replace",
+            env={**os.environ, "WINEDEBUG": "-all"},
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ValidationError(f"could not convert {path} for Wine: {exc}") from exc
+    return result.stdout.strip()
 
 
 def disassemble(path: Path, dumpbin: Path) -> list[Instruction]:
@@ -1955,9 +2148,28 @@ def disassemble(path: Path, dumpbin: Path) -> list[Instruction]:
     environment["PATH"] = os.pathsep.join(
         [str(item) for item in tool_paths] + [environment.get("PATH", "")]
     )
+    runner_info = wine_runner(dumpbin)
+    temporary_bat = None
+    environment["WINEDEBUG"] = "-all"
     try:
+        if runner_info:
+            runner, drive_c = runner_info
+            dumpbin_win = "C:\\" + "\\".join(dumpbin.relative_to(drive_c).parts)
+            vcvars_win = dumpbin_win.rsplit("\\", 1)[0] + "\\VCVARS32.BAT"
+            with tempfile.NamedTemporaryFile(
+                "w", suffix=".bat", encoding="ascii", newline="", delete=False
+            ) as batch_file:
+                temporary_bat = Path(batch_file.name)
+                batch_file.write(
+                    "@echo off\r\n"
+                    f'call "{vcvars_win}"\r\n'
+                    f'"{dumpbin_win}" /nologo /disasm "{wine_path(path, runner)}"\r\n'
+                )
+            command = [*runner, "cmd", "/c", wine_path(temporary_bat, runner)]
+        else:
+            command = [str(dumpbin), "/nologo", "/disasm", str(path)]
         result = subprocess.run(
-            [str(dumpbin), "/nologo", "/disasm", str(path)],
+            command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=True,
@@ -1972,6 +2184,9 @@ def disassemble(path: Path, dumpbin: Path) -> list[Instruction]:
         raise ValidationError(
             f"could not disassemble {path}: {exc}{detail}"
         ) from exc
+    finally:
+        if temporary_bat:
+            temporary_bat.unlink(missing_ok=True)
     instructions = []
     for line in result.stdout.splitlines():
         match = DISASSEMBLY.match(line)
@@ -2150,9 +2365,12 @@ def first_instruction_difference(
 
 def unique_function_map(
     linker_map: LinkerMap,
+    compiland: str | None = None,
 ) -> dict[tuple[str, str], MapSymbol]:
     grouped: dict[tuple[str, str], list[MapSymbol]] = collections.defaultdict(list)
     for symbol in linker_map.functions:
+        if compiland is not None and symbol.obj != compiland:
+            continue
         grouped[(symbol.obj, symbol.name)].append(symbol)
     return {
         key: min(values, key=lambda item: item.address)
@@ -2167,9 +2385,10 @@ def compare_bytecode(
     actual_image: PeImage,
     reference_disassembly: Sequence[Instruction],
     actual_disassembly: Sequence[Instruction],
+    compiland: str | None = None,
 ) -> Comparison:
-    expected_functions = unique_function_map(reference_map)
-    actual_functions = unique_function_map(actual_map)
+    expected_functions = unique_function_map(reference_map, compiland)
+    actual_functions = unique_function_map(actual_map, compiland)
     result = Comparison(
         "Compiland bytecode", len(expected_functions), len(actual_functions)
     )
@@ -2314,6 +2533,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("Build/WoW/Wow.map"),
     )
+    parser.add_argument(
+        "--compiland",
+        type=normalize_compiland,
+        metavar="OBJECT",
+        help="filter compiland-owned comparisons to one object (for example Client.obj)",
+    )
     parser.add_argument("--dumpbin", type=Path)
     parser.add_argument("--skip-types", action="store_true")
     parser.add_argument("--skip-globals", action="store_true")
@@ -2370,12 +2595,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not args.skip_types:
             assert reference_pdb is not None and actual_pdb is not None
             signature_result, layout_result = compare_pdbs(
-                reference_pdb, actual_pdb
+                reference_pdb, actual_pdb, args.compiland
             )
-            comparisons.extend((signature_result, layout_result))
-            type_difference = bool(
-                signature_result.differences or layout_result.differences
-            )
+            comparisons.append(signature_result)
+            if args.compiland is None:
+                comparisons.append(layout_result)
+            type_difference = bool(signature_result.differences)
+            if args.compiland is None:
+                type_difference = type_difference or bool(layout_result.differences)
         if not args.skip_globals:
             assert reference_pdb is not None and actual_pdb is not None
             global_result = compare_globals(
@@ -2383,9 +2610,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 actual_pdb,
                 PeImage(args.reference_exe),
                 PeImage(args.actual_exe),
+                args.compiland,
             )
             initializer_result = compare_global_initializers(
-                reference_pdb, actual_pdb
+                reference_pdb, actual_pdb, args.compiland
             )
             comparisons.extend((global_result, initializer_result))
             global_difference = bool(
@@ -2404,6 +2632,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 actual_image,
                 disassemble(args.reference_exe, dumpbin),
                 disassemble(args.actual_exe, dumpbin),
+                args.compiland,
             )
             comparisons.append(bytecode_result)
             bytecode_difference = bool(bytecode_result.differences)
