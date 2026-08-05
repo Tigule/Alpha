@@ -4,7 +4,6 @@
 
 #include <new>
 #include <string.h>
-#include <typeinfo>
 
 class CSBasePriorityQueue;
 
@@ -124,7 +123,7 @@ class TSStackArray {
 
  protected:
   void FatalArrayBounds() const {
-    SErrDisplayError(STORM_ERROR_ACCESS_OUT_OF_BOUNDS, typeid(T).raw_name(), SERR_LINECODE_OBJECT, 0, TRUE, 1);
+    SErrDisplayError(STORM_ERROR_ACCESS_OUT_OF_BOUNDS, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0, TRUE, 1);
   }
 
  private:
@@ -139,7 +138,7 @@ template <class T, unsigned int MAXCOUNT>
 class TSCArray {
  protected:
   const char *MemFileName() const {
-    return typeid(T).raw_name();
+    return typeid(T).INTERNALRAWNAME();
   }
 
   int MemLineNo() const {
@@ -243,7 +242,7 @@ class TSBaseArray {
   }
 
   virtual const char *MemFileName() const {
-    return typeid(T).raw_name();
+    return typeid(T).INTERNALRAWNAME();
   }
 
   virtual int MemLineNo() const {
@@ -1238,9 +1237,8 @@ class TSList {
     T *ptr;
 
     while ((ptr = Head()) != 0) {
-      UnlinkNode(ptr);
       ptr->~T();
-      SMemFree(ptr, typeid(T).raw_name(), -2, 0);
+      SMemFree(ptr, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
     }
   }
 
@@ -1311,7 +1309,7 @@ class TSList {
   void LinkNode(T *instance, unsigned long linktype, T *existingInstance);
 
   T *NewNode(unsigned long location, unsigned long extrabytes, unsigned long flags) {
-    T *ptr = static_cast<T *>(SMemAlloc(sizeof(T) + extrabytes, typeid(T).raw_name(), -2, flags | SMEM_FLAG_ZEROMEMORY));
+    T *ptr = static_cast<T *>(SMemAlloc(sizeof(T) + extrabytes, typeid(T).INTERNALRAWNAME(), -2, flags | SMEM_FLAG_ZEROMEMORY));
 
     if (ptr) {
       new (ptr) T;
@@ -1328,7 +1326,7 @@ class TSList {
     T *next = Next(ptr);
 
     ptr->~T();
-    SMemFree(ptr, typeid(T).raw_name(), -2, 0);
+    SMemFree(ptr, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
     return next;
   }
 
@@ -2043,7 +2041,7 @@ void TSHashTable<T, KEY>::Delete(T *ptr) {
 template <class T, class KEY>
 void TSHashTable<T, KEY>::InternalDelete(T *ptr) {
   ptr->~T();
-  SMemFree(ptr, typeid(T).raw_name(), -2, 0);
+  SMemFree(ptr, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
 }
 
 template <class T, class KEY>

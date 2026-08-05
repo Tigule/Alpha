@@ -4,7 +4,6 @@
 #include "CMouseEvent.h"
 
 #include <stpl.h>
-#include <typeinfo>
 
 struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   struct EVENTCALLBACKREG;

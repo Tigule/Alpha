@@ -23,7 +23,6 @@
 #include <new>
 #include <stdio.h>
 #include <string.h>
-#include <typeinfo>
 #include <windows.h>
 
 struct HLAYER__;
@@ -339,7 +338,7 @@ static CONSOLELINE *GetInputLine() {
   CONSOLELINE *line = s_linelist.Head();
 
   if (!line || !line->inputpos) {
-    line = (CONSOLELINE *)SMemAlloc(sizeof(CONSOLELINE), typeid(CONSOLELINE).raw_name(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
+    line = (CONSOLELINE *)SMemAlloc(sizeof(CONSOLELINE), typeid(CONSOLELINE).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
     if (line) {
       new (line) CONSOLELINE;
     }
@@ -1717,7 +1716,7 @@ void ConsoleWrite(const char *str, COLOR_T color) {
   }
 
   s_critsect.Enter();
-  line = (CONSOLELINE *)SMemAlloc(sizeof(CONSOLELINE), typeid(CONSOLELINE).raw_name(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
+  line = (CONSOLELINE *)SMemAlloc(sizeof(CONSOLELINE), typeid(CONSOLELINE).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
   if (line) {
     new (line) CONSOLELINE;
   }

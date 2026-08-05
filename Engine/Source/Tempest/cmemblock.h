@@ -3,7 +3,6 @@
 #include <storm.h>
 
 #include <string.h>
-#include <typeinfo>
 
 namespace NTempest {
 
@@ -118,7 +117,7 @@ namespace NTempest {
   class CMemBlockT : public CMemBlock {
    public:
     CMemBlockT(unsigned long count = 0, unsigned long prologue = 0, const char *filen = 0, long linen = 0)
-        : CMemBlock(count * sizeof(T), prologue, filen ? filen : typeid(T).raw_name(), filen ? linen : SERR_LINECODE_OBJECT) {
+        : CMemBlock(count * sizeof(T), prologue, filen ? filen : typeid(T).INTERNALRAWNAME(), filen ? linen : SERR_LINECODE_OBJECT) {
     }
 
     T *Get() const {

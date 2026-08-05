@@ -8,7 +8,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <typeinfo>
 
 NODEDECL(MSGBUFFER) {
   MSGBUFFER() : string(0), timeVisible(0.0f), severity(SYSMSG_INFO), categoryMask(0) {
@@ -217,7 +216,7 @@ void SysMsgShutdown() {
   while ((msg = s_msgBuffer.Head()) != 0) {
     s_msgBuffer.UnlinkNode(msg);
     msg->~MSGBUFFER();
-    SMemFree(msg, typeid(MSGBUFFER).raw_name(), SERR_LINECODE_OBJECT, 0);
+    SMemFree(msg, typeid(MSGBUFFER).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
   }
 
   SysMsgDisableFileLog();

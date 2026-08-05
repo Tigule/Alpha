@@ -8,7 +8,6 @@
 
 #include <malloc.h>
 #include <new>
-#include <typeinfo>
 
 static void *FreeTypeAllocFunction(FT_Memory memory, long size) {
   ASSERT(size > 0);
@@ -140,7 +139,7 @@ int GxuFontCreateFont(const char *name, float fontHeight, CGxFont *&face, unsign
   result = newFace->Initialize(name, flags, fontHeight);
   if (!result) {
     newFace->~CGxFont();
-    SMemFree(newFace, typeid(CGxFont).raw_name(), -2, 0);
+    SMemFree(newFace, typeid(CGxFont).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
     newFace = 0;
   }
 
@@ -158,7 +157,7 @@ void GxuFontDestroyFont(CGxFont *&face) {
 
   if (oldFace) {
     oldFace->~CGxFont();
-    SMemFree(oldFace, typeid(CGxFont).raw_name(), -2, 0);
+    SMemFree(oldFace, typeid(CGxFont).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
   }
   face = 0;
 }

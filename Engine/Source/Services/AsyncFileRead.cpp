@@ -122,7 +122,7 @@ CAsyncObject *AsyncFileReadCreateObject() {
   s_queueLock.Enter();
   object = s_asyncFileReadFreeList.Head();
   if (!object) {
-    object = static_cast<CAsyncObject *>(SMemAlloc(sizeof(CAsyncObject), typeid(CAsyncObject).raw_name(), -2, SMEM_FLAG_ZEROMEMORY));
+    object = static_cast<CAsyncObject *>(SMemAlloc(sizeof(CAsyncObject), typeid(CAsyncObject).INTERNALRAWNAME(), -2, SMEM_FLAG_ZEROMEMORY));
     if (object) {
       new (object) CAsyncObject;
     }

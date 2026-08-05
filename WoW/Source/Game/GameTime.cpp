@@ -177,7 +177,7 @@ HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(
     return 0;
   }
 
-  GAMETIMECBSTRUCT *newCallback = new (SMemAlloc(sizeof(GAMETIMECBSTRUCT), "HGAMETIMECALLBACK", -2, 0)) GAMETIMECBSTRUCT;
+  GAMETIMECBSTRUCT *newCallback = new (SMemAlloc(sizeof(GAMETIMECBSTRUCT), "HGAMETIMECALLBACK", SERR_LINECODE_OBJECT, 0)) GAMETIMECBSTRUCT;
 
   newCallback->userData = user;
   newCallback->callback = callback;

@@ -3,7 +3,6 @@
 #include <storm.h>
 
 #include <new>
-#include <typeinfo>
 
 template <class T>
 class TExtraInstanceRecycler;
@@ -110,11 +109,11 @@ class TExtraInstanceRecycler : protected CDataRecycler {
     void         *data;
 
     if (bytes > m_maxBytesPerInstance) {
-      data = AllocData(bytes, &recycleBytes, typeid(T).raw_name(), SERR_LINECODE_OBJECT);
+      data = AllocData(bytes, &recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
     } else {
-      GetData(data, recycleBytes, typeid(T).raw_name(), SERR_LINECODE_OBJECT);
+      GetData(data, recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
       if (recycleBytes < bytes) {
-        data = ReallocData(data, bytes, &recycleBytes, typeid(T).raw_name(), SERR_LINECODE_OBJECT);
+        data = ReallocData(data, bytes, &recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
       }
     }
 
@@ -128,9 +127,9 @@ class TExtraInstanceRecycler : protected CDataRecycler {
 
     instance->~T();
     if (recycleBytes > m_maxBytesPerInstance) {
-      FreeData(instance, typeid(T).raw_name(), SERR_LINECODE_OBJECT);
+      FreeData(instance, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
     } else {
-      PutData(instance, recycleBytes, typeid(T).raw_name(), SERR_LINECODE_OBJECT);
+      PutData(instance, recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
     }
   }
 

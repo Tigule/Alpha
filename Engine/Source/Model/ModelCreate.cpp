@@ -1347,7 +1347,7 @@ HMODEL ModelDuplicate(HMODEL sourceModel, unsigned int flags) {
     source->data->m_flags |= 4;
   }
 
-  void   *storage = SMemAlloc(sizeof(CModel), "HMODEL", -2, 0);
+  void   *storage = SMemAlloc(sizeof(CModel), "HMODEL", SERR_LINECODE_OBJECT, 0);
   CModel *copy = storage ? new (storage) CModel(*source) : 0;
   ASSERT(copy);
 

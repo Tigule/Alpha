@@ -6,7 +6,6 @@
 #include <new>
 #include <stdlib.h>
 #include <string.h>
-#include <typeinfo>
 
 #include "Base/Base.h"
 #include "Base/CDataStore.h"

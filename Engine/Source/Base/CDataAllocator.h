@@ -46,11 +46,11 @@ class TInstanceAllocator : protected CDataAllocator {
   }
 
   __forceinline void Clear() {
-    CDataAllocator::Clear(typeid(T).raw_name(), SERR_LINECODE_OBJECT);
+    CDataAllocator::Clear(typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
   }
 
   __forceinline T *Get(int zero) {
-    void *data = CDataAllocator::GetData(zero, typeid(T).raw_name(), SERR_LINECODE_OBJECT);
+    void *data = CDataAllocator::GetData(zero, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
     return data ? new (data) T : 0;
   }
 

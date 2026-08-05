@@ -725,7 +725,7 @@ ANIM_RIBBON_TRACK_SETTER(AnimObjectSetRibbonAlpha, alpha, 0x4C41524B)
 #undef ANIM_RIBBON_TRACK_SETTER
 
 CAnim *AnimCreate(unsigned int *const objectCounts, unsigned int numGeosets, unsigned int numCameras, unsigned int numMaterialLayers) {
-  void *sharedMemory = SMemAlloc(sizeof(CAnimData), "HANIMDATA", -2, 0);
+  void *sharedMemory = SMemAlloc(sizeof(CAnimData), "HANIMDATA", SERR_LINECODE_OBJECT, 0);
   if (!sharedMemory) {
     return 0;
   }
@@ -756,7 +756,7 @@ CAnim *AnimCreate(unsigned int *const objectCounts, unsigned int numGeosets, uns
     shared->objectOrder[index] = index;
   }
 
-  void *uniqueMemory = SMemAlloc(sizeof(CAnim), "HANIM", -2, 0);
+  void *uniqueMemory = SMemAlloc(sizeof(CAnim), "HANIM", SERR_LINECODE_OBJECT, 0);
   if (!uniqueMemory) {
     delete shared;
     return 0;
@@ -793,7 +793,7 @@ HANIM AnimDuplicate(HANIM oldanim, unsigned int flags) {
   CAnim *oldUnique = reinterpret_cast<CAnim *>(oldanim);
   FATALASSERT(oldUnique);
 
-  void *memory = SMemAlloc(sizeof(CAnim), "HANIM", -2, 0);
+  void *memory = SMemAlloc(sizeof(CAnim), "HANIM", SERR_LINECODE_OBJECT, 0);
   if (!memory) {
     SErrSetLastError(ERROR_NOT_ENOUGH_MEMORY);
     return 0;

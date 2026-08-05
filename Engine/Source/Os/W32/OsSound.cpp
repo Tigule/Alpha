@@ -11,7 +11,6 @@
 #include "Tempest/cmath.h"
 
 #include <new>
-#include <typeinfo>
 
 typedef signed char(__stdcall *FSOUND_STREAMCALLBACK)(FSOUND_STREAM *, void *, int, int);
 typedef void *(__stdcall *FSOUND_ALLOCCALLBACK)(unsigned int);

@@ -142,7 +142,7 @@ HTEXTBLOCK TextBlockCreate(
 
   FATALASSERT(text);
 
-  storage = SMemAlloc(sizeof(TEXTBLOCK), "HTEXTBLOCK", -2, 0);
+  storage = SMemAlloc(sizeof(TEXTBLOCK), "HTEXTBLOCK", SERR_LINECODE_OBJECT, 0);
   textPtr = storage ? new (storage) TEXTBLOCK : 0;
 
   position.z = pos.z;

@@ -18,7 +18,6 @@
 #include <math.h>
 #include <new>
 #include <string.h>
-#include <typeinfo>
 
 struct LODIndexFix {
   void Set(unsigned short, unsigned short);
@@ -704,7 +703,7 @@ void CMap::WaterInitialize() {
 
   {
     for (unsigned int i = 0; i < NUM_RIPPLES; ++i) {
-      void         *storage = SMemAlloc(sizeof(WaterRadWave), typeid(WaterRadWave).raw_name(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
+      void         *storage = SMemAlloc(sizeof(WaterRadWave), typeid(WaterRadWave).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
       WaterRadWave *wave = storage ? new (storage) WaterRadWave : 0;
 
       waterRipplesFree.LinkNode(wave, LIST_TAIL, 0);

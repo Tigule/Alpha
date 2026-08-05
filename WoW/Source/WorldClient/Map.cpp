@@ -15,6 +15,17 @@
 
 #include <string.h>
 
+NTempest::CiRect NTempest::CiRect::Intersection(const CiRect &left, const CiRect &right) {
+  return CiRect(
+      left.t > right.t ? left.t : right.t,
+      left.l > right.l ? left.l : right.l,
+      left.b < right.b ? left.b : right.b,
+      left.r < right.r ? left.r : right.r
+  );
+}
+
+static float OneHalfOffset = 0.5f;
+static NTempest::CiRect scBounds(0, 0, 7, 7);
 static const float OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
 
 void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData);
@@ -143,6 +154,57 @@ void CMap::Initialize() {
 }
 
 void CMap::Destroy() {
+  if (bActive) {
+    Unload();
+  }
+
+  FATALASSERT(areaList.Head() == 0);
+  FATALASSERT(chunkList.Head() == 0);
+  FATALASSERT(entityList.Head() == 0);
+  FATALASSERT(mapObjDefHash.Head() == 0);
+  FATALASSERT(mapObjDefGroupList.Head() == 0);
+  FATALASSERT(doodadDefHash.Head() == 0);
+  FATALASSERT(chunkLiquidList.Head() == 0);
+  FATALASSERT(areaLinkList.Head() == 0);
+  FATALASSERT(doodadDefLinkList.Head() == 0);
+  FATALASSERT(mapObjDefLinkList.Head() == 0);
+
+  CMapLight::DestroyPointAtten();
+  WaterDestroy();
+  CMapObj::Destroy();
+  CMapChunk::Destroy();
+  CMapArea::Destroy();
+  CDetailDoodad::Destroy();
+  CSimpleDoodad::Destroy();
+
+  FATALASSERT(lightList.Head() == 0);
+
+  cacheLightFreeList.Clear();
+  lightFreeList.Clear();
+  entityFreeList.Clear();
+  baseObjLinkFreeList.Clear();
+  areaFreeList.Clear();
+  doodadDefFreeList.Clear();
+  chunkFreeList.Clear();
+  chunkLayerFreeList.Clear();
+  chunkTexFreeList.Clear();
+  chunkLiquidFreeList.Clear();
+  soundEmitterFreeList.Clear();
+  mapObjDefFreeList.Clear();
+  mapObjDefGroupFreeList.Clear();
+  mapObjFreeList.Clear();
+  mapObjGroupFreeList.Clear();
+
+  GxPixelShaderDestroy(psSpecTerrain);
+  psSpecTerrain_LayerMask = 0;
+  GxPixelShaderDestroy(psTerrain);
+  psTerrain_LayerMask = 0;
+  GxPixelShaderDestroy(psSpecUTerrain);
+  psSpecUTerrain_LayerMask = 0;
+  GxPixelShaderDestroy(psUTerrain);
+  psUTerrain_LayerMask = 0;
+  GxBufDestroy(gxBufDynLowDetail);
+  gxBufDynLowDetail = 0;
 }
 
 void CMap::GetCounts(int counts[]) {
@@ -206,8 +268,8 @@ float CMap::PointIntersect(float wx, float wy, float radius) {
 
   mx *= 0.24f;
   my *= 0.24f;
-  int       mxIndex = static_cast<int>(mx - 0.5f);
-  int       myIndex = static_cast<int>(my - 0.5f);
+  int       mxIndex = static_cast<int>(mx - OneHalfOffset);
+  int       myIndex = static_cast<int>(my - OneHalfOffset);
   CMapArea *area = areaTable[64 * ((myIndex >> 7) & 0x3F) + ((mxIndex >> 7) & 0x3F)];
   if (!area) {
     return 0.0f;
@@ -245,8 +307,8 @@ bool CMap::GetPlane(float wx, float wy, NTempest::C4Plane &plane) {
 
   mx *= 0.24f;
   my *= 0.24f;
-  int       mxIndex = static_cast<int>(mx - 0.5f);
-  int       myIndex = static_cast<int>(my - 0.5f);
+  int       mxIndex = static_cast<int>(mx - OneHalfOffset);
+  int       myIndex = static_cast<int>(my - OneHalfOffset);
   CMapArea *area = areaTable[64 * ((myIndex >> 7) & 0x3F) + ((mxIndex >> 7) & 0x3F)];
   if (!area) {
     return false;
@@ -417,10 +479,10 @@ bool CMap::VectorIntersectTerrain(
   float              dx = v1.x - v0.x;
   float              dy = v1.y - v0.y;
   NTempest::CiRect   sRect(
-      NTempest::CMath::fint_mi(v0.y * OO_COORD_TO_SUBCHUNK),
-      NTempest::CMath::fint_mi(v0.x * OO_COORD_TO_SUBCHUNK),
-      NTempest::CMath::fint_mi(v1.y * OO_COORD_TO_SUBCHUNK),
-      NTempest::CMath::fint_mi(v1.x * OO_COORD_TO_SUBCHUNK)
+      static_cast<int>(v0.y * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
+      static_cast<int>(v0.x * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
+      static_cast<int>(v1.y * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
+      static_cast<int>(v1.x * OO_COORD_TO_SUBCHUNK - OneHalfOffset)
   );
 
   scCollideCnt = 0;
@@ -700,7 +762,7 @@ void CMap::VectorIntersectDX(const NTempest::C3Vector &p0, const NTempest::C3Vec
   scCollideList[scCollideCnt++] = y;
 
   while (x != sRect.r + step) {
-    int sx = NTempest::CMath::fint_mi((edge * m + b) * OO_COORD_TO_SUBCHUNK);
+    int sx = static_cast<int>((edge * m + b) * OO_COORD_TO_SUBCHUNK - OneHalfOffset);
 
     if (sx != y) {
       scCollideList[scCollideCnt++] = x;
@@ -741,7 +803,7 @@ void CMap::VectorIntersectDY(const NTempest::C3Vector &p0, const NTempest::C3Vec
   scCollideList[scCollideCnt++] = y;
 
   while (y != sRect.b + step) {
-    int sy = NTempest::CMath::fint_mi((edge - b) * oom * OO_COORD_TO_SUBCHUNK);
+    int sy = static_cast<int>((edge - b) * oom * OO_COORD_TO_SUBCHUNK - OneHalfOffset);
 
     if (sy != x) {
       scCollideList[scCollideCnt++] = sy;
@@ -953,8 +1015,8 @@ bool CMap::GetFacetTerrain(const NTempest::C3Segment &seg, float &t, NTempest::C
   float               dy = v1.y - v0.y;
   float               dx = v1.x - v0.x;
   NTempest::CiRect    sRect(
-      NTempest::CMath::fint_mi(v0.y * OO_COORD_TO_SUBCHUNK), NTempest::CMath::fint_mi(v0.x * OO_COORD_TO_SUBCHUNK),
-      NTempest::CMath::fint_mi(v1.y * OO_COORD_TO_SUBCHUNK), NTempest::CMath::fint_mi(v1.x * OO_COORD_TO_SUBCHUNK)
+      static_cast<int>(v0.y * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(v0.x * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
+      static_cast<int>(v1.y * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(v1.x * OO_COORD_TO_SUBCHUNK - OneHalfOffset)
   );
 
   scCollideCnt = 0;
@@ -1064,8 +1126,8 @@ bool CMap::GetTrisTerrain(const NTempest::CAaBox &aaBox, CWTriData &triData, uns
   FATALASSERT(tLocation.r < 34133.332f && tLocation.b < 34133.332f);
 
   NTempest::CiRect sRect(
-      static_cast<int>(tLocation.t * OO_COORD_TO_SUBCHUNK - 0.5f), static_cast<int>(tLocation.l * OO_COORD_TO_SUBCHUNK - 0.5f),
-      static_cast<int>(tLocation.b * OO_COORD_TO_SUBCHUNK - 0.5f), static_cast<int>(tLocation.r * OO_COORD_TO_SUBCHUNK - 0.5f)
+      static_cast<int>(tLocation.t * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.l * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
+      static_cast<int>(tLocation.b * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.r * OO_COORD_TO_SUBCHUNK - OneHalfOffset)
   );
   NTempest::CiRect cRect(sRect.t >> 3, sRect.l >> 3, sRect.b >> 3, sRect.r >> 3);
 
@@ -1108,8 +1170,8 @@ bool CMap::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, unsi
   }
 
   NTempest::CiRect sRect(
-      static_cast<int>(tLocation.t * OO_COORD_TO_SUBCHUNK - 0.5f), static_cast<int>(tLocation.l * OO_COORD_TO_SUBCHUNK - 0.5f),
-      static_cast<int>(tLocation.b * OO_COORD_TO_SUBCHUNK - 0.5f), static_cast<int>(tLocation.r * OO_COORD_TO_SUBCHUNK - 0.5f)
+      static_cast<int>(tLocation.t * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.l * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
+      static_cast<int>(tLocation.b * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.r * OO_COORD_TO_SUBCHUNK - OneHalfOffset)
   );
   NTempest::CiRect cRect(sRect.t >> 3, sRect.l >> 3, sRect.b >> 3, sRect.r >> 3);
 
@@ -1283,14 +1345,7 @@ bool CMap::GetTrisChunk(
   }
 
   NTempest::CiRect scRect(sRect.t - 8 * cy, sRect.l - 8 * cx, sRect.b - 8 * cy, sRect.r - 8 * cx);
-  if (scRect.t < 0)
-    scRect.t = 0;
-  if (scRect.l < 0)
-    scRect.l = 0;
-  if (scRect.b > 7)
-    scRect.b = 7;
-  if (scRect.r > 7)
-    scRect.r = 7;
+  scRect = NTempest::CiRect::Intersection(scRect, scBounds);
 
   NTempest::CAaBox  localBox(aaBox.b - chunk->corner, aaBox.t - chunk->corner);
   CWTriData::Batch *batch = 0;
@@ -1563,8 +1618,8 @@ bool CMap::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, unsigned 
   FATALASSERT(tLocation.maxy < ((64*16)*((150.0f/36.0f)*8)) && tLocation.maxy < ((64*16)*((150.0f/36.0f)*8)));
 
   NTempest::CiRect sRect(
-      static_cast<int>(tLocation.t * OO_COORD_TO_SUBCHUNK - 0.5f), static_cast<int>(tLocation.l * OO_COORD_TO_SUBCHUNK - 0.5f),
-      static_cast<int>(tLocation.b * OO_COORD_TO_SUBCHUNK - 0.5f), static_cast<int>(tLocation.r * OO_COORD_TO_SUBCHUNK - 0.5f)
+      static_cast<int>(tLocation.t * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.l * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
+      static_cast<int>(tLocation.b * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.r * OO_COORD_TO_SUBCHUNK - OneHalfOffset)
   );
   NTempest::CiRect cRect(sRect.t >> 3, sRect.l >> 3, sRect.b >> 3, sRect.r >> 3);
 

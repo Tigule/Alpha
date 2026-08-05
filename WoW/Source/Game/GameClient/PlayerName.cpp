@@ -308,7 +308,7 @@ void PlayerNameShow(int show) {
 
 HPLAYERNAME__* PlayerNameCreate(CGUnit_C* unitPtr) {
   FATALASSERT(unitPtr);
-  void *storage = SMemAlloc(sizeof(PLAYERNAMEDESC), "HPLAYERNAME", -2, 0);
+  void *storage = SMemAlloc(sizeof(PLAYERNAMEDESC), "HPLAYERNAME", SERR_LINECODE_OBJECT, 0);
   PLAYERNAMEDESC *desc = storage ? new (storage) PLAYERNAMEDESC : 0;
   FATALASSERT(desc);
 

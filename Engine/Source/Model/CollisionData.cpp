@@ -110,12 +110,15 @@ static void ComputeSurfaceNormals(CCollisionData* collide, unsigned int numSurfa
     NTempest::C3Vector edge1 = v1 - v0;
     NTempest::C3Vector edge2 = v2 - v0;
     collide->surfaceNormals[surface] = NTempest::C3Vector::Cross(edge1, edge2);
-    collide->surfaceNormals[surface].Normalize();
+    float magnitude = collide->surfaceNormals[surface].Mag();
+    if (NTempest::CMath::fabs_(magnitude) >= 0.00000023841858f) {
+      collide->surfaceNormals[surface] *= 1.0f / magnitude;
+    }
   }
 }
 
 HCOLLISIONDATA CollisionDataCreate(const NTempest::CAaBox &bounds) {
-  void           *storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", -2, 0);
+  void           *storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", SERR_LINECODE_OBJECT, 0);
   CCollisionData *collision = storage ? new (storage) CCollisionData : 0;
   if (!collision) {
     return 0;
@@ -145,7 +148,7 @@ HCOLLISIONDATA CollisionDataCreate(const MDLDATA &data) {
     return 0;
   }
 
-  void *storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", -2, 0);
+  void *storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", SERR_LINECODE_OBJECT, 0);
   if (!storage) {
     return 0;
   }
@@ -174,7 +177,7 @@ HCOLLISIONDATA CollisionDataCreate(unsigned char *fileData, unsigned int fileByt
     return 0;
   }
 
-  void *storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", -2, 0);
+  void *storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", SERR_LINECODE_OBJECT, 0);
   if (!storage) {
     return 0;
   }

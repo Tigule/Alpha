@@ -120,6 +120,9 @@ struct CBoundsData {
 };
 
 struct CHitTest {
+  CHitTest() : type(COLLIDE_BOX), radius(0.0f) {
+  }
+
   COLLIDE_TYPE       type;
   NTempest::C3Vector extent[2];
   float              radius;

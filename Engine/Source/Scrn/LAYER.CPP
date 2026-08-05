@@ -211,7 +211,7 @@ void __fastcall ScrnLayerCreate(
     rect = &defaultrect;
   }
 
-  memory = SMemAlloc(sizeof(CILayer), "HLAYER", -2, 0);
+  memory = SMemAlloc(sizeof(CILayer), "HLAYER", SERR_LINECODE_OBJECT, 0);
   newLayer = memory ? new (memory) CILayer : 0;
   newLayer->rect = *rect;
   newLayer->zorder = zorder;

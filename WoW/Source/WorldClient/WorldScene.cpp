@@ -17,7 +17,6 @@
 
 #include <new>
 #include <string.h>
-#include <typeinfo>
 
 void ShadowRender(HMODEL hModel, const NTempest::C44Matrix &basis, void *param);
 
@@ -130,14 +129,14 @@ void CWorldScene::Destroy() {
   while (CWFrustum *frustum = frustumFreeList.Head()) {
     frustumFreeList.UnlinkNode(frustum);
     frustum->~CWFrustum();
-    SMemFree(frustum, typeid(CWFrustum).raw_name(), -2, 0);
+    SMemFree(frustum, typeid(CWFrustum).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
   }
 }
 
 CWFrustum *CWorldScene::AllocFrustum() {
   CWFrustum *frustum = frustumFreeList.Head();
   if (!frustum) {
-    void *storage = SMemAlloc(sizeof(CWFrustum), typeid(CWFrustum).raw_name(), -2, 8);
+    void *storage = SMemAlloc(sizeof(CWFrustum), typeid(CWFrustum).INTERNALRAWNAME(), -2, 8);
     frustum = storage ? new (storage) CWFrustum : 0;
     frustumFreeList.LinkNode(frustum, LIST_TAIL, 0);
     FATALASSERT(frustum);

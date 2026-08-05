@@ -26,7 +26,7 @@ void ResetSyncState(EvtContext *context) {
   EvtKeyDown *keyDown;
   while ((keyDown = keyDownList.Head()) != 0) {
     keyDown->link.Unlink();
-    SMemFree(keyDown, typeid(EvtKeyDown).raw_name(), SERR_LINECODE_OBJECT, 0);
+    SMemFree(keyDown, typeid(EvtKeyDown).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
   }
 
   context->QueueUnlockSyncKeyDownList();
@@ -42,7 +42,7 @@ void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
       EvtKeyDown *next = keyDownList.Next(entry);
       keyDown = 1;
       entry->link.Unlink();
-      SMemFree(entry, typeid(EvtKeyDown).raw_name(), SERR_LINECODE_OBJECT, 0);
+      SMemFree(entry, typeid(EvtKeyDown).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
       entry = next;
     } else {
       entry = keyDownList.Next(entry);
@@ -54,7 +54,7 @@ void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
       id = EVENT_ID_KEYDOWN_REPEATING;
     }
 
-    void *storage = SMemAlloc(sizeof(EvtKeyDown), typeid(EvtKeyDown).raw_name(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
+    void *storage = SMemAlloc(sizeof(EvtKeyDown), typeid(EvtKeyDown).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
     entry = storage ? new (storage) EvtKeyDown : 0;
     keyDownList.LinkNode(entry, LIST_TAIL, 0);
     entry->key = key;
@@ -283,7 +283,7 @@ void IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, vo
   FATALASSERT(context);
 
   LISTEX(EvtHandler, link) &handlerList = context->QueueLockHandlerList(id);
-  void                          *storage = SMemAlloc(sizeof(EvtHandler), typeid(EvtHandler).raw_name(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
+  void                          *storage = SMemAlloc(sizeof(EvtHandler), typeid(EvtHandler).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
   EvtHandler                    *newHandler = storage ? new (storage) EvtHandler : 0;
   newHandler->func = handler;
   newHandler->param = param;
@@ -315,7 +315,7 @@ void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, 
       } else {
         EvtHandler *next = handlerList.Next(registered);
         registered->link.Unlink();
-        SMemFree(registered, typeid(EvtHandler).raw_name(), SERR_LINECODE_OBJECT, 0);
+        SMemFree(registered, typeid(EvtHandler).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
         registered = next;
       }
     }
