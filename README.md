@@ -28,8 +28,8 @@ Firstly, you'll need to install CMake no matter what OS you're on: [cmake.org](h
 
 We are targeting **VC6 + x86 + Windows ONLY** at this stage. Once this reaches parity we will support other platform and architecture targets.
 
-You can save time by using my CI dependencies: [VC6.zip](https://tigule.org/files/ci/VC6.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip)  
-If those are unavailable: [Visual Studio 6.0 Professional](https://archive.org/details/en_vs60_pro), [DirectX 9.0b SDK](https://archive.org/details/dx90bsdk)
+You can save time by using my CI dependencies: [VC6SP5.zip](https://tigule.org/files/ci/VC6SP5.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip)  
+If those are unavailable: [Service Pack 5 for Microsoft Visual Studio 6.0](https://archive.org/details/X08-02111), [DirectX 9.0b SDK](https://archive.org/details/dx90bsdk)
 
 ### Windows
 
@@ -60,6 +60,9 @@ Original executables:
 * `WoWClient.exe`: This was produced from Client.cpp, it was called WoWClient due to the update process during the alpha/early beta. The pdb file is Wowae.pdb (Wow + Assertions Enabled build)
 * `WowError.exe`: todo explanation
 * `WowUpdateHelper.exe`: todo explanation
+
+Toolchain:
+* Visual C++ 6.0 SP5 (12.00.8804)
 
 Libraries:
 * `Expat` 1.95.5
