@@ -2,6 +2,7 @@
 set -eu
 
 VC6_URL="https://tigule.org/files/ci/VC6.zip"
+DXSDK_URL="https://tigule.org/files/ci/DXSDK90.zip"
 CMAKE_URL="https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.msi"
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 CROSSOVER_BOTTLE=${CROSSOVER_BOTTLE:-}
@@ -25,6 +26,8 @@ CACHE_DIR="$CACHE_DIR/tigule-alpha-wine"
 
 VC6_DIR="$DRIVE_C/VC6"
 VCVARS_BAT="$VC6_DIR/VC98/Bin/VCVARS32.BAT"
+DXSDK_DIR="$DRIVE_C/DXSDK"
+DXSDK_LIB="$DXSDK_DIR/Lib/d3dx9.lib"
 CMAKE_EXE='C:\Program Files\CMake\bin\cmake.exe'
 CMAKE_EXE_UNIX="$DRIVE_C/Program Files/CMake/bin/cmake.exe"
 WOW_EXE=${WOW_EXE:-"$SCRIPT_DIR/WoW/Wow.exe"}
@@ -45,7 +48,7 @@ usage() {
 Usage: $(basename "$0") <command>
 
 Commands:
-  install  Download and install VC6 and CMake into the Wine prefix
+  install  Download and install VC6, DirectX SDK, and CMake
   setup    Configure this checkout with VC6 NMake makefiles
   build    Build the configured tree with nmake
   run      Copy Wow.exe into WoW/Client and start TiguleClient.exe
@@ -119,6 +122,23 @@ install_vc6() {
     patch_vcvars
 }
 
+install_dxsdk() {
+    dxsdk_zip="$CACHE_DIR/DXSDK90.zip"
+
+    if [ -f "$DXSDK_DIR/Include/d3dx9.h" ] && [ -f "$DXSDK_LIB" ]; then
+        printf '%s\n' "DirectX SDK is already installed in this Wine prefix"
+        return
+    fi
+
+    download "$DXSDK_URL" "$dxsdk_zip"
+    require_command unzip
+    mkdir -p "$DXSDK_DIR"
+    unzip -q "$dxsdk_zip" -d "$DXSDK_DIR"
+
+    [ -f "$DXSDK_DIR/Include/d3dx9.h" ] || die "DirectX SDK extraction completed, but $DXSDK_DIR/Include/d3dx9.h was not found"
+    [ -f "$DXSDK_LIB" ] || die "DirectX SDK extraction completed, but $DXSDK_LIB was not found"
+}
+
 install_cmake() {
     cmake_msi="$CACHE_DIR/cmake-4.3.2-windows-x86_64.msi"
 
@@ -137,12 +157,15 @@ install_cmake() {
 install() {
     require_wine_prefix
     install_vc6
+    install_dxsdk
     install_cmake
 }
 
 require_toolchain() {
     require_wine_prefix
     [ -f "$VCVARS_BAT" ] || die "VC6 is not installed. Run: $(basename "$0") install"
+    [ -f "$DXSDK_DIR/Include/d3dx9.h" ] || die "DirectX SDK is not installed. Run: $(basename "$0") install"
+    [ -f "$DXSDK_LIB" ] || die "DirectX SDK is not installed. Run: $(basename "$0") install"
     [ -f "$CMAKE_EXE_UNIX" ] || die "CMake is not installed in Wine. Run: $(basename "$0") install"
 }
 
@@ -158,6 +181,7 @@ run_vc6_cmd() {
     {
         printf '@echo off\r\n'
         printf 'call "C:\\VC6\\VC98\\Bin\\VCVARS32.BAT"\r\n'
+        printf 'set DXSDK_DIR=C:\\DXSDK\r\n'
         printf 'cd /d "%s"\r\n' "$build_dir_win"
         while [ "$#" -gt 0 ]; do
             printf '%s\r\n' "$1"
