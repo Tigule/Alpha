@@ -101,4 +101,4 @@ jobs:
       - name: Run validation
         shell: pwsh
         run: |
-          python Build/validate.py
+          python Build/validate.py --summary

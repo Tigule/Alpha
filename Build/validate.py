@@ -102,6 +102,12 @@ class TypeRecord:
     payload: bytes
 
 
+@dataclass(frozen=True, order=True)
+class LocalVariable:
+    name: str
+    type_index: int
+
+
 @dataclass(frozen=True)
 class Procedure:
     name: str
@@ -110,7 +116,7 @@ class Procedure:
     segment: int
     offset: int
     length: int
-    locals: tuple[str, ...] = ()
+    locals: tuple[LocalVariable, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -389,7 +395,9 @@ class Pdb2:
 
     def _parse_procedures(self) -> list[Procedure]:
         procedures: dict[tuple[str, str, int, int], Procedure] = {}
-        procedure_locals: dict[tuple[str, str, int, int], list[str]] = (
+        procedure_locals: dict[
+            tuple[str, str, int, int], list[LocalVariable]
+        ] = (
             collections.defaultdict(list)
         )
         for module_obj, stream_index, symbol_size in self._modules():
@@ -445,9 +453,9 @@ class Pdb2:
                         active_procedure = (obj, name, segment, offset)
                         procedures[active_procedure] = procedure
                 elif active_procedure is not None:
-                    local_name = self._local_name(record_type, payload)
-                    if local_name:
-                        procedure_locals[active_procedure].append(local_name)
+                    local = self._local_variable(record_type, payload)
+                    if local:
+                        procedure_locals[active_procedure].append(local)
                 position = record_end
         return [
             Procedure(
@@ -521,37 +529,48 @@ class Pdb2:
         return result
 
     @staticmethod
-    def _local_name(record_type: int, payload: bytes) -> str | None:
+    def _local_variable(
+        record_type: int, payload: bytes
+    ) -> LocalVariable | None:
         if record_type == S_BPREL32_ST:
             if len(payload) < 9:
                 return None
             # Positive EBP offsets are parameters; negative offsets are locals.
             if struct.unpack_from("<i", payload, 0)[0] >= 0:
                 return None
+            type_index = struct.unpack_from("<I", payload, 4)[0]
             name, _ = pascal_string(payload, 8)
-            return name
+            return LocalVariable(name, type_index)
         if record_type == S_BPREL32:
             if len(payload) < 9 or struct.unpack_from("<i", payload, 0)[0] >= 0:
                 return None
-            return payload[8:].split(b"\0", 1)[0].decode("latin1", "replace")
+            type_index = struct.unpack_from("<I", payload, 4)[0]
+            name = payload[8:].split(b"\0", 1)[0].decode("latin1", "replace")
+            return LocalVariable(name, type_index)
         if record_type == S_REGISTER_ST:
             if len(payload) < 7:
                 return None
+            type_index = struct.unpack_from("<I", payload, 0)[0]
             name, _ = pascal_string(payload, 6)
-            return name
+            return LocalVariable(name, type_index)
         if record_type == S_REGISTER:
             if len(payload) < 7:
                 return None
-            return payload[6:].split(b"\0", 1)[0].decode("latin1", "replace")
+            type_index = struct.unpack_from("<I", payload, 0)[0]
+            name = payload[6:].split(b"\0", 1)[0].decode("latin1", "replace")
+            return LocalVariable(name, type_index)
         if record_type == S_REGREL32_ST:
             if len(payload) < 11:
                 return None
+            type_index = struct.unpack_from("<I", payload, 4)[0]
             name, _ = pascal_string(payload, 10)
-            return name
+            return LocalVariable(name, type_index)
         if record_type == S_REGREL32:
             if len(payload) < 11:
                 return None
-            return payload[10:].split(b"\0", 1)[0].decode("latin1", "replace")
+            type_index = struct.unpack_from("<I", payload, 4)[0]
+            name = payload[10:].split(b"\0", 1)[0].decode("latin1", "replace")
+            return LocalVariable(name, type_index)
         return None
 
 
@@ -911,10 +930,21 @@ def compact(value: Any, limit: int = 300) -> str:
     return text if len(text) <= limit else text[:limit - 3] + "..."
 
 
-def describe_locals(groups: Sequence[tuple[str, ...]]) -> str:
-    count = sum(len(names) for names in groups)
+def canonical_locals(
+    procedure: Procedure, types: TypeTable
+) -> tuple[tuple[str, str], ...]:
+    return tuple(
+        sorted(
+            (local.name, compact(types.canonical(local.type_index), 1000))
+            for local in procedure.locals
+        )
+    )
+
+
+def describe_locals(groups: Sequence[tuple[tuple[str, str], ...]]) -> str:
+    count = sum(len(locals_) for locals_ in groups)
     noun = "local" if count == 1 else "locals"
-    formatted_groups = [list(names) for names in groups]
+    formatted_groups = [list(locals_) for locals_ in groups]
     if len(formatted_groups) == 1:
         text = f"{count} {noun}: {formatted_groups[0]}"
     else:
@@ -971,14 +1001,14 @@ def compare_pdbs(reference: Pdb2, actual: Pdb2) -> tuple[Comparison, Comparison]
         expected_local_sets = sorted(
             (
                 compact(reference.types.canonical(item.type_index), 1000),
-                item.locals,
+                canonical_locals(item, reference.types),
             )
             for item in expected
         )
         actual_local_sets = sorted(
             (
                 compact(actual.types.canonical(item.type_index), 1000),
-                item.locals,
+                canonical_locals(item, actual.types),
             )
             for item in found
         )
@@ -999,8 +1029,12 @@ def compare_pdbs(reference: Pdb2, actual: Pdb2) -> tuple[Comparison, Comparison]
                 Difference(
                     "locals",
                     label,
-                    describe_locals([item.locals for item in expected]),
-                    describe_locals([item.locals for item in found]),
+                    describe_locals(
+                        [canonical_locals(item, reference.types) for item in expected]
+                    ),
+                    describe_locals(
+                        [canonical_locals(item, actual.types) for item in found]
+                    ),
                     key[0],
                 )
             )
@@ -2201,7 +2235,9 @@ def compare_bytecode(
     return result
 
 
-def print_comparison(comparison: Comparison, max_details: int) -> None:
+def print_comparison(
+    comparison: Comparison, max_details: int, summary: bool = False
+) -> None:
     categories = collections.Counter(
         item.category for item in comparison.differences
     )
@@ -2219,6 +2255,9 @@ def print_comparison(comparison: Comparison, max_details: int) -> None:
                 f"{name}={count}" for name, count in sorted(categories.items())
             )
         )
+    if summary:
+        print()
+        return
     grouped_differences: dict[str, list[Difference]] = collections.defaultdict(list)
     for difference in comparison.differences:
         grouped_differences[difference.category].append(difference)
@@ -2280,6 +2319,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-globals", action="store_true")
     parser.add_argument("--skip-bytecode", action="store_true")
     parser.add_argument("--max-details", type=int, default=50)
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="display totals without individual mismatch details",
+    )
     parser.add_argument("--json", type=Path, dest="json_path")
     parser.add_argument(
         "--fail-on",
@@ -2378,7 +2422,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             encoding="utf-8",
         )
     for comparison in comparisons:
-        print_comparison(comparison, max(0, args.max_details))
+        print_comparison(
+            comparison, max(0, args.max_details), summary=args.summary
+        )
 
     should_fail = (
         args.fail_on == "any"
