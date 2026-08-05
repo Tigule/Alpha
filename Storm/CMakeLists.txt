@@ -46,7 +46,7 @@ if(MSVC_VERSION EQUAL 1200)
 
     set_property(SOURCE
         Source/SBig.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " /GX /Ob0")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " /GX- /Ob0")
 
     set_property(SOURCE
         Source/SCmd.cpp

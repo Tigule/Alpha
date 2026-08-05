@@ -225,14 +225,17 @@ if(MSVC_VERSION EQUAL 1200)
     # looks like these files don't include debug info?
     set_source_files_properties(
         Source/FrameXML/FrameXML.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /Zd")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX /Ob1 /Oy- /Zd")
     set_source_files_properties(
         Source/FrameXML/XMLTree.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob0 /Oy- /Zd")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX /Ob0 /Oy- /Zd")
     set_source_files_properties(
         Source/FrameXML/LoadXML.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob0 /Oy- /Zd")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX /Ob0 /Oy- /Zd")
 
+    set_source_files_properties(
+        Source/Gx/CGxDeviceD3d/CGxD3dTexture.cpp
+        PROPERTIES COMPILE_FLAGS "/GX")
     set_source_files_properties(
         Source/Gxu/GxuFont.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")
@@ -323,7 +326,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /GX-")
     set_source_files_properties(
         Source/FrameScript/FrameScript.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob0 /Zd")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX /Ob0 /Zd")
     set_source_files_properties(
         Source/FrameScript/FrameScriptMethods.cpp
         PROPERTIES COMPILE_FLAGS "/Zd")
