@@ -2212,7 +2212,8 @@ int CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
 
   memset(chooseReward, 0, sizeof(chooseReward));
   memset(chooseRewardDispID, 0, sizeof(chooseRewardDispID));
-  for (int index = 0; index < chooseRewardCount; ++index) {
+  int index;
+  for (index = 0; index < chooseRewardCount; ++index) {
     msg->Get(chooseReward[index]);
     msg->Get(chooseRewardQty[index]);
     msg->Get(chooseRewardDispID[index]);
@@ -2318,12 +2319,14 @@ int CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
   msg->GetString(questTitle, 0x7FFFFFFF);
   msg->GetString(questText, 0x7FFFFFFF);
   msg->Get(autoLaunched);
+
+  int index;
   {
     int emoteCount;
     msg->Get(emoteCount);
 
     TSStackArray<QUESTGIVEREMOTENODE> emotes(_alloca(emoteCount * sizeof(QUESTGIVEREMOTENODE)), emoteCount, emoteCount);
-    for (int index = 0; index < emoteCount; ++index) {
+    for (index = 0; index < emoteCount; ++index) {
       msg->Get(emotes[index].delay);
       msg->Get(emotes[index].emoteID);
     }
@@ -2333,30 +2336,30 @@ int CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
       static_cast<CGUnit_C *>(object)->SetEmoteQueue(emotes);
     }
 
-  msg->Get(chooseRewardCount);
-  memset(chooseReward, 0, sizeof(chooseReward));
-  memset(chooseRewardDispID, 0, sizeof(chooseRewardDispID));
-  for (index = 0; index < chooseRewardCount; ++index) {
-    msg->Get(chooseReward[index]);
-    msg->Get(chooseRewardQty[index]);
-    msg->Get(chooseRewardDispID[index]);
-  }
+    msg->Get(chooseRewardCount);
+    memset(chooseReward, 0, sizeof(chooseReward));
+    memset(chooseRewardDispID, 0, sizeof(chooseRewardDispID));
+    for (index = 0; index < chooseRewardCount; ++index) {
+      msg->Get(chooseReward[index]);
+      msg->Get(chooseRewardQty[index]);
+      msg->Get(chooseRewardDispID[index]);
+    }
 
-  msg->Get(rewardItemCount);
-  memset(rewardItem, 0, sizeof(rewardItem));
-  memset(rewardItemDispID, 0, sizeof(rewardItemDispID));
-  for (index = 0; index < rewardItemCount; ++index) {
-    msg->Get(rewardItem[index]);
-    msg->Get(rewardItemQty[index]);
-    msg->Get(rewardItemDispID[index]);
-  }
+    msg->Get(rewardItemCount);
+    memset(rewardItem, 0, sizeof(rewardItem));
+    memset(rewardItemDispID, 0, sizeof(rewardItemDispID));
+    for (index = 0; index < rewardItemCount; ++index) {
+      msg->Get(rewardItem[index]);
+      msg->Get(rewardItemQty[index]);
+      msg->Get(rewardItemDispID[index]);
+    }
 
-  msg->Get(rewardMoney);
-  CGQuestInfo::SetState(questGiverGuid, QUEST_REWARD, questText, questID);
-  CGQuestInfo::AddReward(
-      questTitle, chooseReward, chooseRewardDispID, chooseRewardQty, chooseRewardCount, rewardItem, rewardItemDispID, rewardItemQty, rewardItemCount,
-      rewardMoney, autoLaunched
-  );
+    msg->Get(rewardMoney);
+    CGQuestInfo::SetState(questGiverGuid, QUEST_REWARD, questText, questID);
+    CGQuestInfo::AddReward(
+        questTitle, chooseReward, chooseRewardDispID, chooseRewardQty, chooseRewardCount, rewardItem, rewardItemDispID, rewardItemQty, rewardItemCount,
+        rewardMoney, autoLaunched
+    );
   }
   return 1;
 }
@@ -2414,7 +2417,8 @@ int CGPlayer_C::OnQuestGiverQuestComplete(CDataStore *msg) {
   msg->Get(itemCount);
 
   memset(items, 0, sizeof(items));
-  for (int index = 0; index < itemCount; ++index) {
+  int index;
+  for (index = 0; index < itemCount; ++index) {
     msg->Get(items[index]);
     msg->Get(itemsQty[index]);
   }
@@ -5691,7 +5695,7 @@ void CGPlayer_C::ReadItem(unsigned char packSlot, unsigned char slot) {
 
 void CGPlayer_C::ReadItem(unsigned __int64 containerGUID, unsigned char slot) {
   typedef void (CGPlayer_C::*ReadPackItemProc)(unsigned char, unsigned char);
-  ReadPackItemProc readPackItem = CGPlayer_C::ReadItem;
+  ReadPackItemProc readPackItem = &CGPlayer_C::ReadItem;
 
   if (containerGUID == GetGUID()) {
     (this->*readPackItem)(0xFF, slot);
@@ -6508,7 +6512,8 @@ int CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
     CurrencyBreakdown(total, totalcoins);
 
     int first = 1;
-    for (int coin = 2; coin >= 0; --coin) {
+    int coin;
+    for (coin = 2; coin >= 0; --coin) {
       if (sharecoins[coin]) {
         SStrCopy(coinName, FrameScript_GetText(CurrencyAbbreviation(coin), -1, GENDER_NOT_APPLICABLE), sizeof(coinName));
         if (first) {

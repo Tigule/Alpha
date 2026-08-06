@@ -317,7 +317,7 @@ void EventReg::RegisterCallback(EVENTCALLBACK callback, void *param) {
 
 void EventReg::RegisterEvent(int expectedEventId, CObserver *pObserver) {
   ITERATELIST(EVENTDISPATCHREG, dispatchList, entry) {
-    if (entry->pObserver == pObserver) {
+    if (entry->pObserver.m_ptr == pObserver) {
       entry->expectedEventId = expectedEventId;
       return;
     }
@@ -354,7 +354,7 @@ void EventReg::UnregisterEvent(CObserver *pObserver) {
   EVENTDISPATCHREG *entry = dispatchList.Head();
   while (entry) {
     EVENTDISPATCHREG *pDispatchRegnext_node = dispatchList.Next(entry);
-    if (!pObserver || entry->pObserver == pObserver) {
+    if (!pObserver || entry->pObserver.m_ptr == pObserver) {
       entry->pObserver = static_cast<CObserver *>(0);
       if (Locked()) {
         MarkChanged();

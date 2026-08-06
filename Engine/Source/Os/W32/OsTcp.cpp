@@ -3191,7 +3191,7 @@ void OsNetDestroy(unsigned long parts) {
 }
 
 void OsNetPump(unsigned long timeout) {
-  OsNet::TCPNET *net = OsNet::TCPNET::s_pnet;
+  OsNet::TCPNET *net = OsNet::TCPNET::Net();
   if (net) {
     net->Pump(timeout);
   } else {
@@ -3243,8 +3243,8 @@ void OsNetConnSetEventProcAndUser(HNETCONN__ *conn, NETEVENTPROC eventProc, void
 }
 
 void OsLoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, void *user, const void *data, unsigned long bytes) {
-  if (OsNet::TCPNET::s_pnet) {
-    OsNet::TCPNET::s_pnet->LoopConnect(eventProcSrc, eventProcDst, user, data, bytes);
+  if (OsNet::TCPNET::Net()) {
+    OsNet::TCPNET::Net()->LoopConnect(eventProcSrc, eventProcDst, user, data, bytes);
   }
 }
 
@@ -3254,22 +3254,22 @@ void OsLoopConnSend(HNETCONN__ *conn, const void *data, unsigned long bytes) {
 }
 
 int OsTcpListen(unsigned short port, NETEVENTPROC eventProc, void *user) {
-  if (OsNet::TCPNET::s_pnet) {
-    return OsNet::TCPNET::s_pnet->TcpListen(port, eventProc, user);
+  if (OsNet::TCPNET::Net()) {
+    return OsNet::TCPNET::Net()->TcpListen(port, eventProc, user);
   }
   return 0;
 }
 
 void OsTcpListenEnable(unsigned short port, int enable) {
-  if (OsNet::TCPNET::s_pnet) {
-    OsNet::TCPNET::s_pnet->TcpListenEnable(port, enable);
+  if (OsNet::TCPNET::Net()) {
+    OsNet::TCPNET::Net()->TcpListenEnable(port, enable);
   }
 }
 
 void
 OsTcpConnect(unsigned long nodeNumber, unsigned short port, NETEVENTPROC eventProc, void *user, const void *data, unsigned long bytes) {
-  if (OsNet::TCPNET::s_pnet) {
-    OsNet::TCPNET::s_pnet->TcpConnect(nodeNumber, port, eventProc, user, data, bytes);
+  if (OsNet::TCPNET::Net()) {
+    OsNet::TCPNET::Net()->TcpConnect(nodeNumber, port, eventProc, user, data, bytes);
   }
 }
 
@@ -3303,8 +3303,8 @@ unsigned long OsTcpAddrLoop() {
 }
 
 void OsUdpConnect(const NETADDR *addr, unsigned short portMin, unsigned short portMax, NETEVENTPROC eventProc, void *user) {
-  if (OsNet::TCPNET::s_pnet) {
-    OsNet::TCPNET::s_pnet->UdpConnect(addr, portMin, portMax, eventProc, user);
+  if (OsNet::TCPNET::Net()) {
+    OsNet::TCPNET::Net()->UdpConnect(addr, portMin, portMax, eventProc, user);
   }
 }
 
@@ -3420,15 +3420,15 @@ unsigned long OsNetGetHostAddr(const char *hostName) {
 }
 
 int OsNetGetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETHOSTADDRPROC hostAddrProc, void *user) {
-  if (OsNet::TCPNET::s_pnet) {
-    return OsNet::TCPNET::s_pnet->GetHostAddrs(hostNameList, defaultPort, hostAddrProc, user);
+  if (OsNet::TCPNET::Net()) {
+    return OsNet::TCPNET::Net()->GetHostAddrs(hostNameList, defaultPort, hostAddrProc, user);
   }
   return 0;
 }
 
 void OsFileConnCreate(const char *fileName, NETEVENTPROC eventProc, void *user, int readOnly) {
-  if (OsNet::TCPNET::s_pnet) {
-    OsNet::TCPNET::s_pnet->FileConnCreate(fileName, eventProc, user, readOnly);
+  if (OsNet::TCPNET::Net()) {
+    OsNet::TCPNET::Net()->FileConnCreate(fileName, eventProc, user, readOnly);
   }
 }
 

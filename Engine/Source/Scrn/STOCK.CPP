@@ -13,10 +13,10 @@ static const float s_stockObjectHeights[SCRNSTOCKOBJECTS] = {
   0.01953125f
 };
 
-void __fastcall OsBuildFontFilePath(const char *fileName,
-                                    char *buffer,
-                                    unsigned int size);
-static void __fastcall CreateSysFont(SCRNSTOCK stockID,
+void OsBuildFontFilePath(const char *fileName,
+                         char *buffer,
+                         unsigned int size);
+static void CreateSysFont(SCRNSTOCK stockID,
                                      const char *fontFilePath) {
   ASSERT(stockID < SCRNSTOCKOBJECTS);
 
@@ -32,7 +32,7 @@ static void __fastcall CreateSysFont(SCRNSTOCK stockID,
   ASSERT(s_stockObjects[stockID]);
 }
 
-void __fastcall IStockDestroy() {
+void IStockDestroy() {
   unsigned int i;
 
   for (i = 0; i < SCRNSTOCKOBJECTS; ++i) {
@@ -46,7 +46,7 @@ void __fastcall IStockDestroy() {
   GxuFontShutdown();
 }
 
-void __fastcall IStockInitialize() {
+void IStockInitialize() {
   char fontFile[0x104];
 
   GxuFontInitialize();
@@ -55,13 +55,13 @@ void __fastcall IStockInitialize() {
   ScrnSetStockFont(STOCK_PERFFONT, fontFile);
 }
 
-HTEXTFONT__ *__fastcall ScrnGetStockFont(SCRNSTOCK id) {
+HTEXTFONT__ *ScrnGetStockFont(SCRNSTOCK id) {
   FATALASSERT(id < SCRNSTOCKOBJECTS);
 
   return s_stockObjects[id];
 }
 
-void __fastcall ScrnSetStockFont(SCRNSTOCK stockID,
+void ScrnSetStockFont(SCRNSTOCK stockID,
                                  const char *fontTexturePath) {
   FATALASSERT(stockID < SCRNSTOCKOBJECTS);
 
@@ -70,7 +70,7 @@ void __fastcall ScrnSetStockFont(SCRNSTOCK stockID,
   CreateSysFont(stockID, fontTexturePath);
 }
 
-float __fastcall ScrnGetStockFontHeight(SCRNSTOCK stockID) {
+float ScrnGetStockFontHeight(SCRNSTOCK stockID) {
   FATALASSERT(stockID < SCRNSTOCKOBJECTS);
 
   return s_stockObjectHeights[stockID];

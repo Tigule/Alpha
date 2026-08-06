@@ -4,27 +4,27 @@
 
 static int consoleInitialized;
 
-void __fastcall ILayerDestroy();
-void __fastcall ILayerInitialize();
-void __fastcall ILayerPaint();
-void __fastcall IPerfDestroy();
-void __fastcall IPerfInitialize();
-void __fastcall IStockDestroy();
-void __fastcall IStockInitialize();
+void ILayerDestroy();
+void ILayerInitialize();
+void ILayerPaint();
+void IPerfDestroy();
+void IPerfInitialize();
+void IStockDestroy();
+void IStockInitialize();
 
-void __fastcall ScrnDestroy() {
+void ScrnDestroy() {
   ILayerDestroy();
   IPerfDestroy();
   IStockDestroy();
 }
 
-void __fastcall ScrnInitialize(int initConsole) {
+void ScrnInitialize(int initConsole) {
   ILayerInitialize();
   consoleInitialized = initConsole;
   IPerfInitialize();
   IStockInitialize();
 }
 
-void __fastcall ScrnPaint() {
+void ScrnPaint() {
   ILayerPaint();
 }

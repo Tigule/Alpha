@@ -20,26 +20,19 @@ public:
   float zorder;
   unsigned long flags;
   void *param;
-  void (__fastcall *paintfunc)(void *, const RECTF *, const RECTF *, float);
+  void (*paintfunc)(void *, const RECTF *, const RECTF *, float);
   LINKDECLEX(CILayer, zorderlink);
 };
 
 typedef char CILayerSizeCheck[sizeof(CILayer) == 0x40 ? 1 : -1];
 
-void __fastcall GxuXformCreateOrtho(float minX,
-                                    float maxX,
-                                    float minY,
-                                    float maxY,
-                                    float minZ,
-                                    float maxZ,
-                                    NTempest::C44Matrix &dst);
 static const RECTF defaultrect = {0.0f, 0.0f, 1.0f, 1.0f};
 static float s_elapsedSec;
-static void (__fastcall *s_captureScreen)(int);
+static void (*s_captureScreen)(int);
 static int s_ScrnDisable;
 static LISTDECLEX(CILayer, zorderlink, s_zorderlist);
 
-static int __fastcall CaptureScreen() {
+static int CaptureScreen() {
   char path[0x104];
   char timestamp[0x104];
   CTgaFile tga;
@@ -65,12 +58,12 @@ static int __fastcall CaptureScreen() {
   return pixels != 0;
 }
 
-static int __fastcall OnIdle(const EVENT_DATA_IDLE *data, void *__formal) {
+static int OnIdle(const EVENT_DATA_IDLE *data, void *__formal) {
   s_elapsedSec += data->elapsedSec;
   return 1;
 }
 
-static int __fastcall OnPaint(const void *, void *) {
+static int OnPaint(const void *, void *) {
   CILayer *layer;
   CILayer *nextLayer;
   HSRGN rgn;
@@ -167,7 +160,7 @@ static int __fastcall OnPaint(const void *, void *) {
   GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 
   if (s_captureScreen) {
-    void (__fastcall *callback)(int) = s_captureScreen;
+    void (*callback)(int) = s_captureScreen;
 
     GxDevTakeScreenShot();
     GxScenePresent(3);
@@ -182,26 +175,26 @@ static int __fastcall OnPaint(const void *, void *) {
   return 1;
 }
 
-void __fastcall ILayerDestroy() {
+void ILayerDestroy() {
   EventUnregister(EVENT_ID_IDLE, (EVENTHANDLER)OnIdle);
   EventUnregister(EVENT_ID_PAINT, OnPaint);
 }
 
-void __fastcall ILayerInitialize() {
+void ILayerInitialize() {
   EventRegister(EVENT_ID_IDLE, (EVENTHANDLER)OnIdle);
   EventRegister(EVENT_ID_PAINT, OnPaint);
 }
 
-void __fastcall ILayerPaint() {
+void ILayerPaint() {
   OnPaint(0, 0);
 }
 
-void __fastcall ScrnLayerCreate(
+void ScrnLayerCreate(
     const RECTF *rect,
     float zorder,
     unsigned long flags,
     void *param,
-    void (__fastcall *paintfunc)(void *, const RECTF *, const RECTF *, float),
+    void (*paintfunc)(void *, const RECTF *, const RECTF *, float),
     HLAYER__ **layer) {
   CILayer *newLayer;
   CILayer *existingLayer;
@@ -231,26 +224,26 @@ void __fastcall ScrnLayerCreate(
       HandleCreate(newLayer, "HLAYER"));
 }
 
-void __fastcall ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect) {
+void ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect) {
   reinterpret_cast<CILayer *>(layer)->rect = *rect;
 }
 
-unsigned int __fastcall ScrnLayerGetFlags(HLAYER__ *layer) {
+unsigned int ScrnLayerGetFlags(HLAYER__ *layer) {
   return reinterpret_cast<CILayer *>(layer)->flags;
 }
 
-void __fastcall ScrnLayerSetFlags(HLAYER__ *layer, unsigned int flags) {
+void ScrnLayerSetFlags(HLAYER__ *layer, unsigned int flags) {
   reinterpret_cast<CILayer *>(layer)->flags = flags;
 }
 
-void __fastcall ScrnLayerDisable(int disable) {
+void ScrnLayerDisable(int disable) {
   s_ScrnDisable = disable;
 }
 
-int __fastcall ScrnLayerIsDisabled() {
+int ScrnLayerIsDisabled() {
   return s_ScrnDisable;
 }
 
-void __fastcall ScrnScreenshot(void (__fastcall *callback)(int)) {
+void ScrnScreenshot(void (*callback)(int)) {
   s_captureScreen = callback;
 }

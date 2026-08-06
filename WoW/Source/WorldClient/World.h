@@ -1073,7 +1073,8 @@ class CWFrustum {
   );
   CWFrustum &operator=(const CWFrustum &frustum) {
     if (this != &frustum) {
-      for (unsigned int i = 0; i < NUM_PLANES; ++i) {
+      unsigned int i;
+      for (i = 0; i < NUM_PLANES; ++i) {
         planes[i] = frustum.planes[i];
       }
       for (i = 0; i < 8; ++i) {

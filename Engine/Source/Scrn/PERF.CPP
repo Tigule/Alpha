@@ -32,27 +32,27 @@ struct SimplePerfHdr {
 };
 #pragma pack(pop)
 
-unsigned int __fastcall SndGetCPUPerformance();
+unsigned int SndGetCPUPerformance();
 
-static void __fastcall PaintFunc(void *,
+static void PaintFunc(void *,
                                  const RECTF *,
                                  const RECTF *visible,
                                  float elapsed);
-static void __fastcall IPerfGetPerfTimes(float *perfTime);
-static void __fastcall IPerfRemoteQueuePerfData(float *perfTime);
-void __fastcall IPerfRemoteQueueOnRingBuffer(void *dataToQueue,
+static void IPerfGetPerfTimes(float *perfTime);
+static void IPerfRemoteQueuePerfData(float *perfTime);
+void IPerfRemoteQueueOnRingBuffer(void *dataToQueue,
                                              unsigned long size);
-int __fastcall IPerfRemoteSpaceAvail(unsigned long size);
-void __fastcall IPerfRemoteInitSimpleHdr(SimplePerfHdr *h,
+int IPerfRemoteSpaceAvail(unsigned long size);
+void IPerfRemoteInitSimpleHdr(SimplePerfHdr *h,
                                          unsigned long packetSize,
                                          unsigned short id);
-void __fastcall IPerfRemoteQueuePerfLabels();
-void __fastcall IPerfRemoteQueueLogString(const char *prompt);
-void __fastcall IPerfResetTimePeaks();
+void IPerfRemoteQueuePerfLabels();
+void IPerfRemoteQueueLogString(const char *prompt);
+void IPerfResetTimePeaks();
 
 static int s_enabled;
 static struct {
-  float (__fastcall *func)(ACTIVITY);
+  float (*func)(ACTIVITY);
   const char *title;
 } s_activityModes[3] = {
   {ActivityGetTime, "ms per frame"},
@@ -61,7 +61,7 @@ static struct {
 };
 static int s_activityMode;
 static HLAYER__ *s_layer;
-static void (__fastcall *sTextFunc)(char *, int, void *);
+static void (*sTextFunc)(char *, int, void *);
 static void *sTextFuncParam;
 static float s_avgPerfTime[20];
 static float s_peakPerfTime[20];
@@ -120,7 +120,7 @@ void __stdcall HookRenderEnd(void *__formal) {
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-static void __fastcall PaintFunc(void *,
+static void PaintFunc(void *,
                                  const RECTF *,
                                  const RECTF *visible,
                                  float elapsed) {
@@ -339,7 +339,7 @@ static void __fastcall PaintFunc(void *,
   ActivityEnd(ACTIVITY_PERFDISPLAY);
 }
 
-void __fastcall IPerfDestroy() {
+void IPerfDestroy() {
   if (s_stringBatch) {
     GxuFontDestroyBatch(s_stringBatch);
   }
@@ -348,8 +348,8 @@ void __fastcall IPerfDestroy() {
   HandleClose(reinterpret_cast<HOBJECT>(s_layer));
 }
 
-static void __fastcall IPerfGetPerfTimes(float *perfTime) {
-  float (__fastcall *activityGet)(ACTIVITY) =
+static void IPerfGetPerfTimes(float *perfTime) {
+  float (*activityGet)(ACTIVITY) =
       s_activityModes[s_activityMode].func;
 
   perfTime[3] = activityGet(ACTIVITY_ANIMATE);
@@ -379,7 +379,7 @@ static void __fastcall IPerfGetPerfTimes(float *perfTime) {
   ActivityResetTimes();
 }
 
-void __fastcall IPerfInitialize() {
+void IPerfInitialize() {
   if (s_stringBatch) {
     GxuFontDestroyBatch(s_stringBatch);
   }
@@ -389,7 +389,7 @@ void __fastcall IPerfInitialize() {
   s_perfFontHeight = ScrnGetStockFontHeight(STOCK_PERFFONT);
 }
 
-void __fastcall IPerfResetTimePeaks() {
+void IPerfResetTimePeaks() {
   memset(s_avgPerfAccum, 0, sizeof(s_avgPerfAccum));
   memset(s_avgPerfTime, 0, sizeof(s_avgPerfTime));
   s_avgPerfIndex = 0;
@@ -433,7 +433,7 @@ int __stdcall ChatEventProc(HNETCONN__* conn, const NETCONNADDR* conAddr, NETNOT
   return 0;
 }
 
-int __fastcall IPerfRemoteLoggingIni() {
+int IPerfRemoteLoggingIni() {
   SSyncObject *waitObjectPtrs[2] = {s_ProfStartupEvent, s_ProfShutdownEvent};
   s_ProfStartupEvent->Reset();
   if (!OsNetGetHostAddrs(s_hostNameList, 0x17EB, IPerfHostAddrProc, 0) ||
@@ -480,7 +480,7 @@ int __fastcall IPerfRemoteLoggingIni() {
   return 1;
 }
 
-void __fastcall IPerfGetFromBuffer(char*& buf1, long& len1, char*& buf2, long& len2) {
+void IPerfGetFromBuffer(char*& buf1, long& len1, char*& buf2, long& len2) {
   if (0x10000 - s_ProfRingBufTail < 4) {
     s_ProfRingBufTail = 0;
   }
@@ -504,7 +504,7 @@ void __fastcall IPerfGetFromBuffer(char*& buf1, long& len1, char*& buf2, long& l
   }
 }
 
-void __fastcall IPerfRemoteSendQueued() {
+void IPerfRemoteSendQueued() {
   while (s_ProfRingBufHead != s_ProfRingBufTail) {
     char *buf1;
     char *buf2;
@@ -551,7 +551,7 @@ unsigned int __stdcall IPerfRemoteLoggingThread(void*) {
   return 0;
 }
 
-int __fastcall IPerfRemoteSpaceAvail(unsigned long size) {
+int IPerfRemoteSpaceAvail(unsigned long size) {
   unsigned long space;
 
   if (s_ProfRingBufTail > s_ProfRingBufHead) {
@@ -571,7 +571,7 @@ int __fastcall IPerfRemoteSpaceAvail(unsigned long size) {
   return 0;
 }
 
-void __fastcall IPerfRemoteInitSimpleHdr(SimplePerfHdr *h,
+void IPerfRemoteInitSimpleHdr(SimplePerfHdr *h,
                                          unsigned long packetSize,
                                          unsigned short id) {
   float asyncTimeClocks;
@@ -589,7 +589,7 @@ void __fastcall IPerfRemoteInitSimpleHdr(SimplePerfHdr *h,
   h->id = id;
 }
 
-void __fastcall IPerfRemoteQueueOnRingBuffer(void *dataToQueue,
+void IPerfRemoteQueueOnRingBuffer(void *dataToQueue,
                                              unsigned long size) {
   unsigned long head;
   unsigned long bytes;
@@ -622,7 +622,7 @@ void __fastcall IPerfRemoteQueueOnRingBuffer(void *dataToQueue,
   s_ringLock.Leave();
 }
 
-static void __fastcall IPerfRemoteQueuePerfData(float *perfTime) {
+static void IPerfRemoteQueuePerfData(float *perfTime) {
   struct {
     unsigned long msgSize;
     SimplePerfHdr h;
@@ -643,7 +643,7 @@ static void __fastcall IPerfRemoteQueuePerfData(float *perfTime) {
   }
 }
 
-void __fastcall IPerfRemoteQueuePerfLabels() {
+void IPerfRemoteQueuePerfLabels() {
   struct {
     unsigned long msgSize;
     SimplePerfHdr h;
@@ -681,7 +681,7 @@ void __fastcall IPerfRemoteQueuePerfLabels() {
   IPerfRemoteQueueOnRingBuffer(&queueLabelsBuf, packetBytes);
 }
 
-void __fastcall IPerfRemoteQueueLogString(const char *prompt) {
+void IPerfRemoteQueueLogString(const char *prompt) {
   struct {
     unsigned long msgSize;
     SimplePerfHdr h;
@@ -706,7 +706,7 @@ void __fastcall IPerfRemoteQueueLogString(const char *prompt) {
   IPerfRemoteQueueOnRingBuffer(&queuePromptBuf, packetBytes);
 }
 
-int __fastcall IPerfRemoteLoggingStartup() {
+int IPerfRemoteLoggingStartup() {
   if (SInterlockedIncrement(&s_ProfStartup) <= 1) {
     if (!SRegLoadString("Internal", "Engine PerfServer", 0, s_hostNameList, sizeof(s_hostNameList))) {
       s_hostNameList[0] = 0;
@@ -728,7 +728,7 @@ int __fastcall IPerfRemoteLoggingStartup() {
   return 1;
 }
 
-int __fastcall IPerfRemoteLoggingShutdown() {
+int IPerfRemoteLoggingShutdown() {
   if (s_ProfStartup && !SInterlockedDecrement(&s_ProfStartup)) {
     s_HasProfServer = 0;
     s_HasProfConn = 0;
@@ -752,23 +752,23 @@ int __fastcall IPerfRemoteLoggingShutdown() {
   return 1;
 }
 
-void __fastcall ScrnPerfEnable(int enable) {
+void ScrnPerfEnable(int enable) {
   s_enabled = enable;
 }
 
-int __fastcall ScrnPerfIsEnabled() {
+int ScrnPerfIsEnabled() {
   return s_enabled;
 }
 
-int __fastcall ScrnPerfRemoteShutdown() {
+int ScrnPerfRemoteShutdown() {
   return IPerfRemoteLoggingShutdown();
 }
 
-int __fastcall ScrnPerfRemoteStartup() {
+int ScrnPerfRemoteStartup() {
   return IPerfRemoteLoggingStartup();
 }
 
-void __fastcall ScrnPerfRemoteSetMode(PERF_REMOTE_MODE mode) {
+void ScrnPerfRemoteSetMode(PERF_REMOTE_MODE mode) {
   if (mode < PERF_REMOTE_MODE_MAX) {
     s_PerfRemoteMode = mode;
   } else {
@@ -776,29 +776,29 @@ void __fastcall ScrnPerfRemoteSetMode(PERF_REMOTE_MODE mode) {
   }
 }
 
-PERF_REMOTE_MODE __fastcall ScrnPerfRemoteGetMode() {
+PERF_REMOTE_MODE ScrnPerfRemoteGetMode() {
   return s_PerfRemoteMode;
 }
 
-void __fastcall ScrnPerfRemoteLogString(const char *prompt) {
+void ScrnPerfRemoteLogString(const char *prompt) {
   IPerfRemoteQueueLogString(prompt);
 }
 
-void __fastcall ScrnPerfRemoteLogPerfCounters() {
+void ScrnPerfRemoteLogPerfCounters() {
   float perfTime[20];
 
   IPerfGetPerfTimes(perfTime);
   IPerfRemoteQueuePerfData(perfTime);
 }
 
-void __fastcall ScrnPerfSetTextFunction(
-    void (__fastcall *inFunc)(char *, int, void *),
+void ScrnPerfSetTextFunction(
+    void (*inFunc)(char *, int, void *),
     void *inParam) {
   sTextFunc = inFunc;
   sTextFuncParam = inParam;
 }
 
-void __fastcall ScrnPerfToggleDisplayedValues() {
+void ScrnPerfToggleDisplayedValues() {
   ++s_activityMode;
   if (static_cast<unsigned int>(s_activityMode) >= 3) {
     s_activityMode = 0;
@@ -807,6 +807,6 @@ void __fastcall ScrnPerfToggleDisplayedValues() {
   IPerfResetTimePeaks();
 }
 
-void __fastcall ScrnPerfResetTimePeaks() {
+void ScrnPerfResetTimePeaks() {
   IPerfResetTimePeaks();
 }

@@ -780,7 +780,7 @@ __int64 APIENTRY SStrHash64(LPCSTR string, DWORD flags, __int64 seed) {
   return result;
 }
 
-static DWORD __fastcall bjhash(unsigned char *k, DWORD length, DWORD initval) {
+static DWORD bjhash(unsigned char *k, DWORD length, DWORD initval) {
   register DWORD a;
   register DWORD b;
   register DWORD c;

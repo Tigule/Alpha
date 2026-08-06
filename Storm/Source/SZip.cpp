@@ -126,7 +126,6 @@ struct ZipFileFCB {
 typedef TSHashTable<ZipFileDirEntry, HASHKEY_CONSTSTRI>   ZipDirTable;
 typedef LISTEXDYN(ZipFileDirEntry)                        ZipDirList;
 typedef TSGrowableArray<ZipDirList>                       ZipDirListArray;
-static ZipDirTable                                        s_directory;
 static const char                                         centralDirectoryFileSignature[4] = {'P', 'K', 1, 2};
 static const char                                         localFileSignature[4] = {'P', 'K', 3, 4};
 static const char                                         centralDirectoryHeaderSignature[4] = {'P', 'K', 5, 6};
@@ -246,6 +245,8 @@ ZipFileDirEntry *ZipDirTable::Ptr(const char *str) {
 }
 
 void ZipFileUnloadFile(void *buffer);
+
+static ZipDirTable s_directory;
 
 static void ConvertUInt16FromBinary(WORD &value) {
   BYTE *bytes;
@@ -385,7 +386,7 @@ int ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader
   }
 
   unsigned int signatureOffset = 0;
-  while (!(file->_flag & _IOEOF)) {
+  while (!feof(file)) {
     if (static_cast<unsigned char>(fgetc(file)) == centralDirectoryHeaderSignature[signatureOffset]) {
       ++signatureOffset;
       if (signatureOffset == sizeof(centralDirectoryHeaderSignature)) {
@@ -707,7 +708,7 @@ int ZipFileReadFile(ZipFileFCB *fcb, void *buffer, unsigned int bytesToRead, uns
         return fcb->SetFault();
       }
       bytesProduced = (DWORD)fread(buffer, 1, bytesToRead, file);
-      if (bytesProduced != bytesToRead && (file->_flag & _IOERR)) {
+      if (bytesProduced != bytesToRead && ferror(file)) {
         return fcb->SetFault();
       }
       break;

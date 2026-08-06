@@ -1403,7 +1403,8 @@ void CWFrustum::CalcPlanesFromCorners() {
 }
 
 void CWFrustum::Translate(const NTempest::C3Vector &t) {
-  for (unsigned int i = 0; i < 8; ++i) {
+  unsigned int i; 
+  for (i = 0; i < 8; ++i) {
     corners[i] = corners[i] + t;
   }
   for (i = 0; i < 6; ++i) {

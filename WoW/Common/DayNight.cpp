@@ -157,7 +157,8 @@ static float InterpTable(const NTempest::C2Vector *table, unsigned long size, fl
 static void ScaleOutputs(CurrentLight &globalLight, CurrentLight &areaLight, float scale) {
   globalLight.DirectColor = BlendColor(globalLight.DirectColor, areaLight.DirectColor, scale);
   globalLight.AmbientColor = BlendColor(globalLight.AmbientColor, areaLight.AmbientColor, scale);
-  for (unsigned int i = 0; i < 6; ++i) {
+  unsigned int i;
+  for (i = 0; i < 6; ++i) {
     globalLight.SkyArray[i] = BlendColor(globalLight.SkyArray[i], areaLight.SkyArray[i], scale);
   }
   for (i = 0; i < 5; ++i) {
@@ -245,8 +246,9 @@ static void ResetLightPos() {
       light.m_lightlist.m_lightDropoff *= 0.027777778f;
     }
 
+    unsigned int i; 
     count = light.m_lightdata.m_fogData.Count();
-    for (unsigned int i = 0; i < count; ++i) {
+    for (i = 0; i < count; ++i) {
       light.m_lightdata.m_fogData[i].m_fogEnd *= 0.027777778f;
     }
     count = light.m_stormdata.m_fogData.Count();

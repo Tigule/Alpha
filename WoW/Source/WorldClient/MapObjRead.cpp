@@ -380,7 +380,8 @@ void CMapObjGroup::Create(unsigned char *rawData) {
   groupLiquid = header->groupLiquid;
   uniqueID = header->uniqueID;
 
-  for (unsigned int i = 0; i < 4; ++i) {
+  unsigned int i; 
+  for (i = 0; i < 4; ++i) {
     intBatch[i] = header->intBatch[i];
     extBatch[i] = header->extBatch[i];
     if (extBatch[i].batchCount) {
@@ -399,7 +400,8 @@ void CMapObjGroup::Create(unsigned char *rawData) {
   CMapObj *mapObj = parent;
   FATALASSERT(mapObj);
   for (i = 0; i < 4; ++i) {
-    for (unsigned int n = 0; n < intBatch[i].batchCount; ++n) {
+    unsigned int n; 
+    for (n = 0; n < intBatch[i].batchCount; ++n) {
       mapObj->CreateMaterial(batchList[intBatch[i].batchStart + n].texture);
     }
     for (n = 0; n < extBatch[i].batchCount; ++n) {

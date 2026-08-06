@@ -179,7 +179,8 @@ static unsigned long BlendLightValue(unsigned long base, unsigned long storm, in
 void CalcLightColors(int time, CurrentLight *current, LightDataItem *lightdata, LightDataItem *stormdata, int stormpercent) {
   CalcIndividualLightColor(time, 0, lightdata, &current->DirectColor, 0);
   CalcIndividualLightColor(time, 1, lightdata, &current->AmbientColor, 0);
-  for (int i = 0; i < 6; ++i) {
+  int i;
+  for (i = 0; i < 6; ++i) {
     CalcIndividualLightColor(time, i + 2, lightdata, &current->SkyArray[i], 0);
   }
   CalcIndividualLightColor(time, 8, lightdata, &current->ShadowOpacity, 0);

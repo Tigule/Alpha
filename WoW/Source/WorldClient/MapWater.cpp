@@ -326,7 +326,8 @@ void LODArrays::GenFixes(unsigned int p_nFixes, unsigned int vertsPerSide, unsig
 
   unsigned int   index = 0;
   unsigned short from = 1;
-  for (unsigned int i = 0; i < nFixes; ++i) {
+  unsigned int   i;
+  for (i = 0; i < nFixes; ++i) {
     fixes[index].from = from;
     fixes[index].to = from - 1;
     ++index;

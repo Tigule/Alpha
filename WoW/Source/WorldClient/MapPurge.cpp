@@ -171,7 +171,8 @@ void CMapChunk::Purge() {
     }
   }
 
-  for (unsigned int i = 0; i < nLayers; ++i) {
+  unsigned int i; 
+  for (i = 0; i < nLayers; ++i) {
     PurgeLayer(layerList[i]);
     layerList[i] = 0;
   }
