@@ -2298,17 +2298,19 @@ int CMovement::NextSurfaceIsWalkable(
       cosTheta = 1.0f;
     }
     FallLogWrite("0x%016I64X: Next surface: step hgt(%g), incline(%g degrees)", m_guid, stepHeight, acos(cosTheta) * 57.29578f);
+    int walkable = -1;
     if (stepHeight > m_stepUpHeight) {
-      FallLogWrite(" - Surface was too high\n");
-      FallLogWrite("0x%016I64X: ------>Done checking next walkable surface\n", m_guid);
-      return 0;
+      FallLogWrite(" -- surface was too high\n");
+      walkable = 0;
+    } else if (nextPlane.n.z > 0.64278764f) {
+      FallLogWrite(" -- surface is walkable\n");
+      walkable = 1;
     }
-    if (nextPlane.n.z > 0.64278764f) {
-      FallLogWrite(" - Surface is walkable\n");
+    if (walkable >= 0) {
       FallLogWrite("0x%016I64X: ------>Done checking next walkable surface\n", m_guid);
-      return 1;
+      return walkable;
     }
-    FallLogWrite(" - Surface is too steep, continuing\n");
+    FallLogWrite("\n");
     position = next->lastPtOfContact;
     above = position;
     above.z += m_collisionBoxHeight;
