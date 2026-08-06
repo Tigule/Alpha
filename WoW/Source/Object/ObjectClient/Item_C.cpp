@@ -236,9 +236,20 @@ static void LoadItemCacheCallback(int id, const unsigned __int64& guid, void* ar
     return;
   }
 
+  CGPlayer_C *owner = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(item->GetOwner(), __FILE__, __LINE__));
+
   if (granted) {
     CGContainerInfo::UpdateContents(item->GetContainedIn());
     item->PostInitWithStats();
+
+    if (owner) {
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
+      owner->FixComponenting(item);
+      owner->ItemReceived(stats);
+      owner->UpdateReadyAnim(stats);
+    }
+  } else if (owner) {
+    owner->DecrementPendingItemStats();
   }
 }
 
@@ -247,6 +258,11 @@ void CGItem_C::PostInit(const CClientObjCreate &init) {
 
   if (g_itemDBCache.GetRecord(GetEntryID(), GetGUID(), LoadItemCacheCallback, 0)) {
     PostInitWithStats();
+  } else {
+    CGPlayer_C *owner = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(GetOwner(), __FILE__, __LINE__));
+    if (owner) {
+      owner->IncrementPendingItemStats();
+    }
   }
 }
 

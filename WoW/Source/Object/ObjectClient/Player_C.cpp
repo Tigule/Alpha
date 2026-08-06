@@ -7360,6 +7360,58 @@ void CGPlayer_C::SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec
   }
 }
 
+void CGPlayer_C::IncrementPendingItemStats() {
+  ++m_pendingItemStats;
+}
+
+void CGPlayer_C::DecrementPendingItemStats() {
+  if (--m_pendingItemStats <= 0) {
+    m_pendingItemStats = 0;
+    if (m_geosetHandle) {
+      CharCustomizationCommitItemGeosets(m_geosetHandle, 1);
+      CharCustomizationCommitGeosets(m_geosetHandle);
+    }
+  }
+
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CGGameUI::UpdateActivePlayer();
+    FrameScript_SignalEvent(183, "%s", "player");
+  }
+}
+
+void CGPlayer_C::FixComponenting(CGItem_C *item) {
+  for (unsigned int slot = 0; slot < 23; ++slot) {
+    if (m_inventory.GetItem(slot) != item->GetGUID() || !((1 << slot) & 0x783FD)) {
+      continue;
+    }
+
+    if (slot == INVSLOT_RANGED) {
+      AttachObjComponent(item->GetGUID(), INVSLOT_RANGED, 0, 0, -1);
+      SetSheatheReason(SHEATHE_RANGED, m_unit->weaponMode == WEAPONMODE_RANGEDMODE, 1);
+      continue;
+    }
+
+    if (!IsSlotComponented(slot, 1)) {
+      continue;
+    }
+
+    int linkPoint = -1;
+    if ((1 << slot) & 0x18000) {
+      linkPoint = SheatheTypeToSheathePoint(item->GetSheatheType(), slot);
+    }
+
+    AttachObjComponent(item->GetGUID(), slot, 0, m_unit->weaponMode == WEAPONMODE_SHEATHEDMODE, linkPoint);
+    AddComponent(item->GetDisplayID(), item->GetInventoryType(), slot, 0);
+
+    const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(item->GetDisplayID());
+    if (displayInfo) {
+      CharCustomizationAddItemGeosets(m_geosetHandle, displayInfo, item->GetInventoryType(), m_texComponent, m_unit->race, 1);
+    }
+  }
+
+  DecrementPendingItemStats();
+}
+
 void CGPlayer_C::ItemReceived(const ItemStats *stats) const {
   if (!stats || m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
     return;
