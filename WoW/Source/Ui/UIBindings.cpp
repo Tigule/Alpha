@@ -386,6 +386,7 @@ int CGUIBindings::Bind(const char *keystring, const char *command) {
       return 1;
     }
     FREEIFUSED(binding->command);
+    binding->index = GetNumCommandKeys(command);
   } else {
     if (!*command) {
       return 1;
@@ -394,7 +395,6 @@ int CGUIBindings::Bind(const char *keystring, const char *command) {
   }
 
   binding->command = SStrDupA(command, __FILE__, __LINE__);
-  binding->index = GetNumCommandKeys(command);
   return 1;
 }
 

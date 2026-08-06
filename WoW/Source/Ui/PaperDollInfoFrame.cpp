@@ -654,7 +654,11 @@ static int Script_PutItemInBag(lua_State *L) {
 }
 
 static int Script_PutItemInBackpack(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::PutItemInBackpack()));
+  if (CGCharacterInfo::PutItemInBackpack()) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
