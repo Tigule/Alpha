@@ -262,12 +262,19 @@ void CMovement::Redirect(
     return;
   }
 
+  FallLogWrite("0x%016I64X: Hit info flags X:", m_guid);
+  LogHitInfoFlags(hitInfoX.flags);
+  FallLogWrite(" Y:");
+  LogHitInfoFlags(hitInfoY.flags);
+  FallLogWrite("\n");
+
   unsigned int typeX = hitInfoX.flags & 0x1F;
   unsigned int typeY = hitInfoY.flags & 0x1F;
   int          corner =
       (((typeX == 8 || typeX == 16) && !typeY) || ((typeY == 8 || typeY == 16) && !typeX) || (typeX == 4 && !typeY) || (typeY == 4 && !typeX) ||
        (typeX == 4 && typeY == 4));
   if (corner) {
+    FallLogWrite("0x%016I64X: Corner of box hit obstacle, redirecting along obstacle\n", m_guid);
     const NTempest::C3Vector *newDirection;
     if (!hitInfoX.flags) {
       newDirection = &hitInfoY.surfaceNorm[0];
@@ -282,8 +289,10 @@ void CMovement::Redirect(
     }
     Obstruct(timeStamp, unitMoveVector, platformNorm, *newDirection);
   } else if ((hitInfoX.flags & 0x1B) && (hitInfoY.flags & 0x1B)) {
+    FallLogWrite("0x%016I64X: Both box sides hit obstacles, so stuck\n", m_guid);
     Halt(timeStamp);
   } else {
+    FallLogWrite("0x%016I64X: Hit obstacle corner, or multiple per box side, redirecting along box side\n", m_guid);
     NTempest::C3Vector newDirection(hitInfoX.flags & 0x1B ? 0.0f : 1.0f, hitInfoX.flags & 0x1B ? 1.0f : 0.0f, 0.0f);
     if (NTempest::C3Vector::Dot(newDirection, unitMoveVector) < 0.0f) {
       newDirection = newDirection * -1.0f;
@@ -298,13 +307,20 @@ void CMovement::Redirect(
     const NTempest::C3Vector &platformNorm,
     const CRedirect &hitInfo
 ) {
-  unsigned int hitType = hitInfo.flags & 0x1F;
   if (!hitInfo.flags) {
     return;
   }
+
+  FallLogWrite("0x%016I64X: Hit info flags: ", m_guid);
+  LogHitInfoFlags(hitInfo.flags);
+  FallLogWrite("\n");
+
+  unsigned int hitType = hitInfo.flags & 0x1F;
   if (hitType == 4 || hitType == 8 || hitType == 16) {
+    FallLogWrite("0x%016I64X: Box corner hit obstacle, redirecting along obstacle\n", m_guid);
     Obstruct(timeStamp, unitMoveVector, platformNorm, hitInfo.surfaceNorm[0]);
   } else {
+    FallLogWrite("0x%016I64X: Hit box face head-on, or hit obstacle corner, so stuck\n", m_guid);
     Halt(timeStamp);
   }
 }
@@ -313,36 +329,76 @@ void CMovement::AttemptRedirect(
     unsigned long timeStamp, const NTempest::C3Vector &unitMove, const NTempest::C3Vector &newDirection
 ) {
   NTempest::C2Vector newDirection2d(newDirection.x, newDirection.y);
-  float              length = static_cast<float>(sqrt(newDirection2d.x * newDirection2d.x + newDirection2d.y * newDirection2d.y));
+  float              length = NTempest::CMath::sqrt_(newDirection2d.x * newDirection2d.x + newDirection2d.y * newDirection2d.y);
   if (NTempest::CMath::fabs_(length) >= 0.00000023841858f) {
     newDirection2d.x /= length;
     newDirection2d.y /= length;
   }
 
-  if (m_moveFlags & 0x1000) {
-    if (NTempest::CMath::fabs_(m_reDirection.x - newDirection2d.x) < 0.00000095367432f &&
-        NTempest::CMath::fabs_(m_reDirection.y - newDirection2d.y) < 0.00000095367432f)
-    {
-      return;
-    }
-
-    float oldCross = unitMove.y * m_reDirection.x - unitMove.x * m_reDirection.y;
-    float newCross = unitMove.y * newDirection2d.x - unitMove.x * newDirection2d.y;
-    float oldDot = unitMove.x * m_reDirection.x + unitMove.y * m_reDirection.y;
-    float newDot = unitMove.x * newDirection2d.x + unitMove.y * newDirection2d.y;
-    if ((oldCross < 0.0f) != (newCross < 0.0f) && newDot - oldDot < 0.00000095367432f) {
-      m_reDirection.x = newDirection2d.x;
-      m_reDirection.y = newDirection2d.y;
-      m_reDirection.z = 0.0f;
-    } else {
-      Halt(timeStamp);
-    }
-  } else {
+  if (!(m_moveFlags & 0x1000)) {
     m_reDirection.x = newDirection2d.x;
     m_reDirection.y = newDirection2d.y;
-    m_reDirection.z = 0.0f;
     m_moveFlags |= 0x1000;
+    m_reDirection.z = 0.0f;
+    float cosTheta = NTempest::C3Vector::Dot(m_reDirection, unitMove);
+    if (cosTheta < -1.0f) {
+      cosTheta = -1.0f;
+    } else if (cosTheta > 1.0f) {
+      cosTheta = 1.0f;
+    }
+    FallLogWrite(
+        "0x%016I64X: wanted (%g,%g,%g), setting redirection (%g,%g) (%g deg off)\n", m_guid, unitMove.x, unitMove.y, unitMove.z,
+        m_reDirection.x, m_reDirection.y, acos(cosTheta) * 57.29578f
+    );
+    return;
   }
+
+  if (NTempest::CMath::fabs_(m_reDirection.x - newDirection2d.x) < 0.00000095367432f &&
+      NTempest::CMath::fabs_(m_reDirection.y - newDirection2d.y) < 0.00000095367432f)
+  {
+    FallLogWrite("0x%016I64X: redirected direction unchanged\n", m_guid);
+    return;
+  }
+
+  float oldCross = unitMove.y * m_reDirection.x - unitMove.x * m_reDirection.y;
+  float newCross = unitMove.y * newDirection2d.x - unitMove.x * newDirection2d.y;
+  float oldDot = unitMove.x * m_reDirection.x + unitMove.y * m_reDirection.y;
+  float newDot = unitMove.x * newDirection2d.x + unitMove.y * newDirection2d.y;
+  if ((oldCross < 0.0f) == (newCross >= 0.0f) || newDot - oldDot >= 0.00000095367432f) {
+    Halt(timeStamp);
+    float oldTheta = oldDot;
+    if (oldTheta < -1.0f) {
+      oldTheta = -1.0f;
+    } else if (oldTheta > 1.0f) {
+      oldTheta = 1.0f;
+    }
+    FallLogWrite(
+        "0x%016I64X: Already redirected (%g,%g) (%g deg off), new direction (%g,%g) (%g deg off) turns back into first "
+        "obstacle, stopping\n",
+        m_guid, m_reDirection.x, m_reDirection.y, acos(oldTheta) * 57.29578f, newDirection2d.x, newDirection2d.y, acos(oldTheta) * 57.29578f
+    );
+    return;
+  }
+
+  m_reDirection.x = newDirection2d.x;
+  m_reDirection.y = newDirection2d.y;
+  m_reDirection.z = 0.0f;
+  float oldTheta = oldDot;
+  if (oldTheta < -1.0f) {
+    oldTheta = -1.0f;
+  } else if (oldTheta > 1.0f) {
+    oldTheta = 1.0f;
+  }
+  float newTheta = newDot;
+  if (newTheta < -1.0f) {
+    newTheta = -1.0f;
+  } else if (newTheta > 1.0f) {
+    newTheta = 1.0f;
+  }
+  FallLogWrite(
+      "0x%016I64X: Already redirected (%g,%g) (%g deg off), new direction (%g,%g) (%g deg off) is sharper\n", m_guid, m_reDirection.x,
+      m_reDirection.y, acos(oldTheta) * 57.29578f, newDirection2d.x, newDirection2d.y, acos(newTheta) * 57.29578f
+  );
 }
 
 void CMovement::Obstruct(
@@ -351,10 +407,46 @@ void CMovement::Obstruct(
     const NTempest::C3Vector &platformNorm,
     const NTempest::C3Vector &facetNormHit
 ) {
-  float normalLength = facetNormHit.Mag();
-  if (normalLength < 0.00000095367432f || NTempest::C3Vector::Dot(facetNormHit, unitMove) > -0.0013888889f || !(m_moveFlags & 0xF)) {
+  if (NTempest::CMath::fabs_(facetNormHit.Mag()) < 0.00000095367432f) {
+    FallLogWrite("0x%016I64X: Obstacle hit is horizontal, can't redirect, stopping\n", m_guid);
     Halt(timeStamp);
     return;
+  }
+
+  if (NTempest::C3Vector::Dot(facetNormHit, unitMove) > -0.0013888889f) {
+    FallLogWrite("0x%016I64X: Obstacle hit faces away from movement vector, stopping\n", m_guid);
+    Halt(timeStamp);
+    return;
+  }
+
+  if (!(m_moveFlags & 0xF)) {
+    NTempest::C3Vector intPositionZ = GetPosition(m_position);
+    NTempest::C3Vector intPositionY = GetPosition(m_position);
+    NTempest::C3Vector intPositionX = GetPosition(m_position);
+    float              facing = GetFacing(m_facing);
+    NTempest::C3Vector positionZ = GetPosition(m_position);
+    NTempest::C3Vector positionY = GetPosition(m_position);
+    NTempest::C3Vector positionX = GetPosition(m_position);
+    int                intFacing = static_cast<int>(GetFacing(m_facing));
+    SErrDisplayErrorFmt(
+        STORM_ERROR_ASSERTION,
+        __FILE__,
+        __LINE__,
+        0,
+        1,
+        "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+        "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+        "IsMovingOrStrafing()",
+        m_guid,
+        positionX.x,
+        positionY.y,
+        positionZ.z,
+        facing,
+        static_cast<int>(intPositionX.x),
+        static_cast<int>(intPositionY.y),
+        static_cast<int>(intPositionZ.z),
+        intFacing
+    );
   }
 
   NTempest::C3Vector planeIntersect = NTempest::C3Vector::Cross(platformNorm, facetNormHit);
@@ -370,10 +462,14 @@ void CMovement::Obstruct(
     cosTheta = -cosTheta;
   }
   if (planeIntersect.SquaredMag() < 0.00000095367432f || (NTempest::CMath::fabs_(cosTheta) < 0.017452406f && (m_moveFlags & 0x4000))) {
+    FallLogWrite("0x%016I64X: new redirected direction is horizontal, stopping\n", m_guid);
     Halt(timeStamp);
     return;
   }
   AttemptRedirect(timeStamp, unitMove, planeIntersect);
+  if (m_moveFlags & 0xF) {
+    FallLogWrite("0x%016I64X: Setting redirected (D:\\build\\buildWoW\\WoW\\Source\\Object\\Collide.cpp: %d)\n", m_guid, 666);
+  }
 }
 
 void CMovement::CallMoveEventHandlers(unsigned long eventTime, int moveAdjusted, unsigned int oldMoveFlags, int wasJumping) {
@@ -419,7 +515,39 @@ float CMovement::RelDistanceFallen(unsigned long currentTime, float updateFallTi
   float fallStartElevation = m_position.z;
   if ((m_moveFlags & 0x4000) && currentTime != m_fallStartTime) {
     lastFallTime = static_cast<float>(currentTime - m_fallStartTime) * 0.001f;
-    FATALASSERT(lastFallTime >= 0.0f);
+    if (!(lastFallTime >= 0.0f)) {
+      if (this) {
+        NTempest::C3Vector intPositionZ = GetPosition(m_position);
+        NTempest::C3Vector intPositionY = GetPosition(m_position);
+        NTempest::C3Vector intPositionX = GetPosition(m_position);
+        float              facing = GetFacing(m_facing);
+        NTempest::C3Vector positionZ = GetPosition(m_position);
+        NTempest::C3Vector positionY = GetPosition(m_position);
+        NTempest::C3Vector positionX = GetPosition(m_position);
+        int                intFacing = static_cast<int>(GetFacing(m_facing));
+        SErrDisplayErrorFmt(
+            STORM_ERROR_ASSERTION,
+            __FILE__,
+            __LINE__,
+            0,
+            1,
+            "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+            "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+            "lastFallTime >= 0.0f",
+            m_guid,
+            positionX.x,
+            positionY.y,
+            positionZ.z,
+            facing,
+            static_cast<int>(intPositionX.x),
+            static_cast<int>(intPositionY.y),
+            static_cast<int>(intPositionZ.z),
+            intFacing
+        );
+      } else {
+        FATALASSERT(lastFallTime >= 0.0f);
+      }
+    }
     fallStartElevation = m_fallStartElevation;
   }
 
@@ -668,54 +796,163 @@ float CMovement::FindGroundDistanceBelow(float distanceToFall, unsigned __int64 
   NTempest::C3Vector unitMove(0.0f, 0.0f, -1.0f);
   NTempest::C3Vector surfNormals[4];
   unsigned int       numHits = 0;
-  float              shortestDist = distanceToFall;
   int                foundWalkable = 0;
   *gameObjHit = 0;
 
-  for (unsigned int side = 0; side < 4; ++side) {
-    NTempest::C4Plane boxPlanes[5];
-    NTempest::C4Plane startPlane;
-    if (side == 0) {
-      ExtrudeDownNegXFacet(distanceToFall, boxPlanes, &startPlane);
-    } else if (side == 1) {
-      ExtrudeDownPosXFacet(distanceToFall, boxPlanes, &startPlane);
-    } else if (side == 2) {
-      ExtrudeDownNegYFacet(distanceToFall, boxPlanes, &startPlane);
-    } else {
-      ExtrudeDownPosYFacet(distanceToFall, boxPlanes, &startPlane);
-    }
+  NTempest::C4Plane boxPlanes[5];
+  NTempest::C4Plane startPlane;
+  CRedirect          hitInfo;
+  float              distanceFallen = distanceToFall;
 
-    float     distanceFallen = distanceToFall;
-    CRedirect hitInfo;
-    FindObstacles(unitMove, boxPlanes, 5, startPlane, 1, &distanceFallen, &hitInfo);
-    if (!hitInfo.flags) {
-      continue;
+  FallLogWrite("0x%016I64X: Checking neg X side:\n", m_guid);
+  ExtrudeDownNegXFacet(distanceToFall, boxPlanes, &startPlane);
+  FindObstacles(unitMove, boxPlanes, 5, startPlane, 1, &distanceFallen, &hitInfo);
+  if (hitInfo.flags) {
+    surfNormals[0] = hitInfo.surfaceNorm[0];
+    numHits = 1;
+    if ((hitInfo.flags & 0x80) && NTempest::C3Vector::Dot(hitInfo.surfaceNorm[0], hitInfo.surfaceNorm[1]) <= 0.99984771f) {
+      surfNormals[numHits] = hitInfo.surfaceNorm[1];
+      ++numHits;
     }
+    foundWalkable = hitInfo.surfaceNorm[0].z > 0.64278764f;
+    *gameObjHit = hitInfo.gameObjHit;
+  }
+  FallLogWrite("0x%016I64X: Hit info flags neg X: ", m_guid);
+  LogHitInfoFlags(hitInfo.flags);
+  FallLogWrite("\n");
 
+  float shortestDist = distanceFallen;
+
+  FallLogWrite("0x%016I64X: Checking pos X side:\n", m_guid);
+  ExtrudeDownPosXFacet(distanceToFall, boxPlanes, &startPlane);
+  hitInfo.Reset();
+  distanceFallen = distanceToFall;
+  FindObstacles(unitMove, boxPlanes, 5, startPlane, 1, &distanceFallen, &hitInfo);
+  if (hitInfo.flags) {
     if (NTempest::CMath::fabs_(shortestDist - distanceFallen) < 0.013888889f) {
-      if (distanceFallen < shortestDist) {
+      if (!AddNormal(hitInfo.surfaceNorm[0], 4, surfNormals, &numHits)) {
+        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", m_guid);
+      }
+      if ((hitInfo.flags & 0x80) && !AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits)) {
+        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", m_guid);
+      }
+      if (shortestDist > distanceFallen) {
         shortestDist = distanceFallen;
       }
-      AddNormal(hitInfo.surfaceNorm[0], 4, surfNormals, &numHits);
-      if (hitInfo.flags & 0x80) {
-        AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits);
-      }
       foundWalkable |= hitInfo.surfaceNorm[0].z > 0.64278764f;
-      *gameObjHit = hitInfo.gameObjHit;
-    } else if (distanceFallen < shortestDist) {
-      shortestDist = distanceFallen;
-      numHits = 0;
-      AddNormal(hitInfo.surfaceNorm[0], 4, surfNormals, &numHits);
+    } else if (shortestDist > distanceFallen) {
+      surfNormals[0] = hitInfo.surfaceNorm[0];
+      numHits = 1;
       if (hitInfo.flags & 0x80) {
         AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits);
       }
+      shortestDist = distanceFallen;
       foundWalkable = hitInfo.surfaceNorm[0].z > 0.64278764f;
-      *gameObjHit = hitInfo.gameObjHit;
     }
+    *gameObjHit = hitInfo.gameObjHit;
   }
+  FallLogWrite("0x%016I64X: Hit info flags pos X: ", m_guid);
+  LogHitInfoFlags(hitInfo.flags);
+  FallLogWrite("\n");
+
+  FallLogWrite("0x%016I64X: Checking neg Y side:\n", m_guid);
+  ExtrudeDownNegYFacet(distanceToFall, boxPlanes, &startPlane);
+  hitInfo.Reset();
+  distanceFallen = distanceToFall;
+  FindObstacles(unitMove, boxPlanes, 5, startPlane, 1, &distanceFallen, &hitInfo);
+  if (hitInfo.flags) {
+    if (NTempest::CMath::fabs_(shortestDist - distanceFallen) < 0.013888889f) {
+      if (!AddNormal(hitInfo.surfaceNorm[0], 4, surfNormals, &numHits)) {
+        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", m_guid);
+      }
+      if ((hitInfo.flags & 0x80) && !AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits)) {
+        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", m_guid);
+      }
+      if (shortestDist > distanceFallen) {
+        shortestDist = distanceFallen;
+      }
+      if (hitInfo.surfaceNorm[0].z > 0.64278764f) {
+        foundWalkable |= 1;
+      }
+    } else if (shortestDist > distanceFallen) {
+      surfNormals[0] = hitInfo.surfaceNorm[0];
+      numHits = 1;
+      if (hitInfo.flags & 0x80) {
+        AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits);
+      }
+      shortestDist = distanceFallen;
+      foundWalkable = hitInfo.surfaceNorm[0].z > 0.64278764f;
+    }
+    *gameObjHit = hitInfo.gameObjHit;
+  }
+  FallLogWrite("0x%016I64X: Hit info flags neg Y: ", m_guid);
+  LogHitInfoFlags(hitInfo.flags);
+  FallLogWrite("\n");
+
+  FallLogWrite("0x%016I64X: Checking pos Y side:\n", m_guid);
+  ExtrudeDownPosYFacet(distanceToFall, boxPlanes, &startPlane);
+  hitInfo.Reset();
+  distanceFallen = distanceToFall;
+  FindObstacles(unitMove, boxPlanes, 5, startPlane, 1, &distanceFallen, &hitInfo);
+  if (hitInfo.flags) {
+    if (NTempest::CMath::fabs_(shortestDist - distanceFallen) < 0.013888889f) {
+      if (!AddNormal(hitInfo.surfaceNorm[0], 4, surfNormals, &numHits)) {
+        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", m_guid);
+      }
+      if ((hitInfo.flags & 0x80) && !AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits)) {
+        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", m_guid);
+      }
+      if (shortestDist > distanceFallen) {
+        shortestDist = distanceFallen;
+      }
+      if (hitInfo.surfaceNorm[0].z > 0.64278764f) {
+        foundWalkable |= 1;
+      }
+    } else if (shortestDist > distanceFallen) {
+      surfNormals[0] = hitInfo.surfaceNorm[0];
+      numHits = 1;
+      if (hitInfo.flags & 0x80) {
+        AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits);
+      }
+      shortestDist = distanceFallen;
+      foundWalkable = hitInfo.surfaceNorm[0].z > 0.64278764f;
+    }
+    *gameObjHit = hitInfo.gameObjHit;
+  }
+  FallLogWrite("0x%016I64X: Hit info flags pos Y: ", m_guid);
+  LogHitInfoFlags(hitInfo.flags);
+  FallLogWrite("\n");
 
   if (!foundWalkable && NTempest::CMath::fabs_(distanceToFall - shortestDist) >= 0.0013888889f) {
-    FATALASSERT(numHits > 0);
+    if (!numHits) {
+      NTempest::C3Vector intPositionZ = GetPosition(m_position);
+      NTempest::C3Vector intPositionY = GetPosition(m_position);
+      NTempest::C3Vector intPositionX = GetPosition(m_position);
+      float              facing = GetFacing(m_facing);
+      NTempest::C3Vector positionZ = GetPosition(m_position);
+      NTempest::C3Vector positionY = GetPosition(m_position);
+      NTempest::C3Vector positionX = GetPosition(m_position);
+      int                intFacing = static_cast<int>(GetFacing(m_facing));
+      SErrDisplayErrorFmt(
+          STORM_ERROR_ASSERTION,
+          __FILE__,
+          __LINE__,
+          0,
+          1,
+          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+          "numHits > 0",
+          m_guid,
+          positionX.x,
+          positionY.y,
+          positionZ.z,
+          facing,
+          static_cast<int>(intPositionX.x),
+          static_cast<int>(intPositionY.y),
+          static_cast<int>(intPositionZ.z),
+          intFacing
+      );
+    }
     if (GetSlidingDirection(m_guid, surfNormals, numHits, &m_reDirection)) {
       m_moveFlags |= 0x01000000;
     } else {
@@ -818,15 +1055,22 @@ float CMovement::ExtrudeProjectileBoxUpHill(
   for (int side = 0; side < 3; ++side) {
     startPlanes[side] = boxPlanes[side][0];
     startPlanes[side].d += 0.027777778f;
-    FindObstacles(unitMove, boxPlanes[side], 6, startPlanes[side], 0, &distance, &hitInfo);
   }
+  FallLogWrite("0x%016I64X: Checking X side:\n", m_guid);
+  FindObstacles(unitMove, boxPlanes[0], 6, startPlanes[0], 0, &distance, &hitInfo);
+  FallLogWrite("0x%016I64X: Checking Y side:\n", m_guid);
+  FindObstacles(unitMove, boxPlanes[1], 6, startPlanes[1], 0, &distance, &hitInfo);
+  FallLogWrite("0x%016I64X: Checking Z side:\n", m_guid);
+  FindObstacles(unitMove, boxPlanes[2], 6, startPlanes[2], 0, &distance, &hitInfo);
   if (pyrSideX) {
+    FallLogWrite("0x%016I64X: Checking Pyramid X side:\n", m_guid);
     FindObstacles(unitMove, boxPlanes[3], 5, boxPlanes[3][0], 1, &distance, &hitInfo);
     if (hitInfo.flags & 0x40) {
       *gameObjHit = hitInfo.gameObjHit;
     }
   }
   if (pyrSideY) {
+    FallLogWrite("0x%016I64X: Checking Pyramid Y side:\n", m_guid);
     FindObstacles(unitMove, boxPlanes[4], 5, boxPlanes[4][0], 1, &distance, &hitInfo);
     if (hitInfo.flags & 0x40) {
       *gameObjHit = hitInfo.gameObjHit;
@@ -862,9 +1106,14 @@ float CMovement::ExtrudeSlideBoxDownHill(const NTempest::C3Vector &unitMove, flo
   return distanceWanted > 0.0f ? distanceWanted : 0.0f;
 }
 
-static float GetDist2d(NTempest::C3Vector &unitMove, float closestDist3D) {
-  float horizontal = static_cast<float>(sqrt(unitMove.x * unitMove.x + unitMove.y * unitMove.y));
-  return horizontal * closestDist3D;
+static float GetDist2d(const NTempest::C3Vector &unitMove, float closestDist3D) {
+  if (closestDist3D >= FLT_MAX) {
+    return FLT_MAX;
+  }
+  float scaledY = closestDist3D * unitMove.y;
+  float scaledX = closestDist3D * unitMove.x;
+  float horizontal = NTempest::CMath::sqrt_(scaledY, scaledX);
+  return closestDist3D < 0.0f ? -horizontal : horizontal;
 }
 
 static NTempest::C3Vector ComputeFlyRedirection(
@@ -1049,17 +1298,21 @@ float CMovement::ExtrudeProjectileBoxDownHill(
   startPlanes[0].d += 0.027777778f;
   startPlanes[1] = boxPlanes[1][0];
   startPlanes[1].d += 0.027777778f;
+  FallLogWrite("0x%016I64X: Checking X side:\n", m_guid);
   FindObstacles(unitMove, boxPlanes[0], 6, startPlanes[0], 0, &distanceX, &hitInfoX);
+  FallLogWrite("0x%016I64X: Checking Y side:\n", m_guid);
   FindObstacles(unitMove, boxPlanes[1], 6, startPlanes[1], 0, &distanceY, &hitInfoY);
   hitInfoX.gameObjHit = 0;
   hitInfoY.gameObjHit = 0;
   if (pyrSideX) {
+    FallLogWrite("0x%016I64X: Checking Pyramid X side:\n", m_guid);
     FindObstacles(unitMove, boxPlanes[2], 5, boxPlanes[2][0], 1, &distanceX, &hitInfoX);
     if (hitInfoX.gameObjHit) {
       *gameObjHit = hitInfoX.gameObjHit;
     }
   }
   if (pyrSideY) {
+    FallLogWrite("0x%016I64X: Checking Pyramid Y side:\n", m_guid);
     FindObstacles(unitMove, boxPlanes[3], 5, boxPlanes[3][0], 1, &distanceY, &hitInfoY);
     if (hitInfoY.gameObjHit) {
       *gameObjHit = hitInfoY.gameObjHit;
@@ -1655,8 +1908,38 @@ int CMovement::IsTooLow(
     float               currSpeedInv
 ) {
   float minElevation;
-  if (distanceMoved >= surface->farDist) {
-    LogWrite("0x%016I64X: distanceMoved(%g) beyond surface(%g,%g)\n", m_guid, distanceMoved, surface->closeDist, surface->farDist);
+  if (!(distanceMoved < surface->farDist)) {
+    if (this) {
+      NTempest::C3Vector intPositionZ = GetPosition(m_position);
+      NTempest::C3Vector intPositionY = GetPosition(m_position);
+      NTempest::C3Vector intPositionX = GetPosition(m_position);
+      float              facing = GetFacing(m_facing);
+      NTempest::C3Vector positionZ = GetPosition(m_position);
+      NTempest::C3Vector positionY = GetPosition(m_position);
+      NTempest::C3Vector positionX = GetPosition(m_position);
+      int                intFacing = static_cast<int>(GetFacing(m_facing));
+      SErrDisplayErrorFmt(
+          STORM_ERROR_ASSERTION,
+          __FILE__,
+          __LINE__,
+          0,
+          1,
+          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+          "distanceMoved < surface->farDist",
+          m_guid,
+          positionX.x,
+          positionY.y,
+          positionZ.z,
+          facing,
+          static_cast<int>(intPositionX.x),
+          static_cast<int>(intPositionY.y),
+          static_cast<int>(intPositionZ.z),
+          intFacing
+      );
+    } else {
+      FATALASSERT(distanceMoved < surface->farDist);
+    }
   }
   minElevation = position.z - (surface->farDist - distanceMoved) * 1.1917536f;
   LogWrite(
@@ -1678,8 +1961,38 @@ int CMovement::IsTooLow(
     if (m_moveFlags & 0x4000) {
       timeToFall = moveStartTime + timeToFall - m_fallStartTime;
     }
-    if (timeToFall < 0) {
-      LogWrite("0x%016I64X: timeToFall(%d) less than zero\n", m_guid, timeToFall);
+    if (!(timeToFall >= 0)) {
+      if (this) {
+        NTempest::C3Vector intPositionZ = GetPosition(m_position);
+        NTempest::C3Vector intPositionY = GetPosition(m_position);
+        NTempest::C3Vector intPositionX = GetPosition(m_position);
+        float              facing = GetFacing(m_facing);
+        NTempest::C3Vector positionZ = GetPosition(m_position);
+        NTempest::C3Vector positionY = GetPosition(m_position);
+        NTempest::C3Vector positionX = GetPosition(m_position);
+        int                intFacing = static_cast<int>(GetFacing(m_facing));
+        SErrDisplayErrorFmt(
+            STORM_ERROR_ASSERTION,
+            __FILE__,
+            __LINE__,
+            0,
+            1,
+            "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+            "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+            "timeToFall >= 0",
+            m_guid,
+            positionX.x,
+            positionY.y,
+            positionZ.z,
+            facing,
+            static_cast<int>(intPositionX.x),
+            static_cast<int>(intPositionY.y),
+            static_cast<int>(intPositionZ.z),
+            intFacing
+        );
+      } else {
+        FATALASSERT(timeToFall >= 0);
+      }
     }
     minElevation = position.z - RelDistanceFallen(timeToFall);
     LogWrite(
@@ -2542,9 +2855,9 @@ void CMovement::FindObstacles(
     float              *closestDist,
     CRedirect          *hitInfo
 ) {
-  unsigned int numFacets = s_facetData.facets.Count();
-  float        minDist;
-  unsigned int savedFlags;
+  unsigned int  numFacets = s_facetData.facets.Count();
+  float         minDist;
+  unsigned char savedFlags;
   for (unsigned int facetId = 0; facetId < numFacets; ++facetId) {
     if (NTempest::C3Vector::Dot(s_facetData.facets[facetId].plane.n, unitMoveVector) > -0.017452406f) {
       CollisionInfoColorFace(facetId, FACET_TESTED_UNTOUCHED);
@@ -2632,51 +2945,244 @@ float CMovement::ExtrudeCollisionShape(
     const NTempest::C2Vector &unitMoveWanted,
     const NTempest::C3Vector &platformNorm
 ) {
+  int aligned = NTempest::CMath::fabs_(moveVector.x) < 0.00000095367432f || NTempest::CMath::fabs_(moveVector.y) < 0.00000095367432f;
+  if (moveVector.z < 0.00000095367432f) {
+    return aligned ? ExtrudeAlignedDownHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm)
+                   : ExtrudeUnalignedDownHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm);
+  }
+  return aligned ? ExtrudeAlignedUpHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm)
+                 : ExtrudeUnalignedUpHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm);
+}
+
+float CMovement::ExtrudeAlignedDownHill(
+    unsigned long       timeStamp,
+    const NTempest::C3Vector &moveVector,
+    float               distanceWanted,
+    const NTempest::C2Vector &unitMoveWanted,
+    const NTempest::C3Vector &platformNorm
+) {
+  NTempest::C4Plane boxPlanes[6];
+  if (NTempest::CMath::fabs_(moveVector.x) < 0.00000095367432f) {
+    ExtrudeBoxSideY(moveVector, m_stepUpHeight, boxPlanes);
+  } else {
+    ExtrudeBoxSideX(moveVector, m_stepUpHeight, boxPlanes);
+  }
+
+  NTempest::C4Plane startPlane = boxPlanes[0];
+  startPlane.d += 0.027777778f;
+
   NTempest::C3Vector unitMove = moveVector;
-  if (unitMove.Mag() >= 0.00000023841858f) {
-    unitMove.Normalize();
+  unitMove.Normalize();
+
+  float     distance = FLT_MAX;
+  CRedirect hitInfo;
+  FallLogWrite("0x%016I64X: Checking XY side:\n", m_guid);
+  FindObstacles(unitMove, boxPlanes, 6, startPlane, 2, &distance, &hitInfo);
+
+  if (distance < distanceWanted && hitInfo.flags) {
+    Redirect(timeStamp, NTempest::C3Vector(unitMoveWanted.x, unitMoveWanted.y, 0.0f), platformNorm, hitInfo);
   }
-  NTempest::C4Plane boxPlanes[3][6];
-  NTempest::C4Plane startPlanes[3];
-  CRedirect         hitInfoX;
-  CRedirect         hitInfoY;
-  CRedirect         hitInfoZ;
-  float             distances[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
-  float             bottom = m_stepUpHeight;
-  ExtrudeBoxSideX(moveVector, bottom, boxPlanes[0]);
-  ExtrudeBoxSideY(moveVector, bottom, boxPlanes[1]);
-  ExtrudeBoxSideZ(moveVector, bottom, boxPlanes[2]);
-  CRedirect *hitInfo[3] = {&hitInfoX, &hitInfoY, &hitInfoZ};
-  for (int side = 0; side < 3; ++side) {
-    startPlanes[side] = boxPlanes[side][0];
-    startPlanes[side].d += 0.027777778f;
-    FindObstacles(unitMove, boxPlanes[side], 6, startPlanes[side], 0, &distances[side], hitInfo[side]);
+  return GetDist2d(unitMove, distance);
+}
+
+float CMovement::ExtrudeAlignedUpHill(
+    unsigned long       timeStamp,
+    const NTempest::C3Vector &moveVector,
+    float               distanceWanted,
+    const NTempest::C2Vector &unitMoveWanted,
+    const NTempest::C3Vector &platformNorm
+) {
+  NTempest::C4Plane zBoxPlanes[6];
+  ExtrudeBoxSideZ(moveVector, m_stepUpHeight, zBoxPlanes);
+
+  NTempest::C4Plane xyBoxPlanes[6];
+  if (NTempest::CMath::fabs_(moveVector.x) < 0.00000095367432f) {
+    ExtrudeBoxSideY(moveVector, m_stepUpHeight, xyBoxPlanes);
+  } else {
+    ExtrudeBoxSideX(moveVector, m_stepUpHeight, xyBoxPlanes);
   }
-  float distance = distances[0];
-  if (distances[1] < distance) {
-    distance = distances[1];
-  }
-  if (distances[2] < distance) {
-    distance = distances[2];
-  }
-  if (NTempest::CMath::fabs_(distances[0] - distance) >= 0.0013888889f) {
-    hitInfoX.Reset();
-  }
-  if (NTempest::CMath::fabs_(distances[1] - distance) >= 0.0013888889f) {
-    hitInfoY.Reset();
-  }
-  if (NTempest::CMath::fabs_(distances[2] - distance) >= 0.0013888889f) {
-    hitInfoZ.Reset();
-  }
-  if (distance < distanceWanted) {
-    NTempest::C3Vector wanted(unitMoveWanted.x, unitMoveWanted.y, 0.0f);
-    if (hitInfoX.flags || hitInfoY.flags) {
-      Redirect(timeStamp, wanted, platformNorm, hitInfoX, hitInfoY);
-    } else {
-      Redirect(timeStamp, wanted, platformNorm, hitInfoZ);
+
+  NTempest::C4Plane startPlanes[2];
+  startPlanes[0] = xyBoxPlanes[0];
+  startPlanes[0].d += 0.027777778f;
+  startPlanes[1] = zBoxPlanes[0];
+  startPlanes[1].d += 0.027777778f;
+
+  NTempest::C3Vector unitMove = moveVector;
+  unitMove.Normalize();
+
+  float     distance = FLT_MAX;
+  float     distanceZ = FLT_MAX;
+  CRedirect hitInfoXY;
+  CRedirect hitInfoZ;
+
+  FallLogWrite("0x%016I64X: Checking XY side:\n", m_guid);
+  FindObstacles(unitMove, xyBoxPlanes, 6, startPlanes[0], 2, &distance, &hitInfoXY);
+  FallLogWrite("0x%016I64X: Checking Z side:\n", m_guid);
+  FindObstacles(unitMove, zBoxPlanes, 6, startPlanes[1], 2, &distanceZ, &hitInfoZ);
+
+  if (hitInfoXY.flags && distance - distanceZ < 0.0013888889f) {
+    if (NTempest::CMath::fabs_(distance - distanceZ) >= 0.0013888889f) {
+      hitInfoZ.flags = 0;
+    }
+    if (distance < distanceWanted) {
+      Redirect(timeStamp, NTempest::C3Vector(unitMoveWanted.x, unitMoveWanted.y, 0.0f), platformNorm, hitInfoXY);
+    }
+  } else if (hitInfoZ.flags) {
+    if (NTempest::CMath::fabs_(distance - distanceZ) >= 0.0013888889f) {
+      hitInfoXY.flags = 0;
+    }
+    distance = distanceZ;
+    if (distanceZ < distanceWanted) {
+      Redirect(timeStamp, NTempest::C3Vector(unitMoveWanted.x, unitMoveWanted.y, 0.0f), platformNorm, hitInfoZ);
     }
   }
-  return distance > 0.0f ? distance : 0.0f;
+  return GetDist2d(unitMove, distance);
+}
+
+float CMovement::ExtrudeUnalignedDownHill(
+    unsigned long       timeStamp,
+    const NTempest::C3Vector &moveVector,
+    float               distanceWanted,
+    const NTempest::C2Vector &unitMoveWanted,
+    const NTempest::C3Vector &platformNorm
+) {
+  NTempest::C4Plane xBoxPlanes[6];
+  NTempest::C4Plane yBoxPlanes[6];
+  ExtrudeBoxSideX(moveVector, m_stepUpHeight, xBoxPlanes);
+  ExtrudeBoxSideY(moveVector, m_stepUpHeight, yBoxPlanes);
+
+  NTempest::C4Plane startPlanes[2];
+  startPlanes[0] = xBoxPlanes[0];
+  startPlanes[0].d += 0.027777778f;
+  startPlanes[1] = yBoxPlanes[0];
+  startPlanes[1].d += 0.027777778f;
+
+  NTempest::C3Vector unitMove = moveVector;
+  unitMove.Normalize();
+
+  float     distance = FLT_MAX;
+  float     distanceY = FLT_MAX;
+  CRedirect hitInfoX;
+  CRedirect hitInfoY;
+
+  FallLogWrite("0x%016I64X: Checking X side:\n", m_guid);
+  FindObstacles(unitMove, xBoxPlanes, 6, startPlanes[0], 2, &distance, &hitInfoX);
+  FallLogWrite("0x%016I64X: Checking Y side:\n", m_guid);
+  FindObstacles(unitMove, yBoxPlanes, 6, startPlanes[1], 2, &distanceY, &hitInfoY);
+
+  if (distance >= distanceY) {
+    if (NTempest::CMath::fabs_(distance - distanceY) >= 0.0013888889f) {
+      hitInfoX.flags = 0;
+    }
+    distance = distanceY;
+  } else {
+    if (NTempest::CMath::fabs_(distance - distanceY) >= 0.0013888889f) {
+      hitInfoY.flags = 0;
+    }
+  }
+
+  if (distance < distanceWanted && (hitInfoX.flags || hitInfoY.flags)) {
+    Redirect(timeStamp, NTempest::C3Vector(unitMoveWanted.x, unitMoveWanted.y, 0.0f), platformNorm, hitInfoX, hitInfoY);
+  }
+  return GetDist2d(unitMove, distance);
+}
+
+float CMovement::ExtrudeUnalignedUpHill(
+    unsigned long       timeStamp,
+    const NTempest::C3Vector &moveVector,
+    float               distanceWanted,
+    const NTempest::C2Vector &unitMoveWanted,
+    const NTempest::C3Vector &platformNorm
+) {
+  NTempest::C4Plane xBoxPlanes[6];
+  NTempest::C4Plane yBoxPlanes[6];
+  NTempest::C4Plane zBoxPlanes[6];
+  ExtrudeBoxSideX(moveVector, m_stepUpHeight, xBoxPlanes);
+  ExtrudeBoxSideY(moveVector, m_stepUpHeight, yBoxPlanes);
+  ExtrudeBoxSideZ(moveVector, m_stepUpHeight, zBoxPlanes);
+
+  NTempest::C4Plane startPlanes[3];
+  startPlanes[0] = xBoxPlanes[0];
+  startPlanes[0].d += 0.027777778f;
+  startPlanes[1] = yBoxPlanes[0];
+  startPlanes[1].d += 0.027777778f;
+  startPlanes[2] = zBoxPlanes[0];
+  startPlanes[2].d += 0.027777778f;
+
+  NTempest::C3Vector unitMove = moveVector;
+  unitMove.Normalize();
+
+  NTempest::C3Vector paramDist(FLT_MAX, FLT_MAX, FLT_MAX);
+  CRedirect          hitInfoX;
+  CRedirect          hitInfoY;
+  CRedirect          hitInfoZ;
+
+  FallLogWrite("0x%016I64X: Checking X side:\n", m_guid);
+  FindObstacles(unitMove, xBoxPlanes, 6, startPlanes[0], 2, &paramDist.x, &hitInfoX);
+  FallLogWrite("0x%016I64X: Checking Y side:\n", m_guid);
+  FindObstacles(unitMove, yBoxPlanes, 6, startPlanes[1], 2, &paramDist.y, &hitInfoY);
+  FallLogWrite("0x%016I64X: Checking Z side:\n", m_guid);
+  FindObstacles(unitMove, zBoxPlanes, 6, startPlanes[2], 2, &paramDist.z, &hitInfoZ);
+
+  CRedirect *hitInfoA;
+  CRedirect *hitInfoB;
+  float      distance;
+  int        wantRedirect = 0;
+
+  if (!hitInfoX.flags || paramDist.x >= paramDist.y || paramDist.x - paramDist.z >= 0.0013888889f) {
+    if (hitInfoY.flags && paramDist.y - paramDist.z < 0.0013888889f) {
+      distance = paramDist.y;
+      if (NTempest::CMath::fabs_(paramDist.y - paramDist.x) >= 0.0013888889f) {
+        hitInfoX.flags = 0;
+      }
+      if (NTempest::CMath::fabs_(paramDist.y - paramDist.z) >= 0.0013888889f) {
+        hitInfoZ.flags = 0;
+      }
+      if (paramDist.y < distanceWanted) {
+        hitInfoA = &hitInfoX;
+        hitInfoB = &hitInfoY;
+        wantRedirect = 1;
+      }
+    } else if (hitInfoZ.flags) {
+      distance = paramDist.z;
+      if (NTempest::CMath::fabs_(paramDist.z - paramDist.x) >= 0.0013888889f) {
+        hitInfoX.flags = 0;
+      }
+      if (NTempest::CMath::fabs_(paramDist.z - paramDist.y) >= 0.0013888889f) {
+        hitInfoY.flags = 0;
+      }
+      if (paramDist.z < distanceWanted) {
+        if (NTempest::CMath::fabs_(unitMoveWanted.y) >= NTempest::CMath::fabs_(unitMoveWanted.x)) {
+          hitInfoA = &hitInfoY;
+        } else {
+          hitInfoA = &hitInfoX;
+        }
+        hitInfoB = &hitInfoZ;
+        wantRedirect = 1;
+      }
+    } else {
+      distance = FLT_MAX;
+    }
+  } else {
+    distance = paramDist.x;
+    if (NTempest::CMath::fabs_(paramDist.x - paramDist.y) >= 0.0013888889f) {
+      hitInfoY.flags = 0;
+    }
+    if (NTempest::CMath::fabs_(paramDist.x - paramDist.z) >= 0.0013888889f) {
+      hitInfoZ.flags = 0;
+    }
+    if (paramDist.x < distanceWanted) {
+      hitInfoA = &hitInfoX;
+      hitInfoB = &hitInfoY;
+      wantRedirect = 1;
+    }
+  }
+
+  if (wantRedirect) {
+    Redirect(timeStamp, NTempest::C3Vector(unitMoveWanted.x, unitMoveWanted.y, 0.0f), platformNorm, *hitInfoA, *hitInfoB);
+  }
+  return GetDist2d(unitMove, distance);
 }
 
 int CMovement::TestStepUp(const NTempest::C3Vector &destination) {
@@ -2710,179 +3216,260 @@ int CMovement::TestStepUp(const NTempest::C3Vector &destination) {
   return distance >= distWanted;
 }
 
-void CMovement::ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
-  float              height[2] = {bottom, m_collisionBoxHeight};
+void CMovement::ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides) {
+  int posZ = moveVector.z >= 0.0f;
+
+  NTempest::C4Plane basePlane;
+  if (posZ) {
+    basePlane.n.Set(0.0f, 0.0f, 1.0f);
+    basePlane.d = -(m_collisionBoxHeight + m_position.z);
+  } else {
+    basePlane.n.Set(0.0f, 0.0f, -1.0f);
+    basePlane.d = m_stepUpHeight + m_position.z;
+  }
+
+  float height[2] = {bottom, m_collisionBoxHeight};
+
   NTempest::C3Vector moveDir[2] = {-moveVector, moveVector};
-  int                posZ = moveVector.z >= 0.0f;
-  if (moveDir[0].Mag() >= 0.00000023841858f) {
-    moveDir[0].Normalize();
-    moveDir[1].Normalize();
+
+  boxSides[0].n = -basePlane.n;
+  boxSides[0].d = -basePlane.d - 0.027777778f;
+
+  boxSides[1].n = basePlane.n;
+  boxSides[1].d = basePlane.d - (moveDir[posZ].z > 0.027777778f ? moveDir[posZ].z : 0.027777778f);
+
+  NTempest::C3Vector leftPoint(
+      m_position.x - m_collisionBoxHalfDepth, m_position.y - m_collisionBoxHalfDepth, m_position.z + height[posZ]
+  );
+  NTempest::C3Vector rghtPoint(
+      m_position.x + m_collisionBoxHalfDepth, m_position.y + m_collisionBoxHalfDepth, m_position.z + height[posZ]
+  );
+
+  NTempest::C3Vector posYNorm(0.0f, moveDir[posZ].z, -moveDir[posZ].y);
+  NTempest::C3Vector negYNorm(0.0f, -moveDir[posZ].z, moveDir[posZ].y);
+  float              negYMag = negYNorm.Mag();
+  if (NTempest::CMath::fabs_(negYMag) >= 0.00000023841858f) {
+    float invMag = 1.0f / negYMag;
+    negYNorm *= invMag;
+    posYNorm *= invMag;
   }
 
-  float              faceZ = m_position.z + height[posZ];
-  NTempest::C3Vector leftPoint(m_position.x - m_collisionBoxHalfDepth, m_position.y - m_collisionBoxHalfDepth, faceZ);
-  NTempest::C3Vector rghtPoint(m_position.x + m_collisionBoxHalfDepth, m_position.y + m_collisionBoxHalfDepth, faceZ);
-  NTempest::C3Vector face[4] = {
-      leftPoint, NTempest::C3Vector(rghtPoint.x, leftPoint.y, faceZ), rghtPoint, NTempest::C3Vector(leftPoint.x, rghtPoint.y, faceZ)
-  };
-  NTempest::C4Plane basePlane(moveDir[0], face[0]);
-  boxSides[0] = basePlane;
-  NTempest::C3Vector endPoint = face[0] + moveVector;
-  boxSides[1].Set(moveDir[1], endPoint);
-
-  NTempest::C3Vector center = m_position + moveVector * 0.5f;
-  center.z = faceZ + moveVector.z * 0.5f;
-  for (int side = 0; side < 4; ++side) {
-    NTempest::C3Vector edge = face[(side + 1) & 3] - face[side];
-    NTempest::C3Vector normal = NTempest::C3Vector::Cross(edge, moveVector);
-    if (normal.Mag() >= 0.00000023841858f) {
-      normal.Normalize();
-    }
-    boxSides[side + 2].Set(normal, face[side]);
-    if (boxSides[side + 2].DistSigned(center) > 0.0f) {
-      boxSides[side + 2] = -boxSides[side + 2];
-    }
+  NTempest::C3Vector posXNorm(moveDir[posZ].z, 0.0f, -moveDir[posZ].x);
+  NTempest::C3Vector negXNorm(-moveDir[posZ].z, 0.0f, moveDir[posZ].x);
+  float              posXMag = posXNorm.Mag();
+  if (NTempest::CMath::fabs_(posXMag) >= 0.00000023841858f) {
+    float invMag = 1.0f / posXMag;
+    posXNorm *= invMag;
+    negXNorm *= invMag;
   }
+
+  boxSides[2].n = negYNorm;
+  boxSides[2].d = -NTempest::C3Vector::Dot(leftPoint, negYNorm);
+  boxSides[3].n = posYNorm;
+  boxSides[3].d = -NTempest::C3Vector::Dot(rghtPoint, posYNorm);
+  boxSides[4].n = posXNorm;
+  boxSides[4].d = -NTempest::C3Vector::Dot(rghtPoint, posXNorm);
+  boxSides[5].n = negXNorm;
+  boxSides[5].d = -NTempest::C3Vector::Dot(leftPoint, negXNorm);
 }
 
-void CMovement::ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
-  float              depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
+void CMovement::ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides) {
+  int posY = moveVector.y >= 0.0f;
+
+  NTempest::C4Plane basePlane;
+  if (posY) {
+    basePlane.n.Set(0.0f, 1.0f, 0.0f);
+    basePlane.d = -(m_position.y + m_collisionBoxHalfDepth);
+  } else {
+    basePlane.n.Set(0.0f, -1.0f, 0.0f);
+    basePlane.d = m_position.y - m_collisionBoxHalfDepth;
+  }
+
+  float depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
+
   NTempest::C3Vector moveDir[2] = {-moveVector, moveVector};
-  int                posY = moveVector.y >= 0.0f;
-  if (moveDir[0].Mag() >= 0.00000023841858f) {
-    moveDir[0].Normalize();
-    moveDir[1].Normalize();
+
+  boxSides[0].n = -basePlane.n;
+  boxSides[0].d = -basePlane.d - 0.027777778f;
+
+  boxSides[1].n = basePlane.n;
+  boxSides[1].d = basePlane.d - (moveDir[posY].y > 0.027777778f ? moveDir[posY].y : 0.027777778f);
+
+  NTempest::C3Vector topPoint(
+      m_position.x + m_collisionBoxHalfDepth, m_position.y + depth[posY], m_position.z + m_collisionBoxHeight
+  );
+  NTempest::C3Vector botPoint(m_position.x - m_collisionBoxHalfDepth, m_position.y + depth[posY], m_position.z + bottom);
+
+  NTempest::C3Vector posXNorm(moveDir[posY].y, moveDir[!posY].x, 0.0f);
+  NTempest::C3Vector negXNorm(moveDir[!posY].y, moveDir[posY].x, 0.0f);
+  float              posXMag = posXNorm.Mag();
+  if (NTempest::CMath::fabs_(posXMag) >= 0.00000023841858f) {
+    float invMag = 1.0f / posXMag;
+    posXNorm *= invMag;
+    negXNorm *= invMag;
   }
 
-  float              faceY = m_position.y + depth[posY];
-  NTempest::C3Vector botPoint(m_position.x - m_collisionBoxHalfDepth, faceY, m_position.z + bottom);
-  NTempest::C3Vector topPoint(m_position.x + m_collisionBoxHalfDepth, faceY, m_position.z + m_collisionBoxHeight);
-  NTempest::C3Vector face[4] = {
-      botPoint, NTempest::C3Vector(topPoint.x, faceY, botPoint.z), topPoint, NTempest::C3Vector(botPoint.x, faceY, topPoint.z)
-  };
-  NTempest::C4Plane basePlane(moveDir[0], face[0]);
-  boxSides[0] = basePlane;
-  NTempest::C3Vector endPoint = face[0] + moveVector;
-  boxSides[1].Set(moveDir[1], endPoint);
-
-  NTempest::C3Vector center = m_position + moveVector * 0.5f;
-  center.y = faceY + moveVector.y * 0.5f;
-  center.z += (bottom + m_collisionBoxHeight) * 0.5f;
-  for (int side = 0; side < 4; ++side) {
-    NTempest::C3Vector edge = face[(side + 1) & 3] - face[side];
-    NTempest::C3Vector normal = NTempest::C3Vector::Cross(edge, moveVector);
-    if (normal.Mag() >= 0.00000023841858f) {
-      normal.Normalize();
-    }
-    boxSides[side + 2].Set(normal, face[side]);
-    if (boxSides[side + 2].DistSigned(center) > 0.0f) {
-      boxSides[side + 2] = -boxSides[side + 2];
-    }
+  NTempest::C3Vector posZNorm(0.0f, moveDir[!posY].z, moveDir[posY].y);
+  NTempest::C3Vector negZNorm(0.0f, moveDir[posY].z, moveDir[!posY].y);
+  float              posZMag = posZNorm.Mag();
+  if (NTempest::CMath::fabs_(posZMag) >= 0.00000023841858f) {
+    float invMag = 1.0f / posZMag;
+    posZNorm *= invMag;
+    negZNorm *= invMag;
   }
+
+  boxSides[2].n = posXNorm;
+  boxSides[2].d = -NTempest::C3Vector::Dot(topPoint, posXNorm);
+  boxSides[3].n = negXNorm;
+  boxSides[3].d = -NTempest::C3Vector::Dot(botPoint, negXNorm);
+  boxSides[4].n = posZNorm;
+  boxSides[4].d = -NTempest::C3Vector::Dot(topPoint, posZNorm);
+  boxSides[5].n = negZNorm;
+  boxSides[5].d = -NTempest::C3Vector::Dot(botPoint, negZNorm);
 }
 
-void CMovement::ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
-  float              depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
+void CMovement::ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides) {
+  int posX = moveVector.x >= 0.0f;
+
+  NTempest::C4Plane basePlane;
+  basePlane.n.Set(posX ? 1.0f : -1.0f, 0.0f, 0.0f);
+  basePlane.d = (posX ? -m_position.x : m_position.x) - m_collisionBoxHalfDepth;
+
+  float depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
+
   NTempest::C3Vector moveDir[2] = {-moveVector, moveVector};
-  int                posX = moveVector.x >= 0.0f;
-  if (moveDir[0].Mag() >= 0.00000023841858f) {
-    moveDir[0].Normalize();
-    moveDir[1].Normalize();
+
+  boxSides[0].n = -basePlane.n;
+  boxSides[0].d = -basePlane.d - 0.027777778f;
+
+  boxSides[1].n = basePlane.n;
+  boxSides[1].d = basePlane.d - (moveDir[posX].x > 0.027777778f ? moveDir[posX].x : 0.027777778f);
+
+  NTempest::C3Vector topPoint(
+      m_position.x + depth[posX], m_position.y + m_collisionBoxHalfDepth, m_position.z + m_collisionBoxHeight
+  );
+  NTempest::C3Vector botPoint(m_position.x + depth[posX], m_position.y - m_collisionBoxHalfDepth, m_position.z + bottom);
+
+  NTempest::C3Vector posYNorm(moveDir[!posX].y, moveDir[posX].x, 0.0f);
+  NTempest::C3Vector negYNorm(moveDir[posX].y, moveDir[!posX].x, 0.0f);
+  float              negYMag = negYNorm.Mag();
+  if (NTempest::CMath::fabs_(negYMag) >= 0.00000023841858f) {
+    float invMag = 1.0f / negYMag;
+    negYNorm *= invMag;
+    posYNorm *= invMag;
   }
 
-  float              faceX = m_position.x + depth[posX];
-  NTempest::C3Vector botPoint(faceX, m_position.y - m_collisionBoxHalfDepth, m_position.z + bottom);
-  NTempest::C3Vector topPoint(faceX, m_position.y + m_collisionBoxHalfDepth, m_position.z + m_collisionBoxHeight);
-  NTempest::C3Vector face[4] = {
-      botPoint, NTempest::C3Vector(faceX, topPoint.y, botPoint.z), topPoint, NTempest::C3Vector(faceX, botPoint.y, topPoint.z)
-  };
-  NTempest::C4Plane basePlane(moveDir[0], face[0]);
-  boxSides[0] = basePlane;
-  NTempest::C3Vector endPoint = face[0] + moveVector;
-  boxSides[1].Set(moveDir[1], endPoint);
-
-  NTempest::C3Vector center = m_position + moveVector * 0.5f;
-  center.x = faceX + moveVector.x * 0.5f;
-  center.z += (bottom + m_collisionBoxHeight) * 0.5f;
-  for (int side = 0; side < 4; ++side) {
-    NTempest::C3Vector edge = face[(side + 1) & 3] - face[side];
-    NTempest::C3Vector normal = NTempest::C3Vector::Cross(edge, moveVector);
-    if (normal.Mag() >= 0.00000023841858f) {
-      normal.Normalize();
-    }
-    boxSides[side + 2].Set(normal, face[side]);
-    if (boxSides[side + 2].DistSigned(center) > 0.0f) {
-      boxSides[side + 2] = -boxSides[side + 2];
-    }
+  NTempest::C3Vector posZNorm(moveDir[!posX].z, 0.0f, moveDir[posX].x);
+  NTempest::C3Vector negZNorm(moveDir[posX].z, 0.0f, moveDir[!posX].x);
+  float              posZMag = posZNorm.Mag();
+  if (NTempest::CMath::fabs_(posZMag) >= 0.00000023841858f) {
+    float invMag = 1.0f / posZMag;
+    posZNorm *= invMag;
+    negZNorm *= invMag;
   }
+
+  boxSides[2].n = negYNorm;
+  boxSides[2].d = -NTempest::C3Vector::Dot(botPoint, negYNorm);
+  boxSides[3].n = posYNorm;
+  boxSides[3].d = -NTempest::C3Vector::Dot(topPoint, posYNorm);
+  boxSides[4].n = posZNorm;
+  boxSides[4].d = -NTempest::C3Vector::Dot(topPoint, posZNorm);
+  boxSides[5].n = negZNorm;
+  boxSides[5].d = -NTempest::C3Vector::Dot(botPoint, negZNorm);
 }
 
-int CMovement::ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides) {
+int CMovement::ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides) {
   if (NTempest::CMath::fabs_(unitMove.x) < 0.00000023841858f && NTempest::CMath::fabs_(unitMove.z) < 0.00000023841858f) {
     return 0;
   }
   NTempest::C3Vector moveVector = unitMove * distance;
-  NTempest::C3Vector moveDir[2] = {-unitMove, unitMove};
+  NTempest::C3Vector moveDir[2] = {-moveVector, moveVector};
   int                posX = unitMove.x >= 0.0f;
   float              depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
-  NTempest::C3Vector posZNorm(0.0f, 0.0f, 1.0f);
-  NTempest::C3Vector baseVector(depth[posX], 0.0f, m_collisionBoxHalfDepth * 1.849399f);
-  NTempest::C3Vector posPyramidEdge = m_position + baseVector;
-  posPyramidEdge.y += m_collisionBoxHalfDepth;
-  NTempest::C3Vector negPyramidEdge = posPyramidEdge;
-  negPyramidEdge.y -= 2.0f * m_collisionBoxHalfDepth;
-  NTempest::C3Vector face[3] = {m_position, negPyramidEdge, posPyramidEdge};
-  NTempest::C3Vector faceNorm = NTempest::C3Vector::Cross(face[1] - face[0], face[2] - face[0]);
-  faceNorm.Normalize();
-  NTempest::C3Vector center = (face[0] + face[1] + face[2]) * (1.0f / 3.0f) + moveVector * 0.5f;
-  boxSides[0].Set(-faceNorm, face[0]);
-  NTempest::C3Vector endPoint = face[0] + moveVector;
-  boxSides[1].Set(faceNorm, endPoint);
-  for (int side = 0; side < 3; ++side) {
-    NTempest::C3Vector edge = face[(side + 1) % 3] - face[side];
-    NTempest::C3Vector normal = NTempest::C3Vector::Cross(edge, moveVector);
-    if (normal.Mag() >= 0.00000023841858f) {
-      normal.Normalize();
-    }
-    boxSides[side + 2].Set(normal, face[side]);
-    if (boxSides[side + 2].DistSigned(center) > 0.0f) {
-      boxSides[side + 2] = -boxSides[side + 2];
-    }
+
+  float pyrNormX = posX ? 0.87964189f : -0.87964189f;
+
+  NTempest::C3Vector posPyramidEdge(depth[posX], m_collisionBoxHalfDepth, m_collisionBoxHalfDepth * 1.849399f);
+  NTempest::C3Vector negPyramidEdge(posPyramidEdge.x, -posPyramidEdge.y, posPyramidEdge.z);
+
+  NTempest::C3Vector posZNorm(moveDir[!posX].z, 0.0f, moveDir[posX].x);
+  float posZMag = posZNorm.Mag();
+  if (NTempest::CMath::fabs_(posZMag) >= 0.00000023841858f) {
+    posZNorm *= 1.0f / posZMag;
   }
+
+  boxSides[0].n.Set(-pyrNormX, 0.0f, 0.4756366f);
+  boxSides[0].d = -NTempest::C3Vector::Dot(boxSides[0].n, m_position);
+
+  float              clampedDist = distance > 0.027777778f ? distance : 0.027777778f;
+  NTempest::C3Vector advanced(unitMove.x * clampedDist, unitMove.y * clampedDist, unitMove.z * clampedDist);
+  advanced.Set(advanced.x + m_position.x, advanced.y + m_position.y, advanced.z + m_position.z);
+  boxSides[1].n.Set(pyrNormX, 0.0f, -0.4756366f);
+  boxSides[1].d = -NTempest::C3Vector::Dot(boxSides[1].n, advanced);
+
+  boxSides[2] = NTempest::C4Plane(NTempest::C3Vector(0.0f), moveVector, negPyramidEdge);
+  if (boxSides[2].n.y > 0.0f) {
+    boxSides[2] = -boxSides[2];
+  }
+  boxSides[2].d = -NTempest::C3Vector::Dot(boxSides[2].n, m_position);
+
+  boxSides[3] = NTempest::C4Plane(NTempest::C3Vector(0.0f), moveVector, posPyramidEdge);
+  if (boxSides[3].n.y < 0.0f) {
+    boxSides[3] = -boxSides[3];
+  }
+  boxSides[3].d = -NTempest::C3Vector::Dot(boxSides[3].n, m_position);
+
+  negPyramidEdge.Set(posPyramidEdge.x + m_position.x, posPyramidEdge.y + m_position.y, posPyramidEdge.z + m_position.z);
+  boxSides[4].n = posZNorm;
+  boxSides[4].d = -NTempest::C3Vector::Dot(boxSides[4].n, negPyramidEdge);
+
   return 1;
 }
 
-int CMovement::ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides) {
+int CMovement::ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides) {
   if (NTempest::CMath::fabs_(unitMove.y) < 0.00000023841858f && NTempest::CMath::fabs_(unitMove.z) < 0.00000023841858f) {
     return 0;
   }
   NTempest::C3Vector moveVector = unitMove * distance;
-  NTempest::C3Vector moveDir[2] = {-unitMove, unitMove};
+  NTempest::C3Vector moveDir[2] = {-moveVector, moveVector};
   int                posY = unitMove.y >= 0.0f;
   float              depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
-  NTempest::C3Vector posZNorm(0.0f, 0.0f, 1.0f);
-  NTempest::C3Vector baseVector(0.0f, depth[posY], m_collisionBoxHalfDepth * 1.849399f);
-  NTempest::C3Vector posPyramidEdge = m_position + baseVector;
-  posPyramidEdge.x += m_collisionBoxHalfDepth;
-  NTempest::C3Vector negPyramidEdge = posPyramidEdge;
-  negPyramidEdge.x -= 2.0f * m_collisionBoxHalfDepth;
-  NTempest::C3Vector face[3] = {m_position, posPyramidEdge, negPyramidEdge};
-  NTempest::C3Vector faceNorm = NTempest::C3Vector::Cross(face[1] - face[0], face[2] - face[0]);
-  faceNorm.Normalize();
-  NTempest::C3Vector center = (face[0] + face[1] + face[2]) * (1.0f / 3.0f) + moveVector * 0.5f;
-  boxSides[0].Set(-faceNorm, face[0]);
-  NTempest::C3Vector endPoint = face[0] + moveVector;
-  boxSides[1].Set(faceNorm, endPoint);
-  for (int side = 0; side < 3; ++side) {
-    NTempest::C3Vector edge = face[(side + 1) % 3] - face[side];
-    NTempest::C3Vector normal = NTempest::C3Vector::Cross(edge, moveVector);
-    if (normal.Mag() >= 0.00000023841858f) {
-      normal.Normalize();
-    }
-    boxSides[side + 2].Set(normal, face[side]);
-    if (boxSides[side + 2].DistSigned(center) > 0.0f) {
-      boxSides[side + 2] = -boxSides[side + 2];
-    }
+
+  float pyrNormY = posY ? 0.87964189f : -0.87964189f;
+
+  NTempest::C3Vector posPyramidEdge(m_collisionBoxHalfDepth, depth[posY], m_collisionBoxHalfDepth * 1.849399f);
+  NTempest::C3Vector negPyramidEdge(-posPyramidEdge.x, posPyramidEdge.y, posPyramidEdge.z);
+
+  NTempest::C3Vector posZNorm(0.0f, moveDir[!posY].z, moveDir[posY].y);
+  float posZMag = posZNorm.Mag();
+  if (NTempest::CMath::fabs_(posZMag) >= 0.00000023841858f) {
+    posZNorm *= 1.0f / posZMag;
   }
+
+  boxSides[0].n.Set(0.0f, -pyrNormY, 0.4756366f);
+  boxSides[0].d = -NTempest::C3Vector::Dot(boxSides[0].n, m_position);
+
+  float              clampedDist = distance > 0.027777778f ? distance : 0.027777778f;
+  NTempest::C3Vector advanced(unitMove.x * clampedDist, unitMove.y * clampedDist, unitMove.z * clampedDist);
+  advanced.Set(advanced.x + m_position.x, advanced.y + m_position.y, advanced.z + m_position.z);
+  boxSides[1].n.Set(0.0f, pyrNormY, -0.4756366f);
+  boxSides[1].d = -NTempest::C3Vector::Dot(boxSides[1].n, advanced);
+
+  boxSides[2] = NTempest::C4Plane(NTempest::C3Vector(0.0f), moveVector, negPyramidEdge);
+  if (boxSides[2].n.x > 0.0f) {
+    boxSides[2] = -boxSides[2];
+  }
+  boxSides[2].d = -NTempest::C3Vector::Dot(boxSides[2].n, m_position);
+
+  boxSides[3] = NTempest::C4Plane(NTempest::C3Vector(0.0f), moveVector, posPyramidEdge);
+  if (boxSides[3].n.x < 0.0f) {
+    boxSides[3] = -boxSides[3];
+  }
+  boxSides[3].d = -NTempest::C3Vector::Dot(boxSides[3].n, m_position);
+
+  negPyramidEdge.Set(posPyramidEdge.x + m_position.x, posPyramidEdge.y + m_position.y, posPyramidEdge.z + m_position.z);
+  boxSides[4].n = posZNorm;
+  boxSides[4].d = -NTempest::C3Vector::Dot(boxSides[4].n, negPyramidEdge);
+
   return 1;
 }
